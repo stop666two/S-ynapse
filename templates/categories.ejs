@@ -1,0 +1,14 @@
+<h1>分类</h1>
+
+<% if (allCategories && allCategories.length) { %>
+<div class="categories-list">
+  <% allCategories.forEach(function(cat) { %>
+  <div class="category-item">
+    <a href="<%= cat.url %>" class="category-link"><%= cat.name %></a>
+    <span class="category-count"><%= cat.count %> 篇文章</span>
+  </div>
+  <% }) %>
+</div>
+<% } else { %>
+<p style="color:var(--color-text-secondary)">暂无分类</p>
+<% } %>

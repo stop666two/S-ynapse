@@ -1,0 +1,34 @@
+<div class="term-header">
+  <h1 class="term-title">标签: <%= tagName %></h1>
+  <p class="term-count"><%= articles.length %> 篇文章</p>
+</div>
+
+<% if (articles && articles.length) { %>
+<% articles.forEach(function(article) { %>
+<article class="post-card">
+  <h2 class="post-card-title">
+    <a href="<%= article.url %>"><%= article.title %></a>
+  </h2>
+  <div class="post-card-meta">
+    <% if (theme.card && theme.card.showDate && article.date) { %>
+    <span><%= article.formattedDate || article.date %></span>
+    <% } %>
+    <% if (theme.card && theme.card.showCategories && article.categories && article.categories.length) { %>
+    <span>
+      <% article.categories.forEach(function(cat, i) { %>
+      <a href="/categories/<%= generateSlug(cat) %>/"><%= cat %></a><% if (i < article.categories.length - 1) { %>, <% } %>
+      <% }) %>
+    </span>
+    <% } %>
+    <% if (theme.card && theme.card.showReadTime && article.readTime) { %>
+    <span><%= article.readTime %> 分钟</span>
+    <% } %>
+  </div>
+  <% if (theme.card && theme.card.showExcerpt && article.excerpt) { %>
+  <p class="post-card-excerpt"><%= article.excerpt %></p>
+  <% } %>
+</article>
+<% }) %>
+<% } else { %>
+<p>该标签下暂无文章</p>
+<% } %>

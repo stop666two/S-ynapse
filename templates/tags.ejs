@@ -1,0 +1,20 @@
+<h1>标签</h1>
+
+<% if (allTags && allTags.length) { %>
+<div class="tags-cloud">
+  <% var maxCount = Math.max.apply(null, allTags.map(function(t) { return t.count; })); %>
+  <% allTags.forEach(function(tag) { %>
+  <%
+    var sizeClass = 'size-sm';
+    if (tag.count / maxCount > 0.66) sizeClass = 'size-lg';
+    else if (tag.count / maxCount > 0.33) sizeClass = 'size-md';
+  %>
+  <a href="<%= tag.url %>" class="tags-cloud-item <%= sizeClass %>">
+    <%= tag.name %>
+    <span class="tags-cloud-count">(<%= tag.count %>)</span>
+  </a>
+  <% }) %>
+</div>
+<% } else { %>
+<p style="color:var(--color-text-secondary)">暂无标签</p>
+<% } %>

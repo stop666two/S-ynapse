@@ -1,0 +1,61 @@
+<div class="post-article" style="padding:2rem">
+  <h1>搜索</h1>
+  <div style="margin:2rem 0">
+    <input type="text" id="searchPageInput" placeholder="输入关键词搜索..." style="width:100%;padding:1rem 1.25rem;font-size:1.125rem;border:2px solid var(--color-border);border-radius:var(--r);background:var(--color-bg);color:var(--color-t);font-family:var(--ff);outline:none" oninput="searchPage(this.value)" autofocus>
+  </div>
+  <div id="searchPageResults">
+    <p style="color:var(--color-text-secondary);text-align:center;padding:2rem">输入关键词开始搜索</p>
+  </div>
+</div>
+
+<script>
+var searchData = window.__SEARCH_DATA__ || [];
+
+function searchPage(query) {
+  var resultsDiv = document.getElementById('searchPageResults');
+  if (!resultsDiv) return;
+  if (!query || query.length < 2) {
+    resultsDiv.innerHTML = '<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">输入关键词开始搜索</p>';
+    return;
+  }
+
+  var lowerQuery = query.toLowerCase();
+  var results = [];
+
+  for (var i = 0; i < searchData.length; i++) {
+    var item = searchData[i];
+    var score = 0;
+    if (item.title && item.title.toLowerCase().includes(lowerQuery)) score += 10;
+    if (item.excerpt && item.excerpt.toLowerCase().includes(lowerQuery)) score += 3;
+    if (item.tags && item.tags.some(function(t) { return t.toLowerCase().includes(lowerQuery); })) score += 5;
+    if (item.categories && item.categories.some(function(c) { return c.toLowerCase().includes(lowerQuery); })) score += 4;
+    if (score > 0) { item.score = score; results.push(item); }
+  }
+
+  results.sort(function(a, b) { return b.score - a.score; });
+
+  if (results.length) {
+    resultsDiv.innerHTML = '<p style="color:var(--color-text-secondary);margin-bottom:1rem">找到 ' + results.length + ' 个结果</p>' +
+      results.map(function(r) {
+        return '<article class="post-card" style="cursor:pointer" onclick="location.href=\'' + r.url + '\'">' +
+          '<h2 class="post-card-title"><a href="' + r.url + '">' + r.title + '</a></h2>' +
+          (r.excerpt ? '<p class="post-card-excerpt">' + r.excerpt.substring(0, 200) + '</p>' : '') +
+          (r.tags && r.tags.length ? '<div class="post-tags" style="margin-top:0.5rem">' +
+            r.tags.map(function(t) { return '<span class="post-tag">' + t + '</span>'; }).join('') +
+          '</div>' : '') +
+        '</article>';
+      }).join('');
+  } else {
+    resultsDiv.innerHTML = '<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">未找到相关文章</p>';
+  }
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  var params = new URLSearchParams(window.location.search);
+  var q = params.get('q');
+  if (q) {
+    document.getElementById('searchPageInput').value = q;
+    searchPage(q);
+  }
+});
+</script>

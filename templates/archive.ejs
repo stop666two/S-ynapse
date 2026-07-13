@@ -1,0 +1,23 @@
+<div class="post-article">
+<h1>归档</h1>
+
+<% if (archives && archives.length) { %>
+<% archives.forEach(function(group) { %>
+<div class="archive-year">
+  <h2 class="archive-year-title"><%= group.year %></h2>
+  <div class="archive-month">
+    <ul class="archive-list">
+      <% group.articles.forEach(function(article) { %>
+      <li class="archive-item">
+        <span class="archive-date"><%= article.formattedDate || article.date %></span>
+        <a href="<%= article.url %>" class="archive-link"><%= article.title %></a>
+      </li>
+      <% }) %>
+    </ul>
+  </div>
+</div>
+<% }) %>
+<% } else { %>
+<p style="color:var(--color-text-secondary)">暂无归档</p>
+<% } %>
+</div>

@@ -1,0 +1,81 @@
+{
+  // ==================== 侧边栏全局设置 ====================
+
+  "enabled": true,              // 是否启用侧边栏
+  "position": "right",          // 侧边栏位置：left / right
+  "width": "280px",             // 侧边栏宽度
+  "sticky": true,               // 是否启用粘性定位（滚动时跟随）
+  "stickyOffset": 20,           // 粘性定位距离顶部的偏移量（px）
+
+  // ==================== 侧边栏组件列表 ====================
+
+  "widgets": [
+    {
+      "type": "author",          // 组件类型：author - 作者简介卡片
+      "enabled": true,           // 是否启用该组件
+      "title": "关于我",         // 组件标题
+      "avatar": "/media/avatar.svg",  // 头像图片路径
+      "bio": "全栈开发者，热爱开源",    // 个人简介
+      "social": true             // 是否显示社交链接
+    },
+    {
+      "type": "recent",          // 组件类型：recent - 最新文章列表
+      "enabled": true,
+      "title": "最新文章",
+      "count": 5,                // 显示的文章数量
+      "showDate": true,          // 是否显示日期
+      "excludeDrafts": true      // 是否排除草稿
+    },
+    {
+      "type": "tags",            // 组件类型：tags - 标签云
+      "enabled": true,
+      "title": "标签云",
+      "limit": 20,               // 最多显示的标签数
+      "showCount": true,         // 是否显示文章数量
+      "sortBy": "count",         // 排序方式：count / name
+      "minCount": 1              // 最小文章数过滤
+    },
+    {
+      "type": "categories",      // 组件类型：categories - 分类列表
+      "enabled": true,
+      "title": "分类",
+      "showCount": true,         // 是否显示文章数量
+      "hierarchy": true          // 是否显示层级结构
+    },
+    {
+      "type": "archive",         // 组件类型：archive - 文章归档
+      "enabled": true,
+      "title": "归档",
+      "showCount": true          // 是否显示每月的文章数量
+    },
+    {
+      "type": "search",          // 组件类型：search - 搜索框
+      "enabled": true,
+      "title": "搜索",
+      "placeholder": "输入关键词..."  // 搜索框占位文字
+    },
+    {
+      "type": "custom",          // 组件类型：custom - 自定义 HTML
+      "enabled": false,
+      "title": "广告位",
+      "html": "<div>自定义内容</div>"
+    },
+    {
+      "type": "newsletter",      // 组件类型：newsletter - 邮件订阅
+      "enabled": false,
+      "title": "订阅更新",
+      "provider": "mailchimp",   // 订阅服务提供商
+      "mailchimpAction": "",     // Mailchimp 表单 action URL
+      "buttonText": "订阅"       // 订阅按钮文字
+    }
+  ],
+
+  // ==================== 移动端适配 ====================
+
+  "mobile": {
+    "enabled": true,             // 移动端是否启用侧边栏
+    "collapsed": true,           // 默认是否折叠
+    "toggleButton": true,        // 是否显示切换按钮
+    "overlay": true              // 展开时是否显示遮罩层
+  }
+}

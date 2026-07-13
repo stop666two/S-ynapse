@@ -1,0 +1,70 @@
+<% if (site.subtitle) { %>
+<div style="text-align:center;padding:2rem 0 1rem">
+  <h1 style="font-size:2.5em;margin-bottom:0.25rem"><%= site.title %></h1>
+  <p style="color:var(--color-text-secondary);font-size:1.125em"><%= site.subtitle %></p>
+</div>
+<% } %>
+
+<% if (articles && articles.length) { %>
+<% articles.forEach(function(article) { %>
+<article class="post-card">
+  <% if (article.featuredImage) { %>
+  <a href="<%= article.url %>">
+    <img src="<%= article.featuredImage %>" alt="<%= article.title %>" class="post-card-image" loading="lazy">
+  </a>
+  <% } %>
+  <h2 class="post-card-title">
+    <a href="<%= article.url %>"><%= article.title %></a>
+  </h2>
+  <div class="post-card-meta">
+    <% if (theme.card && theme.card.showDate && article.date) { %>
+    <span><%= article.formattedDate || article.date %></span>
+    <% } %>
+    <% if (theme.card && theme.card.showCategories && article.categories && article.categories.length) { %>
+    <span>
+      <% article.categories.forEach(function(cat, i) { %>
+      <a href="/categories/<%= generateSlug(cat) %>/"><%= cat %></a><% if (i < article.categories.length - 1) { %>, <% } %>
+      <% }) %>
+    </span>
+    <% } %>
+    <% if (theme.card && theme.card.showReadTime && article.readTime) { %>
+    <span><%= article.readTime %> 分钟阅读</span>
+    <% } %>
+  </div>
+  <% if (theme.card && theme.card.showExcerpt && article.excerpt) { %>
+  <p class="post-card-excerpt"><%= article.excerpt %></p>
+  <% } %>
+  <% if (theme.card && theme.card.showTags && article.tags && article.tags.length) { %>
+  <div class="post-tags" style="margin-top:0.75rem">
+    <% article.tags.forEach(function(tag) { %>
+    <a href="/tags/<%= generateSlug(tag) %>/" class="post-tag"><%= tag %></a>
+    <% }) %>
+  </div>
+  <% } %>
+</article>
+<% }) %>
+
+<% if (pagination && pagination.total > 1) { %>
+<nav class="pagination">
+  <% if (pagination.prev) { %>
+  <a href="<%= pagination.prev %>" class="page-link">&laquo; <%= pagination.prevLabel %></a>
+  <% } else { %>
+  <span class="page-link disabled">&laquo; <%= pagination.prevLabel %></span>
+  <% } %>
+
+  <% pagination.pages.forEach(function(p) { %>
+  <a href="<%= p.url %>" class="page-link <%= p.current ? 'active' : '' %>"><%= p.num %></a>
+  <% }) %>
+
+  <% if (pagination.next) { %>
+  <a href="<%= pagination.next %>" class="page-link"><%= pagination.nextLabel %> &raquo;</a>
+  <% } else { %>
+  <span class="page-link disabled"><%= pagination.nextLabel %> &raquo;</span>
+  <% } %>
+</nav>
+<% } %>
+<% } else { %>
+<div style="text-align:center;padding:4rem 1rem;color:var(--color-text-secondary)">
+  <p style="font-size:1.125rem">暂无文章</p>
+</div>
+<% } %>

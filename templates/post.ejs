@@ -1,0 +1,97 @@
+<article class="post-article">
+  <header class="post-header">
+    <h1 class="post-title"><%= article.title %></h1>
+    <div class="post-meta">
+      <% if (article.date) { %>
+      <span><%= article.formattedDate || article.date %></span>
+      <% } %>
+      <% if (article.categories && article.categories.length) { %>
+      <span>
+        <% article.categories.forEach(function(cat, i) { %>
+        <a href="/categories/<%= generateSlug(cat) %>/"><%= cat %></a><% if (i < article.categories.length - 1) { %>, <% } %>
+        <% }) %>
+      </span>
+      <% } %>
+      <% if (article.readTime) { %>
+      <span><%= article.readTime %> 分钟阅读</span>
+      <% } %>
+      <% if (article.tags && article.tags.length) { %>
+      <span>
+        <% article.tags.forEach(function(tag) { %>
+        <a href="/tags/<%= generateSlug(tag) %>/" class="post-tag"><%= tag %></a>
+        <% }) %>
+      </span>
+      <% } %>
+    </div>
+  </header>
+
+  <% if (article.featuredImage) { %>
+  <img src="<%= article.featuredImage %>" alt="<%= article.title %>" class="post-featured-image" loading="eager">
+  <% } %>
+
+  <div class="post-content">
+    <%- article.content %>
+  </div>
+</article>
+
+<% if (site.comments && site.comments.enabled) { %>
+<section class="comments-section">
+  <% if (site.comments.provider === 'giscus') { %>
+  <script src="https://giscus.app/client.js"
+          data-repo="<%= site.comments.giscus.repo %>"
+          data-repo-id="<%= site.comments.giscus.repoId %>"
+          data-category="<%= site.comments.giscus.category %>"
+          data-category-id="<%= site.comments.giscus.categoryId %>"
+          data-mapping="<%= site.comments.giscus.mapping || 'pathname' %>"
+          data-strict="<%= site.comments.giscus.strict || '0' %>"
+          data-reactions-enabled="<%= site.comments.giscus.reactionsEnabled || '1' %>"
+          data-emit-metadata="<%= site.comments.giscus.emitMetadata || '0' %>"
+          data-input-position="<%= site.comments.giscus.inputPosition || 'bottom' %>"
+          data-theme="<%= site.comments.giscus.theme || 'light' %>"
+          data-lang="<%= site.comments.giscus.lang || site.language || 'zh-CN' %>"
+          async>
+  </script>
+  <% } else if (site.comments.provider === 'utterances') { %>
+  <script src="https://utteranc.es/client.js"
+          repo="<%= site.comments.utterances.repo %>"
+          issue-term="pathname"
+          label="<%= site.comments.utterances.label || 'comment' %>"
+          theme="<%= site.comments.utterances.theme || 'github-light' %>"
+          crossorigin="anonymous"
+          async>
+  </script>
+  <% } else if (site.comments.provider === 'disqus') { %>
+  <div id="disqus_thread"></div>
+  <script>
+    var disqus_config = function () {
+      this.page.url = '<%= site.url + article.url %>';
+      this.page.identifier = '<%= article.slug %>';
+    };
+    (function() {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://<%= site.comments.disqus.shortname %>.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>请启用 JavaScript 以查看 Disqus 评论。</noscript>
+  <% } %>
+</section>
+<% } %>
+
+<% if (prevArticle || nextArticle) { %>
+<nav class="post-navigation">
+  <% if (prevArticle) { %>
+  <a href="<%= prevArticle.url %>" class="post-nav-link">
+    <span class="post-nav-label"><%= site.prevPostLabel || '上一篇' %></span>
+    <span class="post-nav-title"><%= prevArticle.title %></span>
+  </a>
+  <% } %>
+  <% if (nextArticle) { %>
+  <a href="<%= nextArticle.url %>" class="post-nav-link next">
+    <span class="post-nav-label"><%= site.nextPostLabel || '下一篇' %></span>
+    <span class="post-nav-title"><%= nextArticle.title %></span>
+  </a>
+  <% } %>
+</nav>
+<% } %>

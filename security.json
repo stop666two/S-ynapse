@@ -1,0 +1,115 @@
+{
+  // ==================== 内容安全策略 (CSP) ====================
+  // 控制浏览器允许加载哪些资源，防止 XSS 攻击
+
+  "csp": {
+    "enabled": true,             // 是否启用 CSP 头
+    "directives": {              // CSP 指令列表
+      "default-src": ["'self'"],                             // 默认资源加载来源
+      "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],  // 脚本来源
+      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],  // 样式来源
+      "img-src": ["'self'", "data:", "https:"],              // 图片来源
+      "font-src": ["'self'", "https://fonts.gstatic.com"],   // 字体来源
+      "connect-src": ["'self'", "https://api.example.com"],  // 接口请求来源
+      "media-src": ["'self'"],                                // 媒体资源来源
+      "object-src": ["'none'"],                               // 插件对象来源（建议设为 'none'）
+      "frame-src": ["'none'"],                                // 框架嵌入来源
+      "worker-src": ["'self'"],                               // Web Worker 来源
+      "manifest-src": ["'self'"],                             // Manifest 来源
+      "base-uri": ["'self'"],                                 // <base> 标签限制
+      "form-action": ["'self'"]                               // 表单提交目标限制
+    },
+    "reportOnly": false,         // true = 仅报告不阻止，false = 强制执行
+    "reportUri": "/csp-report"   // CSP 违规报告接收地址
+  },
+
+  // ==================== HTTP 安全头 ====================
+  // 通过 HTTP 响应头增强浏览器安全
+
+  "headers": {
+    "X-Frame-Options": "DENY",                                          // 禁止页面被嵌入 iframe，防止点击劫持
+    "X-Content-Type-Options": "nosniff",                                // 禁止 MIME 类型嗅探
+    "Referrer-Policy": "strict-origin-when-cross-origin",               // 控制 Referer 头发送策略
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",   // 禁用不必要的浏览器 API 权限
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",  // HSTS 强制 HTTPS
+    "X-XSS-Protection": "1; mode=block",                                // 启用 XSS 过滤器
+    "Cross-Origin-Resource-Policy": "same-origin",                      // 跨域资源策略
+    "Cross-Origin-Embedder-Policy": "require-corp",                     // 跨域嵌入策略
+    "Cross-Origin-Opener-Policy": "same-origin"                         // 跨域打开者策略
+  },
+
+  // ==================== 速率限制 ====================
+  // 防止暴力破解和 DDoS 攻击
+
+  "rateLimiting": {
+    "enabled": true,             // 是否启用速率限制
+    "maxRequests": 100,          // 时间窗口内允许的最大请求数
+    "windowMs": 60000,           // 时间窗口（毫秒）
+    "blockDuration": 300000,     // 超过限制后的封禁时长（毫秒）
+    "whitelist": ["192.168.1.1"],  // 白名单 IP（不受限制）
+    "blacklist": []                // 黑名单 IP（始终封禁）
+  },
+
+  // ==================== robots.txt ====================
+  // 控制搜索引擎爬虫的抓取行为
+
+  "robots": {
+    "enabled": true,             // 是否生成 robots.txt
+    "rules": [                   // 爬虫规则列表
+      { "userAgent": "*", "allow": "/", "disallow": "/admin" },
+      { "userAgent": "Googlebot", "allow": "/" }
+    ],
+    "sitemap": "/sitemap.xml"    // sitemap 地址
+  },
+
+  // ==================== SRI 子资源完整性 ====================
+  // 确保外部加载的资源未被篡改
+
+  "sri": {
+    "enabled": false,                        // 是否启用 SRI
+    "algorithms": ["sha256", "sha384"]       // 支持的哈希算法
+  },
+
+  // ==================== 路径访问限制 ====================
+
+  "pathRestrictions": [
+    {
+      "path": "/admin/*",                         // 受限制的路径模式
+      "requireAuth": true,                        // 是否需要登录
+      "allowedIPs": ["192.168.1.0/24"]            // 允许的 IP 范围
+    }
+  ],
+
+  // ==================== HTTPS 强制跳转 ====================
+
+  "forceHttps": true,            // 是否将所有 HTTP 请求重定向到 HTTPS
+
+  // ==================== 安全日志 ====================
+
+  "securityLogging": {
+    "enabled": false,             // 是否启用安全日志记录
+    "logFailedRequests": true,    // 是否记录失败的请求
+    "logBlockedIPs": true         // 是否记录被封禁的 IP
+  },
+
+  // ==================== 自定义响应头 ====================
+
+  "customHeaders": {},           // 额外的自定义响应头（key-value 格式）
+
+  // ==================== 内容过滤 ====================
+  // 防止 XSS 和 HTML 注入
+
+  "contentFilter": {
+    "enabled": true,                                // 是否启用内容过滤
+    "disallowTags": ["script", "iframe", "object"],  // 禁止使用的 HTML 标签
+    "disallowAttributes": ["onerror", "onload"],     // 禁止使用的 HTML 属性（事件处理器）
+    "escapeHTML": true                               // 是否转义 HTML 特殊字符
+  },
+
+  // ==================== 上传安全 ====================
+
+  "uploadSecurity": {
+    "maxFileSize": 5242880,                          // 最大上传文件大小（字节），默认 5MB
+    "allowedExtensions": ["jpg", "png", "webp", "mp4"]  // 允许上传的文件扩展名
+  }
+}

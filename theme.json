@@ -1,0 +1,142 @@
+{
+  // ==================== 颜色方案（明亮模式） ====================
+
+  "colors": {
+    "primary": "#2d3748",             // 主色 - 标题和强调元素
+    "secondary": "#4a90d9",           // 辅色 - 链接和按钮
+    "accent": "#e53e3e",              // 强调色 - 特殊标记
+    "background": "#f7fafc",          // 页面背景色
+    "surface": "#ffffff",             // 卡片/表面背景色
+    "text": "#1a202c",                // 主文字颜色
+    "textSecondary": "#4a5568",       // 次要文字颜色
+    "textLight": "#a0aec0",           // 浅色文字（如日期、页脚）
+    "border": "#e2e8f0",              // 边框颜色
+    "shadow": "rgba(0,0,0,0.1)",      // 阴影颜色
+    "hover": "#edf2f7",               // 悬停背景色
+    "codeBackground": "#2d3748",      // 代码块背景色
+    "codeText": "#f7fafc"             // 代码块文字颜色
+  },
+
+  // ==================== 深色模式 ====================
+
+  "darkMode": {
+    "enabled": true,                   // 是否启用深色模式
+    "toggle": true,                    // 是否显示切换按钮
+    "default": "system",               // 默认模式：light / dark / system（跟随系统）
+    "colors": {                        // 深色模式下的颜色覆盖（如不覆盖则使用默认配色）
+      "background": "#0f172a",         // 页面背景（深蓝灰，比纯黑更柔和）
+      "surface": "#1e293b",            // 卡片/面板背景
+      "text": "#f1f5f9",               // 主文字色（暖白，减轻眼疲劳）
+      "textSecondary": "#94a3b8",      // 副文字色
+      "textLight": "#64748b",          // 浅色文字
+      "border": "#334155",             // 边框色
+      "shadow": "rgba(0,0,0,0.3)",    // 阴影色
+      "hover": "#334155",              // 悬停背景色
+      "codeBackground": "#0f172a",     // 代码块背景
+      "codeText": "#e2e8f0"            // 代码块文字色
+    }
+  },
+
+  // ==================== 字体设置 ====================
+
+  // 正文字体族
+  "fontFamily": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  // 等宽字体族（代码块使用）
+  "fontFamilyMono": "'Fira Code', 'Menlo', 'Consolas', monospace",
+  // 基础字号
+  "fontSizeBase": "16px",
+  // 行高
+  "lineHeight": 1.8,
+  // 标题字重
+  "headingFontWeight": 700,
+  // 字间距
+  "letterSpacing": "0.02em",
+
+  // ==================== 间距与尺寸 ====================
+
+  "spacing": {
+    "containerWidth": "960px",   // 内容区最大宽度
+    "gap": "2rem",               // 元素间距
+    "padding": "2rem",           // 内边距
+    "radius": "0.5rem",          // 默认圆角
+    "radiusLarge": "1rem"        // 大圆角（如搜索弹窗）
+  },
+
+  // ==================== 阴影 ====================
+
+  "shadow": {
+    "card": "0 4px 6px rgba(0,0,0,0.1)",              // 卡片阴影
+    "dropdown": "0 10px 15px -3px rgba(0,0,0,0.1)",   // 下拉菜单阴影
+    "fixed": "0 2px 4px rgba(0,0,0,0.08)"             // 固定元素阴影（如导航栏）
+  },
+
+  // ==================== 布局 ====================
+
+  "layout": {
+    "headerStyle": "fixed",       // 导航栏样式：fixed / static
+    "headerHeight": "60px",       // 导航栏高度
+    "footerStyle": "simple",      // 页脚样式
+    "sidebarPosition": "right",   // 侧边栏位置：left / right
+    "contentWidth": "main",       // 内容宽度模式
+    "postLayout": "standard",     // 文章布局：standard / full
+    "archiveLayout": "list"       // 归档布局：list / grid
+  },
+
+  // ==================== 动画 ====================
+
+  "animation": {
+    "enable": true,               // 是否启用动画
+    "transitionDuration": "0.3s", // 过渡动画时长
+    "transitionTiming": "ease-in-out",  // 过渡缓动函数
+    "scrollBehavior": "smooth",   // 页面滚动行为
+    "pageTransition": "fade"      // 页面切换动画
+  },
+
+  // ==================== 代码高亮 ====================
+
+  "codeHighlight": {
+    "theme": "github-dark",       // 代码高亮主题
+    "lineNumbers": true,          // 是否显示行号
+    "copyButton": true,           // 是否显示复制按钮
+    "wrapLongLines": false,       // 长代码行是否换行
+    "highlightLines": true        // 是否支持行高亮
+  },
+
+  // ==================== 文章卡片 ====================
+
+  "card": {
+    "showDate": true,             // 是否显示日期
+    "showTags": true,             // 是否显示标签
+    "showCategories": true,       // 是否显示分类
+    "showExcerpt": true,          // 是否显示摘要
+    "excerptLength": 150,         // 摘要最大字符数
+    "showReadTime": true,         // 是否显示阅读时间
+    "readTimeSpeed": 265          // 阅读速度（字/分钟）
+  },
+
+  // ==================== 按钮 ====================
+
+  "button": {
+    "radius": "0.25rem",                  // 按钮圆角
+    "padding": "0.5rem 1.5rem",          // 按钮内边距
+    "primaryBackground": "#4a90d9",       // 主要按钮背景色
+    "primaryText": "#ffffff",             // 主要按钮文字色
+    "hoverScale": 1.02                    // 悬停缩放比例
+  },
+
+  // ==================== 自定义 CSS ====================
+
+  // 自定义 CSS 变量覆盖，可按组件名传入样式字符串
+  "customCSS": {},
+
+  // ==================== 外部资源 ====================
+
+  "externalAssets": {
+    "styles": [                    // 外部 CSS 文件 URL 列表
+      "https://fonts.googleapis.com/css2?family=Inter&display=swap"
+    ],
+    "scripts": [                   // 外部 JS 文件 URL 列表
+      "https://cdn.jsdelivr.net/npm/prismjs@1/prism.min.js"
+    ]
+  }
+}

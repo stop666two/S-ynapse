@@ -1,0 +1,8 @@
+name = "s-ynapse-security"
+compatibility_date = "2024-04-01"
+
+[site]
+bucket = "../dist"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }

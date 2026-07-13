@@ -1,0 +1,69 @@
+{
+  // ==================== 导航菜单项 ====================
+
+  "menu": [
+    {
+      "label": "首页",     // 菜单显示文字
+      "url": "/",          // 链接地址
+      "icon": "home",      // 图标名称（可选）
+      "target": "_self"    // 打开方式：_self / _blank
+    },
+    {
+      "label": "归档",
+      "url": "/archive",
+      "icon": "archive"
+    },
+    {
+      "label": "标签",
+      "url": "/tags"
+    },
+    {
+      "label": "关于",
+      "url": "/about"
+    }
+  ],
+
+  // ==================== 导航栏设置 ====================
+
+  "navbar": {
+    "fixed": true,              // 是否固定导航栏在顶部
+    "showLogo": true,           // 是否显示 Logo
+    "logoText": "S-ynapse",     // Logo 文字（未设置图片时使用）
+    "logoImage": "",            // Logo 图片路径（为空则使用文字）
+    "logoWidth": "40px",        // Logo 图片宽度
+    "sticky": true,             // 是否粘性定位
+    "transparent": false,       // 是否透明背景
+    "shadow": true,             // 是否显示阴影
+    "mobileCollapse": true,     // 移动端是否折叠菜单
+    "breakpoint": "768px"       // 移动端断点
+  },
+
+  // ==================== 导航栏社交图标 ====================
+
+  "socialInNav": {
+    "enabled": true,                         // 是否在导航栏显示社交图标
+    "order": ["github", "rss", "email", "qq", "qqgroup", "wechat", "phone"]    // 图标显示顺序（与 site.social.items 中的 key 对应）
+  },
+
+  // ==================== 搜索功能 ====================
+
+  "search": {
+    "enabled": true,               // 是否启用搜索
+    "placeholder": "搜索文章...",   // 搜索框占位文字
+    "provider": "local",           // 搜索方式：local（本地搜索）/ algolia
+    "algolia": {                   // Algolia 搜索配置（当 provider 为 algolia 时使用）
+      "appId": "",
+      "apiKey": "",
+      "indexName": "posts"
+    }
+  },
+
+  // ==================== 用户菜单 ====================
+
+  "userMenu": {
+    "enabled": false,       // 是否启用用户菜单（多用户系统）
+    "loginUrl": "/login",   // 登录页面 URL
+    "logoutUrl": "/logout", // 退出登录 URL
+    "profileUrl": "/profile" // 个人中心 URL
+  }
+}

@@ -1,4 +1,4 @@
-name: Build and Deploy
+name: Build
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: Deploy to Cloudflare Pages
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && secrets.CF_API_TOKEN != ''
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}

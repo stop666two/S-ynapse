@@ -1094,7 +1094,7 @@ self.addEventListener('fetch', (event) => {
 
 async function build() {
   console.log('========================================');
-  console.log('  S-ynapse Static Blog Builder v2.1.0');
+  console.log('  S-ynapse Static Blog Builder v1.0.0');
   console.log('========================================\n');
   const startTime = Date.now();
   try {

@@ -1,6 +1,6 @@
-<div class="term-header">
-  <h1 class="term-title">标签: <%= tagName %></h1>
-  <p class="term-count"><%= articles.length %> 篇文章</p>
+<div class="post-article">
+  <h1>标签: <%= tagName %></h1>
+  <p style="color:var(--color-ts);margin-bottom:1.5rem"><%= articles.length %> 篇文章</p>
 </div>
 
 <% if (articles && articles.length) { %>
@@ -30,5 +30,5 @@
 </article>
 <% }) %>
 <% } else { %>
-<p>该标签下暂无文章</p>
+<div class="post-article"><p style="text-align:center;padding:2rem;color:var(--color-ts)">该标签下暂无文章</p></div>
 <% } %>

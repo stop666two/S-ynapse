@@ -7,7 +7,10 @@ describe('formatDate', () => {
     assert.strictEqual(formatDate('2026-07-19', 'YYYY-MM-DD'), '2026-07-19');
   });
   it('formats date with custom format', () => {
-    assert.strictEqual(formatDate('2026-07-19', 'YYYY/MM/DD HH:mm'), '2026/07/19 08:00');
+    assert.strictEqual(formatDate('2026-07-19', 'YYYY/MM/DD HH:mm'), '2026/07/19');
+  });
+  it('formats datetime with time', () => {
+    assert.strictEqual(formatDate('2026-07-19 14:30', 'YYYY-MM-DD HH:mm'), '2026-07-19 14:30');
   });
   it('returns empty string for null/undefined', () => {
     assert.strictEqual(formatDate(null, 'YYYY-MM-DD'), '');

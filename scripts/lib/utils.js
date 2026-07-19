@@ -1,18 +1,23 @@
 function formatDate(dateStr, fmt) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
+  let d, hasTime = false;
+  if (typeof dateStr === 'object' && dateStr instanceof Date && !isNaN(dateStr.getTime())) {
+    d = dateStr;
+    hasTime = d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;
+  } else {
+    const rawStr = String(dateStr);
+    hasTime = /\d{1,2}:\d{2}/.test(rawStr) && !rawStr.endsWith('00:00:00') && !rawStr.endsWith('T00:00:00.000Z') && !/T00:00:00/.test(rawStr);
+    d = new Date(rawStr);
+    if (isNaN(d.getTime())) return rawStr;
+  }
   const pad = n => String(n).padStart(2, '0');
   const map = {
-    'YYYY': d.getFullYear(),
-    'MM': pad(d.getMonth() + 1),
-    'DD': pad(d.getDate()),
-    'HH': pad(d.getHours()),
-    'mm': pad(d.getMinutes()),
-    'ss': pad(d.getSeconds())
+    'YYYY': d.getFullYear(), 'MM': pad(d.getMonth() + 1), 'DD': pad(d.getDate()),
+    'HH': hasTime ? pad(d.getHours()) : '', 'mm': hasTime ? pad(d.getMinutes()) : '', 'ss': hasTime ? pad(d.getSeconds()) : ''
   };
   let result = fmt || 'YYYY-MM-DD';
   for (const [k, v] of Object.entries(map)) result = result.replace(k, v);
+  if (!hasTime) result = result.replace(/[:]\s*$|:\s*[^\d\s]|[\s]+:/g, '').replace(/\s+/g, ' ').trim();
   return result;
 }
 

@@ -1,11 +1,7 @@
 ---
 title: S-ynapse 全功能测试
 slug: hello-world
-tags: ["测试", "教程", "Markdown", "前端", "后端", "安全", "性能", "配置"]
-categories: ["技术", "编程"]
 description: "完整覆盖 S-ynapse 博客系统 40+ 项功能测试：Markdown 语法、代码块、表格、安全机制、交互功能、性能优化、边界情况"
-date: 2026-07-19
-featuredImage: "/media/og-image.svg"
 ---
 
 # S-ynapse 全功能测试

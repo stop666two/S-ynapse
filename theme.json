@@ -161,5 +161,7 @@
   "contentOffset": -10,            // 内容区偏移（px），负=左移，正=右移，0=居中
   "headerContentGap": 48,          // 标题与内容区额外间距（px）
   "tocWidth": "200px",             // 左侧目录宽度
-  "sidebarWidth": "280px"          // 右侧边栏宽度
+  "sidebarWidth": "280px",         // 右侧边栏宽度
+  "tocMinLeft": "10px",            // 左侧目录离屏幕左边缘最小距离
+  "sidebarMinRight": "10px"        // 右侧边栏离屏幕右边缘最小距离
 }

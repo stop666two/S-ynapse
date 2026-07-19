@@ -3,8 +3,16 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+*~
+
+# 构建产物
 media-manifest.json
 cache-bust-manifest.json
+build-report.html
+
+# 测试文件
 test-*.js
 
 # AI 规则文件 - 禁止提交版本控制
@@ -15,4 +23,7 @@ AGENT.txt
 agent-readme.md
 RULES.md
 
+# 环境变量
 .env
+.env.local
+.env.*.local

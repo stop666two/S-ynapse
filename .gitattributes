@@ -1,2 +1,24 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Batch files - keep CRLF for Windows compatibility
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Shell scripts - LF
+*.sh text eol=lf
+
+# Source files - LF
+*.js text eol=lf
+*.json text eol=lf
+*.json5 text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.ejs text eol=lf
+*.css text auto
+*.html text auto
+*.svg text auto
+
+# Lock file - binary diff
+package-lock.json -diff

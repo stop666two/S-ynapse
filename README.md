@@ -76,7 +76,8 @@ npm run serve
 ```
 S-ynapse/
 ├── articles/          # Markdown 文章
-├── pages/             # 自定义页面（about/privacy/terms）
+├── pages/             # 自定义页面
+├── includes/          # 可复用内容块（隐私政策/服务条款/公告等，支持文章底部公告栏）
 ├── media/             # 图片资源（自动优化）
 ├── static/            # 静态文件（直接复制到输出）
 ├── templates/         # EJS 模板（10 个文件）
@@ -93,10 +94,10 @@ S-ynapse/
 │   └── 404.ejs        # 404 页
 ├── scripts/
 │   ├── build.js       # 构建脚本（16 步管线）
-│   ├── build.test.js  # 单元测试（22 项）
-│   ├── init-project.js# 项目初始化（git hooks + gitignore + gitattributes）
+│   ├── build.test.js  # 单元测试（22 项通过）
+│   ├── init-project.js# 项目初始化（自动配置 git hooks/gitignore/gitattributes）
 │   └── lib/
-│       └── utils.js   # 工具函数（日期、slug、HTML 转义、CJK 空格等）
+│       └── utils.js   # 工具函数库（formatDate/safeSlug/stripHtml/CJK 空格等）
 ├── workers/           # Cloudflare Worker 安全层
 ├── .github/workflows/ # CI/CD 自动部署（含 AGENTS.md 检测）
 ├── .githooks/         # Git hooks（pre-commit 保护 AGENTS.md）
@@ -194,6 +195,7 @@ S-ynapse/
     cjkSpacing: true,              // 中英文自动加空格
     buildReport: true,             // 构建报告
     autoOgImage: true,             // 自动生成 OG 图片
+    forceContentWidth: true,       // 强制所有页面内容区为最大宽度
     ...
   },
 
@@ -211,15 +213,34 @@ S-ynapse/
 ```json5
 {
   colors: { primary: "#2d3748", secondary: "#4a90d9", ... },
-  darkMode: {
-    enabled: true,
-    toggle: true,
-    default: "system",               // light / dark / system
-    colors: { ... }                  // 深色模式配色覆盖
-  },
+  darkMode: { enabled: true, toggle: true, default: "system", colors: { ... } },
   fontFamily: "'Inter', sans-serif",
   fontFamilyMono: "'Fira Code', monospace",
-  spacing: { containerWidth: "960px", gap: "2rem", ... },
+  spacing: { containerWidth: "1400px", gap: "2rem", ... },
+
+  // 文章页脚公告栏
+  articleFooter: {
+    enabled: true,
+    source: "disclaimer",          // includes/ 下的文件名
+    backgroundColor: "#f0f4f8",
+    textColor: "#4a5568",
+    borderColor: "#cbd5e1",
+    borderWidth: "1px",
+    paddingTop: "1.25rem",
+    paddingBottom: "1.25rem",
+    paddingLeft: "1.5rem",
+    paddingRight: "1.5rem",
+    borderRadius: "0.5rem"
+  },
+
+  // 布局微调
+  contentOffset: -10,              // 内容区偏移（px），负=左移，正=右移
+  headerContentGap: 48,            // 标题与内容区额外间距（px）
+  tocWidth: "200px",               // 左侧目录宽度
+  sidebarWidth: "280px",           // 右侧边栏宽度
+  tocMinLeft: "10px",              // 左侧目录离屏幕左边缘最小距离
+  sidebarMinRight: "10px",         // 右侧边栏离屏幕右边缘最小距离
+
   layout: { headerStyle: "fixed", sidebarPosition: "right", ... },
   codeHighlight: { theme: "github-dark", lineNumbers: true, copyButton: true },
   card: { showDate: true, showTags: true, showExcerpt: true, ... },

@@ -55,7 +55,7 @@
   // ==================== 间距与尺寸 ====================
 
   "spacing": {
-    "containerWidth": "1500px",  // 内容区最大宽度
+    "containerWidth": "1400px",  // 内容区最大宽度
     "gap": "2rem",               // 元素间距
     "padding": "2rem",           // 内边距
     "radius": "0.5rem",          // 默认圆角

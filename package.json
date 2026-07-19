@@ -7,7 +7,7 @@
     "postinstall": "node scripts/init-project.js",
     "init": "node scripts/init-project.js",
     "build": "node scripts/build.js",
-    "dev": "node scripts/build.js --watch",
+    "dev": "node scripts/build.js --watch --drafts",
     "serve": "node scripts/build.js --serve",
     "start": "node scripts/build.js --serve --port 3000",
     "deploy:pages": "wrangler pages publish dist --project-name=s-ynapse",

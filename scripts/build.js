@@ -28,8 +28,10 @@ const TEMPLATES_DIR = path.join(ROOT, 'templates');
 const DIST_DIR = path.join(ROOT, 'dist');
 const WATCH_MODE = process.argv.includes('--watch');
 const SERVE_MODE = process.argv.includes('--serve');
+const SHOW_DRAFTS = process.argv.includes('--drafts') || WATCH_MODE;
 const PAGES_DIR = path.join(ROOT, 'pages');
 const CACHE_BUST_MANIFEST_PATH = path.join(DIST_DIR, 'cache-bust-manifest.json');
+function getPublished(articles) { return articles.filter(a => !a.draft || SHOW_DRAFTS); }
 
 function loadConfigFile(filename) {
   const filePath = path.join(ROOT, filename);
@@ -456,7 +458,7 @@ function collectTags(articles) {
 
 function computeRelatedArticles(articles, maxCount) {
   maxCount = maxCount || 4;
-  const published = articles.filter(a => !a.draft);
+  const published = getPublished(articles);
   for (const article of published) {
     const scored = [];
     for (const other of published) {
@@ -539,7 +541,7 @@ function stripHtml(str) {
 function generateSearchData(config, articles) {
   if (!config.navigation.search || !config.navigation.search.enabled || config.navigation.search.provider !== 'local') return '[]';
   const fullContent = config.site.build.searchFullContent !== false;
-  const data = articles.filter(a => !a.draft).map(a => ({
+  const data = getPublished(articles).map(a => ({
     title: a.title,
     url: a.url,
     excerpt: a.excerpt ? stripHtml(a.excerpt).substring(0, 200) : '',
@@ -551,7 +553,7 @@ function generateSearchData(config, articles) {
 }
 
 function buildPageData(config, articles, tags, categories) {
-  const published = articles.filter(a => !a.draft);
+  const published = getPublished(articles);
   return {
     site: config.site,
     theme: config.theme,
@@ -642,7 +644,7 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
   if (customPages && customPages.length) {
     baseData.customPages = customPages;
   }
-  const published = articles.filter(a => !a.draft);
+  const published = getPublished(articles);
 
   async function writeFile(relPath, content) {
     if (!content) return;
@@ -796,7 +798,7 @@ async function generateRSS(config, articles) {
       feed.author = { name: config.site.author, email: config.site.email || '' };
     }
     const maxItems = config.site.rss.maxItems || 50;
-    const items = articles.filter(a => !a.draft).slice(0, maxItems);
+    const items = getPublished(articles).slice(0, maxItems);
     for (const article of items) {
       const link = `${config.site.url.replace(/\/+$/, '')}${article.url}`;
       feed.addItem({
@@ -835,7 +837,7 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
     if (config.site.build.generateIndex !== false) {
       urls.push({ loc: '/', changefreq, priority: '1.0' });
       const postsPerPage = config.site.postsPerPage || 10;
-      const published = articles.filter(a => !a.draft);
+      const published = getPublished(articles);
       const totalPages = Math.max(1, Math.ceil(published.length / postsPerPage));
       for (let p = 2; p <= totalPages; p++) {
         urls.push({ loc: `/page/${p}/`, changefreq, priority: '0.6' });
@@ -891,7 +893,7 @@ function generateSearchIndex(config, articles) {
   }
   console.log('[9/14] Generating search index...');
   const fullContent = config.site.build.searchFullContent !== false;
-  const published = articles.filter(a => !a.draft);
+  const published = getPublished(articles);
   const index = published.map(a => ({
     title: a.title,
     url: a.url,

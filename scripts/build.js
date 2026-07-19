@@ -70,7 +70,7 @@ function loadConfig() {
         generateIndex: true, generateArchive: true, generateTags: true, generateCategories: true,
         copyStatic: true, optimizeMedia: false, mediaQuality: 85,
         mediaResponsiveSizes: [640, 1024, 1920], mediaFormats: ['webp', 'original'],
-        searchFullContent: true, relatedArticles: true, enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
+        searchFullContent: true, relatedArticles: true, cjkSpacing: true, enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer'
       }
     },
@@ -339,6 +339,19 @@ function safeSlug(text) {
   return slug;
 }
 
+function insertCjkSpacing(text) {
+  return text
+    .replace(/([\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff])(?=[A-Za-z0-9@&$¥])/g, '$1\u2009')
+    .replace(/([A-Za-z0-9@])(?=[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff])/g, '$1\u2009');
+}
+
+function applyCjkSpacingToHtml(html) {
+  return html.replace(/(<[^>]+>)|(?:^|(?<=>))([^<]*?)(?=<|$)/gs, function(match, tag, text) {
+    if (tag) return tag;
+    return text ? insertCjkSpacing(text) : '';
+  });
+}
+
 function extractToc(html) {
   const toc = [];
   const regex = /<h([2-4])\s+id="([^"]+)"[^>]*>.*?<a[^>]*class="heading-anchor"[^>]*>#<\/a>(.*?)<\/h\1>/gi;
@@ -391,7 +404,8 @@ async function processArticles(config, mediaManifest) {
       const tags = Array.isArray(attrs.tags) ? attrs.tags : [];
       const categories = Array.isArray(attrs.categories) ? attrs.categories : [];
       const draft = attrs.draft === true || attrs.draft === 'true';
-      const htmlContent = marked.parse(content);
+      let htmlContent = marked.parse(content);
+      if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
       let excerptText = excerpt;
       if (!excerptText) {
         const textOnly = htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -588,7 +602,8 @@ function processCustomPages(config, baseData) {
       const description = attrs.description || config.site.description || '';
       const slug = attrs.slug || safeSlug(title);
       const date = attrs.date || null;
-      const htmlContent = marked.parse(content);
+      let htmlContent = marked.parse(content);
+      if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
       const pageData = {
         ...baseData,
         title,

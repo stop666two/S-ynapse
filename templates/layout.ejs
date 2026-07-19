@@ -68,6 +68,7 @@
     .post-featured-image{width:100%;max-height:400px;object-fit:cover;border-radius:var(--r-lg,var(--r));box-shadow:var(--sc);margin-bottom:2rem}
     .post-content{font-size:1.0625rem;line-height:1.9}.post-content p{margin-bottom:1.25em}.post-content h2,.post-content h3,.post-content h4{margin-top:1.5em;margin-bottom:.5em;position:relative}
     .heading-anchor{position:absolute;left:-1.2em;top:50%;transform:translateY(-50%);color:var(--color-tl);text-decoration:none;opacity:0;font-size:.8em}.post-content h2:hover .heading-anchor,.post-content h3:hover .heading-anchor,.post-content h4:hover .heading-anchor{opacity:1}
+    .toc-list{list-style:none;padding:0}.toc-item{font-size:.8125rem;padding:.25rem 0;line-height:1.5}.toc-item.level-2{padding-left:0}.toc-item.level-3{padding-left:1rem}.toc-item.level-4{padding-left:2rem}.toc-link{color:var(--color-ts);text-decoration:none;display:block;padding:.15rem 0;border-radius:var(--br);transition:color var(--td) ease}.toc-link:hover{color:var(--color-s)}.toc-link.active{color:var(--color-s);font-weight:500}
     .post-content ul,.post-content ol{margin-bottom:1.25em;padding-left:1.5em}.post-content li{margin-bottom:.25em}
     .post-content blockquote{border-left:4px solid var(--color-s);padding:.75em 1.25em;margin:1.25em 0;background:var(--color-hover);border-radius:0 var(--r) var(--r) 0;color:var(--color-ts)}
     .post-content pre{background:var(--color-code-bg);color:var(--color-code-t);padding:1rem;border-radius:var(--r);overflow-x:auto;font-family:var(--ff-mono);font-size:.875rem;line-height:1.6;margin-bottom:1.25em;position:relative}
@@ -188,6 +189,7 @@
     <% if(w.type==='archive'&&typeof archives!=='undefined'){ %><div class="sidebar-widget"><h3 class="widget-title"><%= w.title||'归档' %></h3><% archives.forEach(function(g){ %><div class="widget-archive-item"><a href="/archive#<%=g.year%>" class="widget-archive-link"><%=g.year%><% if(g.month){ %>-<%=g.month%><% } %></a><% if(w.showCount){ %><span class="widget-archive-count"><%=g.articles.length%></span><% } %></div><% }) %></div><% } %>
     <% if(w.type==='search'){ %><div class="sidebar-widget"><h3 class="widget-title"><%= w.title||'搜索' %></h3><input type="text" class="widget-search-input" placeholder="<%= w.placeholder||'输入关键词...'%>" onkeydown="if(event.key==='Enter')openSearch()"></div><% } %>
     <% if(w.type==='custom'){ %><div class="sidebar-widget"><h3 class="widget-title"><%= w.title||'自定义' %></h3><%- w.html||'' %></div><% } %>
+    <% if(w.type==='toc'&&typeof article!=='undefined'&&article.toc&&article.toc.length>1){ %><div class="sidebar-widget"><h3 class="widget-title"><%= w.title||'目录' %></h3><nav class="toc"><ul class="toc-list"><% article.toc.forEach(function(h){ %><li class="toc-item level-<%=h.level%>"><a href="#<%=h.id%>" class="toc-link"><%=h.text%></a></li><% }) %></ul></nav></div><% } %>
   <% }) %></aside><% } %>
 </div>
 <footer class="site-footer"><div class="container">

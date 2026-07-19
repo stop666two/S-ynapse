@@ -339,6 +339,20 @@ function safeSlug(text) {
   return slug;
 }
 
+function extractToc(html) {
+  const toc = [];
+  const regex = /<h([2-4])\s+id="([^"]+)"[^>]*>.*?<a[^>]*class="heading-anchor"[^>]*>#<\/a>(.*?)<\/h\1>/gi;
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    toc.push({
+      level: parseInt(match[1]),
+      id: match[2],
+      text: match[3].replace(/<[^>]+>/g, '').trim()
+    });
+  }
+  return toc;
+}
+
 async function processArticles(config, mediaManifest) {
   console.log('[5/14] Processing articles...');
   setupMarkedRenderer(config, mediaManifest);
@@ -387,11 +401,12 @@ async function processArticles(config, mediaManifest) {
       const wordCount = content.split(/\s+/).filter(Boolean).length;
       const readSpeed = config.theme.card?.readTimeSpeed || 265;
       const readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
+      const toc = extractToc(htmlContent);
       articles.push({
         slug, title, url, date, tags, categories, draft,
         content: htmlContent,
         excerpt: excerptText,
-        wordCount, readTime,
+        wordCount, readTime, toc,
         frontmatter: attrs,
         filename: file,
         year: date ? new Date(date).getFullYear() : null,

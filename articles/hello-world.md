@@ -274,6 +274,8 @@ CSP 策略禁止以下行为（浏览器控制台应有对应报错）：
 
 这是一段 Chinese 和 English 混排的文字，包含 U.S.A. 缩写和 iPhone 14 Pro Max 产品名，测试 font-family fallback 和 letter-spacing 兼容性。
 
+无空格场景（自动插入细空格）：你好World 版本3 测试ABC
+
 ### 5.3 超长链接换行
 
 <https://this-is-a-very-long-url-that-should-break-properly-and-not-overflow-the-container-because-it-contains-no-hyphens-or-spaces.example.com/very/long/path?with=many&query=parameters&and=more&stuff=here>

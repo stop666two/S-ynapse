@@ -34,6 +34,20 @@
   </div>
 </article>
 
+<% if (article.relatedArticles && article.relatedArticles.length) { %>
+<section class="related-posts">
+  <h3 class="related-posts-title">相关文章</h3>
+  <div class="related-posts-grid">
+    <% article.relatedArticles.forEach(function(r) { %>
+    <a href="<%= r.url %>" class="related-post-card">
+      <div class="related-post-title"><%= r.title %></div>
+      <% if (r.tags && r.tags.length) { %><div class="related-post-tags"><% r.tags.forEach(function(t) { %><span class="related-post-tag"><%= t %></span><% }) %></div><% } %>
+    </a>
+    <% }) %>
+  </div>
+</section>
+<% } %>
+
 <% if (site.comments && site.comments.enabled) { %>
 <section class="comments-section">
   <% if (site.comments.provider === 'giscus') { %>

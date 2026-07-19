@@ -70,7 +70,7 @@ function loadConfig() {
         generateIndex: true, generateArchive: true, generateTags: true, generateCategories: true,
         copyStatic: true, optimizeMedia: false, mediaQuality: 85,
         mediaResponsiveSizes: [640, 1024, 1920], mediaFormats: ['webp', 'original'],
-        searchFullContent: true, enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
+        searchFullContent: true, relatedArticles: true, enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer'
       }
     },
@@ -438,6 +438,25 @@ function collectTags(articles) {
     }
   }
   return Array.from(map.values()).sort((a, b) => b.count - a.count);
+}
+
+function computeRelatedArticles(articles, maxCount) {
+  maxCount = maxCount || 4;
+  const published = articles.filter(a => !a.draft);
+  for (const article of published) {
+    const scored = [];
+    for (const other of published) {
+      if (other.slug === article.slug) continue;
+      let score = 0;
+      const sharedTags = article.tags.filter(t => other.tags.includes(t));
+      score += sharedTags.length * 3;
+      const sharedCategories = article.categories.filter(c => other.categories.includes(c));
+      score += sharedCategories.length * 2;
+      if (score > 0) scored.push({ slug: other.slug, title: other.title, url: other.url, score, tags: sharedTags });
+    }
+    scored.sort((a, b) => b.score - a.score);
+    article.relatedArticles = scored.slice(0, maxCount);
+  }
 }
 
 function collectCategories(articles) {
@@ -1131,6 +1150,7 @@ async function build() {
     if (articles.length === 0) console.log('  [WARN] No articles found');
     const tags = collectTags(articles);
     const categories = collectCategories(articles);
+    if (config.site.build.relatedArticles !== false) computeRelatedArticles(articles);
     const baseData = buildPageData(config, articles, tags, categories);
     const customPages = processCustomPages(config, baseData);
     await generatePages(config, articles, baseData, customPages);

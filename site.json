@@ -164,7 +164,8 @@
     "relatedArticles": true,               // 文章关联推荐
     "cjkSpacing": true,                    // 中英文自动加空格
     "buildReport": true,                   // 生成构建报告
-    "autoOgImage": true                    // 自动生成 OG 图片
+    "autoOgImage": true,                   // 自动生成 OG 图片
+    "forceContentWidth": true              // 强制所有页面内容区为最大宽度
   },
 
   // ==================== 自定义 HTML 注入 ====================

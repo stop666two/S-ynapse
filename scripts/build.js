@@ -72,7 +72,7 @@ function loadConfig() {
         generateIndex: true, generateArchive: true, generateTags: true, generateCategories: true,
         copyStatic: true, optimizeMedia: false, mediaQuality: 85,
         mediaResponsiveSizes: [640, 1024, 1920], mediaFormats: ['webp', 'original'],
-        searchFullContent: true, relatedArticles: true, cjkSpacing: true, enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
+        searchFullContent: true, relatedArticles: true, cjkSpacing: true, buildReport: true, enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer'
       }
     },
@@ -956,6 +956,42 @@ function generateSearchIndex(config, articles) {
   console.log(`  Created: search-index.json (${index.length} entries)`);
 }
 
+function generateBuildReport(config, articles, tags, categories, customPages, elapsed) {
+  try {
+    const published = getPublished(articles);
+    const totalSize = getDirSize(DIST_DIR);
+    const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>构建报告 - ${config.site.title}</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:2rem auto;padding:0 1rem;color:#333}h1{font-size:1.5rem}.stat{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #eee}.stat-label{color:#666}.stat-value{font-weight:600}.good{color:#16a34a}.warn{color:#d97706}</style></head><body><h1>构建报告</h1><p style="color:#666">${new Date().toISOString().replace('T',' ').slice(0,19)}</p>
+    <div class="stat"><span class="stat-label">构建耗时</span><span class="stat-value">${elapsed}s</span></div>
+    <div class="stat"><span class="stat-label">文章数</span><span class="stat-value">${published.length}</span></div>
+    <div class="stat"><span class="stat-label">自定义页面</span><span class="stat-value">${(customPages||[]).length}</span></div>
+    <div class="stat"><span class="stat-label">标签数</span><span class="stat-value">${tags.length}</span></div>
+    <div class="stat"><span class="stat-label">分类数</span><span class="stat-value">${categories.length}</span></div>
+    <div class="stat"><span class="stat-label">输出体积</span><span class="stat-value">${totalSize}</span></div>
+    <div class="stat"><span class="stat-label">配置文件</span><span class="stat-value">${Object.keys(config).length}</span></div>
+    <div class="stat"><span class="stat-label">依赖</span><span class="stat-value">${published.reduce((s,a)=>s+(a.wordCount||0),0)} 字</span></div>
+    <div class="stat"><span class="stat-label">压缩</span><span class="stat-value ${config.site.build.minifyHTML?'good':'warn'}">${config.site.build.minifyHTML?'已启用':'未启用'}</span></div>
+    <div class="stat"><span class="stat-label">图片优化</span><span class="stat-value ${config.site.build.optimizeMedia?'good':'warn'}">${config.site.build.optimizeMedia?'已启用':'未启用'}</span></div>
+    <div class="stat"><span class="stat-label">缓存清除</span><span class="stat-value ${config.site.build.enableCacheBusting?'good':'warn'}">${config.site.build.enableCacheBusting?'已启用':'未启用'}</span></div>
+    <div class="stat"><span class="stat-label">CSP</span><span class="stat-value ${config.security.csp&&config.security.csp.enabled?'good':'warn'}">${config.security.csp&&config.security.csp.enabled?'已启用':'未启用'}</span></div>
+    <div class="stat"><span class="stat-label">RSS</span><span class="stat-value ${config.site.rss&&config.site.rss.enabled?'good':'warn'}">${config.site.rss&&config.site.rss.enabled?'已启用':'未启用'}</span></div></body></html>`;
+    fs.writeFileSync(path.join(DIST_DIR, 'build-report.html'), html, 'utf-8');
+    console.log('  Created: build-report.html');
+  } catch (err) {
+    console.error(`  [ERROR] Build report failed: ${err.message}`);
+  }
+}
+
+function getDirSize(dir) {
+  try {
+    const files = getAllFiles(dir);
+    let total = 0;
+    for (const f of files) total += fs.statSync(f).size || 0;
+    if (total < 1024) return total + ' B';
+    if (total < 1048576) return (total / 1024).toFixed(1) + ' KB';
+    return (total / 1048576).toFixed(1) + ' MB';
+  } catch { return '?'; }
+}
+
 function generateSecurityHeaders(config) {
   console.log('[10/14] Generating security files...');
   const lines = [];
@@ -1241,6 +1277,7 @@ async function build() {
     console.log(`  Build complete in ${elapsed}s`);
     console.log(`  Output: dist/`);
     console.log(`========================================`);
+    if (config.site.build.buildReport !== false) generateBuildReport(config, articles, tags, categories, customPages, elapsed);
   } catch (err) {
     console.error(`\n[FATAL] Build failed: ${err.message}`);
     console.error(err.stack);

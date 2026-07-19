@@ -1,10 +1,11 @@
 ---
-title: "S-TextPaste：零信任端到端加密，量子时代亦不可破的文本粘贴工具"
+title: S-TextPaste：零信任端到端加密，量子时代亦不可破的文本粘贴工具
 slug: s-textpaste
-tags: ["安全", "加密", "开源", "Cloudflare", "前端"]
-categories: ["技术"]
-description: "当复制粘贴遇上量子安全——零信任端到端加密文本粘贴工具深度解析"
+tags: ["安全", "加密", "开源", "Cloudflare", "前端", "React", "TypeScript", "隐私", "后端", "教程"]
+categories: ["技术", "编程", "教程"]
+description: "零信任端到端加密文本粘贴工具深度解析——三层嵌套加密、抗量子攻击、67轮KDF、AES-256-GCM + HMAC完整性校验"
 date: 2026-07-19
+featuredImage: "/media/og-image.svg"
 draft: false
 ---
 

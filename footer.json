@@ -1,71 +1,76 @@
 {
   // ==================== 版权信息 ====================
 
-  // 版权声明文字
   "copyright": "© 2026 Your Name",
-  // 起始年份（用于生成 "2020-2026" 格式的年份范围）
   "fromYear": "2020",
 
   // ==================== 列布局设置 ====================
 
-  // 页脚布局方式
   "layout": "multi-column",
-  // 列数（与 grid-template-columns 对应）
   "columns": 3,
-  // 每列的内容
-  "columnItems": [
-    {
-      "title": "导航",    // 列标题
-      "links": [           // 链接列表
-        { "label": "首页", "url": "/" },
-        { "label": "关于", "url": "/about" }
-      ]
-    },
-    {
-      "title": "友情链接",
-      "links": [
-        { "label": "合作伙伴 A", "url": "https://a.com" },
-        { "label": "合作伙伴 B", "url": "https://b.com" }
-      ]
-    },
-    {
-      "title": "联系",
-      "html": "<p>邮箱: admin@example.com</p>"  // 自定义 HTML 内容
-    }
-  ],
+
+  // 页脚列内容总开关（false 则不渲染任何列）
+  "columnItems": {
+    "enabled": true,
+    "items": [
+      {
+        "enabled": true,
+        "title": "导航",
+        "links": [
+          { "enabled": true, "label": "首页", "url": "/" },
+          { "enabled": true, "label": "关于", "url": "/about" }
+        ]
+      },
+      {
+        "enabled": true,
+        "title": "友情链接",
+        "links": [
+          { "enabled": true, "label": "合作伙伴 A", "url": "https://a.com" },
+          { "enabled": true, "label": "合作伙伴 B", "url": "https://b.com" }
+        ]
+      },
+      {
+        "enabled": true,
+        "title": "联系",
+        "html": "<p>邮箱: admin@example.com</p>"
+      }
+    ]
+  },
 
   // ==================== 底部链接栏 ====================
 
-  "bottomLinks": [
-    { "label": "隐私政策", "url": "/privacy" },
-    { "label": "服务条款", "url": "/terms" },
-    { "label": "RSS", "url": "/feed.xml" }
-  ],
+  "bottomLinks": {
+    "enabled": true,
+    "items": [
+      { "enabled": true, "label": "隐私政策", "url": "/privacy" },
+      { "enabled": true, "label": "服务条款", "url": "/terms" },
+      { "enabled": true, "label": "RSS", "url": "/feed.xml" }
+    ]
+  },
 
   // ==================== 备案信息 ====================
 
   "beian": {
-    "enabled": false,                              // 是否显示备案信息
-    "icp": "京ICP备12345678号",                    // ICP 备案号
-    "gongan": "京公网安备 11000002000001号"         // 公安备案号
+    "enabled": false,
+    "icp": "京ICP备12345678号",
+    "gongan": "京公网安备 11000002000001号"
   },
 
   // ==================== 社交图标 ====================
 
   "social": {
-    "enabled": true,        // 是否在页脚显示社交图标
-    "iconSize": "24px"      // 社交图标尺寸
+    "enabled": true,
+    "iconSize": "24px"
   },
 
   // ==================== Powered By ====================
 
   "poweredBy": {
-    "enabled": true,         // 是否显示 "Powered by" 信息
-    "text": "S-ynapse"       // 显示的文字
+    "enabled": true,
+    "text": "S-ynapse"
   },
 
   // ==================== 自定义 HTML ====================
 
-  // 注入到页脚底部的自定义 HTML
   "customHtml": ""
 }

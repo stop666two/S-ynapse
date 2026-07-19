@@ -120,7 +120,7 @@ function loadConfig() {
     },
     navigation: { menu: [], navbar: { fixed: true, showLogo: true, logoText: '' }, socialInNav: { enabled: false, order: [] }, search: { enabled: false, placeholder: '搜索...', provider: 'local' }, userMenu: { enabled: false } },
     sidebar: { enabled: false, position: 'right', width: '280px', sticky: true, widgets: [], mobile: { enabled: true, collapsed: true, toggleButton: true, overlay: true } },
-    footer: { copyright: '', layout: 'simple', social: { enabled: false, iconSize: '24px' }, poweredBy: { enabled: false, text: 'S-ynapse' }, beian: { enabled: false } },
+    footer: { copyright: '', layout: 'simple', columnItems: { enabled: true, items: [] }, bottomLinks: { enabled: true, items: [] }, social: { enabled: false, iconSize: '24px' }, poweredBy: { enabled: false, text: 'S-ynapse' }, beian: { enabled: false } },
     security: {
       headers: {}, csp: { enabled: false, directives: {}, reportOnly: false },
       robots: { enabled: false, rules: [] },
@@ -1257,11 +1257,37 @@ self.addEventListener('fetch', (event) => {
   console.log(`  Created: ${swUrl.replace(/^\//, '')}`);
 }
 
+function validateJsonSyntax() {
+  const files = ['site.json', 'theme.json', 'navigation.json', 'sidebar.json', 'footer.json', 'security.json'];
+  let hasError = false;
+  for (const file of files) {
+    const filePath = path.join(ROOT, file);
+    if (!fs.existsSync(filePath)) {
+      console.error(`  [FATAL] Config file not found: ${file}`);
+      hasError = true;
+      continue;
+    }
+    try {
+      let raw = fs.readFileSync(filePath, 'utf-8');
+      if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+      json5.parse(raw);
+    } catch (err) {
+      console.error(`  [FATAL] Syntax error in ${file}: ${err.message}`);
+      hasError = true;
+    }
+  }
+  return !hasError;
+}
+
 async function build() {
   console.log('========================================');
   console.log('  S-ynapse Static Blog Builder v1.0.0');
   console.log('========================================\n');
   const startTime = Date.now();
+  if (!validateJsonSyntax()) {
+    console.error('\n[FATAL] Build aborted due to configuration errors.\n');
+    process.exit(1);
+  }
   try {
     const config = loadConfig();
     validateConfig(config);

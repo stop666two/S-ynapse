@@ -1408,7 +1408,7 @@ function startServer() {
   var PORT = parseInt(process.argv[process.argv.indexOf('--port') + 1]) || 3000;
   var mime = { '.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.xml':'application/xml','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.ico':'image/x-icon','.txt':'text/plain' };
   http.createServer(function(req, res) {
-    var urlPath = req.url.split('?')[0];
+    var urlPath = decodeURIComponent(req.url.split('?')[0]);
     var urlNoSlash = urlPath.replace(/\/$/, '');
     var filePath = urlNoSlash ? path.join(DIST_DIR, urlNoSlash) : path.join(DIST_DIR, 'index.html');
     try { if (fs.statSync(filePath).isDirectory()) filePath = path.join(filePath, 'index.html'); } catch(e) {}

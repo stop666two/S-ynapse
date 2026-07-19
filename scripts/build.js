@@ -722,11 +722,11 @@ function processCustomPages(config, baseData) {
     const files = fs.readdirSync(PAGES_DIR).filter(f => /\.md$/i.test(f));
     for (const file of files) renderOne(path.join(PAGES_DIR, file), file);
   }
-  const includePages = ['privacy.md', 'terms.md', 'about.md'];
+  const builtinPages = { 'privacy': 'privacy.md', 'terms': 'terms.md', 'about': 'about.md' };
   if (fs.existsSync(INCLUDES_DIR)) {
-    for (const file of includePages) {
+    for (const [slug, file] of Object.entries(builtinPages)) {
       const fp = path.join(INCLUDES_DIR, file);
-      if (fs.existsSync(fp)) renderOne(fp, file, path.basename(file, '.md'));
+      if (fs.existsSync(fp)) renderOne(fp, file, slug);
     }
   }
   console.log('  Total: ' + customPages.length + ' custom pages processed');

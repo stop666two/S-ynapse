@@ -6,3 +6,13 @@ Thumbs.db
 media-manifest.json
 cache-bust-manifest.json
 test-*.js
+
+# AI 规则文件 - 禁止提交版本控制
+AGENTS.md
+AGENTS.txt
+AGENT.md
+AGENT.txt
+agent-readme.md
+RULES.md
+
+.env

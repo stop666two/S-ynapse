@@ -1,6 +1,7 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
+setlocal enabledelayedexpansion
 set PORT=3000
 if not "%1"=="" set PORT=%1
 
@@ -22,6 +23,7 @@ if exist dist\index.html (
 ) else (
     echo [INFO] No build found. Building first...
     echo.
+    call npm ci 2>nul
     call npm run build
     echo.
     echo Starting server at: http://localhost:%PORT%/

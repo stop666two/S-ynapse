@@ -982,7 +982,6 @@ async function minifyAll(config) {
   if (config.site.build.minifyJS) types.push('JS');
   if (types.length)     console.log(`  Minified: ${types.join(', ')}`);
   else console.log('  [SKIP] Minification disabled');
-  // Update step numbers after security headers
 }
 
 async function cacheBust(config) {

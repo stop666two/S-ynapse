@@ -5,7 +5,7 @@ echo ========================================
 echo   S-ynapse Builder
 echo ========================================
 echo.
-call npm install --silent 2>nul
+call npm ci 2>nul
 call npm run build
 echo.
 if %errorlevel% equ 0 (

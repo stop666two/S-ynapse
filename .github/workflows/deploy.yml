@@ -7,7 +7,19 @@ on:
     branches: [main]
 
 jobs:
+  check-agents:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for AGENTS.md in PR changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+          echo "$CHANGED" | grep -qiE '(AGENTS\.md|AGENTS\.txt|AGENT\.md|AGENT\.txt|agent-readme\.md|RULES\.md)' && { echo "ERROR: AI rule files detected in changes. Blocking merge."; exit 1; } || echo "OK: No AI rule files detected."
+
   build:
+    needs: check-agents
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

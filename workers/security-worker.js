@@ -1,5 +1,3 @@
-// S-ynapse Security Worker - Rate limiting, CSP, access control
-
 const rateLimitMap = new Map();
 
 const CONFIG = {

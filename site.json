@@ -165,7 +165,8 @@
     "cjkSpacing": true,                    // 中英文自动加空格
     "buildReport": true,                   // 生成构建报告
     "autoOgImage": true,                   // 自动生成 OG 图片
-    "forceContentWidth": true              // 强制所有页面内容区为最大宽度
+    "forceContentWidth": true,             // 强制所有页面内容区为最大宽度
+    "contentOffset": 0                     // 内容区偏移（px），负=左移，正=右移，0=居中
   },
 
   // ==================== 自定义 HTML 注入 ====================

@@ -1,10 +1,3 @@
-<% if (site.subtitle) { %>
-<div style="text-align:center;padding:2rem 0 1rem">
-  <h1 style="font-size:2.5em;margin-bottom:0.25rem"><%= site.title %></h1>
-  <p style="color:var(--color-text-secondary);font-size:1.125em"><%= site.subtitle %></p>
-</div>
-<% } %>
-
 <% if (articles && articles.length) { %>
 <% articles.forEach(function(article) { %>
 <article class="post-card">

@@ -37,7 +37,7 @@
     .container{max-width:var(--cw);margin:0 auto;padding:0 var(--pad)}
     .site-wrapper{display:flex;flex-direction:column;min-height:100vh}
     .content-wrapper{flex:1;display:flex;gap:var(--gap);padding-top:<%=theme.layout.headerStyle==='fixed'?'var(--hh)':'0'%>;padding-bottom:2rem}
-    .content-wrapper .main-content{flex:1;min-width:0}
+    .content-wrapper .main-content{flex:1;min-width:0}<% var co=site.build&&site.build.contentOffset; if(co){ %>.content-wrapper.force-width>.main-content{transform:translateX(<%=co%>px)}<% } %>
     .content-wrapper .container{max-width:var(--cw);margin:0 auto;width:100%;padding:0 var(--pad)}
     <%if(sidebar.enabled){%>.sidebar{width:var(--sw);flex-shrink:0}<%}%>
     <%if(!site.build||site.build.forceContentWidth!==false){%>.content-wrapper.force-width{display:grid;grid-template-columns:1fr minmax(auto,var(--cw)) 1fr;gap:var(--gap)}.content-wrapper.force-width>.toc-sidebar{grid-column:1;width:auto;margin-left:auto}.content-wrapper.force-width>.toc-sidebar-inner{width:200px}.content-wrapper.force-width>.main-content{grid-column:2;min-width:0}.content-wrapper.force-width>.sidebar{grid-column:3;width:var(--sw);margin-right:auto}<%}%>
@@ -144,7 +144,7 @@
 <div class="site-wrapper">
 <header class="site-header">
   <div class="header-inner">
-    <a href="/" class="site-logo"><%= nav.navbar.logoText || site.title %></a>
+    <a href="/" class="site-logo"><%= site.title %><% if(site.subtitle){ %><span style="font-size:.6em;font-weight:400;color:var(--color-ts);display:block;line-height:1.2"><%= site.subtitle %></span><% } %></a>
     <div class="nav-actions">
       <nav class="main-nav" id="mainNav">
         <ul class="nav-list">

@@ -55,11 +55,6 @@
       "placeholder": "输入关键词..."  // 搜索框占位文字
     },
     {
-      "type": "toc",             // 组件类型：toc - 文章目录（仅在文章页显示）
-      "enabled": true,
-      "title": "目录"
-    },
-    {
       "type": "custom",          // 组件类型：custom - 自定义 HTML
       "enabled": false,
       "title": "广告位",

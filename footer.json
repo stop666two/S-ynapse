@@ -1,15 +1,8 @@
 {
-  // ==================== 版权信息 ====================
-
   "copyright": "© 2026 Your Name",
   "fromYear": "2020",
-
-  // ==================== 列布局设置 ====================
-
   "layout": "multi-column",
   "columns": 3,
-
-  // 页脚列内容总开关（false 则不渲染任何列）
   "columnItems": {
     "enabled": true,
     "items": [
@@ -22,11 +15,11 @@
         ]
       },
       {
-        "enabled": true,
+        "enabled": false,
         "title": "友情链接",
         "links": [
-          { "enabled": true, "label": "合作伙伴 A", "url": "https://a.com" },
-          { "enabled": true, "label": "合作伙伴 B", "url": "https://b.com" }
+          { "enabled": false, "label": "合作伙伴 A", "url": "https://a.com" },
+          { "enabled": false, "label": "合作伙伴 B", "url": "https://b.com" }
         ]
       },
       {
@@ -36,9 +29,6 @@
       }
     ]
   },
-
-  // ==================== 底部链接栏 ====================
-
   "bottomLinks": {
     "enabled": true,
     "items": [
@@ -47,30 +37,8 @@
       { "enabled": true, "label": "RSS", "url": "/feed.xml" }
     ]
   },
-
-  // ==================== 备案信息 ====================
-
-  "beian": {
-    "enabled": false,
-    "icp": "京ICP备12345678号",
-    "gongan": "京公网安备 11000002000001号"
-  },
-
-  // ==================== 社交图标 ====================
-
-  "social": {
-    "enabled": true,
-    "iconSize": "24px"
-  },
-
-  // ==================== Powered By ====================
-
-  "poweredBy": {
-    "enabled": true,
-    "text": "S-ynapse"
-  },
-
-  // ==================== 自定义 HTML ====================
-
+  "beian": { "enabled": false, "icp": "京ICP备12345678号", "gongan": "京公网安备 11000002000001号" },
+  "social": { "enabled": true, "iconSize": "24px" },
+  "poweredBy": { "enabled": true, "text": "S-ynapse" },
   "customHtml": ""
 }

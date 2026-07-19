@@ -681,22 +681,19 @@ function processCustomPages(config, baseData) {
     console.error('  [FATAL] Layout or page template not found');
     return [];
   }
-  if (!fs.existsSync(PAGES_DIR)) {
-    console.log('  pages/ directory not found, skipping');
-    return [];
-  }
-  const files = fs.readdirSync(PAGES_DIR).filter(f => /\.md$/i.test(f));
+  const createdSlugs = new Set();
   const customPages = [];
-  for (const file of files) {
-    const filePath = path.join(PAGES_DIR, file);
+  function renderOne(sourcePath, file, slugOverride) {
     try {
-      const raw = fs.readFileSync(filePath, 'utf-8');
+      const raw = fs.readFileSync(sourcePath, 'utf-8');
       const fm = frontMatter(raw);
       const attrs = fm.attributes || {};
       const content = fm.body || '';
       const title = attrs.title || path.basename(file, '.md');
       const description = attrs.description || config.site.description || '';
-      const slug = attrs.slug || safeSlug(title);
+      const slug = slugOverride || attrs.slug || safeSlug(title);
+      if (createdSlugs.has(slug)) return;
+      createdSlugs.add(slug);
       const date = attrs.date || null;
       let htmlContent = marked.parse(content);
       if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
@@ -719,6 +716,17 @@ function processCustomPages(config, baseData) {
       customPages.push({ slug, title, url: '/' + slug + '/', date });
     } catch (err) {
       console.error('  [ERROR] Failed to process custom page ' + file + ': ' + err.message);
+    }
+  }
+  if (fs.existsSync(PAGES_DIR)) {
+    const files = fs.readdirSync(PAGES_DIR).filter(f => /\.md$/i.test(f));
+    for (const file of files) renderOne(path.join(PAGES_DIR, file), file);
+  }
+  const includePages = ['privacy.md', 'terms.md', 'about.md'];
+  if (fs.existsSync(INCLUDES_DIR)) {
+    for (const file of includePages) {
+      const fp = path.join(INCLUDES_DIR, file);
+      if (fs.existsSync(fp)) renderOne(fp, file, path.basename(file, '.md'));
     }
   }
   console.log('  Total: ' + customPages.length + ' custom pages processed');

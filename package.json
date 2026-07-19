@@ -6,6 +6,7 @@
   "scripts": {
     "postinstall": "node scripts/init-project.js",
     "init": "node scripts/init-project.js",
+    "test": "node --test scripts/*.test.js",
     "build": "node scripts/build.js",
     "dev": "node scripts/build.js --watch --drafts",
     "serve": "node scripts/build.js --serve",

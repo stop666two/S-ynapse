@@ -41,7 +41,9 @@ function loadConfigFile(filename) {
     return {};
   }
   try {
-    const raw = fs.readFileSync(filePath, 'utf-8');
+    let raw = fs.readFileSync(filePath, 'utf-8');
+    if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+    raw = raw.replace(/\r\n/g, '\n');
     return json5.parse(raw);
   } catch (err) {
     console.error(`  [ERROR] Failed to parse ${filename}: ${err.message}`);
@@ -61,27 +63,75 @@ function loadConfig() {
   const defaults = {
     site: {
       title: 'My Blog',
+      subtitle: '',
       description: '',
+      author: '',
+      email: '',
       url: 'http://localhost',
       language: 'en',
+      timezone: 'UTC',
+      dateFormat: 'YYYY-MM-DD',
+      copyright: '',
       postsPerPage: 10,
+      paginationPrev: '上一页',
+      paginationNext: '下一页',
       rss: { enabled: false, path: '/feed.xml', fullContent: true, maxItems: 50 },
+      seo: {
+        metaKeywords: [], metaRobots: 'index, follow',
+        ogImage: '', ogType: 'website',
+        twitterCard: 'summary_large_image', twitterSite: '',
+        canonicalURL: false,
+        structuredData: { enabled: false, type: 'BlogPosting' }
+      },
+      social: { enabled: false, items: {} },
+      comments: { enabled: false, provider: 'giscus' },
       sitemap: { enabled: true, path: '/sitemap.xml', changefreq: 'weekly', priority: 0.8 },
       pwa: { enabled: false, manifest: {}, serviceWorker: '/sw.js' },
       build: {
         cleanDist: true, minifyHTML: false, minifyCSS: false, minifyJS: false,
+        removeConsole: false,
         generateIndex: true, generateArchive: true, generateTags: true, generateCategories: true,
-        copyStatic: true, optimizeMedia: false, mediaQuality: 85,
+        generateAuthorPages: false, copyStatic: true, optimizeMedia: false, mediaQuality: 85,
         mediaResponsiveSizes: [640, 1024, 1920], mediaFormats: ['webp', 'original'],
-        searchFullContent: true, relatedArticles: true, cjkSpacing: true, buildReport: true, autoOgImage: true, enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
+        lazyLoadImages: true, useSrcset: true, usePictureTag: true,
+        searchFullContent: true, relatedArticles: true, cjkSpacing: true, buildReport: true, autoOgImage: true,
+        enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer'
-      }
+      },
+      externalLinkWarning: { enabled: false, whitelist: [], blacklist: [] },
+      showRepoLink: true, repoUrl: ''
     },
-    theme: { fontFamily: 'sans-serif', codeHighlight: { lineNumbers: false } },
-    navigation: { menu: [] },
-    sidebar: { enabled: false, widgets: [] },
-    footer: {},
-    security: { headers: {}, csp: { enabled: false, directives: {} }, robots: { enabled: false, rules: [] } }
+    theme: {
+      colors: { primary: '#2d3748', secondary: '#4a90d9', accent: '#e53e3e', background: '#f7fafc', surface: '#ffffff', text: '#1a202c', textSecondary: '#4a5568', textLight: '#a0aec0', border: '#e2e8f0', shadow: 'rgba(0,0,0,0.1)', hover: '#edf2f7', codeBackground: '#2d3748', codeText: '#f7fafc' },
+      darkMode: { enabled: false, toggle: true, default: 'system', colors: {} },
+      fontFamily: 'sans-serif',
+      fontFamilyMono: 'monospace',
+      fontSizeBase: '16px', lineHeight: 1.8,
+      headingFontWeight: 700, letterSpacing: '0.02em',
+      spacing: { containerWidth: '960px', gap: '2rem', padding: '2rem', radius: '0.5rem', radiusLarge: '1rem' },
+      shadow: { card: '0 4px 6px rgba(0,0,0,0.1)', dropdown: '0 10px 15px -3px rgba(0,0,0,0.1)', fixed: '0 2px 4px rgba(0,0,0,0.08)' },
+      layout: { headerStyle: 'fixed', headerHeight: '60px', footerStyle: 'simple', sidebarPosition: 'right', contentWidth: 'main', postLayout: 'standard', archiveLayout: 'list' },
+      animation: { enable: true, transitionDuration: '0.3s', transitionTiming: 'ease-in-out', scrollBehavior: 'smooth', pageTransition: 'fade' },
+      codeHighlight: { lineNumbers: false, copyButton: true, wrapLongLines: false, highlightLines: true },
+      card: { showDate: true, showTags: true, showCategories: true, showExcerpt: true, excerptLength: 150, showReadTime: true, readTimeSpeed: 265 },
+      button: { radius: '0.25rem', padding: '0.5rem 1.5rem', primaryBackground: '#4a90d9', primaryText: '#ffffff', hoverScale: 1.02 },
+      customCSS: {},
+      externalAssets: { styles: [], scripts: [] }
+    },
+    navigation: { menu: [], navbar: { fixed: true, showLogo: true, logoText: '' }, socialInNav: { enabled: false, order: [] }, search: { enabled: false, placeholder: '搜索...', provider: 'local' }, userMenu: { enabled: false } },
+    sidebar: { enabled: false, position: 'right', width: '280px', sticky: true, widgets: [], mobile: { enabled: true, collapsed: true, toggleButton: true, overlay: true } },
+    footer: { copyright: '', layout: 'simple', social: { enabled: false, iconSize: '24px' }, poweredBy: { enabled: false, text: 'S-ynapse' }, beian: { enabled: false } },
+    security: {
+      headers: {}, csp: { enabled: false, directives: {}, reportOnly: false },
+      robots: { enabled: false, rules: [] },
+      rateLimiting: { enabled: false, maxRequests: 100, windowMs: 60000 },
+      sri: { enabled: false, algorithms: ['sha256', 'sha384'] },
+      pathRestrictions: [], forceHttps: false,
+      securityLogging: { enabled: false },
+      customHeaders: {},
+      contentFilter: { enabled: false, disallowTags: [], disallowAttributes: [], escapeHTML: true },
+      uploadSecurity: { maxFileSize: 5242880 }
+    }
   };
 
   const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security }]);

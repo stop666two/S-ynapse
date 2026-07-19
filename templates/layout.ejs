@@ -6,21 +6,22 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title><%= typeof title !== 'undefined' ? title + ' | ' + site.title : site.title %></title>
   <meta name="description" content="<%= typeof description !== 'undefined' ? description : site.description %>">
-  <%- site.seo.metaKeywords ? '<meta name="keywords" content="' + site.seo.metaKeywords.join(', ') + '">' : '' %>
-  <%- site.seo.metaRobots ? '<meta name="robots" content="' + site.seo.metaRobots + '">' : '' %>
+  <% var seo = site.seo || {}; %>
+  <%- seo.metaKeywords && seo.metaKeywords.length ? '<meta name="keywords" content="' + seo.metaKeywords.join(', ') + '">' : '' %>
+  <%- seo.metaRobots ? '<meta name="robots" content="' + seo.metaRobots + '">' : '' %>
   <meta property="og:title" content="<%= typeof title !== 'undefined' ? title + ' | ' + site.title : site.title %>">
   <meta property="og:description" content="<%= typeof description !== 'undefined' ? description : site.description %>">
-  <meta property="og:type" content="<%= site.seo.ogType || 'website' %>">
+  <meta property="og:type" content="<%= seo.ogType || 'website' %>">
   <meta property="og:url" content="<%= site.url + (typeof page !== 'undefined' && page.url ? page.url : '/') %>">
-  <%- site.seo.ogImage ? '<meta property="og:image" content="' + site.url + site.seo.ogImage + '"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' : '' %>
+  <%- seo.ogImage ? '<meta property="og:image" content="' + site.url + seo.ogImage + '"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' : '' %>
   <meta property="og:site_name" content="<%= site.title %>">
   <meta property="og:locale" content="<%= site.language || 'zh-CN' %>">
-  <meta name="twitter:card" content="<%= site.seo.twitterCard || 'summary_large_image' %>">
-  <%- site.seo.twitterSite ? '<meta name="twitter:site" content="' + site.seo.twitterSite + '">' : '' %>
-  <%- site.seo.canonicalURL ? '<link rel="canonical" href="' + site.url + (typeof page !== 'undefined' && page.url ? page.url : '/') + '">' : '' %>
+  <meta name="twitter:card" content="<%= seo.twitterCard || 'summary_large_image' %>">
+  <%- seo.twitterSite ? '<meta name="twitter:site" content="' + seo.twitterSite + '">' : '' %>
+  <%- seo.canonicalURL ? '<link rel="canonical" href="' + site.url + (typeof page !== 'undefined' && page.url ? page.url : '/') + '">' : '' %>
   <link rel="alternate" type="application/rss+xml" title="<%= site.title %>" href="<%= (site.rss && site.rss.path) || '/feed.xml' %>">
-  <% if (site.pwa && site.pwa.enabled) { %><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="<%= site.pwa.manifest.theme_color || theme.colors.primary %>"><% } %>
-  <%- site.seo.structuredData && site.seo.structuredData.enabled ? '<script type="application/ld+json">{"@context":"https://schema.org","@type":"' + (site.seo.structuredData.type||'BlogPosting') + '","headline":"' + (typeof title!=='undefined'?title:site.title) + '","description":"' + (typeof description!=='undefined'?description:site.description) + '","url":"' + site.url + (typeof page!=='undefined'&&page.url?page.url:'/') + '","author":{"@type":"Person","name":"' + site.author + '"},"publisher":{"@type":"Organization","name":"' + site.title + '"}}</script>' : '' %>
+  <% if (site.pwa && site.pwa.enabled) { %><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="<%= site.pwa.manifest.theme_color || (theme.colors ? theme.colors.primary : '#2d3748') %>"><% } %>
+  <%- seo.structuredData && seo.structuredData.enabled ? '<script type="application/ld+json">{"@context":"https://schema.org","@type":"' + (seo.structuredData.type||'BlogPosting') + '","headline":"' + (typeof title!=='undefined'?title:site.title) + '","description":"' + (typeof description!=='undefined'?description:site.description) + '","url":"' + site.url + (typeof page!=='undefined'&&page.url?page.url:'/') + '","author":{"@type":"Person","name":"' + site.author + '"},"publisher":{"@type":"Organization","name":"' + site.title + '"}}</script>' : '' %>
   <%- security.csp && security.csp.enabled ? '<meta http-equiv="Content-Security-Policy" content="' + Object.entries(security.csp.directives).map(function(e){return e[0]+' '+e[1].join(' ')}).join('; ') + '">' : '' %>
   <meta http-equiv="X-Frame-Options" content="<%= security.headers['X-Frame-Options'] || 'DENY' %>">
   <meta http-equiv="X-Content-Type-Options" content="<%= security.headers['X-Content-Type-Options'] || 'nosniff' %>">

@@ -73,7 +73,7 @@ function loadConfig() {
         generateIndex: true, generateArchive: true, generateTags: true, generateCategories: true,
         copyStatic: true, optimizeMedia: false, mediaQuality: 85,
         mediaResponsiveSizes: [640, 1024, 1920], mediaFormats: ['webp', 'original'],
-        searchFullContent: true, relatedArticles: true, cjkSpacing: true, buildReport: true, enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
+        searchFullContent: true, relatedArticles: true, cjkSpacing: true, buildReport: true, autoOgImage: true, enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer'
       }
     },
@@ -154,6 +154,39 @@ function validateConfig(config) {
     warnings.forEach(w => console.warn('  - ' + w));
   }
   return errors.length === 0;
+}
+
+function generateOgImage(outputPath, title, siteTitle, colors) {
+  const bg = colors?.primary || '#2d3748';
+  const fg = colors?.codeText || '#f7fafc';
+  const accent = colors?.secondary || '#4a90d9';
+  const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const fontSize = safeTitle.length > 20 ? '42' : safeTitle.length > 10 ? '52' : '64';
+  const lines = [];
+  if (safeTitle.length > 28) {
+    const mid = Math.ceil(safeTitle.length / 2);
+    const split = safeTitle.slice(0, mid);
+    const rest = safeTitle.slice(mid);
+    const breakIdx = Math.max(split.lastIndexOf(' '), split.lastIndexOf('—'), split.lastIndexOf('-'), split.lastIndexOf(','));
+    if (breakIdx > 0) {
+      lines.push(safeTitle.slice(0, breakIdx + 1));
+      lines.push(safeTitle.slice(breakIdx + 1).trim());
+    } else {
+      lines.push(split);
+      lines.push(rest);
+    }
+  } else {
+    lines.push(safeTitle);
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${bg}"/><stop offset="100%" style="stop-color:${accent}"/></linearGradient></defs>
+  <rect fill="url(#bg)" width="1200" height="630"/>
+  <text x="80" y="280" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="${fontSize}" font-weight="700" fill="${fg}">${lines[0]}</text>
+  ${lines[1] ? `<text x="80" y="360" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="${fontSize}" font-weight="700" fill="${fg}">${lines[1]}</text>` : ''}
+  <text x="80" y="520" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="24" fill="${fg}" opacity="0.6">${siteTitle}</text>
+</svg>`;
+  fs.writeFileSync(outputPath, svg, 'utf-8');
+  console.log(`  [OG] Generated: media/og-${path.basename(outputPath, '.svg').replace('og-','')}.svg`);
 }
 
 function setupDist(config) {
@@ -403,6 +436,13 @@ async function processArticles(config, mediaManifest) {
       const readSpeed = config.theme.card?.readTimeSpeed || 265;
       const readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
       const toc = extractToc(htmlContent);
+      if (!attrs.featuredImage && config.site.build.autoOgImage !== false) {
+        const ogDir = path.join(DIST_DIR, 'media');
+        if (!fs.existsSync(ogDir)) fs.mkdirSync(ogDir, { recursive: true });
+        const ogPath = path.join(ogDir, `og-${slug}.svg`);
+        generateOgImage(ogPath, title, config.site.title, config.theme.colors);
+        attrs.featuredImage = `/media/og-${slug}.svg`;
+      }
       articles.push({
         slug, title, url, date, tags, categories, draft,
         content: htmlContent,

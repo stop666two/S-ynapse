@@ -23,6 +23,7 @@ const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacin
 
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
+const INCLUDES_DIR = path.join(ROOT, 'includes');
 const STATIC_DIR = path.join(ROOT, 'static');
 const MEDIA_DIR = path.join(ROOT, 'media');
 const TEMPLATES_DIR = path.join(ROOT, 'templates');
@@ -435,6 +436,28 @@ function setupMarkedRenderer(config, mediaManifest) {
       }
     }
   });
+}
+
+function processIncludes(config) {
+  const result = {};
+  if (!fs.existsSync(INCLUDES_DIR)) return null;
+  const files = fs.readdirSync(INCLUDES_DIR).filter(f => /\.md$/i.test(f));
+  for (const file of files) {
+    try {
+      const raw = fs.readFileSync(path.join(INCLUDES_DIR, file), 'utf-8');
+      const fm = frontMatter(raw);
+      const body = fm.body || '';
+      const name = path.basename(file, '.md');
+      result[name] = {
+        title: (fm.attributes && fm.attributes.title) || name,
+        content: applyCjkSpacingToHtml ? applyCjkSpacingToHtml(marked.parse(body)) : marked.parse(body),
+        body: body
+      };
+    } catch (err) {
+      console.error(`  [ERROR] Failed to process include ${file}: ${err.message}`);
+    }
+  }
+  return Object.keys(result).length ? result : null;
 }
 
 async function processArticles(config, mediaManifest) {
@@ -1301,7 +1324,9 @@ async function build() {
     const tags = collectTags(articles);
     const categories = collectCategories(articles);
     if (config.site.build.relatedArticles !== false) computeRelatedArticles(articles);
+    const includesData = processIncludes(config);
     const baseData = buildPageData(config, articles, tags, categories);
+    if (includesData) baseData.includesContent = includesData;
     const customPages = processCustomPages(config, baseData);
     await generatePages(config, articles, baseData, customPages);
     await generateRSS(config, articles);

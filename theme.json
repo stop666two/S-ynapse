@@ -140,6 +140,22 @@
     ]
   },
 
+  // ==================== 文章页脚公告栏 ====================
+
+  "articleFooter": {
+    "enabled": true,               // 是否启用
+    "source": "disclaimer",        // includes/ 下的文件名（不含 .md）
+    "backgroundColor": "#f0f4f8",  // 背景色
+    "textColor": "#4a5568",        // 文字色
+    "borderColor": "#cbd5e1",      // 边框色
+    "borderWidth": "1px",          // 边框粗细
+    "paddingTop": "1.25rem",       // 上下留空
+    "paddingBottom": "1.25rem",
+    "paddingLeft": "1.5rem",       // 左右留空
+    "paddingRight": "1.5rem",
+    "borderRadius": "0.5rem"       // 圆角
+  },
+
   // ==================== 布局微调 ====================
 
   "contentOffset": -10,            // 内容区偏移（px），负=左移，正=右移，0=居中

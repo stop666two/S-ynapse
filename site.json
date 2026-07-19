@@ -159,7 +159,12 @@
     "enableCacheBusting": true,           // 是否启用缓存清除
     "cacheBustingPattern": ".*\\.(css|js|png|jpg|svg)$",  // 缓存清除匹配模式
     "externalLinksTarget": "_blank",       // 外部链接 target
-    "externalLinksRel": "noopener noreferrer"  // 外部链接 rel
+    "externalLinksRel": "noopener noreferrer",  // 外部链接 rel
+    "searchFullContent": true,             // 全文搜索（含正文 5000 字）
+    "relatedArticles": true,               // 文章关联推荐
+    "cjkSpacing": true,                    // 中英文自动加空格
+    "buildReport": true,                   // 生成构建报告
+    "autoOgImage": true                    // 自动生成 OG 图片
   },
 
   // ==================== 自定义 HTML 注入 ====================

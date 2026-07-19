@@ -26,6 +26,7 @@ function searchPage(query) {
     var item = searchData[i];
     var score = 0;
     if (item.title && item.title.toLowerCase().includes(lowerQuery)) score += 10;
+    if (item.content && item.content.toLowerCase().includes(lowerQuery)) score += 3;
     if (item.excerpt && item.excerpt.toLowerCase().includes(lowerQuery)) score += 3;
     if (item.tags && item.tags.some(function(t) { return t.toLowerCase().includes(lowerQuery); })) score += 5;
     if (item.categories && item.categories.some(function(c) { return c.toLowerCase().includes(lowerQuery); })) score += 4;

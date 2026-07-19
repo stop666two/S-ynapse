@@ -70,7 +70,7 @@ function loadConfig() {
         generateIndex: true, generateArchive: true, generateTags: true, generateCategories: true,
         copyStatic: true, optimizeMedia: false, mediaQuality: 85,
         mediaResponsiveSizes: [640, 1024, 1920], mediaFormats: ['webp', 'original'],
-        enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
+        searchFullContent: true, enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer'
       }
     },
@@ -483,12 +483,19 @@ function renderPage(templateName, data, layoutTemplate) {
   }
 }
 
+function stripHtml(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
+}
+
 function generateSearchData(config, articles) {
   if (!config.navigation.search || !config.navigation.search.enabled || config.navigation.search.provider !== 'local') return '[]';
+  const fullContent = config.site.build.searchFullContent !== false;
   const data = articles.filter(a => !a.draft).map(a => ({
     title: a.title,
     url: a.url,
-    excerpt: a.excerpt ? a.excerpt.replace(/<[^>]+>/g, '').substring(0, 200) : '',
+    excerpt: a.excerpt ? stripHtml(a.excerpt).substring(0, 200) : '',
+    content: fullContent ? stripHtml(a.content).substring(0, 3000) : '',
     tags: a.tags || [],
     categories: a.categories || []
   }));
@@ -834,11 +841,13 @@ function generateSearchIndex(config, articles) {
     return;
   }
   console.log('[9/14] Generating search index...');
+  const fullContent = config.site.build.searchFullContent !== false;
   const published = articles.filter(a => !a.draft);
   const index = published.map(a => ({
     title: a.title,
     url: a.url,
-    excerpt: (a.excerpt || '').replace(/<[^>]+>/g, '').substring(0, 200),
+    excerpt: stripHtml(a.excerpt || '').substring(0, 200),
+    content: fullContent ? stripHtml(a.content).substring(0, 5000) : '',
     tags: a.tags,
     categories: a.categories
   }));

@@ -22,7 +22,7 @@ H~2~O 下标 X^2^ 上标（需 marked 扩展支持）
 
 ### 1.2 链接类型
 
-- 站内相对路径：</about/>
+- 站内相对路径（无弹窗）：[关于](/about/)
 - 白名单域名（无弹窗）：<https://github.com/stop666two>
 - 白名单泛域名：<https://cdn.jsdelivr.net/npm/prismjs@1/prism.min.js>
 - 外部危险域名（弹窗警告）：<https://malware-test.example.com/steal>

@@ -94,7 +94,7 @@ function loadConfig() {
         generateAuthorPages: false, copyStatic: true, optimizeMedia: false, mediaQuality: 85,
         mediaResponsiveSizes: [640, 1024, 1920], mediaFormats: ['webp', 'original'],
         lazyLoadImages: true, useSrcset: true, usePictureTag: true,
-        searchFullContent: true, relatedArticles: true, cjkSpacing: true, buildReport: true, autoOgImage: true,
+        searchFullContent: true, relatedArticles: true, cjkSpacing: true, buildReport: true, autoOgImage: true, forceContentWidth: true,
         enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer'
       },

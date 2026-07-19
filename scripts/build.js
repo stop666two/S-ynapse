@@ -89,19 +89,68 @@ function loadConfig() {
 
 function validateConfig(config) {
   const errors = [];
+  const hexColor = /^#[0-9a-fA-F]{3,8}$/;
+  const warnings = [];
+
   if (!config.site.title) errors.push('site.title is required');
   if (!config.site.url) errors.push('site.url is required');
+  if (config.site.url && !/^https?:\/\//.test(config.site.url)) warnings.push('site.url should start with http:// or https://');
   if (!config.site.language) errors.push('site.language is required');
   if (!config.site.postsPerPage || config.site.postsPerPage < 1) errors.push('site.postsPerPage must be >= 1');
+
+  if (config.site.rss && config.site.rss.enabled) {
+    if (!config.site.rss.path) warnings.push('site.rss.path not set, using default /feed.xml');
+  }
+  if (config.site.sitemap && config.site.sitemap.enabled) {
+    if (!['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never'].includes(config.site.sitemap.changefreq)) {
+      warnings.push(`site.sitemap.changefreq "${config.site.sitemap.changefreq}" is not standard`);
+    }
+  }
+
+  if (config.theme.colors) {
+    for (const [key, val] of Object.entries(config.theme.colors)) {
+      if (val && !val.startsWith('#') && !val.startsWith('rgba') && !val.startsWith('rgb(')) {
+        warnings.push(`theme.colors.${key}: "${val}" may not be a valid color`);
+      }
+    }
+  }
   if (config.theme.darkMode && config.theme.darkMode.enabled) {
     if (!['light', 'dark', 'system'].includes(config.theme.darkMode.default)) {
       errors.push('theme.darkMode.default must be "light", "dark", or "system"');
     }
   }
+  if (config.theme.spacing) {
+    const cw = config.theme.spacing.containerWidth;
+    if (cw && !/^\d+(px|rem|em|%|vw)$/.test(cw)) warnings.push(`theme.spacing.containerWidth "${cw}" may be invalid`);
+  }
+
+  if (config.navigation.menu) {
+    for (const item of config.navigation.menu) {
+      if (!item.label) warnings.push('navigation.menu item missing label');
+      if (!item.url) warnings.push('navigation.menu item missing url');
+    }
+  }
+
+  if (config.sidebar && config.sidebar.enabled && config.sidebar.widgets) {
+    const validTypes = ['author', 'recent', 'tags', 'categories', 'archive', 'search', 'custom', 'newsletter', 'toc'];
+    for (const w of config.sidebar.widgets) {
+      if (w.enabled && !validTypes.includes(w.type)) warnings.push(`sidebar.widget type "${w.type}" is unknown`);
+    }
+  }
+
+  if (config.security.csp && config.security.csp.enabled) {
+    if (config.security.csp.directives['script-src'] && config.security.csp.directives['script-src'].includes("'unsafe-inline'")) {
+      warnings.push('security.csp: script-src includes unsafe-inline, consider removing for stricter CSP');
+    }
+  }
+
   if (errors.length > 0) {
     console.error('\n[CONFIG VALIDATION ERRORS]');
     errors.forEach(e => console.error('  - ' + e));
-    console.error('');
+  }
+  if (warnings.length > 0) {
+    console.warn('\n[CONFIG WARNINGS]');
+    warnings.forEach(w => console.warn('  - ' + w));
   }
   return errors.length === 0;
 }

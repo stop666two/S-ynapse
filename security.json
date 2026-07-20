@@ -34,7 +34,7 @@
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",  // HSTS 强制 HTTPS
     "X-XSS-Protection": "1; mode=block",                                // 启用 XSS 过滤器
     "Cross-Origin-Resource-Policy": "same-origin",                      // 跨域资源策略
-    "Cross-Origin-Embedder-Policy": "require-corp",                     // 跨域嵌入策略
+    "Cross-Origin-Embedder-Policy": "unsafe-none",                     // 跨域嵌入策略
     "Cross-Origin-Opener-Policy": "same-origin"                         // 跨域打开者策略
   },
 

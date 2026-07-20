@@ -21,17 +21,24 @@ const CONFIG = {
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
-  const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const clientIP = request.headers.get('CF-Connecting-IP');
+
+  if (url.protocol !== 'https:' && env.ENVIRONMENT === 'production') {
+    url.protocol = 'https:';
+    return Response.redirect(url.toString(), 301);
+  }
 
   if (url.pathname === '/csp-report' && request.method === 'POST') {
     try {
       const report = await request.json();
       console.log('CSP Violation:', JSON.stringify(report));
-    } catch (e) {}
+    } catch (e) {
+      console.warn('CSP report parse failed:', e.message);
+    }
     return new Response('ok', { status: 200 });
   }
 
-  if (CONFIG.rateLimiting) {
+  if (CONFIG.rateLimiting && clientIP) {
     const now = Date.now();
     const windowMs = CONFIG.rateLimiting.windowMs;
     const maxRequests = CONFIG.rateLimiting.maxRequests;
@@ -51,7 +58,7 @@ async function handleRequest(request, env) {
     } else {
       rateLimitMap.set(clientIP, { hits: [now] });
     }
-    if (rateLimitMap.size > 10000) {
+    if (rateLimitMap.size > 5000) {
       const cutoff = now - windowMs;
       for (const [ip, data] of rateLimitMap) {
         if (data.blockedUntil && data.blockedUntil < now) {
@@ -88,9 +95,7 @@ async function handleRequest(request, env) {
   headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   headers.set('X-XSS-Protection', '1; mode=block');
 
-  if (url.protocol === 'https:') {
-    headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  }
+  headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
 
   return new Response(response.body, {
     status: response.status,

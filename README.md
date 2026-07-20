@@ -42,7 +42,7 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html` 含详细统计
-- 单元测试：`npm test` 覆盖核心纯函数（22 项测试）
+- 单元测试：`npm test` 覆盖核心纯函数（23 项测试）
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -76,8 +76,7 @@ npm run serve
 ```
 S-ynapse/
 ├── articles/          # Markdown 文章
-├── pages/             # 自定义页面
-├── includes/          # 可复用内容块（隐私政策/服务条款/公告等，支持文章底部公告栏）
+├── pages/             # 自定义页面 & 可复用内容块（博客底部公告、关于、隐私、条款等）
 ├── media/             # 图片资源（自动优化）
 ├── static/            # 静态文件（直接复制到输出）
 ├── templates/         # EJS 模板（10 个文件）
@@ -93,8 +92,8 @@ S-ynapse/
 │   ├── search.ejs     # 搜索页
 │   └── 404.ejs        # 404 页
 ├── scripts/
-│   ├── build.js       # 构建脚本（16 步管线）
-│   ├── build.test.js  # 单元测试（22 项通过）
+│   ├── build.js       # 构建脚本（14 步管线）
+│   ├── build.test.js  # 单元测试（23 项通过）
 │   ├── init-project.js# 项目初始化（自动配置 git hooks/gitignore/gitattributes）
 │   └── lib/
 │       └── utils.js   # 工具函数库（formatDate/safeSlug/stripHtml/CJK 空格等）
@@ -221,7 +220,7 @@ S-ynapse/
   // 文章页脚公告栏
   articleFooter: {
     enabled: true,
-    source: "disclaimer",          // includes/ 下的文件名
+    source: "disclaimer",          // pages/ 下的文件名（不含 .md 后缀）
     backgroundColor: "#f0f4f8",
     textColor: "#4a5568",
     borderColor: "#cbd5e1",
@@ -384,26 +383,26 @@ draft: true                          # 设为 true 则在生产构建中跳过
 
 ## 构建管线
 
-构建脚本执行 16 步：
+构建脚本执行 14 步（步骤编号对应构建日志输出）：
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 加载配置 | 读取 6 个 JSON5 文件，合并默认值，20+ 项校验 |
-| 2 | 设置输出目录 | 清空 `dist/` 并创建子目录 |
+| 1 | 加载配置 | 读取 6 个 JSON5 文件，合并默认值，校验 20+ 配置项 |
+| 2 | 设置输出目录 | 清空 `dist/` 并创建 articles/tags/categories/page 子目录 |
 | 3 | 复制静态文件 | `static/` → `dist/` |
-| 4 | 媒体优化 | sharp 生成 WebP + 多尺寸响应式图片 |
-| 5 | 处理文章 | 解析 Frontmatter → 检测 h1 → Markdown 转 HTML → CJK 空格 → 提取 TOC |
-| 6 | 处理自定义页面 | `pages/` 目录的 .md 文件 |
-| 7 | 计算关联推荐 | 基于标签/分类权重计算相关文章 |
-| 8 | 生成页面 | 首页分页、文章（含关联推荐）、归档、标签、分类、搜索、404 |
-| 9 | 自动生成 OG 图片 | 无封面图的文章自动生成标题 SVG |
-| 10 | RSS | 生成 feed.xml |
-| 11 | Sitemap | 生成 sitemap.xml |
-| 12 | 搜索索引 | 生成 search-index.json（含正文 5000 字） |
-| 13 | 安全文件 | _headers, robots.txt |
-| 14 | 压缩 | HTML/CSS/JS |
-| 15 | 缓存破坏 | 内容哈希重命名 |
-| 16 | PWA + 构建报告 | manifest.json, sw.js, build-report.html |
+| 4 | 媒体优化 | sharp 生成 WebP + 多尺寸响应式图片（输出 manifest） |
+| 5 | 处理文章 | 解析 Frontmatter → h1 唯一性检测 → Markdown 转 HTML → CJK 空格 → 提取 TOC → 自动 OG 图 |
+| 6 | 生成页面 | 首页分页、文章详情（prev/next + 关联推荐 + 评论）、归档、标签、分类、搜索、404 |
+| 7 | RSS | 生成 feed.xml（全文/摘要，上限 maxItems） |
+| 8 | Sitemap | 生成 sitemap.xml（含自定义页面） |
+| 9 | 搜索索引 | 生成 search-index.json（含正文 5000 字、标签、分类） |
+| 10 | 安全文件 | `_headers`（CSP + HSTS + 安全头）、`robots.txt` |
+| 11 | 压缩 | HTML（html-minifier）、CSS（CleanCSS）、JS（Terser） |
+| 12 | 缓存破坏 | MD5 内容哈希重命名文件，更新 HTML 引用 |
+| 13 | PWA | manifest.json + Service Worker（启用时） |
+| 14 | 构建报告 | build-report.html（耗时/文章数/体积/功能状态） |
+
+**自定义页面**：`pages/` 目录下的 .md 文件在步骤 5 与步骤 6 之间处理（通过 `processCustomPages`），同目录内容也通过 `processPagesContent` 加载供模板嵌入（如文章底部公告栏）。
 
 ---
 
@@ -425,9 +424,8 @@ npx wrangler pages deploy dist --project-name=s-ynapse
 # 1. 构建静态资源
 npm run build
 
-# 2. 部署 Worker
-cd workers
-npx wrangler deploy
+# 2. 从项目根目录部署 Worker
+npx wrangler deploy --config workers/wrangler.toml
 ```
 
 Worker 提供：
@@ -477,7 +475,7 @@ Worker 提供：
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（22 项） |
+| `npm test` | 运行单元测试（23 项） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
 | `npx wrangler pages deploy dist --project-name=s-ynapse` | 部署到 Cloudflare Pages |
 
@@ -494,14 +492,14 @@ npm test
 
 | 测试套件 | 测试数 | 覆盖函数 |
 |----------|--------|----------|
-| formatDate | 4 | 日期格式化 |
-| safeSlug | 4 | URL Slug 生成 |
-| escapeAttr | 2 | HTML 属性转义 |
-| escapeHtml | 2 | HTML 转义 |
-| stripHtml | 3 | HTML 标签剥离 |
-| insertCjkSpacing | 4 | 中英文自动加空格 |
+| formatDate | 5 | 日期格式化（含时间检测） |
+| safeSlug | 4 | URL Slug 生成（含中文/混合/空值） |
+| escapeAttr | 2 | HTML 属性转义（含非字符串输入） |
+| escapeHtml | 2 | HTML 转义（含 null 输入） |
+| stripHtml | 3 | HTML 标签剥离（含实体解码、非字符串） |
+| insertCjkSpacing | 4 | 中英文自动加空格（含纯中文/纯英文边界） |
 | applyCjkSpacingToHtml | 1 | HTML 安全的 CJK 空格 |
-| extractToc | 2 | 文章目录提取 |
+| extractToc | 2 | 文章目录提取（含无标题页） |
 
 ---
 

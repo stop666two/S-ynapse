@@ -3,8 +3,7 @@
   Data contract:
     article: {slug, title, url, formattedDate, date, categories, tags, readTime, featuredImage, content, relatedArticles, toc}
     site.comments: {enabled, provider, giscus/utterances/disqus config}
-    includesContent: legacy content map (kept for backward compat)
-    pagesContent: {[source]: {title, content, body}} — loaded from pages/ directory
+    pagesContent: {[filename]: {title, content, body}} — .md content from pages/ directory, keyed by filename without extension
     theme.articleFooter: {enabled, source, backgroundColor, textColor, borderColor, ...styling}
     prevArticle / nextArticle: {title, url} or null
 %>

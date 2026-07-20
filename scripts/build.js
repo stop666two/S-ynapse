@@ -844,7 +844,8 @@ function buildPageData(config, articles, tags, categories) {
 // Render standalone pages from Markdown files in pages/ directory.
 // Each .md file becomes a full HTML page at /{slug}/index.html using page.ejs + layout.ejs.
 // Title priority: frontmatter.title > filename. Slug priority: slugOverride > attrs.slug > safeSlug(title).
-// The built-inPages fallback to includes/ was removed in favor of a single source: pages/.
+// Source: only pages/ directory. Previously also fell back to includes/ for about/privacy/terms — that
+// fallback was removed to enforce a single source of truth. Move those files to pages/ if needed.
 // Duplicate slugs are silently skipped (first writer wins).
 function processCustomPages(config, baseData) {
   console.log('Processing custom pages...');

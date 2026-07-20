@@ -144,7 +144,7 @@
 
   "articleFooter": {
     "enabled": true,               // 是否启用
-    "source": "disclaimer",        // includes/ 下的文件名：disclaimer / privacy / terms / about
+    "source": "disclaimer",        // pages/ 下的文件名（不含 .md 后缀），例如：disclaimer / privacy / terms / about
     "backgroundColor": "#f0f4f8",  // 背景色
     "textColor": "#4a5568",        // 文字色
     "borderColor": "#cbd5e1",      // 边框色

@@ -38,7 +38,7 @@ function searchPage(query) {
   if (results.length) {
     resultsDiv.innerHTML = '<p style="color:var(--color-text-secondary);margin-bottom:1rem">找到 ' + results.length + ' 个结果</p>' +
       results.map(function(r) {
-        return '<article class="post-card" style="cursor:pointer" onclick="location.href=\'' + r.url + '\'">' +
+        return '<article class="post-card">' +
           '<h2 class="post-card-title"><a href="' + r.url + '">' + r.title + '</a></h2>' +
           (r.excerpt ? '<p class="post-card-excerpt">' + r.excerpt.substring(0, 200) + '</p>' : '') +
           (r.tags && r.tags.length ? '<div class="post-tags" style="margin-top:0.5rem">' +

@@ -1,0 +1,21 @@
+# AGENTS.md 及其变体禁止被修改（需项目负责人审批）
+AGENTS.md @project-owner
+AGENTS.txt @project-owner
+AGENT.md @project-owner
+AGENT.txt @project-owner
+agent-readme.md @project-owner
+RULES.md @project-owner
+
+# 核心构建脚本需审查
+scripts/build.js @project-owner
+scripts/init-project.js @project-owner
+scripts/lib/utils.js @project-owner
+
+# 安全配置需审查
+security.json @project-owner
+workers/security-worker.js @project-owner
+workers/wrangler.toml @project-owner
+
+# 部署配置需审查
+.github/workflows/deploy.yml @project-owner
+wrangler.toml @project-owner

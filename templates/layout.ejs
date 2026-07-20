@@ -12,13 +12,13 @@
   <meta property="og:title" content="<%= typeof title !== 'undefined' ? title + ' | ' + site.title : site.title %>">
   <meta property="og:description" content="<%= typeof description !== 'undefined' ? description : site.description %>">
   <meta property="og:type" content="<%= seo.ogType || 'website' %>">
-  <meta property="og:url" content="<%= site.url + (typeof page !== 'undefined' && page.url ? page.url : '/') %>">
-  <%- seo.ogImage ? '<meta property="og:image" content="' + site.url + seo.ogImage + '"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' : '' %>
+  <meta property="og:url" content="<%= (site.url || '') + (typeof page !== 'undefined' && page.url ? page.url : '/') %>">
+  <%- seo.ogImage ? '<meta property="og:image" content="' + (site.url || '') + seo.ogImage + '"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' : '' %>
   <meta property="og:site_name" content="<%= site.title %>">
   <meta property="og:locale" content="<%= site.language || 'zh-CN' %>">
   <meta name="twitter:card" content="<%= seo.twitterCard || 'summary_large_image' %>">
   <%- seo.twitterSite ? '<meta name="twitter:site" content="' + seo.twitterSite + '">' : '' %>
-  <%- seo.canonicalURL ? '<link rel="canonical" href="' + site.url + (typeof page !== 'undefined' && page.url ? page.url : '/') + '">' : '' %>
+  <%- seo.canonicalURL ? '<link rel="canonical" href="' + (site.url || '') + (typeof page !== 'undefined' && page.url ? page.url : '/') + '">' : '' %>
   <link rel="alternate" type="application/rss+xml" title="<%= site.title %>" href="<%= (site.rss && site.rss.path) || '/feed.xml' %>">
   <% if (site.pwa && site.pwa.enabled) { %><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="<%= site.pwa.manifest.theme_color || (theme.colors ? theme.colors.primary : '#2d3748') %>"><% } %>
   <%- seo.structuredData && seo.structuredData.enabled ? '<script type="application/ld+json">{"@context":"https://schema.org","@type":"' + (seo.structuredData.type||'BlogPosting') + '","headline":"' + (typeof title!=='undefined'?title:site.title) + '","description":"' + (typeof description!=='undefined'?description:site.description) + '","url":"' + site.url + (typeof page!=='undefined'&&page.url?page.url:'/') + '","author":{"@type":"Person","name":"' + site.author + '"},"publisher":{"@type":"Organization","name":"' + site.title + '"}}</script>' : '' %>
@@ -29,11 +29,11 @@
     :root{--color-p:<%=theme.colors.primary%>;--color-s:<%=theme.colors.secondary%>;--color-a:<%=theme.colors.accent%>;--color-bg:<%=theme.colors.background%>;--color-surface:<%=theme.colors.surface%>;--color-t:<%=theme.colors.text%>;--color-ts:<%=theme.colors.textSecondary%>;--color-tl:<%=theme.colors.textLight%>;--color-border:<%=theme.colors.border%>;--color-shadow:<%=theme.colors.shadow%>;--color-hover:<%=theme.colors.hover%>;--color-code-bg:<%=theme.colors.codeBackground%>;--color-code-t:<%=theme.colors.codeText%>;--ff:<%-theme.fontFamily%>;--ff-mono:<%=theme.fontFamilyMono%>;--fs-base:<%=theme.fontSizeBase||'16px'%>;--lh:<%=theme.lineHeight||1.8%>;--fw-heading:<%=theme.headingFontWeight||700%>;--ls:<%=theme.letterSpacing||'0.02em'%>;--cw:<%=theme.spacing.containerWidth||'960px'%>;--gap:<%=theme.spacing.gap||'2rem'%>;--pad:<%=theme.spacing.padding||'2rem'%>;--r:<%=theme.spacing.radius||'0.5rem'%>;--r-lg:<%=theme.spacing.radiusLarge||'1rem'%>;--sc:<%=theme.shadow.card||'0 4px 6px rgba(0,0,0,0.1)'%>;--sd:<%=theme.shadow.dropdown||'0 10px 15px -3px rgba(0,0,0,0.1)'%>;--sf:<%=theme.shadow.fixed||'0 2px 4px rgba(0,0,0,0.08)'%>;--hh:<%=theme.layout.headerHeight||'60px'%>;--td:<%=theme.animation.transitionDuration||'0.25s'%>;--te:cubic-bezier(.4,0,.2,1);--br:<%=theme.button.radius||'0.25rem'%>;--bp:<%=theme.button.padding||'0.5rem 1.5rem'%>;--bpb:<%=theme.button.primaryBackground||theme.colors.secondary%>;--bpt:<%=theme.button.primaryText||'#ffffff'%>;--sw:<%=sidebar.width||'280px'%>}
     <% if(theme.darkMode&&theme.darkMode.enabled){ %>[data-theme="dark"]{--color-bg:<%=theme.darkMode.colors.background%>;--color-surface:<%=theme.darkMode.colors.surface%>;--color-t:<%=theme.darkMode.colors.text%>;--color-ts:<%=theme.darkMode.colors.textSecondary%>;--color-tl:<%=theme.darkMode.colors.textLight||'#64748b'%>;--color-border:<%=theme.darkMode.colors.border%>;--color-shadow:<%=theme.darkMode.colors.shadow%>;--color-hover:<%=theme.darkMode.colors.hover||'#334155'%>;--color-code-bg:<%=theme.darkMode.colors.codeBackground%>;--color-code-t:<%=theme.darkMode.colors.codeText%>}<% } %>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html{font-size:var(--fs-base);scroll-behavior:<%=theme.animation.scrollBehavior||'smooth'%>}
+    html{font-size:var(--fs-base)}@media (prefers-reduced-motion:no-preference){html{scroll-behavior:<%=theme.animation.scrollBehavior||'smooth'%>}}
     body{font-family:var(--ff);line-height:var(--lh);color:var(--color-t);background:var(--color-bg);letter-spacing:var(--ls);-webkit-font-smoothing:antialiased;transition:background var(--td) var(--te),color var(--td) var(--te)}
     a{color:var(--color-s);text-decoration:none;transition:color var(--td) var(--te)}a:hover{color:var(--color-p)}
     h1,h2,h3,h4,h5,h6{font-weight:var(--fw-heading);line-height:1.3;margin-bottom:.5em;color:var(--color-t)}h1{font-size:2em}h2{font-size:1.5em}h3{font-size:1.25em}
-    img{max-width:100%;height:auto;border-radius:var(--r);opacity:0;transition:opacity .4s var(--te)}img.loaded,img[loading=eager]{opacity:1}
+    img{max-width:100%;height:auto;border-radius:var(--r)}.js-img{opacity:0;transition:opacity .4s var(--te)}.js-img.loaded,.js-img[loading=eager]{opacity:1}
     .container{max-width:var(--cw);margin:0 auto;padding:0 var(--pad)}
     .site-wrapper{display:flex;flex-direction:column;min-height:100vh}
 <% var hcg=theme.headerContentGap||0; %>    .content-wrapper{flex:1;display:flex;gap:var(--gap);padding-top:calc(<%=theme.layout.headerStyle==='fixed'?'var(--hh)':'0'%><% if(hcg){ %> + <%=hcg%>px<% } %>);padding-bottom:2rem}
@@ -136,7 +136,7 @@
     .page-enter{animation:fadeIn .35s cubic-bezier(.4,0,.2,1),slideUp .35s cubic-bezier(.4,0,.2,1)}
   </style>
   <%- site.customHead || '' %>
-<script>window.__SEARCH_DATA__=<%- searchData %>;</script>
+<script>window.__SEARCH_DATA__=<%- typeof searchData === 'string' ? searchData : '[]' %>;</script>
 </head>
 <body>
 <div class="reading-progress" id="rp"></div>
@@ -230,7 +230,7 @@ function doSearch(q){var d=document.getElementById('searchResults');if(!d)return
 (function(){var p=document.getElementById('rp');if(p&&document.querySelector('.post-article')){p.classList.add('visible');window.addEventListener('scroll',function(){var s=window.scrollY,h=document.documentElement.scrollHeight-window.innerHeight;if(h>0)p.style.width=Math.min(100,(s/h)*100)+'%'})}})();
 (function(){var b=document.getElementById('btt');if(b){window.addEventListener('scroll',function(){b.classList.toggle('visible',window.scrollY>300)})}})();
 (function(){document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.post-content pre').forEach(function(p){var b=document.createElement('button');b.className='copy-code-btn';b.textContent='复制';b.onclick=function(){var c=p.querySelector('code')||p;navigator.clipboard.writeText(c.textContent).then(function(){b.textContent='已复制';setTimeout(function(){b.textContent='复制'},2000)})};p.appendChild(b)})})})();
-document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('img:not([loading=eager])').forEach(function(i){if(i.complete)i.classList.add('loaded');else i.addEventListener('load',function(){i.classList.add('loaded')});i.addEventListener('error',function(){i.classList.add('loaded')})})});
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('img:not([loading=eager])').forEach(function(i){i.classList.add('js-img');if(i.complete)i.classList.add('loaded');else i.addEventListener('load',function(){i.classList.add('loaded')});i.addEventListener('error',function(){i.classList.add('loaded')})})});
 function toggleReadingMode(){var d=document.documentElement;var a=d.getAttribute('data-reading');if(a==='true'){d.removeAttribute('data-reading');localStorage.setItem('readingMode','false')}else{d.setAttribute('data-reading','true');localStorage.setItem('readingMode','true')}};(function(){if(localStorage.getItem('readingMode')==='true')document.documentElement.setAttribute('data-reading','true')})()
 ;(function(){var d=document.querySelector('.toc-sidebar-list');if(!d)return;var links=d.querySelectorAll('.toc-sidebar-link');var ids=[];links.forEach(function(l){var h=l.getAttribute('href');if(h&&h[0]==='#')ids.push(h.slice(1))});if(!ids.length)return;function update(){var cur='';for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.getBoundingClientRect().top<120)cur=ids[i]}links.forEach(function(l){var h=l.getAttribute('href');l.classList.toggle('active',h==='#'+cur)})}window.addEventListener('scroll',update);update()})()
 function showContact(v,t,c){var o=document.getElementById('contactPopup'),tv=document.getElementById('contactPopupTitle'),cv=document.getElementById('contactPopupContent'),vv=document.getElementById('contactPopupValue'),cp=document.getElementById('contactPopupCopied');if(!o)return;tv.textContent=t;cv.textContent=c;vv.textContent=v;vv.setAttribute('data-value',v);cp.textContent='';o.style.display='flex'}

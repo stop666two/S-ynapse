@@ -30,6 +30,9 @@
   "paginationPrev": "上一页",
   // 分页"下一页"按钮文字
   "paginationNext": "下一页",
+  // 上一篇/下一篇 按钮文字（文章详情页底部导航）
+  "prevPostLabel": "上一篇",
+  "nextPostLabel": "下一篇",
 
   // ==================== RSS Feed 设置 ====================
 

@@ -1,3 +1,10 @@
+<%# 
+  Index page template — renders article cards with pagination.
+  Data contract:
+    articles: Array<{title, url, featuredImage, formattedDate, date, categories, tags, readTime, excerpt}>
+    pagination: {current, total, prev, next, prevLabel, nextLabel, pages: Array<{num, url, current}>}
+    theme.card: {showDate, showCategories, showReadTime, showExcerpt, showTags}
+%>
 <% if (articles && articles.length) { %>
 <% articles.forEach(function(article) { %>
 <article class="post-card">
@@ -38,21 +45,21 @@
 <% }) %>
 
 <% if (pagination && pagination.total > 1) { %>
-<nav class="pagination">
+<nav class="pagination" aria-label="分页导航">
   <% if (pagination.prev) { %>
-  <a href="<%= pagination.prev %>" class="page-link">&laquo; <%= pagination.prevLabel %></a>
+  <a href="<%= pagination.prev %>" class="page-link" aria-label="上一页">&laquo; <%= pagination.prevLabel %></a>
   <% } else { %>
-  <span class="page-link disabled">&laquo; <%= pagination.prevLabel %></span>
+  <span class="page-link disabled" aria-hidden="true">&laquo; <%= pagination.prevLabel %></span>
   <% } %>
 
   <% pagination.pages.forEach(function(p) { %>
-  <a href="<%= p.url %>" class="page-link <%= p.current ? 'active' : '' %>"><%= p.num %></a>
+  <a href="<%= p.url %>" class="page-link <%= p.current ? 'active' : '' %>" aria-label="第<%= p.num %>页"<%= p.current ? ' aria-current="page"' : '' %>><%= p.num %></a>
   <% }) %>
 
   <% if (pagination.next) { %>
-  <a href="<%= pagination.next %>" class="page-link"><%= pagination.nextLabel %> &raquo;</a>
+  <a href="<%= pagination.next %>" class="page-link" aria-label="下一页"><%= pagination.nextLabel %> &raquo;</a>
   <% } else { %>
-  <span class="page-link disabled"><%= pagination.nextLabel %> &raquo;</span>
+  <span class="page-link disabled" aria-hidden="true"><%= pagination.nextLabel %> &raquo;</span>
   <% } %>
 </nav>
 <% } %>

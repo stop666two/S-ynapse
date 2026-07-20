@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// S-ynapse Static Blog Builder — main build pipeline
+// Reads Markdown articles + JSON5 configs + EJS templates → fully static HTML site
+// Pipeline order: config → validate → dist → static → media → articles → pages → RSS → sitemap → search → security headers → minify → cache bust → PWA
 
 const fs = require('fs');
 const path = require('path');
@@ -7,11 +10,14 @@ const frontMatter = require('front-matter');
 const { marked } = require('marked');
 const ejs = require('ejs');
 
+// Optional dependency loading — each fails gracefully to null/fallback
+// This allows the build to run with missing packages (features degrade instead of crashing)
 let json5, deepmerge, Feed, sharp, htmlMinifier, CleanCSS, terser, chokidar;
 try { json5 = require('json5'); } catch (e) {
   console.warn('[WARN] json5 package not found, config files with comments will fail to parse. Run: npm install json5');
   json5 = { parse: JSON.parse };
 }
+// deepmerge fallback: recursive object merge (supports indefinite nesting)
 try { deepmerge = require('deepmerge'); } catch (e) {
   deepmerge = function deepMerge(...objs) {
     const result = {};
@@ -37,24 +43,35 @@ try { CleanCSS = require('clean-css'); } catch (e) { CleanCSS = null; }
 try { terser = require('terser'); } catch (e) { terser = null; }
 try { chokidar = require('chokidar'); } catch (e) { chokidar = null; }
 
+// Optional local hooks script (scripts/hooks.js) — allows external plugins to hook into build lifecycle
+// Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
 const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc } = require('./lib/utils');
 
+// Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
-const ARTICLES_DIR = path.join(ROOT, 'articles');
-const INCLUDES_DIR = path.join(ROOT, 'includes');
-const STATIC_DIR = path.join(ROOT, 'static');
-const MEDIA_DIR = path.join(ROOT, 'media');
-const TEMPLATES_DIR = path.join(ROOT, 'templates');
-const DIST_DIR = path.join(ROOT, 'dist');
-const WATCH_MODE = process.argv.includes('--watch');
-const SERVE_MODE = process.argv.includes('--serve');
-const SHOW_DRAFTS = process.argv.includes('--drafts') || WATCH_MODE;
-const PAGES_DIR = path.join(ROOT, 'pages');
+const ARTICLES_DIR = path.join(ROOT, 'articles');          // Markdown article source files
+const INCLUDES_DIR = path.join(ROOT, 'includes');           // Legacy shared content (kept for backward compat)
+const STATIC_DIR = path.join(ROOT, 'static');               // Unprocessed static assets (copied verbatim)
+const MEDIA_DIR = path.join(ROOT, 'media');                 // Source images (processed by sharp)
+const TEMPLATES_DIR = path.join(ROOT, 'templates');         // EJS template files
+const DIST_DIR = path.join(ROOT, 'dist');                   // Build output directory
+const PAGES_DIR = path.join(ROOT, 'pages');                 // Standalone page Markdown files (about, privacy, etc.)
+
+// CLI flags parsed from process.argv
+const WATCH_MODE = process.argv.includes('--watch');        // Rebuild on file changes
+const SERVE_MODE = process.argv.includes('--serve');        // Start dev HTTP server after build
+const SHOW_DRAFTS = process.argv.includes('--drafts') || WATCH_MODE;  // Include draft articles
+
 const CACHE_BUST_MANIFEST_PATH = path.join(DIST_DIR, 'cache-bust-manifest.json');
+
+// Filter out draft articles unless SHOW_DRAFTS is active
 function getPublished(articles) { return articles.filter(a => !a.draft || SHOW_DRAFTS); }
 
+// Load a JSON5 config file from project root.
+// Strips BOM and normalizes line endings before parsing.
+// Exits the process with [FATAL] on any failure — config errors must not be silent.
 function loadConfigFile(filename) {
   const filePath = path.join(ROOT, filename);
   if (!fs.existsSync(filePath)) {
@@ -72,6 +89,11 @@ function loadConfigFile(filename) {
   }
 }
 
+// Load and merge all 6 config files with deep defaults.
+// The defaults object provides every possible key so user configs can be sparse.
+// deepmerge.all([defaults, userConfig]) ensures nested keys (e.g. theme.colors.primary)
+// fall through to defaults when user omits them.
+// Each loaded config overrides only the keys the user explicitly set.
 function loadConfig() {
   console.log('[1/14] Loading configuration...');
   const site = loadConfigFile('site.json');
@@ -162,6 +184,9 @@ function loadConfig() {
   return config;
 }
 
+// Validate merged config for required fields and suspicious values.
+// Returns boolean. Errors = build-stopping problems. Warnings = advisory only.
+// Caller must check the return value and abort if false.
 function validateConfig(config) {
   const errors = [];
   const warnings = [];
@@ -230,6 +255,9 @@ function validateConfig(config) {
   return true;
 }
 
+// Generate an SVG Open Graph image for social sharing (1200×630).
+// Uses theme colors for background gradient, auto-splits long titles onto two lines.
+// Output is written to dist/media/og/{slug}.svg during article processing.
 function generateOgImage(outputPath, title, siteTitle, colors) {
   const bg = colors?.primary || '#2d3748';
   const fg = colors?.codeText || '#f7fafc';
@@ -263,6 +291,9 @@ function generateOgImage(outputPath, title, siteTitle, colors) {
   console.log(`  [OG] Generated: media/og-${path.basename(outputPath, '.svg').replace('og-','')}.svg`);
 }
 
+// Create the output directory structure under dist/.
+// If cleanDist is enabled, removes the entire dist/ first.
+// Required subdirectories: articles/, tags/, categories/, page/
 function setupDist(config) {
   console.log('[2/14] Setting up dist directory...');
   if (config.site.build.cleanDist && fs.existsSync(DIST_DIR)) {
@@ -279,6 +310,8 @@ function setupDist(config) {
   dirs.forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
 }
 
+// Copy everything from static/ into dist/ as-is.
+// This covers: icons, media assets, fonts, and any other unprocessed files.
 function copyStatic(config) {
   if (!config.site.build.copyStatic || !fs.existsSync(STATIC_DIR)) {
     console.log('  [SKIP] Static copy disabled or static/ not found');
@@ -288,6 +321,7 @@ function copyStatic(config) {
   copyDirSync(STATIC_DIR, DIST_DIR);
 }
 
+// Recursive directory copy — creates destination directories on the fly.
 function copyDirSync(src, dest) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
   const entries = fs.readdirSync(src, { withFileTypes: true });
@@ -302,6 +336,11 @@ function copyDirSync(src, dest) {
   }
 }
 
+// Optimize images from media/ using sharp.
+// Generates responsive variants at configured sizes and formats (WebP + original).
+// Output: dist/media/ with a media-manifest.json mapping original paths to variants.
+// The manifest is consumed by setupMarkedRenderer for <picture>/<img> tag generation.
+// Returns the manifest object, or null if disabled/sharp unavailable.
 async function optimizeMedia(config) {
   if (!config.site.build.optimizeMedia || !sharp) {
     console.log('  [SKIP] Media optimization disabled or sharp not available');
@@ -362,6 +401,7 @@ async function optimizeMedia(config) {
   return manifest;
 }
 
+// Recursive file listing — returns absolute paths of all files under a directory.
 function getAllFiles(dir) {
   const results = [];
   if (!fs.existsSync(dir)) return results;
@@ -374,6 +414,9 @@ function getAllFiles(dir) {
   return results;
 }
 
+// Read the media manifest from dist/ (build output) or root (pre-generated).
+// The manifest maps original image paths to their responsive variants.
+// Returns null if no manifest exists (images render without optimization).
 function getMediaManifest() {
   const manifestPath = path.join(DIST_DIR, 'media-manifest.json');
   if (fs.existsSync(manifestPath)) {
@@ -390,6 +433,12 @@ function getMediaManifest() {
   return null;
 }
 
+// Configure the marked Markdown renderer with custom handlers for:
+// - Image: responsive <picture> tags with WebP sources (when mediaManifest is available)
+// - Link: external links get target="_blank" + rel="noopener noreferrer"
+// - Heading: h2-h4 get anchor links (slugified IDs) for ToC navigation
+// - Code: language-labeled <pre> blocks with optional line numbers
+// Called once per build before article/page parsing.
 function setupMarkedRenderer(config, mediaManifest) {
   const usePicture = config.site.build.usePictureTag !== false;
   const lazyLoad = config.site.build.lazyLoadImages !== false;
@@ -400,6 +449,10 @@ function setupMarkedRenderer(config, mediaManifest) {
 
   marked.use({
     renderer: {
+      // Image renderer with responsive fallback chain:
+      // 1. If usePicture + manifest: <picture> with WebP + size variants + original fallback
+      // 2. If manifest only (picture disabled): <img> with original path from manifest
+      // 3. No manifest: raw <img> with the href as-is
       image(href, title, text) {
         if (!href) return '';
         const alt = text || '';
@@ -438,6 +491,9 @@ function setupMarkedRenderer(config, mediaManifest) {
         return `<img src="${escapeAttr(decodedHref)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}>`;
       },
 
+      // Link renderer — adds target="_blank" + rel="noopener noreferrer" to external links.
+      // Internal links (starts with site URL or relative) render as-is.
+      // If href is empty, returns the link text unwrapped (safe fallback).
       link(href, title, text) {
         if (!href) return text || '';
         const titleAttr = title ? ` title="${escapeAttr(title)}"` : '';
@@ -449,12 +505,18 @@ function setupMarkedRenderer(config, mediaManifest) {
         return `<a href="${escapeAttr(href)}"${titleAttr}${extra}>${text}</a>`;
       },
 
+      // Heading renderer — generates anchor-linked headings for h2-h4.
+      // h1 (page title) and h5-h6 do not get anchor links.
+      // The anchor uses safeSlug() on the stripped text for URL-friendly IDs.
       heading(text, level) {
         if (level < 2 || level > 4) return `<h${level}>${text}</h${level}>`;
         const id = safeSlug(text.replace(/<[^>]+>/g, ''));
         return `<h${level} id="${escapeAttr(id)}"><a href="#${escapeAttr(id)}" class="heading-anchor">#</a>${text}</h${level}>`;
       },
 
+      // Code block renderer — wraps in <pre><code> with language class.
+      // When line numbers are enabled, adds data-line-numbers attribute.
+      // The data-language attribute drives the CSS ::before label in layout.ejs.
       code(text, lang) {
         const langAttr = lang ? ` class="language-${escapeAttr(lang)}"` : '';
         const lnAttr = showLineNumbers ? ' data-line-numbers="true"' : '';
@@ -465,6 +527,9 @@ function setupMarkedRenderer(config, mediaManifest) {
   });
 }
 
+// Load shared content fragments from includes/ as key-value map (filename → {title, content, body}).
+// Legacy — kept for backward compatibility. New content should use pages/.
+// The results are passed to templates as includesContent variable.
 function processIncludes(config) {
   const result = {};
   if (!fs.existsSync(INCLUDES_DIR)) {
@@ -490,6 +555,10 @@ function processIncludes(config) {
   return Object.keys(result).length ? result : null;
 }
 
+// Load Markdown content from pages/ as key-value map (filename → {title, content, body}).
+// Used by templates for article footer, custom sections, and any content that
+// needs to be shared across multiple pages without being a full standalone page.
+// Also distinct from processCustomPages which renders these as standalone HTML pages.
 function processPagesContent(config) {
   const result = {};
   if (!fs.existsSync(PAGES_DIR)) {
@@ -519,6 +588,18 @@ function processPagesContent(config) {
   return result;
 }
 
+// Parse all Markdown articles from articles/ into structured article objects.
+// For each article:
+//   1. Extract frontmatter (title, slug, date, tags, categories, draft, excerpt)
+//   2. Validate: max 1 h1 per article, reject articles with >1 h1
+//   3. Render Markdown → HTML using marked with the custom renderer
+//   4. Auto-generate excerpt from content if not in frontmatter
+//   5. Calculate read time based on word count
+//   6. Extract table of contents from headings
+//   7. Auto-generate OG image if no featuredImage in frontmatter
+//   8. If hooks.transformMarkdown exists, run content through it first
+// Returns array sorted by date descending.
+// Articles with multiple h1 tags are skipped with error.
 async function processArticles(config, mediaManifest) {
   console.log('[5/14] Processing articles...');
   setupMarkedRenderer(config, mediaManifest);
@@ -545,11 +626,13 @@ async function processArticles(config, mediaManifest) {
         console.error(`  [ERROR] ${file}: ${h1Count} h1 headings found (max 1). Skipping.`);
         continue;
       }
+      // Title resolution priority: frontmatter.title > first markdown h1 > filename
       let title = attrs.title || '';
       if (!title) {
         const firstH1 = content.match(/^#\s+(.+)/m);
         title = firstH1 ? firstH1[1].trim() : path.basename(file, '.md');
       }
+      // Slug priority: frontmatter.slug > safeSlug(title)
       const slug = attrs.slug || safeSlug(title);
       const url = `/${slug}/`;
       const excerpt = attrs.excerpt || '';
@@ -559,16 +642,19 @@ async function processArticles(config, mediaManifest) {
       const draft = attrs.draft === true || attrs.draft === 'true';
       let htmlContent = marked.parse(content);
       if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
+      // Auto-generate excerpt from rendered HTML (strip tags, truncate)
       let excerptText = excerpt;
       if (!excerptText) {
         const textOnly = htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
         const excerptLen = config.site.build.excerptLength || config.theme.card?.excerptLength || 150;
         excerptText = textOnly.length > excerptLen ? textOnly.slice(0, excerptLen) + '...' : textOnly;
       }
+      // Read time: word count / reading speed (default 265 wpm), minimum 1 minute
       const wordCount = content.split(/\s+/).filter(Boolean).length;
       const readSpeed = config.theme.card?.readTimeSpeed || 265;
       const readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
       const toc = extractToc(htmlContent);
+      // Auto-generate OG image if no featuredImage provided in frontmatter
       if (!attrs.featuredImage && config.site.build.autoOgImage !== false) {
         const ogDir = path.join(DIST_DIR, 'media', 'og');
         if (!fs.existsSync(ogDir)) fs.mkdirSync(ogDir, { recursive: true });
@@ -602,6 +688,8 @@ async function processArticles(config, mediaManifest) {
   return articles;
 }
 
+// Aggregate tags across all articles with count and slugified URL.
+// Returns array sorted by count descending.
 function collectTags(articles) {
   const map = new Map();
   for (const a of articles) {
@@ -614,6 +702,10 @@ function collectTags(articles) {
   return Array.from(map.values()).sort((a, b) => b.count - a.count);
 }
 
+// Compute related articles using a tag/category scoring algorithm.
+// Each shared tag = 3 points, each shared category = 2 points.
+// Top N results are stored in-memory on each article object (article.relatedArticles).
+// Called before page generation so templates can access relatedArticles directly.
 function computeRelatedArticles(articles, maxCount) {
   maxCount = maxCount || 4;
   const published = getPublished(articles);
@@ -633,6 +725,8 @@ function computeRelatedArticles(articles, maxCount) {
   }
 }
 
+// Aggregate categories across all articles with count and slugified URL.
+// Returns array sorted by count descending.
 function collectCategories(articles) {
   const map = new Map();
   for (const a of articles) {
@@ -645,6 +739,8 @@ function collectCategories(articles) {
   return Array.from(map.values()).sort((a, b) => b.count - a.count);
 }
 
+// Group articles by year-month for the archive page.
+// Articles without dates are excluded. Groups sorted newest first.
 function groupByYearMonth(articles) {
   const groups = {};
   for (const a of articles) {
@@ -659,6 +755,7 @@ function groupByYearMonth(articles) {
   });
 }
 
+// Read an EJS template file from templates/ directory. Returns raw string or null.
 function getTemplate(name) {
   const filePath = path.join(TEMPLATES_DIR, name);
   if (fs.existsSync(filePath)) {
@@ -667,6 +764,11 @@ function getTemplate(name) {
   return null;
 }
 
+// Render an EJS template inside the layout template.
+// 1. Render inner template (e.g. index.ejs) → body HTML
+// 2. Wrap body in layout.ejs with merged data
+// 3. Run hooks.transformHTML if available
+// Returns full HTML string, or null on failure.
 function renderPage(templateName, data, layoutTemplate) {
   const templateStr = getTemplate(templateName);
   if (!templateStr) {
@@ -691,6 +793,9 @@ function renderPage(templateName, data, layoutTemplate) {
   }
 }
 
+// Build the search JSON data embedded into the page for client-side search.
+// Each entry: {title, url, excerpt (200 chars), content (3000 chars), tags, categories}.
+// Returns stringified JSON, or '[]' if search is disabled/not local.
 function generateSearchData(config, articles) {
   if (!config.navigation.search || !config.navigation.search.enabled || config.navigation.search.provider !== 'local') return '[]';
   const fullContent = config.site.build.searchFullContent !== false;
@@ -705,6 +810,10 @@ function generateSearchData(config, articles) {
   return JSON.stringify(data);
 }
 
+// Build the unified data object passed to every EJS template.
+// Contains: site config, theme, nav, sidebar, footer, security settings,
+// all articles, tags, categories, archives, and helper functions.
+// This is the base context — individual page generators add page-specific keys on top.
 function buildPageData(config, articles, tags, categories) {
   const published = getPublished(articles);
   return {
@@ -732,6 +841,11 @@ function buildPageData(config, articles, tags, categories) {
   };
 }
 
+// Render standalone pages from Markdown files in pages/ directory.
+// Each .md file becomes a full HTML page at /{slug}/index.html using page.ejs + layout.ejs.
+// Title priority: frontmatter.title > filename. Slug priority: slugOverride > attrs.slug > safeSlug(title).
+// The built-inPages fallback to includes/ was removed in favor of a single source: pages/.
+// Duplicate slugs are silently skipped (first writer wins).
 function processCustomPages(config, baseData) {
   console.log('Processing custom pages...');
   const layoutTemplate = getTemplate('layout.ejs');
@@ -785,6 +899,15 @@ function processCustomPages(config, baseData) {
   return customPages;
 }
 
+// Generate all HTML pages for the site:
+// - Index pages with pagination
+// - Article detail pages (with prev/next navigation)
+// - Archive page (grouped by year-month)
+// - Tags overview page + individual tag pages
+// - Categories overview page + individual category pages
+// - 404 page
+// - Search page (if enabled)
+// Each is rendered via renderPage() which wraps content in layout.ejs.
 async function generatePages(config, articles, preBuiltBaseData, customPages) {
   console.log('[6/14] Generating pages...');
   const tags = collectTags(articles);
@@ -931,6 +1054,9 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
   }
 }
 
+// Generate an RSS 2.0 feed using the `feed` package.
+// Includes full article content if site.rss.fullContent is true.
+// Limited to site.rss.maxItems (default 50) most recent published articles.
 async function generateRSS(config, articles) {
   if (!config.site.rss || !config.site.rss.enabled || !Feed) {
     console.log('  [SKIP] RSS generation disabled or feed package not available');
@@ -977,6 +1103,9 @@ async function generateRSS(config, articles) {
   }
 }
 
+// Generate a standard XML sitemap for search engines.
+// Includes: index (1.0), articles (0.8), archive (0.5), tags/categories (0.4), custom pages (0.5), pagination (0.6).
+// Only published (non-draft) articles are included.
 async function generateSitemap(config, articles, tags, categories, customPages) {
   if (!config.site.sitemap || !config.site.sitemap.enabled) {
     console.log('  [SKIP] Sitemap generation disabled');
@@ -1040,6 +1169,10 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
   }
 }
 
+// Generate a JSON search index for client-side full-text search.
+// Written to dist/search-index.json. Contains title, url, excerpt (200 chars),
+// content (5000 chars for full search), tags, and categories.
+// Only published articles are indexed.
 function generateSearchIndex(config, articles) {
   if (!config.navigation.search || !config.navigation.search.enabled || config.navigation.search.provider !== 'local') {
     console.log('  [SKIP] Search index generation disabled or provider not local');
@@ -1061,6 +1194,8 @@ function generateSearchIndex(config, articles) {
   console.log(`  Created: search-index.json (${index.length} entries)`);
 }
 
+// Generate an HTML build report page with stats: build time, article count, tag/category counts,
+// output size, and feature enablement status. Written to dist/build-report.html.
 function generateBuildReport(config, articles, tags, categories, customPages, elapsed) {
   try {
     const published = getPublished(articles);
@@ -1086,6 +1221,7 @@ function generateBuildReport(config, articles, tags, categories, customPages, el
   }
 }
 
+// Calculate the total size of a directory recursively. Returns human-readable string (B/KB/MB).
 function getDirSize(dir) {
   try {
     const files = getAllFiles(dir);
@@ -1097,6 +1233,10 @@ function getDirSize(dir) {
   } catch { return '?'; }
 }
 
+// Generate Cloudflare-compatible _headers file and robots.txt.
+// The _headers file sets CSP directives, HTTP security headers, and custom headers
+// from the security.json configuration. Applied to all paths (/*).
+// Note: security-worker.js provides a parallel security layer at the Worker level.
 function generateSecurityHeaders(config) {
   console.log('[10/14] Generating security files...');
   const lines = [];
@@ -1156,6 +1296,8 @@ function generateSecurityHeaders(config) {
   }
 }
 
+// Minify all HTML files in a directory tree using html-minifier.
+// Only runs when site.build.minifyHTML is enabled and html-minifier is installed.
 async function minifyHTMLInDir(dir, config) {
   if (!config.site.build.minifyHTML || !htmlMinifier) return;
   const files = getAllFiles(dir).filter(f => /\.html?$/i.test(f));
@@ -1182,6 +1324,7 @@ async function minifyHTMLInDir(dir, config) {
   }
 }
 
+// Minify all CSS files in a directory tree using CleanCSS (level 2 optimization).
 async function minifyCSSInDir(dir, config) {
   if (!config.site.build.minifyCSS || !CleanCSS) return;
   const files = getAllFiles(dir).filter(f => /\.css$/i.test(f));
@@ -1200,6 +1343,8 @@ async function minifyCSSInDir(dir, config) {
   }
 }
 
+// Minify all JS files in a directory tree using Terser.
+// Optionally removes console.* statements when site.build.removeConsole is true.
 async function minifyJSInDir(dir, config) {
   if (!config.site.build.minifyJS || !terser) return;
   const files = getAllFiles(dir).filter(f => /\.js$/i.test(f));
@@ -1221,6 +1366,8 @@ async function minifyJSInDir(dir, config) {
   }
 }
 
+// Run all three minifiers (HTML, CSS, JS) across the dist/ directory.
+// Each skips gracefully if its package is missing or the feature is disabled.
 async function minifyAll(config) {
   console.log('[11/14] Minifying assets...');
   await minifyHTMLInDir(DIST_DIR, config);
@@ -1234,6 +1381,10 @@ async function minifyAll(config) {
   else console.log('  [SKIP] Minification disabled');
 }
 
+// Cache-busting via MD5 content hashing.
+// For each matched file (css|js|png|jpg|svg), renames to {name}.{hash}.{ext}
+// and updates all HTML references pointing to the old path.
+// The cache-bust-manifest.json file records the old→new mapping.
 async function cacheBust(config) {
   if (!config.site.build.enableCacheBusting) {
     console.log('  [SKIP] Cache busting disabled');
@@ -1290,6 +1441,10 @@ async function cacheBust(config) {
   }
 }
 
+// Generate PWA manifest.json and service worker.
+// The service worker implements a cache-first strategy: serves from cache, fetches in background,
+// updates cache on successful fetch. Activated only when site.pwa.enabled is true.
+// Note: the generated SW has a fixed cache name (s-ynapse-v1) and ASSETS list.
 async function generatePWA(config) {
   if (!config.site.pwa || !config.site.pwa.enabled) {
     console.log('  [SKIP] PWA generation disabled');
@@ -1340,6 +1495,10 @@ self.addEventListener('fetch', (event) => {
   console.log(`  Created: ${swUrl.replace(/^\//, '')}`);
 }
 
+// Pre-flight syntax check for all 6 JSON5 config files.
+// Runs before loadConfig() to catch syntax errors early.
+// Returns true if all files parse successfully, false otherwise.
+// This is a fast check — loadConfig() does the actual parsing with fatal error handling.
 function validateJsonSyntax() {
   const files = ['site.json', 'theme.json', 'navigation.json', 'sidebar.json', 'footer.json', 'security.json'];
   let hasError = false;
@@ -1362,6 +1521,10 @@ function validateJsonSyntax() {
   return !hasError;
 }
 
+// Main build orchestrator — runs all 14 pipeline steps sequentially.
+// Each step is independently skippable via its corresponding config flag.
+// Lifecycle hooks (preBuild, postBuild) fire before step 1 and after step 14.
+// On any fatal error, exits with code 1 after printing the error stack.
 async function build() {
   console.log('========================================');
   console.log('  S-ynapse Static Blog Builder v1.0.0');
@@ -1464,6 +1627,10 @@ if (WATCH_MODE) {
   });
 }
 
+// Simple development HTTP server for previewing the built site.
+// Serves files from dist/ with basic MIME type detection.
+// Supports clean URLs (auto-appends index.html for directories, .html for missing files).
+// Falls back to 404.html when no match is found.
 function startServer() {
   var http = require('http');
   var PORT = parseInt(process.argv[process.argv.indexOf('--port') + 1]) || 3000;

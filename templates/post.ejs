@@ -1,3 +1,13 @@
+<%# 
+  Article detail page template.
+  Data contract:
+    article: {slug, title, url, formattedDate, date, categories, tags, readTime, featuredImage, content, relatedArticles, toc}
+    site.comments: {enabled, provider, giscus/utterances/disqus config}
+    includesContent: legacy content map (kept for backward compat)
+    pagesContent: {[source]: {title, content, body}} — loaded from pages/ directory
+    theme.articleFooter: {enabled, source, backgroundColor, textColor, borderColor, ...styling}
+    prevArticle / nextArticle: {title, url} or null
+%>
 <article class="post-article">
   <header class="post-header">
     <h1 class="post-title" id="<%= article.slug %>"><%= article.title %></h1>
@@ -32,12 +42,14 @@
   <div class="post-content">
     <%- article.content %>
   </div>
+  <%# Article footer: rendered from pages/ content. Source filename is set in theme.json articleFooter.source. %>
   <% if(theme.articleFooter&&theme.articleFooter.enabled!==false&&theme.articleFooter.source&&typeof pagesContent!=='undefined'&&pagesContent[theme.articleFooter.source]){ var f=theme.articleFooter; var pc=pagesContent[f.source]; %><div style="margin-top:2rem;padding:<%=f.paddingTop||'1.25rem'%> <%=f.paddingRight||'1.5rem'%> <%=f.paddingBottom||'1.25rem'%> <%=f.paddingLeft||'1.5rem'%>;background:<%=f.backgroundColor||'#f0f4f8'%>;border:<%=f.borderWidth||'1px'%> solid <%=f.borderColor||'#cbd5e1'%>;border-radius:<%=f.borderRadius||'0.5rem'%>;color:<%=f.textColor||'#4a5568'%>;font-size:.875rem;line-height:1.7"><%- pc.content %></div><% } %>
   <div style="display:flex;justify-content:flex-end;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--color-border)">
     <button class="reading-mode-btn" onclick="toggleReadingMode()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> 阅读模式</button>
   </div>
 </article>
 
+<%# Related articles section — computed by computeRelatedArticles() based on shared tags/categories. %>
 <% if (article.relatedArticles && article.relatedArticles.length) { %>
 <section class="related-posts">
   <h3 class="related-posts-title">相关文章</h3>
@@ -52,6 +64,7 @@
 </section>
 <% } %>
 
+<%# Comments section — supports Giscus (GitHub Discussions), Utterances (GitHub Issues), or Disqus. %>
 <% if (site.comments && site.comments.enabled) { %>
 <section class="comments-section">
   <% if (site.comments.provider === 'giscus') { %>
@@ -97,6 +110,7 @@
 </section>
 <% } %>
 
+<%# Prev/next article navigation — determined by date-sorted position. Falls back to site config labels. %>
 <% if (prevArticle || nextArticle) { %>
 <nav class="post-navigation">
   <% if (prevArticle) { %>

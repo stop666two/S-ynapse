@@ -8,8 +8,28 @@ const { marked } = require('marked');
 const ejs = require('ejs');
 
 let json5, deepmerge, Feed, sharp, htmlMinifier, CleanCSS, terser, chokidar;
-try { json5 = require('json5'); } catch (e) { json5 = { parse: JSON.parse }; }
-try { deepmerge = require('deepmerge'); } catch (e) { deepmerge = function(a, b) { return { ...a, ...b }; }; }
+try { json5 = require('json5'); } catch (e) {
+  console.warn('[WARN] json5 package not found, config files with comments will fail to parse. Run: npm install json5');
+  json5 = { parse: JSON.parse };
+}
+try { deepmerge = require('deepmerge'); } catch (e) {
+  deepmerge = function deepMerge(...objs) {
+    const result = {};
+    for (const obj of objs) {
+      if (!obj || typeof obj !== 'object') continue;
+      for (const key of Object.keys(obj)) {
+        if (Array.isArray(obj[key])) {
+          result[key] = obj[key].slice();
+        } else if (obj[key] && typeof obj[key] === 'object') {
+          result[key] = deepMerge(result[key] || {}, obj[key]);
+        } else {
+          result[key] = obj[key];
+        }
+      }
+    }
+    return result;
+  };
+}
 try { const feedMod = require('feed'); Feed = feedMod.Feed || feedMod; } catch (e) { Feed = null; }
 try { sharp = require('sharp'); } catch (e) { sharp = null; }
 try { htmlMinifier = require('html-minifier'); } catch (e) { htmlMinifier = null; }
@@ -38,8 +58,8 @@ function getPublished(articles) { return articles.filter(a => !a.draft || SHOW_D
 function loadConfigFile(filename) {
   const filePath = path.join(ROOT, filename);
   if (!fs.existsSync(filePath)) {
-    console.warn(`  [WARN] Config file not found: ${filename}`);
-    return {};
+    console.error(`  [FATAL] Config file not found: ${filename}`);
+    process.exit(1);
   }
   try {
     let raw = fs.readFileSync(filePath, 'utf-8');
@@ -47,8 +67,8 @@ function loadConfigFile(filename) {
     raw = raw.replace(/\r\n/g, '\n');
     return json5.parse(raw);
   } catch (err) {
-    console.error(`  [ERROR] Failed to parse ${filename}: ${err.message}`);
-    return {};
+    console.error(`  [FATAL] Failed to parse ${filename}: ${err.message}`);
+    process.exit(1);
   }
 }
 
@@ -76,6 +96,8 @@ function loadConfig() {
       postsPerPage: 10,
       paginationPrev: '上一页',
       paginationNext: '下一页',
+      prevPostLabel: '上一篇',
+      nextPostLabel: '下一篇',
       rss: { enabled: false, path: '/feed.xml', fullContent: true, maxItems: 50 },
       seo: {
         metaKeywords: [], metaRobots: 'index, follow',
@@ -142,12 +164,11 @@ function loadConfig() {
 
 function validateConfig(config) {
   const errors = [];
-  const hexColor = /^#[0-9a-fA-F]{3,8}$/;
   const warnings = [];
 
   if (!config.site.title) errors.push('site.title is required');
   if (!config.site.url) errors.push('site.url is required');
-  if (config.site.url && !/^https?:\/\//.test(config.site.url)) warnings.push('site.url should start with http:// or https://');
+  if (config.site.url && !/^https?:\/\//.test(config.site.url)) errors.push('site.url must start with http:// or https://');
   if (!config.site.language) errors.push('site.language is required');
   if (!config.site.postsPerPage || config.site.postsPerPage < 1) errors.push('site.postsPerPage must be >= 1');
 
@@ -179,8 +200,8 @@ function validateConfig(config) {
 
   if (config.navigation.menu) {
     for (const item of config.navigation.menu) {
-      if (!item.label) warnings.push('navigation.menu item missing label');
-      if (!item.url) warnings.push('navigation.menu item missing url');
+      if (!item.label) errors.push('navigation.menu item missing label');
+      if (!item.url) errors.push('navigation.menu item missing url');
     }
   }
 
@@ -200,12 +221,13 @@ function validateConfig(config) {
   if (errors.length > 0) {
     console.error('\n[CONFIG VALIDATION ERRORS]');
     errors.forEach(e => console.error('  - ' + e));
+    return false;
   }
   if (warnings.length > 0) {
     console.warn('\n[CONFIG WARNINGS]');
     warnings.forEach(w => console.warn('  - ' + w));
   }
-  return errors.length === 0;
+  return true;
 }
 
 function generateOgImage(outputPath, title, siteTitle, colors) {
@@ -355,10 +377,15 @@ function getAllFiles(dir) {
 function getMediaManifest() {
   const manifestPath = path.join(DIST_DIR, 'media-manifest.json');
   if (fs.existsSync(manifestPath)) {
-    try { return JSON.parse(fs.readFileSync(manifestPath, 'utf-8')); } catch (e) {}
+    try { return JSON.parse(fs.readFileSync(manifestPath, 'utf-8')); } catch (e) {
+      console.warn(`  [WARN] Failed to parse media manifest: ${e.message}`);
+    }
   }
-  if (fs.existsSync(path.join(ROOT, 'media-manifest.json'))) {
-    try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'media-manifest.json'), 'utf-8')); } catch (e) {}
+  const rootManifest = path.join(ROOT, 'media-manifest.json');
+  if (fs.existsSync(rootManifest)) {
+    try { return JSON.parse(fs.readFileSync(rootManifest, 'utf-8')); } catch (e) {
+      console.warn(`  [WARN] Failed to parse root media manifest: ${e.message}`);
+    }
   }
   return null;
 }
@@ -440,7 +467,10 @@ function setupMarkedRenderer(config, mediaManifest) {
 
 function processIncludes(config) {
   const result = {};
-  if (!fs.existsSync(INCLUDES_DIR)) return null;
+  if (!fs.existsSync(INCLUDES_DIR)) {
+    console.log('  includes/ directory not found, skipping');
+    return null;
+  }
   const files = fs.readdirSync(INCLUDES_DIR).filter(f => /\.md$/i.test(f));
   for (const file of files) {
     try {
@@ -458,6 +488,35 @@ function processIncludes(config) {
     }
   }
   return Object.keys(result).length ? result : null;
+}
+
+function processPagesContent(config) {
+  const result = {};
+  if (!fs.existsSync(PAGES_DIR)) {
+    console.warn('  [WARN] pages/ directory not found, pages content will not be available');
+    return null;
+  }
+  const files = fs.readdirSync(PAGES_DIR).filter(f => /\.md$/i.test(f));
+  for (const file of files) {
+    try {
+      const raw = fs.readFileSync(path.join(PAGES_DIR, file), 'utf-8');
+      const fm = frontMatter(raw);
+      const body = fm.body || '';
+      const name = path.basename(file, '.md');
+      result[name] = {
+        title: (fm.attributes && fm.attributes.title) || name,
+        content: applyCjkSpacingToHtml ? applyCjkSpacingToHtml(marked.parse(body)) : marked.parse(body),
+        body: body
+      };
+    } catch (err) {
+      console.error(`  [ERROR] Failed to process page content ${file}: ${err.message}`);
+    }
+  }
+  if (!Object.keys(result).length) {
+    console.warn('  [WARN] pages/ directory is empty, pages content will not be available');
+    return null;
+  }
+  return result;
 }
 
 async function processArticles(config, mediaManifest) {
@@ -511,11 +570,11 @@ async function processArticles(config, mediaManifest) {
       const readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
       const toc = extractToc(htmlContent);
       if (!attrs.featuredImage && config.site.build.autoOgImage !== false) {
-        const ogDir = path.join(DIST_DIR, 'media');
+        const ogDir = path.join(DIST_DIR, 'media', 'og');
         if (!fs.existsSync(ogDir)) fs.mkdirSync(ogDir, { recursive: true });
-        const ogPath = path.join(ogDir, `og-${slug}.svg`);
+        const ogPath = path.join(ogDir, `${slug}.svg`);
         generateOgImage(ogPath, title, config.site.title, config.theme.colors);
-        attrs.featuredImage = `/media/og-${slug}.svg`;
+        attrs.featuredImage = `/media/og/${slug}.svg`;
       }
       articles.push({
         slug, title, url, date, tags, categories, draft,
@@ -656,7 +715,7 @@ function buildPageData(config, articles, tags, categories) {
     footer: config.footer,
     security: config.security,
     allArticles: published,
-    recentPosts: published,
+    recentPosts: published.slice(0, 10),
     allTags: tags,
     allCategories: categories,
     archives: groupByYearMonth(published),
@@ -721,13 +780,6 @@ function processCustomPages(config, baseData) {
   if (fs.existsSync(PAGES_DIR)) {
     const files = fs.readdirSync(PAGES_DIR).filter(f => /\.md$/i.test(f));
     for (const file of files) renderOne(path.join(PAGES_DIR, file), file);
-  }
-  const builtinPages = { 'privacy': 'privacy.md', 'terms': 'terms.md', 'about': 'about.md' };
-  if (fs.existsSync(INCLUDES_DIR)) {
-    for (const [slug, file] of Object.entries(builtinPages)) {
-      const fp = path.join(INCLUDES_DIR, file);
-      if (fs.existsSync(fp)) renderOne(fp, file, slug);
-    }
   }
   console.log('  Total: ' + customPages.length + ' custom pages processed');
   return customPages;
@@ -1190,8 +1242,7 @@ async function cacheBust(config) {
   console.log('[12/14] Cache busting...');
   const bustPattern = config.site.build.cacheBustingPattern || '.*\\.(css|js|png|jpg|svg)$';
   const bustRegex = new RegExp(bustPattern, 'i');
-  const pattern = new RegExp(bustPattern, 'i');
-  const files = getAllFiles(DIST_DIR).filter(f => pattern.test(f) && !f.includes('node_modules'));
+  const files = getAllFiles(DIST_DIR).filter(f => bustRegex.test(f) && !f.includes('node_modules'));
   const mapping = {};
   for (const file of files) {
     try {
@@ -1295,7 +1346,7 @@ function validateJsonSyntax() {
   for (const file of files) {
     const filePath = path.join(ROOT, file);
     if (!fs.existsSync(filePath)) {
-      console.error(`  [FATAL] Config file not found: ${file}`);
+      console.error(`  [ERROR] Config file not found: ${file}`);
       hasError = true;
       continue;
     }
@@ -1304,7 +1355,7 @@ function validateJsonSyntax() {
       if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
       json5.parse(raw);
     } catch (err) {
-      console.error(`  [FATAL] Syntax error in ${file}: ${err.message}`);
+      console.error(`  [ERROR] Syntax error in ${file}: ${err.message}`);
       hasError = true;
     }
   }
@@ -1322,7 +1373,10 @@ async function build() {
   }
   try {
     const config = loadConfig();
-    validateConfig(config);
+    if (!validateConfig(config)) {
+      console.error('\n[FATAL] Build aborted due to configuration errors.\n');
+      process.exit(1);
+    }
     if (hooks && hooks.preBuild) await hooks.preBuild(config);
     setupDist(config);
     copyStatic(config);
@@ -1333,8 +1387,15 @@ async function build() {
     const categories = collectCategories(articles);
     if (config.site.build.relatedArticles !== false) computeRelatedArticles(articles);
     const includesData = processIncludes(config);
+    const pagesContent = processPagesContent(config);
+    if (config.theme.articleFooter && config.theme.articleFooter.enabled && config.theme.articleFooter.source) {
+      if (!pagesContent || !pagesContent[config.theme.articleFooter.source]) {
+        console.warn(`  [WARN] articleFooter.source "${config.theme.articleFooter.source}" not found in pages/ directory`);
+      }
+    }
     const baseData = buildPageData(config, articles, tags, categories);
     if (includesData) baseData.includesContent = includesData;
+    if (pagesContent) baseData.pagesContent = pagesContent;
     const customPages = processCustomPages(config, baseData);
     await generatePages(config, articles, baseData, customPages);
     await generateRSS(config, articles);

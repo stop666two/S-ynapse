@@ -52,7 +52,7 @@ const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacin
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');          // Markdown article source files
-const INCLUDES_DIR = path.join(ROOT, 'includes');           // Legacy shared content (kept for backward compat)
+
 const STATIC_DIR = path.join(ROOT, 'static');               // Unprocessed static assets (copied verbatim)
 const MEDIA_DIR = path.join(ROOT, 'media');                 // Source images (processed by sharp)
 const TEMPLATES_DIR = path.join(ROOT, 'templates');         // EJS template files
@@ -527,38 +527,11 @@ function setupMarkedRenderer(config, mediaManifest) {
   });
 }
 
-// Load shared content fragments from includes/ as key-value map (filename → {title, content, body}).
-// Legacy — kept for backward compatibility. New content should use pages/.
-// The results are passed to templates as includesContent variable.
-function processIncludes(config) {
-  const result = {};
-  if (!fs.existsSync(INCLUDES_DIR)) {
-    console.log('  includes/ directory not found, skipping');
-    return null;
-  }
-  const files = fs.readdirSync(INCLUDES_DIR).filter(f => /\.md$/i.test(f));
-  for (const file of files) {
-    try {
-      const raw = fs.readFileSync(path.join(INCLUDES_DIR, file), 'utf-8');
-      const fm = frontMatter(raw);
-      const body = fm.body || '';
-      const name = path.basename(file, '.md');
-      result[name] = {
-        title: (fm.attributes && fm.attributes.title) || name,
-        content: applyCjkSpacingToHtml ? applyCjkSpacingToHtml(marked.parse(body)) : marked.parse(body),
-        body: body
-      };
-    } catch (err) {
-      console.error(`  [ERROR] Failed to process include ${file}: ${err.message}`);
-    }
-  }
-  return Object.keys(result).length ? result : null;
-}
-
 // Load Markdown content from pages/ as key-value map (filename → {title, content, body}).
-// Used by templates for article footer, custom sections, and any content that
-// needs to be shared across multiple pages without being a full standalone page.
-// Also distinct from processCustomPages which renders these as standalone HTML pages.
+// Used by templates (e.g. article footer) for content that needs to be embedded into pages
+// without being rendered as a standalone HTML page. Also consumed by processCustomPages
+// which renders the same files as full standalone pages.
+// Key = filename without .md extension.
 function processPagesContent(config) {
   const result = {};
   if (!fs.existsSync(PAGES_DIR)) {
@@ -844,8 +817,7 @@ function buildPageData(config, articles, tags, categories) {
 // Render standalone pages from Markdown files in pages/ directory.
 // Each .md file becomes a full HTML page at /{slug}/index.html using page.ejs + layout.ejs.
 // Title priority: frontmatter.title > filename. Slug priority: slugOverride > attrs.slug > safeSlug(title).
-// Source: only pages/ directory. Previously also fell back to includes/ for about/privacy/terms — that
-// fallback was removed to enforce a single source of truth. Move those files to pages/ if needed.
+// The same files are also loaded by processPagesContent() for template embedding (e.g. article footer).
 // Duplicate slugs are silently skipped (first writer wins).
 function processCustomPages(config, baseData) {
   console.log('Processing custom pages...');
@@ -1550,7 +1522,6 @@ async function build() {
     const tags = collectTags(articles);
     const categories = collectCategories(articles);
     if (config.site.build.relatedArticles !== false) computeRelatedArticles(articles);
-    const includesData = processIncludes(config);
     const pagesContent = processPagesContent(config);
     if (config.theme.articleFooter && config.theme.articleFooter.enabled && config.theme.articleFooter.source) {
       if (!pagesContent || !pagesContent[config.theme.articleFooter.source]) {
@@ -1558,7 +1529,6 @@ async function build() {
       }
     }
     const baseData = buildPageData(config, articles, tags, categories);
-    if (includesData) baseData.includesContent = includesData;
     if (pagesContent) baseData.pagesContent = pagesContent;
     const customPages = processCustomPages(config, baseData);
     await generatePages(config, articles, baseData, customPages);

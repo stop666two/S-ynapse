@@ -893,5 +893,50 @@
       // 触屏设备/窄屏(<640px)自动关闭粒子(性能保护)。
       autoDisableMobile: false
     }
+  },
+
+  // 40. 界面动效(批C)
+  // ---------------------------------------------------------------------------
+  // 控制全站微交互动画:卡片悬停上浮、链接下划线滑动、按钮涟漪、滚动渐入。
+  // 所有动效尊重 users prefers-reduced-motion(系统减弱动效时自动全部关闭)。
+  motion: {
+    // 总开关:false 时本模块全部不生效。
+    enabled: true,
+    // 全局缓动曲线(绝大部分过渡复用)。
+    ease: 'cubic-bezier(.4,0,.2,1)',
+    // 卡片悬停上浮(首页/分类/标签的文章卡片)。
+    cardHoverLift: true,
+    // 悬停上浮距离(px,2~8)。
+    cardHoverLiftPx: 4,
+    // 链接下划线滑入效果(正文/导航/卡片标题等链接)。
+    linkUnderline: true,
+    // 下划线粗细。
+    linkUnderlineThickness: '2px',
+    // 按钮点击涟漪(btn/分享/播放等按钮)。
+    buttonRipple: true,
+    // 涟漪扩散时长(ms,300~800)。
+    rippleDurationMs: 500,
+    // 滚动渐入(元素进入视口时淡入上滑)。
+    scrollReveal: true,
+    // 滚动渐入:文章卡片。
+    revealCards: true,
+    // 滚动渐入:文章页面 h2/h3 标题。
+    revealHeadings: true,
+    // 滚动渐入:文章/卡片内图片。
+    revealImages: true,
+    // 滚动渐入:文章内代码块与引用块。
+    revealBlocks: false,
+    // 渐入总时长(ms)。
+    revealDurationMs: 500,
+    // 同屏多个元素连续渐入时相邻延迟(ms)。
+    revealDelayMs: 60,
+    // 渐入起点位移(px)。
+    revealOffset: '28px',
+    // 每个元素只渐入一次(滚动回顶不重复)。
+    revealOnce: true,
+    // 进入视口阈值(0~1,值越小越早触发)。
+    revealThreshold: 0.08,
+    // 尊重 prefers-reduced-motion(系统弱化动效时关闭)。
+    respectReducedMotion: true
   }
 }

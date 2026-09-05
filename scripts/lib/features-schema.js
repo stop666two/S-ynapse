@@ -187,6 +187,16 @@ const DEFAULT_FEATURES = {
       enabled: true, count: 55, speed: 0.5, linkDistance: 120,
       opacity: 0.6, showLines: true, autoDisableMobile: false
     }
+  },
+  motion: {
+    enabled: true, ease: 'cubic-bezier(.4,0,.2,1)',
+    cardHoverLift: true, cardHoverLiftPx: 4,
+    linkUnderline: true, linkUnderlineThickness: '2px',
+    buttonRipple: true, rippleDurationMs: 500,
+    scrollReveal: true, revealCards: true, revealHeadings: true,
+    revealImages: true, revealBlocks: false,
+    revealDurationMs: 500, revealDelayMs: 60, revealOffset: '28px',
+    revealOnce: true, revealThreshold: 0.08, respectReducedMotion: true
   }
 };
 
@@ -221,7 +231,8 @@ const ARRAY_FIELDS = {
   series: [], related: [], pinned: [], wordCount: [], share: ['order'],
   reward: [], gallery: [], heatmap: ['palette'], stats: [], prevNext: [],
   feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
-  comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: []
+  comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: [],
+  background: ['particles'], motion: []
 };
 
 function typeName(v) {

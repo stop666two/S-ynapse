@@ -90,4 +90,69 @@ function extractToc(html) {
   return toc;
 }
 
-module.exports = { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc };
+// Tags allowed to pass through sanitizeHtml (subset of standard HTML plus
+// the tags needed by GFM task lists, definition lists, and table blocks).
+const SAFE_TAGS = new Set([
+  'h1','h2','h3','h4','h5','h6','p','br','hr','blockquote','pre','code',
+  'em','strong','del','ins','sup','sub','small','kbd','s','abbr','mark','b','i','u',
+  'a','img','picture','source','ul','ol','li','dl','dt','dd','table','thead','tbody','tfoot','tr','th','td',
+  'div','span','details','summary','input','figure','figcaption','caption','colgroup','col','time'
+]);
+
+// Tags whose entire subtree is removed: their content is executable code
+// or active content and cannot be shown safely in an embedded context.
+const DANGEROUS_TAGS = new Set([
+  'script','style','iframe','object','embed','svg','math','template','form',
+  'noscript','textarea','select','button','link','meta','base','canvas','audio','video','applet','frame','frameset'
+]);
+
+// Attributes allowed on tags. on* and style are always dropped separately.
+const SAFE_ATTRS = new Set([
+  'class','id','href','src','srcset','sizes','loading','alt','title','lang','type',
+  'checked','disabled','colspan','rowspan','width','height'
+]);
+
+// Remove executable/active HTML while keeping safe formatting tags.
+// Handles: dangerous full-subtree removal, unknown-tag escaping,
+// event-handler and style attribute stripping, javascript: URI filtering.
+function sanitizeHtml(input) {
+  if (typeof input !== 'string') return '';
+  let output = input;
+  output = output.replace(/<\s*(script|style|iframe|object|embed|svg|math|template|form|noscript|textarea|select|button|link|meta|base|canvas|audio|video|applet|frame|frameset)(\s[^>]*)?>[\s\S]*?<\s*\/\s*\1\s*>/gi, ' ');
+  output = output.replace(/<\s*(script|style|iframe|object|embed|svg|math|template|form|noscript|textarea|select|button|link|meta|base|canvas|audio|video|applet|frame|frameset)(\s[^>]*)?\/?>/gi, ' ');
+  output = output.replace(/<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^<>]*?)?)\s*(\/?)\s*>/gi, function(match, closing, tag, attrs, selfClose) {
+    const lower = tag.toLowerCase();
+    if (closing) {
+      return SAFE_TAGS.has(lower) ? match : '&lt;' + match.slice(1);
+    }
+    if (!SAFE_TAGS.has(lower)) return '&lt;' + match.slice(1);
+    let safeAttrs = '';
+    const attrRe = /([^\s=\/'"<>]+)(\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g;
+    let am;
+    while ((am = attrRe.exec(attrs)) !== null) {
+      const key = am[1];
+      const val = am[2] ? am[2].trim().replace(/^\s*=\s*/, '') : null;
+      const k = key.toLowerCase();
+      if (k === 'on' || k.startsWith('on')) continue;
+      if (k === 'style') continue;
+      if (k.startsWith('data-')) { safeAttrs += ' ' + key + (val ? '=' + val : ''); continue; }
+      if (!SAFE_ATTRS.has(k)) continue;
+      if (val && (k === 'href' || k === 'src')) {
+        const raw = val.replace(/^['"]|['"]$/g, '').trim();
+        if (/^(javascript|vbscript|data):/i.test(raw)) continue;
+      }
+      safeAttrs += ' ' + key + (val ? '=' + val : '');
+    }
+    return '<' + lower + safeAttrs + (selfClose ? ' />' : '>');
+  });
+  return output;
+}
+
+// Serialize a value for embedding inside an inline <script> block.
+// < is escaped so that "</script>" inside strings cannot terminate the
+// surrounding script element (JSON.stringify does not escape it).
+function escapeJsonForScript(value, space) {
+  return JSON.stringify(value, null, space).replace(/</g, '\\u003c');
+}
+
+module.exports = { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript };

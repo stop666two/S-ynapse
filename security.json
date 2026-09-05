@@ -10,7 +10,7 @@
       "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],  // 样式来源
       "img-src": ["'self'", "data:", "https:"],              // 图片来源
       "font-src": ["'self'", "https://fonts.gstatic.com"],   // 字体来源
-      "connect-src": ["'self'", "https://api.example.com"],  // 接口请求来源
+      "connect-src": ["'self'"],                              // 接口请求来源
       "media-src": ["'self'"],                                // 媒体资源来源
       "object-src": ["'none'"],                               // 插件对象来源（建议设为 'none'）
       "frame-src": ["'none'"],                                // 框架嵌入来源

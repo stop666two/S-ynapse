@@ -12,7 +12,7 @@ const ejs = require('ejs');
 
 // Optional dependency loading — each fails gracefully to null/fallback
 // This allows the build to run with missing packages (features degrade instead of crashing)
-let json5, deepmerge, Feed, sharp, htmlMinifier, CleanCSS, terser, chokidar;
+let json5, deepmerge, Feed, sharp, minifyHtmlNode, CleanCSS, terser, chokidar;
 try { json5 = require('json5'); } catch (e) {
   console.warn('[WARN] json5 package not found, config files with comments will fail to parse. Run: npm install json5');
   json5 = { parse: JSON.parse };
@@ -38,7 +38,7 @@ try { deepmerge = require('deepmerge'); } catch (e) {
 }
 try { const feedMod = require('feed'); Feed = feedMod.Feed || feedMod; } catch (e) { Feed = null; }
 try { sharp = require('sharp'); } catch (e) { sharp = null; }
-try { htmlMinifier = require('html-minifier'); } catch (e) { htmlMinifier = null; }
+try { minifyHtmlNode = require('@minify-html/node'); } catch (e) { minifyHtmlNode = null; }
 try { CleanCSS = require('clean-css'); } catch (e) { CleanCSS = null; }
 try { terser = require('terser'); } catch (e) { terser = null; }
 try { chokidar = require('chokidar'); } catch (e) { chokidar = null; }
@@ -47,7 +47,7 @@ try { chokidar = require('chokidar'); } catch (e) { chokidar = null; }
 // Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
-const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc } = require('./lib/utils');
+const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript } = require('./lib/utils');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -368,7 +368,8 @@ async function optimizeMedia(config) {
     try {
       const metadata = await sharp(imgPath).metadata();
       const originalWidth = metadata.width;
-      const entry = { original: `/${parsed.dir ? parsed.dir + '/' : ''}${parsed.base}`, variants: {} };
+      const urlDir = parsed.dir ? parsed.dir + '/' : '';
+      const entry = { original: `/media/${urlDir}${parsed.base}`, variants: {} };
       for (const size of sizes) {
         if (originalWidth <= size) continue;
         for (const fmt of formats) {
@@ -382,14 +383,14 @@ async function optimizeMedia(config) {
           else if (ext === '.png') pipeline = pipeline.png({ quality });
           else pipeline = pipeline.jpeg({ quality });
           await pipeline.toFile(outPath);
-          entry.variants[`${size}-${fmt}`] = `/${parsed.dir ? parsed.dir + '/' : ''}${variantName}`;
+          entry.variants[`${size}-${fmt}`] = `/media/${urlDir}${variantName}`;
         }
       }
       const originalDest = path.join(destDir, parsed.dir || '', parsed.base);
       const origDir = path.dirname(originalDest);
       if (!fs.existsSync(origDir)) fs.mkdirSync(origDir, { recursive: true });
       fs.copyFileSync(imgPath, originalDest);
-      manifest[relPath.replace(/\\/g, '/')] = entry;
+      manifest[`media/${relPath.replace(/\\/g, '/')}`] = entry;
       count++;
     } catch (err) {
       console.error(`  [ERROR] Failed to optimize ${relPath}: ${err.message}`);
@@ -547,7 +548,7 @@ function processPagesContent(config) {
       const name = path.basename(file, '.md');
       result[name] = {
         title: (fm.attributes && fm.attributes.title) || name,
-        content: applyCjkSpacingToHtml ? applyCjkSpacingToHtml(marked.parse(body)) : marked.parse(body),
+        content: applyCjkSpacingToHtml ? sanitizeHtml(applyCjkSpacingToHtml(marked.parse(body))) : sanitizeHtml(marked.parse(body)),
         body: body
       };
     } catch (err) {
@@ -615,6 +616,7 @@ async function processArticles(config, mediaManifest) {
       const draft = attrs.draft === true || attrs.draft === 'true';
       let htmlContent = marked.parse(content);
       if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
+      htmlContent = sanitizeHtml(htmlContent);
       // Auto-generate excerpt from rendered HTML (strip tags, truncate)
       let excerptText = excerpt;
       if (!excerptText) {
@@ -780,7 +782,7 @@ function generateSearchData(config, articles) {
     tags: a.tags || [],
     categories: a.categories || []
   }));
-  return JSON.stringify(data);
+  return escapeJsonForScript(data);
 }
 
 // Build the unified data object passed to every EJS template.
@@ -805,6 +807,7 @@ function buildPageData(config, articles, tags, categories) {
     currentPage: 'index',
     formatDate: (d) => formatDate(d, config.site.dateFormat),
     generateSlug: safeSlug,
+    escapeAttr: escapeAttr,
     JSON: JSON,
     Array: Array,
     Math: Math,
@@ -843,6 +846,7 @@ function processCustomPages(config, baseData) {
       const date = attrs.date || null;
       let htmlContent = marked.parse(content);
       if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
+      htmlContent = sanitizeHtml(htmlContent);
       const pageData = {
         ...baseData,
         title,
@@ -1269,25 +1273,24 @@ function generateSecurityHeaders(config) {
   }
 }
 
-// Minify all HTML files in a directory tree using html-minifier.
-// Only runs when site.build.minifyHTML is enabled and html-minifier is installed.
+// Minify all HTML files in a directory tree using @minify-html/node.
+// Only runs when site.build.minifyHTML is enabled and the package is installed.
+// Structural compression is handled here; JS/CSS keep their dedicated pass
+// (terser / CleanCSS) so minify_js / minify_css stay off by default.
 async function minifyHTMLInDir(dir, config) {
-  if (!config.site.build.minifyHTML || !htmlMinifier) return;
+  if (!config.site.build.minifyHTML || !minifyHtmlNode) return;
   const files = getAllFiles(dir).filter(f => /\.html?$/i.test(f));
   for (const file of files) {
     try {
       const content = fs.readFileSync(file, 'utf-8');
-      const minified = htmlMinifier.minify(content, {
-        removeComments: true,
-        collapseWhitespace: true,
-        collapseBooleanAttributes: true,
-        removeAttributeQuotes: true,
-        removeEmptyAttributes: true,
-        minifyCSS: config.site.build.minifyCSS,
-        minifyJS: config.site.build.minifyJS,
-        processScripts: ['text/javascript'],
-        decodeEntities: true
-      });
+      const minified = minifyHtmlNode.minify(Buffer.from(content, 'utf-8'), {
+        keep_comments: false,
+        minify_js: false,
+        minify_css: false,
+        minify_doctype: false,
+        keep_html_and_head_opening_tags: true,
+        preserve_brace_template_syntax: true
+      }).toString('utf-8');
       if (minified.length < content.length) {
         fs.writeFileSync(file, minified, 'utf-8');
       }
@@ -1609,7 +1612,10 @@ function startServer() {
   http.createServer(function(req, res) {
     var urlPath = decodeURIComponent(req.url.split('?')[0]);
     var urlNoSlash = urlPath.replace(/\/$/, '');
-    var filePath = urlNoSlash ? path.join(DIST_DIR, urlNoSlash) : path.join(DIST_DIR, 'index.html');
+    var filePath = urlNoSlash ? path.resolve(DIST_DIR, '.' + urlNoSlash) : path.join(DIST_DIR, 'index.html');
+    if (!filePath.startsWith(path.resolve(DIST_DIR) + path.sep) && !filePath.startsWith(path.resolve(DIST_DIR) + '/')) {
+      filePath = path.join(DIST_DIR, '404.html');
+    }
     try { if (fs.statSync(filePath).isDirectory()) filePath = path.join(filePath, 'index.html'); } catch(e) {}
     if (!fs.existsSync(filePath)) {
       var alt = filePath + '.html';

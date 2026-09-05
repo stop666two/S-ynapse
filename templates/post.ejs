@@ -9,7 +9,7 @@
 %>
 <article class="post-article">
   <header class="post-header">
-    <h1 class="post-title" id="<%= article.slug %>"><%= article.title %></h1>
+    <h1 class="post-title" id="<%= article.slug %>"><% if (article.pinned) { %><span class="pin-badge">置顶</span> <% } %><%= article.title %></h1>
     <div class="post-meta">
       <% if (article.date) { %>
       <span><%= article.formattedDate || article.date %></span>
@@ -20,6 +20,9 @@
         <a href="/categories/<%= generateSlug(cat) %>/"><%= cat %></a><% if (i < article.categories.length - 1) { %>, <% } %>
         <% }) %>
       </span>
+      <% } %>
+      <% if (article.wordCount) { %>
+      <span><%= article.wordCount %> 字</span>
       <% } %>
       <% if (article.readTime) { %>
       <span><%= article.readTime %> 分钟阅读</span>
@@ -43,10 +46,19 @@
   </div>
   <%# Article footer: rendered from pages/ content. Source filename is set in theme.json articleFooter.source. %>
   <% if(theme.articleFooter&&theme.articleFooter.enabled!==false&&theme.articleFooter.source&&typeof pagesContent!=='undefined'&&pagesContent[theme.articleFooter.source]){ var f=theme.articleFooter; var pc=pagesContent[f.source]; %><div class="article-footer" style="--ff-bg:<%=f.backgroundColor%>;--ff-t:<%=f.textColor%>;--ff-bd:<%=f.borderColor%>;--ff-pan:<%=f.paddingTop||'1.25rem'%>;--ff-par:<%=f.paddingRight||'1.5rem'%>;--ff-pab:<%=f.paddingBottom||'1.25rem'%>;--ff-pal:<%=f.paddingLeft||'1.5rem'%>;--ff-r:<%=f.borderRadius||'0.5rem'%>;--ff-fs:<%=f.fontSize||'0.875rem'%>"><%- pc.content %></div><% } %>
-  <div style="display:flex;justify-content:flex-end;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--color-border)">
+  <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--color-border)">
+    <button class="read-tts-btn" id="ttsBtn" aria-pressed="false" data-rate="1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg> 朗读</button>
     <button class="reading-mode-btn" onclick="toggleReadingMode()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> 阅读模式</button>
   </div>
 </article>
+<button class="reader-gear" id="readerGear" aria-label="阅读设置" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+<div class="reader-panel" id="readerPanel" role="dialog" aria-label="阅读设置">
+  <h4>阅读设置</h4>
+  <div class="reader-row"><label for="rFont">字号</label><input type="range" id="rFont" min="12" max="20" step="1"></div>
+  <div class="reader-row"><label for="rLine">行距</label><input type="range" id="rLine" min="1.4" max="2.2" step="0.05"></div>
+  <div class="reader-row"><label for="rWidth">宽幅</label><input type="range" id="rWidth" min="640" max="1000" step="10"></div>
+  <button class="reader-reset" id="rReset">重置为默认</button>
+</div>
 
 <%# Related articles section — computed by computeRelatedArticles() based on shared tags/categories. %>
 <% if (article.relatedArticles && article.relatedArticles.length) { %>

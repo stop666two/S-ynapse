@@ -6,6 +6,16 @@
 
 **项目仓库**：https://github.com/stop666two/S-ynapse
 
+## 项目文档
+
+点击对应的文档即可跳转阅读，每个文档的用途如下：
+
+| 文档 | 用途 |
+| --- | --- |
+| [配置参考](docs/config-reference.md) | 全部 11 个配置文件（site/theme/navigation/sidebar/footer/security/features/ui-strings/content-policy/tag-aliases/friends）的逐字段权威说明：每个配置项的含义、可填值、推荐值与默认值，以及值域校验、环境变量、重定向/友链/标签别名示例 |
+| [变更日志](CHANGELOG.md) | 按版本号记录本项目的全部变更：安全修复、新增功能、配置项变化，遵循 Keep a Changelog 格式，每个条目注明涉及的源文件 |
+| [增量构建设计](docs/incremental-build-design.md) | 增量构建（`--watch`）的架构设计文档：哈希指纹缓存、按页面拆分构建、默认跳过未变化源的完整方案 |
+
 ## 特性
 
 **全配置驱动**

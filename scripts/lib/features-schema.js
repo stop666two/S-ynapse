@@ -83,6 +83,10 @@ const DEFAULT_FEATURES = {
     enabled: true, showProgressRing: true, showTocButton: true,
     showTopButton: true, hideOnScrollDown: true, position: 'right'
   },
+  sidebarDrag: {
+    enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
+    touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true
+  },
   readingPanel: {
     enabled: true, fontSizeMin: 15, fontSizeMax: 26, fontSizeStep: 1,
     fontSizeDefault: 19, lineHeightMin: 1.4, lineHeightMax: 2.6,

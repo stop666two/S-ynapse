@@ -373,6 +373,21 @@
     // 位置:right(右下)。
     position: 'right'
   },
+  // ---------------------------------------------------------------------------
+  sidebarDrag: {
+    // 启用侧栏 widget 拖拽排序。关闭后侧栏保持配置顺序不可拖。
+    enabled: true,
+    // 是否将排序结果持久化到 localStorage,刷新后保留。
+    persistOrder: true,
+    // 存储键,用于保存排序顺序。
+    storageKey: 's-sidebarOrder',
+    // 移动端是否支持长按拖拽(触屏)。桌面端默认支持 HTML5 drag。
+    touchLongPress: true,
+    // 桌面端是否仅在悬停时显示拖拽手柄(≡)。
+    showHandleOnHover: true,
+    // 本地存储解析失败时是否重置为配置默认顺序。
+    resetOnLoadFail: true
+  },
 
   // ---------------------------------------------------------------------------
   // 11. 移动端目录抽屉

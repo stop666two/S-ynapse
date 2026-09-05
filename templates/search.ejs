@@ -10,59 +10,63 @@
 
 <script>
 var searchData = window.__SEARCH_DATA__ || [];
-
-function searchPage(query) {
-  var resultsDiv = document.getElementById('searchPageResults');
-  if (!resultsDiv) return;
-  if (!query || query.length < 2) {
-    resultsDiv.innerHTML = '<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">输入关键词开始搜索</p>';
+function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function hlOnce(s,qq){
+  var esc=escHtml(s), t=qq.toLowerCase();
+  var idx=esc.toLowerCase().indexOf(t);
+  if(idx<0)return esc;
+  var q=esc.substr(idx,qq.length);
+  return esc.slice(0,idx)+'<mark data-mm>'+q+'</mark>'+esc.slice(idx+qq.length);
+}
+function wrapExcerpt(ex,q,max){
+  max=max||120;
+  if(ex.length<=max)return ex;
+  var idx=ex.toLowerCase().indexOf(q.toLowerCase());
+  if(idx<0)return ex.slice(0,max)+'…';
+  var st=Math.max(0,idx-45),en=Math.min(ex.length,idx+q.length+55);
+  return (st>0?'…':'')+ex.slice(st,en)+(en<ex.length?'…':'');
+}
+function searchPage(query){
+  var rDiv=document.getElementById('searchPageResults');
+  if(!rDiv)return;
+  if(!query||query.length<2){
+    rDiv.innerHTML='<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">输入关键词开始搜索</p>';
     return;
   }
-
-  function hl(s) {
-    var esc = (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    var re = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-    return esc.replace(re, '<mark>$1</mark>');
+  var lq=query.toLowerCase(),results=[];
+  for(var i=0;i<searchData.length;i++){
+    var it=searchData[i],score=0;
+    if(it.title&&it.title.toLowerCase().includes(lq))score+=10;
+    if(it.content&&it.content.toLowerCase().includes(lq))score+=3;
+    if(it.excerpt&&it.excerpt.toLowerCase().includes(lq))score+=3;
+    if(it.tags&&it.tags.some(function(t){return t.toLowerCase().includes(lq)}))score+=5;
+    if(it.categories&&it.categories.some(function(c){return c.toLowerCase().includes(lq)}))score+=4;
+    if(score>0){it.score=score;results.push(it)}
   }
-
-  var lowerQuery = query.toLowerCase();
-  var results = [];
-
-  for (var i = 0; i < searchData.length; i++) {
-    var item = searchData[i];
-    var score = 0;
-    if (item.title && item.title.toLowerCase().includes(lowerQuery)) score += 10;
-    if (item.content && item.content.toLowerCase().includes(lowerQuery)) score += 3;
-    if (item.excerpt && item.excerpt.toLowerCase().includes(lowerQuery)) score += 3;
-    if (item.tags && item.tags.some(function(t) { return t.toLowerCase().includes(lowerQuery); })) score += 5;
-    if (item.categories && item.categories.some(function(c) { return c.toLowerCase().includes(lowerQuery); })) score += 4;
-    if (score > 0) { item.score = score; results.push(item); }
-  }
-
-  results.sort(function(a, b) { return b.score - a.score; });
-
-  if (results.length) {
-    resultsDiv.innerHTML = '<p style="color:var(--color-text-secondary);margin-bottom:1rem">找到 ' + results.length + ' 个结果</p>' +
-      results.map(function(r) {
-        return '<article class="post-card">' +
-          (r.featuredImage ? '<a href="' + r.url + '"><img src="' + r.featuredImage + '" alt="' + r.title + '" class="post-card-image" loading="lazy"></a>' : '') +
-          '<h2 class="post-card-title"><a href="' + r.url + '">' + hl(r.title) + '</a></h2>' +
-          (r.excerpt ? '<p class="post-card-excerpt">' + hl(r.excerpt.substring(0, 200)) + '</p>' : '') +
-          (r.tags && r.tags.length ? '<div class="post-tags" style="margin-top:0.5rem">' +
-            r.tags.map(function(t) { return '<span class="post-tag">' + t + '</span>'; }).join('') +
-          '</div>' : '') +
+  results.sort(function(a,b){return b.score-a.score});
+  if(results.length){
+    rDiv.innerHTML='<p style="color:var(--color-text-secondary);margin-bottom:1rem">找到 '+results.length+' 个结果</p>'+
+      results.map(function(r){
+        var meta='';
+        if(r.date)meta+='<span class="post-card-meta-item">'+escHtml(r.date)+'</span>';
+        if(r.categories&&r.categories.length)meta+='<span class="post-card-meta-item">'+r.categories.map(escHtml).join(' · ')+'</span>';
+        return '<article class="post-card">'+
+          (r.featuredImage?'<a href="'+escHtml(r.url)+'"><img src="'+escHtml(r.featuredImage)+'" alt="'+escHtml(r.title)+'" class="post-card-image" loading="lazy"></a>':'')+
+          '<h2 class="post-card-title"><a href="'+escHtml(r.url)+'">'+hlOnce(r.title,query)+'</a></h2>'+
+          (r.excerpt?'<p class="post-card-excerpt">'+hlOnce(wrapExcerpt(r.excerpt,query,170),query)+'</p>':'')+
+          (meta?'<div class="post-card-meta">'+meta+'</div>':'')+
+          (r.tags&&r.tags.length?'<div class="post-tags" style="margin-top:0.5rem">'+r.tags.slice(0,6).map(function(t){return '<span class="post-tag">'+escHtml(t)+'</span>'}).join('')+'</div>':'')+
         '</article>';
       }).join('');
-  } else {
-    resultsDiv.innerHTML = '<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">未找到相关文章</p>';
+  }else{
+    rDiv.innerHTML='<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">未找到相关文章</p>';
   }
 }
-
-window.addEventListener('DOMContentLoaded', function() {
-  var params = new URLSearchParams(window.location.search);
-  var q = params.get('q');
-  if (q) {
-    document.getElementById('searchPageInput').value = q;
+window.addEventListener('DOMContentLoaded',function(){
+  var params=new URLSearchParams(window.location.search);
+  var q=params.get('q');
+  if(q){
+    document.getElementById('searchPageInput').value=q;
     searchPage(q);
   }
 });

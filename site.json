@@ -40,7 +40,10 @@
     "enabled": true,           // 是否生成 RSS feed
     "path": "/feed.xml",       // feed 输出路径
     "fullContent": true,       // 是否在 feed 中包含全文
-    "maxItems": 50             // feed 中最多包含的文章数
+    "maxItems": 50,            // feed 中最多包含的文章数
+    "jsonFeed": {
+      "enabled": true          // 是否生成 JSON Feed (/feed.json),与 RSS 同一数据源
+    }
   },
 
   // ==================== SEO / 搜索引擎优化 ====================
@@ -56,7 +59,20 @@
     "structuredData": {
       "enabled": true,          // 是否生成 JSON-LD 结构化数据
       "type": "BlogPosting"     // 结构化数据类型
+    },
+    "titleTemplate": {            // 页面标题模板（HTML <title> / og:title / ld+json headline）
+      "index": "{site} · {subtitle}",   // 首页：站点名 · 副标题
+      "post": "{title} | {site}",       // 文章页：文章标题 | 站点名
+      "default": "{title} | {site}"     // 其余页面（标签/分类/归档/搜索/404 等）
     }
+  },
+
+  // ==================== Cloudflare Web Analytics ====================
+  // 填写 token 后自动注入官方 beacon 脚本（零自建、无 Cookie）
+  // 推荐通过环境变量 CF_WEB_ANALYTICS_TOKEN 注入（CI 中不落盘 token），此处留空即可
+  "webAnalytics": {
+    "enabled": true,
+    "token": ""                    // CF Web Analytics 令牌，或由 CF_WEB_ANALYTICS_TOKEN 提供
   },
 
   // ==================== 社交链接 ====================
@@ -156,6 +172,11 @@
     "mediaQuality": 85,                   // 图片质量（1-100）
     "mediaResponsiveSizes": [640, 1024, 1920],  // 响应式图片尺寸
     "mediaFormats": ["webp", "original"],        // 输出图片格式
+    "avif": {                                    // AVIF 变体（默认关闭；开启后 <picture> 优先提供 avif，构建时间约增加 40%）
+      "enabled": false,
+      "quality": 50,
+      "effort": 6                                // 0-9，越高越慢压缩率越好
+    },
     "lazyLoadImages": true,               // 是否延迟加载图片
     "useSrcset": true,                    // 是否使用 srcset 属性
     "usePictureTag": true,                // 是否使用 picture 标签

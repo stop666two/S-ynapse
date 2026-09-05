@@ -214,6 +214,15 @@ function loadConfig() {
   };
 
   const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy }, { tagAliases: tagAliasData, friends: friendsData }]);
+  // Cloudflare Web Analytics token: explicit config wins, else env fallback.
+  if (config.site && config.site.webAnalytics && config.site.webAnalytics.enabled) {
+    const wa = config.site.webAnalytics;
+    if (!wa.token && process.env.CF_WEB_ANALYTICS_TOKEN) wa.token = process.env.CF_WEB_ANALYTICS_TOKEN;
+    if (!wa.token) {
+      console.log('  [WARN] webAnalytics.enabled=true but no token set (config token or CF_WEB_ANALYTICS_TOKEN); beacon will not be injected');
+      wa.enabled = false;
+    }
+  }
   return config;
 }
 
@@ -461,6 +470,7 @@ async function optimizeMedia(config) {
   const manifest = {};
   const sizes = config.site.build.mediaResponsiveSizes || [640, 1024, 1920];
   const quality = config.site.build.mediaQuality || 85;
+  const avifCfg = config.site.build.avif || { enabled: false, quality: 50, effort: 6 };
   const formats = config.site.build.mediaFormats || ['webp', 'original'];
   const destDir = path.join(DIST_DIR, 'media');
   if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
@@ -477,16 +487,18 @@ async function optimizeMedia(config) {
       const originalWidth = metadata.width;
       const urlDir = parsed.dir ? parsed.dir + '/' : '';
       const entry = { original: `/media/${urlDir}${parsed.base}`, variants: {} };
+      const activeFormats = avifCfg.enabled ? ['avif', ...formats.filter(f => f !== 'avif')] : formats;
       for (const size of sizes) {
         if (originalWidth <= size) continue;
-        for (const fmt of formats) {
-          const suffix = fmt === 'original' ? ext : '.webp';
+        for (const fmt of activeFormats) {
+          const suffix = fmt === 'original' ? ext : fmt === 'webp' ? '.webp' : '.avif';
           const variantName = `${parsed.name}-${size}${suffix}`;
           const outPath = path.join(destDir, parsed.dir || '', variantName);
           const outDir = path.dirname(outPath);
           if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
           let pipeline = sharp(imgPath).resize(size, null, { withoutEnlargement: true });
           if (fmt === 'webp') pipeline = pipeline.webp({ quality });
+          else if (fmt === 'avif') pipeline = pipeline.avif({ quality: avifCfg.quality || 50, effort: avifCfg.effort || 6 });
           else if (ext === '.png') pipeline = pipeline.png({ quality });
           else pipeline = pipeline.jpeg({ quality });
           await pipeline.toFile(outPath);
@@ -576,17 +588,22 @@ function setupMarkedRenderer(config, mediaManifest) {
           const entry = mediaManifest[normHref];
           if (entry && entry.variants && Object.keys(entry.variants).length > 0) {
             const webpSources = [];
+            const avifSources = [];
             const origSources = [];
             const sizesAttr = '(max-width: 640px) 640px, (max-width: 1024px) 1024px, 1920px';
             for (const [key, val] of Object.entries(entry.variants)) {
               const [size, fmt] = key.split('-');
               const escaped = escapeAttr(val);
               if (fmt === 'webp') webpSources.push(`  <source srcset="${escaped}" sizes="${sizesAttr}" type="image/webp">`);
+              else if (fmt === 'avif') avifSources.push(`  <source srcset="${escaped}" sizes="${sizesAttr}" type="image/avif">`);
               else origSources.push(`  <source srcset="${escaped}" sizes="${sizesAttr}" type="image/${fmt}">`);
             }
             const fallbackSrc = escapeAttr(entry.original || decodedHref);
             let html = '<picture>\n';
-            html += webpSources.join('\n') + '\n';
+            html += avifSources.join('\n');
+            if (avifSources.length && (webpSources.length || origSources.length)) html += '\n';
+            html += webpSources.join('\n');
+            if (webpSources.length && origSources.length) html += '\n';
             html += origSources.join('\n') + '\n';
             html += `  <img src="${fallbackSrc}" alt="${escapeAttr(alt)}"${titleAttr}${loading}>\n`;
             html += '</picture>';
@@ -926,17 +943,33 @@ function getTemplate(name) {
 // 2. Wrap body in layout.ejs with merged data
 // 3. Run hooks.transformHTML if available
 // Returns full HTML string, or null on failure.
-function renderPage(templateName, data, layoutTemplate) {
+// Compose the final HTML <title> for a page based on seo.titleTemplate in site.json.
+// Placeholders: {site} {subtitle} {title}. Falls back to '{title} | {site}' (index: just site title).
+function applyTitleTemplate(config, pageType, pageTitle) {
+  const tplSrc = (config.site.seo && config.site.seo.titleTemplate) || null;
+  const fallback = pageType === 'index' ? '{site}' : '{title} | {site}';
+  const tpl = tplSrc ? (tplSrc[pageType] || tplSrc.default || fallback) : fallback;
+  const site = config.site.title || '';
+  const subtitle = config.site.subtitle || '';
+  let out = tpl.replace(/\{site\}/g, site).replace(/\{subtitle\}/g, subtitle);
+  if (pageTitle) out = out.replace(/\{title\}/g, pageTitle);
+  else out = out.replace(/\{title\}/g, site);
+  return out.trim();
+}
+
+function renderPage(templateName, data, layoutTemplate, cfg) {
   const templateStr = getTemplate(templateName);
   if (!templateStr) {
     console.error(`  [ERROR] Template not found: ${templateName}`);
     return null;
   }
   try {
+    const rawTitle = (typeof data.title !== 'undefined' && data.title) ? data.title : null;
+    const pageTitleFinal = applyTitleTemplate(cfg || config, data.currentPage || 'index', rawTitle);
     const bodyContent = ejs.render(templateStr, data, { filename: path.join(TEMPLATES_DIR, templateName) });
     let result;
     if (layoutTemplate) {
-      result = ejs.render(layoutTemplate, { ...data, body: bodyContent }, { filename: path.join(TEMPLATES_DIR, 'layout.ejs') });
+      result = ejs.render(layoutTemplate, { ...data, pageTitleFinal, body: bodyContent }, { filename: path.join(TEMPLATES_DIR, 'layout.ejs') });
     } else {
       result = bodyContent;
     }
@@ -1050,7 +1083,8 @@ function processCustomPages(config, baseData) {
         currentPage: 'page'
       };
       const bodyHtml = ejs.render(pageTemplate, pageData, { filename: path.join(TEMPLATES_DIR, 'page.ejs') });
-      const fullHtml = ejs.render(layoutTemplate, { ...pageData, body: bodyHtml }, { filename: path.join(TEMPLATES_DIR, 'layout.ejs') });
+      const pageTitleFinal = applyTitleTemplate(config, 'page', title);
+      const fullHtml = ejs.render(layoutTemplate, { ...pageData, pageTitleFinal, body: bodyHtml }, { filename: path.join(TEMPLATES_DIR, 'layout.ejs') });
       const outputPath = path.join(DIST_DIR, slug, 'index.html');
       const dir = path.dirname(outputPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -1128,7 +1162,7 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
         currentUrl: page === 1 ? '/' : `/page/${page}/`,
         currentPage: 'index'
       };
-      const html = renderPage('index.ejs', data, layoutTemplate);
+      const html = renderPage('index.ejs', data, layoutTemplate, config);
       if (html) {
         if (page === 1) await writeFile('index.html', html);
         else await writeFile(`page/${page}/index.html`, html);
@@ -1144,12 +1178,13 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
     const data = {
       ...baseData,
       article,
+      title: article.title,
       prevArticle: prev && !prev.draft ? { title: prev.title, url: prev.url } : null,
       nextArticle: next && !next.draft ? { title: next.title, url: next.url } : null,
       currentUrl: article.url,
       currentPage: 'post'
     };
-    const html = renderPage('post.ejs', data, layoutTemplate);
+    const html = renderPage('post.ejs', data, layoutTemplate, config);
     if (html) {
       await writeFile(`${article.slug}/index.html`, html);
     }
@@ -1158,33 +1193,36 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
   if (config.site.build.generateArchive !== false) {
     const data = {
       ...baseData,
+      title: '归档',
       currentUrl: '/archive',
       currentPage: 'archive'
     };
-    const html = renderPage('archive.ejs', data, layoutTemplate);
+    const html = renderPage('archive.ejs', data, layoutTemplate, config);
     if (html) await writeFile('archive/index.html', html);
   }
 
   if (config.site.build.generateTags !== false) {
     const data = {
       ...baseData,
+      title: '标签',
       currentUrl: '/tags',
       currentPage: 'tags'
     };
-    const html = renderPage('tags.ejs', data, layoutTemplate);
+    const html = renderPage('tags.ejs', data, layoutTemplate, config);
     if (html) await writeFile('tags/index.html', html);
 
     for (const tag of tags) {
       const tagArticles = articles.filter(a => !a.draft && a.tags.includes(tag.name));
       const tagData = {
         ...baseData,
+        title: tag.name,
         tag,
         tagName: tag.name,
         articles: tagArticles,
         currentUrl: tag.url,
         currentPage: 'tag'
       };
-      const tagHtml = renderPage('tag.ejs', tagData, layoutTemplate);
+      const tagHtml = renderPage('tag.ejs', tagData, layoutTemplate, config);
       if (tagHtml) await writeFile(`tags/${tag.slug}/index.html`, tagHtml);
     }
   }
@@ -1192,40 +1230,42 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
   if (config.site.build.generateCategories !== false) {
     const data = {
       ...baseData,
+      title: '分类',
       currentUrl: '/categories',
       currentPage: 'categories'
     };
-    const html = renderPage('categories.ejs', data, layoutTemplate);
+    const html = renderPage('categories.ejs', data, layoutTemplate, config);
     if (html) await writeFile('categories/index.html', html);
 
     for (const cat of categories) {
       const catArticles = articles.filter(a => !a.draft && a.categories.includes(cat.name));
       const catData = {
         ...baseData,
+        title: cat.name,
         category: cat,
         categoryName: cat.name,
         articles: catArticles,
         currentUrl: cat.url,
         currentPage: 'category'
       };
-      const catHtml = renderPage('category.ejs', catData, layoutTemplate);
+      const catHtml = renderPage('category.ejs', catData, layoutTemplate, config);
       if (catHtml) await writeFile(`categories/${cat.slug}/index.html`, catHtml);
     }
   }
 
-  const data404 = { ...baseData, currentUrl: '/404', currentPage: '404' };
-  const html404 = renderPage('404.ejs', data404, layoutTemplate);
+  const data404 = { ...baseData, title: '404', currentUrl: '/404', currentPage: '404' };
+  const html404 = renderPage('404.ejs', data404, layoutTemplate, config);
   if (html404) await writeFile('404.html', html404);
 
   if (baseData.friends) {
-    const linksData = { ...baseData, currentUrl: '/links/', currentPage: 'links', pageTitle: baseData.friends.title || '友情链接' };
-    const linksHtml = renderPage('links.ejs', linksData, layoutTemplate);
+    const linksData = { ...baseData, title: baseData.friends.title || '友情链接', currentUrl: '/links/', currentPage: 'links', pageTitle: baseData.friends.title || '友情链接' };
+    const linksHtml = renderPage('links.ejs', linksData, layoutTemplate, config);
     if (linksHtml) await writeFile('links/index.html', linksHtml);
   }
 
   if (config.navigation.search && config.navigation.search.enabled) {
-    const searchData = { ...baseData, currentUrl: '/search', currentPage: 'search' };
-    const searchHtml = renderPage('search.ejs', searchData, layoutTemplate);
+    const searchData = { ...baseData, title: '搜索', currentUrl: '/search', currentPage: 'search' };
+    const searchHtml = renderPage('search.ejs', searchData, layoutTemplate, config);
     if (searchHtml) await writeFile('search/index.html', searchHtml);
   }
 }
@@ -1233,6 +1273,57 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
 // Generate an RSS 2.0 feed using the `feed` package.
 // Includes full article content if site.rss.fullContent is true.
 // Limited to site.rss.maxItems (default 50) most recent published articles.
+// Generate JSON Feed (https://jsonfeed.org/version/1.1) alongside RSS.
+// Reuses the `feed` package output (feed.json1()). Same source data as RSS:
+// published articles limited to site.rss.maxItems, content per rss.fullContent.
+// Enabled via site.rss.jsonFeed.enabled (default: follow rss.enabled).
+async function generateJSONFeed(config, articles) {
+  const rss = config.site.rss || {};
+  const enabled = rss.jsonFeed ? rss.jsonFeed.enabled : rss.enabled;
+  if (!enabled || !rss.enabled || !Feed) {
+    console.log('  [SKIP] JSON Feed generation disabled or feed package not available');
+    return;
+  }
+  console.log('[7b] Generating JSON Feed...');
+  try {
+    const feed = new Feed({
+      title: config.site.title || 'Blog',
+      description: config.site.description || '',
+      id: config.site.url || '',
+      link: config.site.url || '',
+      language: config.site.language || 'en',
+      copyright: config.site.copyright || '',
+      updated: articles.length > 0 && articles[0].date ? new Date(articles[0].date) : new Date(),
+      generator: 'S-ynapse'
+    });
+    if (config.site.author) {
+      feed.author = { name: config.site.author, email: config.site.email || '' };
+    }
+    const maxItems = rss.maxItems || 50;
+    const items = getPublished(articles).slice(0, maxItems);
+    for (const article of items) {
+      const link = `${config.site.url.replace(/\/+$/, '')}${article.url}`;
+      feed.addItem({
+        title: article.title,
+        id: link,
+        link,
+        description: article.excerpt || '',
+        content: rss.fullContent ? article.content : (article.excerpt || ''),
+        date: article.date ? new Date(article.date) : new Date(),
+        category: article.tags.map(t => ({ name: t })),
+        author: config.site.author ? [{ name: config.site.author }] : undefined
+      });
+    }
+    const outputPath = path.join(DIST_DIR, 'feed.json');
+    const outDir = path.dirname(outputPath);
+    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+    fs.writeFileSync(outputPath, feed.json1(), 'utf-8');
+    console.log('  Created: /feed.json');
+  } catch (err) {
+    console.error(`  [ERROR] JSON Feed generation failed: ${err.message}`);
+  }
+}
+
 async function generateRSS(config, articles) {
   if (!config.site.rss || !config.site.rss.enabled || !Feed) {
     console.log('  [SKIP] RSS generation disabled or feed package not available');
@@ -1741,6 +1832,7 @@ async function build() {
     const customPages = processCustomPages(config, baseData);
     await generatePages(config, articles, baseData, customPages);
     await generateRSS(config, articles);
+    await generateJSONFeed(config, articles);
     await generateSitemap(config, articles, tags, categories, customPages);
     generateSearchIndex(config, articles);
     generateSecurityHeaders(config);

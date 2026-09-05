@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json — 站点主体](#1-sitejson--站点主体)
 2. [theme.json — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(38 模块)](#3-featuresjson5--功能总控38-模块)
+3. [features.json5 — 功能总控(54 模块)](#3-featuresjson5--功能总控54-模块)
 4. [navigation.json — 导航](#4-navigationjson--导航)
 5. [sidebar.json — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json — 页脚](#6-footerjson--页脚)
@@ -334,6 +334,80 @@
 
 ### 3.38 debug
 `verbose false` / `listPages false` / `dumpConfig false`
+
+### 3.39 sitemap — 站点地图拆分(Sitemap Split)
+> 配置位于 `features.json5` 下的 `sitemap` 段。拆分语义:URL 总数 ≤ `maxUrlsPerFile` → 单一 `<urlset>` sitemap.xml;URL 总数 > `maxUrlsPerFile` → 生成 `sitemap-1.xml … sitemap-N.xml` + `sitemap.xml`(sitemapindex 索引)。与 `site.json` 的 `sitemap` 段(csp 开关)联动——`site.sitemap.enabled=false` 时整体跳过。
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `split` | bool | `true` | 是否启用拆分。`false` 时无论 URL 多少永远单文件 |
+| `maxUrlsPerFile` | number | `500` | 每个 sitemap 文件最多 URL 数;低于强制 `10`;逻辑上限 `50000`(协议) |
+| `postPriority` | string | `'0.8'` | 文章页优先级(`0.0`~`1.0`) |
+| `pagePriority` | string | `'0.6'` | 独立页面(首页/归档/相册/收藏)优先级 |
+| `tagPriority` | string | `'0.4'` | 标签页优先级 |
+| `postFrequency` | string | `'weekly'` | 文章页更新频率(always/hourly/daily/weekly/monthly/yearly/never) |
+| `pageFrequency` | string | `'monthly'` | 页面更新频率 |
+| `tagFrequency` | string | `'monthly'` | 标签页更新频率 |
+
+**示例**(features.json5):
+```json5
+sitemap: {
+  split: true,
+  maxUrlsPerFile: 500,
+  postPriority: '0.8',
+  pagePriority: '0.6',
+  tagPriority: '0.4',
+  postFrequency: 'weekly',
+  pageFrequency: 'monthly',
+  tagFrequency: 'monthly'
+}
+```
+拆分输出:URL 61 条(≤500)→ `sitemap.xml`(单一文件 61 url);URL 600 条(>500)→ `sitemap-1.xml`(500)+`sitemap-2.xml`(100)+`sitemap.xml`(sitemapindex 索引 2 条)。索引格式:`<sitemapindex>` → `<sitemap>https://host/sitemap-1.xml</sitemap>` + `sitemap-2.xml`。
+
+### 3.40 themePresets — 主题预设切换器
+`enabled true` / `pickerVisible true` / `persistChoice true` / `showInNavbar true` / `previewOnHover true`。6 套调色盘(Classic Blue / Cyber Purple / Forest Green / Sakura Pink / Editorial Gray / Midnight Black),点击即切换 CSS 变量并 localStorage 持久化(`ss-preset`)。
+
+### 3.41 themeSchedule — 深色定时切换
+`enabled false`(默认关) / `darkFrom '22:00'` / `lightFrom '06:00'` / `respectManualOverride true` / `applyInstantly true` / `tickMinutes 60`。按固定每日时段自动切主题,用户手动切换后不自动覆盖。
+
+### 3.42 readDock — 移动端阅读侧栏
+`enabled true` / `showProgressRing true` / `showTocButton true` / `showTopButton true` / `hideOnScrollDown true` / `position right`。移动端右下角的进度环 + 回目录 + 回顶按钮。
+
+### 3.43 sidebarDrag — 侧栏拖拽重排
+`enabled true` / `persistOrder true` / `storageKey 's-sidebarOrder'` / `touchLongPress true` / `showHandleOnHover true` / `resetOnLoadFail true`。用户可拖拽侧栏 widget 重排顺序,存储于 localStorage;移动端长按 500ms 触发。
+
+### 3.44 ogImageStyle — 社交卡片样式
+`enabled true` / `pattern 'gradient'` / `preview true` / `preferImage true`。自动生成 OG 图片(基于文章卡片),与 site.seo.ogImage 联动。
+
+### 3.45 hero — 首页 Hero
+`enabled true` / `showSearch true` / `showTags true` / `tagCount 5`。首页顶部横幅,显示标题简介+搜索+热门标签。
+
+### 3.46 background — 背景特效
+`enabled false` / `pattern 'none'` (particles/grid/dots/mesh) / `intensity 'medium'` / `reducedMotion false`。站点背景特效(粒子/网格/圆点/网格渐变)。
+
+### 3.47 motion — 滚动动效
+`enabled true` / `reveal true` / `fade true` / `parallax false` / `distance '30px'` / `duration '0.6s'`。滚动出现视差淡入等动效。
+
+### 3.48 dailyQuote — 每日一言
+`enabled true` / `widgetStyle 'sidebar'` / `label '每日一言'` / `source 'builtin'` / `count 7` / `quoteColor ''`。侧栏每日名言(内置 7 条,按日期轮换)。
+
+### 3.49 favorites — 收藏(纯前端)
+`enabled true` / `position 'toolbar'` / `storageKey 's-favorites'` / `label '收藏'` / `listIcon true` / `notText '收藏'` / `favedText '已收藏'`。文章收藏按钮+收藏页(仅 localStorage,无后端)。
+
+### 3.50 prismTheme — 代码主题切换器
+`enabled true` / `themes[]` (github/dark/solarized/django) / `defaultTheme 'github'` / `remember true` / `storageKey 's-codeTheme'` / `windowBar true`。代码块顶部仿 Mac 栏 + 主题单选。
+
+### 3.51 cover — 封面样式库
+`enabled true` / `patterns[]` (gradient/stripes/dots/blob/mesh) / `defaultPattern 'gradient'` / `preview true` / `preferImage true`。文章封面样式库(渐变/条纹/圆点/气泡/网格),在线预览。
+
+### 3.52 i18n — 界面双语
+`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true`。仅界面文案双语(zh/en)切换,文章内容保持原文。
+
+### 3.53 pagefind — Pagefind 全文搜索
+`enabled true` / `indexPath '/pagefind'` / `integrate true`。使用 Pagefind 的离线全文搜索(search.provider='pagefind' 时生效,构建生成索引)。
+
+### 3.54 giscus — Giscus 评论
+`enabled false`(默认关) / `repo ''` / `repoId ''` / `category 'Announcements'` / `categoryId ''` / `mapping 'title'` / `theme 'preferred_color_scheme'` / `loading 'lazy'` / `crossorigin 'anonymous'`。与 site.comments(provider='giscus')联动——两者都必须配置才显示。
 
 ---
 

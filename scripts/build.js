@@ -42,6 +42,8 @@ try { minifyHtmlNode = require('@minify-html/node'); } catch (e) { minifyHtmlNod
 try { CleanCSS = require('clean-css'); } catch (e) { CleanCSS = null; }
 try { terser = require('terser'); } catch (e) { terser = null; }
 try { chokidar = require('chokidar'); } catch (e) { chokidar = null; }
+let generateWorkerSecurity;
+try { generateWorkerSecurity = require('./generate-security-config').generateSecurityConfig; } catch (e) { generateWorkerSecurity = null; }
 
 // Optional local hooks script (scripts/hooks.js) — allows external plugins to hook into build lifecycle
 // Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
@@ -1645,6 +1647,9 @@ async function build() {
     await generateSitemap(config, articles, tags, categories, customPages);
     generateSearchIndex(config, articles);
     generateSecurityHeaders(config);
+    if (generateWorkerSecurity) {
+      generateWorkerSecurity(config.security, path.join(ROOT, 'workers', 'security-config.js'));
+    }
     await minifyAll(config);
     await cacheBust(config);
     await generatePWA(config);

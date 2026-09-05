@@ -35,3 +35,5 @@ database.db-wal
 
 # 浏览器测试产物
 .playwright-mcp/
+# Workers security config (auto-generated from security.json during build)
+workers/security-config.js

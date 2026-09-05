@@ -1,6 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript } = require('./lib/utils');
+const { extractWorkerSecurity, renderWorkerConfig } = require('./generate-security-config');
 
 describe('formatDate', () => {
   it('formats date with default format', () => {
@@ -243,5 +244,45 @@ describe('sanitizeSvg', () => {
     const r = sanitizeSvg('<svg xmlns="http://www.w3.org/2000/svg" width="10"><rect width="10"/></svg>');
     assert.strictEqual(r.safe, true);
     assert.ok(r.content.includes('<svg'));
+  });
+});
+
+
+describe('generate-security-config', () => {
+  it('extracts rate limiting fields from security.json shape', () => {
+    const out = extractWorkerSecurity({ rateLimiting: { enabled: true, maxRequests: 50, windowMs: 60000, blockDuration: 300000, whitelist: ['10.0.0.1'], blacklist: ['1.2.3.4'] } });
+    assert.strictEqual(out.rateLimiting.maxRequests, 50);
+    assert.deepStrictEqual(out.rateLimiting.whitelist, ['10.0.0.1']);
+    assert.deepStrictEqual(out.rateLimiting.blacklist, ['1.2.3.4']);
+    assert.strictEqual(out.forceHttps, false);
+  });
+  it('falls back to safe defaults for missing/invalid fields', () => {
+    const out = extractWorkerSecurity({ rateLimiting: { maxRequests: 'unlimited' } });
+    assert.strictEqual(out.rateLimiting.maxRequests, 100);
+    assert.strictEqual(out.rateLimiting.windowMs, 60000);
+    assert.deepStrictEqual(out.rateLimiting.whitelist, []);
+    assert.strictEqual(out.csp.reportOnly, false);
+    assert.deepStrictEqual(out.pathRestrictions, ['/admin']);
+  });
+  it('normalizes path restrictions and drops malformed entries', () => {
+    const out = extractWorkerSecurity({ pathRestrictions: [{ path: '/admin/*' }, { noPath: true }, null] });
+    assert.deepStrictEqual(out.pathRestrictions, ['/admin/*']);
+  });
+  it('preserves csp directives and report fields', () => {
+    const out = extractWorkerSecurity({ csp: { directives: { 'default-src': ['\'self\''], 'frame-src': ['\'none\''] }, reportOnly: true, reportUri: '/csp-rpt' } });
+    assert.deepStrictEqual(out.csp.directives['frame-src'], ['\'none\'']);
+    assert.strictEqual(out.csp.reportOnly, true);
+    assert.strictEqual(out.csp.reportUri, '/csp-rpt');
+  });
+  it('renders valid ESM text with export default', () => {
+    const src = renderWorkerConfig({ rateLimiting: { maxRequests: 99 }, csp: { directives: {} }, pathRestrictions: ['/admin'], forceHttps: false, headers: {} });
+    assert.ok(src.startsWith('// AUTO-GENERATED'));
+    assert.ok(src.includes('export default'));
+    assert.ok(src.includes('99'));
+  });
+  it('renders empty-security input without crashing', () => {
+    const src = renderWorkerConfig(extractWorkerSecurity(null));
+    assert.ok(src.includes('export default'));
+    assert.ok(src.includes('blockDuration'));
   });
 });

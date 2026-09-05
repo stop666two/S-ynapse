@@ -33,3 +33,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 新增 `content-policy.json` 内容策略：`media/`（图片白名单 + SVG 消毒）、`videos/`（视频排除制）、`assets/`（素材白名单）三目录构建期过滤；可执行文件/脚本源码/渲染型文档一律拦截，被拦文件不进入 `dist/`（线上访问 404）并在构建报告中逐条列出 — `scripts/lib/content-policy.js`
 - `sanitizeHtml` 放行站内 `<video>`/`<audio>`：媒体 `src` 仅允许站点本地路径（无协议/相对），绝对 URL 与协议相对 URL 被剥离
 - 本地预览服务器（`--serve`）：404 回退页现在返回真实 `404` 状态码（此前恒为 200）；扩展 MIME 表覆盖视频/音频/字体/文档类型
+- 消除 Worker 双配置漂移：`workers/security-worker.js` 改为读取构建时从 `security.json` 生成的 `workers/security-config.js`（单源配置，自动生成不入库），Worker 与 `_headers` 的 CSP/限流/路径限制/安全头从此一致；新增 `scripts/generate-security-config.js` 与 6 项单元测试（总计 51 项）

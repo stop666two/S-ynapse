@@ -442,6 +442,11 @@ npm run build
 npx wrangler deploy --config workers/wrangler.toml
 ```
 
+> **Worker 安全配置自动同步**：`npm run build` 会从 `security.json`（唯一配置源）生成
+> `workers/security-config.js`（自动生成文件，已加入 `.gitignore`，勿手改）。Worker
+> 运行时读取该文件，实现边缘层与静态层 CSP/速率限制/路径限制/安全头完全一致，
+> 修改安全设置只需编辑 `security.json` 一处。
+
 Worker 提供：
 - 速率限制（防止刷接口）
 - 路径访问控制（如 `/admin/*` 仅允许特定 IP）

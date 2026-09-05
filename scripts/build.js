@@ -1371,19 +1371,6 @@ function buildPageData(config, articles, tags, categories) {
   const published = getPublished(articles);
   const friendsCfg = collectFriends(config);
   let nav = config.navigation;
-  // Auto-inject a 搜索 menu entry when search is enabled but no menu item points to /search/.
-  if (nav && Array.isArray(nav.menu) && nav.search && nav.search.enabled && config.features && config.features.search && config.features.search.enabled !== false) {
-    const hasSearchPage = nav.menu.some(function(m) { return m && (m.url === '/search/' || m.url === '/search'); });
-    if (!hasSearchPage) {
-      const menu2 = nav.menu.slice();
-      const aboutIdx = menu2.findIndex(function(m) { return m && /\/about\/?$/.test(m.url) && /关于/.test(m.label || ''); });
-      const searchItem = { label: '搜索', url: '/search/', type: 'page' };
-      if (aboutIdx > -1) { menu2.splice(aboutIdx, 0, searchItem); }
-      else { menu2.unshift(searchItem); }
-      nav.menu = menu2;
-      console.log('  [NAV] Auto-added menu item: search');
-    }
-  }
 // Auto-inject a 友链 menu entry when friends are configured but no menu item points to /links/.
   // Inserted right after the "关于" menu item (falling back to append at end).
   if (friendsCfg && nav && Array.isArray(nav.menu)) {

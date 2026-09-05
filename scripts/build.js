@@ -52,6 +52,7 @@ try { hooks = require('./hooks'); } catch (e) { hooks = null; }
 const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks } = require('./lib/utils');
 const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
 const { DEFAULT_FEATURES, validateFeatures } = require('./lib/features-schema');
+const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset } = require('./lib/theme-presets');
 const { formatConfigError } = require('./lib/config-error');
 
 // Project directory structure — all paths relative to project root
@@ -196,8 +197,12 @@ function loadConfig() {
     // lib/features-schema.js). User overrides come from features.json5.
     features: DEFAULT_FEATURES,
     theme: {
-      colors: { primary: '#2d3748', secondary: '#4a90d9', accent: '#e53e3e', background: '#f7fafc', surface: '#ffffff', text: '#1a202c', textSecondary: '#4a5568', textLight: '#a0aec0', border: '#e2e8f0', shadow: 'rgba(0,0,0,0.1)', hover: '#edf2f7', codeBackground: '#2d3748', codeText: '#f7fafc' },
+      colors: { primary: '#2d3748', secondary: '#2563eb', accent: '#c53030', background: '#f7fafc', surface: '#ffffff', text: '#1a202c', textSecondary: '#4a5568', textLight: '#64748b', border: '#e2e8f0', shadow: 'rgba(0,0,0,0.1)', hover: '#edf2f7', codeBackground: '#2d3748', codeText: '#f7fafc' },
       darkMode: { enabled: false, toggle: true, default: 'system', colors: {} },
+      preset: null, presetOverrides: {},
+      fontSystem: { stack: 'inter', customStack: '', scale: 1, bodyWeight: 400, headingStack: 'inherit', numbersMono: true },
+      rounding: 'md', shadowLevel: 'soft', borderStyle: 'subtle',
+      avatar: { shape: 'round', ring: false, ringColor: '', badge: true },
       fontFamily: 'sans-serif',
       fontFamilyMono: 'monospace',
       fontSizeBase: '16px', lineHeight: 1.8,
@@ -243,7 +248,98 @@ function loadConfig() {
       wa.enabled = false;
     }
   }
+  // Theme preset resolution: built-in preset → presetOverrides. When a preset
+  // is active it takes over colors/dark colors; manual colors field is only
+  // honored when preset is null (see theme.json header notes).
+  const themeRes = resolveThemePreset(config.theme);
+  if (themeRes.warnings.length > 0) {
+    themeRes.warnings.forEach(w => console.log('  [WARN] ' + w));
+  } else if (themeRes.appliedPreset) {
+    console.log('  [THEME] Preset applied: ' + themeRes.appliedPreset);
+  }
+  config.theme.appliedPreset = themeRes.appliedPreset;
+  config.theme.colors = themeRes.colors;
+  config.theme.darkMode = themeRes.darkMode;
+  // Visual tiers (rounding / shadow / border) resolve to concrete CSS vars.
+  applyVisualTiers(config.theme);
+  // Font system resolves stack → family + Google Fonts link; custom stack keeps
+  // the hand-written theme.fontFamily with priority.
+  resolveFontSystem(config.theme);
   return config;
+}
+
+// FONT_STACKS — fontSystem.stack 预设枚举 → CSS font-family 栈。
+const FONT_STACKS = {
+  inter: "'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+  'noto-sans': "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif",
+  'noto-serif': "'Noto Serif SC', Georgia, 'Songti SC', serif",
+  system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+};
+const FONT_LINKS = {
+  inter: 'https://fonts.googleapis.com/css2?family=Inter&display=swap',
+  'noto-sans': 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap',
+  'noto-serif': 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap',
+  system: null,
+  custom: null
+};
+
+function resolveFontSystem(theme) {
+  const fs = theme.fontSystem || {};
+  const stack = fs.stack || 'inter';
+  const family = stack === 'custom'
+    ? (fs.customStack || theme.fontFamily || FONT_STACKS.inter)
+    : (FONT_STACKS[stack] || FONT_STACKS.inter);
+  theme.fontFamily = family;
+  theme.fontFamilyHeading = fs.headingStack === 'serif'
+    ? "Georgia, 'Noto Serif SC', 'Songti SC', 'STSong', serif"
+    : (fs.headingStack === 'sans' ? FONT_STACKS.inter : family);
+  theme.fontScale = (typeof fs.scale === 'number' && fs.scale > 0 && fs.scale <= 2) ? fs.scale : 1;
+  theme.fontNumbersMono = fs.numbersMono !== false;
+  const link = FONT_LINKS[stack] || null;
+  if (link) {
+    theme.externalAssets = theme.externalAssets || { styles: [], scripts: [] };
+    theme.externalAssets.styles = theme.externalAssets.styles.filter(s => s !== link);
+    theme.externalAssets.styles.unshift(link);
+  }
+}
+
+// VISUAL_TIERS — rounding/shadowLevel/borderStyle 档位 → 具体 CSS 变量值。
+// 这些档位只叠加非颜色项（spacing.radius/shadow.*/colors.border），
+// 与预设色板正交，可在任何预设下自由组合。
+const VISUAL_ROUNDING = {
+  sharp: { radius: '2px', radiusLarge: '8px', button: '2px' },
+  sm: { radius: '4px', radiusLarge: '10px', button: '3px' },
+  md: { radius: '0.5rem', radiusLarge: '1rem', button: '0.25rem' },
+  lg: { radius: '0.75rem', radiusLarge: '1.25rem', button: '0.5rem' }
+};
+const VISUAL_SHADOW = {
+  flat: { card: 'none', dropdown: 'none', fixed: 'none' },
+  soft: { card: '0 4px 6px rgba(0,0,0,0.1)', dropdown: '0 10px 15px -3px rgba(0,0,0,0.1)', fixed: '0 2px 4px rgba(0,0,0,0.08)' },
+  medium: { card: '0 6px 16px rgba(0,0,0,0.12)', dropdown: '0 12px 28px rgba(0,0,0,0.14)', fixed: '0 2px 8px rgba(0,0,0,0.10)' },
+  strong: { card: '0 12px 32px rgba(0,0,0,0.16)', dropdown: '0 18px 44px rgba(0,0,0,0.18)', fixed: '0 4px 14px rgba(0,0,0,0.14)' }
+};
+const VISUAL_BORDER = {
+  none: { light: '#00000000', dark: '#00000000' },
+  subtle: { light: '#e2e8f0', dark: '#334155' },
+  visible: { light: '#cbd5e1', dark: '#475569' }
+};
+
+function applyVisualTiers(theme) {
+  const rd = VISUAL_ROUNDING[theme.rounding] || VISUAL_ROUNDING.md;
+  const sh = VISUAL_SHADOW[theme.shadowLevel] || VISUAL_SHADOW.soft;
+  const bd = VISUAL_BORDER[theme.borderStyle] || VISUAL_BORDER.subtle;
+  theme.spacing.radius = rd.radius;
+  theme.spacing.radiusLarge = rd.radiusLarge;
+  theme.button.radius = rd.button;
+  theme.shadow.card = sh.card;
+  theme.shadow.dropdown = sh.dropdown;
+  theme.shadow.fixed = sh.fixed;
+  if (!theme.colors) theme.colors = {};
+  theme.colors.border = bd.light;
+  if (theme.darkMode && theme.darkMode.enabled) {
+    if (!theme.darkMode.colors) theme.darkMode.colors = {};
+    theme.darkMode.colors.border = bd.dark;
+  }
 }
 
 // Validate merged config for required fields and suspicious values.
@@ -308,6 +404,12 @@ function validateConfig(config) {
   const featureResults = validateFeatures(config.features, 'features');
   errors.push(...featureResults.errors);
   warnings.push(...featureResults.warnings);
+
+  const themeErrors = validateThemePreset(config.theme);
+  errors.push(...themeErrors);
+  if (config.theme.rounding && !VISUAL_ROUNDING[config.theme.rounding]) errors.push('theme.rounding 无效，可选: sharp | sm | md | lg');
+  if (config.theme.shadowLevel && !VISUAL_SHADOW[config.theme.shadowLevel]) errors.push('theme.shadowLevel 无效，可选: flat | soft | medium | strong');
+  if (config.theme.borderStyle && !VISUAL_BORDER[config.theme.borderStyle]) errors.push('theme.borderStyle 无效，可选: none | subtle | visible');
 
   if (errors.length > 0) {
     console.error('\n[CONFIG VALIDATION ERRORS]');

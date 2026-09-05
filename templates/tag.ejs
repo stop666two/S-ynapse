@@ -1,13 +1,13 @@
 <div class="post-article">
-  <h1>鏍囩: <%= tagName %></h1>
-  <p style="color:var(--color-ts);margin-bottom:1.5rem"><%= articles.length %> 绡囨枃绔?/p>
+  <h1>标签: <%= tagName %></h1>
+  <p style="color:var(--color-ts);margin-bottom:1.5rem"><%= articles.length %> 篇文章</p>
 </div>
 
 <% if (articles && articles.length) { %>
 <% articles.forEach(function(article) { %>
 <article class="post-card">
   <h2 class="post-card-title">
-    <% if (article.pinned) { %><span class="pin-badge">缃《</span><% } %><% if (article.series) { %><span class="series-badge">绯诲垪</span><% } %>
+    <% if (article.pinned) { %><span class="pin-badge">置顶</span><% } %><% if (article.series) { %><span class="series-badge">系列</span><% } %>
     <a href="<%= article.url %>"><%= article.title %></a>
   </h2>
   <div class="post-card-meta">
@@ -22,10 +22,10 @@
     </span>
     <% } %>
     <% if (theme.card && theme.card.showWordCount && article.wordCount) { %>
-    <span><%= article.wordCount %> 瀛?/span>
+    <span><%= article.wordCount %> 字</span>
     <% } %>
     <% if (theme.card && theme.card.showReadTime && article.readTime) { %>
-    <span><%= article.readTime %> 鍒嗛挓</span>
+    <span><%= article.readTime %> 分钟</span>
     <% } %>
   </div>
   <% if (theme.card && theme.card.showExcerpt && article.excerpt) { %>
@@ -34,6 +34,6 @@
 </article>
 <% }) %>
 <% } else { %>
-<div class="post-article"><p style="text-align:center;padding:2rem;color:var(--color-ts)">璇ユ爣绛句笅鏆傛棤鏂囩珷</p></div>
+<div class="post-article"><p style="text-align:center;padding:2rem;color:var(--color-ts)">该标签下暂无文章</p></div>
 <% } %>
 

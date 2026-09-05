@@ -1,5 +1,56 @@
 {
+  // ==================== 主题预设系统 ====================
+  // 三层优先级（高层覆盖低层）：
+  //   1. 内置六套预设：classic-blue(经典蓝) / night-jet(极夜黑) /
+  //      forest-green(森林绿) / sakura-pink(樱花粉) /
+  //      editorial-grey(编辑部灰) / cyber-purple(赛博紫)
+  //   2. presetOverrides —— 在预设基础上的微调（推荐微调方式）
+  //   3. 非颜色档位（rounding/shadowLevel/borderStyle）与预设正交，随时可调
+  // 注意：preset 非空时 colors / darkMode.colors 整组以预设为准（预设接管），
+  //       手工 colors 不再生效；想改单色请写进 presetOverrides。
+  //       将 preset 设为 null 或删除该字段可回退到手工 colors 模式。
+
+  // 预设名称；null=关闭预设接管（走下方手工 colors）
+  "preset": "classic-blue",
+  // 在预设基础上的颜色微调（最高优先级，任意替换 13 色之一）
+  "presetOverrides": {
+    "colors": {},          // 明亮模式覆盖：如 { "secondary": "#b91c1c" }
+    "darkMode": {          // 暗色模式覆盖
+      "colors": {}
+    }
+  },
+
+  // ==================== 字体系统 ====================
+  // stack: inter / noto-sans(思源黑体) / noto-serif(思源宋体) / system / custom
+  // scale: 全局字号缩放 0.9~1.2（1=100%）
+  // headingStack: inherit=跟随整体 / sans=无衬线 / serif=衬线
+  // numbersMono: 统计数字用等宽字体（阅读面板、统计卡）
+  "fontSystem": {
+    "stack": "inter",
+    "customStack": "",
+    "scale": 1,
+    "bodyWeight": 400,
+    "headingStack": "inherit",
+    "numbersMono": true
+  },
+
+  // 圆角档位: sharp(2px) / sm(4px) / md(0.5rem) / lg(0.75rem)
+  "rounding": "md",
+  // 阴影档位: flat(无) / soft(轻) / medium(中) / strong(重)
+  "shadowLevel": "soft",
+  // 边框档位: none(隐藏边框) / subtle(淡) / visible(明显)
+  "borderStyle": "subtle",
+
+  // 头像与 Logo 显示模式
+  "avatar": {
+    "shape": "round",     // 头像形状: round(圆形) / rounded(圆角方形) / square(方形)
+    "ring": false,        // 是否显示品牌色描边
+    "ringColor": "",      // 描边色（留空=用辅色 --color-s）
+    "badge": true        // 无头像图片时生成 首字母+品牌色 徽章
+  },
+
   // ==================== 颜色方案（明亮模式） ====================
+  // preset 为 null 时以下手工颜色生效；preset 非空时此段被预设接管
 
   "colors": {
     "primary": "#2d3748",             // 主色 - 标题和强调元素
@@ -41,9 +92,9 @@
 
   // ==================== 字体设置 ====================
 
-  // 正文字体族
+  // 正文字体族（fontSystem.stack 为 custom 时此值生效；其他 stack 下由字体系统生成）
   "fontFamily": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-  // 等宽字体族（代码块使用）
+  // 等宽字体族（代码块使用，可自由修改）
   "fontFamilyMono": "'Fira Code', 'Menlo', 'Consolas', monospace",
   // 基础字号
   "fontSizeBase": "16px",

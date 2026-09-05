@@ -4,6 +4,7 @@ const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacin
 const { extractWorkerSecurity, renderWorkerConfig } = require('./generate-security-config');
 const { validateFeatures, DEFAULT_FEATURES, FEATURE_MODULES } = require('./lib/features-schema');
 const { formatConfigError } = require('./lib/config-error');
+const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset, contrastRatio } = require('./lib/theme-presets');
 
 describe('formatConfigError', () => {
   it('reports filename, line, column and caret context', () => {
@@ -341,5 +342,55 @@ describe('generate-security-config', () => {
     const src = renderWorkerConfig(extractWorkerSecurity(null));
     assert.ok(src.includes('export default'));
     assert.ok(src.includes('blockDuration'));
+  });
+});
+
+describe('theme-presets', () => {
+  it('provides six presets with full light+dark palettes', () => {
+    assert.strictEqual(Object.keys(THEME_PRESETS).length, 6);
+    for (const key of Object.keys(THEME_PRESETS)) {
+      const p = THEME_PRESETS[key];
+      assert.ok(p.label, key + ' has label');
+      assert.ok(p.light && p.dark, key + ' has both modes');
+      for (const k of ['secondary', 'accent', 'background', 'surface', 'text', 'textSecondary', 'textLight', 'border', 'hover', 'primary']) {
+        assert.ok(p.light[k], key + '.light.' + k);
+        assert.ok(p.dark[k], key + '.dark.' + k);
+      }
+    }
+  });
+  it('keeps WCAG AA contrast for secondary and light text on backgrounds', () => {
+    for (const key of Object.keys(THEME_PRESETS)) {
+      const p = THEME_PRESETS[key];
+      assert.ok(contrastRatio(p.light.secondary, p.light.surface) >= 4.5, key + ' light secondary on surface');
+      assert.ok(contrastRatio(p.light.textLight, p.light.background) >= 4.5, key + ' light textLight on background');
+      assert.ok(contrastRatio(p.light.text, p.light.background) >= 4.5, key + ' light text on background');
+      assert.ok(contrastRatio(p.dark.secondary, p.dark.surface) >= 4.5, key + ' dark secondary on surface');
+      assert.ok(contrastRatio(p.dark.textLight, p.dark.surface) >= 4.5, key + ' dark textLight on surface');
+      assert.ok(contrastRatio(p.dark.text, p.dark.background) >= 4.5, key + ' dark text on background');
+    }
+  });
+  it('resolveTheme applies preset and lets presetOverrides win', () => {
+    const r = resolveThemePreset({ preset: 'sakura-pink', presetOverrides: { colors: { secondary: '#000000' } } });
+    assert.strictEqual(r.colors.secondary, '#000000');
+    assert.strictEqual(r.colors.primary, THEME_PRESETS['sakura-pink'].light.primary);
+    assert.strictEqual(r.appliedPreset, '樱花粉(sakura-pink)');
+    assert.ok(r.darkMode.colors.primary, 'dark primary resolved');
+  });
+  it('resolveTheme falls back to classic-blue with warning on unknown preset', () => {
+    const r = resolveThemePreset({ preset: 'no-such-preset' });
+    assert.strictEqual(r.appliedPreset, '经典蓝(classic-blue)');
+    assert.ok(r.warnings.length > 0 && r.warnings[0].includes('classic-blue'));
+    assert.strictEqual(r.colors.secondary, THEME_PRESETS['classic-blue'].light.secondary);
+  });
+  it('resolveTheme honors hand-written colors when preset is null', () => {
+    const r = resolveThemePreset({ preset: null, colors: { primary: '#123456' } });
+    assert.strictEqual(r.appliedPreset, null);
+    assert.strictEqual(r.colors.primary, '#123456');
+  });
+  it('validatePreset reports unknown preset names', () => {
+    const errs = validateThemePreset({ preset: 'typo-blue' });
+    assert.ok(errs.some(e => e.includes('typo-blue') && e.includes('classic-blue')));
+    assert.strictEqual(validateThemePreset({ preset: 'night-jet' }).length, 0);
+    assert.ok(validateThemePreset({ presetOverrides: 42 }).length > 0);
   });
 });

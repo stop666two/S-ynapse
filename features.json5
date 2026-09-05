@@ -1161,7 +1161,7 @@
   },
   // ---------------------------------------------------------------------------
   sitemap: {
-    // sitemap 是否按类型细分(文章/标签/分类/页面)。
+    // sitemap 是否按类型细分(文章/标签/分类/页面)。split=true 且 URL 数超过 maxUrlsPerFile 时自动拆分为 sitemap-1.xml… + sitemap-index.xml。
     split: true,
     // 优先权。
     postPriority: '0.8',
@@ -1170,6 +1170,8 @@
     // 更新频率。
     postFrequency: 'weekly',
     pageFrequency: 'monthly',
-    tagFrequency: 'monthly'
+    tagFrequency: 'monthly',
+    // 拆分阈值:每个 sitemap 文件最多 URL 数。超过则拆分。
+    maxUrlsPerFile: 500
   },
 }

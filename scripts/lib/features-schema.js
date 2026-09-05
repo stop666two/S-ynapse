@@ -113,7 +113,8 @@ const DEFAULT_FEATURES = {
   },
   sitemap: {
     split: true, postPriority: '0.8', pagePriority: '0.6', tagPriority: '0.4',
-    postFrequency: 'weekly', pageFrequency: 'monthly', tagFrequency: 'monthly'
+    postFrequency: 'weekly', pageFrequency: 'monthly', tagFrequency: 'monthly',
+    maxUrlsPerFile: 500
   },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',

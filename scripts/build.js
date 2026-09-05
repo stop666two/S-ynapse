@@ -242,7 +242,7 @@ function loadConfig() {
   // Features arrays must replace, not concatenate (e.g. share.order must drop
   // platforms the user removed). Deepmerge's default arrayMerge concatenates,
   // so features gets its own merge pass with a replace strategy.
-  config.features = deepmerge({}, DEFAULT_FEATURES, features, { arrayMerge: (target, source) => source });
+  config.features = deepmerge.all([{}, DEFAULT_FEATURES, features], { arrayMerge: (target, source) => source });
   // Cloudflare Web Analytics token: explicit config wins, else env fallback.
   if (config.site && config.site.webAnalytics && config.site.webAnalytics.enabled) {
     const wa = config.site.webAnalytics;
@@ -1812,69 +1812,85 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
   console.log('[8/14] Generating sitemap...');
   try {
     const url = config.site.url.replace(/\/+$/, '');
-    const featsSitemap = config.features && config.features.sitemap ? config.features.sitemap : null;
-    const changefreq = (featsSitemap && featsSitemap.postFrequency) || config.site.sitemap.changefreq || 'weekly';
-    const priority = parseFloat((featsSitemap && featsSitemap.postPriority != null ? featsSitemap.postPriority : config.site.sitemap.priority) || 0.8);
+    const feats = (config.features && config.features.sitemap) || {};
+    const split = feats.split !== false;
+    const perFile = Math.max(10, feats.maxUrlsPerFile || 500);
+    const postFreq = feats.postFrequency || 'weekly';
+    const postPr = parseFloat(feats.postPriority != null ? feats.postPriority : 0.8);
+    const pageFreq = feats.pageFrequency || 'monthly';
+    const pagePr = parseFloat(feats.pagePriority != null ? feats.pagePriority : 0.6);
+    const tagFreq = feats.tagFrequency || 'monthly';
+    const tagPr = parseFloat(feats.tagPriority != null ? feats.tagPriority : 0.4);
     const urls = [];
     if (config.site.build.generateIndex !== false) {
-      urls.push({ loc: '/', changefreq, priority: '1.0' });
+      urls.push({ loc: '/', changefreq: pageFreq, priority: '1.0' });
       const postsPerPage = config.site.postsPerPage || 10;
       const published = getPublished(articles);
       const totalPages = Math.max(1, Math.ceil(published.length / postsPerPage));
       for (let p = 2; p <= totalPages; p++) {
-        urls.push({ loc: `/page/${p}/`, changefreq, priority: '0.6' });
+        urls.push({ loc: '/page/' + p + '/', changefreq: pageFreq, priority: String(pagePr) });
       }
     }
     for (const a of articles) {
       if (a.draft) continue;
-      urls.push({ loc: a.url, changefreq: 'monthly', priority: '0.8', lastmod: a.date || undefined });
+      urls.push({ loc: a.url, changefreq: postFreq, priority: String(postPr), lastmod: a.date || undefined });
     }
     if (config.site.build.generateArchive !== false) {
-      urls.push({ loc: '/archive/', changefreq: 'weekly', priority: '0.5' });
+      urls.push({ loc: '/archive/', changefreq: pageFreq, priority: String(pagePr) });
     }
     if (config.site.build.generateGallery !== false) {
-      urls.push({ loc: '/gallery/', changefreq: 'weekly', priority: '0.4' });
+      urls.push({ loc: '/gallery/', changefreq: pageFreq, priority: String(pagePr) });
     }
     if (config.site.build.generateTags !== false) {
-      urls.push({ loc: '/tags/', changefreq: 'weekly', priority: '0.4' });
-      for (const tag of tags) urls.push({ loc: `/tags/${tag.slug}/`, changefreq: 'weekly', priority: '0.4' });
+      urls.push({ loc: '/tags/', changefreq: tagFreq, priority: String(tagPr) });
+      for (const tag of tags) urls.push({ loc: '/tags/' + tag.slug + '/', changefreq: tagFreq, priority: String(tagPr) });
     }
     if (config.site.build.generateCategories !== false) {
-      urls.push({ loc: '/categories/', changefreq: 'weekly', priority: '0.4' });
-      for (const cat of categories) urls.push({ loc: `/categories/${cat.slug}/`, changefreq: 'weekly', priority: '0.4' });
+      urls.push({ loc: '/categories/', changefreq: tagFreq, priority: String(tagPr) });
+      for (const cat of categories) urls.push({ loc: '/categories/' + cat.slug + '/', changefreq: tagFreq, priority: String(tagPr) });
     }
-    for (const cp of (customPages || [])) {
-      urls.push({ loc: cp.url, changefreq: 'monthly', priority: '0.5' });
+    for (const p of (customPages || [])) {
+      if (p.draft || !p.url) continue;
+      urls.push({ loc: p.url, changefreq: pageFreq, priority: String(pagePr) });
     }
-    const xml = ['<?xml version="1.0" encoding="UTF-8"?>'];
-    xml.push('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
-    for (const u of urls) {
-      xml.push('  <url>');
-      xml.push(`    <loc>${url}${u.loc}</loc>`);
-      if (u.lastmod) {
-        const d = new Date(u.lastmod);
-        if (!isNaN(d.getTime())) xml.push(`    <lastmod>${d.toISOString()}</lastmod>`);
-      }
-      xml.push(`    <changefreq>${u.changefreq}</changefreq>`);
-      xml.push(`    <priority>${u.priority}</priority>`);
-      xml.push('  </url>');
-    }
-    xml.push('</urlset>');
-    const sitemapPath = config.site.sitemap.path || '/sitemap.xml';
-    const outputPath = path.join(DIST_DIR, sitemapPath.replace(/^\//, ''));
-    const outDir = path.dirname(outputPath);
+    const sitemapPath = (config.site.sitemap.path || '/sitemap.xml').replace(/^\//, '');
+    const entryPath = path.join(DIST_DIR, sitemapPath);
+    const outDir = path.dirname(entryPath);
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(outputPath, xml.join('\n'), 'utf-8');
-    console.log(`  Created: ${sitemapPath}`);
+    const writeOne = (item, prio) => {
+      let x = '<loc>' + url + item.loc + '</loc>';
+      if (item.lastmod) x += '<lastmod>' + item.lastmod + '</lastmod>';
+      x += '<changefreq>' + item.changefreq + '</changefreq><priority>' + item.priority + '</priority>';
+      return x;
+    };
+    if (!split || urls.length <= perFile) {
+      let xml = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+      for (const item of urls) xml += '<url>' + writeOne(item) + '</url>';
+      xml += '</urlset>';
+      fs.writeFileSync(entryPath, xml, 'utf-8');
+      console.log('  Created: ' + sitemapPath + ' (' + urls.length + ' urls)');
+      return;
+    }
+    const parts = [];
+    for (let i = 0; i < urls.length; i += perFile) parts.push(urls.slice(i, i + perFile));
+    const idxUrls = [];
+    for (let i = 0; i < parts.length; i++) {
+      const partName = 'sitemap-' + (i + 1) + '.xml';
+      idxUrls.push({ loc: '/' + partName, changefreq: pageFreq, priority: '0.6' });
+      let part = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+      for (const item of parts[i]) part += '<url>' + writeOne(item) + '</url>';
+      part += '</urlset>';
+      fs.writeFileSync(path.join(outDir, partName), part, 'utf-8');
+    }
+    let index = '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+    for (const item of idxUrls) index += '<sitemap>' + url + item.loc + '</sitemap>';
+    index += '</sitemapindex>';
+    fs.writeFileSync(entryPath, index, 'utf-8');
+    console.log('  Created: ' + sitemapPath + ' (index ' + parts.length + ' parts, ' + urls.length + ' urls)');
   } catch (err) {
-    console.error(`  [ERROR] Sitemap generation failed: ${err.message}`);
+    console.error('  [ERROR] Sitemap generation failed: ' + err.message);
   }
 }
-
-// Generate a JSON search index for client-side full-text search.
-// Written to dist/search-index.json. Contains title, url, excerpt (200 chars),
-// content (5000 chars for full search), tags, and categories.
-// Only published articles are indexed.
 function generateSearchIndex(config, articles) {
   if (!config.navigation.search || !config.navigation.search.enabled || config.navigation.search.provider !== 'local') {
     console.log('  [SKIP] Search index generation disabled or provider not local');

@@ -7,6 +7,7 @@
 <% articles.forEach(function(article) { %>
 <article class="post-card">
   <h2 class="post-card-title">
+    <% if (article.pinned) { %><span class="pin-badge">置顶</span><% } %>
     <a href="<%= article.url %>"><%= article.title %></a>
   </h2>
   <div class="post-card-meta">
@@ -19,6 +20,9 @@
       <a href="/categories/<%= generateSlug(cat) %>/"><%= cat %></a><% if (i < article.categories.length - 1) { %>, <% } %>
       <% }) %>
     </span>
+    <% } %>
+    <% if (theme.card && theme.card.showWordCount && article.wordCount) { %>
+    <span><%= article.wordCount %> 字</span>
     <% } %>
     <% if (theme.card && theme.card.showReadTime && article.readTime) { %>
     <span><%= article.readTime %> 分钟</span>

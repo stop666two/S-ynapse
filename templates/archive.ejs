@@ -15,7 +15,7 @@
       <% group.articles.forEach(function(article) { %>
       <li class="archive-item">
         <span class="archive-date"><%= article.formattedDate || article.date %></span>
-        <a href="<%= article.url %>" class="archive-link"><%= article.title %></a>
+        <a href="<%= article.url %>" class="archive-link"><% if (article.pinned) { %><span class="pin-badge">置顶</span> <% } %><%= article.title %></a>
       </li>
       <% }) %>
     </ul>

@@ -56,6 +56,15 @@ function stripHtml(str) {
   return str.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
 }
 
+const CJK_RX = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]/g;
+// Count words: CJK chars count as one word each, Latin/CJK-mixed text splits on whitespace.
+function countWords(text) {
+  if (typeof text !== 'string') return 0;
+  const cjk = (text.match(CJK_RX) || []).length;
+  const latin = text.replace(CJK_RX, ' ').split(/\s+/).filter(Boolean).length;
+  return cjk + latin;
+}
+
 // Insert thin spaces (\u2009) at CJK/Latin boundaries for proper typographic spacing.
 // Operates on plain text only. CJK range: U+4E00–U+9FFF, U+3400–U+4DBF, U+F900–U+FAFF.
 function insertCjkSpacing(text) {
@@ -167,4 +176,4 @@ function escapeJsonForScript(value, space) {
   return JSON.stringify(value, null, space).replace(/</g, '\\u003c');
 }
 
-module.exports = { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript };
+module.exports = { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords };

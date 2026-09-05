@@ -49,7 +49,7 @@ try { generateWorkerSecurity = require('./generate-security-config').generateSec
 // Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
-const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript } = require('./lib/utils');
+const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords } = require('./lib/utils');
 const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
 
 // Project directory structure — all paths relative to project root
@@ -186,7 +186,7 @@ function loadConfig() {
       layout: { headerStyle: 'fixed', headerHeight: '60px', footerStyle: 'simple', sidebarPosition: 'right', contentWidth: 'main', postLayout: 'standard', archiveLayout: 'list' },
       animation: { enable: true, transitionDuration: '0.3s', transitionTiming: 'ease-in-out', scrollBehavior: 'smooth', pageTransition: 'fade' },
       codeHighlight: { lineNumbers: false, copyButton: true, wrapLongLines: false, highlightLines: true },
-      card: { showDate: true, showTags: true, showCategories: true, showExcerpt: true, excerptLength: 150, showReadTime: true, readTimeSpeed: 265 },
+      card: { showDate: true, showTags: true, showCategories: true, showExcerpt: true, excerptLength: 150, showReadTime: true, readTimeSpeed: 265, showWordCount: true },
       button: { radius: '0.25rem', padding: '0.5rem 1.5rem', primaryBackground: '#4a90d9', primaryText: '#ffffff', hoverScale: 1.02 },
       customCSS: {},
       externalAssets: { styles: [], scripts: [] },
@@ -720,6 +720,7 @@ async function processArticles(config, mediaManifest) {
       const tags = Array.isArray(attrs.tags) ? attrs.tags : [];
       const categories = Array.isArray(attrs.categories) ? attrs.categories : [];
       const draft = attrs.draft === true || attrs.draft === 'true';
+      const pinned = attrs.pinned === true || attrs.pinned === 'true';
       let htmlContent = marked.parse(content);
       if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
       htmlContent = sanitizeHtml(htmlContent);
@@ -730,8 +731,8 @@ async function processArticles(config, mediaManifest) {
         const excerptLen = config.site.build.excerptLength || config.theme.card?.excerptLength || 150;
         excerptText = textOnly.length > excerptLen ? textOnly.slice(0, excerptLen) + '...' : textOnly;
       }
-      // Read time: word count / reading speed (default 265 wpm), minimum 1 minute
-      const wordCount = content.split(/\s+/).filter(Boolean).length;
+      // Read time: word count (CJK-aware) / reading speed (default 265 wpm), minimum 1 minute
+      const wordCount = countWords(content);
       const readSpeed = config.theme.card?.readTimeSpeed || 265;
       const readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
       const toc = extractToc(htmlContent);
@@ -744,7 +745,7 @@ async function processArticles(config, mediaManifest) {
         attrs.featuredImage = `/media/og/${slug}.svg`;
       }
       articles.push({
-        slug, title, url, date, tags, categories, draft,
+        slug, title, url, date, tags, categories, draft, pinned,
         content: htmlContent,
         excerpt: excerptText,
         wordCount, readTime, toc,
@@ -760,6 +761,8 @@ async function processArticles(config, mediaManifest) {
     }
   }
   articles.sort((a, b) => {
+    const pa = a.pinned ? 1 : 0, pb = b.pinned ? 1 : 0;
+    if (pa !== pb) return pb - pa;
     if (!a.date && !b.date) return a.title.localeCompare(b.title);
     if (!a.date) return 1;
     if (!b.date) return -1;

@@ -2,6 +2,58 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript } = require('./lib/utils');
 const { extractWorkerSecurity, renderWorkerConfig } = require('./generate-security-config');
+const { validateFeatures, DEFAULT_FEATURES, FEATURE_MODULES } = require('./lib/features-schema');
+const { formatConfigError } = require('./lib/config-error');
+
+describe('formatConfigError', () => {
+  it('reports filename, line, column and caret context', () => {
+    const fileText = '{\n  enabled: true,\n  title: "x" \n}';
+    const err = new Error("JSON5: invalid character '\\n' at 3:16");
+    const out = formatConfigError('site.json', err, { fileText, filePath: '/proj/site.json' });
+    assert.ok(out.includes('[FATAL] 配置文件解析失败: site.json'));
+    assert.ok(out.includes('/proj/site.json 第 3 行'));
+    assert.ok(out.includes('JSON5: invalid character'));
+    assert.ok(out.includes('^'));
+    assert.ok(out.includes('常见原因'));
+  });
+  it('falls back when no position is known and file is unavailable', () => {
+    const err = new Error('Unexpected end of input');
+    const out = formatConfigError('theme.json', err, {});
+    assert.ok(out.includes('theme.json'));
+    assert.ok(out.includes('Unexpected end'));
+  });
+});
+
+describe('features-schema validateFeatures', () => {
+  it('accepts a clean features config (defaults)', () => {
+    const r = validateFeatures(JSON.parse(JSON.stringify(DEFAULT_FEATURES)), 'features');
+    assert.strictEqual(r.errors.length, 0);
+    assert.strictEqual(r.warnings.length, 0);
+  });
+  it('rejects non-boolean enabled flags', () => {
+    const r = validateFeatures({ lightbox: { enabled: 'yes' } }, 'features');
+    assert.ok(r.errors.some(e => e.includes('features.lightbox.enabled must be a boolean')));
+  });
+  it('rejects unknown share platforms in order', () => {
+    const r = validateFeatures({ share: { order: ['weibo', 'nope'] } }, 'features');
+    assert.ok(r.errors.some(e => e.includes('unknown platform "nope"')));
+  });
+  it('warns on unknown feature modules (typo protection)', () => {
+    const r = validateFeatures({ lightboxp: { enabled: true } }, 'features');
+    assert.ok(r.warnings.some(w => w.includes('not a known feature module')));
+  });
+  it('rejects invalid enum values', () => {
+    const r = validateFeatures({ heatmap: { scaling: 'banana' } }, 'features');
+    assert.ok(r.errors.some(e => e.includes('features.heatmap.scaling must be one of')));
+  });
+  it('rejects non-object modules', () => {
+    const r = validateFeatures({ lightbox: 42 }, 'features');
+    assert.ok(r.errors.some(e => e.includes('must be an object')));
+  });
+  it('exposes 38 feature modules for configuration', () => {
+    assert.strictEqual(FEATURE_MODULES.length, 38);
+  });
+});
 
 describe('formatDate', () => {
   it('formats date with default format', () => {

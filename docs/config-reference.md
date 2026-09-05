@@ -1,0 +1,463 @@
+# S-ynapse 配置文件完整参考
+
+> 全部配置文件位于项目根目录,采用 **JSON5**(支持注释与单引号/无引号键)。
+> 构建时自动加载+深度合并;缺省任意字段时使用与本站行为一致的内置默认值。
+> 配置文件语法错误(缺逗号、引号未闭合等)会**立即终止构建**,并输出:文件名+行列+上下文+原因+修复提示。
+> 本文是逐字段权威参考。字段左侧符号:`=默认`(内置)/`必填`(缺失即报错)。
+
+---
+
+## 目录
+1. [site.json — 站点主体](#1-sitejson--站点主体)
+2. [theme.json — 视觉与主题](#2-themejson--视觉与主题)
+3. [features.json5 — 功能总控(38 模块)](#3-featuresjson5--功能总控38-模块)
+4. [navigation.json — 导航](#4-navigationjson--导航)
+5. [sidebar.json — 侧栏](#5-sidebarjson--侧栏)
+6. [footer.json — 页脚](#6-footerjson--页脚)
+7. [security.json — 安全](#7-securityjson--安全)
+8. [content-policy.json — 内容策略](#8-content-policyjson--内容策略)
+9. [tag-aliases.json / friends.json — 可选数据文件](#9-tag-aliasesjson--friendsjson--可选数据文件)
+
+---
+
+## 1. site.json — 站点主体
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `title` | string | `My Blog` | `必填` 站点名称(标题栏/Logo/OG) |
+| `subtitle` | string | `''` | 副标题(Logo 旁小字) |
+| `description` | string | `''` | 站点描述(meta/OG/RSS) |
+| `author` | string | `''` | 作者名 |
+| `email` | string | `''` | 作者邮箱 |
+| `url` | string | `http://localhost` | `必填` 站点根 URL(必须以 http:// 或 https:// 开头) |
+| `language` | string | `en` | 页面语言(如 zh-CN,影响日期/朗读) |
+| `timezone` | string | `UTC` | 未实现聚合;保留字段 |
+| `dateFormat` | string | `YYYY-MM-DD` | 日期显示格式(YYYY/MM/DD HH:mm) |
+| `copyright` | string | `''` | 版权文本(页脚) |
+| `postsPerPage` | number | `10` | 首页每页文章数 |
+| `paginationPrev` | string | `上一页` | 分页上一页文本 |
+| `paginationNext` | string | `下一页` | 分页下一页文本 |
+| `prevPostLabel` | string | `上一篇` | 文章页上一篇标签 |
+| `nextPostLabel` | string | `下一篇` | 文章页下一篇标签 |
+
+### site.rss — RSS/JSON Feed
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `rss.enabled` | bool | `false` | 是否生成 RSS |
+| `rss.path` | string | `/feed.xml` | RSS 输出路径 |
+| `rss.fullContent` | bool | `true` | RSS 条目含全文(否则摘要) |
+| `rss.maxItems` | number | `50` | RSS 条目数上限 |
+| `rss.jsonFeed.enabled` | bool | `true` | 是否生成 /feed.json(JSON Feed) |
+
+### site.seo — SEO
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `seo.metaKeywords` | array | `[]` | meta keywords |
+| `seo.metaRobots` | string | `index, follow` | robots meta |
+| `seo.ogImage` | string | `''` | 全局 OG 图(留空则文章自动生成) |
+| `seo.ogType` | string | `website` | og:type |
+| `seo.twitterCard` | string | `summary_large_image` | Twitter Card 类型 |
+| `seo.twitterSite` | string | `''` | Twitter 账号(带 @) |
+| `seo.canonicalURL` | bool | `false` | 是否输出 canonical |
+| `seo.structuredData.enabled` | bool | `false` | JSON-LD |
+| `seo.structuredData.type` | string | `BlogPosting` | JSON-LD 类型 |
+| `seo.titleTemplate.index` | string | `{site} · {subtitle}` | 首页 `<title>` 模板;`{site}/{title}/{subtitle}` 占位符 |
+| `seo.titleTemplate.post` | string | `{title} · {site}` | 文章页 |
+| `seo.titleTemplate.default` | string | `{title} · {site}` | 其它页 |
+
+### site.social — 社交链接
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `social.enabled` | bool | `false` | 总开关 |
+| `social.items.<key>.enabled` | bool | `true` | 单项开关 |
+| `social.items.<key>.type` | string | `link` | `link` 跳转 / `popup` 弹窗复制 |
+| `social.items.<key>.url` | string | `''` | link 型 URL |
+| `social.items.<key>.value` | string | `''` | popup 型值(微信号/QQ 号…) |
+| `social.items.<key>.popupTitle` | string | 键名 | 弹窗标题 |
+| `social.items.<key>.popupContent` | string | 值 | 弹窗说明文案 |
+
+### site.comments — 评论
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `comments.enabled` | bool | `false` | 文章页评论 |
+| `comments.provider` | string | `giscus` | `giscus`/`utterances`/`disqus` |
+| `comments.giscus.*` | — | 需填 | `repo/repoId/category/categoryId/mapping/strict/reactionsEnabled/emitMetadata/inputPosition/theme/lang` |
+| `comments.utterances.*` | — | 需填 | `repo/label/theme` |
+| `comments.disqus.*` | — | 需填 | `shortname` |
+
+### site.sitemap — 站点地图
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `sitemap.enabled` | bool | `true` | 生成 sitemap.xml |
+| `sitemap.path` | string | `/sitemap.xml` | 输出路径 |
+| `sitemap.changefreq` | string | `weekly` | always/hourly/daily/weekly/monthly/yearly/never |
+| `sitemap.priority` | number | `0.8` | 0~1 优先级 |
+
+### site.pwa / site.build — PWA 与构建开关
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `pwa.enabled` | bool | `false` | 生成 manifest/sw.js |
+| `pwa.manifest` | object | `{}` | manifest 字段 |
+| `pwa.serviceWorker` | string | `/sw.js` | SW 路径 |
+| `build.cleanDist` | bool | `true` | 构建前清空 dist |
+| `build.minifyHTML/CSS/JS` | bool | `false` | 压缩开关 |
+| `build.removeConsole` | bool | `false` | 剥离 console.* |
+| `build.generateIndex/Archive/Tags/Categories/Gallery` | bool | `true` | 页面生成开关 |
+| `build.generateAuthorPages` | bool | `false` | 作者页 |
+| `build.copyStatic` | bool | `true` | 复制 static/ |
+| `build.optimizeMedia` | bool | `false` | sharp 媒体优化 |
+| `build.mediaQuality` | number | `85` | 压缩质量 |
+| `build.mediaResponsiveSizes` | array | `[640,1024,1920]` | 响应式宽度档位 |
+| `build.mediaFormats` | array | `['webp','original']` | 输出格式(可含 avif) |
+| `build.avif.enabled` | bool | `false` | AVIF 输出 |
+| `build.avif.quality` | number | `50` | AVIF 质量 |
+| `build.avif.effort` | number | `6` | AVIF 编码努力(0-10) |
+| `build.lazyLoadImages` | bool | `true` | loading=lazy |
+| `build.useSrcset` / `usePictureTag` | bool | `true` | 响应式标签 |
+| `build.searchFullContent` | bool | `true` | 搜索索引含正文 |
+| `build.relatedArticles` | bool | `true` | 相关推荐 |
+| `build.cjkSpacing` | bool | `true` | 中英文间细空格 |
+| `build.buildReport` | bool | `true` | build-report.html |
+| `build.autoOgImage` | bool | `true` | 自动 OG 图 |
+| `build.forceContentWidth` | bool | `true` | 主内容强制宽高布局 |
+| `build.enableCacheBusting` | bool | `false` | MD5 缓存戳 |
+| `build.cacheBustingPattern` | string | `.*\.(css\|js\|png\|jpg\|svg)$` | 戳名模式 |
+| `build.externalLinksTarget` / `externalLinksRel` | string | `_blank` / `noopener noreferrer` | 外链属性 |
+
+### site.externalLinkWarning — 外链警告(与 features.externalLink 联动)
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `externalLinkWarning.enabled` | bool | `false` | 开关(需 features.externalLink.enabled 同时为 true) |
+| `externalLinkWarning.whitelist` | array | `[]` | 白名单(`*.github.com`、`example.com/path`) |
+| `externalLinkWarning.blacklist` | array | `[]` | 黑名单(命中直接拦截) |
+| `externalLinkWarning.message` | string | `即将离开本站…` | 提示文案(`{url}` 占位) |
+| `externalLinkWarning.confirmText` | string | `继续访问` | 确认按钮 |
+| `externalLinkWarning.cancelText` | string | `取消返回` | 取消按钮 |
+| `externalLinkWarning.title` | string | `安全提醒` | 弹窗标题 |
+
+### site.redirects — 重定向
+数组元素:`{ from:'/old/', to:'/new/', permanent:true }`;支持 `*` 通配符。构建生成 CF Pages `_redirects`;本地 serve 同步生效。
+
+### site.reward / site.webAnalytics
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `reward.enabled` | bool | `false` | 打赏(需 features.reward.enabled) |
+| `reward.note` | string | `''` | 打赏提示 |
+| `reward.wechat.image/url/label` | — | — | 微信收款二维码/链接 |
+| `reward.alipay.*` | — | — | 支付宝 |
+| `reward.custom[]` | — | `[]` | 自定义(`{label,image,url}`) |
+| `webAnalytics.enabled` | bool | `true` | CF Web Analytics |
+| `webAnalytics.token` | string | `''` | 令牌(或环境变量 CF_WEB_ANALYTICS_TOKEN) |
+| `showRepoLink` | bool | `true` | 显示仓库链接 |
+| `repoUrl` | string | `''` | 仓库 URL |
+
+---
+
+## 2. theme.json — 视觉与主题
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `colors.primary` | string | `#2d3748` | 主色(标题/高亮) |
+| `colors.secondary` | string | `#4a90d9` | 次色(链接/强调) |
+| `colors.accent` | string | `#e53e3e` | 强调色(危险/徽标) |
+| `colors.background/surface/text/textSecondary/textLight/border/shadow/hover/codeBackground/codeText` | string | 见代码 | 全站色板 |
+| `darkMode.enabled` | bool | `false` | 暗色模式总开关 |
+| `darkMode.toggle` | bool | `true` | 页面切换按钮 |
+| `darkMode.default` | string | `system` | `light`/`dark`/`system` |
+| `darkMode.colors.*` | — | `{}` | 暗色覆盖色板 |
+| `fontFamily` / `fontFamilyMono` | string | `sans-serif`/`monospace` | 字体 |
+| `fontSizeBase` / `lineHeight` | string/number | `16px`/`1.8` | 基础字号/行高 |
+| `headingFontWeight` | number | `700` | 标题字重 |
+| `letterSpacing` | string | `0.02em` | 字符间距 |
+| `spacing.containerWidth` | string | `960px` | 容器宽度 |
+| `spacing.gap/padding/radius/radiusLarge` | — | — | 间距/圆角 |
+| `shadow.card/dropdown/fixed` | string | — | 阴影 |
+| `layout.headerStyle` | string | `fixed` | 头部 `fixed`/`static` |
+| `layout.headerHeight` | string | `60px` | 头部高度(锚点偏移基准) |
+| `layout.footerStyle` | string | `simple` | 页脚样式 |
+| `layout.sidebarPosition` | string | `right` | 侧栏位置 |
+| `layout.contentWidth`/`postLayout`/`archiveLayout` | string | — | 布局预设 |
+| `animation.enable` | bool | `true` | 动画 |
+| `animation.transitionDuration/timing/scrollBehavior/pageTransition` | — | — | 动画参数 |
+| `codeHighlight.lineNumbers` | bool | `false` | 代码行号 |
+| `codeHighlight.copyButton` | bool | `true` | 复制按钮 |
+| `codeHighlight.wrapLongLines` | bool | `false` | 长行换行 |
+| `codeHighlight.highlightLines` | bool | `true` | 高亮行 |
+| `card.showDate/showTags/showCategories/showExcerpt` | bool | `true` | 卡片信息开关 |
+| `card.excerptLength` | number | `150` | 摘要长度 |
+| `card.showReadTime` / `readTimeSpeed` | bool/number | `true`/`265` | 阅读时长(wpm) |
+| `card.showWordCount` | bool | `true` | 字数 |
+| `button.radius/padding/primaryBackground/primaryText/hoverScale` | — | — | 按钮 |
+| `customCSS` | object | `{}` | 注入 CSS |
+| `externalAssets.styles/scripts` | array | `[]` | 额外 CSS/JS |
+| `contentOffset` | number | `0` | 内容偏移 |
+| `headerContentGap` | number | `0` | 头内容间隙 |
+| `tocWidth` | string | `200px` | 目录宽 |
+| `sidebarWidth` | string | `280px` | 侧栏宽 |
+| `tocMinLeft` / `sidebarMinRight` | string | `10px` | 边界 |
+
+---
+
+## 3. features.json5 — 功能总控(38 模块)
+
+**加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
+**合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
+**校验**:每个模块必须是对象;enabled 必须是布尔;枚举字段(如 heatmap.scaling)非法值直接报错终止构建。
+
+### 3.1 lightbox — 图片灯箱
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `enabled` | `true` | 总开关 |
+| `selectors` | `.post-content img, .gallery-item img` | 收集目标 CSS 选择器 |
+| `minSize` | `60` | 触发最小边长(px),过滤小图标 |
+| `prevNextButtons` | `true` | 上/下一张按钮 |
+| `closeButton` | `true` | 关闭按钮 |
+| `keyboardNavigate` | `true` | ←/→ 切图 |
+| `escToClose` | `true` | Esc 关闭 |
+| `swipeToNavigate` | `true` | 移动端滑动 |
+| `closeOnBackdrop` | `true` | 点遮罩关闭 |
+| `showCounter` | `true` | N / M 计数器 |
+| `counterFormat` | `{current} / {total}` | 计数模板 |
+| `maxWidthVw` / `maxSizePx` / `maxHeightVh` | `92`/`1600`/`82` | 图片约束 |
+| `openDurationMs` / `switchDurationMs` | `180`/`120` | 动画时长 |
+| `backdropOpacity` | `0.9` | 遮罩透明度 |
+| `preloadAdjacent` | `true` | 预载相邻图 |
+| `rememberPosition` | `false` | 记忆上次位置 |
+
+### 3.2 readingProgress — 阅读进度条
+`enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500` / `updateThrottleMs 30` / `ariaAnnounce true` / `topOffset 0`
+
+### 3.3 backToTop — 返回顶部
+`enabled true` / `showAfterPx 400` / `rightOffset 2rem` / `bottomOffset 2rem` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''` / `htmlAnchorFallback false`
+
+### 3.4 search — 客户端搜索
+`enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true` / `showCount true` / `placeholder 搜索...` / `emptyHint 输入关键词开始搜索` / `noResultText 未找到匹配内容` / `excerptLength 120` / `includeContent true` / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `closeOnOverlay true` / `focusOnOpen true` / `openAnimation fade` / `pinyinFuzzy false`
+
+### 3.5 imageLazy — 懒加载
+`enabled true` / `mode lazy`(`lazy|native|eager`) / `loadMargin 200px` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true`
+
+### 3.6 codeBlock — 代码块
+`enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `showLanguageTag true` / `lineNumbers false` / `wrapLongLines false` / `highlightBackground var(--color-hover)` / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false` / `downloadButton false`
+
+### 3.7 externalLink — 外链拦截
+`enabled true`(需 site.externalLinkWarning.enabled 同真) / `whitelist []` / `blacklist []` / `mode warn`(`warn|prohibit|hint`) / `message 即将离开本站,前往外部链接：` / `confirmText 继续访问` / `cancelText 返回` / `showFullUrl true` / `openInNewTab true` / `whitelistNewTab false` / `copyButtonText 复制`
+
+### 3.8 themeToggle
+`enabled true` / `defaultTheme system` / `rememberChoice true` / `animationMs 250` / `iconStyle sun-moon` / `transitionAll true`
+
+### 3.9 shortcuts — 快捷键
+`enabled true` / `openSearch /`(空=禁用,下同) / `toggleTheme d` / `prevPost k` / `nextPost j` / `help ?` / `close Escape` / `showHelpHint true` / `helpTitle 快捷键一览` / `showHelpTable true` / `ignoreInInputs true`
+
+### 3.10 toc — 目录(桌面侧)
+`enabled true` / `minLevel 2` / `maxLevel 4` / `collapsible true` / `defaultOpenLevel 2` / `highlightActive true` / `activeOffset 120`
+
+### 3.11 mobileToc — 移动目录抽屉
+`enabled true` / `breakpoint 1024` / `borderRadius 1rem` / `maxHeightVh 70` / `autoClose true` / `overlayClose true` / `lockScroll true` / `position right`
+
+### 3.12 readingPanel — 阅读设置面板
+`enabled true` / `fontSizeMin 15`/`fontSizeMax 26`/`fontSizeStep 1`/`fontSizeDefault 19` / `lineHeightMin 1.4`/`LineHeightMax 2.6`/`Step 0.1`/`Default 1.9` / `widthMin 560`/`widthMax 1200`/`Step 40`/`Default 800` / `remember true` / `storageKey readerPrefs` / `resetText 重置` / `position right`
+
+### 3.13 readMode — 阅读模式
+`enabled true` / `persist true` / `label 阅读模式` / `focusOnlyContent true` / `fontScale 1`
+
+### 3.14 tts — 朗读
+`enabled true` / `rate 0.5`(0.1~10) / `pitch 1` / `volume 1` / `preferDefaultVoice true` / `voiceBy lang` / `readSelector .post-content` / `icon speaker` / `highlightParagraph false` / `position toolbar`
+
+### 3.15 wikiLinks — 双链
+`enabled true` / `unknownMode text`(`text|link|hide`) / `unknownSuffix ''` / `openNewTab false` / `caseInsensitive true` / `allowCustomLabel true`
+
+### 3.16 supSub — 上下标
+`enabled true` / `supMarker ^` / `subMarker ~` / `skipInsideMath false` / `preserveUnmatched true`
+
+### 3.17 math — KaTeX
+`enabled true` / `autoDetect true` / `version 0.16.22` / `inlineDelimiters ['$']` / `blockDelimiters ['$$']` / `throwOnError false` / `strict false` / `renderRoundParens false` / `renderSquareBrackets false` / `selector .post-content` / `mathml true`
+
+### 3.18 mermaid
+`enabled true` / `autoDetect true` / `version 11.4.1` / `followTheme true` / `lightTheme default` / `darkTheme dark` / `securityLevel strict` / `copyAfterRender false` / `errorText [图表渲染失败]`
+
+### 3.19 series — 系列
+`enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8`
+
+### 3.20 related — 相关推荐
+`enabled true` / `topN 4` / `sameCategoryWeight 2` / `sameTagWeight 3` / `minScore 2` / `excludeCurrent true` / `title 相关推荐`
+
+### 3.21 pinned — 置顶
+`enabled true` / `badgeText 置顶` / `badgeStyle pill`(`pill|corner|none`) / `sortRule pinned-first`(`pinned-first|normal`)
+
+### 3.22 wordCount — 字数
+`enabled true` / `onCards true` / `inArticle true` / `textFormat {count} 字` / `readTimeFormat {minutes} 分钟阅读` / `wpm 265` / `countCjkChars true` / `countDigits false`
+
+### 3.23 share — 分享
+`enabled true` / `order ['weibo','qq','wechat','x','facebook','mail','copy']`(顺序即显示顺序) / `position toolbar` / `popupWidth 640` / `popupHeight 520` / `wechatText {title} 分享自 {url}` / `copiedText 链接已复制` / `copiedShowMs 2500` / `showLabel false` / `label 分享文章`
+
+### 3.24 reward — 打赏前端
+`enabled false`(需 site.reward.enabled) / `buttonText 打赏` / `note 感谢支持` / `popupTitle 打赏支持` / `closeByBtn true` / `closeByOverlay true` / `closeByEsc true` / `qrSize 180px` / `maxWidth 560px`
+
+### 3.25 gallery — 图库页
+`enabled true` / `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片` / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `order newest` / `incrementalByDefault true` / `maxItems 0`(0=不限)
+
+### 3.26 heatmap — 归档热力图
+`enabled true` / `levels 5`(2~7) / `scaling auto`(`auto|fixed`) / `palette []`(fixed 时色表) / `showLegend true` / `legendLow 少` / `legendHigh 多` / `tooltipFormat {year}-{month}: {count} 篇` / `showMonthNumbers true`
+
+### 3.27 stats — 站点统计
+`enabled true` / `showArchiveCards true` / `sidebarWidgetDefault false` / `labelPosts 文章总数` / `labelDays 发文天数` / `labelWords 总字数` / `labelAvg 日均篇数` / `labelTags 标签数` / `labelCategories 分类数` / `linkArchive /archive/`
+
+### 3.28 prevNext
+`enabled true` / `showLabels true` / `prevLabel 上一篇` / `nextLabel 下一篇` / `hideWhenMissing false` / `scrollToTop true`
+
+### 3.29 feed — 订阅
+`rssEnabled true` / `rssPath /feed.xml` / `rssFullContent true` / `rssMaxItems 50` / `jsonFeedPath /feed.json` / `jsonFeedFullContent false` / `jsonFeedMaxItems 20` / `injectHeadLinks true` / `injectFooterLink false`
+
+### 3.30 analytics
+`enabled true` / `scriptSrc https://static.cloudflareinsights.com/beacon.min.js` / `injectAt body` / `emitBeacon true` / `siteTag ''`
+
+### 3.31 redirects
+`enabled false`(规则在 site.json redirects) / `generatePagesFile true` / `applyInServe true` / `invalidRule abort`(`warn-only|abort`)
+
+### 3.32 maintenance
+`enabled false` / `message 站点维护中，请稍后再来。` / `status 503` / `setRetryAfter true` / `retryAfter 3600`
+
+### 3.33 mobile
+`enabled true` / `searchFullscreen true` / `buttonStackGap 4rem` / `touchFallback true` / `codeScrollHint true`
+
+### 3.34 comments 前端
+`enabled true` / `loadContainer true` / `renderPlaceholder true` / `title 评论`
+
+### 3.35 contactPopup
+`enabled true` / `title 联系方式` / `copyText 复制` / `copiedText 已复制到剪贴板` / `popupWidth 360px` / `showAllItems true`
+
+### 3.36 linkBehavior
+`matchMode hostname` / `skipInternal true` / `mailtoMode leave` / `lateTargeted false`
+
+### 3.37 performance
+`warningJsKb 80` / `warningHtmlKb 400` / `warningImageKb 300` / `warningBuildMs 30000`
+
+### 3.38 debug
+`verbose false` / `listPages false` / `dumpConfig false`
+
+---
+
+## 4. navigation.json — 导航
+
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `menu[]` | `[]` | 菜单项 `{label,url,target?,rel?,type}`(type: page/tag/category) |
+| `navbar.fixed` | `true` | 固定头部 |
+| `navbar.showLogo` | `true` | 显示 Logo |
+| `navbar.logoText` | `''` | 自定义 Logo 文本 |
+| `socialInNav.enabled` / `order[]` | `false`/`[]` | 导航社交图标 |
+| `search.enabled` | `false` | 搜索开关(需要 features.search.enabled) |
+| `search.placeholder` | `搜索...` | 占位文本 |
+| `search.provider` | `local` | 本地索引 |
+| `userMenu.enabled` | `false` | 用户菜单(预留) |
+
+---
+
+## 5. sidebar.json — 侧栏
+
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `enabled` | `false` | 侧栏总开关 |
+| `position` | `right` | 位置 |
+| `width` | `280px` | 宽度 |
+| `sticky` | `true` | 吸顶 |
+| `mobile.enabled/collapsed/toggleButton/overlay` | `true/true/true/true` | 移动端行为 |
+| `widgets[]` | `[]` | 组件列表(见下) |
+
+组件类型(`type` 字段):
+- `author` `{title,avatar,bio}`
+- `recent` `{title,count,showDate}`
+- `tags` `{title,limit,showCount}`
+- `categories` `{title,showCount}`
+- `archive` `{title,showCount}`
+- `search` `{title,placeholder}`
+- `toc` `{title}`(仅文章页)
+- `stats` `{title}`(需 features.stats.enabled)
+- `series` `{title}`(需 features.series.enabled)
+- `friends` `{title}`(需 friends.json)
+- `newsletter` `{title,action,buttonText}`
+- `custom` `{title,html}`(原始 HTML)
+
+---
+
+## 6. footer.json — 页脚
+
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `copyright` | `''` | 版权文本 |
+| `fromYear` | `''` | 起始年份 |
+| `layout` | `simple` | `simple|multi-column` |
+| `columnItems.enabled` / `items[]` | `true`/`[]` | 多列 `{title,links[{label,url}],html}` |
+| `bottomLinks.enabled` / `items[]` | `true`/`[]` | 底部链接 |
+| `social.enabled` / `iconSize` | `false`/`24px` | 社交图标 |
+| `poweredBy.enabled` / `text` | `false`/`S-ynapse` | Powered by |
+| `beian.enabled` / `icp` / `gongan` | `false`/… | 备案号 |
+| `customHtml` | `''` | 原始 HTML |
+
+---
+
+## 7. security.json — 安全
+
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `headers` | `{}` | 自定义响应头 |
+| `csp.enabled` / `directives` / `reportOnly` / `reportUri` | `false`/`{}`/`false`/`/csp-report` | Content-Security-Policy |
+| `robots.enabled` / `rules[]` | `false`/`[]` | robots 规则 |
+| `rateLimiting.enabled` | `false` | Worker 限流(100 req/60s) |
+| `rateLimiting.maxRequests/windowMs` | `100`/`60000` | 参数 |
+| `sri.enabled` / `algorithms` | `false`/`['sha256','sha384']` | SRI |
+| `pathRestrictions` | `[]` | 路径限制(如 `/admin/*`) |
+| `forceHttps` | `false` | HTTPS 强制 |
+| `securityLogging.enabled` | `false` | 安全日志 |
+| `customHeaders` | `{}` | 额外头 |
+| `contentFilter.disallowTags/disallowAttributes/escapeHTML` | `[]`/`[]`/`true` | 内容过滤 |
+| `uploadSecurity.maxFileSize` | `5242880` | 上传上限(字节) |
+
+> 注意:`workers/security-config.js` 由构建从本文件自动生成,不要手改(生成器:scripts/generate-security-config.js)。
+
+---
+
+## 8. content-policy.json — 内容策略
+
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `enabled` | `true` | 策略开关 |
+| `mediaExts` | 13 种(见代码) | media/ 白名单 |
+| `videoMode` | `deny-list` | videos/ 采用排除制 |
+| `assetExts` | 42 种(文本/文档/pdf/压缩包/音频/字体) | assets/ 白名单 |
+| `blockedExts` | 75 种(可执行+脚本源码) | 可执行黑名单(**优先于白名单**) |
+| `documentRenderedTypes` | `html,htm,xhtml,xml,xsl,xslt,dtd,svg,shtml` | 渲染型文档 |
+| `blockedFilenames` | `.ds_store,thumbs.db,desktop.ini,.gitkeep` | 文件名黑名单 |
+| `svgSanitize` | `true` | SVG 消毒 |
+
+判定优先级:文件名 > 可执行 > 渲染文档 > 白名单。被拦截文件不进入 dist(托管自然 404),并在构建报告与 console 中逐条列出。
+
+---
+
+## 9. tag-aliases.json / friends.json — 可选数据文件
+
+**tag-aliases.json**: 标签归一化。
+```json
+{ "enabled": true, "aliases": { "js": "JavaScript", "ts": "TypeScript" } }
+```
+影响:标签页聚合、卡片标签显示。
+
+**friends.json**: 友链。
+```json
+{ "enabled": false, "title": "友情链接", "description": "", "applyNote": "", "friends": [ { "name": "示例", "url": "https://example.com", "description": "", "logo": "" } ] }
+```
+影响:自动注入导航「友链」、/links/ 页、侧栏 friends widget。
+
+---
+
+## 校验与错误上报行为
+1. **配置错误 → 立即终止**:缺逗号/引号未闭合/非法字符 → `[FATAL]` + 文件名、行列、上下文(带 `^` 定位)、原因、中文修复提示。
+2. **校验失败 → 终止**:类型错误(如 enabled: "yes")、枚举越界、share 平台名未知、URL 非 http(s)、站点名缺失。
+3. **校验警告 → 继续构建**:颜色疑似非法、changefreq 非标准、CSP unsafe-inline、tags 写成字符串(自动拆分)、无 date(排序前置)。
+4. **文章数据 → 逐篇校验**:重复 slug 跳过并报错;非法日期跳过并报错;h1 超一个跳过;标题为空回退文件名(警告)。
+
+## 环境变量
+| 变量 | 作用 |
+|---|---|
+| `CF_WEB_ANALYTICS_TOKEN` | 未在 site.json 填写 token 时读取;缺失则跳过注入并警告 |
+| `MAINTENANCE` | 生产 Worker / 本地 serve 维护模式(`1` 生效) |

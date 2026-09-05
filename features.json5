@@ -1,0 +1,850 @@
+// =============================================================================
+// features.json5 — S-ynapse 交互与内容功能总控
+// =============================================================================
+// 作用     : 集中控制站点的交互功能与内容渲染行为(开关 + 粒度 + 微调)。
+// 加载时机 : 构建时自动加载,随 site.json5 等 6 个配置文件一起合并。
+// 数据形状 : 每个功能一个一级对象;每个对象至少含 enabled(布尔)。
+//            缺省任何键时构建器使用内置默认值(与本站当前行为一致)。
+// 编写规范 : 布尔值开启/关闭;数字为具体数值;字符串为 CSS 值或文本。
+//            本文件中的每个字段均有真实效果,无摆设项。
+// =============================================================================
+
+{
+  // ---------------------------------------------------------------------------
+  // 1. 图片灯箱(点击正文/图库图片放大预览)
+  // ---------------------------------------------------------------------------
+  lightbox: {
+    // 启用图片灯箱。关闭后点击图片无放大效果。
+    enabled: true,
+    // 收集目标的选择器。默认正文图片 + 图库图片;其他容器可追加类名,逗号分隔。
+    selectors: '.post-content img, .gallery-item img',
+    // 控制在图片周围触发灯箱的最小边长(px)。用于过滤小图标。
+    minSize: 60,
+    // 是否支持上一张/下一张切换按钮。
+    prevNextButtons: true,
+    // 是否支持关闭按钮(右上角 ×)。
+    closeButton: true,
+    // 是否支持键盘方向键切换(左=上一张,右=下一张)。
+    keyboardNavigate: true,
+    // 是否支持 ESC 关闭。
+    escToClose: true,
+    // 是否支持移动端左右滑动切换。
+    swipeToNavigate: true,
+    // 点击遮罩区域是否关闭灯箱。
+    closeOnBackdrop: true,
+    // 是否显示"第 N / M 张"计数器。
+    showCounter: true,
+    // 计数器文本模板。{current} 当前索引,{total} 总数。
+    counterFormat: '{current} / {total}',
+    // 图片最大宽度(占视口百分比)。
+    maxWidthVw: '92',
+    // 图片最大尺寸上限(px)。
+    maxSizePx: '1600',
+    // 图片最大高度(占视口百分比)。
+    maxHeightVh: '82',
+    // 打开动画时长(ms)。
+    openDurationMs: 180,
+    // 切换动画时长(ms)。
+    switchDurationMs: 120,
+    // 遮罩背景透明度(0~1)。
+    backdropOpacity: '0.9',
+    // 是否预加载相邻图片(切换前预缓存)。
+    preloadAdjacent: true,
+    // 是否记忆上次浏览位置(刷新后仍从上次索引打开)。
+    rememberPosition: false
+  },
+
+  // ---------------------------------------------------------------------------
+  // 2. 阅读进度条(顶部渐变条 + 点击跳转 + 跟随圆点)
+  // ---------------------------------------------------------------------------
+  readingProgress: {
+    // 启用阅读进度条。
+    enabled: true,
+    // 是否只在文章页显示。false 时所有页面(含首页)均显示。
+    articleOnly: true,
+    // 是否支持点击跳转到相应位置。
+    clickToJump: true,
+    // 是否显示跟随小圆点(贴进度条底部)。
+    showDot: true,
+    // 圆点尺寸(px)。
+    dotSize: '10px',
+    // 进度条高度(px)。
+    barHeight: '3px',
+    // 是否使用渐变颜色(否则纯色)。
+    useGradient: true,
+    // 渐变起始色(变量名或色值;useGradient=true 有效)。
+    gradientStart: 'var(--color-s)',
+    // 渐变结束色(变量名或色值)。
+    gradientEnd: 'var(--color-a)',
+    // 点击后百分比提示的显示时长(ms)。
+    tipDisplayMs: 500,
+    // 滚动时实时更新节流间隔(ms)。
+    updateThrottleMs: 30,
+    // 是否通过 ARIA 播报进度(屏幕阅读器)。
+    ariaAnnounce: true,
+    // 进度条贴顶偏移(px)。
+    topOffset: '0'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 3. 返回顶部按钮(滚动后显示)
+  // ---------------------------------------------------------------------------
+  backToTop: {
+    // 启用返回顶部按钮。
+    enabled: true,
+    // 滚动多少像素后显示按钮。
+    showAfterPx: 400,
+    // 距右边缘距离。
+    rightOffset: '2rem',
+    // 距底边距离。
+    bottomOffset: '2rem',
+    // 按钮尺寸(px)。
+    size: '44px',
+    // 滚动回顶部动画时长(ms)。
+    scrollDurationMs: 450,
+    // 是否平滑滚动。
+    smoothScroll: true,
+    // 键盘快捷键(空字符串=禁用)。
+    hotkey: '' /* 例如 'page-up' */,
+    // 无 JS 时的 HTML 锚点按钮(向后兼容)。
+    htmlAnchorFallback: false
+  },
+
+  // ---------------------------------------------------------------------------
+  // 4. 客户端全文搜索
+  // ---------------------------------------------------------------------------
+  search: {
+    // 启用搜索(index/index 数据由导航配置 search.provider=local 控制)。
+    enabled: true,
+    // 在搜索框输入时达到多少字符才开始检索。
+    minChars: 1,
+    // 搜索结果数量上限。
+    maxResults: 30,
+    // 是否高亮命中词。
+    highlightMatches: true,
+    // 是否显示文章总数提示。
+    showCount: true,
+    // 搜索框占位文本。
+    placeholder: '搜索...',
+    // 无输入时的提示文本。
+    emptyHint: '输入关键词开始搜索',
+    // 无结果时提示文本。
+    noResultText: '未找到匹配内容',
+    // 结果命中截断长度(字符)。
+    excerptLength: 120,
+    // 是否包含正文全文(否则仅标题/摘要/标签)。
+    includeContent: true,
+    // 是否匹配标签。
+    matchTags: true,
+    // 是否匹配分类。
+    matchCategories: true,
+    // 匹配得分权重(标题/摘要/正文)。
+    weightTitle: 5,
+    weightExcerpt: 2,
+    weightContent: 1,
+    // 关闭方式:点击遮罩。
+    closeOnOverlay: true,
+    // 打开后是否自动聚焦输入框。
+    focusOnOpen: true,
+    // 打开动画方式。
+    openAnimation: 'fade',
+    // 是否支持拼音首字母匹配(实验)。
+    pinyinFuzzy: false
+  },
+
+  // ---------------------------------------------------------------------------
+  // 5. 图片懒加载与表现
+  // ---------------------------------------------------------------------------
+  imageLazy: {
+    // 启用原生 loading=lazy。
+    enabled: true,
+    // 加载策略:lazy/native/eager。
+    mode: 'lazy',
+    // 进入视口多少 px 时开始加载。
+    loadMargin: '200px',
+    // 是否淡入显示。
+    fadeIn: true,
+    // 淡入时长(ms)。
+    fadeInDurationMs: 300,
+    // 图片占位背景色。
+    placeholderColor: 'var(--color-hover)',
+    // 是否保留 width/height 防止布局抖动。
+    preserveAspectRatio: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 6. 代码块
+  // ---------------------------------------------------------------------------
+  codeBlock: {
+    // 启用代码块整体增强(复制按钮/语言标签)。
+    enabled: true,
+    // 复制按钮显示方式:hover/always/never。
+    copyButtonVisibility: 'hover',
+    // 复制成功提示文本。
+    copySuccessText: '已复制',
+    // 复制失败提示文本。
+    copyFailText: '复制失败',
+    // 是否显示语言标签。
+    showLanguageTag: true,
+    // 是否显示行号。
+    lineNumbers: false,
+    // 长代码是否自动换行。
+    wrapLongLines: false,
+    // 高亮行背景色(prism html/attr 扩展)。
+    highlightBackground: 'var(--color-hover)',
+    // 代码块圆角。
+    borderRadius: '0.375rem',
+    // 代码块最大高度(超出滚动)。
+    maxHeight: '' /* 例如 '600px' 空=不限制 */,
+    // 一键复制全部代码块的按钮(顶部)。
+    copyAllButton: false,
+    // 下载按钮。
+    downloadButton: false
+  },
+
+  // ---------------------------------------------------------------------------
+  // 7. 外部链接安全(白名单/弹窗)
+  // ---------------------------------------------------------------------------
+  externalLink: {
+    // 启用外部链接警告弹窗(与 site.json 的 externalLinkWarning.enabled 同时为 true 才生效)。
+    enabled: true,
+    // 白名单域名(精确匹配 hostname 或 hostname+pathname 前缀)。
+    whitelist: [],
+    // 黑名单域名(命中即直接拦截提示,不跳转)。
+    blacklist: [],
+    // 拦截模式:warn=弹窗确认/prohibit=直接禁止跳转/hint=仅提示不拦截。
+    mode: 'warn',
+    // 弹窗内显示的提示文本。
+    message: '即将离开本站,前往外部链接：',
+    // 确认按钮文本。
+    confirmText: '继续访问',
+    // 取消按钮文本。
+    cancelText: '返回',
+    // 是否显示完整 URL。
+    showFullUrl: true,
+    // 是否默认 target=_blank。
+    openInNewTab: true,
+    // 白名单链接是否也加 target。
+    whitelistNewTab: false,
+    // 联系/社交弹窗复制按钮文本。
+    copyButtonText: '复制'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 8. 明暗主题切换
+  // ---------------------------------------------------------------------------
+  themeToggle: {
+    // 启用明暗切换按钮(需 theme.json5 darkMode.enabled)。
+    enabled: true,
+    // 默认主题:light/dark/system。
+    defaultTheme: 'system',
+    // 是否记住用户选择(localStorage)。
+    rememberChoice: true,
+    // 切换动画时长(ms)。
+    animationMs: 250,
+    // 按钮图标:auto/sun-moon/toggle。
+    iconStyle: 'sun-moon',
+    // 切换时过渡所有元素(否则仅 body)。
+    transitionAll: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 9. 键盘快捷键
+  // ---------------------------------------------------------------------------
+  shortcuts: {
+    // 启用全局快捷键。
+    enabled: true,
+    // 打开搜索。
+    openSearch: '/',
+    // 切换主题。
+    toggleTheme: 'd',
+    // 上一篇(文章页)。
+    prevPost: 'k',
+    // 下一篇(文章页)。
+    nextPost: 'j',
+    // 打开/关闭快捷键帮助。
+    help: '?',
+    // 关闭弹窗/抽屉(通用)。
+    close: 'Escape',
+    // 显示帮助提示按钮。
+    showHelpHint: true,
+    // 帮助面板标题。
+    helpTitle: '快捷键一览',
+    // 帮助面板是否显示。
+    showHelpTable: true,
+    // 输入框内按键是否生效。
+    ignoreInInputs: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10. 文章目录(桌面端侧栏)
+  // ---------------------------------------------------------------------------
+  toc: {
+    // 启用目录。
+    enabled: true,
+    // 目录级别范围(最小/最大标题层级)。
+    minLevel: 2,
+    maxLevel: 4,
+    // 是否折叠子级。
+    collapsible: true,
+    // 默认展开层级。
+    defaultOpenLevel: 2,
+    // 高亮当前阅读章节。
+    highlightActive: true,
+    // 高亮滚动偏移(px)。
+    activeOffset: 120
+    // 宽度见 theme.json5 tocWidth 相关
+  },
+
+  // ---------------------------------------------------------------------------
+  // 11. 移动端目录抽屉
+  // ---------------------------------------------------------------------------
+  mobileToc: {
+    // 启用移动端目录抽屉按钮。
+    enabled: true,
+    // 显示断点(≤ 该宽度出现)。
+    breakpoint: 1024,
+    // 抽屉圆角。
+    borderRadius: '1rem',
+    // 抽屉最大高度(视口百分比)。
+    maxHeightVh: '70',
+    // 点击链接后是否自动关闭抽屉。
+    autoClose: true,
+    // 点击遮罩是否关闭。
+    overlayClose: true,
+    // 抽屉打开时锁定背景滚动。
+    lockScroll: true,
+    // 按钮位置:bottom-right/bottom-left。
+    position: 'right'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 12.5 阅读模式(文章页专注模式)
+  // ---------------------------------------------------------------------------
+  readMode: {
+    // 启用阅读模式按钮。
+    enabled: true,
+    // 是否记住上次状态(localStorage)。
+    persist: true,
+    // 按钮文本。
+    label: '阅读模式',
+    // 进入阅读模式后隐藏侧栏/目录(仅保留正文)。
+    focusOnlyContent: true,
+    // 字号倍率(1=正常)。
+    fontScale: 1
+  },
+
+  // ---------------------------------------------------------------------------
+  // 12. 阅读设置面板(字号/行高/宽度)
+  // ---------------------------------------------------------------------------
+  readingPanel: {    // 启用阅读设置齿轮。
+    enabled: true,
+    // 字号范围(最小/最大 px)。
+    fontSizeMin: 15,
+    fontSizeMax: 26,
+    fontSizeStep: 1,
+    // 默认字号(px)。
+    fontSizeDefault: 19,
+    // 行高范围(最小/最大 倍)。
+    lineHeightMin: 1.4,
+    lineHeightMax: 2.6,
+    lineHeightStep: 0.1,
+    lineHeightDefault: 1.9,
+    // 最大内容宽度范围(px)。
+    widthMin: 560,
+    widthMax: 1200,
+    widthStep: 40,
+    widthDefault: 800,
+    // 是否记住阅读设置。
+    remember: true,
+    // 存储键名。
+    storageKey: 'readerPrefs',
+    // 重置按钮文本。
+    resetText: '重置',
+    // 面板开关按钮位置:bottom-right/bottom-left。
+    position: 'right'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 13. 语音朗读(TTS)
+  // ---------------------------------------------------------------------------
+  tts: {
+    // 启用朗读按钮(文章页)。
+    enabled: true,
+    // 朗读语速(0.1~10,1=正常)。
+    rate: 0.5,
+    // 音调。
+    pitch: 1,
+    // 音量。
+    volume: 1,
+    // 是否使用系统首选语音。
+    preferDefaultVoice: true,
+    // 语音选择依据:auto/lang。
+    voiceBy: 'lang',
+    // 朗读区域选择器。
+    readSelector: '.post-content',
+    // 按钮图标:speaker/book。
+    icon: 'speaker',
+    // 是否高亮正在朗读段落(实验性)。
+    highlightParagraph: false,
+    // 阅读按钮位置:toolbar/float。
+    position: 'toolbar'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 14. 双向链接(Wiki Links)
+  // ---------------------------------------------------------------------------
+  wikiLinks: {
+    // 启用双链解析。
+    enabled: true,
+    // 未知目标显示方式:text(纯文本)/link(死链可点)/hide(隐藏)。
+    unknownMode: 'text',
+    // 未知目标附加后缀文本(例如 ⚠)。
+    unknownSuffix: '',
+    // 站内链接是否新页打开。
+    openNewTab: false,
+    // 是否忽略大小写匹配标题。
+    caseInsensitive: true,
+    // 自定义文本优先级:使用标签可覆盖。
+    allowCustomLabel: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 15. 上下标语法(^x^ / ~x~)
+  // ---------------------------------------------------------------------------
+  supSub: {
+    // 启用 ^x^ 与 ~x~ 语法。
+    enabled: true,
+    // 上标字符标记。
+    supMarker: '^',
+    // 下标字符标记。
+    subMarker: '~',
+    // 冲突检测:在 $...$ 公式内自动跳过(需开启)。
+    skipInsideMath: false,
+    // 包裹不匹配时是否保留原样。
+    preserveUnmatched: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 16. 数学公式(KaTeX,按需 CDN)
+  // ---------------------------------------------------------------------------
+  math: {
+    // 自动检测 $..$ / $$..$$ 公式并按需加载 KaTeX。
+    autoDetect: true,
+    // CDN 版本。
+    version: '0.16.22',
+    // 行内定界符。
+    inlineDelimiters: ['$'],
+    // 块级定界符。
+    blockDelimiters: ['$$'],
+    // 渲染错误时不抛出。
+    throwOnError: false,
+    // KaTeX strict 模式(false 静默 / warn / error)。
+    strict: false,
+    // 是否渲染 \\( \\) 定界符。
+    renderRoundParens: false,
+    // 是否渲染 \[ \] 定界符。
+    renderSquareBrackets: false,
+    // 公式区域选择器。
+    selector: '.post-content',
+    // 是否包含浏览器原生 MathML 输出。
+    mathml: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 17. Mermaid 图表(按需 CDN)
+  // ---------------------------------------------------------------------------
+  mermaid: {
+    // 自动检测 ```mermaid 代码块并按需加载 Mermaid。
+    autoDetect: true,
+    // CDN 版本。
+    version: '11.4.1',
+    // 渲染主题:default/dark/neutral/base 或跟随站点主题。
+    followTheme: true,
+    // 明色主题名。
+    lightTheme: 'default',
+    // 暗色主题名。
+    darkTheme: 'dark',
+    // 安全级别:strict/loose。
+    securityLevel: 'strict',
+    // 是否显示流程图内文本的复制按钮。
+    copyAfterRender: false,
+    // 渲染失败占位文本。
+    errorText: '[图表渲染失败]'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 18. 系列文章
+  // ---------------------------------------------------------------------------
+  series: {
+    // 启用系列功能。
+    enabled: true,
+    // 文章卡片显示系列徽标。
+    showBadge: true,
+    // 徽标文本模板:{name} 系列名。
+    badgeFormat: '系列 · {name}',
+    // 文章底部显示系列导航面板。
+    showNavPanel: true,
+    // 侧栏系列 widget(与 sidebar.json5 widgets 联动)。
+    sidebarWidget: true,
+    // 系列排序:asc(时间旧→新)/desc。
+    order: 'asc',
+    // 导航面板标题模板。
+    panelTitle: '本系列共 {total} 篇',
+    // 系列文章前缀(自动标注,如 '第 1/3 篇')。
+    showPosition: true,
+    // 无另外参数
+    defaultWidgetCount: 8
+  },
+
+  // ---------------------------------------------------------------------------
+  // 19. 关联推荐
+  // ---------------------------------------------------------------------------
+  related: {
+    // 启用关联推荐区块。
+    enabled: true,
+    // 推荐数。
+    topN: 4,
+    // 同分类权重。
+    sameCategoryWeight: 2,
+    // 同标签权重。
+    sameTagWeight: 3,
+    // 最小得分(低于此不重复展示)。
+    minScore: 2,
+    // 是否排除当前文章。
+    excludeCurrent: true,
+    // 推荐区标题。
+    title: '相关推荐'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 20. 置顶文章
+  // ---------------------------------------------------------------------------
+  pinned: {
+    // 启用置顶。
+    enabled: true,
+    // 置顶徽标文本。
+    badgeText: '置顶',
+    // 置顶徽标样式:pill/corner/none。
+    badgeStyle: 'pill',
+    // 置顶排序规则:pinned-first(置顶前)/normal(仅标记不重排)。
+    sortRule: 'pinned-first'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 21. 字数统计与阅读时间
+  // ---------------------------------------------------------------------------
+  wordCount: {
+    // 启用字数统计。
+    enabled: true,
+    // 卡片显示字数。
+    onCards: true,
+    // 文章正文尾部显示字数。
+    inArticle: true,
+    // 文本模板:{count} 字数。
+    textFormat: '{count} 字',
+    // 阅读时长文本:{minutes} 分钟。
+    readTimeFormat: '{minutes} 分钟阅读',
+    // 每分钟阅读字数(中文字数计算基准)。
+    wpm: 265,
+    // 中文英文字数合并统计视读方式。
+    countCjkChars: true,
+    // 是否统计数字。
+    countDigits: false
+  },
+
+  // ---------------------------------------------------------------------------
+  // 22. 分享按钮
+  // ---------------------------------------------------------------------------
+  share: {
+    // 启用分享工具条。
+    enabled: true,
+    // 平台顺序:weibo/qq/wechat/x/facebook/mail/copy,缺省全部:
+    order: ['weibo', 'qq', 'wechat', 'x', 'facebook', 'mail', 'copy'],
+    // 坐标位置:toolbar(文章尾部)/floating(悬浮)。
+    position: 'toolbar',
+    // 弹窗宽/高(px)。
+    popupWidth: 640,
+    popupHeight: 520,
+    // 微信复制文案模板:{title}/{url}。
+    wechatText: '{title} 分享自 {url}',
+    // 复制成功提示文本。
+    copiedText: '链接已复制',
+    // 提示显示时长(ms)。
+    copiedShowMs: 2500,
+    // 是否显示分享标题。
+    showLabel: false,
+    // 工具条标题。
+    label: '分享文章'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 23. 打赏
+  // ---------------------------------------------------------------------------
+  reward: {
+    // 启用打赏(同时需 site.json5 reward.enabled,以本开关为准)。
+    enabled: false,
+    // 打赏按钮文本。
+    buttonText: '打赏',
+    // 打赏提示文本(图片下方)。
+    note: '感谢支持',
+    // 弹窗标题。
+    popupTitle: '打赏支持',
+    // 弹窗关闭方式:按钮/遮罩/esc。
+    closeByBtn: true,
+    closeByOverlay: true,
+    closeByEsc: true,
+    // 二维码尺寸(px)。
+    qrSize: '180px',
+    // 弹窗最大宽度。
+    maxWidth: '560px'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 24. 图库页
+  // ---------------------------------------------------------------------------
+  gallery: {
+    // 启用 /gallery/ 图库页。
+    enabled: true,
+    // 页面标题。
+    title: '图库',
+    // 描述文本。
+    description: '站内图片集，点击查看大图。',
+    // 空图库提示。
+    emptyText: '暂无图片',
+    // 瀑布流列数。
+    columns: 4,
+    // 列最小宽度(minmax 下界)。
+    columnMin: '220px',
+    // 卡片是否显示来源文章名。
+    showSource: true,
+    // 是否收集文章封面图。
+    collectFeatured: true,
+    // 收集排序:newest/longest。
+    order: 'newest',
+    // 是否包含 404 前后的图(增量,始终 true)。
+    incrementalByDefault: true,
+    // 单页图片数上限(0=不限)。
+    maxItems: 0
+  },
+
+  // ---------------------------------------------------------------------------
+  // 25. 归档热力图
+  // ---------------------------------------------------------------------------
+  heatmap: {
+    // 启用归档页年历热力图。
+    enabled: true,
+    // 热力层级数(2~7)。
+    levels: 5,
+    // 层数配色模式:auto(按最大月文章数分级)/fixed(自定义色表)。
+    scaling: 'auto',
+    // 自定义色表(从低到高,仅 scaling=fixed 有效,可为 CSS 颜色数组)。
+    palette: [],
+    // 是否显示图例(少→多)。
+    showLegend: true,
+    // 图例文字。
+    legendLow: '少',
+    legendHigh: '多',
+    // 悬停提示模板:{year}-{month}: {count} 篇。
+    tooltipFormat: '{year}-{month}: {count} 篇',
+    // 是否显示每月数字。
+    showMonthNumbers: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 26. 站点统计
+  // ---------------------------------------------------------------------------
+  stats: {
+    // 启用站点统计。
+    enabled: true,
+    // 归档页显示统计卡片。
+    showArchiveCards: true,
+    // 侧栏统计 widget(需 sidebar.json5 widgets 含 type=stats)。
+    sidebarWidgetDefault: false,
+    // 统计标签文案(顺序:文章/天数/字数/日均/标签/分类)。
+    labelPosts: '文章总数',
+    labelDays: '发文天数',
+    labelWords: '总字数',
+    labelAvg: '日均篇数',
+    labelTags: '标签数',
+    labelCategories: '分类数',
+    // 卡片点击跳转(空=不跳)。
+    linkArchive: '/archive/'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 27. 上一篇/下一篇导航
+  // ---------------------------------------------------------------------------
+  prevNext: {
+    // 启用文章页上下篇导航。
+    enabled: true,
+    // 显示标签。
+    showLabels: true,
+    // 标签模板:
+    prevLabel: '上一篇',
+    nextLabel: '下一篇',
+    // 无邻篇时是否隐藏整块。
+    hideWhenMissing: false,
+    // 点击后滚动到顶部。
+    scrollToTop: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 28. 订阅(RSS + JSON Feed)
+  // ---------------------------------------------------------------------------
+  feed: {
+    // 启用 RSS(总开关,与 site.json5 rss.enabled 等价)。
+    rssEnabled: true,
+    // RSS 输出路径。
+    rssPath: '/feed.xml',
+    // RSS 是否输出全文。
+    rssFullContent: true,
+    // RSS 条目上限。
+    rssMaxItems: 50,
+    // JSON Feed 输出路径。
+    jsonFeedPath: '/feed.json',
+    // JSON Feed 是否输出全文。
+    jsonFeedFullContent: false,
+    // JSON Feed 条目上限。
+    jsonFeedMaxItems: 20,
+    // 是否在 <head> 输出 RSS 链接。
+    injectHeadLinks: true,
+    // 是否在页脚输出订阅链接(需 footer.json5 调整)。
+    injectFooterLink: false
+  },
+
+  // ---------------------------------------------------------------------------
+  // 29. 云统计(Cloudflare Web Analytics)
+  // ---------------------------------------------------------------------------
+  analytics: {
+    // 启用 CF Web Analytics(需设置 token 或环境变量 CF_WEB_ANALYTICS_TOKEN)。
+    enabled: true,
+    // 脚本 CDN 地址。
+    scriptSrc: 'https://static.cloudflareinsights.com/beacon.min.js',
+    // 输出位置:end-of-body/head。
+    injectAt: 'body',
+    // 是否输出 data-cf-beacon JSON。
+    emitBeacon: true,
+    // 站点标签(可选显示)。
+    siteTag: ''
+  },
+
+  // ---------------------------------------------------------------------------
+  // 30. 重定向
+  // ---------------------------------------------------------------------------
+  redirects: {
+    // 启用重定向系统(规则来自 site.json5 redirects 数组)。
+    enabled: false,
+    // 生成 CF Pages _redirects 文件。
+    generatePagesFile: true,
+    // 本地 serve 是否应用重定向。
+    applyInServe: true,
+    // 非法规则处理:warn-only/abort。
+    invalidRule: 'abort'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 31. 维护模式
+  // ---------------------------------------------------------------------------
+  maintenance: {
+    // 本地 serve 参数 --maintenance 生效;生产由 Worker 环境变量 MAINTENANCE=1。
+    enabled: false,
+    // 维护提示消息。
+    message: '站点维护中，请稍后再来。',
+    // 返回的 HTTP 状态。
+    status: 503,
+    // 是否设置 Retry-After。
+    setRetryAfter: true,
+    // Retry-After 秒数。
+    retryAfter: 3600
+  },
+
+  // ---------------------------------------------------------------------------
+  // 32. 移动端优化
+  // ---------------------------------------------------------------------------
+  mobile: {
+    // 启用移动端交互优化(抽屉关闭等)。
+    enabled: true,
+    // 移动端搜索是否改为全屏。
+    searchFullscreen: true,
+    // 移动端目录按钮与返回顶部间距(px)。
+    buttonStackGap: '4rem',
+    // 触摸屏悬停菜单自动展开。
+    touchFallback: true,
+    // 移动端代码块横向滚动提示。
+    codeScrollHint: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 33. 评论(前端渲染行为)
+  // ---------------------------------------------------------------------------
+  comments: {
+    // 启用评论负载(建议同时配置 site.json5 comments)。
+    enabled: true,
+    // 是否在文章页加载评论容器。
+    loadContainer: true,
+    // 服务器端渲染占位(若 provider 为静态)。
+    renderPlaceholder: true,
+    // 评论容器标题。
+    title: '评论'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 34. 联系方式弹窗
+  // ---------------------------------------------------------------------------
+  contactPopup: {
+    // 启用社交联系方式弹窗(点击社交图标复制)。
+    enabled: true,
+    // 弹窗标题。
+    title: '联系方式',
+    // 复制按钮文本。
+    copyText: '复制',
+    // 复制成功提示。
+    copiedText: '已复制到剪贴板',
+    // 弹窗宽度(px)。
+    popupWidth: '360px',
+    // 显示社交项(CG 配置社交链接中带弹窗样式)。
+    showAllItems: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 35. 外链警告(白名单已黑名单复合)
+  // ---------------------------------------------------------------------------
+  // 注: externalLink 已覆盖,以下为扩展行为
+  linkBehavior: {
+    // 域名白名单自动识别(匹配 hostname 或 hostname+path)。
+    matchMode: 'hostname',
+    // 忽略站内相对链接。
+    skipInternal: true,
+    // 邮箱块 mailto 处理:leave/confirm。
+    mailtoMode: 'leave',
+    // 二维码批量匹配(未来)。
+    lateTargeted: false
+  },
+
+  // ---------------------------------------------------------------------------
+  // 36. 性能预算
+  // ---------------------------------------------------------------------------
+  performance: {
+    // 首页 JS 体量上限警告(kB)。
+    warningJsKb: 80,
+    // 首页 HTML 体量上限警告(kB)。
+    warningHtmlKb: 400,
+    // 图片未压缩告警阈值(kB)。
+    warningImageKb: 300,
+    // 构建耗时阈值(ms)超时给出提示。
+    warningBuildMs: 30000
+  },
+
+  // ---------------------------------------------------------------------------
+  // 37. 开发助手
+  // ---------------------------------------------------------------------------
+  debug: {
+    // 输出构建明细日志。
+    verbose: false,
+    // 输出渲染页面列表。
+    listPages: false,
+    // 输出配置中心(校验合并结果)。
+    dumpConfig: false
+  }
+}

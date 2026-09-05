@@ -1,5 +1,5 @@
 <%# 
-  Index page template — renders article cards with pagination.
+  Index page template 鈥?renders article cards with pagination.
   Data contract:
     articles: Array<{title, url, featuredImage, formattedDate, date, categories, tags, readTime, excerpt}>
     pagination: {current, total, prev, next, prevLabel, nextLabel, pages: Array<{num, url, current}>}
@@ -14,7 +14,7 @@
   </a>
   <% } %>
   <h2 class="post-card-title">
-    <% if (article.pinned) { %><span class="pin-badge">置顶</span><% } %><% if (article.series) { %><span class="series-badge">系列</span><% } %>
+    <% if (article.pinned) { %><span class="pin-badge">缃《</span><% } %><% if (article.series) { %><span class="series-badge">绯诲垪</span><% } %>
     <a href="<%= article.url %>"><%= article.title %></a>
   </h2>
   <div class="post-card-meta">
@@ -29,10 +29,10 @@
     </span>
     <% } %>
     <% if (theme.card && theme.card.showWordCount && article.wordCount) { %>
-    <span><%= article.wordCount %> 字</span>
+    <span><%= article.wordCount %> 瀛?/span>
     <% } %>
     <% if (theme.card && theme.card.showReadTime && article.readTime) { %>
-    <span><%= article.readTime %> 分钟阅读</span>
+    <span><%= article.readTime %> 鍒嗛挓闃呰</span>
     <% } %>
   </div>
   <% if (theme.card && theme.card.showExcerpt && article.excerpt) { %>
@@ -49,7 +49,7 @@
 <% }) %>
 
 <% if (pagination && pagination.total > 1) { %>
-<nav class="pagination" aria-label="分页导航">
+<nav class="pagination" aria-label="鍒嗛〉瀵艰埅">
   <% if (pagination.prev) { %>
   <a href="<%= pagination.prev %>" class="page-link">&laquo; <%= pagination.prevLabel %></a>
   <% } else { %>
@@ -69,6 +69,7 @@
 <% } %>
 <% } else { %>
 <div style="text-align:center;padding:4rem 1rem;color:var(--color-text-secondary)">
-  <p style="font-size:1.125rem">暂无文章</p>
+  <p style="font-size:1.125rem">鏆傛棤鏂囩珷</p>
 </div>
 <% } %>
+

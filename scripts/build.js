@@ -51,6 +51,8 @@ let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
 const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks } = require('./lib/utils');
 const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
+const { DEFAULT_FEATURES, validateFeatures } = require('./lib/features-schema');
+const { formatConfigError } = require('./lib/config-error');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -74,6 +76,9 @@ const CACHE_BUST_MANIFEST_PATH = path.join(DIST_DIR, 'cache-bust-manifest.json')
 // Filter out draft articles unless SHOW_DRAFTS is active
 function getPublished(articles) { return articles.filter(a => !a.draft || SHOW_DRAFTS); }
 
+// Build a detailed, actionable error report for a JSON5 parse failure:
+// file path, line/column, the offending line with a caret, context lines, cause
+// and a repair hint. Config syntax errors must never be a one-line mystery.
 // Load a JSON5 config file from project root.
 // Strips BOM and normalizes line endings before parsing.
 // Exits the process with [FATAL] on any failure — config errors must not be silent.
@@ -89,7 +94,9 @@ function loadConfigFile(filename) {
     raw = raw.replace(/\r\n/g, '\n');
     return json5.parse(raw);
   } catch (err) {
-    console.error(`  [FATAL] Failed to parse ${filename}: ${err.message}`);
+    const filePath = path.join(ROOT, filename);
+    const fileText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '';
+    console.error(formatConfigError(filename, err, { filePath, fileText }));
     process.exit(1);
   }
 }
@@ -105,7 +112,9 @@ function loadOptionalConfigFile(filename) {
     raw = raw.replace(/\r\n/g, '\n');
     return json5.parse(raw);
   } catch (err) {
-    console.error(`  [FATAL] Failed to parse ${filename}: ${err.message}`);
+    const filePath = path.join(ROOT, filename);
+    const fileText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '';
+    console.error(formatConfigError(filename, err, { filePath, fileText }));
     process.exit(1);
   }
 }
@@ -129,6 +138,9 @@ function loadConfig() {
   // Tag aliases + friends are optional external config files (single source per feature).
   const tagAliasData = loadOptionalConfigFile('tag-aliases.json') || {};
   const friendsData = loadOptionalConfigFile('friends.json') || {};
+  // Features domain is optional: missing features.json5 falls back to the
+  // built-in DEFAULT_FEATURES (matching current behavior).
+  const features = loadOptionalConfigFile('features.json5') || {};
 
   const defaults = {
     site: {
@@ -180,6 +192,9 @@ function loadConfig() {
     contentPolicy: { enabled: true },
     tagAliases: { enabled: true, aliases: {} },
     friends: { enabled: false, title: '友情链接', description: '', applyNote: '', friends: [] },
+    // Features domain defaults mirror features.json5 (single source of truth in
+    // lib/features-schema.js). User overrides come from features.json5.
+    features: DEFAULT_FEATURES,
     theme: {
       colors: { primary: '#2d3748', secondary: '#4a90d9', accent: '#e53e3e', background: '#f7fafc', surface: '#ffffff', text: '#1a202c', textSecondary: '#4a5568', textLight: '#a0aec0', border: '#e2e8f0', shadow: 'rgba(0,0,0,0.1)', hover: '#edf2f7', codeBackground: '#2d3748', codeText: '#f7fafc' },
       darkMode: { enabled: false, toggle: true, default: 'system', colors: {} },
@@ -214,7 +229,11 @@ function loadConfig() {
     }
   };
 
-  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy }, { tagAliases: tagAliasData, friends: friendsData }]);
+  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy, features }, { tagAliases: tagAliasData, friends: friendsData }]);
+  // Features arrays must replace, not concatenate (e.g. share.order must drop
+  // platforms the user removed). Deepmerge's default arrayMerge concatenates,
+  // so features gets its own merge pass with a replace strategy.
+  config.features = deepmerge({}, DEFAULT_FEATURES, features, { arrayMerge: (target, source) => source });
   // Cloudflare Web Analytics token: explicit config wins, else env fallback.
   if (config.site && config.site.webAnalytics && config.site.webAnalytics.enabled) {
     const wa = config.site.webAnalytics;
@@ -285,6 +304,10 @@ function validateConfig(config) {
       warnings.push('security.csp: script-src includes unsafe-inline, consider removing for stricter CSP');
     }
   }
+
+  const featureResults = validateFeatures(config.features, 'features');
+  errors.push(...featureResults.errors);
+  warnings.push(...featureResults.warnings);
 
   if (errors.length > 0) {
     console.error('\n[CONFIG VALIDATION ERRORS]');
@@ -568,6 +591,44 @@ function setupMarkedRenderer(config, mediaManifest) {
   const showLineNumbers = config.theme.codeHighlight && config.theme.codeHighlight.lineNumbers;
   const siteUrl = (config.site.url || '').replace(/\/+$/, '');
 
+  // Math-guard extension: captures KaTeX-style math spans (*before* supSub / other
+  // inline extensions) so that superscript/subscript syntax inside formulas stays
+  // untouched for client-side auto-render (KaTeX).
+  // - Block level:  $$ ... $$ (may span lines)
+  // - Inline level: $ ... $, \( ... \), \[ ... \]
+  marked.use({
+    extensions: [
+      {
+        name: 'mathGuardBlock',
+        level: 'block',
+        start(src) {
+          const i = src.indexOf('$$');
+          return i >= 0 ? i : undefined;
+        },
+        tokenizer(src) {
+          const m = /^\$\$[\s\S]*?\$\$/.exec(src);
+          if (m) return { type: 'mathGuardBlock', raw: m[0] };
+          return undefined;
+        },
+        renderer(token) { return token.raw; }
+      },
+      {
+        name: 'mathGuardInline',
+        level: 'inline',
+        start(src) {
+          const m = src.match(/[$\\]/);
+          return m ? m.index : undefined;
+        },
+        tokenizer(src) {
+          const m = /^(?:\$\$(?!\s)[^\n]*?\$\$|\$(?!\$)(?:\\.|[^$\\\n])+\$(?!\d)|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\])/.exec(src);
+          if (m) return { type: 'mathGuardInline', raw: m[0] };
+          return undefined;
+        },
+        renderer(token) { return token.raw; }
+      }
+    ]
+  });
+
   // Superscript / subscript extension (marked 12 has no built-in ^x^ / ~x~ syntax):
   marked.use({
     extensions: [{
@@ -769,6 +830,7 @@ async function processArticles(config, mediaManifest) {
   }
   const MATH_RX = /(\$\$[\s\S]+?\$\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/;
   const MERMAID_RX = /```[ \t]*mermaid\b/i;
+  const seenSlugs = new Set();
   for (const file of files) {
     const filePath = path.join(ARTICLES_DIR, file);
     try {
@@ -794,9 +856,29 @@ async function processArticles(config, mediaManifest) {
       }
       // Slug priority: frontmatter.slug > safeSlug(title)
       const slug = attrs.slug || safeSlug(title);
+      if (seenSlugs.has(slug)) {
+        console.error(`  [ERROR] ${file}: duplicate slug "${slug}" (already used by another article). Skipping.`);
+        continue;
+      }
+      seenSlugs.add(slug);
       const url = `/${slug}/`;
       const excerpt = attrs.excerpt || '';
       const date = attrs.date || null;
+      if (date && isNaN(new Date(date).getTime())) {
+        console.error(`  [ERROR] ${file}: frontmatter "date: ${date}" is not a valid date. Expected YYYY-MM-DD or ISO 8601. Skipping.`);
+        continue;
+      }
+      if (!date) {
+        console.warn(`  [WARN] ${file}: no frontmatter date; article is sorted before dated posts (use "date: YYYY-MM-DD" to control order).`);
+      }
+      if (attrs.tags !== undefined && !Array.isArray(attrs.tags)) {
+        console.warn(`  [WARN] ${file}: frontmatter "tags" must be an array like ["a","b"]; auto-splitting "${attrs.tags}" on commas.`);
+        attrs.tags = String(attrs.tags).split(',').map(function(s2) { return s2.trim(); }).filter(Boolean);
+      }
+      if (attrs.categories !== undefined && !Array.isArray(attrs.categories)) {
+        console.warn(`  [WARN] ${file}: frontmatter "categories" must be an array like ["a"]; auto-splitting "${attrs.categories}" on commas.`);
+        attrs.categories = String(attrs.categories).split(',').map(function(s2) { return s2.trim(); }).filter(Boolean);
+      }
       const tags = applyTagAliases(Array.isArray(attrs.tags) ? attrs.tags : []);
       const categories = Array.isArray(attrs.categories) ? attrs.categories : [];
       const draft = attrs.draft === true || attrs.draft === 'true';
@@ -817,7 +899,7 @@ async function processArticles(config, mediaManifest) {
       }
       // Read time: word count (CJK-aware) / reading speed (default 265 wpm), minimum 1 minute
       const wordCount = countWords(content);
-      const readSpeed = config.theme.card?.readTimeSpeed || 265;
+      const readSpeed = (config.features && config.features.wordCount && config.features.wordCount.wpm) || config.theme.card?.readTimeSpeed || 265;
       const readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
       const toc = extractToc(htmlContent);
       // Auto-generate OG image if no featuredImage provided in frontmatter
@@ -1102,6 +1184,7 @@ function buildPageData(config, articles, tags, categories) {
   return {
     site: config.site,
     theme: config.theme,
+    features: config.features,
     nav,
     sidebar: config.sidebar,
     footer: config.footer,
@@ -1120,6 +1203,7 @@ function buildPageData(config, articles, tags, categories) {
     formatDate: (d) => formatDate(d, config.site.dateFormat),
     generateSlug: safeSlug,
     escapeAttr: escapeAttr,
+    escapeJsonForScript: escapeJsonForScript,
     JSON: JSON,
     Array: Array,
     Math: Math,

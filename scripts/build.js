@@ -1317,10 +1317,16 @@ function buildPageData(config, articles, tags, categories) {
   const friendsCfg = collectFriends(config);
   let nav = config.navigation;
   // Auto-inject a 友链 menu entry when friends are configured but no menu item points to /links/.
+  // Inserted right after the "关于" menu item (falling back to append at end).
   if (friendsCfg && nav && Array.isArray(nav.menu)) {
     const hasLinks = nav.menu.some(function(m) { return m && (m.url === '/links/' || m.url === '/links'); });
     if (!hasLinks) {
-      nav = { ...nav, menu: [{ label: '友链', url: '/links/', type: 'page' }, ...nav.menu] };
+      const menu = nav.menu.slice();
+      const aboutIdx = menu.findIndex(function(m) { return m && /\/about\/?$/.test(m.url) && /关于/.test(m.label || ''); });
+      const linkItem = { label: '友链', url: '/links/', type: 'page' };
+      if (aboutIdx > -1) { menu.splice(aboutIdx + 1, 0, linkItem); }
+      else { menu.push(linkItem); }
+      nav = { ...nav, menu };
     }
   }
   return {

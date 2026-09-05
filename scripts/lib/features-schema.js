@@ -37,7 +37,7 @@ const DEFAULT_FEATURES = {
   },
   codeBlock: {
     enabled: true, copyButtonVisibility: 'hover', copySuccessText: '已复制',
-    copyFailText: '复制失败', showLanguageTag: true, lineNumbers: false,
+    copyFailText: '复制失败', showLanguageTag: true, lineNumbers: false, windowBar: true,
     wrapLongLines: false, highlightBackground: 'var(--color-hover)',
     borderRadius: '0.375rem', maxHeight: '', copyAllButton: false, downloadButton: false
   },

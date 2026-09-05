@@ -186,6 +186,8 @@
     copyFailText: '复制失败',
     // 是否显示语言标签。
     showLanguageTag: true,
+    // 是否显示 macOS 三圆点窗口栏(代码块顶部装饰栏)。
+    windowBar: true,
     // 是否显示行号。
     lineNumbers: false,
     // 长代码是否自动换行。

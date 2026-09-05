@@ -1405,6 +1405,16 @@ function buildPageData(config, articles, tags, categories) {
     topTags: collectTopTags(published, 8),
     currentUrl: '/',
     currentPage: 'index',
+    presets: (function() {
+      const out = [];
+      for (const id of Object.keys(THEME_PRESETS)) {
+        const p = THEME_PRESETS[id];
+        out.push({ id: id, label: p.label, light: p.light, dark: p.dark,
+          sample: { light: [p.light.background, p.light.primary, p.light.secondary, p.light.accent],
+                    dark: [p.dark.background, p.dark.primary, p.dark.secondary, p.dark.accent] } });
+      }
+      return out;
+    })(),
     formatDate: (d) => formatDate(d, config.site.dateFormat),
     generateSlug: safeSlug,
     escapeAttr: escapeAttr,

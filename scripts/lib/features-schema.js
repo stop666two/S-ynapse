@@ -51,6 +51,14 @@ const DEFAULT_FEATURES = {
     enabled: true, defaultTheme: 'system', rememberChoice: true,
     animationMs: 250, iconStyle: 'sun-moon', transitionAll: true
   },
+  themePresets: {
+    enabled: true, pickerVisible: true, persistChoice: true,
+    showInNavbar: true, previewOnHover: true
+  },
+  themeSchedule: {
+    enabled: false, darkFrom: '22:00', lightFrom: '06:00',
+    respectManualOverride: true, applyInstantly: true, tickMinutes: 1
+  },
   shortcuts: {
     enabled: true, openSearch: '/', toggleTheme: 'd', prevPost: 'k',
     nextPost: 'j', help: '?', close: 'Escape', showHelpHint: true,

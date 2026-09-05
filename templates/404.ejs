@@ -1,5 +1,33 @@
 <div class="error-page">
-  <div class="error-code">404</div>
-  <p class="error-message">抱歉，您访问的页面不存在。</p>
-  <a href="/" class="btn btn-primary">返回首页</a>
+  <div class="error-illustration">
+    <svg class="error-svg" viewBox="0 0 400 220" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="404 页面丢失插图">
+      <ellipse cx="200" cy="200" rx="160" ry="14" fill="var(--color-hover)" opacity="0.6"/>
+      <rect x="60" y="60" width="280" height="130" rx="12" fill="var(--color-surface)" stroke="var(--color-border)" stroke-width="3"/>
+      <circle cx="150" cy="120" r="32" fill="var(--color-background)" stroke="var(--color-secondary)" stroke-width="6"/>
+      <path d="M168 138 L192 162" stroke="var(--color-accent)" stroke-width="6" stroke-linecap="round"/>
+      <path d="M240 100 h40 M240 126 h56 M240 152 h40" stroke="var(--color-textLight)" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+      <path d="M70 70 L330 70 M330 70 L330 130 M70 70 L70 130" stroke="var(--color-secondary)" stroke-width="3" opacity="0.25"/>
+      <text x="90" y="118" font-family="var(--ff-mono)" font-size="46" font-weight="700" fill="var(--color-secondary)">4</text>
+      <text x="210" y="118" font-family="var(--ff-mono)" font-size="46" font-weight="700" fill="var(--color-accent)">4</text>
+    </svg>
+  </div>
+  <h1 class="error-heading"><%= typeof pageTitleFinal !== 'undefined' && pageTitleFinal ? pageTitleFinal : '页面走丢了' %></h1>
+  <p class="error-message">抱歉,您访问的页面不存在或已被移除。</p>
+  <div class="error-actions">
+    <a href="/" class="btn btn-primary">返回首页</a>
+    <button type="button" class="btn btn-outline" id="errSearchBtn" onclick="openSearch && openSearch()">站内搜索</button>
+  </div>
+  <% if (typeof recentPosts !== 'undefined' && recentPosts && recentPosts.length) { %>
+    <div class="error-suggest">
+      <div class="error-suggest-title">热门文章</div>
+      <div class="error-suggest-list">
+        <% recentPosts.slice(0, 5).forEach(function(p) { %>
+          <a class="error-suggest-item" href="<%= p.url %>">
+            <span class="error-suggest-date"><%= formatDate(p.date) %></span>
+            <span class="error-suggest-name"><%= p.title %></span>
+          </a>
+        <% }); %>
+      </div>
+    </div>
+  <% } %>
 </div>

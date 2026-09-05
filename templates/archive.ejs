@@ -6,10 +6,29 @@
 <div class="post-article">
 <h1>归档</h1>
 
+<% if (typeof siteStats !== 'undefined' && siteStats && siteStats.posts > 0) { %>
+<div class="stats-grid">
+  <div class="stats-card"><div class="stats-value"><%= siteStats.posts %></div><div class="stats-label">文章总数</div></div>
+  <div class="stats-card"><div class="stats-value"><%= siteStats.days %></div><div class="stats-label">发文天数</div></div>
+  <div class="stats-card"><div class="stats-value"><%= siteStats.words.toLocaleString() %></div><div class="stats-label">总字数</div></div>
+  <div class="stats-card"><div class="stats-value"><%= siteStats.avgPerDay %></div><div class="stats-label">日均篇数</div></div>
+  <div class="stats-card"><div class="stats-value"><%= siteStats.tags %></div><div class="stats-label">标签数</div></div>
+  <div class="stats-card"><div class="stats-value"><%= siteStats.categories %></div><div class="stats-label">分类数</div></div>
+</div>
+<% } %>
+
 <% if (archives && archives.length) { %>
+<% var MAXC = archives.reduce(function(m,g){ var c=g.articles.length; return c>m?c:m; }, 0); %>
 <% archives.forEach(function(group) { %>
 <div class="archive-year">
   <h2 class="archive-year-title"><%= group.year %></h2>
+  <div class="cal-heat" aria-label="<%= group.year %> 年每月文章数热力图">
+    <% for (var mo = 1; mo <= 12; mo++) { %>
+    <% var cnt = 0; group.articles.forEach(function(a){ var mm=parseInt(a.month,10); if(mm===mo) cnt++; }); %>
+    <% var lvl = cnt===0 ? 'l0' : (MAXC<=2 ? 'l'+Math.min(cnt+1,5) : 'l'+Math.max(1,Math.min(5,Math.ceil(cnt/MAXC*5)))); %>
+    <div class="cal-cell <%= lvl %>" title="<%= group.year %>-<%= mo %>: <%= cnt %> 篇"><%= mo %></div>
+    <% } %>
+  </div>
   <div class="archive-month">
     <ul class="archive-list">
       <% group.articles.forEach(function(article) { %>
@@ -22,6 +41,7 @@
   </div>
 </div>
 <% }) %>
+<div class="cal-legend"><span>文章数</span><i class="cal-cell l0" style="background:var(--color-hover)"></i><i class="cal-cell l1"></i><i class="cal-cell l2"></i><i class="cal-cell l4"></i><span>少 → 多</span></div>
 <% } else { %>
 <p style="color:var(--color-text-secondary)">暂无归档</p>
 <% } %>

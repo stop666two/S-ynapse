@@ -163,6 +163,7 @@ function loadConfig() {
         cleanDist: true, minifyHTML: false, minifyCSS: false, minifyJS: false,
         removeConsole: false,
         generateIndex: true, generateArchive: true, generateTags: true, generateCategories: true,
+        generateGallery: true,
         generateAuthorPages: false, copyStatic: true, optimizeMedia: false, mediaQuality: 85,
         mediaResponsiveSizes: [640, 1024, 1920], mediaFormats: ['webp', 'original'],
         lazyLoadImages: true, useSrcset: true, usePictureTag: true,
@@ -273,7 +274,7 @@ function validateConfig(config) {
   }
 
   if (config.sidebar && config.sidebar.enabled && config.sidebar.widgets) {
-    const validTypes = ['author', 'recent', 'tags', 'categories', 'archive', 'search', 'custom', 'newsletter', 'toc'];
+    const validTypes = ['author', 'recent', 'tags', 'categories', 'archive', 'search', 'custom', 'newsletter', 'toc', 'series', 'friends', 'stats'];
     for (const w of config.sidebar.widgets) {
       if (w.enabled && !validTypes.includes(w.type)) warnings.push(`sidebar.widget type "${w.type}" is unknown`);
     }
@@ -566,6 +567,34 @@ function setupMarkedRenderer(config, mediaManifest) {
   const extRel = config.site.build.externalLinksRel || 'noopener noreferrer';
   const showLineNumbers = config.theme.codeHighlight && config.theme.codeHighlight.lineNumbers;
   const siteUrl = (config.site.url || '').replace(/\/+$/, '');
+
+  // Superscript / subscript extension (marked 12 has no built-in ^x^ / ~x~ syntax):
+  marked.use({
+    extensions: [{
+      name: 'supSub',
+      level: 'inline',
+      start(src) {
+        const m = src.match(/[\^~]/);
+        return m ? m.index : undefined;
+      },
+      tokenizer(src) {
+        const match = /^([~^])([^~^\n]+?)\1/.exec(src);
+        if (match) {
+          return {
+            type: 'supSub',
+            raw: match[0],
+            text: match[2],
+            up: match[1] === '^'
+          };
+        }
+        return undefined;
+      },
+      renderer(token) {
+        const body = escapeHtml(token.text);
+        return token.up ? `<sup>${body}</sup>` : `<sub>${body}</sub>`;
+      }
+    }]
+  });
 
   marked.use({
     renderer: {
@@ -899,6 +928,61 @@ function collectFriends(config) {
   return cfg;
 }
 
+// Extract all media images referenced by published articles (featured images
+// plus inline markdown images) for the /gallery/ page. Deduplicates by src.
+// Returns array of {src, title, url, alt} sorted by source-article date desc.
+function collectGalleryImages(articles) {
+  const seen = new Set();
+  const items = [];
+  const published = getPublished(articles);
+  // Newest first; markdown body images come before the featured image so the
+  // cover is not presented first.
+  const newOrder = published.slice().reverse();
+  const IMG_RX = /<img[^>]+src="([^"]+)"/g;
+  for (const a of newOrder) {
+    for (let m = IMG_RX.exec(a.content); m !== null; m = IMG_RX.exec(a.content)) {
+      const src = m[1].startsWith('/') ? m[1] : null;
+      if (!src || seen.has(src)) continue;
+      seen.add(src);
+      items.push({ src, title: a.title, url: a.url, alt: a.title });
+    }
+    if (a.featuredImage && !seen.has(a.featuredImage)) {
+      seen.add(a.featuredImage);
+      items.push({ src: a.featuredImage, title: a.title, url: a.url, alt: a.title });
+    }
+  }
+  return items;
+}
+
+// Aggregate simple site statistics for the archive stats panel and sidebar
+// widget: published counts, total words, first/last publish date and daily avg.
+function collectSiteStats(articles, tags, categories) {
+  const published = getPublished(articles);
+  let words = 0;
+  let early = null;
+  let late = null;
+  for (const a of published) {
+    words += (a.wordCount || 0);
+    if (a.date) {
+      const t = new Date(a.date).getTime();
+      if (!early || t < early) early = t;
+      if (!late || t > late) late = t;
+    }
+  }
+  const days = early && late ? Math.max(1, Math.floor((late - early) / 86400000) + 1) : 0;
+  const count = published.length;
+  return {
+    posts: count,
+    words,
+    tags: (tags || []).length,
+    categories: (categories || []).length,
+    earliestDate: early ? new Date(early) : null,
+    latestDate: late ? new Date(late) : null,
+    days,
+    avgPerDay: days && count ? (count / days).toFixed(2) : 0
+  };
+}
+
 // Aggregate categories across all articles with count and slugified URL.
 // Returns array sorted by count descending.
 function collectCategories(articles) {
@@ -1029,6 +1113,8 @@ function buildPageData(config, articles, tags, categories) {
     archives: groupByYearMonth(published),
     seriesList: collectSeries(published),
     friends: friendsCfg,
+    galleryItems: collectGalleryImages(articles),
+    siteStats: collectSiteStats(articles, tags, categories),
     currentUrl: '/',
     currentPage: 'index',
     formatDate: (d) => formatDate(d, config.site.dateFormat),
@@ -1257,6 +1343,12 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
   const html404 = renderPage('404.ejs', data404, layoutTemplate, config);
   if (html404) await writeFile('404.html', html404);
 
+  if (config.site.build.generateGallery !== false) {
+    const galleryData = { ...baseData, title: '图库', currentUrl: '/gallery', currentPage: 'gallery' };
+    const galleryHtml = renderPage('gallery.ejs', galleryData, layoutTemplate, config);
+    if (galleryHtml) await writeFile('gallery/index.html', galleryHtml);
+  }
+
   if (baseData.friends) {
     const linksData = { ...baseData, title: baseData.friends.title || '友情链接', currentUrl: '/links/', currentPage: 'links', pageTitle: baseData.friends.title || '友情链接' };
     const linksHtml = renderPage('links.ejs', linksData, layoutTemplate, config);
@@ -1399,6 +1491,9 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
     }
     if (config.site.build.generateArchive !== false) {
       urls.push({ loc: '/archive/', changefreq: 'weekly', priority: '0.5' });
+    }
+    if (config.site.build.generateGallery !== false) {
+      urls.push({ loc: '/gallery/', changefreq: 'weekly', priority: '0.4' });
     }
     if (config.site.build.generateTags !== false) {
       urls.push({ loc: '/tags/', changefreq: 'weekly', priority: '0.4' });

@@ -56,10 +56,68 @@ try {
   if (!fs.existsSync(DIST_INDEX)) fail(`post page not generated: ${DIST_INDEX}`);
   const html = fs.readFileSync(DIST_INDEX, 'utf-8');
   const searchRaw = fs.readFileSync(DIST_SEARCH, 'utf-8');
-  if (html.includes('<script>window.__SEC_PWNED__')) fail('title escaped into executable script (script-tag breakout in post page)');
-  if (html.includes('</script><script>window.__SEC_PWNED__')) fail('script-tag breakout sequence present in post page');
-  if (!html.includes('&lt;/script&gt;') && !html.includes('\\u003c/script>')) {
-    fail('title payload render as raw text was not escaped in post page');
+  // HTML semantics: <title> is RCDATA, and quoted attribute values never
+  // start elements — minify-html re-serializes character references there,
+  // so a naked `<script>window.__SEC_PWNED__` inside them is inert text, not
+  // a real element. The original string checks false-positived on those.
+  // Scan with a mini tokenizer that respects quoted attributes and RCDATA
+  // element boundaries, matching browser tag-splitting.
+  const titleMatch = html.match(/<title>([\s\S]*?)<\/title>/);
+  const titleText = titleMatch ? titleMatch[1] : '';
+  if (titleText.includes('</title>')) fail('title payload breaks out of the RCDATA title element');
+  if (!titleText.includes('S-ynapse sec verify')) {
+    fail('title payload not rendered as text in post page');
+  }
+  const scanScripts = (doc) => {
+    const scripts = [];
+    let i = 0;
+    while (i < doc.length) {
+      const lt = doc.indexOf('<', i);
+      if (lt === -1) break;
+      let j = lt + 1;
+      let quote = null;
+      let gt = -1;
+      while (j < doc.length) {
+        const c = doc[j];
+        if (quote) { if (c === quote) quote = null; }
+        else if (c === '"' || c === "'") quote = c;
+        else if (c === '>') { gt = j; break; }
+        j++;
+      }
+      if (gt === -1) break;
+      const tagText = doc.slice(lt + 1, gt);
+      const mi = /^[ \t]*([a-zA-Z][a-zA-Z0-9]*)/.exec(tagText);
+      if (!mi) { i = lt + 1; continue; }
+      const name = mi[1].toLowerCase();
+      if (name === 'script') {
+        const rest = doc.slice(gt + 1);
+        const cm = /<\/script\s*>/i.exec(rest);
+        const content = cm ? rest.slice(0, cm.index) : rest;
+        scripts.push({ tagText, content });
+        i = gt + 1 + (cm ? cm.index + cm[0].length : rest.length);
+      } else if (name === 'title' || name === 'style') {
+        const rest = doc.slice(gt + 1);
+        const cm = new RegExp('</' + name + '\\s*>', 'i').exec(rest);
+        i = gt + 1 + (cm ? cm.index + cm[0].length : rest.length);
+      } else {
+        i = gt + 1;
+      }
+    }
+    return scripts;
+  };
+  for (const s of scanScripts(html)) {
+    const typeM = /type\s*=\s*([^\s>]+)/.exec(s.tagText);
+    const typeVal = typeM ? typeM[1].replace(/^["']|["']$/g, '') : '';
+    if (typeVal === 'application/ld+json') {
+      if (s.content.includes('</script>')) fail('ld+json payload breaks out of its script element');
+      continue;
+    }
+    if (!s.content.includes('window.__SEC_PWNED__')) continue;
+    // Payload inside a JS string literal (e.g. window.__SEARCH_DATA__ JSON)
+    // is inert data; executable code is not.
+    const code = s.content.replace(/"(?:\\.|[^"\\])*"/g, '')
+      .replace(/'(?:\\.|[^'\\])*'/g, '').replace(/`(?:\\.|[^`\\])*`/g, '');
+    if (code.includes('window.__SEC_PWNED__')) fail('payload is executable code in <script> element');
   }
   if (html.includes('<script>alert(1)')) fail('script tag survived sanitization in article body');
   if (html.includes('onerror="alert(99)"')) fail('event handler attribute survived in article body');

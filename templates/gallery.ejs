@@ -1,0 +1,24 @@
+<%# 
+  Gallery page — masonry grid of every image referenced by published articles.
+  Data contract:
+    galleryItems: Array<{src, title, url, alt}>  (newest article first)
+  Clicking an image opens the shared lightbox (collects .gallery img).
+%>
+<div class="post-article">
+<h1>图库</h1>
+<% if (typeof galleryItems !== 'undefined' && galleryItems && galleryItems.length) { %>
+<p class="gallery-desc">共收录 <%= galleryItems.length %> 张图片，点击查看大图。</p>
+<div class="gallery-grid" id="galleryGrid">
+  <% galleryItems.forEach(function(g) { %>
+  <figure class="gallery-item">
+    <img src="<%= g.src %>" alt="<%= g.alt %>" loading="lazy">
+    <figcaption class="gallery-caption">
+      <a href="<%= g.url %>" class="gallery-link"><%= g.title %></a>
+    </figcaption>
+  </figure>
+  <% }) %>
+</div>
+<% } else { %>
+<p class="gallery-empty">暂无图片。</p>
+<% } %>
+</div>

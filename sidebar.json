@@ -61,6 +61,11 @@
       "placeholder": "输入关键词..."  // 搜索框占位文字
     },
     {
+      "type": "stats",           // 组件类型：stats - 站点统计（文章/字数/标签/分类）
+      "enabled": false,           // 默认关闭；把 true 开在侧栏显示，归档页不受此开关影响
+      "title": "站点统计"
+    },
+    {
       "type": "custom",          // 组件类型：custom - 自定义 HTML
       "enabled": false,
       "title": "广告位",

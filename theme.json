@@ -3,13 +3,13 @@
 
   "colors": {
     "primary": "#2d3748",             // 主色 - 标题和强调元素
-    "secondary": "#4a90d9",           // 辅色 - 链接和按钮
-    "accent": "#e53e3e",              // 强调色 - 特殊标记
+    "secondary": "#2563eb",           // 辅色 - 链接和按钮
+    "accent": "#c53030",              // 强调色 - 特殊标记
     "background": "#f7fafc",          // 页面背景色
     "surface": "#ffffff",             // 卡片/表面背景色
     "text": "#1a202c",                // 主文字颜色
     "textSecondary": "#4a5568",       // 次要文字颜色
-    "textLight": "#a0aec0",           // 浅色文字（如日期、页脚）
+    "textLight": "#64748b",           // 浅色文字（如日期、页脚）
     "border": "#e2e8f0",              // 边框颜色
     "shadow": "rgba(0,0,0,0.1)",      // 阴影颜色
     "hover": "#edf2f7",               // 悬停背景色
@@ -27,11 +27,13 @@
       "background": "#0f172a",         // 页面背景（深蓝灰，比纯黑更柔和）
       "surface": "#1e293b",            // 卡片/面板背景
       "text": "#f1f5f9",               // 主文字色（暖白，减轻眼疲劳）
-      "textSecondary": "#94a3b8",      // 副文字色
-      "textLight": "#64748b",          // 浅色文字
+      "textSecondary": "#a3b2c4",      // 副文字色
+      "textLight": "#9aa8ba",          // 浅色文字
       "border": "#334155",             // 边框色
       "shadow": "rgba(0,0,0,0.3)",    // 阴影色
       "hover": "#334155",              // 悬停背景色
+      "secondary": "#7caeff",          // 链接色（深色下提亮以达 4.5:1）
+      "accent": "#fca5a5",             // 强调色（深色下提亮）
       "codeBackground": "#0f172a",     // 代码块背景
       "codeText": "#e2e8f0"            // 代码块文字色
     }

@@ -552,6 +552,10 @@ function setupMarkedRenderer(config, mediaManifest) {
 
   marked.use({
     renderer: {
+      // Task-list checkbox with accessible name (WCAG label):
+      checkbox(checked) {
+        return `<input type="checkbox" disabled${checked ? ' checked' : ''} aria-label="任务">`;
+      },
       // Image renderer with responsive fallback chain:
       // 1. If usePicture + manifest: <picture> with WebP + size variants + original fallback
       // 2. If manifest only (picture disabled): <img> with original path from manifest

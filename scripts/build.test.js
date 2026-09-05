@@ -112,6 +112,11 @@ describe('extractToc', () => {
 });
 
 describe('sanitizeHtml', () => {
+  it('preserves aria-label attributes (a11y)', () => {
+    const out = sanitizeHtml('<input type="checkbox" checked disabled aria-label="任务">');
+    assert.ok(out.includes('aria-label="任务"'), 'aria-label must survive sanitization');
+    assert.ok(out.includes('checked'), 'checked must survive');
+  });
   it('removes script blocks entirely', () => {
     const out = sanitizeHtml('<p>ok</p><script>alert(1)</script>');
     assert.ok(!out.includes('<script'), 'script tag must be gone');

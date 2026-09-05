@@ -144,7 +144,7 @@ function sanitizeHtml(input) {
       const k = key.toLowerCase();
       if (k === 'on' || k.startsWith('on')) continue;
       if (k === 'style') continue;
-      if (k.startsWith('data-')) { safeAttrs += ' ' + key + (val ? '=' + val : ''); continue; }
+      if (k.startsWith('data-') || k.startsWith('aria-')) { safeAttrs += ' ' + key + (val ? '=' + val : ''); continue; }
       if (!SAFE_ATTRS.has(k)) continue;
       if (val && (k === 'href' || k === 'src' || k === 'poster')) {
         const raw = val.replace(/^['"]|['"]$/g, '').trim();

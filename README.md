@@ -42,7 +42,7 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html` 含详细统计
-- 单元测试：`npm test` 覆盖核心纯函数（23 项测试）
+- 单元测试：`npm test` 覆盖核心纯函数（52 项测试）
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -103,7 +103,7 @@ S-ynapse/
 │   └── 404.ejs        # 404 页
 ├── scripts/
 │   ├── build.js       # 构建脚本（14 步管线）
-│   ├── build.test.js  # 单元测试（45 项通过）
+│   ├── build.test.js  # 单元测试（52 项通过）
 │   ├── security-verify.js # 安全集成验证（注入恶意文章→构建→断言）
 │   ├── init-project.js# 项目初始化（自动配置 git hooks/gitignore/gitattributes）
 │   └── lib/
@@ -494,7 +494,7 @@ Worker 提供：
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（23 项） |
+| `npm test` | 运行单元测试（52 项） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
 | `npx wrangler pages deploy dist --project-name=s-ynapse` | 部署到 Cloudflare Pages |
 

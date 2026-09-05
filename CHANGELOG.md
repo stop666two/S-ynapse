@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 新增 `scripts/security-verify.js` 集成安全验证
 - 新增 `sanitizeHtml` / `escapeJsonForScript` 单元测试（`scripts/build.test.js`）
 - 新增 CHANGELOG.md
+
+### Accessibility
+- Lighthouse 全面审计并修复可达性问题（首页+文章页 × 桌面/移动 × 亮/暗均 100 分）：
+  - 搜索/暗色切换/返回顶部/移动菜单按钮补充 `aria-label`；分页 `aria-label` 与可见文本失配（label-content-name-mismatch）移除，保留 `aria-current`
+  - 全局对比度提升：亮色 `textLight` `#a0aec0` → `#64748b`、`secondary` `#4a90d9` → `#2563eb`、`accent` `#e53e3e` → `#c53030`；暗色新增 `secondary` `#7caeff` 与 `accent` `#fca5a5` 覆盖（`--color-s`/`--color-a` 暗色下同步切换） — `theme.json`/`templates/layout.ejs`
+  - 分页禁用项与标签云计数去掉 `opacity` 弱化、改用可读色；`footer-powered` 链接加下划线（link-in-text-block）；文章 footer（免责声明）暗色配色覆盖 — `templates/layout.ejs`
+  - 任务列表 checkbox 增加 `aria-label="任务"`（marked `renderer.checkbox` 覆写），`sanitizeHtml` 放行 `aria-*` 属性白名单；标题层级测试文章补齐 h3/h2 过渡 — `scripts/build.js`/`scripts/lib/utils.js`
 - 新增全套构建测试资产：10 篇覆盖性文章（草稿/纯英文/长文/空元数据/多分类/关联推荐/表格嵌套/链接协议/代码高亮/架构说明）与 5 张程序化生成的本地图片（`scripts/generate-test-media.js` 可再生成）
 - 修复本地图片响应式管线：`media-manifest.json` 的键值补全 `/media/` 前缀，`<picture>`/WebP/多尺寸 `srcset` 恢复生效
 - 新增 `content-policy.json` 内容策略：`media/`（图片白名单 + SVG 消毒）、`videos/`（视频排除制）、`assets/`（素材白名单）三目录构建期过滤；可执行文件/脚本源码/渲染型文档一律拦截，被拦文件不进入 `dist/`（线上访问 404）并在构建报告中逐条列出 — `scripts/lib/content-policy.js`

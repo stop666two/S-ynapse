@@ -92,7 +92,7 @@ const DEFAULT_FEATURES = {
   math: {
     enabled: true, autoDetect: true, version: '0.16.22',
     inlineDelimiters: ['$'], blockDelimiters: ['$$'], throwOnError: false,
-    strict: false, renderRoundParens: false, renderSquareBrackets: false,
+    strict: false, renderRoundParens: true, renderSquareBrackets: true,
     selector: '.post-content', mathml: true
   },
   mermaid: {

@@ -270,7 +270,7 @@
 `enabled true` / `supMarker ^` / `subMarker ~` / `skipInsideMath false` / `preserveUnmatched true`
 
 ### 3.17 math — KaTeX
-`enabled true` / `autoDetect true` / `version 0.16.22` / `inlineDelimiters ['$']` / `blockDelimiters ['$$']` / `throwOnError false` / `strict false` / `renderRoundParens false` / `renderSquareBrackets false` / `selector .post-content` / `mathml true`
+`enabled true` / `autoDetect true` / `version 0.16.22` / `inlineDelimiters ['$']` / `blockDelimiters ['$$']` / `throwOnError false` / `strict false` / `renderRoundParens true` / `renderSquareBrackets true` / `selector .post-content` / `mathml true`
 
 ### 3.18 mermaid
 `enabled true` / `autoDetect true` / `version 11.4.1` / `followTheme true` / `lightTheme default` / `darkTheme dark` / `securityLevel strict` / `copyAfterRender false` / `errorText [图表渲染失败]`

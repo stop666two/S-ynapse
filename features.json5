@@ -445,10 +445,10 @@
     throwOnError: false,
     // KaTeX strict 模式(false 静默 / warn / error)。
     strict: false,
-    // 是否渲染 \\( \\) 定界符。
-    renderRoundParens: false,
-    // 是否渲染 \[ \] 定界符。
-    renderSquareBrackets: false,
+    // 是否渲染 \\( \\) 定界符(mathGuard 保护,默认开)。
+    renderRoundParens: true,
+    // 是否渲染 \[ \] 定界符(mathGuard 保护,默认开)。
+    renderSquareBrackets: true,
     // 公式区域选择器。
     selector: '.post-content',
     // 是否包含浏览器原生 MathML 输出。

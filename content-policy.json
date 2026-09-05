@@ -1,0 +1,64 @@
+{
+  // ============================================================
+  // 内容策略 (Content Policy) — media/ videos/ assets/ 三目录白黑名单
+  // 本文件控制在构建时哪些文件允许进入 dist/ 发布线
+  // 判定优先级(高 → 低): 文件名黑名单 > 可执行扩展名 > 渲染型文档 > 目录白名单
+  // 被拦截文件: 不复制进 dist → 线上访问 404; 并在 build-report 中逐条列出
+  // 说明: 本文件是可选项; 若删除, 构建使用下方同等的内建默认策略
+  // ============================================================
+
+  // 总开关: false 时三目录整体禁用(不复制、不显示, 但不会拦截 media 既有管线)
+  enabled: true,
+
+  // ---- media/ 图片目录: 白名单制(除白名单外一律 404) ----
+  mediaExts: [
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'ico',
+    'svg', 'tiff', 'tif', 'heic', 'heif'
+  ],
+
+  // ---- videos/ 视频目录: 排除制(除黑名单与渲染型文档外均放行) ----
+  // 即 mkv/avi/wmv/mov/ts 等冷门视频格式不会误杀; 而 .exe/.html 等必被拦
+  videoMode: 'deny-list',
+
+  // ---- assets/ 素材目录: 白名单制 ----
+  assetExts: [
+    // 纯文本与数据
+    'txt', 'csv', 'json', 'yml', 'yaml', 'toml', 'ini', 'log', 'conf',
+    // 办公文档与 PDF
+    'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'epub', 'rtf', 'odt', 'ods', 'odp',
+    // 压缩包(下载型)
+    'zip', '7z', 'rar', 'gz', 'tgz', 'tar', 'bz2', 'xz', 'zst',
+    // 音频
+    'mp3', 'wav', 'm4a', 'ogg', 'flac', 'aac', 'opus',
+    // 字体
+    'woff', 'woff2', 'ttf', 'otf', 'eot'
+  ],
+
+  // ---- 可执行/脚本文件黑名单(优先级最高, 无论放哪个目录都 404) ----
+  blockedExts: [
+    // Windows 可执行/库/脚本
+    'exe', 'dll', 'sys', 'ocx', 'drv', 'com', 'scr', 'pif', 'cpl', 'msi', 'msp', 'msu', 'mst',
+    'bat', 'cmd', 'com', 'reg', 'lnk', 'url', 'hta', 'wsc', 'wsf', 'wsh', 'vbs', 'vbe', 'js', 'jse',
+    'ps1', 'psd1', 'psm1', 'msix', 'msixbundle', 'appx', 'appxbundle', 'jse',
+    // 跨平台可执行与容器
+    'appimage', 'dmg', 'pkg', 'mpkg', 'jar', 'jnlp', 'apk', 'ipa', 'deb', 'rpm',
+    // Linux 可执行与脚本
+    'sh', 'bash', 'zsh', 'fish', 'bin', 'run', 'elf', 'so', 'o', 'ko', 'snap',
+    // 解释器脚本源码(即使作为文本下载也不放行)
+    'py', 'pyw', 'pyc', 'pl', 'pm', 'php', 'phtml', 'rb', 'lua', 'tcl', 'r', 'jl',
+    'java', 'class', 'go', 'rs', 'cs', 'c', 'cpp', 'h', 'hpp', 'm', 'scala', 'kt', 'swift', 'cr',
+    'ts', 'tsx', 'jsx', 'mjs', 'cjs'
+  ],
+
+  // ---- 渲染型文档(可带活动内容, 仅 media/ 下的 svg 经消毒后可放行) ----
+  // 其他目录一律拦截, 防止同源内容注入 (HTML 内联脚本 / XSLT 处理等)
+  documentRenderedTypes: ['html', 'htm', 'xhtml', 'xml', 'xsl', 'xslt', 'dtd', 'svg', 'shtml'],
+
+  // ---- 文件名精确匹配拦截(如系统生成物) ----
+  blockedFilenames: ['.ds_store', 'thumbs.db', 'desktop.ini', '.gitkeep'],
+
+  // ---- SVG 消毒: 含 <script>/on* 事件属性/外部引用(SVG 会以文档打开且可执行) ----
+  // 命中后: 不进 dist(404) + build-report 记录
+  // 说明: 现有 media/ 测试图的 og-image.svg 无上述内容, 不受影响
+  svgSanitize: true
+}

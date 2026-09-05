@@ -77,7 +77,9 @@ npm run serve
 S-ynapse/
 ├── articles/          # Markdown 文章
 ├── pages/             # 自定义页面 & 可复用内容块（博客底部公告、关于、隐私、条款等）
-├── media/             # 图片资源（自动优化）
+├── media/             # 图片资源（自动优化 + SVG 消毒）
+├── videos/            # 视频资源（content-policy 过滤后复制）
+├── assets/            # 素材文件（PDF/文档/压缩包/音频/字体，content-policy 白名单）
 ├── static/            # 静态文件（直接复制到输出）
 ├── templates/         # EJS 模板（10 个文件）
 │   ├── layout.ejs     # 基础布局（CSS变量 + 暗黑模式 + 搜索 + 链接警告）
@@ -93,10 +95,12 @@ S-ynapse/
 │   └── 404.ejs        # 404 页
 ├── scripts/
 │   ├── build.js       # 构建脚本（14 步管线）
-│   ├── build.test.js  # 单元测试（23 项通过）
+│   ├── build.test.js  # 单元测试（45 项通过）
+│   ├── security-verify.js # 安全集成验证（注入恶意文章→构建→断言）
 │   ├── init-project.js# 项目初始化（自动配置 git hooks/gitignore/gitattributes）
 │   └── lib/
-│       └── utils.js   # 工具函数库（formatDate/safeSlug/stripHtml/CJK 空格等）
+│       ├── utils.js   # 工具函数库（formatDate/safeSlug/stripHtml/CJK 空格等）
+│       └── content-policy.js # 三目录内容策略判定（白名单/黑名单/SVG 消毒）
 ├── workers/           # Cloudflare Worker 安全层
 ├── .github/workflows/ # CI/CD 自动部署（含 AGENTS.md 检测）
 ├── .githooks/         # Git hooks（pre-commit 保护 AGENTS.md）
@@ -107,6 +111,7 @@ S-ynapse/
 ├── sidebar.json       # 侧边栏配置
 ├── footer.json        # 页脚配置
 ├── security.json      # 安全策略
+├── content-policy.json # 内容策略（media/videos/assets 白黑名单，可选）
 ├── .env.example       # 环境变量模板
 ├── .gitattributes     # Git 属性配置
 ├── build.bat          # Windows 一键构建
@@ -387,9 +392,10 @@ draft: true                          # 设为 true 则在生产构建中跳过
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 加载配置 | 读取 6 个 JSON5 文件，合并默认值，校验 20+ 配置项 |
+| 1 | 加载配置 | 读取 6 个 JSON5 文件 + 可选 content-policy.json，合并默认值，校验 20+ 配置项 |
 | 2 | 设置输出目录 | 清空 `dist/` 并创建 articles/tags/categories/page 子目录 |
 | 3 | 复制静态文件 | `static/` → `dist/` |
+| 3ᵇ | 内容策略 | 按 content-policy.json 过滤 videos/、assets/ 与非 sharp 媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
 | 4 | 媒体优化 | sharp 生成 WebP + 多尺寸响应式图片（输出 manifest） |
 | 5 | 处理文章 | 解析 Frontmatter → h1 唯一性检测 → Markdown 转 HTML → CJK 空格 → 提取 TOC → 自动 OG 图 |
 | 6 | 生成页面 | 首页分页、文章详情（prev/next + 关联推荐 + 评论）、归档、标签、分类、搜索、404 |
@@ -500,6 +506,11 @@ npm test
 | insertCjkSpacing | 4 | 中英文自动加空格（含纯中文/纯英文边界） |
 | applyCjkSpacingToHtml | 1 | HTML 安全的 CJK 空格 |
 | extractToc | 2 | 文章目录提取（含无标题页） |
+| sanitizeHtml | 8 | 白名单消毒（危险标签/事件属性/危险协议） |
+| escapeJsonForScript | 2 | 搜索索引嵌入 script 的安全序列化 |
+| sanitizeHtml 媒体元素 | 4 | video/audio 保留与站内 src 限制 |
+| content-policy classifyFile | 5 | 三目录白名单/黑名单判定 |
+| sanitizeSvg | 3 | SVG 危险内容检测 |
 
 ---
 

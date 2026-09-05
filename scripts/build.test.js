@@ -168,3 +168,80 @@ describe('escapeJsonForScript', () => {
     assert.strictEqual(escapeJsonForScript({ a: 1, b: '中文' }), '{"a":1,"b":"中文"}');
   });
 });
+
+describe('sanitizeHtml media elements', () => {
+  it('keeps video with controls and site-local src', () => {
+    const out = sanitizeHtml('<video controls preload="metadata" src="/videos/sample.mp4" width="640"></video>');
+    assert.ok(out.includes('<video'), 'video tag must survive');
+    assert.ok(out.includes('src="/videos/sample.mp4"'), 'site-local src preserved');
+    assert.ok(out.includes('controls'), 'controls attribute preserved');
+  });
+  it('drops absolute/protocol-relative media sources', () => {
+    const out = sanitizeHtml('<video src="https://evil.example/v.mp4"></video><audio src="//cdn.example.com/a.mp3"></audio>');
+    assert.ok(!out.includes('https://'), 'absolute media src must be dropped');
+    assert.ok(!out.includes('//cdn'), 'protocol-relative media src must be dropped');
+    assert.ok(!out.includes('src='), 'media without valid src has no src attr');
+  });
+  it('keeps video tag but strips missing src when dropped and allows local audio', () => {
+    const out = sanitizeHtml('<audio controls src="/assets/song.mp3"></audio>');
+    assert.ok(out.includes('<audio'));
+    assert.ok(out.includes('src="/assets/song.mp3"'));
+    assert.ok(out.includes('controls'));
+  });
+  it('still removes script/iframe/noscript after media support', () => {
+    const out = sanitizeHtml('<video src="/v/s.mp4"></video><script>alert(1)</script><iframe src="x"></iframe><noscript>n</noscript>');
+    assert.ok(!out.includes('<script'));
+    assert.ok(!out.includes('<iframe'));
+    assert.ok(!out.includes('<noscript'));
+    assert.ok(out.includes('<video'));
+  });
+});
+
+describe('content-policy classifyFile', () => {
+  const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
+
+  it('rejects executables in every directory', () => {
+    assert.strictEqual(classifyFile('evil.exe', 'videos', null).reason, 'blocked-executable');
+    assert.strictEqual(classifyFile('evil.py', 'assets', null).reason, 'blocked-executable');
+    assert.strictEqual(classifyFile('setup.js', 'media', null).reason, 'blocked-executable');
+  });
+  it('media: whitelist only, svg allowed', () => {
+    assert.strictEqual(classifyFile('photo.jpg', 'media', null).category, 'media-optimized');
+    assert.strictEqual(classifyFile('logo.svg', 'media', null).category, 'media-raw');
+    assert.strictEqual(classifyFile('archive.tar.gz', 'media', null).reason, 'not-in-media-whitelist');
+  });
+  it('videos: deny-list (avi/mkv allowed, html rejected)', () => {
+    assert.strictEqual(classifyFile('movie.avi', 'videos', null).category, 'video');
+    assert.strictEqual(classifyFile('movie.mkv', 'videos', null).category, 'video');
+    assert.strictEqual(classifyFile('page.html', 'videos', null).reason, 'active-document');
+  });
+  it('assets: whitelist, blocked beats matches', () => {
+    assert.strictEqual(classifyFile('user-guide.pdf', 'assets', null).category, 'asset');
+    assert.strictEqual(classifyFile('data.json', 'assets', null).category, 'asset');
+    assert.strictEqual(classifyFile('x.docx', 'assets', null).category, 'asset');
+    assert.strictEqual(classifyFile('list.tar.gz', 'assets', null).category, 'asset');
+    // blocked-wins: .mjs is in assetExts? no — must be blocked regardless
+    assert.strictEqual(classifyFile('app.js', 'assets', null).reason, 'blocked-executable');
+    assert.strictEqual(classifyFile('doc.xml', 'assets', null).reason, 'active-document');
+  });
+  it('rejects known system filenames', () => {
+    assert.strictEqual(classifyFile('Thumbs.db', 'assets', null).reason, 'blocked-filename');
+  });
+});
+
+describe('sanitizeSvg', () => {
+  const { sanitizeSvg } = require('./lib/content-policy');
+
+  it('flags svg containing script or event handlers', () => {
+    assert.strictEqual(sanitizeSvg('<svg onload="alert(1)"><rect/></svg>').safe, false);
+    assert.strictEqual(sanitizeSvg('<svg><script>alert(1)</script></svg>').safe, false);
+  });
+  it('flags svg with external references', () => {
+    assert.strictEqual(sanitizeSvg('<svg><image href="https://evil.com/x.png"/></svg>').safe, false);
+  });
+  it('passes clean inline svg', () => {
+    const r = sanitizeSvg('<svg xmlns="http://www.w3.org/2000/svg" width="10"><rect width="10"/></svg>');
+    assert.strictEqual(r.safe, true);
+    assert.ok(r.content.includes('<svg'));
+  });
+});

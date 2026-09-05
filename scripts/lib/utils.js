@@ -96,20 +96,26 @@ const SAFE_TAGS = new Set([
   'h1','h2','h3','h4','h5','h6','p','br','hr','blockquote','pre','code',
   'em','strong','del','ins','sup','sub','small','kbd','s','abbr','mark','b','i','u',
   'a','img','picture','source','ul','ol','li','dl','dt','dd','table','thead','tbody','tfoot','tr','th','td',
-  'div','span','details','summary','input','figure','figcaption','caption','colgroup','col','time'
+  'div','span','details','summary','input','figure','figcaption','caption','colgroup','col','time',
+  'audio','video','track'
 ]);
 
 // Tags whose entire subtree is removed: their content is executable code
 // or active content and cannot be shown safely in an embedded context.
+// audio/video are intentionally allowed (embedding is safe; their src is
+// restricted to site-local media paths below).
 const DANGEROUS_TAGS = new Set([
   'script','style','iframe','object','embed','svg','math','template','form',
-  'noscript','textarea','select','button','link','meta','base','canvas','audio','video','applet','frame','frameset'
+  'noscript','textarea','select','button','link','meta','base','canvas',
+  'applet','frame','frameset'
 ]);
 
 // Attributes allowed on tags. on* and style are always dropped separately.
 const SAFE_ATTRS = new Set([
   'class','id','href','src','srcset','sizes','loading','alt','title','lang','type',
-  'checked','disabled','colspan','rowspan','width','height'
+  'checked','disabled','colspan','rowspan','width','height',
+  // media elements (video/audio/track)
+  'controls','preload','loop','muted','autoplay','playsinline','poster','kind','srclang','default'
 ]);
 
 // Remove executable/active HTML while keeping safe formatting tags.
@@ -118,8 +124,11 @@ const SAFE_ATTRS = new Set([
 function sanitizeHtml(input) {
   if (typeof input !== 'string') return '';
   let output = input;
-  output = output.replace(/<\s*(script|style|iframe|object|embed|svg|math|template|form|noscript|textarea|select|button|link|meta|base|canvas|audio|video|applet|frame|frameset)(\s[^>]*)?>[\s\S]*?<\s*\/\s*\1\s*>/gi, ' ');
-  output = output.replace(/<\s*(script|style|iframe|object|embed|svg|math|template|form|noscript|textarea|select|button|link|meta|base|canvas|audio|video|applet|frame|frameset)(\s[^>]*)?\/?>/gi, ' ');
+  const dangerPattern = [...DANGEROUS_TAGS].join('|');
+  const dangerRemover = new RegExp(`<\\s*(${dangerPattern})(\\s[^>]*)?>[\\s\\S]*?<\\s*/\\s*\\1\\s*>`, 'gi');
+  const dangerSelfCloser = new RegExp(`<\\s*(${dangerPattern})(\\s[^>]*)?/?>`, 'gi');
+  output = output.replace(dangerRemover, ' ');
+  output = output.replace(dangerSelfCloser, ' ');
   output = output.replace(/<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^<>]*?)?)\s*(\/?)\s*>/gi, function(match, closing, tag, attrs, selfClose) {
     const lower = tag.toLowerCase();
     if (closing) {
@@ -137,9 +146,12 @@ function sanitizeHtml(input) {
       if (k === 'style') continue;
       if (k.startsWith('data-')) { safeAttrs += ' ' + key + (val ? '=' + val : ''); continue; }
       if (!SAFE_ATTRS.has(k)) continue;
-      if (val && (k === 'href' || k === 'src')) {
+      if (val && (k === 'href' || k === 'src' || k === 'poster')) {
         const raw = val.replace(/^['"]|['"]$/g, '').trim();
         if (/^(javascript|vbscript|data):/i.test(raw)) continue;
+        // Media elements may only load site-local sources: no absolute
+        // http(s)// schema, no protocol-relative //host URLs.
+        if ((lower === 'video' || lower === 'audio') && (k === 'src' || k === 'poster') && /^(?:[a-z][a-z0-9+.-]*:|\/\/|\\)/i.test(raw)) continue;
       }
       safeAttrs += ' ' + key + (val ? '=' + val : '');
     }

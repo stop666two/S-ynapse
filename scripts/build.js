@@ -48,6 +48,7 @@ try { chokidar = require('chokidar'); } catch (e) { chokidar = null; }
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
 const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript } = require('./lib/utils');
+const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -55,6 +56,8 @@ const ARTICLES_DIR = path.join(ROOT, 'articles');          // Markdown article s
 
 const STATIC_DIR = path.join(ROOT, 'static');               // Unprocessed static assets (copied verbatim)
 const MEDIA_DIR = path.join(ROOT, 'media');                 // Source images (processed by sharp)
+const VIDEOS_DIR = path.join(ROOT, 'videos');               // Source videos (copied with policy filter)
+const ASSETS_DIR = path.join(ROOT, 'assets');               // Source downloadable files (copied with policy filter)
 const TEMPLATES_DIR = path.join(ROOT, 'templates');         // EJS template files
 const DIST_DIR = path.join(ROOT, 'dist');                   // Build output directory
 const PAGES_DIR = path.join(ROOT, 'pages');                 // Standalone page Markdown files (about, privacy, etc.)
@@ -89,6 +92,22 @@ function loadConfigFile(filename) {
   }
 }
 
+// Load an optional config file. Missing file → null (no error).
+// Present-but-invalid → fatal, matching the strict behavior of loadConfigFile.
+function loadOptionalConfigFile(filename) {
+  const filePath = path.join(ROOT, filename);
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    let raw = fs.readFileSync(filePath, 'utf-8');
+    if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+    raw = raw.replace(/\r\n/g, '\n');
+    return json5.parse(raw);
+  } catch (err) {
+    console.error(`  [FATAL] Failed to parse ${filename}: ${err.message}`);
+    process.exit(1);
+  }
+}
+
 // Load and merge all 6 config files with deep defaults.
 // The defaults object provides every possible key so user configs can be sparse.
 // deepmerge.all([defaults, userConfig]) ensures nested keys (e.g. theme.colors.primary)
@@ -102,6 +121,9 @@ function loadConfig() {
   const sidebar = loadConfigFile('sidebar.json');
   const footer = loadConfigFile('footer.json');
   const security = loadConfigFile('security.json');
+  // Content policy is optional — when the file is missing the built-in default
+  // policy from scripts/lib/content-policy.js is used.
+  const contentPolicy = loadOptionalConfigFile('content-policy.json') || {};
 
   const defaults = {
     site: {
@@ -146,6 +168,10 @@ function loadConfig() {
       externalLinkWarning: { enabled: false, whitelist: [], blacklist: [] },
       showRepoLink: true, repoUrl: ''
     },
+    // Content policy defaults are minimal here — content-policy.json (optional)
+    // supplies the real lists; classifyFile() in lib/content-policy.js falls
+    // back to its own built-in default policy when keys are absent.
+    contentPolicy: { enabled: true },
     theme: {
       colors: { primary: '#2d3748', secondary: '#4a90d9', accent: '#e53e3e', background: '#f7fafc', surface: '#ffffff', text: '#1a202c', textSecondary: '#4a5568', textLight: '#a0aec0', border: '#e2e8f0', shadow: 'rgba(0,0,0,0.1)', hover: '#edf2f7', codeBackground: '#2d3748', codeText: '#f7fafc' },
       darkMode: { enabled: false, toggle: true, default: 'system', colors: {} },
@@ -180,7 +206,7 @@ function loadConfig() {
     }
   };
 
-  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security }]);
+  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy }]);
   return config;
 }
 
@@ -334,6 +360,80 @@ function copyDirSync(src, dest) {
       fs.copyFileSync(srcPath, destPath);
     }
   }
+}
+
+// Apply the content policy (content-policy.json) to videos/, assets/, and the
+// non-sharp-optimized part of media/ (svg sanitized, gif/avif/bmp/ico raw copy).
+// Violations are NOT copied → the deployed URL naturally 404s.
+// Returns { copied, blocked: [{ path, reason }] } for the build report.
+function copyProtectedAssets(config) {
+  const policy = config.contentPolicy || {};
+  if (policy.enabled === false) {
+    console.log('  [SKIP] Content policy disabled');
+    return { copied: 0, blocked: [] };
+  }
+  console.log('  [POLICY] Applying content policy to videos/, assets/, media/...');
+  const blocked = [];
+  let copied = 0;
+
+  const copyFiltered = (srcDir, destDir, srcCategory) => {
+    if (!fs.existsSync(srcDir)) return;
+    for (const srcPath of getAllFiles(srcDir)) {
+      const rel = path.relative(srcDir, srcPath);
+      const baseName = rel.replace(/\\/g, '/').split('/').pop().toLowerCase();
+      if (baseName === '.gitkeep') continue; // directory placeholder, never published
+      const verdict = classifyFile(rel, srcCategory, policy);
+      if (!verdict.allowed) {
+        blocked.push({ path: `${srcCategory}/${rel.replace(/\\/g, '/')}`, reason: verdict.reason });
+        continue;
+      }
+      const destPath = path.join(destDir, rel);
+      fs.mkdirSync(path.dirname(destPath), { recursive: true });
+      fs.copyFileSync(srcPath, destPath);
+      copied++;
+    }
+  };
+
+  copyFiltered(ASSETS_DIR, path.join(DIST_DIR, 'assets'), 'assets');
+  copyFiltered(VIDEOS_DIR, path.join(DIST_DIR, 'videos'), 'videos');
+
+  // media/: files sharp does not handle are copied verbatim here (svg after
+  // sanitization). Files classified 'media-optimized' are left to optimizeMedia().
+  if (policy.svgSanitize !== false && fs.existsSync(MEDIA_DIR)) {
+    const mediaDest = path.join(DIST_DIR, 'media');
+    for (const srcPath of getAllFiles(MEDIA_DIR)) {
+      const rel = path.relative(MEDIA_DIR, srcPath);
+      const baseName = rel.replace(/\\/g, '/').split('/').pop().toLowerCase();
+      if (baseName === '.gitkeep') continue;
+      const verdict = classifyFile(rel, 'media', policy);
+      if (!verdict.allowed) {
+        blocked.push({ path: `media/${rel.replace(/\\/g, '/')}`, reason: verdict.reason });
+        continue;
+      }
+      if (verdict.category === 'media-optimized') continue;
+      const destPath = path.join(mediaDest, rel);
+      fs.mkdirSync(path.dirname(destPath), { recursive: true });
+      if (/\.svg$/i.test(srcPath)) {
+        const svg = sanitizeSvg(fs.readFileSync(srcPath, 'utf-8'));
+        if (!svg.safe) {
+          blocked.push({ path: `media/${rel.replace(/\\/g, '/')}`, reason: 'svg-unsafe' });
+          continue;
+        }
+        fs.writeFileSync(destPath, svg.content, 'utf-8');
+      } else {
+        fs.copyFileSync(srcPath, destPath);
+      }
+      copied++;
+    }
+  }
+
+  if (blocked.length) {
+    console.warn(`  [POLICY] Blocked ${blocked.length} file(s) by content policy:`);
+    for (const b of blocked) console.warn(`    - ${b.path} (${b.reason})`);
+  } else {
+    console.log(`  [POLICY] Copied ${copied} protected asset(s), no violations`);
+  }
+  return { copied, blocked };
 }
 
 // Optimize images from media/ using sharp.
@@ -1173,8 +1273,10 @@ function generateSearchIndex(config, articles) {
 
 // Generate an HTML build report page with stats: build time, article count, tag/category counts,
 // output size, and feature enablement status. Written to dist/build-report.html.
-function generateBuildReport(config, articles, tags, categories, customPages, elapsed) {
+function generateBuildReport(config, articles, tags, categories, customPages, elapsed, policyResult) {
   try {
+    const policyBlocked = (policyResult && policyResult.blocked) || [];
+    const policyCopied = (policyResult && policyResult.copied) || 0;
     const published = getPublished(articles);
     const totalSize = getDirSize(DIST_DIR);
     const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>构建报告 - ${config.site.title}</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:2rem auto;padding:0 1rem;color:#333}h1{font-size:1.5rem}.stat{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #eee}.stat-label{color:#666}.stat-value{font-weight:600}.good{color:#16a34a}.warn{color:#d97706}</style></head><body><h1>构建报告</h1><p style="color:#666">${new Date().toISOString().replace('T',' ').slice(0,19)}</p>
@@ -1188,9 +1290,12 @@ function generateBuildReport(config, articles, tags, categories, customPages, el
     <div class="stat"><span class="stat-label">依赖</span><span class="stat-value">${published.reduce((s,a)=>s+(a.wordCount||0),0)} 字</span></div>
     <div class="stat"><span class="stat-label">压缩</span><span class="stat-value ${config.site.build.minifyHTML?'good':'warn'}">${config.site.build.minifyHTML?'已启用':'未启用'}</span></div>
     <div class="stat"><span class="stat-label">图片优化</span><span class="stat-value ${config.site.build.optimizeMedia?'good':'warn'}">${config.site.build.optimizeMedia?'已启用':'未启用'}</span></div>
+    <div class="stat"><span class="stat-label">内容策略拦截</span><span class="stat-value ${policyBlocked.length?'warn':'good'}">${policyBlocked.length} 项</span></div>
+    <div class="stat"><span class="stat-label">受保护资产复制</span><span class="stat-value">${policyCopied}</span></div>
     <div class="stat"><span class="stat-label">缓存清除</span><span class="stat-value ${config.site.build.enableCacheBusting?'good':'warn'}">${config.site.build.enableCacheBusting?'已启用':'未启用'}</span></div>
     <div class="stat"><span class="stat-label">CSP</span><span class="stat-value ${config.security.csp&&config.security.csp.enabled?'good':'warn'}">${config.security.csp&&config.security.csp.enabled?'已启用':'未启用'}</span></div>
-    <div class="stat"><span class="stat-label">RSS</span><span class="stat-value ${config.site.rss&&config.site.rss.enabled?'good':'warn'}">${config.site.rss&&config.site.rss.enabled?'已启用':'未启用'}</span></div></body></html>`;
+    <div class="stat"><span class="stat-label">RSS</span><span class="stat-value ${config.site.rss&&config.site.rss.enabled?'good':'warn'}">${config.site.rss&&config.site.rss.enabled?'已启用':'未启用'}</span></div>
+    ${policyBlocked.length ? `<h2>被拦截文件（内容策略）</h2><ul>${policyBlocked.map(b => `<li><code>${b.path}</code> — ${b.reason}</li>`).join('')}</ul>` : ''}</body></html>`;
     fs.writeFileSync(path.join(DIST_DIR, 'build-report.html'), html, 'utf-8');
     console.log('  Created: build-report.html');
   } catch (err) {
@@ -1519,6 +1624,7 @@ async function build() {
     if (hooks && hooks.preBuild) await hooks.preBuild(config);
     setupDist(config);
     copyStatic(config);
+    const policyResult = copyProtectedAssets(config);
     const mediaManifest = await optimizeMedia(config);
     const articles = await processArticles(config, mediaManifest);
     if (articles.length === 0) console.log('  [WARN] No articles found');
@@ -1556,7 +1662,7 @@ async function build() {
     console.log(`  Build complete in ${elapsed}s`);
     console.log(`  Output: dist/`);
     console.log(`========================================`);
-    if (config.site.build.buildReport !== false) generateBuildReport(config, articles, tags, categories, customPages, elapsed);
+    if (config.site.build.buildReport !== false) generateBuildReport(config, articles, tags, categories, customPages, elapsed, policyResult);
   } catch (err) {
     console.error(`\n[FATAL] Build failed: ${err.message}`);
     console.error(err.stack);
@@ -1588,6 +1694,8 @@ if (WATCH_MODE) {
     path.join(ROOT, 'templates', '**', '*.ejs'),
     path.join(ROOT, 'static', '**', '*'),
     path.join(ROOT, 'media', '**', '*'),
+    path.join(ROOT, 'videos', '**', '*'),
+    path.join(ROOT, 'assets', '**', '*'),
     path.join(ROOT, '*.json')
   ];
   const watcher = chokidar.watch(watchPaths, { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 300 } });
@@ -1608,7 +1716,7 @@ if (WATCH_MODE) {
 function startServer() {
   var http = require('http');
   var PORT = parseInt(process.argv[process.argv.indexOf('--port') + 1]) || 3000;
-  var mime = { '.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.xml':'application/xml','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.ico':'image/x-icon','.txt':'text/plain' };
+  var mime = { '.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.xml':'application/xml','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.gif':'image/gif','.ico':'image/x-icon','.txt':'text/plain','.mp4':'video/mp4','.webm':'video/webm','.avi':'video/x-msvideo','.mov':'video/quicktime','.mkv':'video/x-matroska','.mp3':'audio/mpeg','.wav':'audio/wav','.m4a':'audio/mp4','.ogg':'audio/ogg','.flac':'audio/flac','.pdf':'application/pdf','.csv':'text/csv','.zip':'application/zip','.7z':'application/x-7z-compressed','.rar':'application/x-rar-compressed','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf','.otf':'font/otf','.eot':'application/vnd.ms-fontobject' };
   http.createServer(function(req, res) {
     var urlPath = decodeURIComponent(req.url.split('?')[0]);
     var urlNoSlash = urlPath.replace(/\/$/, '');
@@ -1617,15 +1725,16 @@ function startServer() {
       filePath = path.join(DIST_DIR, '404.html');
     }
     try { if (fs.statSync(filePath).isDirectory()) filePath = path.join(filePath, 'index.html'); } catch(e) {}
+    var isNotFound = false;
     if (!fs.existsSync(filePath)) {
       var alt = filePath + '.html';
       if (fs.existsSync(alt)) filePath = alt;
-      else filePath = path.join(DIST_DIR, '404.html');
+      else { filePath = path.join(DIST_DIR, '404.html'); isNotFound = true; }
     }
     fs.readFile(filePath, function(err, data) {
       if (err) { res.writeHead(500); res.end('Server Error'); return; }
       var ext = path.extname(filePath).toLowerCase();
-      res.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
+      res.writeHead(isNotFound ? 404 : 200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
       res.end(data);
     });
   }).listen(PORT, function() {

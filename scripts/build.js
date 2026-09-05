@@ -464,46 +464,66 @@ function generateOgImage(outputPath, title, siteTitle, colors, ogStyle) {
   const fg = colors?.codeText || '#f7fafc';
   const accent = colors?.secondary || '#4a90d9';
   const st = ogStyle || {};
-  // Style knobs (JSON5-configured): align, fontSize-based lengths, showSite,
-  // gradient angle, corner radius of title container, letter spacing.
+  // Style knobs (JSON5-configured): align, showSite, useGradient,
+  // gradientAngle, letterSpacing, fontSizeBase, maxLines.
   const align = st.align || 'center';
   const showSite = st.showSite !== false;
   const useGradient = st.useGradient !== false;
   const gradientAngle = st.gradientAngle != null ? st.gradientAngle : '135deg';
   const letterSpacing = st.letterSpacing != null ? st.letterSpacing : '0.02em';
   const fontSizeBase = st.fontSizeBase != null ? st.fontSizeBase : 64;
+  const maxLines = st.maxLines != null ? st.maxLines : 4;
   const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const safeSite = siteTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const long = safeTitle.length > st.breakAt || (st.breakAt == null && safeTitle.length > 28);
-  const fontSize = long ? Math.round(fontSizeBase * 0.66) : safeTitle.length > 10 ? Math.round(fontSizeBase * 0.8) : fontSizeBase;
-  const lines = [];
-  if (long) {
-    const mid = Math.ceil(safeTitle.length / 2);
-    const split = safeTitle.slice(0, mid);
-    const rest = safeTitle.slice(mid);
-    const breakIdx = Math.max(split.lastIndexOf(' '), split.lastIndexOf('—'), split.lastIndexOf('-'), split.lastIndexOf(','));
-    if (breakIdx > 0) {
-      lines.push(safeTitle.slice(0, breakIdx + 1));
-      lines.push(safeTitle.slice(breakIdx + 1).trim());
-    } else { lines.push(split); lines.push(rest); }
-  } else { lines.push(safeTitle); }
-  const x = align === 'left' ? 80 : 600;
+
+  // Wrap title into multiple visual lines. CJK characters are ~1.0 em wide,
+  // Latin chars ~0.55 em; available text width = 1200 - 2*140 margins.
+  const textWidth = 1200 - 280;
+  const chars = Array.from(safeTitle);
+  function wrap(chars, size) {
+    const maxChars = Math.max(4, Math.floor(textWidth / (size * (size > 40 ? 0.62 : 0.72))));
+    const out = [];
+    let line = '';
+    for (const ch of chars) {
+      if (Array.from(line).length >= maxChars) { out.push(line); line = ch; }
+      else line += ch;
+      // break at natural boundaries (space / punctuation) if line is long enough
+      if (line.length >= maxChars && /[\s,，。；;、—!?！？]/.test(ch)) {
+        out.push(line); line = '';
+      }
+    }
+    if (line) out.push(line);
+    return out;
+  }
+  let lines = wrap(chars, fontSizeBase);
+  // Scale down font if more lines than available height (keep within 4)
+  let fontSize = fontSizeBase;
+  while (lines.length > maxLines && fontSize > 28) {
+    fontSize = Math.round(fontSize * 0.86);
+    lines = wrap(chars, fontSize);
+  }
+  if (lines.length > maxLines) { lines = lines.slice(0, maxLines); lines[maxLines - 1] += '…'; }
+
+  const x = align === 'left' ? 140 : 600;
   const anchor = align === 'left' ? 'start' : 'middle';
-  const line0 = lines[0] ? `<text x="${x}" y="290" text-anchor="${anchor}" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="${fontSize}" font-weight="700" letter-spacing="${letterSpacing}" fill="${fg}">${lines[0]}</text>` : '';
-  const line1 = lines[1] ? `<text x="${x}" y="${290 + Math.round(fontSize * 1.18)}" text-anchor="${anchor}" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="${fontSize}" font-weight="700" letter-spacing="${letterSpacing}" fill="${fg}">${lines[1]}</text>` : '';
-  const siteY = 550;
+  const lineHeight = Math.round(fontSize * 1.22);
+  const startY = 290 - Math.round(((lines.length - 1) * lineHeight) / 2);
+  const textLines = lines.map((ln, i) =>
+    `<text x="${x}" y="${startY + i * lineHeight}" text-anchor="${anchor}" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="${fontSize}" font-weight="700" letter-spacing="${letterSpacing}" fill="${fg}">${ln}</text>`
+  ).join('\n  ');
+  // Site line sits at fixed y=560 unless title fills the canvas
+  const siteY = 560;
   const siteText = showSite ? `<text x="${x}" y="${siteY}" text-anchor="${anchor}" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="24" fill="${fg}" opacity="0.55" letter-spacing="0.04em">${safeSite}</text>` : '';
   const gradient = useGradient
     ? `<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${bg}"/><stop offset="100%" style="stop-color:${accent}"/></linearGradient></defs><rect fill="url(#bg)" width="1200" height="630"/>`
     : `<rect fill="${bg}" width="1200" height="630"/>`;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   ${gradient}
-  ${line0}
-  ${line1}
+  ${textLines}
   ${siteText}
 </svg>`;
   fs.writeFileSync(outputPath, svg, 'utf-8');
-  console.log(`  [OG] Generated: media/og-${path.basename(outputPath, '.svg').replace('og-', '').replace(/\\..*$/, '')}.svg`);
+  console.log(`  [OG] Generated: ${path.basename(outputPath)}`);
 }
 
 // Create the output directory structure under dist/.

@@ -200,7 +200,7 @@ const DEFAULT_FEATURES = {
   },
   ogImageStyle: {
     enabled: true, align: 'center', showSite: true, useGradient: true,
-    gradientAngle: '135deg', fontSizeBase: 64, breakAt: 28,
+    gradientAngle: '135deg', fontSizeBase: 64, maxLines: 4,
     letterSpacing: '0.02em'
   }
 };

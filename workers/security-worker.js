@@ -68,6 +68,24 @@ function isBlockedPath(pathname) {
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
+
+  // Maintenance mode — enabled by setting env var MAINTENANCE=1 (e.g. via wrangler deploy).
+  // Optional env var MAINTENANCE_MESSAGE customizes the notice.
+  if (env && env.MAINTENANCE === "1") {
+    const message = env.MAINTENANCE_MESSAGE || "本站正在维护中，请稍后再来。";
+    return new Response(
+      `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ${message}</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f7fafc;color:#1a202c}h1{font-weight:700}p{color:#4a5568}</style></head><body><main><h1>🚧</h1><h1>维护中</h1><p>${message}</p></main></body></html>`,
+      {
+        status: 503,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Retry-After": "3600",
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
+
   // Skip rate limiting when clientIP is null (not behind Cloudflare — e.g. local dev)
   // This prevents all local requests from sharing a single 'unknown' rate limit bucket.
   const clientIP = request.headers.get("CF-Connecting-IP");

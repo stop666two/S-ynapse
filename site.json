@@ -189,8 +189,18 @@
     "cjkSpacing": true,                    // 中英文自动加空格
     "buildReport": true,                   // 生成构建报告
     "autoOgImage": true,                   // 自动生成 OG 图片
-    "forceContentWidth": true              // 强制所有页面内容区为最大宽度
+    "forceContentWidth": true,             // 强制所有页面内容区为最大宽度
+    "avif": {                              // AVIF 变体（默认关闭；开启后 <picture> 优先提供 avif，构建时间约增加 40%）
+      "enabled": false,
+      "quality": 50,
+      "effort": 6                          // 0-9，越高越慢压缩率越好
+    }
   },
+
+  // ==================== 重定向规则 ====================
+  // 生成 Cloudflare Pages _redirects 文件（301/302），支持通配符：from 与 to 中的 * 一一对应
+  // 示例：{ "from": "/old-post", "to": "/new-post/", "permanent": true }
+  "redirects": [],
 
   // ==================== 自定义 HTML 注入 ====================
 

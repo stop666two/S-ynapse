@@ -1509,6 +1509,30 @@ function getDirSize(dir) {
 // The _headers file sets CSP directives, HTTP security headers, and custom headers
 // from the security.json configuration. Applied to all paths (/*).
 // Note: security-worker.js provides a parallel security layer at the Worker level.
+// Generate Cloudflare Pages _redirects file from site.json redirects array.
+// Each entry: {from, to, permanent} — permanent=true → 301, false → 302.
+// Supports wildcard syntax (e.g. "/old/* /new/:splat 301") via CF Pages native matching.
+function generateRedirects(config) {
+  const list = config.site.redirects || [];
+  if (!Array.isArray(list) || list.length === 0) return;
+  console.log('  Generating _redirects...');
+  const lines = [];
+  const valid = [];
+  for (const r of list) {
+    if (!r || !r.from || !r.to) {
+      console.warn('  [WARN] Skipped invalid redirect entry (missing from/to): ' + JSON.stringify(r || null));
+      continue;
+    }
+    const status = r.permanent === false ? 302 : 301;
+    valid.push({ from: r.from, to: r.to, status });
+    lines.push(`${r.from} ${r.to} ${status}`);
+  }
+  if (lines.length === 0) return;
+  fs.writeFileSync(path.join(DIST_DIR, '_redirects'), lines.join('\n') + '\n', 'utf-8');
+  console.log('  Created: /_redirects (' + valid.length + ' rules)');
+  return valid;
+}
+
 function generateSecurityHeaders(config) {
   console.log('[10/14] Generating security files...');
   const lines = [];
@@ -1836,6 +1860,7 @@ async function build() {
     await generateSitemap(config, articles, tags, categories, customPages);
     generateSearchIndex(config, articles);
     generateSecurityHeaders(config);
+    generateRedirects(config);
     if (generateWorkerSecurity) {
       generateWorkerSecurity(config.security, path.join(ROOT, 'workers', 'security-config.js'));
     }
@@ -1910,9 +1935,42 @@ if (WATCH_MODE) {
 function startServer() {
   var http = require('http');
   var PORT = parseInt(process.argv[process.argv.indexOf('--port') + 1]) || 3000;
+  var MAINTENANCE = process.argv.indexOf('--maintenance') !== -1 || process.env.MAINTENANCE === '1';
+  var MAINT_MSG = process.env.MAINTENANCE_MESSAGE || '本站正在维护中，请稍后再来。';
+  var maintPage = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ' + MAINT_MSG + '</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f7fafc;color:#1a202c}p{color:#4a5568}</style></head><body><main><h1>维护中</h1><p>' + MAINT_MSG + '</p></main></body></html>';
+  var REDIRECT_LIST = [];
+  try {
+    var rc = fs.readFileSync(path.join(DIST_DIR, '_redirects'), 'utf-8');
+    rc.split('\n').forEach(function(line) {
+      if (!line.trim()) return;
+      var parts = line.trim().split(/\s+/);
+      if (parts.length >= 3) REDIRECT_LIST.push({ from: parts[0], to: parts[1], status: parts[2] === '302' ? 302 : 301 });
+    });
+  } catch (e) {}
   var mime = { '.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.xml':'application/xml','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.gif':'image/gif','.ico':'image/x-icon','.txt':'text/plain','.mp4':'video/mp4','.webm':'video/webm','.avi':'video/x-msvideo','.mov':'video/quicktime','.mkv':'video/x-matroska','.mp3':'audio/mpeg','.wav':'audio/wav','.m4a':'audio/mp4','.ogg':'audio/ogg','.flac':'audio/flac','.pdf':'application/pdf','.csv':'text/csv','.zip':'application/zip','.7z':'application/x-7z-compressed','.rar':'application/x-rar-compressed','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf','.otf':'font/otf','.eot':'application/vnd.ms-fontobject' };
   http.createServer(function(req, res) {
+    if (MAINTENANCE) {
+      res.writeHead(503, { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '3600', 'Cache-Control': 'no-store' });
+      res.end(maintPage);
+      return;
+    }
     var urlPath = decodeURIComponent(req.url.split('?')[0]);
+    var redirects = REDIRECT_LIST;
+    if (redirects.length) {
+      for (var i = 0; i < redirects.length; i++) {
+        var rd = redirects[i];
+        var wildcardTail = rd.from.charAt(rd.from.length - 1) === '*';
+        if (rd.from === urlPath || (wildcardTail && urlPath.startsWith(rd.from.slice(0, -1)))) {
+          var to = rd.to;
+          if (wildcardTail && to.indexOf('*') !== -1) {
+            to = to.split('*').join(urlPath.slice(rd.from.length - 1));
+          }
+          res.writeHead(rd.status, { Location: to, 'Cache-Control': 'no-store' });
+          res.end();
+          return;
+        }
+      }
+    }
     var urlNoSlash = urlPath.replace(/\/$/, '');
     var filePath = urlNoSlash ? path.resolve(DIST_DIR, '.' + urlNoSlash) : path.join(DIST_DIR, 'index.html');
     if (!filePath.startsWith(path.resolve(DIST_DIR) + path.sep) && !filePath.startsWith(path.resolve(DIST_DIR) + '/')) {

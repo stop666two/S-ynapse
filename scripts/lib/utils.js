@@ -176,4 +176,28 @@ function escapeJsonForScript(value, space) {
   return JSON.stringify(value, null, space).replace(/</g, '\\u003c');
 }
 
-module.exports = { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords };
+// Resolve [[wiki links]] into Markdown links before Markdown parsing.
+// lookup: Map-like { titles: Map(lowerTitle → {title,url}), slugs: Map(slug → {title,url}) }
+// Patterns: [[title]] [[title|显示文本]] [[slug]] [[slug|文本]] [[https://...]] [[url|文本]]
+// Unknown targets are unwrapped to plain text (no link, no error).
+function resolveWikiLinks(content, lookup) {
+  if (typeof content !== 'string' || !lookup) return content;
+  const titles = lookup.titles || new Map();
+  const slugs = lookup.slugs || new Map();
+  return content.replace(/\[\[([^\]]+)\]\]/g, function(m, inner) {
+    const parts = inner.split('|');
+    const target = parts[0].trim();
+    const label = (parts[1] || '').trim();
+    if (/^https?:\/\//i.test(target)) {
+      const outer = label || target;
+      return '[' + outer + '](' + target + ')';
+    }
+    const byTitle = titles.get(target.toLowerCase());
+    const bySlug = slugs.get(target.replace(/^\/+|\/+$/g, ''));
+    const hit = byTitle || bySlug;
+    if (hit) return '[' + (label || hit.title) + '](' + hit.url + ')';
+    return label || target;
+  });
+}
+
+module.exports = { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks };

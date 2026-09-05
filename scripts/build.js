@@ -49,7 +49,7 @@ try { generateWorkerSecurity = require('./generate-security-config').generateSec
 // Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
-const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords } = require('./lib/utils');
+const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks } = require('./lib/utils');
 const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
 
 // Project directory structure — all paths relative to project root
@@ -126,6 +126,9 @@ function loadConfig() {
   // Content policy is optional — when the file is missing the built-in default
   // policy from scripts/lib/content-policy.js is used.
   const contentPolicy = loadOptionalConfigFile('content-policy.json') || {};
+  // Tag aliases + friends are optional external config files (single source per feature).
+  const tagAliasData = loadOptionalConfigFile('tag-aliases.json') || {};
+  const friendsData = loadOptionalConfigFile('friends.json') || {};
 
   const defaults = {
     site: {
@@ -174,6 +177,8 @@ function loadConfig() {
     // supplies the real lists; classifyFile() in lib/content-policy.js falls
     // back to its own built-in default policy when keys are absent.
     contentPolicy: { enabled: true },
+    tagAliases: { enabled: true, aliases: {} },
+    friends: { enabled: false, title: '友情链接', description: '', applyNote: '', friends: [] },
     theme: {
       colors: { primary: '#2d3748', secondary: '#4a90d9', accent: '#e53e3e', background: '#f7fafc', surface: '#ffffff', text: '#1a202c', textSecondary: '#4a5568', textLight: '#a0aec0', border: '#e2e8f0', shadow: 'rgba(0,0,0,0.1)', hover: '#edf2f7', codeBackground: '#2d3748', codeText: '#f7fafc' },
       darkMode: { enabled: false, toggle: true, default: 'system', colors: {} },
@@ -208,7 +213,7 @@ function loadConfig() {
     }
   };
 
-  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy }]);
+  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy }, { tagAliases: tagAliasData, friends: friendsData }]);
   return config;
 }
 
@@ -689,6 +694,35 @@ async function processArticles(config, mediaManifest) {
     return articles;
   }
   const files = fs.readdirSync(ARTICLES_DIR).filter(f => /\.md$/i.test(f));
+  // Pre-scan pass: build a title/slug lookup so [[wiki links]] resolve across articles.
+  const wikiLookup = { titles: new Map(), slugs: new Map() };
+  const tagAliasesCfg = config.tagAliases || {};
+  const aliasEnabled = tagAliasesCfg.enabled !== false;
+  const tagAliases = tagAliasesCfg.aliases && typeof tagAliasesCfg.aliases === 'object' ? tagAliasesCfg.aliases : {};
+  for (const file of files) {
+    try {
+      const fm = frontMatter(fs.readFileSync(path.join(ARTICLES_DIR, file), 'utf-8'));
+      const attrs = fm.attributes || {};
+      const t = attrs.title || '';
+      const s = attrs.slug || (t ? safeSlug(t) : path.basename(file, '.md').replace(/\.md$/i, ''));
+      const entry = { title: t || s, url: '/' + s + '/' };
+      wikiLookup.titles.set((t || s).toLowerCase(), entry);
+      wikiLookup.slugs.set(s, entry);
+    } catch (e) { /* skip unreadable files in lookup */ }
+  }
+  function applyTagAliases(tags) {
+    if (!aliasEnabled || !Object.keys(tagAliases).length) return tags;
+    return tags.map(function(tag) {
+      const k = (tag || '').trim();
+      const direct = tagAliases[k];
+      if (direct) return String(direct);
+      const lowHit = tagAliases[k.toLowerCase()];
+      if (lowHit) return String(lowHit);
+      return tag;
+    });
+  }
+  const MATH_RX = /(\$\$[\s\S]+?\$\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/;
+  const MERMAID_RX = /```[ \t]*mermaid\b/i;
   for (const file of files) {
     const filePath = path.join(ARTICLES_DIR, file);
     try {
@@ -717,10 +751,14 @@ async function processArticles(config, mediaManifest) {
       const url = `/${slug}/`;
       const excerpt = attrs.excerpt || '';
       const date = attrs.date || null;
-      const tags = Array.isArray(attrs.tags) ? attrs.tags : [];
+      const tags = applyTagAliases(Array.isArray(attrs.tags) ? attrs.tags : []);
       const categories = Array.isArray(attrs.categories) ? attrs.categories : [];
       const draft = attrs.draft === true || attrs.draft === 'true';
       const pinned = attrs.pinned === true || attrs.pinned === 'true';
+      const series = attrs.series ? String(attrs.series).trim() : null;
+      content = resolveWikiLinks(content, wikiLookup);
+      const hasMath = MATH_RX.test(content);
+      const hasMermaid = MERMAID_RX.test(content);
       let htmlContent = marked.parse(content);
       if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
       htmlContent = sanitizeHtml(htmlContent);
@@ -745,10 +783,10 @@ async function processArticles(config, mediaManifest) {
         attrs.featuredImage = `/media/og/${slug}.svg`;
       }
       articles.push({
-        slug, title, url, date, tags, categories, draft, pinned,
+        slug, title, url, date, tags, categories, draft, pinned, series,
         content: htmlContent,
         excerpt: excerptText,
-        wordCount, readTime, toc,
+        wordCount, readTime, toc, hasMath, hasMermaid,
         frontmatter: attrs,
         filename: file,
         year: date ? new Date(date).getFullYear() : null,
@@ -807,6 +845,41 @@ function computeRelatedArticles(articles, maxCount) {
     scored.sort((a, b) => b.score - a.score);
     article.relatedArticles = scored.slice(0, maxCount);
   }
+}
+
+// Group articles into series (front-matter `series`). Each series lists its
+// articles in chronological order (oldest first) and annotates each article
+// with prev/next navigation inside the series for the detail-page panel.
+function collectSeries(articles) {
+  const map = new Map();
+  for (const a of articles) {
+    if (!a.series) continue;
+    if (!map.has(a.series)) map.set(a.series, []);
+    map.get(a.series).push(a);
+  }
+  const result = [];
+  for (const [name, list] of map) {
+    list.sort((x, y) => {
+      if (!x.date && !y.date) return x.title.localeCompare(y.title);
+      if (!x.date) return 1;
+      if (!y.date) return -1;
+      return new Date(x.date) - new Date(y.date);
+    });
+    list.forEach(function(a, i) {
+      a.seriesIndex = i + 1;
+      a.seriesTotal = list.length;
+      a.seriesPrevUrl = i > 0 ? list[i - 1].url : null;
+      a.seriesNextUrl = i < list.length - 1 ? list[i + 1].url : null;
+    });
+    result.push({ name, slug: safeSlug(name), count: list.length, firstUrl: list[0].url, articles: list });
+  }
+  return result.sort((a, b) => b.count - a.count);
+}
+
+function collectFriends(config) {
+  const cfg = config.friends || {};
+  if (!cfg.enabled || !Array.isArray(cfg.friends) || !cfg.friends.length) return null;
+  return cfg;
 }
 
 // Aggregate categories across all articles with count and slugified URL.
@@ -900,10 +973,19 @@ function generateSearchData(config, articles) {
 // This is the base context — individual page generators add page-specific keys on top.
 function buildPageData(config, articles, tags, categories) {
   const published = getPublished(articles);
+  const friendsCfg = collectFriends(config);
+  let nav = config.navigation;
+  // Auto-inject a 友链 menu entry when friends are configured but no menu item points to /links/.
+  if (friendsCfg && nav && Array.isArray(nav.menu)) {
+    const hasLinks = nav.menu.some(function(m) { return m && (m.url === '/links/' || m.url === '/links'); });
+    if (!hasLinks) {
+      nav = { ...nav, menu: [{ label: '友链', url: '/links/', type: 'page' }, ...nav.menu] };
+    }
+  }
   return {
     site: config.site,
     theme: config.theme,
-    nav: config.navigation,
+    nav,
     sidebar: config.sidebar,
     footer: config.footer,
     security: config.security,
@@ -912,6 +994,8 @@ function buildPageData(config, articles, tags, categories) {
     allTags: tags,
     allCategories: categories,
     archives: groupByYearMonth(published),
+    seriesList: collectSeries(published),
+    friends: friendsCfg,
     currentUrl: '/',
     currentPage: 'index',
     formatDate: (d) => formatDate(d, config.site.dateFormat),
@@ -1132,6 +1216,12 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
   const data404 = { ...baseData, currentUrl: '/404', currentPage: '404' };
   const html404 = renderPage('404.ejs', data404, layoutTemplate);
   if (html404) await writeFile('404.html', html404);
+
+  if (baseData.friends) {
+    const linksData = { ...baseData, currentUrl: '/links/', currentPage: 'links', pageTitle: baseData.friends.title || '友情链接' };
+    const linksHtml = renderPage('links.ejs', linksData, layoutTemplate);
+    if (linksHtml) await writeFile('links/index.html', linksHtml);
+  }
 
   if (config.navigation.search && config.navigation.search.enabled) {
     const searchData = { ...baseData, currentUrl: '/search', currentPage: 'search' };

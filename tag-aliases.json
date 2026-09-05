@@ -1,0 +1,16 @@
+{
+  // 标签别名映射：把文章中写的标签名归一化到标准名（多对一）。
+  // 例如写 "javascript" / "js" / "JS" 的文章都会归到 "JavaScript" 标签页下。
+  // 不配置（或 enabled: false）时，标签按文章原文原样展示与聚合。
+  enabled: true,
+  aliases: {
+    js: "JavaScript",
+    javascript: "JavaScript",
+    ts: "TypeScript",
+    typescript: "TypeScript",
+    cpp: "C++",
+    golang: "Go",
+    react: "React",
+    // 示例：cn: "Chinese",
+  },
+}

@@ -1,0 +1,28 @@
+<div class="post-article">
+<h1><%= friends.title || '友情链接' %></h1>
+
+<% if (friends.description) { %><p class="links-description"><%= friends.description %></p><% } %>
+
+<% if (friends.friends && friends.friends.length) { %>
+<div class="links-grid">
+  <% friends.friends.forEach(function(f) { %>
+  <a href="<%= f.url %>" class="links-card" target="_blank" rel="noopener noreferrer">
+    <% if (f.logo) { %><img src="<%= f.logo %>" alt="<%= f.name %>" class="links-card-logo" loading="lazy"><% } else { %><span class="links-card-logo links-card-logo-placeholder" aria-hidden="true"><%= f.name.charAt(0) %></span><% } %>
+    <div class="links-card-body">
+      <div class="links-card-name"><%= f.name %></div>
+      <% if (f.desc) { %><div class="links-card-desc"><%= f.desc %></div><% } %>
+    </div>
+  </a>
+  <% }) %>
+</div>
+<% } else { %>
+<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">暂无友链</p>
+<% } %>
+
+<% if (friends.applyNote) { %>
+<div class="links-apply">
+  <h3>友链申请</h3>
+  <p><%= friends.applyNote %></p>
+</div>
+<% } %>
+</div>

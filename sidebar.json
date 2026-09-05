@@ -49,6 +49,12 @@
       "showCount": true          // 是否显示每月的文章数量
     },
     {
+      "type": "series",          // 组件类型：series - 系列文章（无系列文章时自动隐藏）
+      "enabled": true,
+      "title": "系列文章",
+      "count": 8                 // 最多显示系列数
+    },
+    {
       "type": "search",          // 组件类型：search - 搜索框
       "enabled": true,
       "title": "搜索",

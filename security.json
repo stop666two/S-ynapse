@@ -7,9 +7,9 @@
     "directives": {              // CSP 指令列表
       "default-src": ["'self'"],                             // 默认资源加载来源
       "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com"],  // 脚本来源
-      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],  // 样式来源
+      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],  // 样式来源
       "img-src": ["'self'", "data:", "https:"],              // 图片来源
-      "font-src": ["'self'", "https://fonts.gstatic.com"],   // 字体来源
+      "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],   // 字体来源
       "connect-src": ["'self'", "https://cloudflareinsights.com"],  // 接口请求来源
       "media-src": ["'self'"],                                // 媒体资源来源
       "object-src": ["'none'"],                               // 插件对象来源（建议设为 'none'）

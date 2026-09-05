@@ -32,3 +32,6 @@ RULES.md
 database.db
 database.db-shm
 database.db-wal
+
+# 浏览器测试产物
+.playwright-mcp/

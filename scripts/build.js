@@ -459,14 +459,25 @@ function validateConfig(config) {
 // Generate an SVG Open Graph image for social sharing (1200×630).
 // Uses theme colors for background gradient, auto-splits long titles onto two lines.
 // Output is written to dist/media/og/{slug}.svg during article processing.
-function generateOgImage(outputPath, title, siteTitle, colors) {
+function generateOgImage(outputPath, title, siteTitle, colors, ogStyle) {
   const bg = colors?.primary || '#2d3748';
   const fg = colors?.codeText || '#f7fafc';
   const accent = colors?.secondary || '#4a90d9';
+  const st = ogStyle || {};
+  // Style knobs (JSON5-configured): align, fontSize-based lengths, showSite,
+  // gradient angle, corner radius of title container, letter spacing.
+  const align = st.align || 'center';
+  const showSite = st.showSite !== false;
+  const useGradient = st.useGradient !== false;
+  const gradientAngle = st.gradientAngle != null ? st.gradientAngle : '135deg';
+  const letterSpacing = st.letterSpacing != null ? st.letterSpacing : '0.02em';
+  const fontSizeBase = st.fontSizeBase != null ? st.fontSizeBase : 64;
   const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const fontSize = safeTitle.length > 20 ? '42' : safeTitle.length > 10 ? '52' : '64';
+  const safeSite = siteTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const long = safeTitle.length > st.breakAt || (st.breakAt == null && safeTitle.length > 28);
+  const fontSize = long ? Math.round(fontSizeBase * 0.66) : safeTitle.length > 10 ? Math.round(fontSizeBase * 0.8) : fontSizeBase;
   const lines = [];
-  if (safeTitle.length > 28) {
+  if (long) {
     const mid = Math.ceil(safeTitle.length / 2);
     const split = safeTitle.slice(0, mid);
     const rest = safeTitle.slice(mid);
@@ -474,22 +485,25 @@ function generateOgImage(outputPath, title, siteTitle, colors) {
     if (breakIdx > 0) {
       lines.push(safeTitle.slice(0, breakIdx + 1));
       lines.push(safeTitle.slice(breakIdx + 1).trim());
-    } else {
-      lines.push(split);
-      lines.push(rest);
-    }
-  } else {
-    lines.push(safeTitle);
-  }
+    } else { lines.push(split); lines.push(rest); }
+  } else { lines.push(safeTitle); }
+  const x = align === 'left' ? 80 : 600;
+  const anchor = align === 'left' ? 'start' : 'middle';
+  const line0 = lines[0] ? `<text x="${x}" y="290" text-anchor="${anchor}" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="${fontSize}" font-weight="700" letter-spacing="${letterSpacing}" fill="${fg}">${lines[0]}</text>` : '';
+  const line1 = lines[1] ? `<text x="${x}" y="${290 + Math.round(fontSize * 1.18)}" text-anchor="${anchor}" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="${fontSize}" font-weight="700" letter-spacing="${letterSpacing}" fill="${fg}">${lines[1]}</text>` : '';
+  const siteY = 550;
+  const siteText = showSite ? `<text x="${x}" y="${siteY}" text-anchor="${anchor}" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="24" fill="${fg}" opacity="0.55" letter-spacing="0.04em">${safeSite}</text>` : '';
+  const gradient = useGradient
+    ? `<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${bg}"/><stop offset="100%" style="stop-color:${accent}"/></linearGradient></defs><rect fill="url(#bg)" width="1200" height="630"/>`
+    : `<rect fill="${bg}" width="1200" height="630"/>`;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${bg}"/><stop offset="100%" style="stop-color:${accent}"/></linearGradient></defs>
-  <rect fill="url(#bg)" width="1200" height="630"/>
-  <text x="80" y="280" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="${fontSize}" font-weight="700" fill="${fg}">${lines[0]}</text>
-  ${lines[1] ? `<text x="80" y="360" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="${fontSize}" font-weight="700" fill="${fg}">${lines[1]}</text>` : ''}
-  <text x="80" y="520" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="24" fill="${fg}" opacity="0.6">${siteTitle}</text>
+  ${gradient}
+  ${line0}
+  ${line1}
+  ${siteText}
 </svg>`;
   fs.writeFileSync(outputPath, svg, 'utf-8');
-  console.log(`  [OG] Generated: media/og-${path.basename(outputPath, '.svg').replace('og-','')}.svg`);
+  console.log(`  [OG] Generated: media/og-${path.basename(outputPath, '.svg').replace('og-', '').replace(/\\..*$/, '')}.svg`);
 }
 
 // Create the output directory structure under dist/.
@@ -1056,7 +1070,7 @@ async function processArticles(config, mediaManifest) {
         const ogDir = path.join(DIST_DIR, 'media', 'og');
         if (!fs.existsSync(ogDir)) fs.mkdirSync(ogDir, { recursive: true });
         const ogPath = path.join(ogDir, `${slug}.svg`);
-        generateOgImage(ogPath, title, config.site.title, config.theme.colors);
+        generateOgImage(ogPath, title, config.site.title, config.theme.colors, config.features && config.features.ogImageStyle);
         attrs.featuredImage = `/media/og/${slug}.svg`;
       }
       articles.push({

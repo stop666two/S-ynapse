@@ -197,6 +197,11 @@ const DEFAULT_FEATURES = {
     revealImages: true, revealBlocks: false,
     revealDurationMs: 500, revealDelayMs: 60, revealOffset: '28px',
     revealOnce: true, revealThreshold: 0.08, respectReducedMotion: true
+  },
+  ogImageStyle: {
+    enabled: true, align: 'center', showSite: true, useGradient: true,
+    gradientAngle: '135deg', fontSizeBase: 64, breakAt: 28,
+    letterSpacing: '0.02em'
   }
 };
 
@@ -232,7 +237,7 @@ const ARRAY_FIELDS = {
   reward: [], gallery: [], heatmap: ['palette'], stats: [], prevNext: [],
   feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
   comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: [],
-  background: ['particles'], motion: []
+  background: ['particles'], motion: [], ogImageStyle: []
 };
 
 function typeName(v) {

@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **sitemap 按类型拆分**:`features.json5` 下 `sitemap` 段新增 `split`/`maxUrlsPerFile`(默认 500)/`postPriority`/`pagePriority`/`tagPriority`/`postFrequency`/`pageFrequency`/`tagFrequency`;URL 总数超过阈值自动拆为 `sitemap-{n}.xml` + 索引 `sitemap.xml`(`sitemapindex`)— `scripts/build.js` + `scripts/lib/features-schema.js`
+- **界面双语切换(i18n)**:`ui-strings.json5` 词典 + `features.i18n`(zh/en 切换按钮、默认语言、localStorage 持久化)— `templates/layout.ejs`
+- **Giscus 评论**:`features.giscus`(repo/repoId/category/categoryId/mapping/theme/loading),写入时动态加载 giscus.app 客户端 — `templates/post.ejs`
+- **Pagefind 全文搜索**:`features.pagefind`(indexPath/integrate),`search.provider='pagefind'` 时启用离线搜索 UI — `templates/layout.ejs`
+- **每日一言**:`features.dailyQuote`(内置 7 条按日期轮换,侧栏 widget + 文章页)— `templates/layout.ejs`
+- **收藏**:`features.favorites`(纯前端 localStorage `s-favorites`,`/favorites/` 页)— `templates/post.ejs` + `templates/favorites.ejs`
+- **代码主题切换器**:`features.prismTheme`(GitHub/Dark/Solarized/Django,文章内窗栏样条)`— templates/post.ejs`
+- **文章封面样式库**:`features.cover`(渐变/条纹/圆点/气泡/网格,在线预览)— `templates/post.ejs`
+- **侧栏拖拽重排**:`features.sidebarDrag`(桌面拖拽 + 移动端长按,localStorage `s-sidebarOrder`)— `templates/layout.ejs`
+- **搜索增强**:搜索历史(最近 5 条)+ 键盘上下键导航 + 结果分组(文章/标签/分类)— `templates/layout.ejs`
+- **主题预设切换器**:`features.themePresets`(6 套调色盘,localStorage `ss-preset`)— `templates/layout.ejs`
+- **深色定时切换**:`features.themeSchedule`(`darkFrom` `22:00`/`lightFrom` `06:00`,固定时段自动切主题)— `templates/layout.ejs`
+- **404 页美化**:插图 SVG + 搜索按钮 + 热门文章 — `templates/404.ejs`
+- **灯箱缩放/平移/旋转**:`features.lightbox` 扩展(zoom/pan/rotate/pinch,双指),`templates/layout.ejs`
+- **TOC 增强**:进度线 + URL 锚点 + 已读淡显 — `templates/layout.ejs`
+- **阅读侧栏**:`features.readDock`(进度环 + 回目录 + 回顶)— `templates/layout.ejs`
+
+### Changed
+
+- **修复配置合并 bug(关键)**:`scripts/build.js` 中 `config.features` 原来经 `deepmerge({}, DEFAULT_FEATURES, features, {arrayMerge})` 合并 — deepmerge 只接受 3 参数,`features` 被当作 options,导致 **用户 `features.json5` 配置从未生效**(一直使用默认值);已修复为 `deepmerge.all([{}, DEFAULT_FEATURES, features], {arrayMerge: (t,s)=>s if Array})` — 配置链与 `docs/config-reference.md` 现在真实生效
+- **README 全面更新**:配置数(11 文件/1200+ 项)、features(54 模块/440 项)、测试(67 项/17 组)、新功能列表、sitemap 拆分说明
+
+### Security
+
+- 保持全部既有安全修复。
+
+### Fixed
+
+- 修复 `features.json5` 配置不生效(deepmerge 参数错位)— 见 Changed
+
+### Done
+
+- `docs/config-reference.md` 补齐 sitemap/新模块章节(3.39+)
+
 ### Security
 
 - 修复 Markdown 内嵌原始 HTML 的存储型 XSS：新增 `sanitizeHtml` 白名单净化，`script/iframe/object/embed/svg/math/form` 等活动内容整块移除，`on*` 事件属性与 `style` 属性一律剥离，`javascript:`/`data:` URI 过滤，仅保留安全标签（含 `<dl>` 定义列表等既有内容所需标签）— `scripts/lib/utils.js`

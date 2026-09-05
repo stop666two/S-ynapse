@@ -9,11 +9,11 @@
 ## 特性
 
 **全配置驱动**
-- 7 个 JSON5 配置文件（支持注释），**560+ 可配置项**，逐字段中文注释
-- `features.json5` 功能总控域：38 个模块、355 个配置项，每项功能均可开/关/微调
+- 11 个 JSON5 配置文件（支持注释），**1200+ 可配置项**，逐字段中文注释（含可填值/推荐值/禁用值）
+- `features.json5` 功能总控域：**54 个模块、440 个配置项**，每项功能均可开/关/微调
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
-- 详细参考文档：`docs/config-reference.md`
+- 详细参考文档：`docs/config-reference.md`（9 章，逐字段权威参考）
 
 **内容创作**
 - Markdown 扩展：上标/下标（`X^2^` / `H~2~O`）、KaTeX 数学公式（`$`/`$$`）、Mermaid 图表、Wiki 双链（`[[标题]]`）、定义列表、任务列表
@@ -22,20 +22,27 @@
 - 本地图片管线：WebP/AVIF + 多尺寸 `srcset` + 懒加载 + SVG 消毒；`media/`/`videos/`/`assets/` 三目录白黑名单内容策略
 
 **阅读体验**
-- 暗黑模式（跟随系统 / 手动切换，无闪烁）
-- 全文搜索（Ctrl+K 快捷键，搜索标题 + 正文 + 标签）
-- 文章目录 TOC（侧边栏自动提取 h2-h4，移动端抽屉）
-- 图片灯箱（键盘 / 触屏滑动 / 图库页联动）
+- 暗黑模式（跟随系统 / 手动切换，无闪烁）+ **深色定时切换**（`themeSchedule`，固定时段）
+- **主题预设切换器**（6 套调色盘：Classic Blue / Cyber Purple / Forest Green / Sakura Pink / Editorial Gray / Midnight Black，localStorage 持久化）
+- 全文搜索（Ctrl+K 快捷键，搜索标题 + 正文 + 标签，**键盘方向键导航 + 搜索历史**）
+- **Giscus 评论**（基于 GitHub Discussions）、**用户界面双语切换**（zh/en，仅界面文案）
+- 文章目录 TOC（侧边栏自动提取 h2-h4，移动端抽屉；**进度线 + URL 锚点 + 已读淡显**）
+- 图片灯箱（键盘 / 触屏滑动 / 图库页联动；**_缩放 / 平移 / 旋转 / 双指**）
 - 阅读设置面板（字号/行高/宽度滑杆）、阅读模式（一键隐藏侧边栏）
-- 阅读进度条（点击跳转 + 百分比提示）+ 返回顶部
+- 阅读进度条（点击跳转 + 百分比提示）+ 返回顶部 + **阅读侧栏**（进度环 / 回目录 / 回顶）
 - TTS 朗读（倍速可调）、快捷键（`/` 搜索、`D` 主题、`J`/`K` 翻篇、`?` 帮助）
 - 关联推荐（同标签/同分类）、CJK 中英文自动加细空格
+- **代码主题切换器**（GitHub / Dark / Solarized / Django，文章内 Mac 窗栏样条）
+- **文章封面样式库**（渐变/条纹/圆点/气泡/网格，在线预览）
 
 **站内体系**
 - 归档热力图（按年 12 月色阶）+ 统计卡（文章/天数/字数/日均/标签/分类）
 - 图库页 `/gallery/`（聚合所有文章图片，瀑布流 + 灯箱）
 - 分享按钮（7 平台零依赖）、打赏弹窗、友情链接页、联系方式弹窗
-- RSS + JSON Feed、站点地图、搜索索引、PWA、构建报告
+- **每日一言**（侧栏，内置 7 条按日期轮换）、**收藏**（纯前端 localStorage，`/favorites/`）
+- RSS + JSON Feed、**sitemap 按类型拆分**（URL 超阈值自动分文件）、搜索索引、PWA、构建报告
+- **侧栏拖拽重排**（桌面拖拽 + 移动端长按，localStorage 持久化）、**404 页美化**（插图 + 搜索 + 热门文章）
+- **Pagefind 全文搜索**（`search.provider='pagefind'` 时生效，离线索引）
 
 **安全加固**
 - Markdown 内嵌 HTML 白名单消毒（XSS 防护，含 SVG 消毒）
@@ -53,7 +60,7 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html` 含详细统计（含内容策略拦截清单）
-- 单元测试：`npm test` 覆盖核心纯函数（61 项 / 15 组）
+- 单元测试：`npm test` 覆盖核心纯函数（67 项 / 17 组）
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -116,7 +123,7 @@ S-ynapse/
 │   └── 404.ejs        # 404 页
 ├── scripts/
 │   ├── build.js       # 构建脚本（14 步管线）
-│   ├── build.test.js  # 单元测试（61 项 / 15 组）
+│   ├── build.test.js  # 单元测试（67 项 / 17 组）
 │   ├── security-verify.js  # 安全集成验证（注入恶意文章→构建→语义断言）
 │   ├── import.js      # 内容导入 CLI（hexo/hugo/wordpress）
 │   ├── generate-security-config.js # 从 security.json 生成 Worker 配置
@@ -133,9 +140,10 @@ S-ynapse/
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
 ├── site.json          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
 ├── theme.json         # 主题配置（颜色/字体/布局/文章页脚）
-├── features.json5     # 功能总控（38 模块/355 项，可开关/微调，可选文件）
+├── features.json5     # 功能总控（54 模块/440 项，可开关/微调，可选文件）
+├── ui-strings.json5   # 界面文案词典（zh/en 双语，i18n 切换，可选）
 ├── navigation.json    # 导航配置
-├── sidebar.json       # 侧边栏配置（含 series/friends/stats 组件）
+├── sidebar.json       # 侧边栏配置（含 series/friends/stats/quote 组件）
 ├── footer.json        # 页脚配置
 ├── security.json      # 安全策略（CSP/限流/路径/头/robots/转向）
 ├── content-policy.json # 内容策略（media/videos/assets 白黑名单，可选）
@@ -159,9 +167,10 @@ S-ynapse/
 |------|------|------|
 | `site.json` | 站点信息、SEO、RSS/JSON Feed、社交、构建开关 | ✅ |
 | `theme.json` | 颜色（亮/暗）、字体、布局微调、文章页脚说明栏 | ✅ |
-| `features.json5` | 38 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享…） | 可选（缺失回退默认，功能保持） |
+| `features.json5` | 54 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、Giscus…） | 可选（缺失回退默认，功能保持） |
+| `ui-strings.json5` | 界面文案词典（zh/en 双语，i18n 切换的文案来源） | 可选（缺失回退内置文案） |
 | `navigation.json` | 菜单、导航栏、社交顺序、搜索 | ✅ |
-| `sidebar.json` | 侧栏组件序列（author/recent/tags/categories/archive/series/friends/stats…） | ✅ |
+| `sidebar.json` | 侧栏组件序列（author/recent/tags/categories/archive/series/friends/stats/quote…） | ✅ |
 | `footer.json` | 页脚列、版权、备案、社交、Powered-by | ✅ |
 | `security.json` | CSP、安全头、限流、路径限制、robots | ✅ |
 | `content-policy.json` | media/videos/assets 三目录白黑名单（可选） | 可选 |
@@ -230,7 +239,7 @@ S-ynapse/
 
 ### features.json5 — 功能总控魔方
 
-`features.json5` 是批 2-4 所有新增交互的统一开关域，38 个模块、355 个配置项，全部带注释。几例：
+`features.json5` 是批 2-4 所有新增交互的统一开关域，54 个模块、440 个配置项，全部带注释。几例：
 
 ```json5
 {
@@ -317,7 +326,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 加载配置 | 7 个 JSON5 + 可选 content-policy.json/tag-aliases.json/friends.json，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 38 模块结构校验 |
+| 1 | 加载配置 | 11 个 JSON5 配置 + 可选 content-policy.json/tag-aliases.json/friends.json，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 54 模块结构校验 |
 | 2 | 设置输出目录 | 清空 `dist/` 并创建子目录 |
 | 3 | 复制静态文件 | `static/` → `dist/` |
 | 3ᵇ | 内容策略 | 按 content-policy.json 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
@@ -326,7 +335,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 | 6 | 生成页面 | 首页分页、文章（系列/分享/打赏/关联/评论）、归档（统计+热力图）、标签、分类、图库、友链、搜索、404 |
 | 7ᵇ | JSON Feed | feed.json（与 RSS 同源同裁剪） |
 | 7 | RSS 生成 | feed.xml（全文/摘要，上限 maxItems） |
-| 8 | Sitemap | sitemap.xml（含自定义页面 + 图库） |
+| 8 | Sitemap | sitemap.xml（含自定义页面 + 图库；超过阈值自动按类型拆分为 sitemap-{n}.xml + 索引） |
 | 9 | 搜索索引 | search-index.json（局部模糊匹配，含正文/标签/分类） |
 | 10 | 安全文件 | `_headers`（CSP + HSTS + 安全头）、`robots.txt`、`_redirects`（配置重定向）、Worker 配置生成 |
 | 11 | 压缩 | 压缩 HTML（@minify-html）、CSS（CleanCSS）、JS（Terser） |
@@ -412,7 +421,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（61 项 / 15 组） |
+| `npm test` | 运行单元测试（67 项 / 17 组） |
 | `npm run verify:security` | 集成安全回归（注入恶意文章 → 真实构建 → 语义断言） |
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
@@ -424,7 +433,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 61 项 / 15 组，全部通过
+npm test            # 67 项 / 17 组，全部通过
 npm run verify:security   # 集成安全回归
 ```
 

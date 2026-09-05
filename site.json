@@ -5,6 +5,19 @@
   "title": "S-ynapse",
   // 副标题，显示在站点描述位置
   "subtitle": "思考的突触",
+  // ==================== 首页 Hero 区域 ====================
+  // 首页顶部横幅（仅第一页显示）。title 留空则用站点标题
+  "hero": {
+    "enabled": true,             // 是否启用 Hero 区域
+    "title": "",                 // Hero 主标题，留空=site.title
+    "subtitle": "",              // Hero 副标题，留空=site.subtitle
+    "showSearch": true,          // 显示搜索按钮
+    "showCta": true,             // 显示「查看全部文章」按钮
+    "ctaLabel": "查看全部文章",   // CTA 按钮文字
+    "ctaUrl": "#latest-post",    // CTA 按钮跳转（#latest-post 吸顶到文章列表）
+    "showTags": true,            // 显示热门标签
+    "tagCount": 8                // 热门标签显示数量
+  },
   // 站点描述，用于 SEO meta description 和社交分享
   "description": "个人技术博客，记录编程与生活",
   // 作者名称，用于结构化数据和版权信息

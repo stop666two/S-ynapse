@@ -49,6 +49,40 @@
     "badge": true        // 无头像图片时生成 首字母+品牌色 徽章
   },
 
+  // ==================== 页面背景特效 ====================
+  // mode: plain(纯色) / gradient(对角渐变) / grid(网格纸) / dots(点阵) / particles(动态粒子)
+  // particles 的配色/数量/速度/连线等由 features.json5 → background.particles 控制
+  "background": {
+    "mode": "particles",
+    "colors": ["#f7fafc", "#e0eaff"],  // gradient 模式的两端色(任意)
+    "gradientAngle": 135,              // 渐变角度(deg)
+    "gridSize": 24,                    // 网格间距(px)
+    "dotSize": 1,                      // 点阵点径(px)
+    "opacity": 1                       // 纹理层不透明度 0~1
+  },
+
+  // ==================== 导航栏毛玻璃 ====================
+  // 不支持的浏览器自动回退纯色;alpha 为背景不透明度
+  "glass": {
+    "enabled": true,
+    "blur": "12px",
+    "alpha": 0.8,
+    "darkAlpha": 0.85
+  },
+
+  // ==================== 布局密度档位 ====================
+  // preset: compact(紧凑) / balanced(均衡默认) / airy(宽松)
+  // columns: 文章卡片列数(列表布局同样生效,2-4)
+  // 规则: preset 非 null 时 containerWidth/gap/sidebarWidth/columns 由档位填充;
+  //       完全手调请将 preset 设为 null 并直接改下列四键
+  "density": {
+    "preset": "balanced",
+    "containerWidth": "1250px",  // 内容区最大宽度
+    "gap": "2rem",               // 卡片间距
+    "sidebarWidth": "280px",     // 侧栏宽
+    "columns": 2                 // 卡片列数
+  },
+
   // ==================== 颜色方案（明亮模式） ====================
   // preset 为 null 时以下手工颜色生效；preset 非空时此段被预设接管
 

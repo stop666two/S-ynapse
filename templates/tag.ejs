@@ -4,6 +4,7 @@
 </div>
 
 <% if (articles && articles.length) { %>
+<div class="blog-grid">
 <% articles.forEach(function(article) { %>
 <article class="post-card">
   <h2 class="post-card-title">
@@ -33,6 +34,7 @@
   <% } %>
 </article>
 <% }) %>
+</div>
 <% } else { %>
 <div class="post-article"><p style="text-align:center;padding:2rem;color:var(--color-ts)">该标签下暂无文章</p></div>
 <% } %>

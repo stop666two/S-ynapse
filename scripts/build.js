@@ -262,10 +262,39 @@ function loadConfig() {
   config.theme.darkMode = themeRes.darkMode;
   // Visual tiers (rounding / shadow / border) resolve to concrete CSS vars.
   applyVisualTiers(config.theme);
+  // Layout density tiers (compact/balanced/airy) resolve container/gap/columns.
+  applyDensity(config.theme);
+  if (config.sidebar && config.theme && config.theme.density && config.theme.density.sidebarWidth) {
+    config.sidebar.width = config.theme.density.sidebarWidth;
+  }
   // Font system resolves stack → family + Google Fonts link; custom stack keeps
   // the hand-written theme.fontFamily with priority.
   resolveFontSystem(config.theme);
   return config;
+}
+
+// DENSITY_TIERS — 三档布局密度。
+const DENSITY_TIERS = {
+  compact: { containerWidth: '1000px', gap: '1.25rem', sidebarWidth: '240px', columns: 2 },
+  balanced: { containerWidth: '1250px', gap: '2rem', sidebarWidth: '280px', columns: 2 },
+  airy: { containerWidth: '1400px', gap: '2.5rem', sidebarWidth: '320px', columns: 3 }
+};
+
+function applyDensity(theme) {
+  if (!theme.density) theme.density = {};
+  const preset = theme.density.preset;
+  const tier = (preset && DENSITY_TIERS[preset]) || null;
+  const d = theme.density;
+  theme.density.columns = tier ? tier.columns : (Number.isInteger(d.columns) ? d.columns : 2);
+  if (tier) {
+    theme.density.containerWidth = tier.containerWidth;
+    theme.density.gap = tier.gap;
+    theme.density.sidebarWidth = tier.sidebarWidth;
+  }
+  theme.spacing = theme.spacing || {};
+  theme.spacing.containerWidth = theme.density.containerWidth || theme.spacing.containerWidth || '1250px';
+  theme.spacing.gap = theme.density.gap || theme.spacing.gap || '2rem';
+  theme.sidebarWidth = theme.density.sidebarWidth || theme.sidebarWidth || '280px';
 }
 
 // FONT_STACKS — fontSystem.stack 预设枚举 → CSS font-family 栈。
@@ -1042,8 +1071,19 @@ async function processArticles(config, mediaManifest) {
 
 // Aggregate tags across all articles with count and slugified URL.
 // Returns array sorted by count descending.
-function collectTags(articles) {
-  const map = new Map();
+function collectTopTags(articles, limit) {
+  const counts = {};
+  const published = getPublished(articles);
+  published.forEach(function(a) {
+    (a.tags || []).forEach(function(t) { counts[t] = (counts[t] || 0) + 1; });
+  });
+  return Object.keys(counts)
+    .sort(function(a, b) { return counts[b] - counts[a] || a.localeCompare(b); })
+    .slice(0, limit || 8)
+    .map(function(t) { return { name: t, count: counts[t], url: '/tags/' + safeSlug(t) + '/' }; });
+}
+
+function collectTags(articles) {  const map = new Map();
   for (const a of articles) {
     for (const tag of a.tags) {
       const slug = safeSlug(tag);
@@ -1300,6 +1340,7 @@ function buildPageData(config, articles, tags, categories) {
     friends: friendsCfg,
     galleryItems: collectGalleryImages(articles),
     siteStats: collectSiteStats(articles, tags, categories),
+    topTags: collectTopTags(published, 8),
     currentUrl: '/',
     currentPage: 'index',
     formatDate: (d) => formatDate(d, config.site.dateFormat),
@@ -1415,9 +1456,22 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
       const start = (page - 1) * postsPerPage;
       const end = start + postsPerPage;
       const pageArticles = published.slice(start, end);
+      const f = config.features;
+      const heroEnabled = page === 1 && config.site.hero && config.site.hero.enabled !== false && f.hero.enabled !== false;
       const data = {
         ...baseData,
         articles: pageArticles,
+        heroData: heroEnabled ? {
+          title: config.site.hero.title || config.site.title,
+          subtitle: config.site.hero.subtitle || config.site.subtitle || config.site.description,
+          showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
+          showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
+          showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
+          ctaLabel: config.site.hero.ctaLabel || '查看全部文章',
+          ctaUrl: config.site.hero.ctaUrl || '#latest-post',
+          tagCount: config.site.hero.tagCount || f.hero.tagCount || 8,
+          tags: baseData.topTags.slice(0, config.site.hero.tagCount || f.hero.tagCount || 8)
+        } : null,
         pagination: {
           current: page,
           total: totalPages,

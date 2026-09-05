@@ -147,6 +147,11 @@ const DEFAULT_FEATURES = {
     enabled: true, showLabels: true, prevLabel: '上一篇', nextLabel: '下一篇',
     hideWhenMissing: false, scrollToTop: true
   },
+  hero: {
+    enabled: true, showSearch: true, showCta: true, showTags: true,
+    ctaLabel: '查看全部文章', ctaUrl: '#latest-post', tagCount: 8,
+    searchPlaceholder: '搜索文章…'
+  },
   feed: {
     rssEnabled: true, rssPath: '/feed.xml', rssFullContent: true, rssMaxItems: 50,
     jsonFeedPath: '/feed.json', jsonFeedFullContent: false, jsonFeedMaxItems: 20,
@@ -176,7 +181,13 @@ const DEFAULT_FEATURES = {
     matchMode: 'hostname', skipInternal: true, mailtoMode: 'leave', lateTargeted: false
   },
   performance: { warningJsKb: 80, warningHtmlKb: 400, warningImageKb: 300, warningBuildMs: 30000 },
-  debug: { verbose: false, listPages: false, dumpConfig: false }
+  debug: { verbose: false, listPages: false, dumpConfig: false },
+  background: {
+    particles: {
+      enabled: true, count: 55, speed: 0.5, linkDistance: 120,
+      opacity: 0.6, showLines: true, autoDisableMobile: false
+    }
+  }
 };
 
 const FEATURE_MODULES = Object.keys(DEFAULT_FEATURES);

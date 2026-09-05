@@ -1,11 +1,27 @@
 <%# 
-  Index page template — renders article cardss article cards with pagination.
+  Index page template — renders article cards with pagination.
   Data contract:
     articles: Array<{title, url, featuredImage, formattedDate, date, categories, tags, readTime, excerpt}>
     pagination: {current, total, prev, next, prevLabel, nextLabel, pages: Array<{num, url, current}>}
     theme.card: {showDate, showCategories, showReadTime, showExcerpt, showTags}
 %>
+<% if (heroData) { %>
+<section class="hero">
+  <h1><%= heroData.title %></h1>
+  <% if (heroData.subtitle) { %><p class="hero-sub"><%= heroData.subtitle %></p><% } %>
+  <div class="hero-actions">
+    <% if (heroData.showSearch) { %><button type="button" class="hero-search" onclick="openSearch()">搜索文章…</button><% } %>
+    <% if (heroData.showCta) { %><span class="hero-cta"><a href="<%= heroData.ctaUrl %>"><%= heroData.ctaLabel %></a></span><% } %>
+  </div>
+  <% if (heroData.showTags && heroData.tags && heroData.tags.length) { %>
+  <div class="hero-tags">
+    <% heroData.tags.forEach(function(t) { %><a href="<%= t.url %>"><%= t.name %><% if (t.count) { %> · <%= t.count %><% } %></a><% }) %>
+  </div>
+  <% } %>
+</section>
+<% } %>
 <% if (articles && articles.length) { %>
+<div class="blog-grid">
 <% articles.forEach(function(article) { %>
 <article class="post-card">
   <% if (article.featuredImage) { %>
@@ -47,7 +63,7 @@
   <% } %>
 </article>
 <% }) %>
-
+</div>
 <% if (pagination && pagination.total > 1) { %>
 <nav class="pagination" aria-label="分页导航">
   <% if (pagination.prev) { %>

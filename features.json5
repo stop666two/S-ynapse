@@ -846,5 +846,52 @@
     listPages: false,
     // 输出配置中心(校验合并结果)。
     dumpConfig: false
+  },
+
+  // ---------------------------------------------------------------------------
+  // 38. 首页 Hero 区域
+  // ---------------------------------------------------------------------------
+  // 与 site.json5 → hero 配合;hero.enabled(站点级)=false 时整块不显示。
+  hero: {
+    // 是否启用 Hero 区域(更高层控制,站点级 hero.enabled 优先)。
+    enabled: true,
+    // 显示搜索按钮。
+    showSearch: true,
+    // 显示「查看全部文章」按钮。
+    showCta: true,
+    // 显示热门标签。
+    showTags: true,
+    // CTA 按钮文字。
+    ctaLabel: '查看全部文章',
+    // CTA 按钮跳转(#latest-post = 吸顶到文章列表)。
+    ctaUrl: '#latest-post',
+    // 热门标签显示数量(1~20)。
+    tagCount: 8,
+    // 搜索按钮占位文字。
+    searchPlaceholder: '搜索文章…'
+  },
+
+  // ---------------------------------------------------------------------------
+  // 39. 背景粒子特效
+  // ---------------------------------------------------------------------------
+  // 与 theme.json → background.mode = "particles" 配合;mode 非 particles 时
+  // 本模块不生效(即使 enabled=true)。颜色自动跟随主题辅助色(--color-s)。
+  background: {
+    particles: {
+      // 是否启用粒子动画(仅 background.mode=particles 时生效)。
+      enabled: true,
+      // 粒子数量(10~120,越少越省电)。
+      count: 55,
+      // 粒子运动速度(0.2~2,越大动感越强)。
+      speed: 0.5,
+      // 粒子连线距离(px),超过此距离不连线。
+      linkDistance: 120,
+      // 粒子不透明度(0~1)。
+      opacity: 0.6,
+      // 是否绘制粒子间连线。
+      showLines: true,
+      // 触屏设备/窄屏(<640px)自动关闭粒子(性能保护)。
+      autoDisableMobile: false
+    }
   }
 }

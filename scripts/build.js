@@ -733,8 +733,10 @@ function setupMarkedRenderer(config, mediaManifest) {
         name: 'mathGuardBlock',
         level: 'block',
         start(src) {
-          const i = src.indexOf('$$');
-          return i >= 0 ? i : undefined;
+          // Block formulas must start a line (^$$) — not appear mid-line
+          // or inside inline code spans.
+          const m = /^\$\$/m.exec(src);
+          return m ? m.index : undefined;
         },
         tokenizer(src) {
           const m = /^\$\$[\s\S]*?\$\$/.exec(src);
@@ -747,8 +749,20 @@ function setupMarkedRenderer(config, mediaManifest) {
         name: 'mathGuardInline',
         level: 'inline',
         start(src) {
-          const m = src.match(/[$\\]/);
-          return m ? m.index : undefined;
+          // Skip backtick-wrapped inline code spans: math delimiters inside
+          // `code` must stay untouched for marked's code tokenizer.
+          let inCode = false;
+          for (let i = 0; i < src.length; i++) {
+            if (src[i] === '`') {
+              while (i < src.length && src[i] === '`') i++;
+              inCode = !inCode;
+              i--;
+              continue;
+            }
+            if (inCode) continue;
+            if (src[i] === '$' || src[i] === '\\') return i;
+          }
+          return undefined;
         },
         tokenizer(src) {
           const m = /^(?:\$\$(?!\s)[^\n]*?\$\$|\$(?!\$)(?:\\.|[^$\\\n])+\$(?!\d)|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\])/.exec(src);

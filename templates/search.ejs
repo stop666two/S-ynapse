@@ -19,6 +19,12 @@ function searchPage(query) {
     return;
   }
 
+  function hl(s) {
+    var esc = (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    var re = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    return esc.replace(re, '<mark>$1</mark>');
+  }
+
   var lowerQuery = query.toLowerCase();
   var results = [];
 
@@ -39,8 +45,9 @@ function searchPage(query) {
     resultsDiv.innerHTML = '<p style="color:var(--color-text-secondary);margin-bottom:1rem">找到 ' + results.length + ' 个结果</p>' +
       results.map(function(r) {
         return '<article class="post-card">' +
-          '<h2 class="post-card-title"><a href="' + r.url + '">' + r.title + '</a></h2>' +
-          (r.excerpt ? '<p class="post-card-excerpt">' + r.excerpt.substring(0, 200) + '</p>' : '') +
+          (r.featuredImage ? '<a href="' + r.url + '"><img src="' + r.featuredImage + '" alt="' + r.title + '" class="post-card-image" loading="lazy"></a>' : '') +
+          '<h2 class="post-card-title"><a href="' + r.url + '">' + hl(r.title) + '</a></h2>' +
+          (r.excerpt ? '<p class="post-card-excerpt">' + hl(r.excerpt.substring(0, 200)) + '</p>' : '') +
           (r.tags && r.tags.length ? '<div class="post-tags" style="margin-top:0.5rem">' +
             r.tags.map(function(t) { return '<span class="post-tag">' + t + '</span>'; }).join('') +
           '</div>' : '') +

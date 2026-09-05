@@ -1,12 +1,18 @@
-<div class="post-article">
-  <h1>标签: <%= tagName %></h1>
-  <p style="color:var(--color-ts);margin-bottom:1.5rem"><%= articles.length %> 篇文章</p>
+<div class="post-article tag-hero">
+  <h1><%= tagName %></h1>
+  <p class="tag-count"><%= articles.length %> 篇文章</p>
+  <p class="tag-desc">阅读与「<%= tagName %>」相关的文章</p>
 </div>
 
 <% if (articles && articles.length) { %>
 <div class="blog-grid">
 <% articles.forEach(function(article) { %>
 <article class="post-card">
+  <% if (article.featuredImage) { %>
+  <a href="<%= article.url %>">
+    <img src="<%= article.featuredImage %>" alt="<%= article.title %>" class="post-card-image" loading="lazy">
+  </a>
+  <% } %>
   <h2 class="post-card-title">
     <% if (article.pinned) { %><span class="pin-badge">置顶</span><% } %><% if (article.series) { %><span class="series-badge">系列</span><% } %>
     <a href="<%= article.url %>"><%= article.title %></a>
@@ -32,10 +38,16 @@
   <% if (theme.card && theme.card.showExcerpt && article.excerpt) { %>
   <p class="post-card-excerpt"><%= article.excerpt %></p>
   <% } %>
+  <% if (theme.card && theme.card.showTags && article.tags && article.tags.length) { %>
+  <div class="post-tags" style="margin-top:0.75rem">
+    <% article.tags.forEach(function(tag) { %>
+    <a href="/tags/<%= generateSlug(tag) %>/" class="post-tag"><%= tag %></a>
+    <% }) %>
+  </div>
+  <% } %>
 </article>
 <% }) %>
 </div>
 <% } else { %>
 <div class="post-article"><p style="text-align:center;padding:2rem;color:var(--color-ts)">该标签下暂无文章</p></div>
 <% } %>
-

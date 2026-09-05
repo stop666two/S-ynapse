@@ -183,9 +183,6 @@
 
   "codeHighlight": {
     "theme": "github-dark",       // 代码高亮主题
-    "lineNumbers": true,          // 是否显示行号
-    "copyButton": true,           // 是否显示复制按钮
-    "wrapLongLines": false,       // 长代码行是否换行
     "highlightLines": true        // 是否支持行高亮
   },
 

@@ -215,7 +215,7 @@ function loadConfig() {
       shadow: { card: '0 4px 6px rgba(0,0,0,0.1)', dropdown: '0 10px 15px -3px rgba(0,0,0,0.1)', fixed: '0 2px 4px rgba(0,0,0,0.08)' },
       layout: { headerStyle: 'fixed', headerHeight: '60px', footerStyle: 'simple', sidebarPosition: 'right', contentWidth: 'main', postLayout: 'standard', archiveLayout: 'list' },
       animation: { enable: true, transitionDuration: '0.3s', transitionTiming: 'ease-in-out', scrollBehavior: 'smooth', pageTransition: 'fade' },
-      codeHighlight: { lineNumbers: false, copyButton: true, wrapLongLines: false, highlightLines: true },
+      codeHighlight: { theme: 'github-dark', highlightLines: true },
       card: { showDate: true, showTags: true, showCategories: true, showExcerpt: true, excerptLength: 150, showReadTime: true, readTimeSpeed: 265, showWordCount: true },
       button: { radius: '0.25rem', padding: '0.5rem 1.5rem', primaryBackground: '#4a90d9', primaryText: '#ffffff', hoverScale: 1.02 },
       customCSS: {},
@@ -753,11 +753,12 @@ function getMediaManifest() {
 // - Code: language-labeled <pre> blocks with optional line numbers
 // Called once per build before article/page parsing.
 function setupMarkedRenderer(config, mediaManifest) {
+  const F = config.features || {};
+  const imgLazy = (F.imageLazy && F.imageLazy.enabled !== false);
   const usePicture = config.site.build.usePictureTag !== false;
-  const lazyLoad = config.site.build.lazyLoadImages !== false;
+  const showLineNumbers = !!(F.codeBlock && (F.codeBlock.lineNumbers || F.codeBlock.showLineNumbers));
   const extTarget = config.site.build.externalLinksTarget || '_blank';
   const extRel = config.site.build.externalLinksRel || 'noopener noreferrer';
-  const showLineNumbers = config.theme.codeHighlight && config.theme.codeHighlight.lineNumbers;
   const siteUrl = (config.site.url || '').replace(/\/+$/, '');
 
   // Math-guard extension: captures KaTeX-style math spans (*before* supSub / other
@@ -854,7 +855,7 @@ function setupMarkedRenderer(config, mediaManifest) {
         if (!href) return '';
         const alt = text || '';
         const titleAttr = title ? ` title="${escapeAttr(title)}"` : '';
-        const loading = lazyLoad ? ' loading="lazy"' : '';
+        const loading = imgLazy ? ' loading="lazy"' : '';
         const decodedHref = href.replace(/&amp;/g, '&');
         if (usePicture && mediaManifest) {
           const normHref = decodedHref.replace(/^\//, '');
@@ -1086,7 +1087,7 @@ async function processArticles(config, mediaManifest) {
       const readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
       const toc = extractToc(htmlContent);
       // Auto-generate OG image if no featuredImage provided in frontmatter
-      if (!attrs.featuredImage && config.site.build.autoOgImage !== false) {
+      if (!attrs.featuredImage && !!(config.features && config.features.ogImageStyle && config.features.ogImageStyle.enabled !== false) && config.site.build.autoOgImage !== false) {
         const ogDir = path.join(DIST_DIR, 'media', 'og');
         if (!fs.existsSync(ogDir)) fs.mkdirSync(ogDir, { recursive: true });
         const ogPath = path.join(ogDir, `${slug}.svg`);
@@ -1349,7 +1350,7 @@ function renderPage(templateName, data, layoutTemplate, cfg) {
 // Returns stringified JSON, or '[]' if search is disabled/not local.
 function generateSearchData(config, articles) {
   if (!config.navigation.search || !config.navigation.search.enabled || config.navigation.search.provider !== 'local') return '[]';
-  const fullContent = config.site.build.searchFullContent !== false;
+  const fullContent = !!(config.features && config.features.search && config.features.search.fullContent !== false);
   const data = getPublished(articles).map(a => ({
     title: a.title,
     url: a.url,
@@ -1849,7 +1850,7 @@ function generateSearchIndex(config, articles) {
     return;
   }
   console.log('[9/14] Generating search index...');
-  const fullContent = config.site.build.searchFullContent !== false;
+  const fullContent = !!(config.features && config.features.search && config.features.search.fullContent !== false);
   const published = getPublished(articles);
   const index = published.map(a => ({
     title: a.title,

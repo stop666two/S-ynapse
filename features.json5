@@ -1161,17 +1161,35 @@
   },
   // ---------------------------------------------------------------------------
   sitemap: {
-    // sitemap 是否按类型细分(文章/标签/分类/页面)。split=true 且 URL 数超过 maxUrlsPerFile 时自动拆分为 sitemap-1.xml… + sitemap-index.xml。
+    // sitemap 是否按类型细分(文章/标签/分类/页面)。
+    // 数据类型: 布尔值。取值: true=启用; false=不启用(仍生成普通单一 sitemap)。
+    // split=true 且 URL 总数超过 maxUrlsPerFile 时自动拆分为多个 sitemap-{n}.xml + 一个 sitemap.xml 作为 sitemapindex(索引入口)。
+    // 拆分后 URL 数量低于阈值则生成单一 <urlset> sitemap.xml。
     split: true,
-    // 优先权。
+    // 文章(文章页)URL 的搜索引擎优先权。
+    // 数据类型: 字符串。取值: '0.0' 至 '1.0', 建议文章用 '0.7'-'1.0'(重要权重)。
     postPriority: '0.8',
+    // 独立页面URL(首页/归档/相册/收藏等)的搜索引擎优先权。
+    // 数据类型: 字符串。取值: '0.0' 至 '1.0', 建议页面用 '0.5'-'0.8'。
     pagePriority: '0.6',
+    // 标签页URL 的搜索引擎优先权。
+    // 数据类型: 字符串。取值: '0.0' 至 '1.0', 建议标签用 '0.3'-'0.6'(次要权重)。
     tagPriority: '0.4',
-    // 更新频率。
+    // 文章页 URL 的更新频率提示(sitemap 协议标准值)。
+    // 数据类型: 字符串。可填值: always / hourly / daily / weekly / monthly / yearly / never。
+    // 建议: 博客文章 weekly; 新闻 always; 静态文档 yearly。
     postFrequency: 'weekly',
+    // 独立页面URL 的更新频率提示。
+    // 数据类型: 字符串。可填值: always / hourly / daily / weekly / monthly / yearly / never。
+    // 建议: 首页与归档页 weekly 或 monthly。
     pageFrequency: 'monthly',
+    // 标签页URL 的更新频率提示。
+    // 数据类型: 字符串。可填值: always / hourly / daily / weekly / monthly / yearly / never。
+    // 建议: 标签页 monthly 或 yearly。
     tagFrequency: 'monthly',
-    // 拆分阈值:每个 sitemap 文件最多 URL 数。超过则拆分。
+    // 拆分阈值:每个 sitemap 文件最多包含的 URL 数。URL 总数超过该值则拆分为多个文件。
+    // 数据类型: 正整数。默认 500。可填值: 最小 10(低于会强制为 10), 最大建议不超过 50000(协议上限)。
+    // 推荐: 小站点 500-1000; 大站点 5000(每个文件不超过 50000 条)。
     maxUrlsPerFile: 500
   },
 }

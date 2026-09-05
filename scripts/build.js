@@ -1098,6 +1098,7 @@ async function processArticles(config, mediaManifest) {
         content: htmlContent,
         excerpt: excerptText,
         wordCount, readTime, toc, hasMath, hasMermaid,
+        featuredImage: attrs.featuredImage || '',
         frontmatter: attrs,
         filename: file,
         year: date ? new Date(date).getFullYear() : null,

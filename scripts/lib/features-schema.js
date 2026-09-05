@@ -39,7 +39,7 @@ const DEFAULT_FEATURES = {
     enabled: true, copyButtonVisibility: 'hover', copySuccessText: '已复制',
     copyFailText: '复制失败', showLanguageTag: true, lineNumbers: false, windowBar: true,
     wrapLongLines: false, highlightBackground: 'var(--color-hover)',
-    borderRadius: '0.375rem', maxHeight: '', copyAllButton: false, downloadButton: false
+    borderRadius: '0.375rem', maxHeight: '', copyAllButton: true, downloadButton: true
   },
   externalLink: {
     enabled: true, whitelist: [], blacklist: [], mode: 'warn',
@@ -195,7 +195,7 @@ const DEFAULT_FEATURES = {
     buttonRipple: true, rippleDurationMs: 500,
     scrollReveal: true, revealCards: true, revealHeadings: true,
     revealImages: true, revealBlocks: false,
-    revealDurationMs: 500, revealDelayMs: 60, revealStaggerMax: 600, revealOffset: '28px',
+    revealDurationMs: 250, revealDelayMs: 0, revealStaggerMax: 80, revealOffset: '10px',
     revealOnce: true, revealThreshold: 0.08, respectReducedMotion: true
   },
   ogImageStyle: {

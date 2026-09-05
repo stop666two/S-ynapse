@@ -201,7 +201,7 @@
     // 一键复制全部代码块的按钮(顶部)。
     copyAllButton: false,
     // 下载按钮。
-    downloadButton: false
+    downloadButton: true
   },
 
   // ---------------------------------------------------------------------------
@@ -951,13 +951,13 @@
     // 滚动渐入:文章内代码块与引用块。
     revealBlocks: false,
     // 渐入总时长(ms)。
-    revealDurationMs: 500,
+    revealDurationMs: 250,
     // 同屏多个元素连续渐入时相邻延迟(ms)。
-    revealDelayMs: 60,
+    revealDelayMs: 0,
     // 同屏元素错峰总时间上限(ms),超过不再累加,避免长页面等待过久。
-    revealStaggerMax: 600,
+    revealStaggerMax: 80,
     // 渐入起点位移(px)。
-    revealOffset: '28px',
+    revealOffset: '10px',
     // 每个元素只渐入一次(滚动回顶不重复)。
     revealOnce: true,
     // 进入视口阈值(0~1,值越小越早触发)。

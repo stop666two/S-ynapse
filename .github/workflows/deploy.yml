@@ -25,9 +25,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
       - run: npm ci
+      - name: Dependency security audit
+        if: github.ref == 'refs/heads/main'
+        run: npm audit --audit-level=high
+      - run: npm test
       - run: npm run build
       - name: Deploy to Cloudflare Pages
         if: github.ref == 'refs/heads/main'

@@ -4,7 +4,11 @@
 
 const DEFAULT_FEATURES = {
   lightbox: {
-    enabled: true, selectors: '.post-content img, .gallery-item img',
+    enabled: true,
+    zoomEnabled: true, panEnabled: true, rotateEnabled: true,
+    pinchEnabled: true, zoomStep: 0.25, zoomMin: 1, zoomMax: 4,
+    dblClickZoom: true, wheelZoom: true, showZoomButtons: true,
+    selectors: '.post-content img, .gallery-item img',
     minSize: 60, prevNextButtons: true, closeButton: true,
     keyboardNavigate: true, escToClose: true, swipeToNavigate: true,
     closeOnBackdrop: true, showCounter: true, counterFormat: '{current} / {total}',
@@ -66,12 +70,18 @@ const DEFAULT_FEATURES = {
   },
   toc: {
     enabled: true, minLevel: 2, maxLevel: 4, collapsible: true,
-    defaultOpenLevel: 2, highlightActive: true, activeOffset: 120
+    defaultOpenLevel: 2, highlightActive: true, activeOffset: 120,
+    progressLine: true, updateUrl: true, smoothScroll: true,
+    visitedFade: true
   },
   mobileToc: {
     enabled: true, breakpoint: 1024, borderRadius: '1rem',
     maxHeightVh: '70', autoClose: true, overlayClose: true,
     lockScroll: true, position: 'right'
+  },
+  readDock: {
+    enabled: true, showProgressRing: true, showTocButton: true,
+    showTopButton: true, hideOnScrollDown: true, position: 'right'
   },
   readingPanel: {
     enabled: true, fontSizeMin: 15, fontSizeMax: 26, fontSizeStep: 1,

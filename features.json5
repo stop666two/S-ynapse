@@ -16,6 +16,26 @@
   lightbox: {
     // 启用图片灯箱。关闭后点击图片无放大效果。
     enabled: true,
+    // 放大功能(工具栏放大/缩小按钮 + 双击 + 滚轮 + 双指捏合)。false 时隐藏。
+    zoomEnabled: true,
+    // 平移拖拽功能(放大后拖动图片查看细节)。false 时禁止拖拽。
+    panEnabled: true,
+    // 旋转功能(工具栏旋转 90°按钮)。
+    rotateEnabled: true,
+    // 移动端双指捏合缩放。
+    pinchEnabled: true,
+    // 每次点击按钮的缩放步长(0.25 = 25%)。
+    zoomStep: 0.25,
+    // 最小缩放倍数(1 = 原始尺寸)。
+    zoomMin: 1,
+    // 最大缩放倍数。
+    zoomMax: 4,
+    // 是否支持双击图片放大/还原。
+    dblClickZoom: true,
+    // 是否支持鼠标滚轮缩放。
+    wheelZoom: true,
+    // 是否显示缩放/旋转/重置按钮组。
+    showZoomButtons: true,
     // 收集目标的选择器。默认正文图片 + 图库图片;其他容器可追加类名,逗号分隔。
     selectors: '.post-content img, .gallery-item img',
     // 控制在图片周围触发灯箱的最小边长(px)。用于过滤小图标。
@@ -324,8 +344,34 @@
     // 高亮当前阅读章节。
     highlightActive: true,
     // 高亮滚动偏移(px)。
-    activeOffset: 120
+    activeOffset: 120,
+    // 目录顶部显示阅读进度线(随滚动量增长)。
+    progressLine: true,
+    // 点击目录项时更新 URL 锚点(history.replaceState)。
+    updateUrl: true,
+    // 锚点跳转使用平滑滚动。
+    smoothScroll: true,
+    // 已读过的目录项淡色标记(visited)。
+    visitedFade: true
     // 宽度见 theme.json5 tocWidth 相关
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10b. 阅读工具栏(文章页右下浮动)
+  // ---------------------------------------------------------------------------
+  readDock: {
+    // 启用阅读工具栏(进度环 + 回到目录 + 返回顶部)。
+    enabled: true,
+    // 显示进度环(随阅读进度增长的圆环)。
+    showProgressRing: true,
+    // 显示回到目录按钮。
+    showTocButton: true,
+    // 显示返回顶部按钮。
+    showTopButton: true,
+    // 向下滚动时隐藏,向上滚动/到底时显示。
+    hideOnScrollDown: true,
+    // 位置:right(右下)。
+    position: 'right'
   },
 
   // ---------------------------------------------------------------------------

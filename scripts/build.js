@@ -142,6 +142,10 @@ function loadConfig() {
   // Features domain is optional: missing features.json5 falls back to the
   // built-in DEFAULT_FEATURES (matching current behavior).
   const features = loadOptionalConfigFile('features.json5') || {};
+  // UI strings domain (feature 18): optional ui-strings.json5 — template
+  // fallbacks stay in place when missing. Deep-merged (uiStrings overrides
+  // only the keys it defines).
+  const uiStrings = loadOptionalConfigFile('ui-strings.json5') || {};
 
   const defaults = {
     site: {
@@ -234,7 +238,7 @@ function loadConfig() {
     }
   };
 
-  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy, features }, { tagAliases: tagAliasData, friends: friendsData }]);
+  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy, features, uiStrings }, { tagAliases: tagAliasData, friends: friendsData }]);
   // Features arrays must replace, not concatenate (e.g. share.order must drop
   // platforms the user removed). Deepmerge's default arrayMerge concatenates,
   // so features gets its own merge pass with a replace strategy.
@@ -1347,6 +1351,7 @@ function buildPageData(config, articles, tags, categories) {
     site: config.site,
     theme: config.theme,
     features: config.features,
+    uiStrings: config.uiStrings || {},
     nav,
     sidebar: config.sidebar,
     footer: config.footer,
@@ -1366,6 +1371,14 @@ function buildPageData(config, articles, tags, categories) {
     formatDate: (d) => formatDate(d, config.site.dateFormat),
     generateSlug: safeSlug,
     escapeAttr: escapeAttr,
+    ui: function(path, fallback) {
+      let o = config.uiStrings || {};
+      for (const k of String(path).split('.')) {
+        if (o == null) return fallback;
+        o = o[k];
+      }
+      return (o === undefined || o === null) ? fallback : o;
+    },
     escapeJsonForScript: escapeJsonForScript,
     JSON: JSON,
     Array: Array,

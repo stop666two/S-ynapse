@@ -1355,6 +1355,7 @@ function generateSearchData(config, articles) {
     title: a.title,
     url: a.url,
     excerpt: a.excerpt ? stripHtml(a.excerpt).substring(0, 200) : '',
+    featuredImage: a.featuredImage || '',
     content: fullContent ? stripHtml(a.content).substring(0, 3000) : '',
     tags: a.tags || [],
     categories: a.categories || []
@@ -1856,6 +1857,7 @@ function generateSearchIndex(config, articles) {
     title: a.title,
     url: a.url,
     excerpt: stripHtml(a.excerpt || '').substring(0, 200),
+    featuredImage: a.featuredImage || '',
     content: fullContent ? stripHtml(a.content).substring(0, 5000) : '',
     tags: a.tags,
     categories: a.categories
@@ -2092,7 +2094,7 @@ async function cacheBust(config) {
   console.log('[12/14] Cache busting...');
   const bustPattern = config.site.build.cacheBustingPattern || '.*\\.(css|js|png|jpg|svg)$';
   const bustRegex = new RegExp(bustPattern, 'i');
-  const files = getAllFiles(DIST_DIR).filter(f => bustRegex.test(f) && !f.includes('node_modules'));
+  const files = getAllFiles(DIST_DIR).filter(f => bustRegex.test(f) && !f.includes('node_modules') && !f.includes('media' + path.sep + 'og'));
   const mapping = {};
   for (const file of files) {
     try {

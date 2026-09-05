@@ -422,7 +422,7 @@ function validateConfig(config) {
   }
 
   if (config.sidebar && config.sidebar.enabled && config.sidebar.widgets) {
-    const validTypes = ['author', 'recent', 'tags', 'categories', 'archive', 'search', 'custom', 'newsletter', 'toc', 'series', 'friends', 'stats'];
+    const validTypes = ['author', 'recent', 'tags', 'categories', 'archive', 'search', 'custom', 'newsletter', 'toc', 'series', 'friends', 'stats', 'quote'];
     for (const w of config.sidebar.widgets) {
       if (w.enabled && !validTypes.includes(w.type)) warnings.push(`sidebar.widget type "${w.type}" is unknown`);
     }
@@ -1367,6 +1367,16 @@ function generateSearchData(config, articles) {
 // Contains: site config, theme, nav, sidebar, footer, security settings,
 // all articles, tags, categories, archives, and helper functions.
 // This is the base context — individual page generators add page-specific keys on top.
+
+  const BUILTIN_QUOTES = [
+    { text: '认识你自己。', author: '苏格拉底' },
+    { text: '我思故我在。', author: '笛卡尔' },
+    { text: '知行合一。', author: '王阳明' },
+    { text: '路漫漫其修远兮，吾将上下而求索。', author: '屈原' },
+    { text: '学而不思则罔，思而不学则殆。', author: '孔子' },
+    { text: '纸上得来终觉浅，绝知此事要躬行。', author: '陆游' },
+    { text: 'Where there is a will, there is a way.', author: 'Thomas Edison' }
+  ];
 function buildPageData(config, articles, tags, categories) {
   const published = getPublished(articles);
   const friendsCfg = collectFriends(config);
@@ -1394,6 +1404,7 @@ function buildPageData(config, articles, tags, categories) {
     footer: config.footer,
     security: config.security,
     allArticles: published,
+    page: {},
     recentPosts: published.slice(0, 10),
     allTags: tags,
     allCategories: categories,
@@ -1426,12 +1437,14 @@ function buildPageData(config, articles, tags, categories) {
       }
       return (o === undefined || o === null) ? fallback : o;
     },
+    i18nDict: (typeof uiStrings !== 'undefined' ? uiStrings : {}),
     escapeJsonForScript: escapeJsonForScript,
     JSON: JSON,
     Array: Array,
     Math: Math,
     Date: Date,
     config,
+    dailyQuotes: BUILTIN_QUOTES,
     searchData: generateSearchData(config, published)
   };
 }
@@ -1663,6 +1676,12 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
   const html404 = renderPage('404.ejs', data404, layoutTemplate, config);
   if (html404) await writeFile('404.html', html404);
 
+  if (config.features && config.features.favorites && config.features.favorites.enabled !== false) {
+    const favData = { ...baseData, title: '收藏', currentUrl: '/favorites', currentPage: 'favorites' };
+    const favHtml = renderPage('favorites.ejs', favData, layoutTemplate, config);
+    if (favHtml) await writeFile('favorites/index.html', favHtml);
+  }
+
   if (config.site.build.generateGallery !== false) {
     const galleryData = { ...baseData, title: '图库', currentUrl: '/gallery', currentPage: 'gallery' };
     const galleryHtml = renderPage('gallery.ejs', galleryData, layoutTemplate, config);
@@ -1793,8 +1812,9 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
   console.log('[8/14] Generating sitemap...');
   try {
     const url = config.site.url.replace(/\/+$/, '');
-    const changefreq = config.site.sitemap.changefreq || 'weekly';
-    const priority = config.site.sitemap.priority || 0.8;
+    const featsSitemap = config.features && config.features.sitemap ? config.features.sitemap : null;
+    const changefreq = (featsSitemap && featsSitemap.postFrequency) || config.site.sitemap.changefreq || 'weekly';
+    const priority = parseFloat((featsSitemap && featsSitemap.postPriority != null ? featsSitemap.postPriority : config.site.sitemap.priority) || 0.8);
     const urls = [];
     if (config.site.build.generateIndex !== false) {
       urls.push({ loc: '/', changefreq, priority: '1.0' });

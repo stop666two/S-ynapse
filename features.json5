@@ -1059,5 +1059,117 @@
     revealThreshold: 0.08,
     // 尊重 prefers-reduced-motion(系统弱化动效时关闭)。
     respectReducedMotion: true
-  }
+  },
+  // ---------------------------------------------------------------------------
+  dailyQuote: {
+    // 开启每日一言(侧栏 widget + 文章页引用)。
+    enabled: true,
+    // 数据显示于侧栏还是正文顶部,若为 false 则显示在文章内容开头。
+    widgetStyle: 'sidebar',
+    // 题目标签。
+    label: '每日一言',
+    // 数据源:内置 quotes.json5 或自定义 JSON。
+    source: 'builtin',
+    // 引用数量(循环轮换)。
+    count: 7,
+    // 文本颜色(空则继承)。
+    quoteColor: ''
+  },
+  // ---------------------------------------------------------------------------
+  favorites: {
+    // 开启收藏按钮(文章页) + /favorites 收藏页。
+    enabled: true,
+    // 显示在 post 末尾(工具栏)还是 meta 行。
+    position: 'toolbar',
+    // 存储键。
+    storageKey: 's-favorites',
+    // 按钮标签。
+    label: '收藏',
+    // 文章列表是否显示右侧收藏 icon。
+    listIcon: true,
+    // 未收藏状态文案。
+    notText: '收藏',
+    // 已收藏状态文案。
+    favedText: '已收藏'
+  },
+  // ---------------------------------------------------------------------------
+  prismTheme: {
+    // 启用代码块主题切换器。
+    enabled: true,
+    // 可选主题列表 id 与 label。
+    themes: [
+      { id: 'github', label: 'GitHub' },
+      { id: 'dark', label: 'Dark' },
+      { id: 'solarized', label: 'Solarized' },
+      { id: 'django', label: 'Django' }
+    ],
+    // 默认主题。
+    defaultTheme: 'github',
+    // 持久化。
+    remember: true,
+    // 存储键。
+    storageKey: 's-codeTheme',
+    // 切换器置于代码块窗口栏(标题栏)。
+    windowBar: true
+  },
+  // ---------------------------------------------------------------------------
+  cover: {
+    // 开启封面样式库。
+    enabled: true,
+    // 可选样式集合。
+    patterns: ['gradient', 'stripes', 'dots', 'blob', 'mesh'],
+    // 首篇文章默认 pattern。
+    defaultPattern: 'gradient',
+    // 在线预览(悬浮缩略图)。
+    preview: true,
+    // 图片链接若存在是否优先使用(否则用 pattern 合成)。
+    preferImage: true
+  },
+  // ---------------------------------------------------------------------------
+  i18n: {
+    // 开启界面双语(内置 strings)。
+    enabled: true,
+    // 默认语言。
+    defaultLanguage: 'zh',
+    // 支持语言。
+    languages: ['zh', 'en'],
+    // 切换按钮是否置于导航。
+    navToggle: true
+  },
+  // ---------------------------------------------------------------------------
+  pagefind: {
+    // 开启基于 Pagefind 的全文搜索(静态搜索, 无后端)。
+    enabled: true,
+    // index 目录。
+    indexPath: '/pagefind',
+    // 是否集成到现有 search 覆盖层。
+    integrate: true
+  },
+  // ---------------------------------------------------------------------------
+  giscus: {
+    // 开启 Giscus 评论。
+    enabled: false,
+    // 建议关闭, 如需启用请配置 repo/repoId 等。
+    repo: '',
+    repoId: '',
+    category: 'Announcements',
+    categoryId: '',
+    mapping: 'title',
+    theme: 'preferred_color_scheme',
+    loading: 'lazy',
+    crossorigin: 'anonymous'
+  },
+  // ---------------------------------------------------------------------------
+  sitemap: {
+    // sitemap 是否按类型细分(文章/标签/分类/页面)。
+    split: true,
+    // 优先权。
+    postPriority: '0.8',
+    pagePriority: '0.6',
+    tagPriority: '0.4',
+    // 更新频率。
+    postFrequency: 'weekly',
+    pageFrequency: 'monthly',
+    tagFrequency: 'monthly'
+  },
 }

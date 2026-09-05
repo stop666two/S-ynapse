@@ -83,6 +83,38 @@ const DEFAULT_FEATURES = {
     enabled: true, showProgressRing: true, showTocButton: true,
     showTopButton: true, hideOnScrollDown: true, position: 'right'
   },
+  dailyQuote: {
+    enabled: true, widgetStyle: 'sidebar', label: '每日一言',
+    source: 'builtin', count: 7, quoteColor: ''
+  },
+  favorites: {
+    enabled: true, position: 'toolbar', storageKey: 's-favorites',
+    label: '收藏', listIcon: true, notText: '收藏', favedText: '已收藏'
+  },
+  prismTheme: {
+    enabled: true,
+    themes: [{ id: 'github', label: 'GitHub' }, { id: 'dark', label: 'Dark' }, { id: 'solarized', label: 'Solarized' }, { id: 'django', label: 'Django' }],
+    defaultTheme: 'github', remember: true, storageKey: 's-codeTheme', windowBar: true
+  },
+  cover: {
+    enabled: true, patterns: ['gradient', 'stripes', 'dots', 'blob', 'mesh'],
+    defaultPattern: 'gradient', preview: true, preferImage: true
+  },
+  i18n: {
+    enabled: true, defaultLanguage: 'zh', languages: ['zh', 'en'], navToggle: true
+  },
+  pagefind: {
+    enabled: true, indexPath: '/pagefind', integrate: true
+  },
+  giscus: {
+    enabled: false, repo: '', repoId: '', category: 'Announcements',
+    categoryId: '', mapping: 'title', theme: 'preferred_color_scheme',
+    loading: 'lazy', crossorigin: 'anonymous'
+  },
+  sitemap: {
+    split: true, postPriority: '0.8', pagePriority: '0.6', tagPriority: '0.4',
+    postFrequency: 'weekly', pageFrequency: 'monthly', tagFrequency: 'monthly'
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true

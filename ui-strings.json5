@@ -98,4 +98,51 @@
     prev: '上一页',
     next: '下一页'
   }
-}
+,
+  // ==========================================================================
+  // English interface strings (i18n). Mirrors the zh defaults above.
+  // ==========================================================================
+  en: {
+    search: {
+      placeholder: 'Search...',
+      emptyHint: 'Type a keyword to search',
+      noResult: 'No matching articles',
+      resultCount: '{count} results',
+      openHint: 'Press / or Ctrl+K to search'
+    },
+    nav: {
+      menu: 'Menu', home: 'Home', archive: 'Archive', tags: 'Tags',
+      categories: 'Categories', about: 'About', friends: 'Links'
+    },
+    sidebar: {
+      aboutMe: 'About Me', latest: 'Recent Posts', tagCloud: 'Tags',
+      archives: 'Archive', categories: 'Categories', search: 'Search',
+      stats: 'Site Stats', toc: 'Table of Contents'
+    },
+    card: {
+      wordUnit: '{count} words', minute: '{minutes} min read',
+      readMore: 'Read More', empty: 'No posts yet', pinned: 'Pinned', series: 'Series'
+    },
+    post: {
+      prev: 'Previous', next: 'Next', related: 'Related Posts',
+      tocTitle: 'Contents', readingMode: 'Reading', ttsLabel: 'Listen', share: 'Share'
+    },
+    toolbar: {
+      backToTop: 'Back to top', openSearchLabel: 'Search',
+      darkLabel: 'Toggle dark mode', searchPlaceholder: 'Search posts...'
+    },
+    archive: {
+      statPosts: 'Posts', statDays: 'Days', statWords: 'Words',
+      statAvg: 'Avg/Day', statTags: 'Tags', statCats: 'Categories'
+    },
+    gallery: {
+      desc: 'In-site image gallery. Click to view full size.',
+      empty: 'No images', count: '{count} images'
+    },
+    notFound: {
+      title: 'Page Not Found',
+      desc: 'The page you requested does not exist or has been moved.',
+      backHome: 'Back to Home'
+    },
+    pagination: { label: 'Pagination', prev: 'Previous', next: 'Next' }
+  }}

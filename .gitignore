@@ -27,3 +27,8 @@ RULES.md
 .env
 .env.local
 .env.*.local
+
+# mcp产生的文件
+database.db
+database.db-shm
+database.db-wal

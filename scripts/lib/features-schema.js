@@ -195,7 +195,7 @@ const DEFAULT_FEATURES = {
     buttonRipple: true, rippleDurationMs: 500,
     scrollReveal: true, revealCards: true, revealHeadings: true,
     revealImages: true, revealBlocks: false,
-    revealDurationMs: 500, revealDelayMs: 60, revealOffset: '28px',
+    revealDurationMs: 500, revealDelayMs: 60, revealStaggerMax: 600, revealOffset: '28px',
     revealOnce: true, revealThreshold: 0.08, respectReducedMotion: true
   },
   ogImageStyle: {

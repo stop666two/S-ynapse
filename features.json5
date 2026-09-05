@@ -932,6 +932,8 @@
     revealDurationMs: 500,
     // 同屏多个元素连续渐入时相邻延迟(ms)。
     revealDelayMs: 60,
+    // 同屏元素错峰总时间上限(ms),超过不再累加,避免长页面等待过久。
+    revealStaggerMax: 600,
     // 渐入起点位移(px)。
     revealOffset: '28px',
     // 每个元素只渐入一次(滚动回顶不重复)。

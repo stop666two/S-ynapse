@@ -62,6 +62,14 @@ npm run serve
 # 访问 http://localhost:3000 即可预览
 ```
 
+> [!NOTE]
+> **Node 版本要求**：本项目要求 Node.js ≥ 20.9.0（`sharp` 0.35 硬性要求），CI 使用 Node 24 LTS。
+>
+> **npm 12（及以上）本机部署注意**：npm 12 默认禁止依赖的 `postinstall` 脚本（如 `esbuild`、`workerd` 的二进制下载），会导致本机 `npx wrangler deploy` 失败或部分依赖不完整。受影响的本机操作：
+> - 解决方案一（推荐）：经 `npm install --ignore-scripts` 后，再用 `npm rebuild --foreground-scripts esbuild workerd` 手动触发二进制下载；
+> - 解决方案二：使用 Node 20/22 附带的 npm 10（CI 环境为 npm 10，无此问题）；
+> - 构建站点（`npm run build`）本身不受影响，仅在本地执行 wrangler 部署命令时需要注意。
+
 ### Windows 快捷脚本
 
 | 脚本 | 功能 |

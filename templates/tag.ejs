@@ -1,7 +1,7 @@
 <div class="post-article tag-hero">
   <h1><%= tagName %></h1>
-  <p class="tag-count"><%= articles.length %> 篇文章</p>
-  <p class="tag-desc">阅读与「<%= tagName %>」相关的文章</p>
+  <p class="tag-count"><%= articles.length %> <%= ui('tag.postCount','篇文章') %></p>
+  <p class="tag-desc"><%= ui('tag.readWith','阅读与') %>「<%= tagName %>」<%= ui('tag.readWith','相关的文章') %></p>
 </div>
 
 <% if (articles && articles.length) { %>
@@ -14,7 +14,7 @@
   </a>
   <% } %>
   <h2 class="post-card-title">
-    <% if (article.pinned) { %><span class="pin-badge">置顶</span><% } %><% if (article.series) { %><span class="series-badge">系列</span><% } %>
+    <% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span><% } %><% if (article.series) { %><span class="series-badge"><%= ui('card.series','系列') %></span><% } %>
     <a href="<%= article.url %>"><%= article.title %></a>
   </h2>
   <div class="post-card-meta">
@@ -32,7 +32,7 @@
     <span><%= article.wordCount %> 字</span>
     <% } %>
     <% if (theme.card && theme.card.showReadTime && article.readTime) { %>
-    <span><%= article.readTime %> 分钟</span>
+    <span><%= article.readTime %> <%= ui('tag.minutes','分钟') %></span>
     <% } %>
   </div>
   <% if (theme.card && theme.card.showExcerpt && article.excerpt) { %>
@@ -49,5 +49,5 @@
 <% }) %>
 </div>
 <% } else { %>
-<div class="post-article"><p style="text-align:center;padding:2rem;color:var(--color-ts)">该标签下暂无文章</p></div>
+<div class="post-article"><p style="text-align:center;padding:2rem;color:var(--color-ts)"><%= ui('tag.empty','该标签下暂无文章') %></p></div>
 <% } %>

@@ -16,12 +16,12 @@
   <% }) %>
 </div>
 <% } else { %>
-<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">暂无友链</p>
+<p style="color:var(--color-text-secondary);text-align:center;padding:2rem"><%= ui('links.empty','暂无友链') %></p>
 <% } %>
 
 <% if (friends.applyNote) { %>
 <div class="links-apply">
-  <h3>友链申请</h3>
+  <h3><%= ui('links.apply','友链申请') %></h3>
   <p><%= friends.applyNote %></p>
 </div>
 <% } %>

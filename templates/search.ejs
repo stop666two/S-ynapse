@@ -1,7 +1,7 @@
 <div class="post-article" style="padding:2rem">
-  <h1>搜索</h1>
+  <h1 data-i18n="search.open">搜索</h1>
   <div style="margin:2rem 0">
-    <input type="text" id="searchPageInput" placeholder="输入关键词搜索..." style="width:100%;padding:1rem 1.25rem;font-size:1.125rem;border:2px solid var(--color-border);border-radius:var(--r);background:var(--color-bg);color:var(--color-t);font-family:var(--ff);outline:none" oninput="searchPage(this.value)" autofocus>
+    <input type="text" id="searchPageInput" placeholder="输入关键词搜索" data-i18n-placeholder="search.inputPlaceholder" style="width:100%;padding:1rem 1.25rem;font-size:1.125rem;border:2px solid var(--color-border);border-radius:var(--r);background:var(--color-bg);color:var(--color-t);font-family:var(--ff);outline:none" oninput="searchPage(this.value)" autofocus>
   </div>
   <div id="searchPageResults">
     <p style="color:var(--color-text-secondary);text-align:center;padding:2rem">输入关键词开始搜索</p>
@@ -30,7 +30,7 @@ function searchPage(query){
   var rDiv=document.getElementById('searchPageResults');
   if(!rDiv)return;
   if(!query||query.length<2){
-    rDiv.innerHTML='<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">输入关键词开始搜索</p>';
+    rDiv.innerHTML='<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">'+__T('search.startHint','输入关键词开始搜索')+'</p>';
     return;
   }
   var lq=query.toLowerCase(),results=[];
@@ -45,7 +45,7 @@ function searchPage(query){
   }
   results.sort(function(a,b){return b.score-a.score});
   if(results.length){
-    rDiv.innerHTML='<p style="color:var(--color-text-secondary);margin-bottom:1rem">找到 '+results.length+' 个结果</p>'+
+    rDiv.innerHTML='<p style="color:var(--color-text-secondary);margin-bottom:1rem">'+__T('search.foundCount','找到')+' '+results.length+' '+__T('search.foundCount','个结果')+'</p>'+
       results.map(function(r){
         var meta='';
         if(r.date)meta+='<span class="post-card-meta-item">'+escHtml(r.date)+'</span>';
@@ -59,7 +59,7 @@ function searchPage(query){
         '</article>';
       }).join('');
   }else{
-    rDiv.innerHTML='<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">未找到相关文章</p>';
+    rDiv.innerHTML='<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">'+__T('search.notFound','未找到相关文章')+'</p>';
   }
 }
 window.addEventListener('DOMContentLoaded',function(){

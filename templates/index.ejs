@@ -10,7 +10,7 @@
   <h1><%= heroData.title %></h1>
   <% if (heroData.subtitle) { %><p class="hero-sub"><%= heroData.subtitle %></p><% } %>
   <div class="hero-actions">
-    <% if (heroData.showSearch) { %><button type="button" class="hero-search" onclick="openSearch()">搜索文章…</button><% } %>
+    <% if (heroData.showSearch) { %><button type="button" class="hero-search" onclick="openSearch()"><%= ui('toolbar.searchPlaceholder','搜索文章…') %></button><% } %>
     <% if (heroData.showCta) { %><span class="hero-cta"><a href="<%= heroData.ctaUrl %>"><%= heroData.ctaLabel %></a></span><% } %>
   </div>
   <% if (heroData.showTags && heroData.tags && heroData.tags.length) { %>
@@ -32,7 +32,7 @@
   <a href="<%= article.url %>" class="post-card-nocover <%= listCoverEnabled ? 'has-cover-pattern' : '' %>" aria-hidden="true"><%= article.title.charAt(0) %></a>
   <% } %>
   <h2 class="post-card-title">
-    <% if (article.pinned) { %><span class="pin-badge">置顶</span><% } %><% if (article.series) { %><span class="series-badge">系列</span><% } %>
+    <% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span><% } %><% if (article.series) { %><span class="series-badge"><%= ui('card.series','系列') %></span><% } %>
     <a href="<%= article.url %>"><%= article.title %></a>
   </h2>
   <div class="post-card-meta">
@@ -47,10 +47,10 @@
     </span>
     <% } %>
     <% if (theme.card && theme.card.showWordCount && article.wordCount) { %>
-    <span><%= article.wordCount %> 字</span>
+    <span><%= article.wordCount %><%= ui('card.wordUnit','字') %></span>
     <% } %>
     <% if (theme.card && theme.card.showReadTime && article.readTime) { %>
-    <span><%= article.readTime %> 分钟阅读</span>
+    <span><%= article.readTime %><%= ui('card.minute','分钟阅读') %></span>
     <% } %>
   </div>
   <% if (theme.card && theme.card.showExcerpt && article.excerpt) { %>
@@ -67,7 +67,7 @@
 <% }) %>
 </div>
 <% if (pagination && pagination.total > 1) { %>
-<nav class="pagination" aria-label="分页导航">
+<nav class="pagination" aria-label="<%= ui('pagination.label','分页导航') %>">
   <% if (pagination.prev) { %>
   <a href="<%= pagination.prev %>" class="page-link">&laquo; <%= pagination.prevLabel %></a>
   <% } else { %>
@@ -87,7 +87,7 @@
 <% } %>
 <% } else { %>
 <div style="text-align:center;padding:4rem 1rem;color:var(--color-text-secondary)">
-  <p style="font-size:1.125rem">暂无文章</p>
+  <p style="font-size:1.125rem"><%= ui('card.empty','暂无文章') %></p>
 </div>
 <% } %>
 

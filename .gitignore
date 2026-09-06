@@ -38,3 +38,7 @@ database.db-wal
 # Workers security config (auto-generated from security.json during build)
 workers/security-config.js
 .tmp-scripts/
+test-out.txt
+
+lang-verify.js
+lang-diag.js

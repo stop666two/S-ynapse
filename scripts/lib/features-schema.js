@@ -14,18 +14,20 @@ const DEFAULT_FEATURES = {
     closeOnBackdrop: true, showCounter: true, counterFormat: '{current} / {total}',
     maxWidthVw: '92', maxSizePx: '1600', maxHeightVh: '82',
     openDurationMs: 180, switchDurationMs: 120, backdropOpacity: '0.9',
-    preloadAdjacent: true, rememberPosition: false
+    preloadAdjacent: true, rememberPosition: false,
+    showCaption: true, captionMaxLines: 2, transitionDurationMs: 220
   },
   readingProgress: {
     enabled: true, articleOnly: true, clickToJump: true, showDot: true,
     dotSize: '10px', barHeight: '3px', useGradient: true,
     gradientStart: 'var(--color-s)', gradientEnd: 'var(--color-a)',
-    tipDisplayMs: 500, updateThrottleMs: 30, ariaAnnounce: true, topOffset: '0'
+    tipDisplayMs: 500, updateThrottleMs: 30, ariaAnnounce: true, topOffset: '0',
+    zIndex: 1000, showTip: true, progressColor: 'var(--color-a)'
   },
   backToTop: {
     enabled: true, showAfterPx: 400, rightOffset: '2rem', bottomOffset: '2rem',
     size: '44px', scrollDurationMs: 450, smoothScroll: true, hotkey: '',
-    htmlAnchorFallback: false
+    htmlAnchorFallback: false, zIndex: 999
   },
   search: {
     enabled: true, minChars: 1, maxResults: 30, highlightMatches: true,
@@ -33,7 +35,8 @@ const DEFAULT_FEATURES = {
     noResultText: '未找到匹配内容', excerptLength: 120, includeContent: true,
     matchTags: true, matchCategories: true, weightTitle: 5, weightExcerpt: 2,
     weightContent: 1, closeOnOverlay: true, focusOnOpen: true,
-    openAnimation: 'fade', pinyinFuzzy: false
+    openAnimation: 'fade', pinyinFuzzy: false,
+    debounceMs: 120, showHistoryOnFocus: true, maxHistory: 5
   },
   imageLazy: {
     enabled: true, mode: 'lazy', loadMargin: '200px', fadeIn: true,
@@ -43,7 +46,8 @@ const DEFAULT_FEATURES = {
     enabled: true, copyButtonVisibility: 'hover', copySuccessText: '已复制',
     copyFailText: '复制失败', showLanguageTag: true, lineNumbers: false, windowBar: true,
     wrapLongLines: false, highlightBackground: 'var(--color-hover)',
-    borderRadius: '0.375rem', maxHeight: '', copyAllButton: true, downloadButton: true
+    borderRadius: '0.375rem', maxHeight: '', copyAllButton: true, downloadButton: true,
+    maxHeightVh: 'none', headerHeight: '36px', fontSize: '0.92em'
   },
   externalLink: {
     enabled: true, whitelist: [], blacklist: [], mode: 'warn',
@@ -72,7 +76,8 @@ const DEFAULT_FEATURES = {
     enabled: true, minLevel: 2, maxLevel: 4, collapsible: true,
     defaultOpenLevel: 2, highlightActive: true, activeOffset: 120,
     progressLine: true, updateUrl: true, smoothScroll: true,
-    visitedFade: true
+    visitedFade: true, titleText: '目录', titleTextEn: 'Contents',
+    showTitle: true, maxWidthPx: 320
   },
   mobileToc: {
     enabled: true, breakpoint: 1024, borderRadius: '1rem',
@@ -190,7 +195,7 @@ const DEFAULT_FEATURES = {
     fontSizeDefault: 19, lineHeightMin: 1.4, lineHeightMax: 2.6,
     lineHeightStep: 0.1, lineHeightDefault: 1.9, widthMin: 560, widthMax: 1200,
     widthStep: 40, widthDefault: 800, remember: true, storageKey: 'readerPrefs',
-    resetText: '重置', position: 'right'
+    resetText: '重置', position: 'right', persistKey: 'ss-reading', showReset: true
   },
   readMode: {
     enabled: true, persist: true, label: '阅读模式', focusOnlyContent: true,
@@ -199,7 +204,9 @@ const DEFAULT_FEATURES = {
   tts: {
     enabled: true, rate: 0.5, pitch: 1, volume: 1, preferDefaultVoice: true,
     voiceBy: 'lang', readSelector: '.post-content', icon: 'speaker',
-    highlightParagraph: false, position: 'toolbar'
+    highlightParagraph: false, position: 'toolbar',
+    highlightReading: true, highlightClass: 'tts-highlight',
+    skipSelectors: 'pre, .katex, .mermaid'
   },
   wikiLinks: {
     enabled: true, unknownMode: 'text', unknownSuffix: '', openNewTab: false,

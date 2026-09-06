@@ -75,7 +75,7 @@
   <div class="reader-row"><label for="rFont" data-i18n="post.fontSize">字号</label><input type="range" id="rFont" min="<%=features.readingPanel.fontSizeMin||15%>" max="<%=features.readingPanel.fontSizeMax||26%>" step="<%=features.readingPanel.fontSizeStep||1%>" value="<%=features.readingPanel.fontSizeDefault||19%>"></div>
   <div class="reader-row"><label for="rLine" data-i18n="post.lineHeight">行距</label><input type="range" id="rLine" min="<%=features.readingPanel.lineHeightMin||1.4%>" max="<%=features.readingPanel.lineHeightMax||2.6%>" step="<%=features.readingPanel.lineHeightStep||0.1%>" value="<%=features.readingPanel.lineHeightDefault||1.9%>"></div>
   <div class="reader-row"><label for="rWidth" data-i18n="post.width">宽幅</label><input type="range" id="rWidth" min="<%=features.readingPanel.widthMin||560%>" max="<%=features.readingPanel.widthMax||1200%>" step="<%=features.readingPanel.widthStep||40%>" value="<%=features.readingPanel.widthDefault||800%>"></div>
-  <button class="reader-reset" id="rReset"><%=features.readingPanel.resetText||ui('post.resetDefault','重置为默认')%></button>
+  <% if(features.readingPanel.showReset!==false){ %><button class="reader-reset" id="rReset"><%=features.readingPanel.resetText||ui('post.resetDefault','重置为默认')%></button><% } %>
 </div>
 <% } %>
 

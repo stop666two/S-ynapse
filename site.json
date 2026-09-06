@@ -1,158 +1,169 @@
 {
-  // ==================== 站点基本信息 ====================
-
-  // 站点标题，显示在浏览器标签和页面顶部
   "title": "S-ynapse",
-  // 副标题，显示在站点描述位置
   "subtitle": "思考的突触",
-  // ==================== 首页 Hero 区域 ====================
-  // 首页顶部横幅（仅第一页显示）。title 留空则用站点标题
   "hero": {
-    "enabled": true,             // 是否启用 Hero 区域
-    "title": "",                 // Hero 主标题，留空=site.title
-    "subtitle": "",              // Hero 副标题，留空=site.subtitle
-    "showSearch": true,          // 显示搜索按钮
-    "showCta": true,             // 显示「查看全部文章」按钮
-    "ctaLabel": "查看全部文章",   // CTA 按钮文字
-    "ctaUrl": "#latest-post",    // CTA 按钮跳转（#latest-post 吸顶到文章列表）
-    "showTags": true,            // 显示热门标签
-    "tagCount": 8                // 热门标签显示数量
+    "enabled": true,
+    "title": "",
+    "subtitle": "",
+    "showSearch": true,
+    "showCta": true,
+    "ctaLabel": "查看全部文章",
+    "ctaUrl": "#latest-post",
+    "showTags": true,
+    "tagCount": 8,
+    "titleEn": "S-ynapse",
+    "subtitleEn": "Thought Synapses"
   },
-  // 站点描述，用于 SEO meta description 和社交分享
   "description": "个人技术博客，记录编程与生活",
-  // 作者名称，用于结构化数据和版权信息
   "author": "Your Name",
-  // 联系邮箱，用于 RSS feed 和社交链接
   "email": "admin@example.com",
-  // 站点根 URL，用于生成绝对路径链接和 sitemap
   "url": "https://synapse.dev",
-  // 站点语言，影响日期格式和 HTML lang 属性
   "language": "zh-CN",
-  // 时区，用于文章发布时间显示
   "timezone": "Asia/Shanghai",
-  // 日期显示格式，遵循 moment.js 格式语法
   "dateFormat": "YYYY-MM-DD HH:mm",
-  // 版权声明，显示在页脚
   "copyright": "© 2026 Your Name",
-
-  // ==================== 分页设置 ====================
-
-  // 每页显示的文章数量
   "postsPerPage": 10,
-  // 分页"上一页"按钮文字
   "paginationPrev": "上一页",
-  // 分页"下一页"按钮文字
   "paginationNext": "下一页",
-  // 上一篇/下一篇 按钮文字（文章详情页底部导航）
   "prevPostLabel": "上一篇",
   "nextPostLabel": "下一篇",
-
-  // ==================== RSS Feed 设置 ====================
-
   "rss": {
-    "enabled": true,           // 是否生成 RSS feed
-    "path": "/feed.xml",       // feed 输出路径
-    "fullContent": true,       // 是否在 feed 中包含全文
-    "maxItems": 50,            // feed 中最多包含的文章数
+    "enabled": true,
+    "path": "/feed.xml",
+    "fullContent": true,
+    "maxItems": 50,
     "jsonFeed": {
-      "enabled": true          // 是否生成 JSON Feed (/feed.json),与 RSS 同一数据源
+      "enabled": true
     }
   },
-
-  // ==================== SEO / 搜索引擎优化 ====================
-
   "seo": {
-    "metaKeywords": ["博客", "技术", "编程"],   // 页面关键词
-    "metaRobots": "index, follow",              // 爬虫指令
-    "ogImage": "/media/og-image.svg",           // Open Graph 分享图片路径
-    "ogType": "website",                        // OG 类型
-    "twitterCard": "summary_large_image",        // Twitter 卡片类型
-    "twitterSite": "@yourtwitter",               // Twitter 站点账号
-    "canonicalURL": true,                        // 是否生成 canonical URL
+    "metaKeywords": [
+      "博客",
+      "技术",
+      "编程"
+    ],
+    "metaRobots": "index, follow",
+    "ogImage": "/media/og-image.svg",
+    "ogType": "website",
+    "twitterCard": "summary_large_image",
+    "twitterSite": "@yourtwitter",
+    "canonicalURL": true,
     "structuredData": {
-      "enabled": true,          // 是否生成 JSON-LD 结构化数据
-      "type": "BlogPosting"     // 结构化数据类型
+      "enabled": true,
+      "type": "BlogPosting"
     },
-    "titleTemplate": {            // 页面标题模板（HTML <title> / og:title / ld+json headline）
-      "index": "{site} · {subtitle}",   // 首页：站点名 · 副标题
-      "post": "{title} | {site}",       // 文章页：文章标题 | 站点名
-      "default": "{title} | {site}"     // 其余页面（标签/分类/归档/搜索/404 等）
+    "titleTemplate": {
+      "index": "{site} · {subtitle}",
+      "post": "{title} | {site}",
+      "default": "{title} | {site}"
     }
   },
-
-  // ==================== Cloudflare Web Analytics ====================
-  // 填写 token 后自动注入官方 beacon 脚本（零自建、无 Cookie）
-  // 推荐通过环境变量 CF_WEB_ANALYTICS_TOKEN 注入（CI 中不落盘 token），此处留空即可
   "webAnalytics": {
     "enabled": true,
-    "token": ""                    // CF Web Analytics 令牌，或由 CF_WEB_ANALYTICS_TOKEN 提供
+    "token": ""
   },
-
-  // ==================== 社交链接 ====================
-  //
-  // 内置平台：github / twitter / x / weibo / telegram / facebook / rss / email / phone
-  // 自定义：type="link" 或 type="popup"，value/popupTitle/popupContent 自定
-  // link 类型点击跳转 URL，popup 类型点击弹窗显示联系方式并支持一键复制
-
   "social": {
     "enabled": true,
     "items": {
-      "github":   { "enabled": true,  "type": "link",  "url": "https://github.com/stop666two" },
-      "x":        { "enabled": false, "type": "link",  "url": "" },
-      "weibo":    { "enabled": false, "type": "link",  "url": "" },
-      "telegram": { "enabled": false, "type": "link",  "url": "" },
-      "facebook": { "enabled": false, "type": "link",  "url": "" },
-      "rss":      { "enabled": true,  "type": "link",  "url": "/feed.xml" },
-      "email":    { "enabled": true,  "type": "link",  "url": "mailto:admin@example.com" },
-      "qq":       { "enabled": false, "type": "popup", "value": "123456789",  "popupTitle": "QQ",      "popupContent": "QQ 号：123456789" },
-      "qqgroup":  { "enabled": true,  "type": "popup", "value": "987654321",  "popupTitle": "QQ 群",   "popupContent": "QQ 群号：987654321" },
-      "wechat":   { "enabled": true,  "type": "popup", "value": "MyWeChatID", "popupTitle": "微信",    "popupContent": "微信号：MyWeChatID" },
-      "phone":    { "enabled": true,  "type": "popup", "value": "13800138000", "popupTitle": "电话",    "popupContent": "电话：13800138000" }
+      "github": {
+        "enabled": true,
+        "type": "link",
+        "url": "https://github.com/stop666two"
+      },
+      "x": {
+        "enabled": false,
+        "type": "link",
+        "url": ""
+      },
+      "weibo": {
+        "enabled": false,
+        "type": "link",
+        "url": ""
+      },
+      "telegram": {
+        "enabled": false,
+        "type": "link",
+        "url": ""
+      },
+      "facebook": {
+        "enabled": false,
+        "type": "link",
+        "url": ""
+      },
+      "rss": {
+        "enabled": true,
+        "type": "link",
+        "url": "/feed.xml"
+      },
+      "email": {
+        "enabled": true,
+        "type": "link",
+        "url": "mailto:admin@example.com"
+      },
+      "qq": {
+        "enabled": false,
+        "type": "popup",
+        "value": "123456789",
+        "popupTitle": "QQ",
+        "popupContent": "QQ 号：123456789"
+      },
+      "qqgroup": {
+        "enabled": true,
+        "type": "popup",
+        "value": "987654321",
+        "popupTitle": "QQ 群",
+        "popupContent": "QQ 群号：987654321"
+      },
+      "wechat": {
+        "enabled": true,
+        "type": "popup",
+        "value": "MyWeChatID",
+        "popupTitle": "微信",
+        "popupContent": "微信号：MyWeChatID"
+      },
+      "phone": {
+        "enabled": true,
+        "type": "popup",
+        "value": "13800138000",
+        "popupTitle": "电话",
+        "popupContent": "电话：13800138000"
+      }
     }
   },
-
-  // ==================== 评论系统 ====================
-
   "comments": {
-    "enabled": false,            // 是否启用评论功能
-    "provider": "giscus",        // 评论提供商：giscus / disqus / utterances
-    "giscus": {                  // Giscus 配置（基于 GitHub Discussions）
-      "repo": "yourname/your-repo",           // GitHub 仓库
-      "repoId": "R_kgDO...",                   // 仓库 ID
-      "category": "Announcements",             // Discussions 分类
-      "categoryId": "DIC_kwDO...",             // 分类 ID
-      "mapping": "pathname",                   // 页面映射方式
-      "strict": "0",                           // 严格模式
-      "reactionsEnabled": "1",                 // 是否启用表情反应
-      "emitMetadata": "0",                     // 是否发射元数据
-      "inputPosition": "bottom",               // 评论输入框位置
-      "theme": "light",                        // 主题
-      "lang": "zh-CN"                          // 语言
+    "enabled": false,
+    "provider": "giscus",
+    "giscus": {
+      "repo": "yourname/your-repo",
+      "repoId": "R_kgDO...",
+      "category": "Announcements",
+      "categoryId": "DIC_kwDO...",
+      "mapping": "pathname",
+      "strict": "0",
+      "reactionsEnabled": "1",
+      "emitMetadata": "0",
+      "inputPosition": "bottom",
+      "theme": "light",
+      "lang": "zh-CN"
     },
-    "disqus": {                  // Disqus 配置（备选）
+    "disqus": {
       "shortname": "your-shortname"
     },
-    "utterances": {              // Utterances 配置（备选，基于 GitHub Issues）
+    "utterances": {
       "repo": "yourname/your-repo",
       "label": "comment",
       "theme": "github-light"
     }
   },
-
-  // ==================== Sitemap 站点地图 ====================
-
   "sitemap": {
-    "enabled": true,             // 是否生成 sitemap.xml
-    "path": "/sitemap.xml",      // sitemap 输出路径
-    "changefreq": "weekly",      // 页面变更频率
-    "priority": 0.8              // 默认优先级
+    "enabled": true,
+    "path": "/sitemap.xml",
+    "changefreq": "weekly",
+    "priority": 0.8
   },
-
-  // ==================== PWA 渐进式 Web 应用 ====================
-
   "pwa": {
-    "enabled": false,            // 是否启用 PWA 支持
-    "manifest": {                // Web App Manifest 配置
+    "enabled": false,
+    "manifest": {
       "name": "S-ynapse",
       "short_name": "S-ynapse",
       "start_url": "/",
@@ -160,76 +171,73 @@
       "background_color": "#ffffff",
       "theme_color": "#2d3748",
       "icons": [
-        { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-        { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        },
+        {
+          "src": "/icons/icon-512.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
       ]
     },
-    "serviceWorker": "/sw.js"    // Service Worker 路径
+    "serviceWorker": "/sw.js"
   },
-
-  // ==================== 构建配置 ====================
-
   "build": {
-    "cleanDist": true,                    // 构建前是否清空 dist 目录
-    "minifyHTML": true,                   // 是否压缩 HTML
-    "minifyCSS": true,                    // 是否压缩 CSS
-    "minifyJS": true,                     // 是否压缩 JS
-    "removeConsole": true,                // 是否移除 console 语句
-    "generateIndex": true,                // 是否生成首页
-    "generateArchive": true,              // 是否生成归档页
-    "generateTags": true,                 // 是否生成标签页
-    "generateCategories": true,           // 是否生成分类页
-    "generateAuthorPages": false,         // 是否生成作者页（多作者时启用）
-    "copyStatic": true,                   // 是否复制静态资源
-    "optimizeMedia": true,                // 是否优化图片
-    "mediaQuality": 85,                   // 图片质量（1-100）
-    "mediaResponsiveSizes": [640, 1024, 1920],  // 响应式图片尺寸
-    "mediaFormats": ["webp", "original"],        // 输出图片格式
-    "avif": {                                    // AVIF 变体（默认关闭；开启后 <picture> 优先提供 avif，构建时间约增加 40%）
+    "cleanDist": true,
+    "minifyHTML": true,
+    "minifyCSS": true,
+    "minifyJS": true,
+    "removeConsole": true,
+    "generateIndex": true,
+    "generateArchive": true,
+    "generateTags": true,
+    "generateCategories": true,
+    "generateAuthorPages": false,
+    "copyStatic": true,
+    "optimizeMedia": true,
+    "mediaQuality": 85,
+    "mediaResponsiveSizes": [
+      640,
+      1024,
+      1920
+    ],
+    "mediaFormats": [
+      "webp",
+      "original"
+    ],
+    "avif": {
       "enabled": false,
       "quality": 50,
-      "effort": 6                                // 0-9，越高越慢压缩率越好
+      "effort": 6
     },
-    "lazyLoadImages": true,               // 是否延迟加载图片
-    "useSrcset": true,                    // 是否使用 srcset 属性
-    "usePictureTag": true,                // 是否使用 picture 标签
-    "enableCacheBusting": true,           // 是否启用缓存清除
-    "cacheBustingPattern": ".*\\.(css|js|png|jpg|svg)$",  // 缓存清除匹配模式
-    "externalLinksTarget": "_blank",       // 外部链接 target
-    "externalLinksRel": "noopener noreferrer",  // 外部链接 rel
-    "searchFullContent": true,             // 全文搜索（含正文 5000 字）
-    "relatedArticles": true,               // 文章关联推荐
-    "cjkSpacing": true,                    // 中英文自动加空格
-    "buildReport": true,                   // 生成构建报告
-    "autoOgImage": true,                   // 自动生成 OG 图片
-    "forceContentWidth": true,             // 强制所有页面内容区为最大宽度
-    "avif": {                              // AVIF 变体（默认关闭；开启后 <picture> 优先提供 avif，构建时间约增加 40%）
-      "enabled": false,
-      "quality": 50,
-      "effort": 6                          // 0-9，越高越慢压缩率越好
-    }
+    "lazyLoadImages": true,
+    "useSrcset": true,
+    "usePictureTag": true,
+    "enableCacheBusting": true,
+    "cacheBustingPattern": ".*\\.(css|js|png|jpg|svg)$",
+    "externalLinksTarget": "_blank",
+    "externalLinksRel": "noopener noreferrer",
+    "searchFullContent": true,
+    "relatedArticles": true,
+    "cjkSpacing": true,
+    "buildReport": true,
+    "autoOgImage": true,
+    "forceContentWidth": true
   },
-
-  // ==================== 重定向规则 ====================
-  // 生成 Cloudflare Pages _redirects 文件（301/302），支持通配符：from 与 to 中的 * 一一对应
-  // 示例：{ "from": "/old-post", "to": "/new-post/", "permanent": true }
   "redirects": [],
-
-  // ==================== 自定义 HTML 注入 ====================
-
-  "customHead": "",             // 注入到 </head> 之前的 HTML
-  "customBodyStart": "",        // 注入到 <body> 之后的 HTML
-  "customBodyEnd": "",          // 注入到 </body> 之前的 HTML
-
-  // ==================== 外部链接安全警告 ====================
-
+  "customHead": "",
+  "customBodyStart": "",
+  "customBodyEnd": "",
   "externalLinkWarning": {
-    "enabled": true,              // 是否启用外部链接安全警告
-    "title": "安全提醒",           // 警告弹窗标题
-    "message": "您即将离开本站，前往外部网站。\n\n请注意核实链接的真实性，不要输入任何个人信息。\n谨防钓鱼网站和诈骗。\n\n目标链接：",  // 警告消息，{url} 会被替换为实际链接
-    "confirmText": "继续访问",     // 确认按钮文字
-    "cancelText": "取消返回",      // 取消按钮文字
-    "whitelist": [                 // 白名单：匹配的链接不会弹出警告（支持通配符 *）
+    "enabled": true,
+    "title": "安全提醒",
+    "message": "您即将离开本站，前往外部网站。\n\n请注意核实链接的真实性，不要输入任何个人信息。\n谨防钓鱼网站和诈骗。\n\n目标链接：",
+    "confirmText": "继续访问",
+    "cancelText": "取消返回",
+    "whitelist": [
       "*.github.com",
       "*.google.com",
       "*.mozilla.org",
@@ -243,31 +251,29 @@
       "beian.miit.gov.cn",
       "www.beian.gov.cn"
     ],
-    "blacklist": []                // 黑名单：这些链接总是弹出警告（即使在白名单中）
+    "blacklist": []
   },
-
-  // ==================== 打赏 ====================
-
   "reward": {
-    "enabled": false,             // 是否启用打赏区块（文章末尾显示）
-    "note": "如果这篇文章对你有帮助，欢迎打赏支持；谢谢！",  // 打赏按钮旁的说明文字
-    "wechat": {                   // 微信收款：image 与 url 至少填一个
+    "enabled": false,
+    "note": "如果这篇文章对你有帮助，欢迎打赏支持；谢谢！",
+    "wechat": {
       "label": "微信",
-      "image": "",                // 收款码图片路径，如 /media/reward-wechat.png
-      "url": ""                   // 收款跳转链接（为空则不显示链接）
+      "image": "",
+      "url": ""
     },
-    "alipay": {                   // 支付宝收款：image 与 url 至少填一个
+    "alipay": {
       "label": "支付宝",
       "image": "",
       "url": ""
     },
-    "custom": [                   // 其他自定义收款方式（可多个）
-      // { "label": "爱发电", "image": "", "url": "https://afdian.com/xxx" }
-    ]
+    "custom": []
   },
-
-  // ==================== 其他 ====================
-
-  "showRepoLink": true,         // 是否在导航栏和页脚显示项目仓库链接
-  "repoUrl": "https://github.com/stop666two/S-ynapse"  // 项目仓库地址
+  "showRepoLink": true,
+  "repoUrl": "https://github.com/stop666two/S-ynapse",
+  "titleEn": "S-ynapse",
+  "languages": [
+    "zh",
+    "en"
+  ],
+  "subtitleEn": "Thought Synapses"
 }

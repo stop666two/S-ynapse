@@ -1257,12 +1257,12 @@ function getTemplate(name) {
 // Returns full HTML string, or null on failure.
 // Compose the final HTML <title> for a page based on seo.titleTemplate in site.json.
 // Placeholders: {site} {subtitle} {title}. Falls back to '{title} | {site}' (index: just site title).
-function applyTitleTemplate(config, pageType, pageTitle) {
+function applyTitleTemplate(config, pageType, pageTitle, lang) {
   const tplSrc = (config.site.seo && config.site.seo.titleTemplate) || null;
   const fallback = pageType === 'index' ? '{site}' : '{title} | {site}';
   const tpl = tplSrc ? (tplSrc[pageType] || tplSrc.default || fallback) : fallback;
-  const site = config.site.title || '';
-  const subtitle = config.site.subtitle || '';
+  const site = (lang === 'en' && config.site.titleEn) ? config.site.titleEn : (config.site.title || '');
+  const subtitle = (lang === 'en' && config.site.subtitleEn) ? config.site.subtitleEn : (config.site.subtitle || '');
   let out = tpl.replace(/\{site\}/g, site).replace(/\{subtitle\}/g, subtitle);
   if (pageTitle) out = out.replace(/\{title\}/g, pageTitle);
   else out = out.replace(/\{title\}/g, site);
@@ -1277,7 +1277,7 @@ function renderPage(templateName, data, layoutTemplate, cfg) {
   }
   try {
     const rawTitle = (typeof data.title !== 'undefined' && data.title) ? data.title : null;
-    const pageTitleFinal = applyTitleTemplate(cfg || config, data.currentPage || 'index', rawTitle);
+    const pageTitleFinal = applyTitleTemplate(cfg || config, data.currentPage || 'index', rawTitle, data.lang);
     const bodyContent = ejs.render(templateStr, data, { filename: path.join(TEMPLATES_DIR, templateName) });
     let result;
     if (layoutTemplate) {
@@ -1529,6 +1529,8 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
       ...baseData,
       lang,
       langPrefix: pf,
+      title: lang === 'en' ? (config.site.titleEn || config.site.title) : config.site.title,
+      articleTitle: null,
       articles: langArticles,
       allArticles: langPublished,
       topTags: langTopTags,
@@ -2026,11 +2028,11 @@ function getDirSize(dir) {
 // Each entry: {from, to, permanent} — permanent=true → 301, false → 302.
 // Supports wildcard syntax (e.g. "/old/* /new/:splat 301") via CF Pages native matching.
 function generateRedirects(config) {
-  const list = config.site.redirects || [];
-  if (!Array.isArray(list) || list.length === 0) return;
-  console.log('  Generating _redirects...');
+  const list = Array.isArray(config.site.redirects) ? config.site.redirects : [];
   const lines = [];
   const valid = [];
+
+  const langs = (config.site.languages && config.site.languages.length) ? config.site.languages : ['zh'];
   for (const r of list) {
     if (!r || !r.from || !r.to) {
       console.warn('  [WARN] Skipped invalid redirect entry (missing from/to): ' + JSON.stringify(r || null));
@@ -2040,9 +2042,24 @@ function generateRedirects(config) {
     valid.push({ from: r.from, to: r.to, status });
     lines.push(`${r.from} ${r.to} ${status}`);
   }
-  if (lines.length === 0) return;
+  if (langs.length > 0 && langs[0] !== 'en') {
+    if (!lines.some(l => l.startsWith('/ '))) {
+      lines.unshift(`/ /${langs[0]}/ 302`);
+    }
+  }
+  for (const l of langs) {
+    const pf = '/' + l;
+    const rootAliases = ['/search-index.json', '/feed.xml', '/manifest.json', '/404.html', '/site.webmanifest'];
+    for (const alias of rootAliases) {
+      if (!lines.some(x => x.startsWith(alias + ' '))) {
+        lines.push(`${alias} ${pf}${alias} 302`);
+      }
+    }
+  }
+  if (lines.length === 0) { return; }
+  fs.mkdirSync(DIST_DIR, { recursive: true });
   fs.writeFileSync(path.join(DIST_DIR, '_redirects'), lines.join('\n') + '\n', 'utf-8');
-  console.log('  Created: /_redirects (' + valid.length + ' rules)');
+  console.log('  Created: /_redirects (' + valid.length + ' custom + ' + (lines.length - valid.length) + ' language rules)');
   return valid;
 }
 
@@ -2368,6 +2385,10 @@ async function build() {
     if (pagesContent) baseData.pagesContent = pagesContent;
     const customPages = processCustomPages(config, baseData);
     await generatePages(config, articles, baseData, customPages);
+    const zh404 = path.join(DIST_DIR, 'zh', '404.html');
+    if (fs.existsSync(zh404)) {
+      fs.copyFileSync(zh404, path.join(DIST_DIR, '404.html'));
+    }
     await generateRSS(config, articles);
     await generateJSONFeed(config, articles);
     await generateSitemap(config, articles, tags, categories, customPages);

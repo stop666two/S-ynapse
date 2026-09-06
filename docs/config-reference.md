@@ -25,7 +25,10 @@
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
 | `title` | string | `My Blog` | `必填` 站点名称(标题栏/Logo/OG) |
+| `titleEn` | string | `''` | 英文站点名称(en 语言页标题栏/Logo/OG;空则回退 `title`) |
 | `subtitle` | string | `''` | 副标题(Logo 旁小字) |
+| `subtitleEn` | string | `''` | 英文副标题(en 语言页 Logo 旁小字;空则回退 `subtitle`) |
+| `languages` | string[] | `['zh','en']` | 站点支持语言列表(每语言生成完整站点:首页/文章/归档/标签/分类/搜索/RSS/sitemap;对应 `articles/{lang}/` 目录) |
 | `description` | string | `''` | 站点描述(meta/OG/RSS) |
 | `author` | string | `''` | 作者名 |
 | `email` | string | `''` | 作者邮箱 |
@@ -131,9 +134,13 @@
 | `externalLinkWarning.whitelist` | array | `[]` | 白名单(`*.github.com`、`example.com/path`) |
 | `externalLinkWarning.blacklist` | array | `[]` | 黑名单(命中直接拦截) |
 | `externalLinkWarning.message` | string | `即将离开本站…` | 提示文案(`{url}` 占位) |
+| `externalLinkWarning.messageEn` | string | `''` | 英文提示文案(en 语言页;空则回退 `message`) |
 | `externalLinkWarning.confirmText` | string | `继续访问` | 确认按钮 |
+| `externalLinkWarning.confirmTextEn` | string | `''` | 英文确认按钮(en 语言页;空则回退 `confirmText`) |
 | `externalLinkWarning.cancelText` | string | `取消返回` | 取消按钮 |
+| `externalLinkWarning.cancelTextEn` | string | `''` | 英文取消按钮(en 语言页;空则回退 `cancelText`) |
 | `externalLinkWarning.title` | string | `安全提醒` | 弹窗标题 |
+| `externalLinkWarning.titleEn` | string | `''` | 英文弹窗标题(en 语言页;空则回退 `title`) |
 
 ### site.redirects — 重定向
 数组元素:`{ from:'/old/', to:'/new/', permanent:true }`;支持 `*` 通配符。构建生成 CF Pages `_redirects`;本地 serve 同步生效。
@@ -400,8 +407,8 @@ sitemap: {
 ### 3.51 cover — 封面样式库
 `enabled true` / `patterns[]` (gradient/stripes/dots/blob/mesh) / `defaultPattern 'gradient'` / `preview true` / `preferImage true`。文章封面样式库(渐变/条纹/圆点/气泡/网格),在线预览。
 
-### 3.52 i18n — 界面双语
-`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true`。仅界面文案双语(zh/en)切换,文章内容保持原文。
+### 3.52 i18n — 内容级双语
+`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true`。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/search-index),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段。
 
 ### 3.53 pagefind — Pagefind 全文搜索
 `enabled true` / `indexPath '/pagefind'` / `integrate true`。使用 Pagefind 的离线全文搜索(search.provider='pagefind' 时生效,构建生成索引)。

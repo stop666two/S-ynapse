@@ -35,7 +35,7 @@
 - 暗黑模式（跟随系统 / 手动切换，无闪烁）+ **深色定时切换**（`themeSchedule`，固定时段）
 - **主题预设切换器**（6 套调色盘：Classic Blue / Cyber Purple / Forest Green / Sakura Pink / Editorial Gray / Midnight Black，localStorage 持久化）
 - 全文搜索（Ctrl+K 快捷键，搜索标题 + 正文 + 标签，**键盘方向键导航 + 搜索历史**）
-- **Giscus 评论**（基于 GitHub Discussions）、**用户界面双语切换**（zh/en，仅界面文案）
+- **Giscus 评论**（基于 GitHub Discussions）、**内容级双语**（zh/en：文章分目录 + 全文翻译 + URL 语言前缀 + 界面语言化）
 - 文章目录 TOC（侧边栏自动提取 h2-h4，移动端抽屉；**进度线 + URL 锚点 + 已读淡显**）
 - 图片灯箱（键盘 / 触屏滑动 / 图库页联动；**_缩放 / 平移 / 旋转 / 双指**）
 - 阅读设置面板（字号/行高/宽度滑杆）、阅读模式（一键隐藏侧边栏）
@@ -111,7 +111,7 @@ npm run serve
 
 ```
 S-ynapse/
-├── articles/          # Markdown 文章（front-matter: title/slug/tags/categories/date/draft/pinned/series/featuredImage）
+├── articles/          # Markdown 文章（按语言分目录：zh/ 中文、en/ 英文，front-matter: title/slug/tags/categories/date/draft/pinned/series/featuredImage）
 ├── pages/             # 自定义页面 & 可复用内容块（博客底部公告、关于、隐私、条款等）
 ├── media/             # 图片资源（自动优化：WebP/AVIF/尺寸变体 + SVG 消毒）
 ├── videos/            # 视频资源（content-policy 排除制过滤后复制）
@@ -150,8 +150,8 @@ S-ynapse/
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
 ├── site.json          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
 ├── theme.json         # 主题配置（颜色/字体/布局/文章页脚）
-├── features.json5     # 功能总控（54 模块/440 项，可开关/微调，可选文件）
-├── ui-strings.json5   # 界面文案词典（zh/en 双语，i18n 切换，可选）
+├── features.json5     # 功能总控（54+ 模块/440+ 项，可开关/微调，可选文件）
+├── ui-strings.json5   # 界面文案词典（zh/en 双语词典，服务端 ui() + 运行时 __T()，可选）
 ├── navigation.json    # 导航配置
 ├── sidebar.json       # 侧边栏配置（含 series/friends/stats/quote 组件）
 ├── footer.json        # 页脚配置

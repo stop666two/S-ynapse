@@ -9,10 +9,10 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const TEMP_FILE = path.join(ROOT, 'articles', '_sec-verify.md');
+const TEMP_FILE = path.join(ROOT, 'articles', 'zh', '_sec-verify.md');
 const TEMP_SLUG = '_sec-verify';
-const DIST_INDEX = path.join(ROOT, 'dist', TEMP_SLUG, 'index.html');
-const DIST_SEARCH = path.join(ROOT, 'dist', 'search-index.json');
+const DIST_INDEX = path.join(ROOT, 'dist', 'zh', TEMP_SLUG, 'index.html');
+const DIST_SEARCH = path.join(ROOT, 'dist', 'zh', 'search-index.json');
 
 const MALICIOUS = `---
 title: 'S-ynapse sec verify </script><script>window.__SEC_PWNED__=1</script>'

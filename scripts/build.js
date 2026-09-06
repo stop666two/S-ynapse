@@ -460,72 +460,6 @@ function validateConfig(config) {
 // Generate an SVG Open Graph image for social sharing (1200×630).
 // Uses theme colors for background gradient, auto-splits long titles onto two lines.
 // Output is written to dist/media/og/{slug}.svg during article processing.
-function generateOgImage(outputPath, title, siteTitle, colors, ogStyle) {
-  const bg = colors?.primary || '#2d3748';
-  const fg = colors?.codeText || '#f7fafc';
-  const accent = colors?.secondary || '#4a90d9';
-  const st = ogStyle || {};
-  // Style knobs (JSON5-configured): align, showSite, useGradient,
-  // gradientAngle, letterSpacing, fontSizeBase, maxLines.
-  const align = st.align || 'center';
-  const showSite = st.showSite !== false;
-  const useGradient = st.useGradient !== false;
-  const gradientAngle = st.gradientAngle != null ? st.gradientAngle : '135deg';
-  const letterSpacing = st.letterSpacing != null ? st.letterSpacing : '0.02em';
-  const fontSizeBase = st.fontSizeBase != null ? st.fontSizeBase : 64;
-  const maxLines = st.maxLines != null ? st.maxLines : 4;
-  const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const safeSite = siteTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-  // Wrap title into multiple visual lines. CJK characters are ~1.0 em wide,
-  // Latin chars ~0.55 em; available text width = 1200 - 2*140 margins.
-  const textWidth = 1200 - 280;
-  const chars = Array.from(safeTitle);
-  function wrap(chars, size) {
-    const maxChars = Math.max(4, Math.floor(textWidth / (size * (size > 40 ? 0.62 : 0.72))));
-    const out = [];
-    let line = '';
-    for (const ch of chars) {
-      if (Array.from(line).length >= maxChars) { out.push(line); line = ch; }
-      else line += ch;
-      // break at natural boundaries (space / punctuation) if line is long enough
-      if (line.length >= maxChars && /[\s,，。；;、—!?！？]/.test(ch)) {
-        out.push(line); line = '';
-      }
-    }
-    if (line) out.push(line);
-    return out;
-  }
-  let lines = wrap(chars, fontSizeBase);
-  // Scale down font if more lines than available height (keep within 4)
-  let fontSize = fontSizeBase;
-  while (lines.length > maxLines && fontSize > 28) {
-    fontSize = Math.round(fontSize * 0.86);
-    lines = wrap(chars, fontSize);
-  }
-  if (lines.length > maxLines) { lines = lines.slice(0, maxLines); lines[maxLines - 1] += '…'; }
-
-  const x = align === 'left' ? 140 : 600;
-  const anchor = align === 'left' ? 'start' : 'middle';
-  const lineHeight = Math.round(fontSize * 1.22);
-  const startY = 290 - Math.round(((lines.length - 1) * lineHeight) / 2);
-  const textLines = lines.map((ln, i) =>
-    `<text x="${x}" y="${startY + i * lineHeight}" text-anchor="${anchor}" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="${fontSize}" font-weight="700" letter-spacing="${letterSpacing}" fill="${fg}">${ln}</text>`
-  ).join('\n  ');
-  // Site line sits at fixed y=560 unless title fills the canvas
-  const siteY = 560;
-  const siteText = showSite ? `<text x="${x}" y="${siteY}" text-anchor="${anchor}" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="24" fill="${fg}" opacity="0.55" letter-spacing="0.04em">${safeSite}</text>` : '';
-  const gradient = useGradient
-    ? `<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${bg}"/><stop offset="100%" style="stop-color:${accent}"/></linearGradient></defs><rect fill="url(#bg)" width="1200" height="630"/>`
-    : `<rect fill="${bg}" width="1200" height="630"/>`;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  ${gradient}
-  ${textLines}
-  ${siteText}
-</svg>`;
-  fs.writeFileSync(outputPath, svg, 'utf-8');
-  console.log(`  [OG] Generated: ${path.basename(outputPath)}`);
-}
 
 // Create the output directory structure under dist/.
 // If cleanDist is enabled, removes the entire dist/ first.
@@ -536,14 +470,7 @@ function setupDist(config) {
     fs.rmSync(DIST_DIR, { recursive: true, force: true });
     console.log('  Cleaned dist/');
   }
-  const dirs = [
-    DIST_DIR,
-    path.join(DIST_DIR, 'articles'),
-    path.join(DIST_DIR, 'tags'),
-    path.join(DIST_DIR, 'categories'),
-    path.join(DIST_DIR, 'page')
-  ];
-  dirs.forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
+  if (!fs.existsSync(DIST_DIR)) fs.mkdirSync(DIST_DIR, { recursive: true });
 }
 
 // Copy everything from static/ into dist/ as-is.
@@ -985,19 +912,29 @@ async function processArticles(config, mediaManifest) {
     console.log('  articles/ directory not found');
     return articles;
   }
-  const files = fs.readdirSync(ARTICLES_DIR).filter(f => /\.md$/i.test(f));
+  const LANGS = ['zh', 'en'];
+  const files = [];
+  for (const lang of LANGS) {
+    const langDir = path.join(ARTICLES_DIR, lang);
+    if (fs.existsSync(langDir)) {
+      for (const f of fs.readdirSync(langDir).filter(ff => /\.md$/i.test(ff))) {
+        files.push({ file: f, lang, dir: langDir });
+      }
+    }
+  }
   // Pre-scan pass: build a title/slug lookup so [[wiki links]] resolve across articles.
   const wikiLookup = { titles: new Map(), slugs: new Map() };
   const tagAliasesCfg = config.tagAliases || {};
   const aliasEnabled = tagAliasesCfg.enabled !== false;
   const tagAliases = tagAliasesCfg.aliases && typeof tagAliasesCfg.aliases === 'object' ? tagAliasesCfg.aliases : {};
-  for (const file of files) {
+  for (const meta of files) {
+    const { file, lang } = meta;
     try {
-      const fm = frontMatter(fs.readFileSync(path.join(ARTICLES_DIR, file), 'utf-8'));
+      const fm = frontMatter(fs.readFileSync(path.join(meta.dir, file), 'utf-8'));
       const attrs = fm.attributes || {};
       const t = attrs.title || '';
       const s = attrs.slug || (t ? safeSlug(t) : path.basename(file, '.md').replace(/\.md$/i, ''));
-      const entry = { title: t || s, url: '/' + s + '/' };
+      const entry = { title: t || s, url: '/' + lang + '/' + s + '/' };
       wikiLookup.titles.set((t || s).toLowerCase(), entry);
       wikiLookup.slugs.set(s, entry);
     } catch (e) { /* skip unreadable files in lookup */ }
@@ -1015,9 +952,10 @@ async function processArticles(config, mediaManifest) {
   }
   const MATH_RX = /(\$\$[\s\S]+?\$\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/;
   const MERMAID_RX = /```[ \t]*mermaid\b/i;
-  const seenSlugs = new Set();
-  for (const file of files) {
-    const filePath = path.join(ARTICLES_DIR, file);
+  const seenSlugs = new Map();
+  for (const meta of files) {
+    const { file, lang } = meta;
+    const filePath = path.join(meta.dir, file);
     try {
       const raw = fs.readFileSync(filePath, 'utf-8');
       const fm = frontMatter(raw);
@@ -1041,12 +979,13 @@ async function processArticles(config, mediaManifest) {
       }
       // Slug priority: frontmatter.slug > safeSlug(title)
       const slug = attrs.slug || safeSlug(title);
-      if (seenSlugs.has(slug)) {
-        console.error(`  [ERROR] ${file}: duplicate slug "${slug}" (already used by another article). Skipping.`);
+      if ((seenSlugs.get(lang) || new Set()).has(slug)) {
+        console.error(`  [ERROR] ${file}: duplicate slug "${slug}" (already used by another article in ${lang}). Skipping.`);
         continue;
       }
-      seenSlugs.add(slug);
-      const url = `/${slug}/`;
+      if (!seenSlugs.has(lang)) seenSlugs.set(lang, new Set());
+      seenSlugs.get(lang).add(slug);
+      const url = `/${lang}/${slug}/`;
       const excerpt = attrs.excerpt || '';
       const date = attrs.date || null;
       if (date && isNaN(new Date(date).getTime())) {
@@ -1088,16 +1027,11 @@ async function processArticles(config, mediaManifest) {
       const readSpeed = (config.features && config.features.wordCount && config.features.wordCount.wpm) || config.theme.card?.readTimeSpeed || 265;
       const readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
       const toc = extractToc(htmlContent);
-      // Auto-generate OG image if no featuredImage provided in frontmatter
-      if (!attrs.featuredImage && !!(config.features && config.features.ogImageStyle && config.features.ogImageStyle.enabled !== false) && config.site.build.autoOgImage !== false) {
-        const ogDir = path.join(DIST_DIR, 'media', 'og');
-        if (!fs.existsSync(ogDir)) fs.mkdirSync(ogDir, { recursive: true });
-        const ogPath = path.join(ogDir, `${slug}.svg`);
-        generateOgImage(ogPath, title, config.site.title, config.theme.colors, config.features && config.features.ogImageStyle);
-        attrs.featuredImage = `/media/og/${slug}.svg`;
-      }
+      // Auto OG image handled by scripts/generate-og.js (per-language PNG pipeline).
+
       articles.push({
         slug, title, url, date, tags, categories, draft, pinned, series,
+        lang, langPrefix: '/' + lang + '/',
         content: htmlContent,
         excerpt: excerptText,
         wordCount, readTime, toc, hasMath, hasMermaid,
@@ -1127,27 +1061,35 @@ async function processArticles(config, mediaManifest) {
 
 // Aggregate tags across all articles with count and slugified URL.
 // Returns array sorted by count descending.
-function collectTopTags(articles, limit) {
+function collectTopTags(articles, limit, lang) {
   const counts = {};
-  const published = getPublished(articles);
+  const published = getPublished(articles).filter(a => !lang || a.lang === lang);
   published.forEach(function(a) {
     (a.tags || []).forEach(function(t) { counts[t] = (counts[t] || 0) + 1; });
   });
+  const prefix = lang ? '/' + lang : '';
   return Object.keys(counts)
     .sort(function(a, b) { return counts[b] - counts[a] || a.localeCompare(b); })
     .slice(0, limit || 8)
-    .map(function(t) { return { name: t, count: counts[t], url: '/tags/' + safeSlug(t) + '/' }; });
+    .map(function(t) { return { name: t, count: counts[t], url: prefix + '/tags/' + safeSlug(t) + '/' }; });
 }
 
-function collectTags(articles) {  const map = new Map();
-  for (const a of articles) {
-    for (const tag of a.tags) {
-      const slug = safeSlug(tag);
-      if (!map.has(slug)) map.set(slug, { name: tag, slug, count: 0, url: `/tags/${slug}/` });
-      map.get(slug).count++;
+function collectTags(articles) {
+  const result = [];
+  const langSet = new Set(articles.map(a => a.lang).filter(Boolean));
+  for (const lang of langSet) {
+    const map = new Map();
+    for (const a of articles) {
+      if (a.lang !== lang) continue;
+      for (const tag of a.tags) {
+        const slug = safeSlug(tag);
+        if (!map.has(slug)) map.set(slug, { name: tag, slug, count: 0, url: `/${lang}/tags/${slug}/`, lang });
+        map.get(slug).count++;
+      }
     }
+    for (const v of Array.from(map.values()).sort((a, b) => b.count - a.count)) result.push(v);
   }
-  return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  return result;
 }
 
 // Compute related articles using a tag/category scoring algorithm.
@@ -1266,15 +1208,21 @@ function collectSiteStats(articles, tags, categories) {
 // Aggregate categories across all articles with count and slugified URL.
 // Returns array sorted by count descending.
 function collectCategories(articles) {
-  const map = new Map();
-  for (const a of articles) {
-    for (const cat of a.categories) {
-      const slug = safeSlug(cat);
-      if (!map.has(slug)) map.set(slug, { name: cat, slug, count: 0, url: `/categories/${slug}/` });
-      map.get(slug).count++;
+  const result = [];
+  const langSet = new Set(articles.map(a => a.lang).filter(Boolean));
+  for (const lang of langSet) {
+    const map = new Map();
+    for (const a of articles) {
+      if (a.lang !== lang) continue;
+      for (const cat of a.categories) {
+        const slug = safeSlug(cat);
+        if (!map.has(slug)) map.set(slug, { name: cat, slug, count: 0, url: `/${lang}/categories/${slug}/`, lang });
+        map.get(slug).count++;
+      }
     }
+    for (const v of Array.from(map.values()).sort((a, b) => b.count - a.count)) result.push(v);
   }
-  return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  return result;
 }
 
 // Group articles by year-month for the archive page.
@@ -1512,29 +1460,54 @@ function processCustomPages(config, baseData) {
   return customPages;
 }
 
-// Generate all HTML pages for the site:
-// - Index pages with pagination
-// - Article detail pages (with prev/next navigation)
-// - Archive page (grouped by year-month)
-// - Tags overview page + individual tag pages
-// - Categories overview page + individual category pages
-// - 404 page
-// - Search page (if enabled)
-// Each is rendered via renderPage() which wraps content in layout.ejs.
+// Generate all HTML pages for the site (per-language):
+// For each language (config.site.languages or ['zh','en']), renders:
+// - Index pages with pagination (/{lang}/, /{lang}/page/N/)
+// - Article detail pages (/{lang}/{slug}/)
+// - Archive (/{lang}/archive/)
+// - Tags overview + individual tag pages (/{lang}/tags/)
+// - Categories overview + individual category pages (/{lang}/categories/)
+// - 404 (/{lang}/404.html), search (/{lang}/search/), favorites (/{lang}/favorites/)
+// - gallery (/{lang}/gallery/), links (/{lang}/links/)
+// - Env: baseData.articles/friends/pagesContent are language-agnostic; each lang
+//   filters its own published articles and tags/categories below.
+function localizeNav(nav, pf) {
+  if (!nav || !nav.menu) return nav;
+  const copy = JSON.parse(JSON.stringify(nav));
+  copy.menu = copy.menu.map(m => {
+    const u = m.url || '';
+    return { ...m, url: (u.startsWith('/') && !u.startsWith('//')) ? pf + u.replace(/^\//, '') : u };
+  });
+  return copy;
+}
+
+function localizeFooter(footer, pf) {
+  if (!footer) return footer;
+  const copy = JSON.parse(JSON.stringify(footer));
+  const fix = (l) => {
+    const u = l.url || '';
+    return { ...l, url: (u.startsWith('/') && !u.startsWith('//')) ? pf + u.replace(/^\//, '') : u };
+  };
+  if (copy.columnItems && copy.columnItems.items) {
+    copy.columnItems.items = copy.columnItems.items.map(c => {
+      if (!c.links) return c;
+      return { ...c, links: c.links.map(l => l.enabled === false ? l : fix(l)) };
+    });
+  }
+  if (copy.bottomLinks && copy.bottomLinks.items) {
+    copy.bottomLinks.items = copy.bottomLinks.items.map(l => l.enabled === false ? l : fix(l));
+  }
+  return copy;
+}
+
 async function generatePages(config, articles, preBuiltBaseData, customPages) {
   console.log('[6/14] Generating pages...');
-  const tags = collectTags(articles);
-  const categories = collectCategories(articles);
   const layoutTemplate = getTemplate('layout.ejs');
-  if (!layoutTemplate) {
-    console.error('  [FATAL] layout.ejs not found in templates/');
-    return;
-  }
-  const baseData = preBuiltBaseData || buildPageData(config, articles, tags, categories);
-  if (customPages && customPages.length) {
-    baseData.customPages = customPages;
-  }
-  const published = getPublished(articles);
+  if (!layoutTemplate) { console.error('  [FATAL] layout.ejs not found in templates/'); return; }
+  const baseData = preBuiltBaseData || buildPageData(config, articles, collectTags(articles), collectCategories(articles));
+  if (customPages && customPages.length) baseData.customPages = customPages;
+
+  const siteLangs = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
 
   async function writeFile(relPath, content) {
     if (!content) return;
@@ -1545,168 +1518,254 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
     console.log(`  Created: ${relPath}`);
   }
 
-  if (config.site.build.generateIndex !== false) {
-    const postsPerPage = config.site.postsPerPage || 10;
-    const totalPages = Math.max(1, Math.ceil(published.length / postsPerPage));
-    for (let page = 1; page <= totalPages; page++) {
-      const start = (page - 1) * postsPerPage;
-      const end = start + postsPerPage;
-      const pageArticles = published.slice(start, end);
-      const f = config.features;
-      const heroEnabled = page === 1 && config.site.hero && config.site.hero.enabled !== false && f.hero.enabled !== false;
-      const data = {
-        ...baseData,
-        articles: pageArticles,
-        heroData: heroEnabled ? {
-          title: config.site.hero.title || config.site.title,
-          subtitle: config.site.hero.subtitle || config.site.subtitle || config.site.description,
-          showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
-          showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
-          showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
-          ctaLabel: config.site.hero.ctaLabel || '查看全部文章',
-          ctaUrl: config.site.hero.ctaUrl || '#latest-post',
-          tagCount: config.site.hero.tagCount || f.hero.tagCount || 8,
-          tags: baseData.topTags.slice(0, config.site.hero.tagCount || f.hero.tagCount || 8)
-        } : null,
-        pagination: {
-          current: page,
-          total: totalPages,
-          prev: page > 1 ? (page === 2 ? '/' : `/page/${page - 1}/`) : null,
-          next: page < totalPages ? `/page/${page + 1}/` : null,
-          prevLabel: config.site.paginationPrev || '上一页',
-          nextLabel: config.site.paginationNext || '下一页',
-          pages: Array.from({ length: totalPages }, (_, i) => ({
-            num: i + 1,
-            url: i === 0 ? '/' : `/page/${i + 1}/`,
-            current: i + 1 === page
-          }))
-        },
-        currentUrl: page === 1 ? '/' : `/page/${page}/`,
-        currentPage: 'index'
-      };
-      const html = renderPage('index.ejs', data, layoutTemplate, config);
-      if (html) {
-        if (page === 1) await writeFile('index.html', html);
-        else await writeFile(`page/${page}/index.html`, html);
+  for (const lang of siteLangs) {
+    const pf = '/' + lang + '/';
+    const langArticles = articles.filter(a => a.lang === lang);
+    const langPublished = getPublished(langArticles);
+    const langTags = collectTags(langArticles);
+    const langCategories = collectCategories(langArticles);
+    const langTopTags = collectTopTags(langArticles, null, lang);
+    const langData = {
+      ...baseData,
+      lang,
+      langPrefix: pf,
+      articles: langArticles,
+      allArticles: langPublished,
+      topTags: langTopTags,
+      tags: langTags,
+      categories: langCategories,
+      nav: localizeNav(baseData.nav, pf),
+      footer: localizeFooter(baseData.footer, pf)
+    };
+
+    if (config.site.build.generateIndex !== false) {
+      const postsPerPage = config.site.postsPerPage || 10;
+      const totalPages = Math.max(1, Math.ceil(langPublished.length / postsPerPage));
+      for (let page = 1; page <= totalPages; page++) {
+        const start = (page - 1) * postsPerPage;
+        const end = start + postsPerPage;
+        const pageArticles = langPublished.slice(start, end);
+        const f = config.features;
+        const heroEnabled = page === 1 && config.site.hero && config.site.hero.enabled !== false && f.hero.enabled !== false;
+        const data = {
+          ...langData,
+          articles: pageArticles,
+          heroData: heroEnabled ? {
+            title: lang === 'en' && config.site.hero.titleEn ? config.site.hero.titleEn : config.site.hero.title,
+            subtitle: (lang === 'en' && config.site.hero.subtitleEn) ? config.site.hero.subtitleEn : config.site.hero.subtitle,
+            showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
+            showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
+            showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
+            ctaLabel: lang === 'en' ? (config.site.hero.ctaLabelEn || 'View all posts') : (config.site.hero.ctaLabel || '查看全部文章'),
+            ctaUrl: config.site.hero.ctaUrl || '#latest-post',
+            tagCount: config.site.hero.tagCount || f.hero.tagCount || 8,
+            tags: langTopTags.slice(0, config.site.hero.tagCount || f.hero.tagCount || 8)
+          } : null,
+          pagination: {
+            current: page,
+            total: totalPages,
+            prev: page > 1 ? (page === 2 ? pf : pf + 'page/' + (page - 1) + '/') : null,
+            next: page < totalPages ? pf + 'page/' + (page + 1) + '/' : null,
+            prevLabel: lang === 'en' ? 'Previous' : (config.site.paginationPrev || '上一页'),
+            nextLabel: lang === 'en' ? 'Next' : (config.site.paginationNext || '下一页'),
+            pages: Array.from({ length: totalPages }, (_, i) => ({
+              num: i + 1,
+              url: i === 0 ? pf : pf + 'page/' + (i + 1) + '/',
+              current: i + 1 === page
+            }))
+          },
+          currentUrl: page === 1 ? pf : pf + 'page/' + page + '/',
+          currentPage: 'index'
+        };
+        const html = renderPage('index.ejs', data, layoutTemplate, config);
+        if (html) {
+          if (page === 1) await writeFile(lang + '/index.html', html);
+          else await writeFile(lang + '/page/' + page + '/index.html', html);
+        }
       }
     }
-  }
 
-  for (let i = 0; i < articles.length; i++) {
-    const article = articles[i];
-    if (article.draft) continue;
-    const prev = i > 0 ? articles[i - 1] : null;
-    const next = i < articles.length - 1 ? articles[i + 1] : null;
-    const data = {
+    // Article detail pages (per language)
+    for (const article of langArticles) {
+      if (article.draft) continue;
+      const idx = langArticles.indexOf(article);
+      const prev = idx > 0 ? langArticles[idx - 1] : null;
+      const next = idx < langArticles.length - 1 ? langArticles[idx + 1] : null;
+      const data = {
+        ...langData,
+        article,
+        title: article.title,
+        prevArticle: prev && !prev.draft ? { title: prev.title, url: prev.url } : null,
+        nextArticle: next && !next.draft ? { title: next.title, url: next.url } : null,
+        currentUrl: article.url,
+        currentPage: 'post'
+      };
+      const html = renderPage('post.ejs', data, layoutTemplate, config);
+      if (html) await writeFile(lang + '/' + article.slug + '/index.html', html);
+    }
+
+    if (config.site.build.generateArchive !== false) {
+      const data = { ...langData, title: lang === 'en' ? 'Archive' : '归档', currentUrl: pf + 'archive', currentPage: 'archive' };
+      const html = renderPage('archive.ejs', data, layoutTemplate, config);
+      if (html) await writeFile(lang + '/archive/index.html', html);
+    }
+
+    if (config.site.build.generateTags !== false) {
+      const data = { ...langData, title: lang === 'en' ? 'Tags' : '标签', currentUrl: pf + 'tags', currentPage: 'tags' };
+      const html = renderPage('tags.ejs', data, layoutTemplate, config);
+      if (html) await writeFile(lang + '/tags/index.html', html);
+      for (const tag of langTags) {
+        const tagArticles = langArticles.filter(a => !a.draft && a.tags.includes(tag.name));
+        const tagData = { ...langData, title: tag.name, tag, tagName: tag.name, articles: tagArticles, currentUrl: tag.url, currentPage: 'tag' };
+        const tagHtml = renderPage('tag.ejs', tagData, layoutTemplate, config);
+        if (tagHtml) await writeFile(lang + '/tags/' + tag.slug + '/index.html', tagHtml);
+      }
+    }
+
+    if (config.site.build.generateCategories !== false) {
+      const data = { ...langData, title: lang === 'en' ? 'Categories' : '分类', currentUrl: pf + 'categories', currentPage: 'categories' };
+      const html = renderPage('categories.ejs', data, layoutTemplate, config);
+      if (html) await writeFile(lang + '/categories/index.html', html);
+      for (const cat of langCategories) {
+        const catArticles = langArticles.filter(a => !a.draft && a.categories.includes(cat.name));
+        const catData = { ...langData, title: cat.name, category: cat, categoryName: cat.name, articles: catArticles, currentUrl: cat.url, currentPage: 'category' };
+        const catHtml = renderPage('category.ejs', catData, layoutTemplate, config);
+        if (catHtml) await writeFile(lang + '/categories/' + cat.slug + '/index.html', catHtml);
+      }
+    }
+
+    const data404 = { ...langData, title: '404', currentUrl: pf + '404', currentPage: '404' };
+    const html404 = renderPage('404.ejs', data404, layoutTemplate, config);
+    if (html404) await writeFile(lang + '/404.html', html404);
+
+    if (config.features && config.features.favorites && config.features.favorites.enabled !== false) {
+      const favData = { ...langData, title: lang === 'en' ? 'Favorites' : '收藏', currentUrl: pf + 'favorites', currentPage: 'favorites' };
+      const favHtml = renderPage('favorites.ejs', favData, layoutTemplate, config);
+      if (favHtml) await writeFile(lang + '/favorites/index.html', favHtml);
+    }
+
+    if (config.site.build.generateGallery !== false) {
+      const galleryData = { ...langData, title: lang === 'en' ? 'Gallery' : '图库', currentUrl: pf + 'gallery', currentPage: 'gallery' };
+      const galleryHtml = renderPage('gallery.ejs', galleryData, layoutTemplate, config);
+      if (galleryHtml) await writeFile(lang + '/gallery/index.html', galleryHtml);
+    }
+
+    if (baseData.friends) {
+      const fdTitle = (baseData.friends.labels && (lang === 'en' ? baseData.friends.labels.en : baseData.friends.labels.zh)) || (lang === 'en' ? 'Friends' : '友情链接');
+      const linksData = { ...langData, title: fdTitle, currentUrl: pf + 'links/', currentPage: 'links', pageTitle: fdTitle };
+      const linksHtml = renderPage('links.ejs', linksData, layoutTemplate, config);
+      if (linksHtml) await writeFile(lang + '/links/index.html', linksHtml);
+    }
+
+    if (config.navigation.search && config.navigation.search.enabled) {
+      const searchData = { ...langData, title: lang === 'en' ? 'Search' : '搜索', currentUrl: pf + 'search', currentPage: 'search' };
+      const searchHtml = renderPage('search.ejs', searchData, layoutTemplate, config);
+      if (searchHtml) await writeFile(lang + '/search/index.html', searchHtml);
+    }
+  }
+  // Root / landing = zh index + auto language redirect script.
+  {
+    const rootLang = 'zh';
+    const pf = '/' + rootLang + '/';
+    const rp = getPublished(articles.filter(a => a.lang === rootLang));
+    const postsPerPage = config.site.postsPerPage || 10;
+    const totalPages = Math.max(1, Math.ceil(rp.length / postsPerPage));
+    const start = 0;
+    const end = start + postsPerPage;
+    const rootArticles = rp.slice(start, end);
+    const f = config.features;
+    const rt = collectTopTags(articles.filter(a => a.lang === rootLang), null, rootLang);
+    const heroEnabled = config.site.hero && config.site.hero.enabled !== false && f.hero.enabled !== false;
+    const rootData = {
       ...baseData,
-      article,
-      title: article.title,
-      prevArticle: prev && !prev.draft ? { title: prev.title, url: prev.url } : null,
-      nextArticle: next && !next.draft ? { title: next.title, url: next.url } : null,
-      currentUrl: article.url,
-      currentPage: 'post'
+      lang: rootLang,
+      langPrefix: pf,
+      articles: rootArticles,
+      allArticles: rp,
+      topTags: rt,
+      heroData: heroEnabled ? {
+        title: config.site.hero.title || config.site.title,
+        subtitle: config.site.hero.subtitle || config.site.subtitle || config.site.description,
+        showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
+        showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
+        showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
+        ctaLabel: config.site.hero.ctaLabel || '查看全部文章',
+        ctaUrl: config.site.hero.ctaUrl || '#latest-post',
+        tagCount: config.site.hero.tagCount || f.hero.tagCount || 8,
+        tags: rt.slice(0, config.site.hero.tagCount || f.hero.tagCount || 8)
+      } : null,
+      pagination: {
+        current: 1, total: totalPages,
+        prev: null,
+        next: totalPages > 1 ? pf + 'page/2/' : null,
+        prevLabel: '上一页', nextLabel: '下一页',
+        pages: Array.from({ length: totalPages }, (_, i) => ({ num: i + 1, url: i === 0 ? pf : pf + 'page/' + (i + 1) + '/', current: i === 0 }))
+      },
+      currentUrl: pf,
+      currentPage: 'index'
     };
-    const html = renderPage('post.ejs', data, layoutTemplate, config);
+    const html = renderPage('index.ejs', rootData, layoutTemplate, config);
     if (html) {
-      await writeFile(`${article.slug}/index.html`, html);
+      const redirectSnippet = '<script>/*S-LANG-REDIRECT*/if(navigator.language&&/(en|en-US|en-GB|en-CA)/i.test(navigator.language)&&!localStorage.getItem("s-ss-lang")){location.replace("/en/");}</script>';
+      const finalHtml = html.replace('</head>', redirectSnippet + '</head>');
+      await writeFile('index.html', finalHtml);
     }
-  }
-
-  if (config.site.build.generateArchive !== false) {
-    const data = {
-      ...baseData,
-      title: '归档',
-      currentUrl: '/archive',
-      currentPage: 'archive'
-    };
-    const html = renderPage('archive.ejs', data, layoutTemplate, config);
-    if (html) await writeFile('archive/index.html', html);
-  }
-
-  if (config.site.build.generateTags !== false) {
-    const data = {
-      ...baseData,
-      title: '标签',
-      currentUrl: '/tags',
-      currentPage: 'tags'
-    };
-    const html = renderPage('tags.ejs', data, layoutTemplate, config);
-    if (html) await writeFile('tags/index.html', html);
-
-    for (const tag of tags) {
-      const tagArticles = articles.filter(a => !a.draft && a.tags.includes(tag.name));
-      const tagData = {
-        ...baseData,
-        title: tag.name,
-        tag,
-        tagName: tag.name,
-        articles: tagArticles,
-        currentUrl: tag.url,
-        currentPage: 'tag'
-      };
-      const tagHtml = renderPage('tag.ejs', tagData, layoutTemplate, config);
-      if (tagHtml) await writeFile(`tags/${tag.slug}/index.html`, tagHtml);
-    }
-  }
-
-  if (config.site.build.generateCategories !== false) {
-    const data = {
-      ...baseData,
-      title: '分类',
-      currentUrl: '/categories',
-      currentPage: 'categories'
-    };
-    const html = renderPage('categories.ejs', data, layoutTemplate, config);
-    if (html) await writeFile('categories/index.html', html);
-
-    for (const cat of categories) {
-      const catArticles = articles.filter(a => !a.draft && a.categories.includes(cat.name));
-      const catData = {
-        ...baseData,
-        title: cat.name,
-        category: cat,
-        categoryName: cat.name,
-        articles: catArticles,
-        currentUrl: cat.url,
-        currentPage: 'category'
-      };
-      const catHtml = renderPage('category.ejs', catData, layoutTemplate, config);
-      if (catHtml) await writeFile(`categories/${cat.slug}/index.html`, catHtml);
-    }
-  }
-
-  const data404 = { ...baseData, title: '404', currentUrl: '/404', currentPage: '404' };
-  const html404 = renderPage('404.ejs', data404, layoutTemplate, config);
-  if (html404) await writeFile('404.html', html404);
-
-  if (config.features && config.features.favorites && config.features.favorites.enabled !== false) {
-    const favData = { ...baseData, title: '收藏', currentUrl: '/favorites', currentPage: 'favorites' };
-    const favHtml = renderPage('favorites.ejs', favData, layoutTemplate, config);
-    if (favHtml) await writeFile('favorites/index.html', favHtml);
-  }
-
-  if (config.site.build.generateGallery !== false) {
-    const galleryData = { ...baseData, title: '图库', currentUrl: '/gallery', currentPage: 'gallery' };
-    const galleryHtml = renderPage('gallery.ejs', galleryData, layoutTemplate, config);
-    if (galleryHtml) await writeFile('gallery/index.html', galleryHtml);
-  }
-
-  if (baseData.friends) {
-    const linksData = { ...baseData, title: baseData.friends.title || '友情链接', currentUrl: '/links/', currentPage: 'links', pageTitle: baseData.friends.title || '友情链接' };
-    const linksHtml = renderPage('links.ejs', linksData, layoutTemplate, config);
-    if (linksHtml) await writeFile('links/index.html', linksHtml);
-  }
-
-  if (config.navigation.search && config.navigation.search.enabled) {
-    const searchData = { ...baseData, title: '搜索', currentUrl: '/search', currentPage: 'search' };
-    const searchHtml = renderPage('search.ejs', searchData, layoutTemplate, config);
-    if (searchHtml) await writeFile('search/index.html', searchHtml);
   }
 }
 
-// Generate an RSS 2.0 feed using the `feed` package.
-// Includes full article content if site.rss.fullContent is true.
-// Limited to site.rss.maxItems (default 50) most recent published articles.
+// Generate an RSS 2.0 feed (per-language).
+// Uses the `feed` package. Includes full content if site.rss.fullContent true.
+// Writes /{lang}/feed.xml for each configured site.language.
+async function generateRSS(config, articles) {
+  if (!config.site.rss || !config.site.rss.enabled || !Feed) {
+    console.log('  [SKIP] RSS generation disabled or feed package not available');
+    return;
+  }
+  console.log('[7/14] Generating RSS feed...');
+  const siteLangsRSS = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+  const baseUrl = (config.site.url || '').replace(/\/+$/, '');
+  for (const rssLang of siteLangsRSS) {
+    const rssArticles = articles.filter(a => a.lang === rssLang);
+    const rssPublished = getPublished(rssArticles);
+    try {
+      const feed = new Feed({
+        title: config.site.title || 'Blog',
+        description: config.site.description || '',
+        id: baseUrl + '/' + rssLang,
+        link: baseUrl + '/' + rssLang + '/',
+        language: rssLang === 'en' ? 'en-US' : (config.site.language || 'zh-CN'),
+        copyright: config.site.copyright || '',
+        updated: rssPublished.length > 0 && rssPublished[0].date ? new Date(rssPublished[0].date) : new Date(),
+        generator: 'S-ynapse'
+      });
+      if (config.site.author) feed.author = { name: config.site.author, email: config.site.email || '' };
+      const maxItems = config.site.rss.maxItems || 50;
+      const items = rssPublished.slice(0, maxItems);
+      for (const article of items) {
+        const link = baseUrl + article.url;
+        feed.addItem({
+          title: article.title,
+          id: link,
+          link,
+          description: article.excerpt || '',
+          content: config.site.rss.fullContent ? article.content : (article.excerpt || ''),
+          date: article.date ? new Date(article.date) : new Date(),
+          category: article.tags.map(t => ({ name: t })),
+          author: config.site.author ? [{ name: config.site.author }] : undefined
+        });
+      }
+      const rssPath = (config.site.rss.path || '/feed.xml').replace(/^\//, '');
+      const outputPath = path.join(DIST_DIR, rssLang, rssPath);
+      const outDir = path.dirname(outputPath);
+      if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+      fs.writeFileSync(outputPath, feed.rss2(), 'utf-8');
+      console.log(`  Created: /${rssLang}/${rssPath}`);
+    } catch (err) {
+      console.error(`  [ERROR] RSS generation failed: ${err.message}`);
+    }
+  }
+}
+
 // Generate JSON Feed (https://jsonfeed.org/version/1.1) alongside RSS.
 // Reuses the `feed` package output (feed.json1()). Same source data as RSS:
 // published articles limited to site.rss.maxItems, content per rss.fullContent.
@@ -1719,94 +1778,51 @@ async function generateJSONFeed(config, articles) {
     return;
   }
   console.log('[7b] Generating JSON Feed...');
+  const siteLangsJF = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+  const baseUrl = (config.site.url || '').replace(/\/+$/, '');
   try {
-    const feed = new Feed({
-      title: config.site.title || 'Blog',
-      description: config.site.description || '',
-      id: config.site.url || '',
-      link: config.site.url || '',
-      language: config.site.language || 'en',
-      copyright: config.site.copyright || '',
-      updated: articles.length > 0 && articles[0].date ? new Date(articles[0].date) : new Date(),
-      generator: 'S-ynapse'
-    });
-    if (config.site.author) {
-      feed.author = { name: config.site.author, email: config.site.email || '' };
-    }
-    const maxItems = rss.maxItems || 50;
-    const items = getPublished(articles).slice(0, maxItems);
-    for (const article of items) {
-      const link = `${config.site.url.replace(/\/+$/, '')}${article.url}`;
-      feed.addItem({
-        title: article.title,
-        id: link,
-        link,
-        description: article.excerpt || '',
-        content: rss.fullContent ? article.content : (article.excerpt || ''),
-        date: article.date ? new Date(article.date) : new Date(),
-        category: article.tags.map(t => ({ name: t })),
-        author: config.site.author ? [{ name: config.site.author }] : undefined
+    for (const lang of siteLangsJF) {
+      const langArticles = articles.filter(a => a.lang === lang);
+      const feed = new Feed({
+        title: config.site.title || 'Blog',
+        description: config.site.description || '',
+        id: baseUrl + '/' + lang,
+        link: baseUrl + '/' + lang + '/',
+        language: lang === 'en' ? 'en-US' : (config.site.language || 'zh-CN'),
+        copyright: config.site.copyright || '',
+        updated: langArticles.length > 0 && langArticles[0].date ? new Date(langArticles[0].date) : new Date(),
+        generator: 'S-ynapse'
       });
+      if (config.site.author) feed.author = { name: config.site.author, email: config.site.email || '' };
+      const maxItems = rss.maxItems || 50;
+      const items = getPublished(langArticles).slice(0, maxItems);
+      for (const article of items) {
+        const link = baseUrl + article.url;
+        feed.addItem({
+          title: article.title,
+          id: link,
+          link,
+          description: article.excerpt || '',
+          content: rss.fullContent ? article.content : (article.excerpt || ''),
+          date: article.date ? new Date(article.date) : new Date(),
+          category: article.tags.map(t => ({ name: t })),
+          author: config.site.author ? [{ name: config.site.author }] : undefined
+        });
+      }
+      const jfPath = (rss.jsonFeed.path || '/feed.json').replace(/^\//, '');
+      const outputPath = path.join(DIST_DIR, lang, jfPath);
+      const outDir = path.dirname(outputPath);
+      if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+      fs.writeFileSync(outputPath, feed.json1(), 'utf-8');
+      console.log(`  Created: /${lang}/${jfPath}`);
     }
-    const outputPath = path.join(DIST_DIR, 'feed.json');
-    const outDir = path.dirname(outputPath);
-    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(outputPath, feed.json1(), 'utf-8');
-    console.log('  Created: /feed.json');
   } catch (err) {
-    console.error(`  [ERROR] JSON Feed generation failed: ${err.message}`);
+    console.error('  [ERROR] JSON Feed generation failed: ' + err.message);
   }
 }
-
-async function generateRSS(config, articles) {
-  if (!config.site.rss || !config.site.rss.enabled || !Feed) {
-    console.log('  [SKIP] RSS generation disabled or feed package not available');
-    return;
-  }
-  console.log('[7/14] Generating RSS feed...');
-  try {
-    const feed = new Feed({
-      title: config.site.title || 'Blog',
-      description: config.site.description || '',
-      id: config.site.url || '',
-      link: config.site.url || '',
-      language: config.site.language || 'en',
-      copyright: config.site.copyright || '',
-      updated: articles.length > 0 && articles[0].date ? new Date(articles[0].date) : new Date(),
-      generator: 'S-ynapse'
-    });
-    if (config.site.author) {
-      feed.author = { name: config.site.author, email: config.site.email || '' };
-    }
-    const maxItems = config.site.rss.maxItems || 50;
-    const items = getPublished(articles).slice(0, maxItems);
-    for (const article of items) {
-      const link = `${config.site.url.replace(/\/+$/, '')}${article.url}`;
-      feed.addItem({
-        title: article.title,
-        id: link,
-        link,
-        description: article.excerpt || '',
-        content: config.site.rss.fullContent ? article.content : (article.excerpt || ''),
-        date: article.date ? new Date(article.date) : new Date(),
-        category: article.tags.map(t => ({ name: t })),
-        author: config.site.author ? [{ name: config.site.author }] : undefined
-      });
-    }
-    const rssPath = config.site.rss.path || '/feed.xml';
-    const outputPath = path.join(DIST_DIR, rssPath.replace(/^\//, ''));
-    const outDir = path.dirname(outputPath);
-    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(outputPath, feed.rss2(), 'utf-8');
-    console.log(`  Created: ${rssPath}`);
-  } catch (err) {
-    console.error(`  [ERROR] RSS generation failed: ${err.message}`);
-  }
-}
-
-// Generate a standard XML sitemap for search engines.
+// Generate a standard XML sitemap (per-language).
 // Includes: index (1.0), articles (0.8), archive (0.5), tags/categories (0.4), custom pages (0.5), pagination (0.6).
-// Only published (non-draft) articles are included.
+// Each configured language gets its own prefixed URLs under /{lang}/.
 async function generateSitemap(config, articles, tags, categories, customPages) {
   if (!config.site.sitemap || !config.site.sitemap.enabled) {
     console.log('  [SKIP] Sitemap generation disabled');
@@ -1824,76 +1840,85 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
     const pagePr = parseFloat(feats.pagePriority != null ? feats.pagePriority : 0.6);
     const tagFreq = feats.tagFrequency || 'monthly';
     const tagPr = parseFloat(feats.tagPriority != null ? feats.tagPriority : 0.4);
-    const urls = [];
-    if (config.site.build.generateIndex !== false) {
-      urls.push({ loc: '/', changefreq: pageFreq, priority: '1.0' });
-      const postsPerPage = config.site.postsPerPage || 10;
-      const published = getPublished(articles);
-      const totalPages = Math.max(1, Math.ceil(published.length / postsPerPage));
-      for (let p = 2; p <= totalPages; p++) {
-        urls.push({ loc: '/page/' + p + '/', changefreq: pageFreq, priority: String(pagePr) });
+    const siteLangsSM = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+
+    async function writeSitemapFor(lang) {
+      const pf = '/' + lang + '/';
+      const langArticles = articles.filter(a => a.lang === lang);
+      const langPubs = getPublished(langArticles);
+      const langTags = collectTags(langArticles);
+      const langCats = collectCategories(langArticles);
+      const urls = [];
+      if (config.site.build.generateIndex !== false) {
+        urls.push({ loc: pf, changefreq: pageFreq, priority: '1.0' });
+        const postsPerPage = config.site.postsPerPage || 10;
+        const totalPages = Math.max(1, Math.ceil(langPubs.length / postsPerPage));
+        for (let p = 2; p <= totalPages; p++) {
+          urls.push({ loc: pf + 'page/' + p + '/', changefreq: pageFreq, priority: String(pagePr) });
+        }
       }
+      for (const a of langArticles) {
+        if (a.draft) continue;
+        urls.push({ loc: a.url, changefreq: postFreq, priority: String(postPr), lastmod: a.date || undefined });
+      }
+      if (config.site.build.generateArchive !== false) urls.push({ loc: pf + 'archive/', changefreq: pageFreq, priority: String(pagePr) });
+      if (config.site.build.generateGallery !== false) urls.push({ loc: pf + 'gallery/', changefreq: pageFreq, priority: String(pagePr) });
+      if (config.site.build.generateTags !== false) {
+        urls.push({ loc: pf + 'tags/', changefreq: tagFreq, priority: String(tagPr) });
+        for (const tag of langTags) urls.push({ loc: pf + 'tags/' + tag.slug + '/', changefreq: tagFreq, priority: String(tagPr) });
+        const topTagT = collectTopTags(langArticles, null, lang);
+        for (const tt of topTagT) urls.push({ loc: pf + 'tags/' + safeSlug(tt.name) + '/', changefreq: tagFreq, priority: String(tagPr) });
+      }
+      if (config.site.build.generateCategories !== false) {
+        urls.push({ loc: pf + 'categories/', changefreq: tagFreq, priority: String(tagPr) });
+        for (const cat of langCats) urls.push({ loc: pf + 'categories/' + cat.slug + '/', changefreq: tagFreq, priority: String(tagPr) });
+      }
+      for (const p of (customPages || [])) {
+        if (p.draft || !p.url) continue;
+        urls.push({ loc: p.url, changefreq: pageFreq, priority: String(pagePr) });
+      }
+      const sitemapPath = (config.site.sitemap.path || '/sitemap.xml').replace(/^\//, '');
+      const entryPath = path.join(DIST_DIR, lang, sitemapPath);
+      const outDir = path.dirname(entryPath);
+      if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+      const writeOne = (item, prio) => {
+        let x = '<loc>' + url + item.loc + '</loc>';
+        if (item.lastmod) x += '<lastmod>' + item.lastmod + '</lastmod>';
+        x += '<changefreq>' + item.changefreq + '</changefreq><priority>' + item.priority + '</priority>';
+        return x;
+      };
+      if (!split || urls.length <= perFile) {
+        let xml = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        for (const item of urls) xml += '<url>' + writeOne(item) + '</url>';
+        xml += '</urlset>';
+        fs.writeFileSync(entryPath, xml, 'utf-8');
+        console.log(`  Created: /${lang}/${sitemapPath} (${urls.length} urls)`);
+        return;
+      }
+      const parts = [];
+      for (let i = 0; i < urls.length; i += perFile) parts.push(urls.slice(i, i + perFile));
+      const idxUrls = [];
+      for (let i = 0; i < parts.length; i++) {
+        const partName = 'sitemap-' + (i + 1) + '.xml';
+        idxUrls.push({ loc: pf + partName, changefreq: pageFreq, priority: '0.6' });
+        let part = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        for (const item of parts[i]) part += '<url>' + writeOne(item) + '</url>';
+        part += '</urlset>';
+        fs.writeFileSync(path.join(outDir, partName), part, 'utf-8');
+      }
+      let index = '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+      for (const item of idxUrls) index += '<sitemap>' + url + item.loc + '</sitemap>';
+      index += '</sitemapindex>';
+      fs.writeFileSync(entryPath, index, 'utf-8');
+      console.log(`  Created: /${lang}/${sitemapPath} (index ${parts.length} parts, ${urls.length} urls)`);
     }
-    for (const a of articles) {
-      if (a.draft) continue;
-      urls.push({ loc: a.url, changefreq: postFreq, priority: String(postPr), lastmod: a.date || undefined });
-    }
-    if (config.site.build.generateArchive !== false) {
-      urls.push({ loc: '/archive/', changefreq: pageFreq, priority: String(pagePr) });
-    }
-    if (config.site.build.generateGallery !== false) {
-      urls.push({ loc: '/gallery/', changefreq: pageFreq, priority: String(pagePr) });
-    }
-    if (config.site.build.generateTags !== false) {
-      urls.push({ loc: '/tags/', changefreq: tagFreq, priority: String(tagPr) });
-      for (const tag of tags) urls.push({ loc: '/tags/' + tag.slug + '/', changefreq: tagFreq, priority: String(tagPr) });
-    }
-    if (config.site.build.generateCategories !== false) {
-      urls.push({ loc: '/categories/', changefreq: tagFreq, priority: String(tagPr) });
-      for (const cat of categories) urls.push({ loc: '/categories/' + cat.slug + '/', changefreq: tagFreq, priority: String(tagPr) });
-    }
-    for (const p of (customPages || [])) {
-      if (p.draft || !p.url) continue;
-      urls.push({ loc: p.url, changefreq: pageFreq, priority: String(pagePr) });
-    }
-    const sitemapPath = (config.site.sitemap.path || '/sitemap.xml').replace(/^\//, '');
-    const entryPath = path.join(DIST_DIR, sitemapPath);
-    const outDir = path.dirname(entryPath);
-    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-    const writeOne = (item, prio) => {
-      let x = '<loc>' + url + item.loc + '</loc>';
-      if (item.lastmod) x += '<lastmod>' + item.lastmod + '</lastmod>';
-      x += '<changefreq>' + item.changefreq + '</changefreq><priority>' + item.priority + '</priority>';
-      return x;
-    };
-    if (!split || urls.length <= perFile) {
-      let xml = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-      for (const item of urls) xml += '<url>' + writeOne(item) + '</url>';
-      xml += '</urlset>';
-      fs.writeFileSync(entryPath, xml, 'utf-8');
-      console.log('  Created: ' + sitemapPath + ' (' + urls.length + ' urls)');
-      return;
-    }
-    const parts = [];
-    for (let i = 0; i < urls.length; i += perFile) parts.push(urls.slice(i, i + perFile));
-    const idxUrls = [];
-    for (let i = 0; i < parts.length; i++) {
-      const partName = 'sitemap-' + (i + 1) + '.xml';
-      idxUrls.push({ loc: '/' + partName, changefreq: pageFreq, priority: '0.6' });
-      let part = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-      for (const item of parts[i]) part += '<url>' + writeOne(item) + '</url>';
-      part += '</urlset>';
-      fs.writeFileSync(path.join(outDir, partName), part, 'utf-8');
-    }
-    let index = '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-    for (const item of idxUrls) index += '<sitemap>' + url + item.loc + '</sitemap>';
-    index += '</sitemapindex>';
-    fs.writeFileSync(entryPath, index, 'utf-8');
-    console.log('  Created: ' + sitemapPath + ' (index ' + parts.length + ' parts, ' + urls.length + ' urls)');
+
+    for (const lang of siteLangsSM) await writeSitemapFor(lang);
   } catch (err) {
     console.error('  [ERROR] Sitemap generation failed: ' + err.message);
   }
 }
+
 async function pingSearchEngines(config) {
   const ping = (config.features && config.features.searchEnginePing) || {};
   if (!ping.enabled) return;
@@ -1927,19 +1952,26 @@ function generateSearchIndex(config, articles) {
   }
   console.log('[9/14] Generating search index...');
   const fullContent = !!(config.features && config.features.search && config.features.search.fullContent !== false);
-  const published = getPublished(articles);
-  const index = published.map(a => ({
-    title: a.title,
-    url: a.url,
-    excerpt: stripHtml(a.excerpt || '').substring(0, 200),
-    featuredImage: a.featuredImage || '',
-    content: fullContent ? stripHtml(a.content).substring(0, 5000) : '',
-    tags: a.tags,
-    categories: a.categories
-  }));
-  const outputPath = path.join(DIST_DIR, 'search-index.json');
-  fs.writeFileSync(outputPath, JSON.stringify(index, null, 2), 'utf-8');
-  console.log(`  Created: search-index.json (${index.length} entries)`);
+  const siteLangsSI = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+  for (const lang of siteLangsSI) {
+    const langArticles = articles.filter(a => a.lang === lang);
+    const published = getPublished(langArticles);
+    const index = published.map(a => ({
+      title: a.title,
+      url: a.url,
+      excerpt: stripHtml(a.excerpt || '').substring(0, 200),
+      featuredImage: a.featuredImage || '',
+      content: fullContent ? stripHtml(a.content).substring(0, 5000) : '',
+      tags: a.tags,
+      categories: a.categories,
+      lang
+    }));
+    const outputPath = path.join(DIST_DIR, lang, 'search-index.json');
+    const outDir = path.dirname(outputPath);
+    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+    fs.writeFileSync(outputPath, JSON.stringify(index, null, 2), 'utf-8');
+    console.log(`  Created: /${lang}/search-index.json (${index.length} entries)`);
+  }
 }
 
 // Generate an HTML build report page with stats: build time, article count, tag/category counts,

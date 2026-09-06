@@ -18,7 +18,7 @@
       <% if (article.categories && article.categories.length) { %>
       <span>
         <% article.categories.forEach(function(cat, i) { %>
-        <a href="/categories/<%= generateSlug(cat) %>/"><%= cat %></a><% if (i < article.categories.length - 1) { %>, <% } %>
+        <a href="<%= (typeof langPrefix!=='undefined' ? langPrefix : '/zh/') %>categories/<%= generateSlug(cat) %>/"><%= cat %></a><% if (i < article.categories.length - 1) { %>, <% } %>
         <% }) %>
       </span>
       <% } %>
@@ -31,7 +31,7 @@
       <% if (article.tags && article.tags.length) { %>
       <span>
         <% article.tags.forEach(function(tag) { %>
-        <a href="/tags/<%= generateSlug(tag) %>/" class="post-tag"><%= tag %></a>
+        <a href="<%= (typeof langPrefix!=='undefined' ? langPrefix : '/zh/') %>tags/<%= generateSlug(tag) %>/" class="post-tag"><%= tag %></a>
         <% }) %>
       </span>
       <% } %>

@@ -199,7 +199,7 @@ async function main() {
   }
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
-  const usedSlugs = new Set();
+  const usedSlugs = new Map();
   const madeSlugs = new Map();
   let success = 0;
   let failed = 0;
@@ -210,18 +210,24 @@ async function main() {
     let cover;
     let fileTitle;
     let slugBase;
+    let langDir = 'zh';
     try {
       const raw = fs.readFileSync(file, 'utf-8');
       const attrs = parseFrontMatter(raw);
       const rel = path.relative(ARTICLES_DIR, file).replace(/\.md$/i, '');
-      slugBase = rel.split(/[\\/]/).join('--');
-      slug = slugBase;
+      const relParts = rel.split(/[\\/]/);
+      langDir = relParts.length > 1 ? relParts[0] : 'zh';
+      const nameOnly = relParts.length > 1 ? relParts.slice(1).join('--') : relParts[0];
+      slugBase = nameOnly;
+      slug = nameOnly;
+      if (!usedSlugs.has(langDir)) usedSlugs.set(langDir, new Set());
+      const langUsed = usedSlugs.get(langDir);
       let n = 2;
-      while (usedSlugs.has(slug)) {
-        slug = slugBase + '-' + n;
+      while (langUsed.has(slug)) {
+        slug = nameOnly + '-' + n;
         n++;
       }
-      usedSlugs.add(slug);
+      langUsed.add(slug);
       fileTitle = path.basename(rel);
       title = (attrs.title || '').trim() || fileTitle;
       cover = (attrs.cover || attrs.featuredImage || '').trim();
@@ -233,7 +239,9 @@ async function main() {
 
     if (only && !(only.has(slug) || only.has(slugBase) || only.has(path.basename(file, '.md')))) continue;
 
-    const outPath = path.join(OUT_DIR, slug + '.png');
+    const langOut = path.join(OUT_DIR, langDir);
+    fs.mkdirSync(langOut, { recursive: true });
+    const outPath = path.join(langOut, slug + '.png');
     try {
       let img;
       if (cover) {

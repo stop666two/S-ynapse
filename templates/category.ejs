@@ -18,7 +18,7 @@
     <% if (article.tags && article.tags.length) { %>
     <span>
       <% article.tags.forEach(function(tag) { %>
-      <a href="/tags/<%= generateSlug(tag) %>/" class="post-tag"><%= tag %></a>
+      <a href="<%= (typeof langPrefix!=='undefined' ? langPrefix : '/zh/') %>tags/<%= generateSlug(tag) %>/" class="post-tag"><%= tag %></a>
       <% }) %>
     </span>
     <% } %>

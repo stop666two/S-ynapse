@@ -20,6 +20,15 @@
     inputPlaceholder: '输入关键词搜索',
     startHint: '输入关键词开始搜索',
     foundCount: '找到 {count} 个结果',
+    foundText: '个结果',
+    recent: '最近搜索',
+  },
+
+  // 搜索结果分组
+  group: {
+    article: '文章',
+    tag: '标签',
+    category: '分类',
   },
 
   // 导航
@@ -140,7 +149,11 @@
       noResult: 'No matching articles', resultCount: '{count} results',
       openHint: 'Press / or Ctrl+K to search', open: 'Search',
       inputPlaceholder: 'Search posts...', startHint: 'Type a keyword to start',
-      foundCount: '{count} results found',
+      foundCount: '{count} results found', foundText: 'results',
+      recent: 'Recent searches',
+    },
+    group: {
+      article: 'Articles', tag: 'Tags', category: 'Categories',
     },
     nav: {
       menu: 'Menu', home: 'Home', archive: 'Archive', tags: 'Tags',

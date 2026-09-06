@@ -29,10 +29,10 @@
     </span>
     <% } %>
     <% if (theme.card && theme.card.showWordCount && article.wordCount) { %>
-    <span><%= article.wordCount %> 字</span>
+    <span><%= ui('card.wordUnit','{count} 字').replace('{count}', article.wordCount) %></span>
     <% } %>
     <% if (theme.card && theme.card.showReadTime && article.readTime) { %>
-    <span><%= article.readTime %> <%= ui('tag.minutes','分钟') %></span>
+    <span><%= ui('card.minute','{minutes} 分钟阅读').replace('{minutes}', article.readTime) %></span>
     <% } %>
   </div>
   <% if (theme.card && theme.card.showExcerpt && article.excerpt) { %>

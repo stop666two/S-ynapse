@@ -9,22 +9,25 @@
       {
         "enabled": true,
         "title": "导航",
+        "titleEn": "Navigation",
         "links": [
-          { "enabled": true, "label": "首页", "url": "/" },
-          { "enabled": true, "label": "关于", "url": "/about" }
+          { "enabled": true, "label": "首页", "labelEn": "Home", "url": "/" },
+          { "enabled": true, "label": "关于", "labelEn": "About", "url": "/about" }
         ]
       },
       {
         "enabled": false,
         "title": "友情链接",
+        "titleEn": "Links",
         "links": [
-          { "enabled": false, "label": "合作伙伴 A", "url": "https://a.com" },
-          { "enabled": false, "label": "合作伙伴 B", "url": "https://b.com" }
+          { "enabled": false, "label": "合作伙伴 A", "labelEn": "Partner A", "url": "https://a.com" },
+          { "enabled": false, "label": "合作伙伴 B", "labelEn": "Partner B", "url": "https://b.com" }
         ]
       },
       {
         "enabled": true,
         "title": "联系",
+        "titleEn": "Contact",
         "html": "<p>邮箱: admin@example.com</p>"
       }
     ]
@@ -32,8 +35,8 @@
   "bottomLinks": {
     "enabled": true,
     "items": [
-      { "enabled": true, "label": "隐私政策", "url": "/privacy" },
-      { "enabled": true, "label": "服务条款", "url": "/terms" },
+      { "enabled": true, "label": "隐私政策", "labelEn": "Privacy Policy", "url": "/privacy" },
+      { "enabled": true, "label": "服务条款", "labelEn": "Terms", "url": "/terms" },
       { "enabled": true, "label": "RSS", "url": "/feed.xml" }
     ]
   },

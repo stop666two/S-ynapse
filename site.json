@@ -1,6 +1,7 @@
 {
   "title": "S-ynapse",
   "subtitle": "思考的突触",
+  "subtitleEn": "Thought Synapses",
   "hero": {
     "enabled": true,
     "title": "",
@@ -231,12 +232,16 @@
   "customHead": "",
   "customBodyStart": "",
   "customBodyEnd": "",
-  "externalLinkWarning": {
-    "enabled": true,
-    "title": "安全提醒",
-    "message": "您即将离开本站，前往外部网站。\n\n请注意核实链接的真实性，不要输入任何个人信息。\n谨防钓鱼网站和诈骗。\n\n目标链接：",
-    "confirmText": "继续访问",
-    "cancelText": "取消返回",
+"externalLinkWarning": {
+  "enabled": true,
+  "title": "安全提醒",
+  "titleEn": "Security Notice",
+  "message": "您即将离开本站，前往外部网站。\n\n请注意核实链接的真实性，不要输入任何个人信息。\n谨防钓鱼网站和诈骗。\n\n目标链接：",
+  "messageEn": "You are about to leave this site and visit an external website.\n\nPlease verify the link's authenticity and do not enter any personal information.\nBeware of phishing sites and scams.\n\nTarget link:",
+  "confirmText": "继续访问",
+  "confirmTextEn": "Continue",
+  "cancelText": "取消返回",
+  "cancelTextEn": "Cancel",
     "whitelist": [
       "*.github.com",
       "*.google.com",

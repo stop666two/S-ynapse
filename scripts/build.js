@@ -1338,7 +1338,7 @@ function buildPageData(config, articles, tags, categories) {
     if (!hasLinks) {
       const menu = nav.menu.slice();
       const aboutIdx = menu.findIndex(function(m) { return m && /\/about\/?$/.test(m.url) && /关于/.test(m.label || ''); });
-      const linkItem = { label: '友链', url: '/links/', type: 'page' };
+      const linkItem = { label: '友链', labelEn: 'Links', url: '/links/', type: 'page' };
       if (aboutIdx > -1) { menu.splice(aboutIdx + 1, 0, linkItem); }
       else { menu.push(linkItem); }
       nav = { ...nav, menu };
@@ -1371,7 +1371,7 @@ function buildPageData(config, articles, tags, categories) {
       const out = [];
       for (const id of Object.keys(THEME_PRESETS)) {
         const p = THEME_PRESETS[id];
-        out.push({ id: id, label: p.label, light: p.light, dark: p.dark,
+        out.push({ id: id, label: p.label, labelEn: p.labelEn || p.label, light: p.light, dark: p.dark,
           sample: { light: [p.light.background, p.light.primary, p.light.secondary, p.light.accent],
                     dark: [p.dark.background, p.dark.primary, p.dark.secondary, p.dark.accent] } });
       }
@@ -1380,8 +1380,9 @@ function buildPageData(config, articles, tags, categories) {
     formatDate: (d) => formatDate(d, config.site.dateFormat),
     generateSlug: safeSlug,
     escapeAttr: escapeAttr,
-    ui: function(path, fallback) {
+    ui: function(path, fallback, lang) {
       let o = config.uiStrings || {};
+      if (lang === 'en' && o.en) o = o.en;
       for (const k of String(path).split('.')) {
         if (o == null) return fallback;
         o = o[k];
@@ -1471,27 +1472,39 @@ function processCustomPages(config, baseData) {
 // - gallery (/{lang}/gallery/), links (/{lang}/links/)
 // - Env: baseData.articles/friends/pagesContent are language-agnostic; each lang
 //   filters its own published articles and tags/categories below.
-function localizeNav(nav, pf) {
-  if (!nav || !nav.menu) return nav;
-  const copy = JSON.parse(JSON.stringify(nav));
-  copy.menu = copy.menu.map(m => {
-    const u = m.url || '';
-    return { ...m, url: (u.startsWith('/') && !u.startsWith('//')) ? pf + u.replace(/^\//, '') : u };
+function localizeSidebar(sidebar, lang) {
+  if (!sidebar || !sidebar.widgets) return sidebar;
+  const copy = JSON.parse(JSON.stringify(sidebar));
+  copy.widgets = copy.widgets.map(w => {
+    if (lang === 'en' && w.titleEn) return { ...w, title: w.titleEn };
+    return w;
   });
   return copy;
 }
 
-function localizeFooter(footer, pf) {
+function localizeNav(nav, pf, lang) {
+  if (!nav || !nav.menu) return nav;
+  const copy = JSON.parse(JSON.stringify(nav));
+  copy.menu = copy.menu.map(m => {
+    const u = m.url || '';
+    return { ...m, url: (u.startsWith('/') && !u.startsWith('//')) ? pf + u.replace(/^\//, '') : u, label: (lang === 'en' && m.labelEn) ? m.labelEn : m.label };
+  });
+  return copy;
+}
+
+function localizeFooter(footer, pf, lang) {
   if (!footer) return footer;
   const copy = JSON.parse(JSON.stringify(footer));
   const fix = (l) => {
     const u = l.url || '';
-    return { ...l, url: (u.startsWith('/') && !u.startsWith('//')) ? pf + u.replace(/^\//, '') : u };
+    return { ...l, url: (u.startsWith('/') && !u.startsWith('//')) ? pf + u.replace(/^\//, '') : u, label: (lang === 'en' && l.labelEn) ? l.labelEn : l.label };
   };
   if (copy.columnItems && copy.columnItems.items) {
     copy.columnItems.items = copy.columnItems.items.map(c => {
-      if (!c.links) return c;
-      return { ...c, links: c.links.map(l => l.enabled === false ? l : fix(l)) };
+      const fixed = { ...c };
+      if (c.titleEn) fixed.title = (lang === 'en') ? c.titleEn : c.title;
+      if (!c.links) return fixed;
+      return { ...fixed, links: c.links.map(l => l.enabled === false ? l : fix(l)) };
     });
   }
   if (copy.bottomLinks && copy.bottomLinks.items) {
@@ -1531,13 +1544,25 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
       langPrefix: pf,
       title: lang === 'en' ? (config.site.titleEn || config.site.title) : config.site.title,
       articleTitle: null,
+      ui: (path, fallback) => {
+        let o = config.uiStrings || {};
+        if (lang === 'en' && o.en) o = o.en;
+        for (const k of String(path).split('.')) {
+          if (o == null) return fallback;
+          o = o[k];
+        }
+        return (o === undefined || o === null) ? fallback : o;
+      },
       articles: langArticles,
       allArticles: langPublished,
       topTags: langTopTags,
       tags: langTags,
+      allTags: langTags,
       categories: langCategories,
-      nav: localizeNav(baseData.nav, pf),
-      footer: localizeFooter(baseData.footer, pf)
+      allCategories: langCategories,
+      nav: localizeNav(baseData.nav, pf, lang),
+      footer: localizeFooter(baseData.footer, pf, lang),
+      sidebar: localizeSidebar(baseData.sidebar, lang)
     };
 
     if (config.site.build.generateIndex !== false) {

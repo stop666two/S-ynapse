@@ -40,6 +40,7 @@ function contrastRatio(a, b) {
 const PRESETS = {
   'classic-blue': {
     label: '经典蓝',
+    labelEn: 'Classic Blue',
     light: {
       primary: '#2d3748', secondary: '#2563eb', accent: '#c53030',
       background: '#f7fafc', surface: '#ffffff', text: '#1a202c',
@@ -57,6 +58,7 @@ const PRESETS = {
   },
   'night-jet': {
     label: '极夜黑',
+    labelEn: 'Midnight Black',
     light: {
       primary: '#1f2937', secondary: '#1d4ed8', accent: '#ef4444',
       background: '#f3f4f6', surface: '#ffffff', text: '#111827',
@@ -74,6 +76,7 @@ const PRESETS = {
   },
   'forest-green': {
     label: '森林绿',
+    labelEn: 'Forest Green',
     light: {
       primary: '#1e3a2f', secondary: '#1f7a4d', accent: '#b45309',
       background: '#f4f9f6', surface: '#ffffff', text: '#14231c',
@@ -91,6 +94,7 @@ const PRESETS = {
   },
   'sakura-pink': {
     label: '樱花粉',
+    labelEn: 'Sakura Pink',
     light: {
       primary: '#331a24', secondary: '#c22e63', accent: '#9a6a1f',
       background: '#fff8fa', surface: '#ffffff', text: '#331a24',
@@ -108,6 +112,7 @@ const PRESETS = {
   },
   'editorial-grey': {
     label: '编辑部灰',
+    labelEn: 'Editorial Gray',
     light: {
       primary: '#18181b', secondary: '#52525b', accent: '#a16207',
       background: '#fafafa', surface: '#ffffff', text: '#18181b',
@@ -125,6 +130,7 @@ const PRESETS = {
   },
   'cyber-purple': {
     label: '赛博紫',
+    labelEn: 'Cyber Purple',
     light: {
       primary: '#1c1233', secondary: '#7c3aed', accent: '#db2777',
       background: '#f8f6ff', surface: '#ffffff', text: '#1c1233',

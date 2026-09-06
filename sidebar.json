@@ -13,7 +13,8 @@
     {
       "type": "author",          // 组件类型：author - 作者简介卡片
       "enabled": true,           // 是否启用该组件
-      "title": "关于我",         // 组件标题
+      "title": "关于我",
+        "titleEn": "About Me",         // 组件标题
       "avatar": "/media/avatar.svg",  // 头像图片路径
       "bio": "全栈开发者，热爱开源",    // 个人简介
       "social": true             // 是否显示社交链接
@@ -22,6 +23,7 @@
       "type": "recent",          // 组件类型：recent - 最近文章列表
       "enabled": true,
       "title": "最新文章",
+        "titleEn": "Recent Posts",
       "count": 5,                // 显示文章数量
       "showDate": true,          // 是否显示日期
       "excludeDrafts": true      // 是否排除草稿
@@ -30,6 +32,7 @@
       "type": "tags",            // 组件类型：tags - 标签云
       "enabled": true,
       "title": "标签云",
+        "titleEn": "Tag Cloud",
       "limit": 20,               // 最多显示标签数
       "showCount": true,         // 是否显示文章数量
       "sortBy": "count",         // 排序方式：count / name
@@ -39,6 +42,7 @@
       "type": "categories",      // 组件类型：categories - 分类列表
       "enabled": true,
       "title": "分类",
+        "titleEn": "Categories",
       "showCount": true,         // 是否显示文章数量
       "hierarchy": true          // 是否显示层级结构
     },
@@ -46,35 +50,41 @@
       "type": "archive",         // 组件类型：archive - 文章归档
       "enabled": true,
       "title": "归档",
+        "titleEn": "Archive",
       "showCount": true          // 是否显示每月文章数量
     },
     {
       "type": "series",          // 组件类型：series - 系列文章（有系列文章时自动展示）
       "enabled": true,
       "title": "系列文章",
+        "titleEn": "Series",
       "count": 8                 // 最多显示系列数
     },
     {
       "type": "search",          // 组件类型：search - 搜索框
       "enabled": true,
       "title": "搜索",
+        "titleEn": "Search",
       "placeholder": "输入关键词..."  // 搜索框占位文字
     },
     {
       "type": "stats",           // 组件类型：stats - 站点统计（文章/字数/标签/分类）
       "enabled": false,           // 默认关闭；若 true 在前台显示（存档页不受此开关影响）
-      "title": "站点统计"
+      "title": "站点统计",
+        "titleEn": "Site Stats"
     },
     {
       "type": "custom",          // 组件类型：custom - 自定义 HTML
       "enabled": false,
       "title": "自定义位",
+        "titleEn": "Custom",
       "html": "<div>自定义内容</div>"
     },
     {
       "type": "newsletter",      // 组件类型：newsletter - 邮件订阅
       "enabled": false,
       "title": "订阅更新",
+        "titleEn": "Subscribe",
       "provider": "mailchimp",   // 订阅服务提供商
       "mailchimpAction": "",     // Mailchimp 表单 action URL
       "buttonText": "订阅"       // 订阅按钮文字
@@ -82,7 +92,8 @@
     {
       "type": "quote",         // 组件类型：quote - 每日一言
       "enabled": true,         // 是否启用该组件
-      "title": "每日一言"      // 组件标题
+      "title": "每日一言",
+        "titleEn": "Daily Quote"      // 组件标题
     }
   ],
 

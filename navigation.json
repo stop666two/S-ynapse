@@ -3,22 +3,26 @@
 
   "menu": [
     {
-      "label": "首页",     // 菜单显示文字
+      "label": "首页",
+      "labelEn": "Home",
       "url": "/",          // 链接地址
       "icon": "home",      // 图标名称（可选）
       "target": "_self"    // 打开方式：_self / _blank
     },
     {
       "label": "归档",
+      "labelEn": "Archive",
       "url": "/archive",
       "icon": "archive"
     },
     {
       "label": "标签",
+      "labelEn": "Tags",
       "url": "/tags"
     },
     {
       "label": "关于",
+      "labelEn": "About",
       "url": "/about"
     }
   ],

@@ -44,6 +44,7 @@
     archives: '归档', categories: '分类', search: '搜索',
     stats: '站点统计', toc: '目录', collapse: '折叠目录',
     'drag-hint': '拖动以排序',
+    'series': '系列',
   },
 
   // 卡片与列表
@@ -166,6 +167,7 @@
       archives: 'Archive', categories: 'Categories', search: 'Search',
       stats: 'Site Stats', toc: 'Contents', collapse: 'Collapse',
       'drag-hint': 'Drag to reorder',
+    'series': 'Series',
     },
     card: {
       wordUnit: '{count} words', minute: '{minutes} min read',

@@ -37,3 +37,4 @@ database.db-wal
 .playwright-mcp/
 # Workers security config (auto-generated from security.json during build)
 workers/security-config.js
+.tmp-scripts/

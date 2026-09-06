@@ -14,6 +14,7 @@
       <% if (article.date) { %>
       <span><%= article.formattedDate || article.date %></span>
       <% } %>
+      <% if (features.readingTime && features.readingTime.enabled !== false && article.readTime) { %><span class="post-reading-time"><%= features.readingTime.labelBefore || '' %><%= article.readTime %><%= features.readingTime.labelAfter || ' 分钟' %></span><% } %>
       <% if (article.categories && article.categories.length) { %>
       <span>
         <% article.categories.forEach(function(cat, i) { %>

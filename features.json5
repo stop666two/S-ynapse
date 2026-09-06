@@ -269,6 +269,8 @@
     // 切换时过渡所有元素(否则仅 body)。
     transitionAll: true
   },
+
+  // ---------------------------------------------------------------------------
   // 8b. 主题预设切换器
   // ---------------------------------------------------------------------------
   themePresets: {
@@ -283,6 +285,7 @@
     // 色卡悬停是否提示预设名。
     previewOnHover: true
   },
+
   // 8c. 主题定时切换
   // ---------------------------------------------------------------------------
   themeSchedule: {
@@ -387,6 +390,243 @@
     showHandleOnHover: true,
     // 本地存储解析失败时是否重置为配置默认顺序。
     resetOnLoadFail: true
+  },
+
+  // ---------------------------------------------------------------------------
+  exportBackup: {
+    // 导出备份命令 npm run export 的配置。
+    enabled: true,
+    // 是否将 media/assets/videos 媒体目录一并打包。
+    includeMedia: true,
+    // 是否将 11 个配置文件一并打包。
+    includeConfig: true,
+    // 导出目录(项目根下)。
+    outputDir: 'exports',
+    // 备份目录名前缀(时间戳自动追加,如 s-ynapse-backup-20260101-120000)。
+    fileNamePrefix: 's-ynapse-backup'
+  },
+
+  // ---------------------------------------------------------------------------
+  mediaAudit: {
+    // npm run audit:media 媒体审计配置。
+    enabled: true,
+    // 报告引用的媒体文件缺失(文章引用但文件不存在)。
+    reportMissed: true,
+    // 报告未被任何文章引用的媒体文件(孤儿资源)。
+    reportUnreferenced: true,
+    // 是否报告重复条目(文件名相同大小相同)。
+    reportDuplicate: false,
+    // 输出方式:console(终端)或 json(导出 media-audit.json)。
+    output: 'console'
+  },
+
+  // ---------------------------------------------------------------------------
+  autoSummary: {
+    // 文章未写 summary 时自动生成摘要。
+    enabled: true,
+    // 摘要最大字符数(中英混排)。
+    maxLength: 160,
+    // 回退策略:firstParagraph(取正文首段)。
+    fallback: 'firstParagraph',
+    // 是否剥离 Markdown 语法(链接/强调标记等)。
+    stripMarkdown: true,
+    // 截断时的省略号。
+    ellipsis: '…'
+  },
+
+  // ---------------------------------------------------------------------------
+  searchEnginePing: {
+    // sitemap 生成后向搜索引擎发送 ping 通知。仅生产构建(CI 中 URL 公开)会执行。
+    enabled: false,
+    // 引擎列表:google/bing。
+    engines: ['google'],
+    // 是否仅在 production 构建时 ping(本地构建不改)。
+    onlyProduction: true,
+    // 每个请求超时(ms)。
+    timeoutMs: 5000
+  },
+
+  // ---------------------------------------------------------------------------
+  hreflang: {
+    // 输出 hreflang 替代声明(SEO,i18n 界面双语)。
+    enabled: true,
+    // 是否包含自身语言条目(默认 zh 与 en 均输出)。
+    includeSelf: true,
+    // 是否同时输出 canonical 链接。
+    canonical: true
+  },
+
+  // ---------------------------------------------------------------------------
+  schemaRich: {
+    // schema.org 结构化数据完善(Article/Breadcrumb/Blog)。
+    enabled: true,
+    // 为文章页输出 BreadcrumbList 面包屑。
+    breadcrumbs: true,
+    // Article schema 增加 dateModified 字段。
+    dateModified: true,
+    // 首页输出 Blog 类型 schema。
+    blogHomepage: true
+  },
+
+  // ---------------------------------------------------------------------------
+  ogImage: {
+    // 构建时根据封面/文章标题生成 1200x630 OG 图。
+    enabled: true,
+    // 生成尺寸。
+    width: 1200,
+    height: 630,
+    // 优先复用文章封面图/首图为基准。
+    useCover: true,
+    // 无封面时用站点色渐变+标题文字合成。
+    gradientForNoCover: true,
+    // 标题文字相对画布缩放。
+    fontScale: 0.75,
+    // 生成缓存目录。
+    cacheDir: '.og-cache'
+  },
+
+  // ---------------------------------------------------------------------------
+  hotSearches: {
+    // 本地记录搜索词,搜索框下拉显示热门。
+    enabled: true,
+    // 显示条数。
+    top: 5,
+    // localStorage 存储键。
+    storageKey: 's-hotSearches',
+    // 是否在搜索下拉中展示。
+    showInDropdown: true,
+    // 是否提供清空按钮。
+    showClear: true
+  },
+
+  // ---------------------------------------------------------------------------
+  readingTime: {
+    // 文章元信息显示预估阅读时长。
+    enabled: true,
+    // 中文每分钟字数参考。
+    wordsPerMinuteCJK: 250,
+    // 英文每分钟词数参考。
+    wordsPerMinuteLatin: 200,
+    // 是否在文章元信息栏显示。
+    showInMeta: true,
+    // 文案前缀/后缀。
+    labelBefore: '',
+    labelAfter: '阅读约需'
+  },
+
+  // ---------------------------------------------------------------------------
+  codeCopy: {
+    // 代码块复制按钮。
+    enabled: true,
+    // 按钮文案。
+    buttonText: '复制',
+    // 复制成功提示文案。
+    copiedText: '已复制',
+    // 复制成功后按钮恢复时间(ms)。
+    buttonTimeout: 1500,
+    // 是否显示行号。
+    showLineNumbers: false,
+    // 是否复用代码窗栏(主题切换器按钮共用)。
+    includeWindowBar: true
+  },
+
+  // ---------------------------------------------------------------------------
+  tocScrollSpy: {
+    // TOC 滚动高亮当前章节(scrollspy)。
+    enabled: true,
+    // 激活章节的 CSS 类名。
+    activeClass: 'current',
+    // 监听偏移(px)。
+    offset: 80,
+    // 滚动处理节流(ms)。
+    throttleMs: 60
+  },
+
+  // ---------------------------------------------------------------------------
+  searchHighlight: {
+    // 搜索结果关键词高亮。
+    enabled: true,
+    // 高亮 span 类名。
+    markClass: 'search-hit',
+    // 每篇结果最大高亮次数(防止长文爆量)。
+    maxMatches: 20
+  },
+
+  // ---------------------------------------------------------------------------
+  darkImageFilter: {
+    // 深色模式下图片减亮滤镜。
+    enabled: true,
+    // 滤镜表达式。
+    filter: 'brightness(0.85) saturate(0.9)',
+    // 是否作用于 img。
+    applyImages: true,
+    // 是否作用于 video 封面。
+    applyVideos: true
+  },
+
+  // ---------------------------------------------------------------------------
+  listCover: {
+    // 列表页文章卡片显示封面图。
+    enabled: true,
+    // 首页生效。
+    showOnHome: true,
+    // 归档页生效。
+    showOnArchive: true,
+    // 无封面时回退:none(纯文字卡片)。
+    fallback: 'none',
+    // 封面图宽高比。
+    aspectRatio: '21/9',
+    // 封面懒加载。
+    lazy: true
+  },
+
+  // ---------------------------------------------------------------------------
+  imageFallback: {
+    // 图片加载失败时的回退处理。
+    enabled: true,
+    // 自定义回退图路径(空则用内联 SVG 占位)。
+    fallbackImage: '',
+    // 回退时是否显示 alt 文本。
+    showAlt: true
+  },
+
+  // ---------------------------------------------------------------------------
+  mobileBottomNav: {
+    // 移动端底部导航栏(仅小屏显示)。桌面不受影响。
+    enabled: true,
+    // 按钮顺序:home/archive/search/theme。
+    items: ['home', 'archive', 'search', 'theme'],
+    // 是否仅移动端显示。
+    onlyMobile: true,
+    // 是否适配 iOS 安全区(safe-area-inset-bottom)。
+    useSafeArea: true
+  },
+
+  // ---------------------------------------------------------------------------
+  incrementalBuild: {
+    // 增量构建:源文件未变化时跳过页面重渲染。
+    enabled: true,
+    // 指纹缓存目录。
+    cacheDir: '.build-cache',
+    // 强制全量构建的参数。
+    fullFlag: '--full',
+    // 是否允许 --watch 时增量。
+    watch: true,
+    // 指纹算法。
+    fingerprintHash: 'sha1',
+    // 指纹一致时跳过该页。
+    skipUnchanged: true
+  },
+
+  // ---------------------------------------------------------------------------
+  customCSS: {
+    // 注入自定义 CSS,无需修改模板即可定制外观。
+    enabled: true,
+    // CSS 片段数组,每段为一个字符串(允许注释),构建时合并到 </body> 前 <style>。
+    // 示例: '.site-header{letter-spacing:0.01em}'  —— 移除此行即不注入任何内容。
+    css: ['blockquote{border-left-color: var(--color-accent)}'],
+    // 注入位置:before-closing-body。
+    target: 'before-closing-body'
   },
 
   // ---------------------------------------------------------------------------

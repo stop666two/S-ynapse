@@ -120,6 +120,71 @@ const DEFAULT_FEATURES = {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true
   },
+  exportBackup: {
+    enabled: true, includeMedia: true, includeConfig: true, outputDir: 'exports',
+    fileNamePrefix: 's-ynapse-backup'
+  },
+  mediaAudit: {
+    enabled: true, reportMissed: true, reportUnreferenced: true,
+    reportDuplicate: false, output: 'console'
+  },
+  autoSummary: {
+    enabled: true, maxLength: 160, fallback: 'firstParagraph',
+    stripMarkdown: true, ellipsis: '…'
+  },
+  searchEnginePing: {
+    enabled: false, engines: ['google'], onlyProduction: true, timeoutMs: 5000
+  },
+  hreflang: {
+    enabled: true, includeSelf: true, canonical: true
+  },
+  schemaRich: {
+    enabled: true, breadcrumbs: true, dateModified: true, blogHomepage: true
+  },
+  ogImage: {
+    enabled: true, width: 1200, height: 630, useCover: true,
+    gradientForNoCover: true, fontScale: 0.75, cacheDir: '.og-cache'
+  },
+  hotSearches: {
+    enabled: true, top: 5, storageKey: 's-hotSearches', showInDropdown: true,
+    showClear: true
+  },
+  readingTime: {
+    enabled: true, wordsPerMinuteCJK: 250, wordsPerMinuteLatin: 200,
+    showInMeta: true, labelBefore: '', labelAfter: '阅读约需'
+  },
+  codeCopy: {
+    enabled: true, buttonText: '复制', copiedText: '已复制', buttonTimeout: 1500,
+    showLineNumbers: false, includeWindowBar: true
+  },
+  tocScrollSpy: {
+    enabled: true, activeClass: 'current', offset: 80, throttleMs: 60
+  },
+  searchHighlight: {
+    enabled: true, markClass: 'search-hit', maxMatches: 20
+  },
+  darkImageFilter: {
+    enabled: true, filter: 'brightness(0.85) saturate(0.9)',
+    applyImages: true, applyVideos: true
+  },
+  listCover: {
+    enabled: true, showOnHome: true, showOnArchive: true, fallback: 'none',
+    aspectRatio: '21/9', lazy: true
+  },
+  imageFallback: {
+    enabled: true, fallbackImage: '', altText: '图片不可用', showAlt: true
+  },
+  mobileBottomNav: {
+    enabled: true, items: ['home', 'archive', 'search', 'theme'],
+    onlyMobile: true, useSafeArea: true
+  },
+  incrementalBuild: {
+    enabled: true, cacheDir: '.build-cache', fullFlag: '--full',
+    watch: true, fingerprintHash: 'sha1', skipUnchanged: true
+  },
+  customCSS: {
+    enabled: true, css: [], target: 'before-closing-body'
+  },
   readingPanel: {
     enabled: true, fontSizeMin: 15, fontSizeMax: 26, fontSizeStep: 1,
     fontSizeDefault: 19, lineHeightMin: 1.4, lineHeightMax: 2.6,

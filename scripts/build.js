@@ -13,6 +13,7 @@ const ejs = require('ejs');
 // Optional dependency loading — each fails gracefully to null/fallback
 // This allows the build to run with missing packages (features degrade instead of crashing)
 let json5, deepmerge, Feed, sharp, minifyHtmlNode, CleanCSS, terser, chokidar;
+const { spawnSync } = require('child_process');
 try { json5 = require('json5'); } catch (e) {
   console.warn('[WARN] json5 package not found, config files with comments will fail to parse. Run: npm install json5');
   json5 = { parse: JSON.parse };
@@ -1078,8 +1079,9 @@ async function processArticles(config, mediaManifest) {
       let excerptText = excerpt;
       if (!excerptText) {
         const textOnly = htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-        const excerptLen = config.site.build.excerptLength || config.theme.card?.excerptLength || 150;
-        excerptText = textOnly.length > excerptLen ? textOnly.slice(0, excerptLen) + '...' : textOnly;
+        const as = (config.features && config.features.autoSummary) || {};
+        const excerptLen = as.maxLength || config.site.build.excerptLength || config.theme.card?.excerptLength || 150;
+        excerptText = textOnly.length > excerptLen ? textOnly.slice(0, excerptLen) + (as.ellipsis || '...') : textOnly;
       }
       // Read time: word count (CJK-aware) / reading speed (default 265 wpm), minimum 1 minute
       const wordCount = countWords(content);
@@ -1413,6 +1415,7 @@ function buildPageData(config, articles, tags, categories) {
     friends: friendsCfg,
     galleryItems: collectGalleryImages(articles),
     siteStats: collectSiteStats(articles, tags, categories),
+    listCoverEnabled: !!(config.features && config.features.listCover && config.features.listCover.enabled !== false),
     topTags: collectTopTags(published, 8),
     currentUrl: '/',
     currentPage: 'index',
@@ -1891,6 +1894,32 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
     console.error('  [ERROR] Sitemap generation failed: ' + err.message);
   }
 }
+async function pingSearchEngines(config) {
+  const ping = (config.features && config.features.searchEnginePing) || {};
+  if (!ping.enabled) return;
+  if (SERVE_MODE || WATCH_MODE) return;
+  if (ping.onlyProduction && process.env.NODE_ENV !== 'production' && !process.env.CI) return;
+  const base = (config.site.url || '').replace(/\/+$/, '');
+  if (!base) { console.log('  [SKIP] Sitemap ping: site.url not configured'); return; }
+  const sitemapPath = (config.security && config.security.robots && config.security.robots.sitemap) || '/sitemap.xml';
+  const sitemapUrl = encodeURIComponent(base + sitemapPath);
+  const engines = Array.isArray(ping.engines) ? ping.engines : ['google'];
+  const endpoints = {
+    google: 'https://www.google.com/ping?sitemap=',
+    bing: 'https://www.bing.com/ping?sitemap='
+  };
+  for (const name of engines) {
+    const ep = endpoints[name];
+    if (!ep) { console.warn('  [WARN] Unknown ping engine: ' + name); continue; }
+    try {
+      const res = await fetch(ep + sitemapUrl, { method: 'GET', signal: AbortSignal.timeout(ping.timeoutMs || 5000) });
+      console.log(`  Pinged ${name}: HTTP ${res.status}`);
+      if (!res.ok) console.warn('  [WARN] ' + name + ' ping rejected (HTTP ' + res.status + '); usually fine locally');
+    } catch (err) {
+      console.warn(`  [WARN] ${name} ping failed: ${err.message}`);
+    }
+  }
+}
 function generateSearchIndex(config, articles) {
   if (!config.navigation.search || !config.navigation.search.enabled || config.navigation.search.provider !== 'local') {
     console.log('  [SKIP] Search index generation disabled or provider not local');
@@ -2310,6 +2339,13 @@ async function build() {
     await generateRSS(config, articles);
     await generateJSONFeed(config, articles);
     await generateSitemap(config, articles, tags, categories, customPages);
+    if (config.features && config.features.ogImage && config.features.ogImage.enabled !== false && articles.length > 0) {
+      const ogRes = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'generate-og.js')], { stdio: 'inherit' });
+      if (ogRes.status !== 0) {
+        console.warn('  [WARN] OG image generation reported errors (see above); continuing build.');
+      }
+    }
+    await pingSearchEngines(config);
     generateSearchIndex(config, articles);
     generateSecurityHeaders(config);
     generateRedirects(config);

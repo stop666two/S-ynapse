@@ -1,148 +1,228 @@
 // =============================================================================
 // ui-strings.json5 —— 界面文案集中配置(功能18)
-// -----------------------------------------------------------------------------
-// 所有用户可见的界面文案集中于此,便于统一改写/本地化。
-// 缺省项回退到模板内建文案;这里只写需要自定义的项。
-// 结构: ui-blog 域,各子节按组件分组。
 // =============================================================================
 {
+  // ------ 顶部/页面文本 ------
+  top: {
+    language: '语言',
+    themePresets: '主题预设',
+    preset: '主题预设',
+  },
+
   // 搜索
   search: {
     placeholder: '搜索...',
     emptyHint: '输入关键词开始搜索',
     noResult: '未找到相关文章',
     resultCount: '共 {count} 条结果',
-    openHint: '按 / 或 Ctrl+K 打开搜索'
+    openHint: '按 / 或 Ctrl+K 打开搜索',
+    open: '搜索',
+    inputPlaceholder: '输入关键词搜索',
+    startHint: '输入关键词开始搜索',
+    foundCount: '找到 {count} 个结果',
   },
 
   // 导航
   nav: {
-    menu: '菜单',
-    home: '首页',
-    archive: '归档',
-    tags: '标签',
-    categories: '分类',
-    about: '关于',
-    friends: '友情链接'
+    menu: '菜单', home: '首页', archive: '归档', tags: '标签',
+    categories: '分类', about: '关于', friends: '友情链接',
+    search: '搜索', project: '项目', close: '关闭',
   },
 
   // 侧边栏
   sidebar: {
-    aboutMe: '关于我',
-    latest: '最新文章',
-    tagCloud: '标签云',
-    archives: '归档',
-    categories: '分类',
-    search: '搜索',
-    stats: '站点统计',
-    toc: '目录'
+    aboutMe: '关于我', latest: '最新文章', tagCloud: '标签云',
+    archives: '归档', categories: '分类', search: '搜索',
+    stats: '站点统计', toc: '目录', collapse: '折叠目录',
+    'drag-hint': '拖动以排序',
   },
 
   // 卡片与列表
   card: {
-    wordUnit: '{count} 字',
-    minute: '{minutes} 分钟阅读',
-    readMore: '阅读全文',
-    empty: '暂无文章',
-    pinned: '置顶',
-    series: '系列'
+    wordUnit: '{count} 字', minute: '{minutes} 分钟阅读', readMore: '阅读全文',
+    empty: '暂无文章', pinned: '置顶', series: '系列',
+    minutes: '{count} 分钟阅读',
   },
 
   // 文章页
   post: {
-    prev: '上一篇',
-    next: '下一篇',
-    related: '相关推荐',
-    tocTitle: '目录',
-    readingMode: '阅读模式',
-    ttsLabel: '朗读',
-    share: '分享文章'
+    prev: '上一篇', next: '下一篇', related: '相关推荐',
+    tocTitle: '目录', readingMode: '阅读模式', ttsLabel: '朗读',
+    share: '分享文章', copyLink: '复制链接', copyDone: '复制成功',
+    shareTo: '分享到', reward: '打赏', rewardLabel: '打赏',
+    rewardClose: '关闭', rewardQR: '收款码', rewardPay: '前往支付页',
+    coverStyle: '封面样式', subscribe: '订阅',
+    comments: '评论', commentsEnable: '请启用 JavaScript 以查看评论',
+    seriesNav: '系列导航', seriesLabel: '系列',
+    seriesPrev: '上一集', seriesNext: '下一集',
+    prevPost: '上一篇', nextPost: '下一篇',
+    readTimeLabel: '{minutes} 分钟阅读',
   },
 
-  // 顶栏/底部
+  // 顶栏/工具栏
   toolbar: {
-    backToTop: '返回顶部',
-    openSearchLabel: '搜索',
-    darkLabel: '切换暗色模式',
-    searchPlaceholder: '搜索文章…'
+    backToTop: '返回顶部', openSearchLabel: '搜索',
+    darkLabel: '切换暗色模式', searchPlaceholder: '搜索文章…',
+    readingProgress: '阅读进度', close: '关闭',
+    tocToggle: '目录', backToToc: '回到目录',
+    goTop: '返回顶部', openImage: '图片查看',
+    zoomIn: '放大', zoomOut: '缩小', rotate: '旋转', reset: '重置',
+    prevSlide: '上一张', nextSlide: '下一张',
+    shortcuts: '键盘快捷键', help: '帮助', shortcutOpen: '打开搜索',
+    shortcutDark: '切换暗色模式', shortcutNext: '下一篇', shortcutPrev: '上一篇',
+    shortcutImage: '图片查看器切图', shortcutClose: '关闭弹层',
+    shortcutHelp: '开关本帮助', mobileNav: '移动端底部导航',
+    copyCode: '复制代码', copied: '已复制', downloadCode: '下载代码文件',
+    expandAll: '展开全文', collapseAll: '收起',
+    copyDoneToast: '已复制到剪贴板',
+    linkBlocked: '该链接被站点屏蔽',
+    extLinkBlocked: '外部链接已被站点策略阻止',
+    okay: '我知道了',
+    dragSort: '拖动以排序',
   },
 
   // 归档页
   archive: {
-    statPosts: '文章总数',
-    statDays: '发文天数',
-    statWords: '总字数',
-    statAvg: '日均篇数',
-    statTags: '标签数',
-    statCats: '分类数'
+    title: '归档', statPosts: '文章总数', statDays: '发文天数',
+    statWords: '总字数', statAvg: '日均篇数', statTags: '标签数',
+    statCats: '分类数', heatmap: '年每月文章数热力图',
+    empty: '暂无归档', count: '{count} 文章',
   },
 
   // 图库
   gallery: {
-    title: '图库',
-    desc: '站内图片集，点击查看大图。',
-    empty: '暂无图片',
-    count: '共 {count} 张图片'
+    title: '图库', desc: '站内图片集，点击查看大图。',
+    empty: '暂无图片', count: '共 {count} 张图片',
+  },
+
+  // 分类 / 标签
+  category: {
+    title: '分类', postCount: '{count} 篇文章', empty: '该分类下暂无文章',
+    minutes: '{count} 分钟',
+  },
+  tag: {
+    title: '标签', postCount: '{count} 篇文章', empty: '该标签下暂无文章',
+    readWith: '阅读与下文相关的文章', minutes: '{count} 分钟',
+  },
+  tags: { title: '标签', empty: '暂无标签' },
+  links: {
+    empty: '暂无友链', apply: '友链申请', title: '友情链接',
+  },
+
+  // 收藏
+  favorites: {
+    title: '我的收藏', empty: '暂无收藏',
+    hint: '点击文章标题访问', remove: '从收藏中移除',
+    storedLocally: '存储于本地浏览器',
   },
 
   // 404
   notFound: {
-    title: '页面未找到',
-    desc: '您访问的页面不存在或已被移动。',
-    backHome: '返回首页'
+    title: '页面未找到', desc: '您访问的页面不存在或已被移动。',
+    backHome: '返回首页', illustration: '页面丢失插图',
+    searchSite: '站内搜索', hotArticles: '热门文章',
   },
 
   // 分页
   pagination: {
-    label: '分页导航',
-    prev: '上一页',
-    next: '下一页'
-  }
-,
+    label: '分页导航', prev: '上一页', next: '下一页',
+  },
+
   // ==========================================================================
-  // English interface strings (i18n). Mirrors the zh defaults above.
+  // English interface strings
   // ==========================================================================
   en: {
+    top: {
+      language: 'Language', themePresets: 'Theme Presets', preset: 'Preset',
+    },
     search: {
-      placeholder: 'Search...',
-      emptyHint: 'Type a keyword to search',
-      noResult: 'No matching articles',
-      resultCount: '{count} results',
-      openHint: 'Press / or Ctrl+K to search'
+      placeholder: 'Search...', emptyHint: 'Type a keyword to search',
+      noResult: 'No matching articles', resultCount: '{count} results',
+      openHint: 'Press / or Ctrl+K to search', open: 'Search',
+      inputPlaceholder: 'Search posts...', startHint: 'Type a keyword to start',
+      foundCount: '{count} results found',
     },
     nav: {
       menu: 'Menu', home: 'Home', archive: 'Archive', tags: 'Tags',
-      categories: 'Categories', about: 'About', friends: 'Links'
+      categories: 'Categories', about: 'About', friends: 'Links',
+      search: 'Search', project: 'Project', close: 'Close',
     },
     sidebar: {
       aboutMe: 'About Me', latest: 'Recent Posts', tagCloud: 'Tags',
       archives: 'Archive', categories: 'Categories', search: 'Search',
-      stats: 'Site Stats', toc: 'Table of Contents'
+      stats: 'Site Stats', toc: 'Contents', collapse: 'Collapse',
+      'drag-hint': 'Drag to reorder',
     },
     card: {
       wordUnit: '{count} words', minute: '{minutes} min read',
-      readMore: 'Read More', empty: 'No posts yet', pinned: 'Pinned', series: 'Series'
+      readMore: 'Read More', empty: 'No posts yet', pinned: 'Pinned',
+      series: 'Series', minutes: '{count} min read',
     },
     post: {
       prev: 'Previous', next: 'Next', related: 'Related Posts',
-      tocTitle: 'Contents', readingMode: 'Reading', ttsLabel: 'Listen', share: 'Share'
+      tocTitle: 'Contents', readingMode: 'Reading', ttsLabel: 'Listen',
+      share: 'Share', copyLink: 'Copy Link', copyDone: 'Copied',
+      shareTo: 'Share to', reward: 'Reward', rewardLabel: 'Reward',
+      rewardClose: 'Close', rewardQR: 'Payment QR', rewardPay: 'Go to payment page',
+      coverStyle: 'Cover Style', subscribe: 'Subscribe',
+      comments: 'Comments', commentsEnable: 'Enable JavaScript to view comments',
+      seriesNav: 'Series Navigation', seriesLabel: 'Series',
+      seriesPrev: 'Previous', seriesNext: 'Next',
+      prevPost: 'Previous', nextPost: 'Next',
+      readTimeLabel: '{minutes} min read',
     },
     toolbar: {
       backToTop: 'Back to top', openSearchLabel: 'Search',
-      darkLabel: 'Toggle dark mode', searchPlaceholder: 'Search posts...'
+      darkLabel: 'Toggle dark mode', searchPlaceholder: 'Search posts...',
+      readingProgress: 'Reading progress', close: 'Close',
+      tocToggle: 'Contents', backToToc: 'Back to contents',
+      goTop: 'Back to top', openImage: 'Image viewer',
+      zoomIn: 'Zoom in', zoomOut: 'Zoom out', rotate: 'Rotate', reset: 'Reset',
+      prevSlide: 'Previous', nextSlide: 'Next',
+      shortcuts: 'Keyboard shortcuts', help: 'Help',
+      shortcutOpen: 'Open search', shortcutDark: 'Toggle dark mode',
+      shortcutNext: 'Next post', shortcutPrev: 'Previous post',
+      shortcutImage: 'Image viewer next', shortcutClose: 'Close overlay',
+      shortcutHelp: 'Toggle this help', mobileNav: 'Mobile bottom nav',
+      copyCode: 'Copy code', copied: 'Copied!',
+      downloadCode: 'Download code', expandAll: 'Expand all', collapseAll: 'Collapse',
+      copyDoneToast: 'Copied to clipboard',
+      linkBlocked: 'Link blocked',
+      extLinkBlocked: 'External links are blocked by site policy',
+      okay: 'Got it', dragSort: 'Drag to reorder',
     },
     archive: {
-      statPosts: 'Posts', statDays: 'Days', statWords: 'Words',
-      statAvg: 'Avg/Day', statTags: 'Tags', statCats: 'Categories'
+      title: 'Archive', statPosts: 'Posts', statDays: 'Days',
+      statWords: 'Words', statAvg: 'Avg/Day', statTags: 'Tags',
+      statCats: 'Categories', heatmap: 'Monthly post heatmap',
+      empty: 'No archives', count: '{count} posts',
     },
     gallery: {
-      desc: 'In-site image gallery. Click to view full size.',
-      empty: 'No images', count: '{count} images'
+      title: 'Gallery', desc: 'In-site image gallery. Click to view full size.',
+      empty: 'No images', count: '{count} images',
+    },
+    category: {
+      title: 'Category', postCount: '{count} posts', empty: 'No posts in this category',
+      minutes: '{count} min',
+    },
+    tag: {
+      title: 'Tag', postCount: '{count} posts', empty: 'No posts with this tag',
+      readWith: 'Reading related posts', minutes: '{count} min',
+    },
+    tags: { title: 'Tags', empty: 'No tags' },
+    links: {
+      empty: 'No links', apply: 'Link request', title: 'Friends',
+    },
+    favorites: {
+      title: 'My Favorites', empty: 'No favorites',
+      hint: 'Click a title to open', remove: 'Remove from favorites',
+      storedLocally: 'Stored in local browser',
     },
     notFound: {
-      title: 'Page Not Found',
-      desc: 'The page you requested does not exist or has been moved.',
-      backHome: 'Back to Home'
+      title: 'Page Not Found', desc: 'The page you requested does not exist or has been moved.',
+      backHome: 'Back to Home', illustration: 'Lost illustration',
+      searchSite: 'Search the site', hotArticles: 'Popular posts',
     },
-    pagination: { label: 'Pagination', prev: 'Previous', next: 'Next' }
-  }}
+    pagination: { label: 'Pagination', prev: 'Previous', next: 'Next' },
+  },
+}

@@ -1,0 +1,111 @@
+npm notice run s-ynapse@1.0.2 test
+npm notice run node --test scripts/*.test.js
+▶ formatConfigError
+  ✔ reports filename, line, column and caret context (2.2679ms)
+  ✔ falls back when no position is known and file is unavailable (0.3981ms)
+✔ formatConfigError (4.2309ms)
+▶ features-schema validateFeatures
+  ✔ accepts a clean features config (defaults) (1.6169ms)
+  ✔ rejects non-boolean enabled flags (0.2497ms)
+  ✔ rejects unknown share platforms in order (0.2611ms)
+  ✔ warns on unknown feature modules (typo protection) (0.2202ms)
+  ✔ rejects invalid enum values (0.2237ms)
+  ✔ rejects non-object modules (0.2274ms)
+  ✔ exposes 54 feature modules for configuration (0.1863ms)
+✔ features-schema validateFeatures (3.64ms)
+▶ formatDate
+  ✔ formats date with default format (1.6682ms)
+  ✔ formats date with custom format (0.1979ms)
+  ✔ formats datetime with time (0.1521ms)
+  ✔ returns empty string for null/undefined (0.0986ms)
+  ✔ returns original string for invalid date (0.1236ms)
+✔ formatDate (2.5171ms)
+▶ safeSlug
+  ✔ converts simple text to slug (0.3129ms)
+  ✔ handles Chinese characters (0.2363ms)
+  ✔ handles mixed content (0.1434ms)
+  ✔ returns empty string for empty input (0.0995ms)
+✔ safeSlug (1.0023ms)
+▶ escapeAttr
+  ✔ escapes special characters (0.4025ms)
+  ✔ returns empty string for non-string input (0.122ms)
+✔ escapeAttr (0.7351ms)
+▶ escapeHtml
+  ✔ escapes HTML special chars (0.2768ms)
+  ✔ returns empty string for non-string input (0.1516ms)
+✔ escapeHtml (0.6361ms)
+▶ stripHtml
+  ✔ removes HTML tags (0.7027ms)
+  ✔ decodes common entities but not angle brackets (0.1425ms)
+  ✔ returns empty string for non-string input (0.1ms)
+✔ stripHtml (1.1338ms)
+▶ insertCjkSpacing
+  ✔ inserts thin space between Chinese and English (0.3665ms)
+  ✔ inserts thin space between Chinese and numbers (0.1739ms)
+  ✔ does not modify pure Chinese (0.1264ms)
+  ✔ does not modify pure English (0.3929ms)
+✔ insertCjkSpacing (1.4216ms)
+▶ applyCjkSpacingToHtml
+  ✔ skips HTML tags while processing text (0.3393ms)
+✔ applyCjkSpacingToHtml (0.4532ms)
+▶ extractToc
+  ✔ extracts h2-h4 headings with anchors (0.6032ms)
+  ✔ returns empty array for no headings (2.4581ms)
+✔ extractToc (3.2775ms)
+▶ sanitizeHtml
+  ✔ preserves aria-label attributes (a11y) (3.053ms)
+  ✔ removes script blocks entirely (1.6021ms)
+  ✔ removes iframe/object/embed active content (0.1895ms)
+  ✔ strips event handler attributes (0.2627ms)
+  ✔ strips style attributes (0.1927ms)
+  ✔ drops javascript: and data: URIs on href/src (0.2112ms)
+  ✔ keeps whitelisted tags (dl/table/div/span) (0.1854ms)
+  ✔ escapes unknown tags to text (0.1638ms)
+  ✔ return empty string for non-string input (0.1197ms)
+✔ sanitizeHtml (6.4512ms)
+▶ escapeJsonForScript
+  ✔ escapes < to \u003c so script tags cannot break out (0.224ms)
+  ✔ keeps normal JSON intact (0.1003ms)
+✔ escapeJsonForScript (0.4237ms)
+▶ sanitizeHtml media elements
+  ✔ keeps video with controls and site-local src (0.2992ms)
+  ✔ drops absolute/protocol-relative media sources (0.1987ms)
+  ✔ keeps video tag but strips missing src when dropped and allows local audio (2.5035ms)
+  ✔ still removes script/iframe/noscript after media support (0.9991ms)
+✔ sanitizeHtml media elements (4.3675ms)
+▶ content-policy classifyFile
+  ✔ rejects executables in every directory (0.8055ms)
+  ✔ media: whitelist only, svg allowed (0.2587ms)
+  ✔ videos: deny-list (avi/mkv allowed, html rejected) (0.298ms)
+  ✔ assets: whitelist, blocked beats matches (0.3059ms)
+  ✔ rejects known system filenames (0.1257ms)
+✔ content-policy classifyFile (2.0731ms)
+▶ sanitizeSvg
+  ✔ flags svg containing script or event handlers (0.5258ms)
+  ✔ flags svg with external references (0.8873ms)
+  ✔ passes clean inline svg (0.2314ms)
+✔ sanitizeSvg (1.8144ms)
+▶ generate-security-config
+  ✔ extracts rate limiting fields from security.json shape (0.9326ms)
+  ✔ falls back to safe defaults for missing/invalid fields (0.1887ms)
+  ✔ normalizes path restrictions and drops malformed entries (0.1865ms)
+  ✔ preserves csp directives and report fields (0.9549ms)
+  ✔ renders valid ESM text with export default (0.7643ms)
+  ✔ renders empty-security input without crashing (0.1814ms)
+✔ generate-security-config (3.6151ms)
+▶ theme-presets
+  ✔ provides six presets with full light+dark palettes (0.3315ms)
+  ✔ keeps WCAG AA contrast for secondary and light text on backgrounds (1.2085ms)
+  ✔ resolveTheme applies preset and lets presetOverrides win (0.3526ms)
+  ✔ resolveTheme falls back to classic-blue with warning on unknown preset (0.1473ms)
+  ✔ resolveTheme honors hand-written colors when preset is null (0.0908ms)
+  ✔ validatePreset reports unknown preset names (0.2329ms)
+✔ theme-presets (2.6348ms)
+ℹ tests 67
+ℹ suites 17
+ℹ pass 67
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 258.8293

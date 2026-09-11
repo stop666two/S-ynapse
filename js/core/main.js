@@ -15,7 +15,7 @@ if (enabled(F.favorites)) {
   'tts', 'page-transition', 'shortcuts', 'prev-next', 'share', 'motion',
   'image-lazy', 'daily-quote', 'reward', 'background', 'i18n', 'reading-mode',
   'contact-popup', 'external-link', 'sidebar-drag',
-  'theme-presets', 'theme-schedule', 'pwa', 'code-block'
+  'theme-presets', 'theme-schedule', 'pwa', 'code-block', 'comments'
 ].forEach(name => {
   tasks.push(import('../domains/' + name + '.js').then(m => m.init()));
 });

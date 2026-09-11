@@ -395,20 +395,6 @@
 <script src="/assets/js/core/runtime.js"></script>
 <script>
 function a(d){document.documentElement.setAttribute('data-theme',d?'dark':'light');var TT0=window.__FEATURES__&&window.__FEATURES__.themeToggle||{};if(TT0.toggleIconSwap===false)return;var su=document.getElementById('sunI'),mo=document.getElementById('moonI');if(su&&mo){su.style.display=d?'inline':'none';mo.style.display=d?'none':'inline'}};;(function(){var F=window.__FEATURES__||{},T=(F&&F.themeToggle)||{};if(T.enabled===false)return;var t='<%=theme.darkMode&&theme.darkMode.default||"system"%>',pk=T.persistKey||'ss-theme',s=localStorage.getItem(pk),p=window.matchMedia('(prefers-color-scheme:dark)').matches;if(!s&&t==='system'){window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(e){if(!localStorage.getItem(pk))a(e.matches)})}})();
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
 </script>
 <% if(features.customCSS&&features.customCSS.enabled!==false&&features.customCSS.css&&features.customCSS.css.length){ %><style id="customCSS"><% features.customCSS.css.forEach(function(c){ %><%- c %><% }) %></style><% } %>
 <script type="module" src="/assets/js/core/main.js"></script>

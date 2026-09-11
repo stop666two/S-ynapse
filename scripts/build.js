@@ -2321,6 +2321,25 @@ async function cacheBust(config) {
 // The service worker implements a cache-first strategy: serves from cache, fetches in background,
 // updates cache on successful fetch. Activated only when site.pwa.enabled is true.
 // Note: the generated SW has a fixed cache name (s-ynapse-v1) and ASSETS list.
+function copyJsAssets() {
+  const SRC = path.join(ROOT, 'js');
+  if (!fs.existsSync(SRC)) return;
+  const DEST = path.join(DIST_DIR, 'assets', 'js');
+  const walk = (dir, rel) => {
+    for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+      const src = path.join(dir, f.name);
+      const dst = path.join(DEST, rel, f.name);
+      if (f.isDirectory()) walk(src, path.join(rel, f.name));
+      else if (f.name.endsWith('.js')) {
+        fs.mkdirSync(path.dirname(dst), { recursive: true });
+        fs.copyFileSync(src, dst);
+      }
+    }
+  };
+  walk(SRC, '');
+  console.log('  Copied js/ assets to /assets/js/');
+}
+
 async function generatePWA(config) {
   if (!config.site.pwa || !config.site.pwa.enabled) {
     console.log('  [SKIP] PWA generation disabled');
@@ -2458,6 +2477,7 @@ async function build() {
     }
     await minifyAll(config);
     await cacheBust(config);
+    copyJsAssets();
     await generatePWA(config);
     if (hooks && hooks.postBuild) {
       await hooks.postBuild(config, {

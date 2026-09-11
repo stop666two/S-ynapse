@@ -130,6 +130,9 @@ const DEFAULT_FEATURES = {
   toast: {
     enabled: true, position: 'bottom-center', durationMs: 2500, maxVisible: 3
   },
+  breadcrumb: {
+    enabled: true, separator: '›', showHome: true, showCurrent: true
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true
@@ -391,7 +394,7 @@ const ARRAY_FIELDS = {
   reward: [], gallery: [], heatmap: ['palette'], stats: [], prevNext: [],
   feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
   comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: [],
-  scrollBehavior: [], toast: [],
+  scrollBehavior: [], toast: [], breadcrumb: [],
   background: ['particles'], motion: [], ogImageStyle: []
 };
 

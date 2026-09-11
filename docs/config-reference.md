@@ -422,6 +422,9 @@ sitemap: {
 ### 3.56 toast — 统一轻提示
 `enabled true` / `position 'bottom-center'`(`bottom-center|top-center|top-right|bottom-right|top-left|bottom-left`) / `durationMs 2500` / `maxVisible 3`。统一 `window.__toast(msg,{type,duration})` API;内置 info/success/warning/error 四类(无需配置);分享复制与联系复制已迁移到统一 toast(原内联提示元素移除)。
 
+### 3.57 breadcrumb — 面包屑导航
+`enabled true` / `separator '›'` / `showHome true` / `showCurrent true`。所有页面(首页与 404 除外)顶部显示;文章页层级:首页 › 分类 › 标题(与 JSON-LD 结构化数据一致);列表页:首页 › 归档/标签/分类/搜索/收藏/图库/友情链接;自定义页:首页 › 标题。
+
 ---
 
 ## 4. navigation.json — 导航

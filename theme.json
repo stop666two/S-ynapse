@@ -78,8 +78,8 @@
   "density": {
     "preset": "balanced",
     "containerWidth": "1250px",  // 内容区最大宽度
-    "gap": "2rem",               // 卡片间距
-    "sidebarWidth": "280px",     // 侧栏宽
+    "gap": "1.618rem",           // 卡片间距（黄金分割 φ）
+    "sidebarWidth": "318px",     // 侧栏宽（目录 200 × φ ≈ 324，取 318）
     "columns": 2                 // 卡片列数
   },
 
@@ -143,8 +143,8 @@
 
   "spacing": {
     "containerWidth": "1250px",  // 内容区最大宽度
-    "gap": "2rem",               // 元素间距
-    "padding": "2rem",           // 内边距
+    "gap": "1.618rem",           // 元素间距（黄金分割 φ）
+    "padding": "2.618rem",       // 内边距（黄金分割 φ²）
     "radius": "0.5rem",          // 默认圆角
     "radiusLarge": "1rem"        // 大圆角（如搜索弹窗）
   },
@@ -243,7 +243,7 @@
   "contentOffset": -10,            // 内容区偏移（px），负=左移，正=右移，0=居中
   "headerContentGap": 48,          // 标题与内容区额外间距（px）
   "tocWidth": "200px",             // 左侧目录宽度
-  "sidebarWidth": "280px",         // 右侧边栏宽度
+  "sidebarWidth": "318px",         // 右侧边栏宽度（200 × φ）
   "tocMinLeft": "10px",            // 左侧目录离屏幕左边缘最小距离
   "sidebarMinRight": "10px"        // 右侧边栏离屏幕右边缘最小距离
 }

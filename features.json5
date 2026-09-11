@@ -1237,7 +1237,7 @@
     // 移动端代码块横向滚动提示。
     codeScrollHint: true,
     // 移动端 TOC 按钮断点(px,≤ 该宽度显示按钮)。
-    tocBreakpoint: 768,
+    tocBreakpoint: 900,
     // 底部导航底部安全区留白(适配 iPhone 底部横条)。
     safeAreaBottom: true,
     // 是否保留移动端点击高亮(false = 取消高亮)。

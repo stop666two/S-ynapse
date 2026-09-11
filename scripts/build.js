@@ -281,7 +281,7 @@ function loadConfig() {
 // DENSITY_TIERS — 三档布局密度。
 const DENSITY_TIERS = {
   compact: { containerWidth: '1000px', gap: '1.25rem', sidebarWidth: '240px', columns: 2 },
-  balanced: { containerWidth: '1250px', gap: '2rem', sidebarWidth: '280px', columns: 2 },
+  balanced: { containerWidth: '1250px', gap: '1.618rem', sidebarWidth: '318px', columns: 2 },
   airy: { containerWidth: '1400px', gap: '2.5rem', sidebarWidth: '320px', columns: 3 }
 };
 

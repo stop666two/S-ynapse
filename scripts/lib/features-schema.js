@@ -325,7 +325,7 @@ const DEFAULT_FEATURES = {
   mobile: {
     enabled: true, searchFullscreen: true, buttonStackGap: '4rem',
     touchFallback: true, codeScrollHint: true,
-    tocBreakpoint: 768, safeAreaBottom: true, tapHighlight: false
+    tocBreakpoint: 900, safeAreaBottom: true, tapHighlight: false
   },
   comments: {
     enabled: true, loadContainer: true, renderPlaceholder: true, title: '评论',

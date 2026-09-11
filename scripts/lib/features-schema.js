@@ -127,6 +127,9 @@ const DEFAULT_FEATURES = {
   scrollBehavior: {
     enabled: true, behavior: 'smooth', anchorOffset: '18px', respectReducedMotion: true
   },
+  toast: {
+    enabled: true, position: 'bottom-center', durationMs: 2500, maxVisible: 3
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true
@@ -367,6 +370,7 @@ const ENUM_FIELDS = {
   share: { position: ['toolbar', 'floating'] },
   prevNext: { labelPosition: ['left', 'center', 'right'] },
   scrollBehavior: { behavior: ['smooth', 'auto'] },
+  toast: { position: ['bottom-center', 'top-center', 'top-right', 'bottom-right', 'top-left', 'bottom-left'] },
   gallery: { order: ['newest', 'longest'] },
   heatmap: { scaling: ['auto', 'fixed'] },
   analytics: { injectAt: ['body', 'head'] },
@@ -387,7 +391,7 @@ const ARRAY_FIELDS = {
   reward: [], gallery: [], heatmap: ['palette'], stats: [], prevNext: [],
   feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
   comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: [],
-  scrollBehavior: [],
+  scrollBehavior: [], toast: [],
   background: ['particles'], motion: [], ogImageStyle: []
 };
 

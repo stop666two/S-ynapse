@@ -1579,5 +1579,19 @@
     anchorOffset: '18px',
     // 尊重系统"减少动态效果"设置(reduced-motion 时降级为 auto)。
     respectReducedMotion: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 42. 轻提示(toast 统一通知)
+  // ---------------------------------------------------------------------------
+  toast: {
+    // 统一轻提示总开关(false 时所有轻提示不显示)。
+    enabled: true,
+    // 显示位置: bottom-center / top-center / top-right / bottom-right / top-left / bottom-left。
+    position: 'bottom-center',
+    // 自动消失时长(ms)。
+    durationMs: 2500,
+    // 同屏最多显示条数(超出时最早一条先消失)。
+    maxVisible: 3
   }
 }

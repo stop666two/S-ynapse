@@ -60,7 +60,6 @@
   <%# Article footer: rendered from pages/ content. Source filename is set in theme.json articleFooter.source. %>
   <% if(features.favorites&&features.favorites.enabled!==false&&!page.favoriteExclude){ %>
   <button type="button" class="fav-btn" id="favBtn" data-url="<%= article.url %>" data-title="<%= article.title %>" aria-label="收藏"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.6-9.6-8.4C.6 9.2 2.6 5.5 6.2 5.5c2.1 0 3.6 1.2 4.4 2.4.8-1.2 2.3-2.4 4.4-2.4 3.6 0 5.6 3.7 3.8 7.1C19 16.4 12 21 12 21z"/></svg><span><%= features.favorites.notText||'收藏' %></span></button>
-  <div class="fav-toast" id="favToast" role="status" aria-live="polite"></div>
   <% } %>
   <% if(theme.articleFooter&&theme.articleFooter.enabled!==false&&theme.articleFooter.source&&typeof pagesContent!=='undefined'&&pagesContent[theme.articleFooter.source]){ var f=theme.articleFooter; var pc=pagesContent[f.source]; %><div class="article-footer" style="--ff-bg:<%=f.backgroundColor%>;--ff-t:<%=f.textColor%>;--ff-bd:<%=f.borderColor%>;--ff-pan:<%=f.paddingTop||'1.25rem'%>;--ff-par:<%=f.paddingRight||'1.5rem'%>;--ff-pab:<%=f.paddingBottom||'1.25rem'%>;--ff-pal:<%=f.paddingLeft||'1.5rem'%>;--ff-r:<%=f.borderRadius||'0.5rem'%>;--ff-fs:<%=f.fontSize||'0.875rem'%>"><%- pc.content %></div><% } %>
   <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--color-border)">
@@ -159,7 +158,6 @@
 <div class="share-row" role="group" aria-label="<span data-i18n="post.shareThis">分享本文</span>">
   <% if(features.share.showLabel){ %><span class="share-label"><%=features.share.label||'分享'%></span><% } %>
   <% SHORDER.forEach(function(k){ if(!SHTML[k])return; var seg=SHTML[k].split(':'); var fb=seg[0], fw=seg[1], inner=seg[2]; if(k==='copy'){ %><button class="share-btn" data-share="copy" type="button" aria-label="复制链接" title="复制链接"><svg width="15" height="15" viewBox="0 0 24 24" fill="<%=fb==='fill'?'currentColor':'none'%>"<%-fb==='none'?' stroke="' + fw + '" stroke-width="2"':''%>><%-inner%></svg></button><% } else { %><a class="share-btn" data-share="<%=k%>" href="#" aria-label="分享到<%=k==='x'?'X':k%>" title="分享到<%=k==='x'?'X':k%>"><svg width="15" height="15" viewBox="0 0 24 24" fill="<%=fb==='fill'?'currentColor':'none'%>"<%-fb==='none'?' stroke="' + fw + '" stroke-width="2"':''%>><%-inner%></svg></a><% } }) %>
-  <span class="share-copied" id="shareCopied" role="status"><%=features.share.copiedText||ui('post.linkCopied','链接已复制')%></span>
 </div>
 <% } %>
 

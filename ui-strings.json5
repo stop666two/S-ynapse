@@ -150,7 +150,38 @@
   // ==========================================================================
   // English interface strings
   // ==========================================================================
+  // ==================== 通用文案 ====================
+  common: {
+    loading: '加载中…',
+    empty: '暂无内容',
+    error: '出错了',
+    retry: '重试',
+    close: '关闭',
+    confirm: '确认',
+    cancel: '取消',
+    copy: '复制',
+    copied: '已复制',
+    more: '更多',
+    back: '返回',
+    top: '回到顶部',
+  },
+
   en: {
+    common: {
+      loading: 'Loading…',
+      empty: 'No content',
+      error: 'Something went wrong',
+      retry: 'Retry',
+      close: 'Close',
+      confirm: 'Confirm',
+      cancel: 'Cancel',
+      copy: 'Copy',
+      copied: 'Copied',
+      more: 'More',
+      back: 'Back',
+      top: 'Back to top',
+    },
+
     top: {
       language: 'Language', themePresets: 'Theme Presets', preset: 'Preset',
     },

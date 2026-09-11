@@ -147,6 +147,9 @@ function loadConfig() {
   // fallbacks stay in place when missing. Deep-merged (uiStrings overrides
   // only the keys it defines).
   const uiStrings = loadOptionalConfigFile('ui-strings.json5') || {};
+  // UI tuning domain: optional tuning.json5 — fine-grained UI values (typography,
+  // layout, radius, motion, ...). Missing file keeps every CSS fallback in place.
+  const tuning = loadOptionalConfigFile('tuning.json5') || {};
 
   const defaults = {
     site: {
@@ -239,7 +242,7 @@ function loadConfig() {
     }
   };
 
-  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy, features, uiStrings }, { tagAliases: tagAliasData, friends: friendsData }]);
+  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy, features, uiStrings, tuning }, { tagAliases: tagAliasData, friends: friendsData }]);
   // Features arrays must replace, not concatenate (e.g. share.order must drop
   // platforms the user removed). Deepmerge's default arrayMerge concatenates,
   // so features gets its own merge pass with a replace strategy.
@@ -1350,6 +1353,7 @@ function buildPageData(config, articles, tags, categories) {
     theme: config.theme,
     features: config.features,
     uiStrings: config.uiStrings || {},
+    tuning: config.tuning || {},
     nav,
     sidebar: config.sidebar,
     footer: config.footer,

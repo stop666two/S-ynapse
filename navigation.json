@@ -64,7 +64,22 @@
 
   // ==================== 用户菜单 ====================
 
+  // ==================== 导航栏外观选项 ====================
+
+  "navbarOptions": {
+    "height": "60px",              // 导航栏高度
+    "sticky": true,                // 固定吸顶（滚动时保持可见）
+    "glassBlur": "12px",           // 毛玻璃模糊半径（0 = 关闭毛玻璃）
+    "glassAlpha": 0.8,             // 毛玻璃背景不透明度（0~1）
+    "navGap": ".25rem",            // 菜单项之间的间距
+    "logoSize": "1.272em",         // Logo 字号（黄金 √φ）
+    "navFontSize": ".9375rem",     // 菜单项字号
+    "iconSize": "18px",            // 图标尺寸
+    "shadowShow": true             // 滚动时显示底部阴影
+  },
+
   "userMenu": {
+
     "enabled": false,       // 是否启用用户菜单（多用户系统）
     "loginUrl": "/login",   // 登录页面 URL
     "logoutUrl": "/logout", // 退出登录 URL

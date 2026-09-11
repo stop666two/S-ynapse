@@ -111,5 +111,17 @@
   "uploadSecurity": {
     "maxFileSize": 5242880,                          // 最大上传文件大小（字节），默认 5MB
     "allowedExtensions": ["jpg", "png", "webp", "mp4"]  // 允许上传的文件扩展名
+  },
+  // ==================== 安全加固选项 ====================
+
+  "hardening": {
+    "hstsMaxAge": 31536000,              // HSTS 有效期（秒），默认 1 年；仅 HTTPS 生效
+    "hstsIncludeSubDomains": true,       // HSTS 覆盖所有子域名
+    "referrerPolicy": "strict-origin-when-cross-origin", // Referrer-Policy 策略
+    "permissionsPolicy": {},             // Permissions-Policy（如 {"camera": "()"} 禁用摄像头）
+    "corsAllowedOrigins": [],            // CORS 白名单（空 = 不发送 CORS 头）
+    "rateLimitEnabled": false,           // 速率限制（需 Workers 层配合）
+    "rateLimitPerMinute": 60,            // 每分钟请求上限（rateLimitEnabled=true 时生效）
+    "xssProtection": "1; mode=block"     // X-XSS-Protection（旧浏览器兼容）
   }
 }

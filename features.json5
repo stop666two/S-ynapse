@@ -1637,5 +1637,5 @@
     updatePrompt: true,
     // 离线/恢复时 toast 提示。
     offlineNotice: true
-  }
+  },
 }

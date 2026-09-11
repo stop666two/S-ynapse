@@ -43,5 +43,15 @@
   "beian": { "enabled": false, "icp": "京ICP备12345678号", "gongan": "京公网安备 11000002000001号" },
   "social": { "enabled": true, "iconSize": "24px" },
   "poweredBy": { "enabled": true, "text": "S-ynapse" },
-  "customHtml": ""
+  "customHtml": "",
+  "options": {
+    "paddingV": "2.618rem",        // 页脚上下内边距（黄金 φ²）
+    "gap": "2rem",                 // 列与列之间的间距
+    "linkSize": ".875rem",         // 链接字号
+    "copyrightSize": ".8125rem",   // 版权文字字号
+    "icpSize": ".75rem",           // 备案信息字号
+    "socialIconSize": "18px",      // 社交图标尺寸
+    "socialGap": ".75rem",         // 社交图标间距
+    "linkHoverUnderline": true     // 链接悬停时显示下划线
+  }
 }

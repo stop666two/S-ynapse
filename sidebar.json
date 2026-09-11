@@ -7,6 +7,21 @@
   "sticky": true,               // 是否启用粘性定位（滚动时保持）
   "stickyOffset": 20,           // 粘性定位距离顶部偏移（px）
 
+  // ==================== 侧栏外观选项 ====================
+
+  "options": {
+    "width": "318px",              // 侧栏宽度（默认 = 目录 200px × 黄金 φ）
+    "gap": "1.618rem",             // 组件之间的垂直间距（黄金 φ）
+    "radius": "0.618rem",          // 组件圆角（黄金）
+    "padding": "1rem",             // 组件内边距
+    "titleSize": ".9375rem",       // 组件标题字号
+    "titleWeight": 600,            // 组件标题字重
+    "hoverLift": true,             // 组件悬停轻微上浮
+    "borderShow": false,           // 显示组件描边（默认用阴影）
+    "collapseOnMobile": true,      // 移动端折叠为抽屉
+    "scrollFollow": true           // 滚动时组件跟随（粘性）
+  },
+
   // ==================== 侧边栏组件列表 ====================
 
   "widgets": [

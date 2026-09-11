@@ -280,5 +280,25 @@
     "zh",
     "en"
   ],
-  "subtitleEn": "Thought Synapses"
+  "subtitleEn": "Thought Synapses",
+  "performance": {
+    "preloadFonts": true,           // 预加载字体（<link rel=preload> 提前请求）
+    "fontDisplay": "swap",          // 字体显示策略：swap(先用回退字体)/block/fallback/optional
+    "lazyLoadRootMargin": "200px",  // 图片懒加载预取边距（视口外多远开始加载）
+    "imageDecoding": "async",       // 图片解码方式：async(不阻塞渲染)/sync/auto
+    "scriptLoading": "defer",       // 脚本加载策略：defer(解析后执行)/module/async
+    "preconnect": [                 // 预连接域名（提前 DNS+TLS 握手，降低首字节延迟）
+      "https://fonts.googleapis.com",
+      "https://fonts.gstatic.com"
+    ],
+    "prefetchNextPage": false,      // 空闲时预取下一页（提高连续阅读体验）
+    "cacheBust": true,              // 构建产物加 hash 查询串防缓存（生产建议 true）
+    "criticalCSS": false,           // 内联首屏关键 CSS（实验性，需谨慎启用）
+    "resourceHints": true,          // 输出 preconnect/dns-prefetch 资源提示
+    "imageSizes": "auto",           // srcset 的 sizes 属性策略：auto/固定值
+    "htmlMinify": false,            // HTML 压缩（构建级，生产建议 true）
+    "cssMinify": false,             // CSS 压缩（构建级，生产建议 true）
+    "jsMinify": false,              // JS 压缩（构建级，生产建议 true）
+    "buildReport": true             // 生成 build-report.html 构建报告
+  }
 }

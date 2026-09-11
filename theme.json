@@ -209,7 +209,24 @@
   // ==================== 自定义 CSS ====================
 
   // 自定义 CSS 变量覆盖，可按组件名传入样式字符串
-  "customCSS": {},
+
+  // ==================== 外观细节选项（微调） ====================
+
+  "appearance": {
+    "selectionBg": "",             // 文本选中背景色（空 = 用辅色 25% 透明）
+    "scrollbarWidth": "8px",       // 滚动条宽度（WebKit）
+    "scrollbarRadius": "4px",      // 滚动条圆角
+    "focusRingWidth": "2px",       // 键盘焦点环宽度（无障碍）
+    "focusRingOffset": "2px",      // 焦点环偏移
+    "codePadding": "1rem",         // 代码块内边距
+    "codeLineHeight": 1.6,         // 代码行高
+    "blockquoteBorderWidth": "3px", // 引用块左侧竖线宽度
+    "tableStripeBg": "",           // 表格斑马纹背景（空 = 用 hover 色 50%）
+    "tableCellPadding": ".6rem .9rem", // 表格单元格内边距
+    "hrOpacity": 0.6,              // 分隔线不透明度
+    "imageCaptionAlign": "center"  // 图注对齐：left/center/right
+  },
+
 
   // ==================== 外部资源 ====================
 

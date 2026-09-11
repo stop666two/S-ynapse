@@ -7,7 +7,7 @@
   // ---------- 排版系统（18 项） ----------
   "typography": {
     // 正文字号
-    "bodySize": "1em",
+    "bodySize": "1.0625rem",
     // 一级标题字号（黄金 φ²）
     "h1Size": "2.058em",
     // 二级标题字号（黄金 φ）
@@ -155,7 +155,7 @@
     // 卡片圆角
     "radius": "0.618rem",
     // 文章容器内边距
-    "padding": "2rem",
+    "padding": "1.5rem",
     // 卡片标题字号
     "titleSize": "1.272rem",
     // 摘要最大行数
@@ -163,7 +163,7 @@
     // 悬停上浮（px）
     "hoverLiftPx": "4",
     // 元信息字号
-    "metaSize": ".875rem",
+    "metaSize": ".8125rem",
     // 无封面占位字号下限
     "nocoverMinSize": "1.272rem",
     // 无封面占位字号上限

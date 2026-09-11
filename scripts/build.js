@@ -243,6 +243,14 @@ function loadConfig() {
   };
 
   const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy, features, uiStrings, tuning }, { tagAliases: tagAliasData, friends: friendsData }]);
+  if (config.site.performance) {
+    const _p = config.site.performance;
+    if (_p.htmlMinify === true) config.site.build.minifyHTML = true;
+    if (_p.cssMinify === true) config.site.build.minifyCSS = true;
+    if (_p.jsMinify === true) config.site.build.minifyJS = true;
+    if (_p.cacheBust === true) config.site.build.enableCacheBusting = true;
+    if (_p.buildReport === true) config.site.build.buildReport = true;
+  }
   // Features arrays must replace, not concatenate (e.g. share.order must drop
   // platforms the user removed). Deepmerge's default arrayMerge concatenates,
   // so features gets its own merge pass with a replace strategy.
@@ -787,6 +795,8 @@ function setupMarkedRenderer(config, mediaManifest) {
         if (!href) return '';
         const alt = text || '';
         const titleAttr = title ? ` title="${escapeAttr(title)}"` : '';
+        const _perf = (typeof config !== 'undefined' && config.site && config.site.performance) || {};
+        const decoding = _perf.imageDecoding ? ` decoding="${_perf.imageDecoding}"` : '';
         const loading = imgLazy ? ' loading="lazy"' : '';
         const decodedHref = href.replace(/&amp;/g, '&');
         if (usePicture && mediaManifest) {
@@ -796,7 +806,7 @@ function setupMarkedRenderer(config, mediaManifest) {
             const webpSources = [];
             const avifSources = [];
             const origSources = [];
-            const sizesAttr = '(max-width: 640px) 640px, (max-width: 1024px) 1024px, 1920px';
+            const sizesAttr = (_perf.imageSizes && _perf.imageSizes !== 'auto') ? _perf.imageSizes : '(max-width: 640px) 640px, (max-width: 1024px) 1024px, 1920px';
             for (const [key, val] of Object.entries(entry.variants)) {
               const [size, fmt] = key.split('-');
               const escaped = escapeAttr(val);
@@ -811,7 +821,7 @@ function setupMarkedRenderer(config, mediaManifest) {
             html += webpSources.join('\n');
             if (webpSources.length && origSources.length) html += '\n';
             html += origSources.join('\n') + '\n';
-            html += `  <img src="${fallbackSrc}" alt="${escapeAttr(alt)}"${titleAttr}${loading}>\n`;
+            html += `  <img src="${fallbackSrc}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}>\n`;
             html += '</picture>';
             return html;
           }
@@ -820,10 +830,10 @@ function setupMarkedRenderer(config, mediaManifest) {
           const norm = decodedHref.replace(/^\//, '');
           const entry = mediaManifest[norm];
           if (entry && entry.original) {
-            return `<img src="${escapeAttr(entry.original)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}>`;
+            return `<img src="${escapeAttr(entry.original)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}>`;
           }
         }
-        return `<img src="${escapeAttr(decodedHref)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}>`;
+        return `<img src="${escapeAttr(decodedHref)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}>`;
       },
 
       // Link renderer — adds target="_blank" + rel="noopener noreferrer" to external links.
@@ -2141,6 +2151,29 @@ function generateSecurityHeaders(config) {
 
   for (const [key, val] of Object.entries(config.security.headers || {})) {
     if (val) lines.push(`  ${key}: ${val}`);
+  }
+
+  const hd = config.security.hardening || {};
+  if (hd.hstsMaxAge) {
+    const hsts = `max-age=${hd.hstsMaxAge}` + (hd.hstsIncludeSubDomains ? '; includeSubDomains' : '');
+    const i = lines.findIndex(l => l.trim().startsWith('Strict-Transport-Security:'));
+    if (i >= 0) lines[i] = `  Strict-Transport-Security: ${hsts}`; else lines.push(`  Strict-Transport-Security: ${hsts}`);
+  }
+  if (hd.referrerPolicy) {
+    const i = lines.findIndex(l => l.trim().startsWith('Referrer-Policy:'));
+    if (i >= 0) lines[i] = `  Referrer-Policy: ${hd.referrerPolicy}`; else lines.push(`  Referrer-Policy: ${hd.referrerPolicy}`);
+  }
+  if (hd.permissionsPolicy && Object.keys(hd.permissionsPolicy).length) {
+    const pp = Object.entries(hd.permissionsPolicy).map(([k, v]) => `${k}=${v}`).join(', ');
+    const i = lines.findIndex(l => l.trim().startsWith('Permissions-Policy:'));
+    if (i >= 0) lines[i] = `  Permissions-Policy: ${pp}`; else lines.push(`  Permissions-Policy: ${pp}`);
+  }
+  if (hd.xssProtection) {
+    const i = lines.findIndex(l => l.trim().startsWith('X-XSS-Protection:'));
+    if (i >= 0) lines[i] = `  X-XSS-Protection: ${hd.xssProtection}`; else lines.push(`  X-XSS-Protection: ${hd.xssProtection}`);
+  }
+  if (Array.isArray(hd.corsAllowedOrigins) && hd.corsAllowedOrigins.length) {
+    lines.push(`  Access-Control-Allow-Origin: ${hd.corsAllowedOrigins.join(', ')}`);
   }
 
   for (const [key, val] of Object.entries(config.security.customHeaders || {})) {

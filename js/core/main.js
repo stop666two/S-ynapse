@@ -16,3 +16,7 @@ import('../domains/reading.js').then(m => m.init());
 import('../domains/lightbox.js').then(m => m.init());
 import('../domains/reading-panel.js').then(m => m.init());
 import('../domains/tts.js').then(m => m.init());
+import('../domains/page-transition.js').then(m => m.init());
+import('../domains/shortcuts.js').then(m => m.init());
+import('../domains/prev-next.js').then(m => m.init());
+import('../domains/share.js').then(m => m.init());

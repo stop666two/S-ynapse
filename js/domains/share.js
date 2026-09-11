@@ -1,0 +1,38 @@
+export function init() {
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-share]');
+    if (!b) return;
+    e.preventDefault();
+    var kind = b.getAttribute('data-share');
+    var url = window.location.href, title = document.title || '';
+    var SH = window.__FEATURES__ && window.__FEATURES__.share || {};
+    var showCopied = function () { if (window.__toast) window.__toast(SH.copiedText || __T('post.linkCopied', '链接已复制'), { type: 'success' }); };
+    if (SH.useNativeShare && navigator.share && kind !== 'copy' && kind !== 'wechat') {
+      navigator.share({ title: title, url: url }).catch(function () {});
+      return;
+    }
+    if (kind === 'copy' || kind === 'wechat') {
+      var txt = (kind === 'wechat' ? title + '\n' : '') + url;
+      if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(showCopied); }
+      else if (SH.copyFallback !== false) {
+        var ta = document.createElement('textarea');
+        ta.value = txt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (err) {}
+        document.body.removeChild(ta);
+        showCopied();
+      }
+      return;
+    }
+    var href = '';
+    if (kind === 'weibo') href = 'https://service.weibo.com/share/share.php?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title);
+    else if (kind === 'qq') href = 'https://connect.qq.com/widget/shareqq/index.html?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title);
+    else if (kind === 'x') href = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(title);
+    else if (kind === 'facebook') href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
+    else if (kind === 'mail') href = 'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(url);
+    window.open(href, '_blank', 'noopener,width=640,height=520');
+  });
+}

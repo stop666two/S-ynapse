@@ -428,6 +428,9 @@ sitemap: {
 ### 3.58 pageTransition — 页面切换过渡
 `enabled true` / `type 'slide'`(`slide|fade`) / `durationMs 180`(入场) / `outDurationMs 120`(离开淡出) / `respectReducedMotion true` / `excludeSelector '[data-no-transition]'`。内链点击淡出 → 导航 → 新页入场;外链/新窗口/hash/下载链接不拦截;原 `motion.pageEnterDurationMs` 与 `theme.animation.pageTransition` 已移除。
 
+### 3.59 pwa — PWA 运行时
+`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true`。运行时总开关(需 `site.pwa.enabled` 同时开启);注册 `site.pwa.serviceWorker` 并监听更新(toast 提示)、监听离线/恢复(toast 提示);修复 `_redirects` 将根 `/manifest.json` 302 到不存在语言路径导致 SW 安装失败的问题。
+
 ---
 
 ## 4. navigation.json — 导航

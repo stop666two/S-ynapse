@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **toast 模块**:统一轻提示系统——`features.toast`(enabled/position/durationMs/maxVisible) + `window.__toast(msg,{type,duration})` API(内置 info/success/warning/error 四类,容器 role=status);分享复制与联系复制迁移到统一 toast;移除三处旧内联提示元素/CSS(fav-toast/share-copied/contact-popup-copied) — `templates/layout.ejs` + `templates/post.ejs` + `features.json5`
 - **breadcrumb 模块**:可见面包屑导航——`features.breadcrumb`(enabled/separator/showHome/showCurrent);所有页面渲染(首页/404 除外),文章页 首页 › 分类 › 标题,列表页与自定义页自动层级 — `templates/layout.ejs` + `features.json5`
 - **pageTransition 模块**:页面切换过渡——`features.pageTransition`(enabled/type/durationMs/outDurationMs/respectReducedMotion/excludeSelector);内链点击淡出 → 导航 → 新页入场(slide/fade 两型);外链/新窗口/hash/下载链接与 `[data-no-transition]` 元素不拦截 — `templates/layout.ejs` + `features.json5`
+- **pwa 模块**:PWA 运行时——`features.pwa`(enabled/registerSW/updatePrompt/offlineNotice);注册 service worker、SW 更新 toast 提示、离线/恢复 toast 提示(复用统一 toast);新增 `ui-strings` pwa 双语文案 — `templates/layout.ejs` + `ui-strings.json5` + `features.json5`
 
 ### Changed
 
@@ -43,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **motion 卡片悬停缩放被 reveal 覆盖**:`.motion-reveal.in{transform:none}` 同权重且更晚,导致卡片入场后 hover scale 失效;提升选择器权重 — `templates/layout.ejs`
 - **主题预设切换后 CTA 按钮颜色不跟随**:`applyPreset()` 未同步 `--bpb`(构建期按钮主色变量,默认取 secondary);现随预设 secondary 同步更新 — `templates/layout.ejs`
 - **JSON-LD 面包屑缺分类层且 URL 错误**:结构化数据读取不存在的 `article.category` 字段导致缺分类层级,且链接格式为 `/category/{名称}/`(实际路由为 `/categories/{slug}/`);改用 `article.categories[0]` + 分类 slug 查找并补语言前缀 — `templates/layout.ejs`
+- **PWA SW 安装失败(manifest 被重定向)**:`_redirects` 将根 `/manifest.json` 302 到不存在的 `/zh/manifest.json`,导致 `cache.addAll` 失败、service worker 安装失败;PWA 开启时不再生成该重定向 — `scripts/build.js`
 
 ### Security
 

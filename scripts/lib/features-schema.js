@@ -137,6 +137,9 @@ const DEFAULT_FEATURES = {
     enabled: true, type: 'slide', durationMs: 180, outDurationMs: 120,
     respectReducedMotion: true, excludeSelector: '[data-no-transition]'
   },
+  pwa: {
+    enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true
@@ -399,7 +402,7 @@ const ARRAY_FIELDS = {
   reward: [], gallery: [], heatmap: ['palette'], stats: [], prevNext: [],
   feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
   comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: [],
-  scrollBehavior: [], toast: [], breadcrumb: [], pageTransition: [],
+  scrollBehavior: [], toast: [], breadcrumb: [], pageTransition: [], pwa: [],
   background: ['particles'], motion: [], ogImageStyle: []
 };
 

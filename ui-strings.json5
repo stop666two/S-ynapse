@@ -139,6 +139,13 @@
     label: '分页导航', prev: '上一页', next: '下一页',
   },
 
+  // PWA 运行时提示
+  pwa: {
+    updateReady: '新版本可用，刷新页面以更新',
+    offline: '网络已断开',
+    online: '网络已恢复',
+  },
+
   // ==========================================================================
   // English interface strings
   // ==========================================================================
@@ -241,5 +248,10 @@
       searchSite: 'Search the site', hotArticles: 'Popular posts',
     },
     pagination: { label: 'Pagination', prev: 'Previous', next: 'Next' },
+    pwa: {
+      updateReady: 'A new version is available. Refresh to update.',
+      offline: 'You are offline',
+      online: 'Back online',
+    },
   },
 }

@@ -2087,10 +2087,12 @@ function generateRedirects(config, customPages) {
       lines.unshift(`/ /${langs[0]}/ 302`);
     }
   }
+  const pwaOn = !!(config.site.pwa && config.site.pwa.enabled);
   for (const l of langs) {
     const pf = '/' + l;
     const rootAliases = ['/search-index.json', '/feed.xml', '/manifest.json', '/404.html', '/site.webmanifest'];
     for (const alias of rootAliases) {
+      if (pwaOn && alias === '/manifest.json') continue;
       if (!lines.some(x => x.startsWith(alias + ' '))) {
         lines.push(`${alias} ${pf}${alias} 302`);
       }

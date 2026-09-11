@@ -212,7 +212,7 @@ function loadConfig() {
       fontFamilyMono: 'monospace',
       fontSizeBase: '16px', lineHeight: 1.8,
       headingFontWeight: 700, letterSpacing: '0.02em',
-      spacing: { containerWidth: '960px', gap: '2rem', padding: '2rem', radius: '0.5rem', radiusLarge: '1rem' },
+      spacing: { containerWidth: '960px', gap: '1.618rem', padding: '2.618rem', radius: '0.618rem', radiusLarge: '1.618rem' },
       shadow: { card: '0 4px 6px rgba(0,0,0,0.1)', dropdown: '0 10px 15px -3px rgba(0,0,0,0.1)', fixed: '0 2px 4px rgba(0,0,0,0.08)' },
       layout: { headerStyle: 'fixed', headerHeight: '60px', footerStyle: 'simple', sidebarPosition: 'right', contentWidth: 'main', postLayout: 'standard', archiveLayout: 'list' },
       animation: { enable: true, transitionDuration: '0.3s', transitionTiming: 'ease-in-out', scrollBehavior: 'smooth', pageTransition: 'fade' },
@@ -343,7 +343,7 @@ function resolveFontSystem(theme) {
 const VISUAL_ROUNDING = {
   sharp: { radius: '2px', radiusLarge: '8px', button: '2px' },
   sm: { radius: '4px', radiusLarge: '10px', button: '3px' },
-  md: { radius: '0.5rem', radiusLarge: '1rem', button: '0.25rem' },
+  md: { radius: '0.618rem', radiusLarge: '1.618rem', button: '0.382rem' },
   lg: { radius: '0.75rem', radiusLarge: '1.25rem', button: '0.5rem' }
 };
 const VISUAL_SHADOW = {

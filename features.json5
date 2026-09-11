@@ -1353,7 +1353,7 @@
     // en 语言 CTA 按钮文字。
     ctaLabelEn: 'View all posts',
     // Hero 最小高度(vh,内容垂直居中)。
-    heightVh: 60,
+    heightVh: 61.8,
     // Hero 背景图 URL(空则使用纯色/渐变背景)。
     backgroundImage: ''
   },

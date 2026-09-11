@@ -399,7 +399,7 @@ sitemap: {
 `enabled true` / `widgetStyle 'sidebar'` / `label '每日一言'` / `source 'builtin'` / `count 7` / `quoteColor ''`。侧栏每日名言(内置 7 条,按日期轮换)。
 
 ### 3.49 favorites — 收藏(纯前端)
-`enabled true` / `position 'toolbar'` / `storageKey 's-favorites'` / `label '收藏'` / `listIcon true` / `notText '收藏'` / `favedText '已收藏'`。文章收藏按钮+收藏页(仅 localStorage,无后端)。
+`enabled true` / `position 'toolbar'` / `storageKey 's-favorites'` / `label '收藏'` / `listIcon true` / `notText '收藏'` / `favedText '已收藏'`。文章收藏按钮+收藏页(仅 localStorage,无后端);按钮切换收藏/取消(状态+aria-pressed+统一 toast)、收藏页列表渲染与移除、空状态;en 页文案经 ui-strings 词典。
 
 ### 3.50 prismTheme — 代码主题切换器
 `enabled true` / `themes[]` (github/dark/solarized/django) / `defaultTheme 'github'` / `remember true` / `storageKey 's-codeTheme'` / `windowBar true`。代码块顶部仿 Mac 栏 + 主题单选。

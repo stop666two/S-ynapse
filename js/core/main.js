@@ -4,24 +4,21 @@ function enabled(mod) {
   return !mod || mod.enabled !== false;
 }
 
+const tasks = [];
+
 if (enabled(F.favorites)) {
-  import('../domains/favorites.js').then(m => m.init());
+  tasks.push(import('../domains/favorites.js').then(m => m.init()));
 }
 
-import('../domains/theme.js').then(m => m.init());
-import('../domains/navigation.js').then(m => m.init());
-import('../domains/search.js').then(m => m.init());
-import('../domains/toc.js').then(m => m.init());
-import('../domains/reading.js').then(m => m.init());
-import('../domains/lightbox.js').then(m => m.init());
-import('../domains/reading-panel.js').then(m => m.init());
-import('../domains/tts.js').then(m => m.init());
-import('../domains/page-transition.js').then(m => m.init());
-import('../domains/shortcuts.js').then(m => m.init());
-import('../domains/prev-next.js').then(m => m.init());
-import('../domains/share.js').then(m => m.init());
-import('../domains/motion.js').then(m => m.init());
-import('../domains/image-lazy.js').then(m => m.init());
-import('../domains/daily-quote.js').then(m => m.init());
-import('../domains/reward.js').then(m => m.init());
-import('../domains/background.js').then(m => m.init());
+[
+  'theme', 'navigation', 'search', 'toc', 'reading', 'lightbox', 'reading-panel',
+  'tts', 'page-transition', 'shortcuts', 'prev-next', 'share', 'motion',
+  'image-lazy', 'daily-quote', 'reward', 'background', 'i18n', 'reading-mode',
+  'contact-popup', 'external-link', 'sidebar-drag'
+].forEach(name => {
+  tasks.push(import('../domains/' + name + '.js').then(m => m.init()));
+});
+
+Promise.allSettled(tasks).then(() => {
+  window.__APP_READY__ = true;
+});

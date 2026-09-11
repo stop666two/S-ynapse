@@ -26,12 +26,12 @@ const FALLBACK = {
   csp: {
     directives: {
       "default-src": ["'self'"],
-      "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://giscus.app"],
       "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       "img-src": ["'self'", "data:", "https:"],
       "font-src": ["'self'", "https://fonts.gstatic.com"],
       "object-src": ["'none'"],
-      "frame-src": ["'none'"]
+      "frame-src": ["https://giscus.app"]
     },
     reportOnly: false,
     reportUri: "/csp-report"

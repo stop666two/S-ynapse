@@ -1401,61 +1401,55 @@ function buildPageData(config, articles, tags, categories) {
   };
 }
 
-// Render standalone pages from Markdown files in pages/ directory.
-// Each .md file becomes a full HTML page at /{slug}/index.html using page.ejs + layout.ejs.
+// Parse standalone pages from Markdown files in pages/ directory (parsing only, no rendering).
+// Each .md file is rendered per language by generatePages() to /{lang}/{slug}/index.html.
+// Language override: pages/{lang}/{file} wins over pages/{file} when present (fallback = default file).
 // Title priority: frontmatter.title > filename. Slug priority: slugOverride > attrs.slug > safeSlug(title).
 // The same files are also loaded by processPagesContent() for template embedding (e.g. article footer).
 // Duplicate slugs are silently skipped (first writer wins).
-function processCustomPages(config, baseData) {
+function processCustomPages(config) {
   console.log('Processing custom pages...');
-  const layoutTemplate = getTemplate('layout.ejs');
-  const pageTemplate = getTemplate('page.ejs');
-  if (!layoutTemplate || !pageTemplate) {
-    console.error('  [FATAL] Layout or page template not found');
-    return [];
-  }
   const createdSlugs = new Set();
   const customPages = [];
-  function renderOne(sourcePath, file, slugOverride) {
-    try {
-      const raw = fs.readFileSync(sourcePath, 'utf-8');
-      const fm = frontMatter(raw);
-      const attrs = fm.attributes || {};
-      const content = fm.body || '';
-      const title = attrs.title || path.basename(file, '.md');
-      const description = attrs.description || config.site.description || '';
-      const slug = slugOverride || attrs.slug || safeSlug(title);
-      if (createdSlugs.has(slug)) return;
-      createdSlugs.add(slug);
-      const date = attrs.date || null;
-      let htmlContent = marked.parse(content);
-      if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
-      htmlContent = sanitizeHtml(htmlContent);
-      const pageData = {
-        ...baseData,
-        title,
-        description,
-        pageTitle: title,
-        pageContent: htmlContent,
-        currentUrl: '/' + slug + '/',
-        currentPage: 'page'
-      };
-      const bodyHtml = ejs.render(pageTemplate, pageData, { filename: path.join(TEMPLATES_DIR, 'page.ejs') });
-      const pageTitleFinal = applyTitleTemplate(config, 'page', title);
-      const fullHtml = ejs.render(layoutTemplate, { ...pageData, pageTitleFinal, body: bodyHtml }, { filename: path.join(TEMPLATES_DIR, 'layout.ejs') });
-      const outputPath = path.join(DIST_DIR, slug, 'index.html');
-      const dir = path.dirname(outputPath);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(outputPath, fullHtml, 'utf-8');
-      console.log('  Created custom page: ' + slug + '/index.html');
-      customPages.push({ slug, title, url: '/' + slug + '/', date });
-    } catch (err) {
-      console.error('  [ERROR] Failed to process custom page ' + file + ': ' + err.message);
-    }
+  const langs = (config.site.languages && config.site.languages.length) ? config.site.languages : ['zh', 'en'];
+  function parseOne(sourcePath, file, slugOverride) {
+    const raw = fs.readFileSync(sourcePath, 'utf-8');
+    const fm = frontMatter(raw);
+    const attrs = fm.attributes || {};
+    const content = fm.body || '';
+    const title = attrs.title || path.basename(file, '.md');
+    const description = attrs.description || config.site.description || '';
+    const slug = slugOverride || attrs.slug || safeSlug(title);
+    let htmlContent = marked.parse(content);
+    if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
+    htmlContent = sanitizeHtml(htmlContent);
+    return { slug, title, description, content: htmlContent, date: attrs.date || null };
   }
   if (fs.existsSync(PAGES_DIR)) {
     const files = fs.readdirSync(PAGES_DIR).filter(f => /\.md$/i.test(f));
-    for (const file of files) renderOne(path.join(PAGES_DIR, file), file);
+    for (const file of files) {
+      try {
+        const def = parseOne(path.join(PAGES_DIR, file), file);
+        if (createdSlugs.has(def.slug)) continue;
+        createdSlugs.add(def.slug);
+        const page = {
+          slug: def.slug,
+          date: def.date,
+          default: { title: def.title, description: def.description, content: def.content },
+          langs: {}
+        };
+        for (const lang of langs) {
+          const langFile = path.join(PAGES_DIR, lang, file);
+          if (fs.existsSync(langFile)) {
+            const ov = parseOne(langFile, file, def.slug);
+            page.langs[lang] = { title: ov.title, description: ov.description, content: ov.content };
+          }
+        }
+        customPages.push(page);
+      } catch (err) {
+        console.error('  [ERROR] Failed to process custom page ' + file + ': ' + err.message);
+      }
+    }
   }
   console.log('  Total: ' + customPages.length + ' custom pages processed');
   return customPages;
@@ -1691,6 +1685,23 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
       const searchHtml = renderPage('search.ejs', searchData, layoutTemplate, config);
       if (searchHtml) await writeFile(lang + '/search/index.html', searchHtml);
     }
+
+    if (customPages && customPages.length) {
+      for (const cp of customPages) {
+        const ov = (cp.langs && cp.langs[lang]) || cp.default;
+        const pageData = {
+          ...langData,
+          title: ov.title,
+          description: ov.description,
+          pageTitle: ov.title,
+          pageContent: ov.content,
+          currentUrl: pf + cp.slug + '/',
+          currentPage: 'page'
+        };
+        const pageHtml = renderPage('page.ejs', pageData, layoutTemplate, config);
+        if (pageHtml) await writeFile(lang + '/' + cp.slug + '/index.html', pageHtml);
+      }
+    }
   }
   // Root / landing = zh index + auto language redirect script.
   {
@@ -1905,8 +1916,8 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
         for (const cat of langCats) urls.push({ loc: pf + 'categories/' + cat.slug + '/', changefreq: tagFreq, priority: String(tagPr) });
       }
       for (const p of (customPages || [])) {
-        if (p.draft || !p.url) continue;
-        urls.push({ loc: p.url, changefreq: pageFreq, priority: String(pagePr) });
+        if (p.draft || !p.slug) continue;
+        urls.push({ loc: pf + p.slug + '/', changefreq: pageFreq, priority: String(pagePr) });
       }
       const sitemapPath = (config.site.sitemap.path || '/sitemap.xml').replace(/^\//, '');
       const entryPath = path.join(DIST_DIR, lang, sitemapPath);
@@ -2056,7 +2067,7 @@ function getDirSize(dir) {
 // Generate Cloudflare Pages _redirects file from site.json redirects array.
 // Each entry: {from, to, permanent} — permanent=true → 301, false → 302.
 // Supports wildcard syntax (e.g. "/old/* /new/:splat 301") via CF Pages native matching.
-function generateRedirects(config) {
+function generateRedirects(config, customPages) {
   const list = Array.isArray(config.site.redirects) ? config.site.redirects : [];
   const lines = [];
   const valid = [];
@@ -2082,6 +2093,15 @@ function generateRedirects(config) {
     for (const alias of rootAliases) {
       if (!lines.some(x => x.startsWith(alias + ' '))) {
         lines.push(`${alias} ${pf}${alias} 302`);
+      }
+    }
+  }
+  const firstPf = '/' + (langs[0] || 'zh') + '/';
+  for (const p of (customPages || [])) {
+    if (!p || !p.slug) continue;
+    for (const from of ['/' + p.slug, '/' + p.slug + '/']) {
+      if (!lines.some(x => x.startsWith(from + ' '))) {
+        lines.push(`${from} ${firstPf}${p.slug}/ 302`);
       }
     }
   }
@@ -2430,7 +2450,7 @@ async function build() {
     await pingSearchEngines(config);
     generateSearchIndex(config, articles);
     generateSecurityHeaders(config);
-    generateRedirects(config);
+    generateRedirects(config, customPages);
     if (generateWorkerSecurity) {
       generateWorkerSecurity(config.security, path.join(ROOT, 'workers', 'security-config.js'));
     }

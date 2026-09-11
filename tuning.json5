@@ -199,7 +199,7 @@
   // ---------- 搜索弹层（10 项） ----------
   "search": {
     // 弹层宽度
-    "modalWidth": "640px",
+    "modalWidth": "760px",
     // 输入框高度
     "inputHeight": "56px",
     // 输入字号
@@ -311,7 +311,7 @@
     // 部件间距
     "widgetGap": "1.618rem",
     // 部件标题字号
-    "widgetTitleSize": ".9375rem",
+    "widgetTitleSize": ".875rem",
     // 部件圆角
     "widgetRadius": "0.618rem",
     // 部件内边距
@@ -421,13 +421,13 @@
   // ---------- 分享按钮（4 项） ----------
   "share": {
     // 按钮尺寸
-    "btnSize": "36px",
+    "btnSize": "32px",
     // 按钮间距
     "gap": ".5rem",
     // 图标尺寸
     "iconSize": "16px",
     // 按钮圆角
-    "radius": "50%",
+    "radius": ".375rem",
   },
 
   // ---------- 上下篇导航（5 项） ----------

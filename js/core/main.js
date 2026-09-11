@@ -13,3 +13,6 @@ import('../domains/navigation.js').then(m => m.init());
 import('../domains/search.js').then(m => m.init());
 import('../domains/toc.js').then(m => m.init());
 import('../domains/reading.js').then(m => m.init());
+import('../domains/lightbox.js').then(m => m.init());
+import('../domains/reading-panel.js').then(m => m.init());
+import('../domains/tts.js').then(m => m.init());

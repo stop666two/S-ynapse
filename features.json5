@@ -208,6 +208,12 @@
     fadeInDurationMs: 300,
     // 图片占位背景色。
     placeholderColor: 'var(--color-hover)',
+    // 加载中占位 class(配合 CSS 做淡入/占位)。
+    loadingClass: 'img-loading',
+    // 加载失败 class。
+    errorClass: 'img-error',
+    // 前 N 张图片立即加载(视口顶部),不做懒加载。
+    eagerFirst: 3,
     // 是否保留 width/height 防止布局抖动。
     preserveAspectRatio: true
   },
@@ -294,7 +300,13 @@
     // 按钮图标:auto/sun-moon/toggle。
     iconStyle: 'sun-moon',
     // 切换时过渡所有元素(否则仅 body)。
-    transitionAll: true
+    transitionAll: true,
+    // 主题选择的 localStorage 键名。
+    persistKey: 'ss-theme',
+    // 切换时是否交替显示太阳/月亮图标。
+    toggleIconSwap: true,
+    // 切换按钮的 CSS z-index。
+    zIndex: 100
   },
 
   // ---------------------------------------------------------------------------
@@ -324,10 +336,12 @@
     lightFrom: '06:00',
     // 用户手动切换过主题后,当天不再自动覆盖(尊重用户选择)。
     respectManualOverride: true,
-    // 到达时刻立即应用(否则延迟到下一次 tick)。
+    // 到达时刻立即应用(否则延迟到下一次检查)。
     applyInstantly: true,
-    // 检查周期(分钟,1-60)。
-    tickMinutes: 1
+    // 检查周期(毫秒,默认 60000 = 每分钟)。
+    checkIntervalMs: 60000,
+    // 定时切换时给 html 加 theme-switching 类,300ms 过渡动画。
+    smoothTransition: true
   },
 
   // ---------------------------------------------------------------------------
@@ -877,7 +891,15 @@
     // 系列文章前缀(自动标注,如 '第 1/3 篇')。
     showPosition: true,
     // 无另外参数
-    defaultWidgetCount: 8
+    defaultWidgetCount: 8,
+    // 系列导航上一页按钮文本。
+    showPrevLabel: '上一篇',
+    // 系列导航下一页按钮文本。
+    showNextLabel: '下一篇',
+    // 进度文本模板:{index} 当前篇数,{total} 总篇数。
+    progressLabel: '{index} / {total}',
+    // 侧栏系列 widget 标题(sidebar.json5 中 w.title 为空时使用)。
+    sidebarTitle: '系列'
   },
 
   // ---------------------------------------------------------------------------
@@ -897,7 +919,13 @@
     // 是否排除当前文章。
     excludeCurrent: true,
     // 推荐区标题。
-    title: '相关推荐'
+    title: '相关推荐',
+    // 相关文章卡片是否显示摘要。
+    showExcerpt: true,
+    // 摘要截断长度(字符)。
+    excerptLength: 80,
+    // 卡片是否显示共享标签数徽章。
+    showCount: false
   },
 
   // ---------------------------------------------------------------------------
@@ -958,7 +986,11 @@
     // 是否显示分享标题。
     showLabel: false,
     // 工具条标题。
-    label: '分享文章'
+    label: '分享文章',
+    // 浏览器支持 navigator.share 时优先使用系统原生分享面板。
+    useNativeShare: false,
+    // 剪贴板 API 不可用时用 textarea 回退复制。
+    copyFallback: true
   },
 
   // ---------------------------------------------------------------------------
@@ -980,7 +1012,13 @@
     // 二维码尺寸(px)。
     qrSize: '180px',
     // 弹窗最大宽度。
-    maxWidth: '560px'
+    maxWidth: '560px',
+    // 是否显示打赏说明文字(图片下方 note)。
+    showNote: true,
+    // 二维码图片最大宽度 CSS。
+    qrMaxWidth: '180px',
+    // 弹窗关闭按钮文本。
+    closeText: '关闭'
   },
 
   // ---------------------------------------------------------------------------
@@ -1008,7 +1046,13 @@
     // 是否包含 404 前后的图(增量,始终 true)。
     incrementalByDefault: true,
     // 单页图片数上限(0=不限)。
-    maxItems: 0
+    maxItems: 0,
+    // 瀑布流列间距 CSS(column-gap)。
+    gap: '12px',
+    // 图片下方是否显示来源说明。
+    showCaption: true,
+    // 卡片圆角 CSS。
+    borderRadius: '8px'
   },
 
   // ---------------------------------------------------------------------------
@@ -1053,7 +1097,15 @@
     // 悬停提示模板:{year}-{month}: {count} 篇。
     tooltipFormat: '{year}-{month}: {count} 篇',
     // 是否显示每月数字。
-    showMonthNumbers: true
+    showMonthNumbers: true,
+    // 单元格间距(px,热力图 12 列之间的 gap)。
+    gap: '3px',
+    // 单元格圆角(px)。
+    borderRadius: '3px',
+    // 单元格尺寸(px,固定后热力图按此尺寸紧凑排列;置空则撑满容器)。
+    cellSize: '13px',
+    // 空月份(无文章)单元格颜色。
+    emptyColor: 'var(--color-border)'
   },
 
   // ---------------------------------------------------------------------------
@@ -1071,8 +1123,14 @@
     labelDays: '发文天数',
     labelWords: '总字数',
     labelAvg: '日均篇数',
+    // 归档页日均标签(archive 统计卡专用)。
+    labelAvgPerDay: '日均',
     labelTags: '标签数',
     labelCategories: '分类数',
+    // 统计卡网格列模式(auto-fit 自适应列数;也可填固定列数如 3)。
+    cardColumns: 'auto-fit',
+    // 侧栏统计 widget 总开关(sidebar.json5 需含 type=stats 的 widget)。
+    showSidebar: true,
     // 卡片点击跳转(空=不跳)。
     linkArchive: '/archive/'
   },
@@ -1090,6 +1148,12 @@
     nextLabel: '下一篇',
     // 无邻篇时是否隐藏整块。
     hideWhenMissing: false,
+    // 导航卡是否显示缩略图(需文章 featuredImage)。
+    showThumbnail: false,
+    // 标签文字位置:left/center/right。
+    labelPosition: 'left',
+    // 点击导航后是否滚回页面顶部。
+    scrollToTopOnClick: true,
     // 点击后滚动到顶部。
     scrollToTop: true
   },
@@ -1177,7 +1241,13 @@
     // 触摸屏悬停菜单自动展开。
     touchFallback: true,
     // 移动端代码块横向滚动提示。
-    codeScrollHint: true
+    codeScrollHint: true,
+    // 移动端 TOC 按钮断点(px,优先于 mobileToc.breakpoint)。
+    tocBreakpoint: 768,
+    // 底部导航底部安全区留白(适配 iPhone 底部横条)。
+    safeAreaBottom: true,
+    // 是否保留移动端点击高亮(false = 取消高亮)。
+    tapHighlight: false
   },
 
   // ---------------------------------------------------------------------------
@@ -1190,6 +1260,12 @@
     loadContainer: true,
     // 服务器端渲染占位(若 provider 为静态)。
     renderPlaceholder: true,
+    // 占位加载文本。
+    placeholderText: '评论加载中…',
+    // 占位显示时长(ms,过后若无评论组件则显示 emptyText)。
+    loadDelayMs: 300,
+    // 无评论提示(延迟结束后仍未加载出组件时显示)。
+    emptyText: '暂无评论',
     // 评论容器标题。
     title: '评论'
   },
@@ -1206,10 +1282,16 @@
     copyText: '复制',
     // 复制成功提示。
     copiedText: '已复制到剪贴板',
+    // 复制成功提示(优先于 copiedText)。
+    copySuccessText: '已复制',
     // 弹窗宽度(px)。
     popupWidth: '360px',
     // 显示社交项(CG 配置社交链接中带弹窗样式)。
-    showAllItems: true
+    showAllItems: true,
+    // 弹窗顶部是否显示图标。
+    showIcon: true,
+    // 弹窗内最多显示的联系方式条目数(多行值按行截断)。
+    maxItems: 4
   },
 
   // ---------------------------------------------------------------------------
@@ -1273,7 +1355,15 @@
     // 热门标签显示数量(1~20)。
     tagCount: 8,
     // 搜索按钮占位文字。
-    searchPlaceholder: '搜索文章…'
+    searchPlaceholder: '搜索文章…',
+    // Hero 是否显示日期(最新文章日期)。
+    showDate: false,
+    // en 语言 CTA 按钮文字。
+    ctaLabelEn: 'View all posts',
+    // Hero 最小高度(vh,内容垂直居中)。
+    heightVh: 60,
+    // Hero 背景图 URL(空则使用纯色/渐变背景)。
+    backgroundImage: ''
   },
 
   // ---------------------------------------------------------------------------
@@ -1309,6 +1399,12 @@
     enabled: true,
     // 全局缓动曲线(绝大部分过渡复用)。
     ease: 'cubic-bezier(.4,0,.2,1)',
+    // 页面入场动画时长(ms,.page-enter 淡入上滑)。
+    pageEnterDurationMs: 240,
+    // 卡片悬停缩放倍数(1=不缩放)。
+    cardHoverScale: 1.02,
+    // 链接下划线相对文字的偏移(px)。
+    linkUnderlineOffset: '3px',
     // 卡片悬停上浮(首页/分类/标签的文章卡片)。
     cardHoverLift: true,
     // 悬停上浮距离(px,2~8)。

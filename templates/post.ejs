@@ -87,7 +87,8 @@
     <% article.relatedArticles.forEach(function(r) { %>
     <a href="<%= r.url %>" class="related-post-card">
       <div class="related-post-title"><%= r.title %></div>
-      <% if (r.tags && r.tags.length) { %><div class="related-post-tags"><% r.tags.forEach(function(t) { %><span class="related-post-tag"><%= t %></span><% }) %></div><% } %>
+      <% if (features.related && features.related.showExcerpt!==false && r.excerpt) { %><div class="related-post-excerpt"><%= r.excerpt.length > (features.related.excerptLength||80) ? r.excerpt.slice(0, features.related.excerptLength||80) + '…' : r.excerpt %></div><% } %>
+      <% if (r.tags && r.tags.length) { %><div class="related-post-tags"><% r.tags.forEach(function(t) { %><span class="related-post-tag"><%= t %></span><% }) %><% if (features.related && features.related.showCount) { %><span class="related-post-count"><%= r.tags.length %></span><% } %></div><% } %>
     </a>
     <% }) %>
   </div>
@@ -137,16 +138,18 @@
   </script>
   <noscript><%- ui('post.disqusNoScript','请启用 JavaScript 以查看 Disqus 评论。') %></noscript>
   <% } %>
+  <% if(features.comments&&features.comments.renderPlaceholder!==false){ %><div class="comments-placeholder" id="commentsPlaceholder"><%= (features.comments&&features.comments.placeholderText)||'评论加载中…' %></div><% } %>
+  <script>(function(){var F=window.__FEATURES__||{},CM=(F&&F.comments)||{};var dl=isNaN(+CM.loadDelayMs)?300:+CM.loadDelayMs;setTimeout(function(){var ph=document.getElementById('commentsPlaceholder');if(!ph)return;var sec=ph.parentElement,loaded=false;if(sec&&(sec.querySelector('iframe')||sec.querySelector('.giscus')||(sec.querySelector('#disqus_thread')&&sec.querySelector('#disqus_thread').innerHTML.trim())))loaded=true;ph.textContent=loaded?'':(CM.emptyText||'暂无评论');ph.classList.add('placeholder-done')},dl)})();</script>
 </section>
 <% } %>
 
 <%# Series navigation panel — appears when the article belongs to a series (front-matter `series`). %>
 <% if (article.series && features.series && features.series.enabled!==false && features.series.showNavPanel!==false) { %>
 <div class="series-nav" role="navigation" aria-label="系列导航">
-  <div class="series-nav-head"><span class="series-nav-badge"><span data-i18n="post.series">系列</span></span><span class="series-nav-name"><%= article.series %></span><span class="series-nav-progress"><%= article.seriesIndex %> / <%= article.seriesTotal %></span></div>
+  <div class="series-nav-head"><span class="series-nav-badge"><span data-i18n="post.series">系列</span></span><span class="series-nav-name"><%= article.series %></span><span class="series-nav-progress"><%= String(features.series.progressLabel||'{index} / {total}').replace('{index}',article.seriesIndex).replace('{total}',article.seriesTotal) %></span></div>
   <div class="series-nav-links">
-    <% if (article.seriesPrevUrl) { %><a href="<%= article.seriesPrevUrl %>" class="series-nav-link prev">← 上一集</a><% } %>
-    <% if (article.seriesNextUrl) { %><a href="<%= article.seriesNextUrl %>" class="series-nav-link next">下一集 →</a><% } %>
+    <% if (article.seriesPrevUrl) { %><a href="<%= article.seriesPrevUrl %>" class="series-nav-link prev">← <%= features.series.showPrevLabel||'上一篇' %></a><% } %>
+    <% if (article.seriesNextUrl) { %><a href="<%= article.seriesNextUrl %>" class="series-nav-link next"><%= features.series.showNextLabel||'下一篇' %> →</a><% } %>
   </div>
 </div>
 <% } %>
@@ -163,12 +166,12 @@
 <%# Reward section — money collection. Renders only when site.reward config provides image/url entries AND features.reward is enabled. %>
 <% if (site.reward && site.reward.enabled && features.reward && features.reward.enabled!==false) { var rw = site.reward; var rwEntries = []; if (rw.wechat && (rw.wechat.image || rw.wechat.url)) rwEntries.push({key:'wechat', label: rw.wechat.label || '微信', image: rw.wechat.image || '', url: rw.wechat.url || ''}); if (rw.alipay && (rw.alipay.image || rw.alipay.url)) rwEntries.push({key:'alipay', label: rw.alipay.label || '支付宝', image: rw.alipay.image || '', url: rw.alipay.url || ''}); if (Array.isArray(rw.custom)) rw.custom.forEach(function(c,ci){ if (c && (c.image || c.url)) rwEntries.push({key:'custom'+ci, label: c.label || '其他', image: c.image || '', url: c.url || ''}); }); if (rwEntries.length) { %>
 <div class="reward-bar">
-  <button class="reward-btn" type="button" aria-haspopup="dialog" data-reward-open><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21c-4.5-3-8-6.5-8-10.5C4 7 6 5 8.5 5c1.4 0 2.7.7 3.5 1.8C12.8 5.7 14.1 5 15.5 5 18 5 20 7 20 10.5c0 4-3.5 7.5-8 10.5z"/></svg> 打赏</button>
-  <span class="reward-note"><%= rw.note || '' %></span>
+  <button class="reward-btn" type="button" aria-haspopup="dialog" data-reward-open><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21c-4.5-3-8-6.5-8-10.5C4 7 6 5 8.5 5c1.4 0 2.7.7 3.5 1.8C12.8 5.7 14.1 5 15.5 5 18 5 20 7 20 10.5c0 4-3.5 7.5-8 10.5z"/></svg> <%= features.reward.buttonText||'打赏' %></button>
+  <% if(features.reward.showNote!==false){ %><span class="reward-note"><%= rw.note || features.reward.note || '' %></span><% } %>
 </div>
-<div class="reward-overlay" id="rewardOverlay" role="dialog" aria-modal="true" aria-label="打赏" hidden>
+<div class="reward-overlay" id="rewardOverlay" role="dialog" aria-modal="true" aria-label="<%= features.reward.popupTitle||'打赏' %>" hidden>
   <div class="reward-popup">
-    <button class="reward-close" type="button" aria-label="关闭" data-reward-close>×</button>
+    <button class="reward-close" type="button" aria-label="<%= features.reward.closeText||'关闭' %>" data-reward-close><%= features.reward.closeText||'×' %></button>
     <div class="reward-entries">
       <% rwEntries.forEach(function(e) { %>
       <div class="reward-entry">
@@ -190,15 +193,17 @@
 
 <%# Prev/next article navigation — determined by date-sorted position. Falls back to site config labels. %>
 <% if ((prevArticle || nextArticle) && features.prevNext && features.prevNext.enabled!==false && !(features.prevNext.hideWhenMissing&&(!prevArticle||!nextArticle))) { %>
-<nav class="post-navigation">
+<nav class="post-navigation<%= (features.prevNext&&features.prevNext.labelPosition&&features.prevNext.labelPosition!=='left')?' pos-'+features.prevNext.labelPosition:'' %>">
   <% if (prevArticle) { %>
   <a href="<%= prevArticle.url %>" class="post-nav-link">
+    <% if(features.prevNext&&features.prevNext.showThumbnail&&prevArticle.featuredImage){ %><img src="<%= prevArticle.featuredImage %>" alt="" class="post-nav-thumb" loading="lazy"><% } %>
     <% if(features.prevNext&&features.prevNext.showLabels!==false){ %><span class="post-nav-label"><%= features.prevNext.prevLabel||site.prevPostLabel||'上一篇' %></span><% } %>
     <span class="post-nav-title"><%= prevArticle.title %></span>
   </a>
   <% } %>
   <% if (nextArticle) { %>
   <a href="<%= nextArticle.url %>" class="post-nav-link next">
+    <% if(features.prevNext&&features.prevNext.showThumbnail&&nextArticle.featuredImage){ %><img src="<%= nextArticle.featuredImage %>" alt="" class="post-nav-thumb" loading="lazy"><% } %>
     <% if(features.prevNext&&features.prevNext.showLabels!==false){ %><span class="post-nav-label"><%= features.prevNext.nextLabel||site.nextPostLabel||'下一篇' %></span><% } %>
     <span class="post-nav-title"><%= nextArticle.title %></span>
   </a>

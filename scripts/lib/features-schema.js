@@ -40,7 +40,8 @@ const DEFAULT_FEATURES = {
   },
   imageLazy: {
     enabled: true, mode: 'lazy', loadMargin: '200px', fadeIn: true,
-    fadeInDurationMs: 300, placeholderColor: 'var(--color-hover)', preserveAspectRatio: true
+    fadeInDurationMs: 300, placeholderColor: 'var(--color-hover)', preserveAspectRatio: true,
+    loadingClass: 'img-loading', errorClass: 'img-error', eagerFirst: 3
   },
   codeBlock: {
     enabled: true, copyButtonVisibility: 'hover', copySuccessText: '已复制',
@@ -57,7 +58,8 @@ const DEFAULT_FEATURES = {
   },
   themeToggle: {
     enabled: true, defaultTheme: 'system', rememberChoice: true,
-    animationMs: 250, iconStyle: 'sun-moon', transitionAll: true
+    animationMs: 250, iconStyle: 'sun-moon', transitionAll: true,
+    persistKey: 'ss-theme', toggleIconSwap: true, zIndex: 100
   },
   themePresets: {
     enabled: true, pickerVisible: true, persistChoice: true,
@@ -65,7 +67,8 @@ const DEFAULT_FEATURES = {
   },
   themeSchedule: {
     enabled: false, darkFrom: '22:00', lightFrom: '06:00',
-    respectManualOverride: true, applyInstantly: true, tickMinutes: 1
+    respectManualOverride: true, applyInstantly: true, checkIntervalMs: 60000,
+    smoothTransition: true
   },
   shortcuts: {
     enabled: true, openSearch: '/', toggleTheme: 'd', prevPost: 'k',
@@ -230,11 +233,14 @@ const DEFAULT_FEATURES = {
   series: {
     enabled: true, showBadge: true, badgeFormat: '系列 · {name}',
     showNavPanel: true, sidebarWidget: true, order: 'asc',
-    panelTitle: '本系列共 {total} 篇', showPosition: true, defaultWidgetCount: 8
+    panelTitle: '本系列共 {total} 篇', showPosition: true, defaultWidgetCount: 8,
+    showPrevLabel: '上一篇', showNextLabel: '下一篇',
+    progressLabel: '{index} / {total}', sidebarTitle: '系列'
   },
   related: {
     enabled: true, topN: 4, sameCategoryWeight: 2, sameTagWeight: 3,
-    minScore: 2, excludeCurrent: true, title: '相关推荐'
+    minScore: 2, excludeCurrent: true, title: '相关推荐',
+    showExcerpt: true, excerptLength: 80, showCount: false
   },
   pinned: {
     enabled: true, badgeText: '置顶', badgeStyle: 'pill', sortRule: 'pinned-first'
@@ -247,37 +253,44 @@ const DEFAULT_FEATURES = {
     enabled: true, order: ['weibo', 'qq', 'wechat', 'x', 'facebook', 'mail', 'copy'],
     position: 'toolbar', popupWidth: 640, popupHeight: 520,
     wechatText: '{title} 分享自 {url}', copiedText: '链接已复制',
-    copiedShowMs: 2500, showLabel: false, label: '分享文章'
+    copiedShowMs: 2500, showLabel: false, label: '分享文章',
+    useNativeShare: false, copyFallback: true
   },
   reward: {
     enabled: false, buttonText: '打赏', note: '感谢支持', popupTitle: '打赏支持',
     closeByBtn: true, closeByOverlay: true, closeByEsc: true,
-    qrSize: '180px', maxWidth: '560px'
+    qrSize: '180px', maxWidth: '560px', showNote: true,
+    qrMaxWidth: '180px', closeText: '关闭'
   },
   gallery: {
     enabled: true, title: '图库', description: '站内图片集，点击查看大图。',
     emptyText: '暂无图片', columns: 4, columnMin: '220px', showSource: true,
-    collectFeatured: true, order: 'newest', incrementalByDefault: true, maxItems: 0
+    collectFeatured: true, order: 'newest', incrementalByDefault: true, maxItems: 0,
+    gap: '12px', showCaption: true, borderRadius: '8px'
   },
   heatmap: {
     enabled: true, levels: 5, scaling: 'auto', palette: [], showLegend: true,
     legendLow: '少', legendHigh: '多', tooltipFormat: '{year}-{month}: {count} 篇',
-    showMonthNumbers: true
+    showMonthNumbers: true, gap: '3px', borderRadius: '3px', cellSize: '13px',
+    emptyColor: 'var(--color-border)'
   },
   stats: {
     enabled: true, showArchiveCards: true, sidebarWidgetDefault: false,
     labelPosts: '文章总数', labelDays: '发文天数', labelWords: '总字数',
     labelAvg: '日均篇数', labelTags: '标签数', labelCategories: '分类数',
-    linkArchive: '/archive/'
+    linkArchive: '/archive/', cardColumns: 'auto-fit', showSidebar: true,
+    labelAvgPerDay: '日均'
   },
   prevNext: {
     enabled: true, showLabels: true, prevLabel: '上一篇', nextLabel: '下一篇',
-    hideWhenMissing: false, scrollToTop: true
+    hideWhenMissing: false, scrollToTop: true,
+    showThumbnail: false, labelPosition: 'left', scrollToTopOnClick: true
   },
   hero: {
     enabled: true, showSearch: true, showCta: true, showTags: true,
     ctaLabel: '查看全部文章', ctaUrl: '#latest-post', tagCount: 8,
-    searchPlaceholder: '搜索文章…'
+    searchPlaceholder: '搜索文章…', showDate: false,
+    ctaLabelEn: 'View all posts', heightVh: 60, backgroundImage: ''
   },
   feed: {
     rssEnabled: true, rssPath: '/feed.xml', rssFullContent: true, rssMaxItems: 50,
@@ -295,14 +308,17 @@ const DEFAULT_FEATURES = {
   },
   mobile: {
     enabled: true, searchFullscreen: true, buttonStackGap: '4rem',
-    touchFallback: true, codeScrollHint: true
+    touchFallback: true, codeScrollHint: true,
+    tocBreakpoint: 768, safeAreaBottom: true, tapHighlight: false
   },
   comments: {
-    enabled: true, loadContainer: true, renderPlaceholder: true, title: '评论'
+    enabled: true, loadContainer: true, renderPlaceholder: true, title: '评论',
+    placeholderText: '评论加载中…', loadDelayMs: 300, emptyText: '暂无评论'
   },
   contactPopup: {
     enabled: true, title: '联系方式', copyText: '复制',
-    copiedText: '已复制到剪贴板', popupWidth: '360px', showAllItems: true
+    copiedText: '已复制到剪贴板', popupWidth: '360px', showAllItems: true,
+    showIcon: true, copySuccessText: '已复制', maxItems: 4
   },
   linkBehavior: {
     matchMode: 'hostname', skipInternal: true, mailtoMode: 'leave', lateTargeted: false
@@ -317,6 +333,8 @@ const DEFAULT_FEATURES = {
   },
   motion: {
     enabled: true, ease: 'cubic-bezier(.4,0,.2,1)',
+    pageEnterDurationMs: 240, cardHoverScale: 1.02,
+    linkUnderlineOffset: '3px',
     cardHoverLift: true, cardHoverLiftPx: 4,
     linkUnderline: true, linkUnderlineThickness: '2px',
     buttonRipple: true, rippleDurationMs: 500,

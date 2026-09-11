@@ -9,6 +9,7 @@
 <section class="hero">
   <h1><%= heroData.title %></h1>
   <% if (heroData.subtitle) { %><p class="hero-sub"><%= heroData.subtitle %></p><% } %>
+  <% if (heroData.showDate && heroData.date) { %><div class="hero-date"><%= heroData.date %></div><% } %>
   <div class="hero-actions">
     <% if (heroData.showSearch) { %><button type="button" class="hero-search" onclick="openSearch()"><%= ui('toolbar.searchPlaceholder','搜索文章…') %></button><% } %>
     <% if (heroData.showCta) { %><span class="hero-cta"><a href="<%= heroData.ctaUrl %>"><%= heroData.ctaLabel %></a></span><% } %>

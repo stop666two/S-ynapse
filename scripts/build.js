@@ -1108,7 +1108,7 @@ function computeRelatedArticles(articles, maxCount) {
       score += sharedTags.length * 3;
       const sharedCategories = article.categories.filter(c => other.categories.includes(c));
       score += sharedCategories.length * 2;
-      if (score > 0) scored.push({ slug: other.slug, title: other.title, url: other.url, score, tags: sharedTags });
+      if (score > 0) scored.push({ slug: other.slug, title: other.title, url: other.url, score, tags: sharedTags, excerpt: other.excerpt || '' });
     }
     scored.sort((a, b) => b.score - a.score);
     article.relatedArticles = scored.slice(0, maxCount);
@@ -1583,8 +1583,10 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
             showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
             showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
             showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
-            ctaLabel: lang === 'en' ? (config.site.hero.ctaLabelEn || 'View all posts') : (config.site.hero.ctaLabel || '查看全部文章'),
+            ctaLabel: lang === 'en' ? (config.site.hero.ctaLabelEn || f.hero.ctaLabelEn || 'View all posts') : (config.site.hero.ctaLabel || '查看全部文章'),
             ctaUrl: config.site.hero.ctaUrl || '#latest-post',
+            showDate: f.hero.showDate === true,
+            date: (langPublished[0] && langPublished[0].formattedDate) || '',
             tagCount: config.site.hero.tagCount || f.hero.tagCount || 8,
             tags: langTopTags.slice(0, config.site.hero.tagCount || f.hero.tagCount || 8)
           } : null,
@@ -1622,8 +1624,8 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
         ...langData,
         article,
         title: article.title,
-        prevArticle: prev && !prev.draft ? { title: prev.title, url: prev.url } : null,
-        nextArticle: next && !next.draft ? { title: next.title, url: next.url } : null,
+        prevArticle: prev && !prev.draft ? { title: prev.title, url: prev.url, featuredImage: prev.featuredImage || '' } : null,
+        nextArticle: next && !next.draft ? { title: next.title, url: next.url, featuredImage: next.featuredImage || '' } : null,
         currentUrl: article.url,
         currentPage: 'post'
       };
@@ -1718,6 +1720,8 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
         showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
         ctaLabel: config.site.hero.ctaLabel || '查看全部文章',
         ctaUrl: config.site.hero.ctaUrl || '#latest-post',
+        showDate: f.hero.showDate === true,
+        date: (rp[0] && rp[0].formattedDate) || '',
         tagCount: config.site.hero.tagCount || f.hero.tagCount || 8,
         tags: rt.slice(0, config.site.hero.tagCount || f.hero.tagCount || 8)
       } : null,

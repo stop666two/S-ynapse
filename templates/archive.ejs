@@ -11,7 +11,7 @@
   <div class="stats-card"><div class="stats-value"><%= siteStats.posts %></div><div class="stats-label"><%= ui('archive.statPosts','文章总数') %></div></div>
   <div class="stats-card"><div class="stats-value"><%= siteStats.days %></div><div class="stats-label"><%= ui('archive.statDays','发文天数') %></div></div>
   <div class="stats-card"><div class="stats-value"><%= siteStats.words.toLocaleString() %></div><div class="stats-label"><%= ui('archive.statWords','总字数') %></div></div>
-  <div class="stats-card"><div class="stats-value"><%= siteStats.avgPerDay %></div><div class="stats-label"><%= ui('archive.statAvg','日均篇数') %></div></div>
+  <div class="stats-card"><div class="stats-value"><%= siteStats.avgPerDay %></div><div class="stats-label"><%= (features.stats&&features.stats.labelAvgPerDay)||ui('archive.statAvg','日均篇数') %></div></div>
   <div class="stats-card"><div class="stats-value"><%= siteStats.tags %></div><div class="stats-label"><%= ui('archive.statTags','标签数') %></div></div>
   <div class="stats-card"><div class="stats-value"><%= siteStats.categories %></div><div class="stats-label"><%= ui('archive.statCats','分类数') %></div></div>
 </div>
@@ -41,7 +41,7 @@
   </div>
 </div>
 <% }) %>
-<div class="cal-legend"><span><%= ui('archive.count','文章') %></span><i class="cal-cell l0" style="background:var(--color-hover)"></i><i class="cal-cell l1"></i><i class="cal-cell l2"></i><i class="cal-cell l4"></i><span>少 → 多</span></div>
+<div class="cal-legend"><span><%= ui('archive.count','文章') %></span><i class="cal-cell l0" style="background:<%=(features.heatmap&&features.heatmap.emptyColor)||'var(--color-hover)'%>"></i><i class="cal-cell l1"></i><i class="cal-cell l2"></i><i class="cal-cell l4"></i><span>少 → 多</span></div>
 <% } else { %>
 <p style="color:var(--color-text-secondary)"><%= ui('archive.empty','暂无归档') %></p>
 <% } %>

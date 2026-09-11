@@ -12,9 +12,11 @@
   <% galleryItems.forEach(function(g) { %>
   <figure class="gallery-item">
     <img src="<%= g.src %>" alt="<%= g.alt %>" loading="lazy">
+    <% if(features.gallery&&features.gallery.showCaption!==false){ %>
     <figcaption class="gallery-caption">
-      <a href="<%= g.url %>" class="gallery-link"><%= g.title %></a>
+      <% if(features.gallery.showSource!==false){ %><a href="<%= g.url %>" class="gallery-link"><%= g.title %></a><% } %>
     </figcaption>
+    <% } %>
   </figure>
   <% }) %>
 </div>

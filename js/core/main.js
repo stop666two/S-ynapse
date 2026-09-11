@@ -1,3 +1,31 @@
+import { init as themeInit } from '../domains/theme.js';
+import { init as navigationInit } from '../domains/navigation.js';
+import { init as searchInit } from '../domains/search.js';
+import { init as tocInit } from '../domains/toc.js';
+import { init as readingInit } from '../domains/reading.js';
+import { init as lightboxInit } from '../domains/lightbox.js';
+import { init as readingPanelInit } from '../domains/reading-panel.js';
+import { init as ttsInit } from '../domains/tts.js';
+import { init as pageTransitionInit } from '../domains/page-transition.js';
+import { init as shortcutsInit } from '../domains/shortcuts.js';
+import { init as prevNextInit } from '../domains/prev-next.js';
+import { init as shareInit } from '../domains/share.js';
+import { init as motionInit } from '../domains/motion.js';
+import { init as imageLazyInit } from '../domains/image-lazy.js';
+import { init as dailyQuoteInit } from '../domains/daily-quote.js';
+import { init as rewardInit } from '../domains/reward.js';
+import { init as backgroundInit } from '../domains/background.js';
+import { init as i18nInit } from '../domains/i18n.js';
+import { init as readingModeInit } from '../domains/reading-mode.js';
+import { init as contactPopupInit } from '../domains/contact-popup.js';
+import { init as externalLinkInit } from '../domains/external-link.js';
+import { init as sidebarDragInit } from '../domains/sidebar-drag.js';
+import { init as themePresetsInit } from '../domains/theme-presets.js';
+import { init as themeScheduleInit } from '../domains/theme-schedule.js';
+import { init as pwaInit } from '../domains/pwa.js';
+import { init as codeBlockInit } from '../domains/code-block.js';
+import { init as commentsInit } from '../domains/comments.js';
+
 const F = window.__FEATURES__ || {};
 
 function enabled(mod) {
@@ -11,13 +39,13 @@ if (enabled(F.favorites)) {
 }
 
 [
-  'theme', 'navigation', 'search', 'toc', 'reading', 'lightbox', 'reading-panel',
-  'tts', 'page-transition', 'shortcuts', 'prev-next', 'share', 'motion',
-  'image-lazy', 'daily-quote', 'reward', 'background', 'i18n', 'reading-mode',
-  'contact-popup', 'external-link', 'sidebar-drag',
-  'theme-presets', 'theme-schedule', 'pwa', 'code-block', 'comments'
-].forEach(name => {
-  tasks.push(import('../domains/' + name + '.js').then(m => m.init()));
+  themeInit, navigationInit, searchInit, tocInit, readingInit, lightboxInit,
+  readingPanelInit, ttsInit, pageTransitionInit, shortcutsInit, prevNextInit,
+  shareInit, motionInit, imageLazyInit, dailyQuoteInit, rewardInit, backgroundInit,
+  i18nInit, readingModeInit, contactPopupInit, externalLinkInit, sidebarDragInit,
+  themePresetsInit, themeScheduleInit, pwaInit, codeBlockInit, commentsInit
+].forEach(fn => {
+  try { tasks.push(Promise.resolve(fn())); } catch (e) { tasks.push(Promise.reject(e)); }
 });
 
 Promise.allSettled(tasks).then(() => {

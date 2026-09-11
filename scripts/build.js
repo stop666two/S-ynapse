@@ -597,12 +597,12 @@ async function optimizeMedia(config) {
   if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
   const images = getAllFiles(MEDIA_DIR).filter(f => /\.(jpg|jpeg|png|gif|tiff|webp)$/i.test(f));
   let count = 0;
-  for (const imgPath of images) {
+  const processImage = async (imgPath) => {
     const relPath = path.relative(MEDIA_DIR, imgPath);
     const parsed = path.parse(relPath);
     const ext = parsed.ext.toLowerCase();
     const supportedExts = ['.jpg', '.jpeg', '.png', '.tiff', '.webp'];
-    if (!supportedExts.includes(ext)) continue;
+    if (!supportedExts.includes(ext)) return;
     try {
       const metadata = await sharp(imgPath).metadata();
       const originalWidth = metadata.width;
@@ -635,7 +635,8 @@ async function optimizeMedia(config) {
     } catch (err) {
       console.error(`  [ERROR] Failed to optimize ${relPath}: ${err.message}`);
     }
-  }
+  };
+  await Promise.all(images.map(p => processImage(p)));
   const manifestPath = path.join(DIST_DIR, 'media-manifest.json');
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
   console.log(`  Optimized ${count} images`);
@@ -2462,7 +2463,7 @@ async function build() {
     await generateRSS(config, articles);
     await generateJSONFeed(config, articles);
     await generateSitemap(config, articles, tags, categories, customPages);
-    if (config.features && config.features.ogImage && config.features.ogImage.enabled !== false && articles.length > 0) {
+    if (!SERVE_MODE && config.features && config.features.ogImage && config.features.ogImage.enabled !== false && articles.length > 0) {
       const ogRes = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'generate-og.js')], { stdio: 'inherit' });
       if (ogRes.status !== 0) {
         console.warn('  [WARN] OG image generation reported errors (see above); continuing build.');
@@ -2595,11 +2596,21 @@ function startServer() {
       if (fs.existsSync(alt)) filePath = alt;
       else { filePath = path.join(DIST_DIR, '404.html'); isNotFound = true; }
     }
-    fs.readFile(filePath, function(err, data) {
-      if (err) { res.writeHead(500); res.end('Server Error'); return; }
+    fs.stat(filePath, function(serr, st) {
+      if (serr || !st.isFile()) { res.writeHead(500); res.end('Server Error'); return; }
       var ext = path.extname(filePath).toLowerCase();
-      res.writeHead(isNotFound ? 404 : 200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
-      res.end(data);
+      var etag = '"' + st.size.toString(16) + '-' + Math.round(st.mtimeMs).toString(16) + '"';
+      var lastMod = st.mtime.toUTCString();
+      if (req.headers['if-none-match'] === etag || req.headers['if-modified-since'] === lastMod) {
+        res.writeHead(304, { 'ETag': etag, 'Last-Modified': lastMod, 'Cache-Control': 'no-cache' });
+        res.end();
+        return;
+      }
+      fs.readFile(filePath, function(err, data) {
+        if (err) { res.writeHead(500); res.end('Server Error'); return; }
+        res.writeHead(isNotFound ? 404 : 200, { 'Content-Type': mime[ext] || 'application/octet-stream', 'ETag': etag, 'Last-Modified': lastMod, 'Cache-Control': 'no-cache' });
+        res.end(data);
+      });
     });
   }).listen(PORT, function() {
     console.log('  Server: http://localhost:' + PORT + '/');

@@ -133,6 +133,10 @@ const DEFAULT_FEATURES = {
   breadcrumb: {
     enabled: true, separator: '›', showHome: true, showCurrent: true
   },
+  pageTransition: {
+    enabled: true, type: 'slide', durationMs: 180, outDurationMs: 120,
+    respectReducedMotion: true, excludeSelector: '[data-no-transition]'
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true
@@ -342,7 +346,7 @@ const DEFAULT_FEATURES = {
   },
   motion: {
     enabled: true, ease: 'cubic-bezier(.4,0,.2,1)',
-    pageEnterDurationMs: 240, cardHoverScale: 1.02,
+    cardHoverScale: 1.02,
     linkUnderlineOffset: '3px',
     cardHoverLift: true, cardHoverLiftPx: 4,
     linkUnderline: true, linkUnderlineThickness: '2px',
@@ -374,6 +378,7 @@ const ENUM_FIELDS = {
   prevNext: { labelPosition: ['left', 'center', 'right'] },
   scrollBehavior: { behavior: ['smooth', 'auto'] },
   toast: { position: ['bottom-center', 'top-center', 'top-right', 'bottom-right', 'top-left', 'bottom-left'] },
+  pageTransition: { type: ['slide', 'fade'] },
   gallery: { order: ['newest', 'longest'] },
   heatmap: { scaling: ['auto', 'fixed'] },
   analytics: { injectAt: ['body', 'head'] },
@@ -394,7 +399,7 @@ const ARRAY_FIELDS = {
   reward: [], gallery: [], heatmap: ['palette'], stats: [], prevNext: [],
   feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
   comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: [],
-  scrollBehavior: [], toast: [], breadcrumb: [],
+  scrollBehavior: [], toast: [], breadcrumb: [], pageTransition: [],
   background: ['particles'], motion: [], ogImageStyle: []
 };
 

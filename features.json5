@@ -1391,8 +1391,6 @@
     enabled: true,
     // 全局缓动曲线(绝大部分过渡复用)。
     ease: 'cubic-bezier(.4,0,.2,1)',
-    // 页面入场动画时长(ms,.page-enter 淡入上滑)。
-    pageEnterDurationMs: 240,
     // 卡片悬停缩放倍数(1=不缩放)。
     cardHoverScale: 1.02,
     // 链接下划线相对文字的偏移(px)。
@@ -1607,5 +1605,23 @@
     showHome: true,
     // 显示当前页(最后一级,不可点击)。
     showCurrent: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 44. 页面切换过渡(离开淡出 + 入场动画)
+  // ---------------------------------------------------------------------------
+  pageTransition: {
+    // 启用页面切换过渡(内链点击淡出 → 导航 → 新页入场)。
+    enabled: true,
+    // 过渡类型: slide(淡入+上滑) / fade(纯透明度)。
+    type: 'slide',
+    // 入场动画时长(ms)。
+    durationMs: 180,
+    // 离开(淡出)时长(ms)。
+    outDurationMs: 120,
+    // 尊重系统"减少动态效果"设置(reduced-motion 时不拦截链接直接跳转)。
+    respectReducedMotion: true,
+    // 不拦截的选择器(匹配元素或其祖先)。
+    excludeSelector: '[data-no-transition]'
   }
 }

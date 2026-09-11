@@ -425,6 +425,9 @@ sitemap: {
 ### 3.57 breadcrumb — 面包屑导航
 `enabled true` / `separator '›'` / `showHome true` / `showCurrent true`。所有页面(首页与 404 除外)顶部显示;文章页层级:首页 › 分类 › 标题(与 JSON-LD 结构化数据一致);列表页:首页 › 归档/标签/分类/搜索/收藏/图库/友情链接;自定义页:首页 › 标题。
 
+### 3.58 pageTransition — 页面切换过渡
+`enabled true` / `type 'slide'`(`slide|fade`) / `durationMs 180`(入场) / `outDurationMs 120`(离开淡出) / `respectReducedMotion true` / `excludeSelector '[data-no-transition]'`。内链点击淡出 → 导航 → 新页入场;外链/新窗口/hash/下载链接不拦截;原 `motion.pageEnterDurationMs` 与 `theme.animation.pageTransition` 已移除。
+
 ---
 
 ## 4. navigation.json — 导航

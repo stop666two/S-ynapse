@@ -467,7 +467,7 @@
     // 弹窗圆角
     "popupRadius": "0.618rem",
     // 条目间距
-    "entryGap": "1.5rem",
+    "entryGap": ".75rem",
   },
 
   // ---------- 每日一句（5 项） ----------
@@ -475,9 +475,9 @@
     // 显示作者
     "showAuthor": "true",
     // 引文字号
-    "quoteFontSize": "1rem",
+    "quoteFontSize": ".95rem",
     // 作者字号
-    "authorFontSize": ".8125rem",
+    "authorFontSize": ".8rem",
     // 引号装饰尺寸
     "markSize": "2rem",
     // 每日刷新
@@ -515,7 +515,7 @@
   // ---------- 归档页（5 项） ----------
   "archive": {
     // 条目间距
-    "itemGap": ".5rem",
+    "itemGap": "1rem",
     // 年份字号
     "yearFontSize": "1.5em",
     // 显示计数

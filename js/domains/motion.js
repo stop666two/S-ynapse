@@ -12,11 +12,14 @@ export function init() {
     document.documentElement.style.setProperty('--mh-dur', (M.revealDurationMs ? +M.revealDurationMs : 250) + 'ms');
     document.documentElement.style.setProperty('--mh-offset', M.revealOffset || '10px');
     function boot() {
-      var it = window.location.pathname;
+      var it = window.location.pathname.replace(/\/index\.html$/, '/');
       document.querySelectorAll('header .nav-link').forEach(function (a) {
         var href = a.getAttribute('href') || '';
         if (!href || href.indexOf('#') === 0 || href.indexOf('http') === 0) return;
-        if (href !== '/' && it.indexOf(href) === 0 || href === '/' && it === '/') { a.classList.add('nav-active'); }
+        var isHome = href === '/' || /^\/[a-z]{2}\/$/.test(href);
+        var exact = it === href;
+        var sub = !isHome && href.length > 1 && it.indexOf(href) === 0;
+        if (exact || sub) { a.classList.add('nav-active'); }
       });
       if (M.linkUnderline !== false) {
         document.querySelectorAll('.post-content a,.post-card-title a,.widget a,.post-nav-link,.pagination a,.nav-menu a,.toc-sidebar-link').forEach(function (a) { a.classList.add('motion-underline'); });

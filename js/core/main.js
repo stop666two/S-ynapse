@@ -10,3 +10,4 @@ if (enabled(F.favorites)) {
 
 import('../domains/theme.js').then(m => m.init());
 import('../domains/navigation.js').then(m => m.init());
+import('../domains/search.js').then(m => m.init());

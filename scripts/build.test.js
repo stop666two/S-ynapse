@@ -188,6 +188,11 @@ describe('sanitizeHtml', () => {
     assert.ok(!out.includes('onload'));
     assert.ok(out.includes('src="x"'));
   });
+  it('preserves decoding attribute on img (performance wiring)', () => {
+    const out = sanitizeHtml('<img src="x" loading="lazy" decoding="async">');
+    assert.ok(out.includes('decoding="async"'), 'decoding must survive sanitization');
+    assert.ok(out.includes('loading="lazy"'), 'loading must survive');
+  });
   it('strips style attributes', () => {
     const out = sanitizeHtml('<div style="position:fixed;top:0">x</div>');
     assert.ok(!out.includes('style='));

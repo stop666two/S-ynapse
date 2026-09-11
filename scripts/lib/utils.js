@@ -121,7 +121,7 @@ const DANGEROUS_TAGS = new Set([
 
 // Attributes allowed on tags. on* and style are always dropped separately.
 const SAFE_ATTRS = new Set([
-  'class','id','href','src','srcset','sizes','loading','alt','title','lang','type',
+  'class','id','href','src','srcset','sizes','loading','decoding','alt','title','lang','type',
   'checked','disabled','colspan','rowspan','width','height',
   // media elements (video/audio/track)
   'controls','preload','loop','muted','autoplay','playsinline','poster','kind','srclang','default'

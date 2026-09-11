@@ -175,7 +175,6 @@
     "enable": true,               // 是否启用动画
     "transitionDuration": "0.3s", // 过渡动画时长
     "transitionTiming": "ease-in-out",  // 过渡缓动函数
-    "scrollBehavior": "smooth",   // 页面滚动行为
     "pageTransition": "fade"      // 页面切换动画
   },
 

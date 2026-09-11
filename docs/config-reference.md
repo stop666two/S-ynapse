@@ -416,6 +416,9 @@ sitemap: {
 ### 3.54 giscus — Giscus 评论
 `enabled false`(默认关) / `repo ''` / `repoId ''` / `category 'Announcements'` / `categoryId ''` / `mapping 'title'` / `theme 'preferred_color_scheme'` / `loading 'lazy'` / `crossorigin 'anonymous'`。与 site.comments(provider='giscus')联动——两者都必须配置才显示。
 
+### 3.55 scrollBehavior — 滚动行为
+`enabled true` / `behavior 'smooth'`(`smooth|auto`) / `anchorOffset '18px'`(锚点额外偏移,最终 scroll-padding-top = calc(var(--hh) + 该值)) / `respectReducedMotion true`(reduced-motion 时降级 auto)。统一接管全站平滑滚动(CSS scroll-behavior + JS 滚动调用经 `__SB()`);原 theme.animation.scrollBehavior 已移除。
+
 ---
 
 ## 4. navigation.json — 导航

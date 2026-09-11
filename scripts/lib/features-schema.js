@@ -124,6 +124,9 @@ const DEFAULT_FEATURES = {
     postFrequency: 'weekly', pageFrequency: 'monthly', tagFrequency: 'monthly',
     maxUrlsPerFile: 500
   },
+  scrollBehavior: {
+    enabled: true, behavior: 'smooth', anchorOffset: '18px', respectReducedMotion: true
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true
@@ -363,6 +366,7 @@ const ENUM_FIELDS = {
   pinned: { badgeStyle: ['pill', 'corner', 'none'], sortRule: ['pinned-first', 'normal'] },
   share: { position: ['toolbar', 'floating'] },
   prevNext: { labelPosition: ['left', 'center', 'right'] },
+  scrollBehavior: { behavior: ['smooth', 'auto'] },
   gallery: { order: ['newest', 'longest'] },
   heatmap: { scaling: ['auto', 'fixed'] },
   analytics: { injectAt: ['body', 'head'] },
@@ -383,6 +387,7 @@ const ARRAY_FIELDS = {
   reward: [], gallery: [], heatmap: ['palette'], stats: [], prevNext: [],
   feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
   comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: [],
+  scrollBehavior: [],
   background: ['particles'], motion: [], ogImageStyle: []
 };
 

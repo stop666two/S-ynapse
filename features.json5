@@ -1566,4 +1566,18 @@
     // 推荐: 小站点 500-1000; 大站点 5000(每个文件不超过 50000 条)。
     maxUrlsPerFile: 500
   },
+
+  // ---------------------------------------------------------------------------
+  // 41. 滚动行为(平滑滚动 / 锚点偏移 / reduced-motion 降级)
+  // ---------------------------------------------------------------------------
+  scrollBehavior: {
+    // 平滑滚动总开关(false 时全站瞬时滚动)。
+    enabled: true,
+    // 滚动行为: smooth(平滑) / auto(瞬时)。
+    behavior: 'smooth',
+    // 锚点偏移(额外值,最终 scroll-padding-top = calc(var(--hh) + 该值))。
+    anchorOffset: '18px',
+    // 尊重系统"减少动态效果"设置(reduced-motion 时降级为 auto)。
+    respectReducedMotion: true
+  }
 }

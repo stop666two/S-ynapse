@@ -14,13 +14,22 @@
 
 ## 阶段
 
-- [ ] **阶段 0 基建 + 试点**：`js/` 目录、构建复制、window 注入扩展、`main.js` 入口、迁移 favorites、验证
-- [ ] **阶段 1 runtime**：`__T`/`__SB`/`__toast` 移入 `js/core/runtime.js` 并挂 window；移除内联定义
-- [ ] **阶段 2 核心域**：themeToggle/themePresets/themeSchedule、mobileBottomNav、search（hotSearches/history）
-- [ ] **阶段 3 阅读域**：toc/scrollspy、readingProgress、readDock、readMode、tts、lightbox
-- [ ] **阶段 4 交互域 4a**：motion、scrollBehavior、pageTransition、backToTop、shortcuts、share、externalLink
-- [ ] **阶段 4 交互域 4b**：contactPopup、comments、pwa、dailyQuote、sidebarDrag、heatmap/归档脚本
-- [ ] **阶段 5 收尾**：清理 layout 残留内联、config-reference/CHANGELOG、全量回归
+- [x] **阶段 0 基建 + 试点**：`js/` 目录、构建复制、window 注入扩展、`main.js` 入口、迁移 favorites、验证
+- [x] **阶段 1 runtime**：`__T`/`__SB`/`__toast` 移入 `js/core/runtime.js` 并挂 window；移除内联定义
+- [x] **阶段 2 核心域**：themeToggle/themePresets/themeSchedule、mobileBottomNav、search（hotSearches/history）
+- [x] **阶段 3 阅读域**：toc/scrollspy、readingProgress、readDock、readMode、tts、lightbox
+- [x] **阶段 4 交互域 4a**：motion、scrollBehavior、pageTransition、backToTop、shortcuts、share、externalLink
+- [x] **阶段 4 交互域 4b**：contactPopup、comments、pwa、dailyQuote、sidebarDrag、heatmap/归档脚本
+- [x] **阶段 5 收尾**：清理 layout 残留内联、config-reference/CHANGELOG、全量回归
+
+## 实施记录（2026-09-11 完成）
+
+- 提交范围：阶段 0-5 共 12 个提交（`fea8502` 4b1、`72f89e9` 4b2、`de128e7` 5a 等）
+- 实际模块：`js/domains/` 28 个（favorites/theme/navigation/search/toc/reading/lightbox/reading-panel/tts/page-transition/shortcuts/prev-next/share/motion/image-lazy/daily-quote/reward/background/i18n/reading-mode/contact-popup/external-link/sidebar-drag/theme-presets/theme-schedule/pwa/code-block/comments）
+- 运行时注入：`__PWA_ON__`/`__PWA_SW__`/`__LINK_WARNING__`/`__SITE_TITLE__`/`__ART_TITLE__`/`__APP_READY__`（替代计划中的 `__SITE__`/`__LANG__`）
+- 保留内联（有意）：theme 引导（防 FOUC）、KaTeX/Mermaid onload 回调、giscus/utterances/Disqus 加载标签、site.customHead/customBodyEnd
+- 验证：26 项 b1c + 9 项 4b1 + 10 项 4b2 + 67 项 npm test 全绿
+- layout.ejs：545 → 403 行
 
 ## 验证配方（每阶段）
 

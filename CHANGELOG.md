@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **breadcrumb 模块**:可见面包屑导航——`features.breadcrumb`(enabled/separator/showHome/showCurrent);所有页面渲染(首页/404 除外),文章页 首页 › 分类 › 标题,列表页与自定义页自动层级 — `templates/layout.ejs` + `features.json5`
 - **pageTransition 模块**:页面切换过渡——`features.pageTransition`(enabled/type/durationMs/outDurationMs/respectReducedMotion/excludeSelector);内链点击淡出 → 导航 → 新页入场(slide/fade 两型);外链/新窗口/hash/下载链接与 `[data-no-transition]` 元素不拦截 — `templates/layout.ejs` + `features.json5`
 - **pwa 模块**:PWA 运行时——`features.pwa`(enabled/registerSW/updatePrompt/offlineNotice);注册 service worker、SW 更新 toast 提示、离线/恢复 toast 提示(复用统一 toast);新增 `ui-strings` pwa 双语文案 — `templates/layout.ejs` + `ui-strings.json5` + `features.json5`
+- **ESM 模块化架构**:`templates/layout.ejs` 内联脚本(~150KB/40 个 IIFE)迁移至 `js/core/`(入口+共享运行时)与 `js/domains/`(28 个按功能域拆分的 ESM 模块);构建复制到 `dist/assets/js/`,`<script type="module">` 动态加载;新增 `window.__APP_READY__` 就绪标志;保留 theme 引导等必要同步内联 — `js/` + `scripts/build.js` + `templates/layout.ejs`
 
 ### Changed
 

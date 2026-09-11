@@ -241,7 +241,7 @@
 `enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true` / `showCount true` / `placeholder 搜索...` / `emptyHint 输入关键词开始搜索` / `noResultText 未找到匹配内容` / `excerptLength 120` / `includeContent true` / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `closeOnOverlay true` / `focusOnOpen true` / `openAnimation fade` / `pinyinFuzzy false`
 
 ### 3.5 imageLazy — 懒加载
-`enabled true` / `mode lazy`(`lazy|native|eager`) / `loadMargin 200px` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true`
+`enabled true` / `mode lazy`(`lazy|native|eager`) / `loadMargin 200px` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载)
 
 ### 3.6 codeBlock — 代码块
 `enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `showLanguageTag true` / `lineNumbers false` / `wrapLongLines false` / `highlightBackground var(--color-hover)` / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false` / `downloadButton false`
@@ -250,7 +250,7 @@
 `enabled true`(需 site.externalLinkWarning.enabled 同真) / `whitelist []` / `blacklist []` / `mode warn`(`warn|prohibit|hint`) / `message 即将离开本站,前往外部链接：` / `confirmText 继续访问` / `cancelText 返回` / `showFullUrl true` / `openInNewTab true` / `whitelistNewTab false` / `copyButtonText 复制`
 
 ### 3.8 themeToggle
-`enabled true` / `defaultTheme system` / `rememberChoice true` / `animationMs 250` / `iconStyle sun-moon` / `transitionAll true`
+`enabled true` / `defaultTheme system` / `rememberChoice true` / `animationMs 250` / `iconStyle sun-moon` / `transitionAll true` / `persistKey ss-theme`(主题选择的 localStorage 键) / `toggleIconSwap true`(切换时交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)
 
 ### 3.9 shortcuts — 快捷键
 `enabled true` / `openSearch /`(空=禁用,下同) / `toggleTheme d` / `prevPost k` / `nextPost j` / `help ?` / `close Escape` / `showHelpHint true` / `helpTitle 快捷键一览` / `showHelpTable true` / `ignoreInInputs true`
@@ -259,7 +259,7 @@
 `enabled true` / `minLevel 2` / `maxLevel 4` / `collapsible true` / `defaultOpenLevel 2` / `highlightActive true` / `activeOffset 120`
 
 ### 3.11 mobileToc — 移动目录抽屉
-`enabled true` / `breakpoint 1024` / `borderRadius 1rem` / `maxHeightVh 70` / `autoClose true` / `overlayClose true` / `lockScroll true` / `position right`
+`enabled true` / `borderRadius 1rem` / `maxHeightVh 70` / `autoClose true` / `overlayClose true` / `lockScroll true` / `position right`。移动端目录抽屉;显示断点由 `mobile.tocBreakpoint` 控制。
 
 ### 3.12 readingPanel — 阅读设置面板
 `enabled true` / `fontSizeMin 15`/`fontSizeMax 26`/`fontSizeStep 1`/`fontSizeDefault 19` / `lineHeightMin 1.4`/`LineHeightMax 2.6`/`Step 0.1`/`Default 1.9` / `widthMin 560`/`widthMax 1200`/`Step 40`/`Default 800` / `remember true` / `storageKey readerPrefs` / `resetText 重置` / `position right`
@@ -283,10 +283,10 @@
 `enabled true` / `autoDetect true` / `version 11.4.1` / `followTheme true` / `lightTheme default` / `darkTheme dark` / `securityLevel strict` / `copyAfterRender false` / `errorText [图表渲染失败]`
 
 ### 3.19 series — 系列
-`enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8`
+`enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8` / `prevLabel 上一篇` / `nextLabel 下一篇` / `progressLabel {index} / {total}`(进度模板) / `sidebarTitle 系列`(侧栏 widget 标题,sidebar.json w.title 为空时使用)
 
 ### 3.20 related — 相关推荐
-`enabled true` / `topN 4` / `sameCategoryWeight 2` / `sameTagWeight 3` / `minScore 2` / `excludeCurrent true` / `title 相关推荐`
+`enabled true` / `topN 4` / `sameCategoryWeight 2` / `sameTagWeight 3` / `minScore 2` / `excludeCurrent true` / `title 相关推荐` / `showExcerpt true`(卡片显示摘要) / `excerptLength 80`(摘要截断长度) / `showCount false`(显示共享标签数徽章)
 
 ### 3.21 pinned — 置顶
 `enabled true` / `badgeText 置顶` / `badgeStyle pill`(`pill|corner|none`) / `sortRule pinned-first`(`pinned-first|normal`)
@@ -295,22 +295,22 @@
 `enabled true` / `onCards true` / `inArticle true` / `textFormat {count} 字` / `readTimeFormat {minutes} 分钟阅读` / `wpm 265` / `countCjkChars true` / `countDigits false`
 
 ### 3.23 share — 分享
-`enabled true` / `order ['weibo','qq','wechat','x','facebook','mail','copy']`(顺序即显示顺序) / `position toolbar` / `popupWidth 640` / `popupHeight 520` / `wechatText {title} 分享自 {url}` / `copiedText 链接已复制` / `copiedShowMs 2500` / `showLabel false` / `label 分享文章`
+`enabled true` / `order ['weibo','qq','wechat','x','facebook','mail','copy']`(顺序即显示顺序) / `position toolbar` / `popupWidth 640` / `popupHeight 520` / `wechatText {title} 分享自 {url}` / `copiedText 链接已复制` / `copiedShowMs 2500` / `showLabel false` / `label 分享文章` / `useNativeShare false`(支持 navigator.share 时优先原生分享) / `copyFallback true`(剪贴板 API 不可用时 textarea 回退)
 
 ### 3.24 reward — 打赏前端
-`enabled false`(需 site.reward.enabled) / `buttonText 打赏` / `note 感谢支持` / `popupTitle 打赏支持` / `closeByBtn true` / `closeByOverlay true` / `closeByEsc true` / `qrSize 180px` / `maxWidth 560px`
+`enabled false`(需 site.reward.enabled) / `buttonText 打赏` / `note 感谢支持` / `popupTitle 打赏支持` / `closeByBtn true` / `closeByOverlay true` / `closeByEsc true` / `qrSize 180px` / `maxWidth 560px` / `showNote true`(显示打赏说明文字) / `qrMaxWidth 180px`(二维码最大宽度 CSS) / `closeText 关闭`(关闭按钮文本)
 
 ### 3.25 gallery — 图库页
-`enabled true` / `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片` / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `order newest` / `incrementalByDefault true` / `maxItems 0`(0=不限)
+`enabled true` / `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片` / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `order newest` / `incrementalByDefault true` / `maxItems 0`(0=不限) / `gap 12px`(瀑布流列间距 CSS) / `showCaption true`(图片下方显示来源说明) / `borderRadius 8px`(卡片圆角 CSS)
 
 ### 3.26 heatmap — 归档热力图
-`enabled true` / `levels 5`(2~7) / `scaling auto`(`auto|fixed`) / `palette []`(fixed 时色表) / `showLegend true` / `legendLow 少` / `legendHigh 多` / `tooltipFormat {year}-{month}: {count} 篇` / `showMonthNumbers true`
+`enabled true` / `levels 5`(2~7) / `scaling auto`(`auto|fixed`) / `palette []`(fixed 时色表) / `showLegend true` / `legendLow 少` / `legendHigh 多` / `tooltipFormat {year}-{month}: {count} 篇` / `showMonthNumbers true` / `gap 3px`(单元格间距) / `borderRadius 3px`(单元格圆角) / `cellSize 13px`(单元格尺寸,置空则撑满容器) / `emptyColor var(--color-border)`(空月份颜色)
 
 ### 3.27 stats — 站点统计
-`enabled true` / `showArchiveCards true` / `sidebarWidgetDefault false` / `labelPosts 文章总数` / `labelDays 发文天数` / `labelWords 总字数` / `labelAvg 日均篇数` / `labelTags 标签数` / `labelCategories 分类数` / `linkArchive /archive/`
+`enabled true` / `showArchiveCards true` / `labelPosts 文章总数` / `labelDays 发文天数` / `labelWords 总字数` / `labelAvg 日均篇数` / `labelAvgPerDay 日均`(归档页日均标签) / `labelTags 标签数` / `labelCategories 分类数` / `cardColumns auto-fit`(统计卡列模式,也可固定列数) / `showSidebar true`(侧栏统计 widget 开关,sidebar.json5 需含 type=stats) / `linkArchive /archive/`
 
 ### 3.28 prevNext
-`enabled true` / `showLabels true` / `prevLabel 上一篇` / `nextLabel 下一篇` / `hideWhenMissing false` / `scrollToTop true`
+`enabled true` / `showLabels true` / `prevLabel 上一篇` / `nextLabel 下一篇` / `hideWhenMissing false` / `showThumbnail false`(导航卡缩略图) / `labelPosition left`(`left|center|right`) / `scrollToTopOnClick true`(点击导航后滚回顶部)
 
 ### 3.29 feed — 订阅
 `rssEnabled true` / `rssPath /feed.xml` / `rssFullContent true` / `rssMaxItems 50` / `jsonFeedPath /feed.json` / `jsonFeedFullContent false` / `jsonFeedMaxItems 20` / `injectHeadLinks true` / `injectFooterLink false`
@@ -325,13 +325,13 @@
 `enabled false` / `message 站点维护中，请稍后再来。` / `status 503` / `setRetryAfter true` / `retryAfter 3600`
 
 ### 3.33 mobile
-`enabled true` / `searchFullscreen true` / `buttonStackGap 4rem` / `touchFallback true` / `codeScrollHint true`
+`enabled true` / `searchFullscreen true` / `buttonStackGap 4rem` / `touchFallback true` / `codeScrollHint true` / `tocBreakpoint 768`(移动端 TOC 按钮断点 px) / `safeAreaBottom true`(底部安全区留白) / `tapHighlight false`(取消点击高亮)
 
 ### 3.34 comments 前端
-`enabled true` / `loadContainer true` / `renderPlaceholder true` / `title 评论`
+`enabled true` / `loadContainer true` / `renderPlaceholder true` / `placeholderText 评论加载中…`(占位文案) / `loadDelayMs 300`(占位显示时长 ms,过后无组件则显示 emptyText) / `emptyText 暂无评论`(无评论提示) / `title 评论`
 
 ### 3.35 contactPopup
-`enabled true` / `title 联系方式` / `copyText 复制` / `copiedText 已复制到剪贴板` / `popupWidth 360px` / `showAllItems true`
+`enabled true` / `title 联系方式` / `copyText 复制` / `copySuccessText ''`(复制成功提示,留空用内置双语文案) / `popupWidth 360px` / `showAllItems true` / `showIcon true`(弹窗顶部图标) / `maxItems 4`(最多联系方式条目数,多行值按行截断)
 
 ### 3.36 linkBehavior
 `matchMode hostname` / `skipInternal true` / `mailtoMode leave` / `lateTargeted false`
@@ -375,7 +375,7 @@ sitemap: {
 `enabled true` / `pickerVisible true` / `persistChoice true` / `showInNavbar true` / `previewOnHover true`。6 套调色盘(Classic Blue / Cyber Purple / Forest Green / Sakura Pink / Editorial Gray / Midnight Black),点击即切换 CSS 变量并 localStorage 持久化(`ss-preset`)。
 
 ### 3.41 themeSchedule — 深色定时切换
-`enabled false`(默认关) / `darkFrom '22:00'` / `lightFrom '06:00'` / `respectManualOverride true` / `applyInstantly true` / `tickMinutes 60`。按固定每日时段自动切主题,用户手动切换后不自动覆盖。
+`enabled false`(默认关) / `darkFrom '22:00'` / `lightFrom '06:00'` / `respectManualOverride true` / `applyInstantly true` / `checkIntervalMs 60000` / `smoothTransition true`。按固定每日时段自动切主题,检查周期以毫秒计(默认 60000 = 每分钟);smoothTransition 开启时切换瞬间给 html 加 `theme-switching` 类,300ms 过渡动画。
 
 ### 3.42 readDock — 移动端阅读侧栏
 `enabled true` / `showProgressRing true` / `showTocButton true` / `showTopButton true` / `hideOnScrollDown true` / `position right`。移动端右下角的进度环 + 回目录 + 回顶按钮。
@@ -387,13 +387,13 @@ sitemap: {
 `enabled true` / `pattern 'gradient'` / `preview true` / `preferImage true`。自动生成 OG 图片(基于文章卡片),与 site.seo.ogImage 联动。
 
 ### 3.45 hero — 首页 Hero
-`enabled true` / `showSearch true` / `showTags true` / `tagCount 5`。首页顶部横幅,显示标题简介+搜索+热门标签。
+`enabled true` / `showSearch true` / `showTags true` / `tagCount 5` / `showDate false`(显示最新文章日期) / `ctaLabelEn View all posts`(en CTA 文案) / `heightVh 60`(Hero 最小高度 vh) / `backgroundImage ''`(背景图 URL,空则纯色/渐变)。首页顶部横幅,显示标题简介+搜索+热门标签。
 
 ### 3.46 background — 背景特效
 `enabled false` / `pattern 'none'` (particles/grid/dots/mesh) / `intensity 'medium'` / `reducedMotion false`。站点背景特效(粒子/网格/圆点/网格渐变)。
 
 ### 3.47 motion — 滚动动效
-`enabled true` / `reveal true` / `fade true` / `parallax false` / `distance '30px'` / `duration '0.6s'`。滚动出现视差淡入等动效。
+`enabled true` / `ease cubic-bezier(.4,0,.2,1)` / `pageEnterDurationMs 240`(页面入场时长 ms) / `cardHoverScale 1.02`(卡片悬停缩放) / `linkUnderlineOffset 3px`(下划线偏移) / `cardHoverLift true` / `cardHoverLiftPx 4` / `linkUnderline true` / `linkUnderlineThickness 2px` / `buttonRipple true` / `rippleDurationMs 500` / `scrollReveal true` / `revealCards true` / `revealHeadings true` / `revealImages true` / `revealBlocks false` / `revealDurationMs 250` / `revealDelayMs 0` / `revealStaggerMax 80` / `revealOffset 10px` / `revealOnce true` / `revealThreshold 0.08` / `respectReducedMotion true`。滚动渐入/悬停上浮/涟漪/下划线动效总控。
 
 ### 3.48 dailyQuote — 每日一言
 `enabled true` / `widgetStyle 'sidebar'` / `label '每日一言'` / `source 'builtin'` / `count 7` / `quoteColor ''`。侧栏每日名言(内置 7 条,按日期轮换)。

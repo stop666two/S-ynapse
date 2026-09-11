@@ -30,7 +30,7 @@
     <img src="<%= article.featuredImage %>" alt="<%= article.title %>" class="post-card-image" loading="lazy">
   </a>
   <% } else { %>
-  <a href="<%= article.url %>" class="post-card-nocover <%= listCoverEnabled ? 'has-cover-pattern' : '' %>" aria-hidden="true"><%= article.title.charAt(0) %></a>
+  <a href="<%= article.url %>" class="post-card-nocover <%= listCoverEnabled ? 'has-cover-pattern' : '' %>" aria-hidden="true"><%= article.title %></a>
   <% } %>
   <h2 class="post-card-title">
     <% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span><% } %><% if (article.series) { %><span class="series-badge"><%= ui('card.series','系列') %></span><% } %>

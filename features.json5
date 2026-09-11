@@ -685,8 +685,6 @@
   mobileToc: {
     // 启用移动端目录抽屉按钮。
     enabled: true,
-    // 显示断点(≤ 该宽度出现)。
-    breakpoint: 1024,
     // 抽屉圆角。
     borderRadius: '1rem',
     // 抽屉最大高度(视口百分比)。
@@ -893,9 +891,9 @@
     // 无另外参数
     defaultWidgetCount: 8,
     // 系列导航上一页按钮文本。
-    showPrevLabel: '上一篇',
+    prevLabel: '上一篇',
     // 系列导航下一页按钮文本。
-    showNextLabel: '下一篇',
+    nextLabel: '下一篇',
     // 进度文本模板:{index} 当前篇数,{total} 总篇数。
     progressLabel: '{index} / {total}',
     // 侧栏系列 widget 标题(sidebar.json5 中 w.title 为空时使用)。
@@ -1116,8 +1114,6 @@
     enabled: true,
     // 归档页显示统计卡片。
     showArchiveCards: true,
-    // 侧栏统计 widget(需 sidebar.json5 widgets 含 type=stats)。
-    sidebarWidgetDefault: false,
     // 统计标签文案(顺序:文章/天数/字数/日均/标签/分类)。
     labelPosts: '文章总数',
     labelDays: '发文天数',
@@ -1153,9 +1149,7 @@
     // 标签文字位置:left/center/right。
     labelPosition: 'left',
     // 点击导航后是否滚回页面顶部。
-    scrollToTopOnClick: true,
-    // 点击后滚动到顶部。
-    scrollToTop: true
+    scrollToTopOnClick: true
   },
 
   // ---------------------------------------------------------------------------
@@ -1242,7 +1236,7 @@
     touchFallback: true,
     // 移动端代码块横向滚动提示。
     codeScrollHint: true,
-    // 移动端 TOC 按钮断点(px,优先于 mobileToc.breakpoint)。
+    // 移动端 TOC 按钮断点(px,≤ 该宽度显示按钮)。
     tocBreakpoint: 768,
     // 底部导航底部安全区留白(适配 iPhone 底部横条)。
     safeAreaBottom: true,
@@ -1280,10 +1274,8 @@
     title: '联系方式',
     // 复制按钮文本。
     copyText: '复制',
-    // 复制成功提示。
-    copiedText: '已复制到剪贴板',
-    // 复制成功提示(优先于 copiedText)。
-    copySuccessText: '已复制',
+    // 复制成功提示(留空则用内置双语文案 toolbar.copyDoneToast)。
+    copySuccessText: '',
     // 弹窗宽度(px)。
     popupWidth: '360px',
     // 显示社交项(CG 配置社交链接中带弹窗样式)。

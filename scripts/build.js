@@ -1578,8 +1578,8 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
           ...langData,
           articles: pageArticles,
           heroData: heroEnabled ? {
-            title: lang === 'en' && config.site.hero.titleEn ? config.site.hero.titleEn : config.site.hero.title,
-            subtitle: (lang === 'en' && config.site.hero.subtitleEn) ? config.site.hero.subtitleEn : config.site.hero.subtitle,
+            title: (lang === 'en' && config.site.hero.titleEn) ? config.site.hero.titleEn : (config.site.hero.title || config.site.title),
+            subtitle: (lang === 'en' && config.site.hero.subtitleEn) ? config.site.hero.subtitleEn : (config.site.hero.subtitle || config.site.subtitle || config.site.description),
             showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
             showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
             showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,

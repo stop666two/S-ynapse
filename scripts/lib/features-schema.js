@@ -83,7 +83,7 @@ const DEFAULT_FEATURES = {
     showTitle: true, maxWidthPx: 320
   },
   mobileToc: {
-    enabled: true, breakpoint: 1024, borderRadius: '1rem',
+    enabled: true, borderRadius: '1rem',
     maxHeightVh: '70', autoClose: true, overlayClose: true,
     lockScroll: true, position: 'right'
   },
@@ -234,7 +234,7 @@ const DEFAULT_FEATURES = {
     enabled: true, showBadge: true, badgeFormat: '系列 · {name}',
     showNavPanel: true, sidebarWidget: true, order: 'asc',
     panelTitle: '本系列共 {total} 篇', showPosition: true, defaultWidgetCount: 8,
-    showPrevLabel: '上一篇', showNextLabel: '下一篇',
+    prevLabel: '上一篇', nextLabel: '下一篇',
     progressLabel: '{index} / {total}', sidebarTitle: '系列'
   },
   related: {
@@ -275,7 +275,7 @@ const DEFAULT_FEATURES = {
     emptyColor: 'var(--color-border)'
   },
   stats: {
-    enabled: true, showArchiveCards: true, sidebarWidgetDefault: false,
+    enabled: true, showArchiveCards: true,
     labelPosts: '文章总数', labelDays: '发文天数', labelWords: '总字数',
     labelAvg: '日均篇数', labelTags: '标签数', labelCategories: '分类数',
     linkArchive: '/archive/', cardColumns: 'auto-fit', showSidebar: true,
@@ -283,7 +283,7 @@ const DEFAULT_FEATURES = {
   },
   prevNext: {
     enabled: true, showLabels: true, prevLabel: '上一篇', nextLabel: '下一篇',
-    hideWhenMissing: false, scrollToTop: true,
+    hideWhenMissing: false,
     showThumbnail: false, labelPosition: 'left', scrollToTopOnClick: true
   },
   hero: {
@@ -317,8 +317,8 @@ const DEFAULT_FEATURES = {
   },
   contactPopup: {
     enabled: true, title: '联系方式', copyText: '复制',
-    copiedText: '已复制到剪贴板', popupWidth: '360px', showAllItems: true,
-    showIcon: true, copySuccessText: '已复制', maxItems: 4
+    popupWidth: '360px', showAllItems: true,
+    showIcon: true, copySuccessText: '', maxItems: 4
   },
   linkBehavior: {
     matchMode: 'hostname', skipInternal: true, mailtoMode: 'leave', lateTargeted: false
@@ -362,6 +362,7 @@ const ENUM_FIELDS = {
   series: { order: ['asc', 'desc'] },
   pinned: { badgeStyle: ['pill', 'corner', 'none'], sortRule: ['pinned-first', 'normal'] },
   share: { position: ['toolbar', 'floating'] },
+  prevNext: { labelPosition: ['left', 'center', 'right'] },
   gallery: { order: ['newest', 'longest'] },
   heatmap: { scaling: ['auto', 'fixed'] },
   analytics: { injectAt: ['body', 'head'] },

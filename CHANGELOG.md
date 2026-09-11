@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **RSS/JSON Feed/sitemap/search-index 分语言**:`/zh/feed.xml` + `/en/feed.xml`、`/zh/feed.json` + `/en/feed.json`、`/zh/sitemap.xml` + `/en/sitemap.xml`、`/zh/search-index.json` + `/en/search-index.json`(条目带 `lang` 字段)— `scripts/build.js`
 - **根路径重定向规则**:`dist/_redirects` 始终生成,含 `/ /zh/ 302`(首语言非 en 时)与根别名重定向(`/search-index.json`、`/feed.xml`、`/manifest.json`、`/404.html`、`/site.webmanifest` → `/zh/{alias}` 302);根 `404.html` 从 zh 版复制 — `scripts/build.js`
 - **en 首页构建期英化**:`ui()` 服务端函数按 `lang` 绑定 `ui-strings.json5` 英文词典,导航/页脚/侧栏/主题预设/卡片元信息(字数/阅读时长)/搜索占位/复制提示/外部链接弹层全英化;运行时 `__T()` 继续处理动态文本 — `templates/layout.ejs` + `templates/index.ejs` + `templates/post.ejs` + `templates/category.ejs` + `templates/tag.ejs`
+- **功能参数化(69 参数全量接线)**:`features.json5` 新增 69 个可配置参数并全部接线生效(motion/hero/heatmap/stats/mobile/comments/contactPopup/prevNext/imageLazy/themeToggle/themeSchedule/series/related/share/reward/gallery 等模块);`scripts/lib/features-schema.js` 同步默认值与枚举校验(labelPosition 等) — `scripts/build.js` + `templates/*.ejs`
 
 ### Changed
 
@@ -22,12 +23,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`site.json`**:新增 `languages: ['zh','en']`、`titleEn`、`subtitleEn`、`hero.titleEn`、`hero.subtitleEn`、`externalLinkWarning.titleEn/messageEn/confirmTextEn/cancelTextEn`
 - **OG 图管线**:`scripts/generate-og.js` 按语言目录输出 `dist/og/{lang}/{slug}.png`,`usedSlugs` 按语言独立去重(zh/en 同 slug 不再冲突);移除 build.js 内联 SVG OG 管线
 - **侧栏/页脚/导航配置**:全部 widget/链接/菜单项支持 `titleEn`/`labelEn`
+- **旧参数清理(不兼容变更)**:`themeToggle.persistKey` 取代硬编码 localStorage 键 `theme`(默认 `ss-theme`);`themeSchedule.checkIntervalMs`(毫秒)取代 `tickMinutes`(分钟);`stats.showSidebar` 取代 `stats.sidebarWidgetDefault`;`prevNext.scrollToTopOnClick` 取代 `prevNext.scrollToTop`;`mobile.tocBreakpoint` 取代 `mobileToc.breakpoint`;`contactPopup.copySuccessText` 取代 `contactPopup.copiedText`;`series.prevLabel`/`nextLabel` 取代 `showPrevLabel`/`showNextLabel` — `features.json5` + `scripts/lib/features-schema.js`
 
 ### Fixed
 
 - **TOC 滚动高亮(scrollspy)失效**:`templates/layout.ejs` 中 tocScrollSpy IIFE 结尾 `})})});` 缺少 IIFE 调用括号 `()`,导致函数只定义从未调用、进度线与当前章节高亮永不生效;修复为 `})})})();`
 - **RSS 重复生成**:移除 build.js 中第二个无语言循环的旧版 `generateRSS`,避免覆盖语言版 feed
 - **根路径 404**:`/search-index.json`、`/manifest.json` 等根别名路径由 500 修复为 302 重定向至语言版本
+- **contactPopup en 页复制提示显示中文**:`copySuccessText` 默认值遮蔽 `__T` 双语回退;现默认留空,回退内置词典 `toolbar.copyDoneToast`(en: Copied to clipboard) — `templates/layout.ejs`
+- **评论占位一次性检查**:giscus/Disqus 慢载入(超过 loadDelayMs)时占位永久显示「暂无评论」;改用 MutationObserver 持续监听,组件出现即清空占位,超时才显示 `emptyText` — `templates/post.ejs`
+- **hero.backgroundImage CSS 转义错误**:HTML 转义(`&`→`&amp;`)注入 CSS `url()` 导致含查询参数的 URL 加载失败;改为 JSON 字符串化 + `<` 过滤 — `templates/layout.ejs`
+- **hero 标题回退缺失**:语言首页未配置 `hero.title` 时回退 `site.title`(根页已有此逻辑,语言页缺失) — `scripts/build.js`
+- **无封面卡片仅显示标题首字**:改为显示完整标题并适配多行样式 — `templates/index.ejs` + `templates/layout.ejs`
+- **motion 卡片悬停缩放被 reveal 覆盖**:`.motion-reveal.in{transform:none}` 同权重且更晚,导致卡片入场后 hover scale 失效;提升选择器权重 — `templates/layout.ejs`
+- **主题预设切换后 CTA 按钮颜色不跟随**:`applyPreset()` 未同步 `--bpb`(构建期按钮主色变量,默认取 secondary);现随预设 secondary 同步更新 — `templates/layout.ejs`
 
 ### Security
 

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **PWA 商业化增强（B6）**：`features.pwa.offlinePage` 生成离线兜底页（断网访问未缓存页面→双语提示+重试按钮，SW 预缓存并导航回退）；`features.pwa.installPrompt` 安装引导（beforeinstallprompt 浮动按钮，可关闭并记忆） — `scripts/build.js` + `js/domains/pwa.js`
 - **氛围开关（A8）**：eatures.atmosphere（grain/glow）——颗粒纹理与 Hero 光晕的页面级开关（视觉参数仍在 	uning.texture/	uning.glow） — 	emplates/layout.ejs
 - **打印样式（D2）**：`features.printStyle`——打印/PDF 导出优化：隐藏交互元素、白底黑字、正文外链展开为 `文字 (URL)`、代码块/图表避免跨页断裂 — `templates/layout.ejs`
 - **多语言增强（D3）**：`features.hreflang.xDefault`（x-default 替代声明，指向默认语言）+ `features.i18n.translationNotice`（文章页翻译互链胶囊：另一语言存在同 slug 文章时自动显示，文案 `post.translationNotice` 双语可配）— `templates/post.ejs` + `templates/layout.ejs`

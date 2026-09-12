@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 代码窗口栏按钮与语言标签重叠: .code-actions 恢复文档流(position:static)且语言标签 margin-right:auto — 	emplates/layout.ejs
+- 长行代码横向滚动条过淡难看: 正文 pre 定制滚动条(thumb 文字色 38%→悬停 62%、9px、圆角、Firefox scrollbar-color) — 	emplates/layout.ejs
+- 共享元素封面过渡卡顿: 文章封面统一 spect-ratio: card.imageAspect(16/10) 消除形变; 首页 Bento 大卡(21/10)不参与封面形变(标题仍共享) — 	emplates/layout.ejs + 	emplates/index.ejs
+- features 模块计数同步为 91; README/config-reference 计数修正(91 模块/723 项)
+
 - **canonical 全站指向根路径（SEO）**：`<link rel="canonical">` 此前对所有页面均输出站点根（模板引用了不存在的 `page.url`），现改用 `currentUrl`（文章/分页/归档/标签等各自 URL），并规整 `site.url` 尾部斜杠 — `templates/layout.ejs`
 
 ### Added

@@ -1428,8 +1428,8 @@
     revealOnce: true,
     // 进入视口阈值(0~1,值越小越早触发)。
     revealThreshold: 0.08,
-    // 尊重 prefers-reduced-motion(系统弱化动效时关闭)。
-    respectReducedMotion: true
+    // 系统"减少动态效果"下的动画策略: light(轻量版:更短、幅度更小,推荐) / off(完全关闭) / full(始终完整)。
+    reducedMotion: 'light'
   },
   // ---------------------------------------------------------------------------
   dailyQuote: {
@@ -1604,8 +1604,8 @@
     durationMs: 180,
     // 离开(淡出)时长(ms)。
     outDurationMs: 120,
-    // 尊重系统"减少动态效果"设置(reduced-motion 时不拦截链接直接跳转)。
-    respectReducedMotion: true,
+    // 系统"减少动态效果"下的策略: light(轻量版:更短的纯淡出,推荐) / off(不拦截链接) / full(始终完整)。
+    reducedMotion: 'light',
     // 不拦截的选择器(匹配元素或其祖先)。
     excludeSelector: '[data-no-transition]'
   },
@@ -1633,8 +1633,12 @@
     // 弹簧预设: smooth(无回弹) / snappy(快速微回弹) / bouncy(弹跳感);
     // tuning.morphicons.stiffness/damping 同时设置时优先于预设。
     spring: 'snappy',
-    // 尊重系统"减少动态效果":开启后系统 reduce-motion 时直接切换不变形。
-    reducedMotion: true,
+    // 系统"减少动态效果"下的策略: light(轻量版:更快的弹簧,推荐) / off(直接切换不变形) / full(始终完整)。
+    reducedMotion: 'light',
+    // vendor 预加载策略: interaction(首次悬停/触摸/聚焦,推荐) / idle(空闲自动) / immediate(立即)。
+    preload: 'interaction',
+    // 单图标弹簧覆盖(可选): 图标名(theme/copy/favorite/tts/menu) → 预设名或 {stiffness,damping}。例: {"favorite":"bouncy"}。
+    perIcon: {},
     // 各图标独立开关(false = 该图标保持原有静态实现)。
     icons: {
       // 主题切换 sun ↔ moon。

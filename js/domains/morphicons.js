@@ -18,15 +18,31 @@ function iconOn(name) {
   const c = cfg();
   return !c.icons || c.icons[name] !== false;
 }
-function reducedMode() {
-  const c = cfg();
-  return c.reducedMotion !== false ? 'user' : 'never';
+function rmPolicy() {
+  const c = cfg() || {};
+  const v = c.reducedMotion;
+  if (v === true) return 'light';
+  if (v === false) return 'full';
+  return v || 'light';
 }
-function spring() {
+function sysReduce() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+function springFor(key) {
+  const c = cfg() || {};
+  const p = c.perIcon && c.perIcon[key];
+  if (p) {
+    if (typeof p === 'string') return p;
+    if (+p.stiffness > 0 && +p.damping > 0) return { stiffness: +p.stiffness, damping: +p.damping };
+  }
   const T = (window.__TUNING__ && window.__TUNING__.morphicons) || {};
-  const k = parseFloat(T.stiffness), c = parseFloat(T.damping);
-  if (k > 0 && c > 0) return { stiffness: k, damping: c };
-  return (cfg() && cfg().spring) || 'snappy';
+  if (sysReduce() && rmPolicy() === 'light') {
+    const rk = parseFloat(T.reducedStiffness), rc = parseFloat(T.reducedDamping);
+    return (rk > 0 && rc > 0) ? { stiffness: rk, damping: rc } : { stiffness: 900, damping: 55 };
+  }
+  const k = parseFloat(T.stiffness), d = parseFloat(T.damping);
+  if (k > 0 && d > 0) return { stiffness: k, damping: d };
+  return c.spring || 'snappy';
 }
 function loadVendor() {
   if (modPromise) return modPromise;
@@ -47,14 +63,19 @@ function asPath(svg) {
   svg.replaceChildren(p);
   return p;
 }
-function bind(root, inst, a, b, on) {
-  morphs.set(root, { inst: inst, a: a, b: b, on: on });
+function bind(root, inst, a, b, on, key) {
+  morphs.set(root, { inst: inst, a: a, b: b, on: on, key: key });
 }
 function morphTo(root, on) {
   const m = morphs.get(root);
   if (!m || m.on === on) return;
   m.on = on;
-  try { m.inst.morphTo(on ? m.b : m.a, spring()); } catch (e) { /* 单点故障不影响其他图标 */ }
+  const target = on ? m.b : m.a;
+  if (sysReduce() && rmPolicy() === 'off') {
+    try { m.inst.set(target); } catch (e) { /* 单点故障不影响其他图标 */ }
+    return;
+  }
+  try { m.inst.morphTo(target, springFor(m.key)); } catch (e) { /* 单点故障不影响其他图标 */ }
 }
 function watch(root, get, fn) {
   new MutationObserver(fn).observe(root, { attributes: true, attributeFilter: ['class', 'aria-pressed'] });
@@ -85,7 +106,7 @@ function initTheme() {
   sun.style.display = '';
   const path = asPath(sun);
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  bind(btn, mod.createMorph(path, isDark ? iconMoon : iconSun, { reducedMotion: reducedMode() }), iconSun, iconMoon, isDark);
+  bind(btn, mod.createMorph(path, isDark ? iconMoon : iconSun, { reducedMotion: 'never' }), iconSun, iconMoon, isDark, 'theme');
   new MutationObserver(function () {
     morphTo(btn, document.documentElement.getAttribute('data-theme') === 'dark');
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -98,7 +119,7 @@ function initFav() {
   const outline = mod.svgToIcon(svg.outerHTML);
   const path = asPath(svg);
   const on = btn.classList.contains('faved');
-  bind(btn, mod.createMorph(path, on ? HEART_SOLID_D : outline, { reducedMotion: reducedMode() }), outline, HEART_SOLID_D, on);
+  bind(btn, mod.createMorph(path, on ? HEART_SOLID_D : outline, { reducedMotion: 'never' }), outline, HEART_SOLID_D, on, 'favorite');
   watch(btn, null, function () { morphTo(btn, btn.classList.contains('faved')); });
 }
 function initTts() {
@@ -109,7 +130,7 @@ function initTts() {
   const idle = mod.svgToIcon(svg.outerHTML);
   const path = asPath(svg);
   const on = btn.classList.contains('speaking');
-  bind(btn, mod.createMorph(path, on ? STOP_D : idle, { reducedMotion: reducedMode() }), idle, STOP_D, on);
+  bind(btn, mod.createMorph(path, on ? STOP_D : idle, { reducedMotion: 'never' }), idle, STOP_D, on, 'tts');
   watch(btn, null, function () { morphTo(btn, btn.classList.contains('speaking')); });
 }
 function initMenu() {
@@ -120,7 +141,7 @@ function initMenu() {
   svg.appendChild(path);
   btn.replaceChildren(svg);
   const on = btn.classList.contains('active');
-  bind(btn, mod.createMorph(path, on ? X_D : MENU_D, { reducedMotion: reducedMode() }), MENU_D, X_D, on);
+  bind(btn, mod.createMorph(path, on ? X_D : MENU_D, { reducedMotion: 'never' }), MENU_D, X_D, on, 'menu');
   watch(btn, null, function () { morphTo(btn, btn.classList.contains('active')); });
 }
 function initCopyButtons() {
@@ -130,7 +151,7 @@ function initCopyButtons() {
     if (!svg) return;
     const copyIcon = mod.svgToIcon(svg.outerHTML);
     const path = asPath(svg);
-    bind(btn, mod.createMorph(path, copyIcon, { reducedMotion: reducedMode() }), copyIcon, CHECK_D, false);
+    bind(btn, mod.createMorph(path, copyIcon, { reducedMotion: 'never' }), copyIcon, CHECK_D, false, 'copy');
   });
 }
 function initAll() {
@@ -156,9 +177,18 @@ export function init() {
     const on = state === 'check';
     if (m.on === on) return true;
     m.on = on;
-    try { m.inst.morphTo(on ? m.b : m.a, spring()); } catch (e) { return false; }
+    const target = on ? m.b : m.a;
+    try {
+      if (sysReduce() && rmPolicy() === 'off') { m.inst.set(target); } else { m.inst.morphTo(target, springFor(m.key)); }
+    } catch (e) { return false; }
     return true;
   };
+  const pre = (cfg() && cfg().preload) || 'interaction';
+  if (pre === 'immediate') {
+    loadVendor().then(function (m) { if (m) initAll(); });
+  } else if (pre === 'idle' && typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(function () { loadVendor().then(function (m) { if (m) initAll(); }); }, { timeout: 3000 });
+  }
   const events = ['pointerover', 'pointerdown', 'touchstart', 'focusin'];
   function arm(e) {
     const t = e.target;

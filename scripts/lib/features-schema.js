@@ -133,13 +133,13 @@ const DEFAULT_FEATURES = {
   },
   pageTransition: {
     enabled: true, type: 'slide', durationMs: 180, outDurationMs: 120,
-    respectReducedMotion: true, excludeSelector: '[data-no-transition]'
+    reducedMotion: 'light', excludeSelector: '[data-no-transition]'
   },
   pwa: {
     enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true
   },
   morphIcons: {
-    enabled: true, spring: 'snappy', reducedMotion: true,
+    enabled: true, spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},
     icons: { theme: true, copy: true, favorite: true, tts: true, menu: true }
   },
   sidebarDrag: {
@@ -359,7 +359,7 @@ const DEFAULT_FEATURES = {
     scrollReveal: true, revealCards: true, revealHeadings: true,
     revealImages: true, revealBlocks: false,
     revealDurationMs: 250, revealDelayMs: 0, revealStaggerMax: 80, revealOffset: '10px',
-    revealOnce: true, revealThreshold: 0.08, respectReducedMotion: true
+    revealOnce: true, revealThreshold: 0.08, reducedMotion: 'light'
   },
   ogImageStyle: {
     enabled: true, align: 'center', showSite: true, useGradient: true,
@@ -383,7 +383,7 @@ const ENUM_FIELDS = {
   prevNext: { labelPosition: ['left', 'center', 'right'] },
   scrollBehavior: { behavior: ['smooth', 'auto'] },
   toast: { position: ['bottom-center', 'top-center', 'top-right', 'bottom-right', 'top-left', 'bottom-left'] },
-  pageTransition: { type: ['slide', 'fade'] },
+  pageTransition: { type: ['slide', 'fade'], reducedMotion: ['light', 'off', 'full'] },
   gallery: { order: ['newest', 'longest'] },
   heatmap: { scaling: ['auto', 'fixed'] },
   analytics: { injectAt: ['body', 'head'] },
@@ -404,9 +404,9 @@ const ARRAY_FIELDS = {
   reward: [], gallery: [], heatmap: ['palette'], stats: [], prevNext: [],
   feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
   comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: [],
-  scrollBehavior: [], toast: [], breadcrumb: [], pageTransition: [], pwa: [],
-  morphIcons: [],
-  background: ['particles'], motion: [], ogImageStyle: []
+  scrollBehavior: [], toast: [], breadcrumb: [], pageTransition: { type: ['slide', 'fade'], reducedMotion: ['light', 'off', 'full'] }, pwa: [],
+  morphIcons: { spring: ['smooth', 'snappy', 'bouncy'], reducedMotion: ['light', 'off', 'full'], preload: ['interaction', 'idle', 'immediate'] },
+  background: ['particles'], motion: { reducedMotion: ['light', 'off', 'full'] }, ogImageStyle: []
 };
 
 function typeName(v) {

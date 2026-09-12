@@ -4,7 +4,12 @@ export function init() {
     var TM = (window.__TUNING__ || {}).motion || {};
     var pick = function (k1, k2) { var v = TM[k1]; return v !== undefined && v !== '' && v !== null ? v : M[k2]; };
     if (M.enabled === false) return;
-    if (M.respectReducedMotion !== false && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var RM = M.reducedMotion;
+    if (RM === undefined) RM = M.respectReducedMotion === false ? 'full' : 'light';
+    if (RM === true) RM = 'light'; else if (RM === false) RM = 'full';
+    var _sysR = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var _eff = _sysR ? RM : 'full';
+    if (_eff === 'off') return;
     var lift = pick('hoverLiftPx', 'cardHoverLiftPx') || 4;
     document.documentElement.style.setProperty('--mh-lift', lift + 'px');
     document.documentElement.style.setProperty('--mh-under', pick('underlineThickness', 'linkUnderlineThickness') || '2px');
@@ -14,6 +19,14 @@ export function init() {
     document.documentElement.style.setProperty('--mh-ripple', (+pick('rippleDurationMs', 'rippleDurationMs') || 500) + 'ms');
     document.documentElement.style.setProperty('--mh-dur', (+pick('revealDurationMs', 'revealDurationMs') || 250) + 'ms');
     document.documentElement.style.setProperty('--mh-offset', pick('revealOffset', 'revealOffset') || '10px');
+    if (_eff === 'light') {
+      document.documentElement.setAttribute('data-mrm', 'light');
+      var _d0 = +pick('revealDurationMs', 'revealDurationMs') || 250;
+      document.documentElement.style.setProperty('--mh-dur', Math.min(_d0, 160) + 'ms');
+      document.documentElement.style.setProperty('--mh-offset', '6px');
+      document.documentElement.style.setProperty('--mh-lift', Math.min(lift, 2) + 'px');
+      document.documentElement.style.setProperty('--mh-ripple', Math.min((+pick('rippleDurationMs', 'rippleDurationMs') || 500), 300) + 'ms');
+    }
     var stagger = +pick('staggerDelayMs', 'revealDelayMs') || 0;
     function boot() {
       var it = window.location.pathname.replace(/\/index\.html$/, '/');

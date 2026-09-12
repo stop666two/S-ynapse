@@ -181,6 +181,9 @@ const DEFAULT_FEATURES = {
     enabled: true, maxItems: 5, storageKey: 's-history',
     showOnHome: true, clearable: true
   },
+  printStyle: {
+    enabled: true, hideInteractive: true, expandLinks: true, avoidBreaks: true
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true

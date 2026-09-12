@@ -467,15 +467,17 @@ sitemap: {
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
-| `menu[]` | `[]` | 菜单项 `{label,url,target?,rel?,type}`(type: page/tag/category) |
-| `navbar.fixed` | `true` | 固定头部 |
+| `menu[]` | `[]` | 菜单项 `{label,labelEn?,url,icon?,target?}`（站内路径自动加语言前缀） |
+| `navbar.fixed` | `true` | 吸顶（与 theme.layout.headerStyle 任一 true 即吸顶） |
 | `navbar.showLogo` | `true` | 显示 Logo |
-| `navbar.logoText` | `''` | 自定义 Logo 文本 |
-| `socialInNav.enabled` / `order[]` | `false`/`[]` | 导航社交图标 |
+| `navbar.logoText` | `S-ynapse` | Logo 文字（空回退 site.title） |
+| `navbar.logoImage` / `logoWidth` | `''`/`40px` | 图片 Logo（优先于文字）与显示宽度 |
+| `navbar.shadow` / `breakpoint` | `true`/`768px` | 底部阴影 / 汉堡菜单断点 |
+| `socialInNav.enabled` / `order[]` | `false`/`[]` | 导航社交图标（数据源 site.social.items） |
 | `search.enabled` | `false` | 搜索开关(需要 features.search.enabled) |
-| `search.placeholder` | `搜索...` | 占位文本 |
-| `search.provider` | `local` | 本地索引 |
-| `userMenu.enabled` | `false` | 用户菜单(预留) |
+| `search.placeholder` | `搜索...` | 占位文本（纯本地索引,无第三方 provider） |
+| `navbarOptions.height/glassBlur/glassAlpha` | `60px`/`12px`/`0.8` | 外观选项（优先于 navbar/theme.glass） |
+| `navbarOptions.navGap/navFontSize/iconSize/logoSize/shadowShow` | — | 菜单间距/字号/图标尺寸/Logo 字号/滚动阴影 |
 
 ---
 
@@ -483,17 +485,15 @@ sitemap: {
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
-| `enabled` | `false` | 侧栏总开关 |
-| `position` | `right` | 位置 |
-| `width` | `280px` | 宽度 |
-| `sticky` | `true` | 吸顶 |
-| `mobile.enabled/collapsed/toggleButton/overlay` | `true/true/true/true` | 移动端行为 |
-| `widgets[]` | `[]` | 组件列表(见下) |
+| `enabled` | `true` | 侧栏总开关（关闭后内容区自动加宽居中） |
+| `options.width/gap/radius/padding/titleSize/titleWeight` | `318px`/`1.618rem`/`0.618rem`/`1rem`/`.9375rem`/`600` | 外观选项（width 优先于根级旧键） |
+| `options.hoverLift` / `borderShow` | `true`/`false` | 组件悬停上浮 / 描边显示 |
+| `widgets[]` | `[]` | 组件列表（数组顺序即显示顺序;位置由 theme.layout.sidebarPosition 控制） |
 
 组件类型(`type` 字段):
 - `author` `{title,avatar,bio}`
 - `recent` `{title,count,showDate}`
-- `tags` `{title,limit,showCount}`
+- `tags` `{title,limit,showCount,sortBy,minCount}`
 - `categories` `{title,showCount}`
 - `archive` `{title,showCount}`
 - `search` `{title,placeholder}`
@@ -501,7 +501,7 @@ sitemap: {
 - `stats` `{title}`(需 features.stats.enabled)
 - `series` `{title}`(需 features.series.enabled)
 - `friends` `{title}`(需 friends.json5)
-- `newsletter` `{title,action,buttonText}`
+- `newsletter` `{title,provider,mailchimpAction,buttonText,placeholder}`(mailchimp 表单)
 - `custom` `{title,html}`(原始 HTML)
 
 ---
@@ -510,15 +510,15 @@ sitemap: {
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
-| `copyright` | `''` | 版权文本 |
-| `fromYear` | `''` | 起始年份 |
-| `layout` | `simple` | `simple|multi-column` |
-| `columnItems.enabled` / `items[]` | `true`/`[]` | 多列 `{title,links[{label,url}],html}` |
-| `bottomLinks.enabled` / `items[]` | `true`/`[]` | 底部链接 |
-| `social.enabled` / `iconSize` | `false`/`24px` | 社交图标 |
-| `poweredBy.enabled` / `text` | `false`/`S-ynapse` | Powered by |
-| `beian.enabled` / `icp` / `gongan` | `false`/… | 备案号 |
-| `customHtml` | `''` | 原始 HTML |
+| `copyright` | `© 2026 …` | 版权文本（原样输出,不自动更新年份） |
+| `columns` | `3` | 链接区列数（1–4） |
+| `columnItems.enabled` / `items[]` | `true`/`[]` | 多列 `{enabled,title,titleEn,links[{enabled,label,labelEn,url}],html}` |
+| `bottomLinks.enabled` / `items[]` | `true`/`[]` | 底栏链接（同上链接项结构） |
+| `social.enabled` | `false` | 页脚社交图标行（尺寸/间距见 options.socialIconSize/socialGap） |
+| `poweredBy.enabled` / `text` | `false`/`S-ynapse` | Powered by（repoUrl 有效时自动链接） |
+| `beian.enabled` / `icp` / `gongan` | `false`/… | 备案号（gongan 空则不显示） |
+| `customHtml` | `''` | 原始 HTML（插入页脚顶部） |
+| `options.paddingV/gap/linkSize/copyrightSize/icpSize/socialIconSize/socialGap/linkHoverUnderline` | — | 外观选项 |
 
 ---
 

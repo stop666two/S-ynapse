@@ -1,13 +1,29 @@
+// =====================================================================
+// navigation.json5 — 导航（菜单 / 导航栏 / 社交图标 / 搜索入口 / 外观选项）
+// ---------------------------------------------------------------------
+// 格式: JSON5（允许注释/尾逗号/无引号键名）
+// 生效: 修改后需重新构建（npm run build / npm run serve）
+// 注释模板: 作用 / 类型 / 可填值及含义 / 不可填值及原因 / 推荐 / 注意
+// =====================================================================
 {
-  // ==================== 导航菜单项 ====================
+  // ===================================================================
+  // 一、导航菜单
+  // ===================================================================
+  // 菜单项字段:
+  //   label    中文菜单文字（必填）
+  //   labelEn  英文菜单文字（en 语言站点使用;缺省回退 label）
+  //   url      链接地址（以 / 开头的站内路径会自动补语言前缀,如 /about → /zh/about）
+  //   icon     可选图标名（当前内置: home/archive;缺省则不显示图标）
+  // 不可填: 完整外链（外链请用 target:"_blank" + https 开头的 url）
+  // 注意: 菜单顺序即数组顺序;增删菜单项后需 rebuild
 
   "menu": [
     {
       "label": "首页",
       "labelEn": "Home",
-      "url": "/",          // 链接地址
-      "icon": "home",      // 图标名称（可选）
-      "target": "_self"    // 打开方式：_self / _blank
+      "url": "/",
+      "icon": "home",
+      "target": "_self"
     },
     {
       "label": "归档",
@@ -27,62 +43,138 @@
     }
   ],
 
-  // ==================== 导航栏设置 ====================
+  // ===================================================================
+  // 二、导航栏基础设置
+  // ===================================================================
 
   "navbar": {
-    "fixed": true,              // 是否固定导航栏在顶部
-    "showLogo": true,           // 是否显示 Logo
-    "logoText": "S-ynapse",     // Logo 文字（未设置图片时使用）
-    "logoImage": "",            // Logo 图片路径（为空则使用文字）
-    "logoWidth": "40px",        // Logo 图片宽度
-    "sticky": true,             // 是否粘性定位
-    "transparent": false,       // 是否透明背景
-    "shadow": true,             // 是否显示阴影
-    "mobileCollapse": true,     // 移动端是否折叠菜单
-    "breakpoint": "768px"       // 移动端断点
+    // 导航栏吸顶
+    // 作用: 滚动时固定在顶部（fixed 定位）
+    // 类型: boolean | 可填: true(推荐)/false(随页面滚动)
+    // 注意: 与 theme.layout.headerStyle 共同决定,任一为 fixed 即吸顶
+    "fixed": true,
+
+    // 显示 Logo
+    // 作用: 导航栏左侧品牌区显隐总开关
+    // 类型: boolean | 可填: true/false | 推荐: true
+    "showLogo": true,
+
+    // Logo 文字
+    // 作用: 品牌区文字;留空回退 site.title（v1.0.3+ 正式接线）
+    // 类型: string | 可填: 短品牌词 | 推荐: 与站点同名
+    "logoText": "S-ynapse",
+
+    // Logo 图片
+    // 作用: 使用图片 Logo（设置后优先于 logoText 显示）
+    // 类型: string（站内路径或 https URL）
+    // 可填: "/media/logo.png" 等方形/横版小图
+    // 不可填: 超大尺寸图（会挤压导航;建议高度 ≤ 2× 导航高度）
+    // 推荐: 默认空（使用文字 Logo）
+    "logoImage": "",
+
+    // Logo 图片宽度
+    // 作用: 图片 Logo 的显示宽度（高度按比例自适应）
+    // 类型: string（CSS 长度） | 可填: "24px"–"120px" | 推荐: "40px"
+    // 注意: 仅 logoImage 非空时生效
+    "logoWidth": "40px",
+
+    // 导航栏底部阴影
+    // 作用: 吸顶导航下方的分隔阴影
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 可被 navbarOptions.shadowShow 覆盖
+    "shadow": true,
+
+    // 移动端断点
+    // 作用: 屏幕宽度小于该值时切换为汉堡菜单（抽屉式）
+    // 类型: string（CSS 长度） | 可填: "640px"–"1024px" | 推荐: "768px"
+    // 不可填: 百分比（媒体查询不支持）
+    "breakpoint": "768px"
   },
 
-  // ==================== 导航栏社交图标 ====================
+  // ===================================================================
+  // 三、导航栏社交图标
+  // ===================================================================
 
   "socialInNav": {
-    "enabled": true,                         // 是否在导航栏显示社交图标
-    "order": ["github", "rss", "email", "qq", "qqgroup", "wechat", "phone"]    // 图标显示顺序（与 site.social.items 中的 key 对应）
+    // 是否显示社交图标区
+    // 作用: 导航栏右侧图标组（图标数据来自 site.social.items）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 只显示 site.social.items 中 enabled=true 的项
+    "enabled": true,
+
+    // 图标顺序
+    // 作用: 指定图标显示顺序（数组顺序即渲染顺序）
+    // 类型: string[]（site.social.items 的键名列表）
+    // 可填: ["github","rss","email","qq","qqgroup","wechat","phone"] 的任意子集
+    // 不可填: 不存在的键名（会被跳过）;未列出的项不会显示
+    // 推荐: 按使用频率排序,控制在 3–6 个
+    "order": ["github", "rss", "email", "qq", "qqgroup", "wechat", "phone"]
   },
 
-  // ==================== 搜索功能 ====================
+  // ===================================================================
+  // 四、搜索入口
+  // ===================================================================
+  // 说明: 搜索为纯本地实现（构建期生成 search-index.json,前端即时检索）,
+  //       不依赖第三方服务;搜索关键词与结果上限等行为参数见 features.search。
 
   "search": {
-    "enabled": true,               // 是否启用搜索
-    "placeholder": "搜索文章...",   // 搜索框占位文字
-    "provider": "local",           // 搜索方式：local（本地搜索）/ algolia
-    "algolia": {                   // Algolia 搜索配置（当 provider 为 algolia 时使用）
-      "appId": "",
-      "apiKey": "",
-      "indexName": "posts"
-    }
+    // 是否启用导航搜索入口
+    // 作用: 显示搜索按钮与搜索弹层（Ctrl+K 快捷键同效）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 需 features.search.enabled 同时为 true,否则入口无效
+    "enabled": true,
+
+    // 搜索框占位文字（中文）
+    // 作用: 导航搜索弹层的 placeholder;en 站点由 ui-strings.json5 覆盖
+    // 类型: string | 推荐: "搜索文章..."
+    "placeholder": "搜索文章..."
   },
 
-  // ==================== 用户菜单 ====================
-
-  // ==================== 导航栏外观选项 ====================
+  // ===================================================================
+  // 五、导航栏外观选项（细粒度微调,优先级高于 navbar 基础设置）
+  // ===================================================================
 
   "navbarOptions": {
-    "height": "60px",              // 导航栏高度
-    "sticky": true,                // 固定吸顶（滚动时保持可见）
-    "glassBlur": "12px",           // 毛玻璃模糊半径（0 = 关闭毛玻璃）
-    "glassAlpha": 0.8,             // 毛玻璃背景不透明度（0~1）
-    "navGap": ".25rem",            // 菜单项之间的间距
-    "logoSize": "1.272em",         // Logo 字号（黄金 √φ）
-    "navFontSize": ".9375rem",     // 菜单项字号
-    "iconSize": "18px",            // 图标尺寸
-    "shadowShow": true             // 滚动时显示底部阴影
-  },
+    // 导航栏高度
+    // 作用: --hh 高度;锚点滚动偏移与内容顶部留白联动
+    // 类型: string（CSS 长度） | 可填: "48px"–"80px" | 推荐: "60px"
+    "height": "60px",
 
-  "userMenu": {
+    // 毛玻璃模糊半径
+    // 作用: backdrop-filter blur 强度（0 = 关闭毛玻璃变纯色）
+    // 类型: string（CSS 长度;可省略 px,构建自动补） | 可填: "0px"–"24px" | 推荐: "12px"
+    // 注意: 优先级高于 theme.glass.blur
+    "glassBlur": "12px",
 
-    "enabled": false,       // 是否启用用户菜单（多用户系统）
-    "loginUrl": "/login",   // 登录页面 URL
-    "logoutUrl": "/logout", // 退出登录 URL
-    "profileUrl": "/profile" // 个人中心 URL
+    // 毛玻璃背景不透明度
+    // 作用: 导航背景 rgba 的 alpha（0~1,越大越实）
+    // 类型: number | 可填: 0–1 | 推荐: 0.8
+    // 注意: 优先级高于 theme.glass.alpha;暗色模式透明度见 theme.glass.darkAlpha
+    "glassAlpha": 0.8,
+
+    // 菜单项间距
+    // 作用: 导航菜单项之间的水平间距
+    // 类型: string（CSS 长度） | 可填: ".1rem"–".75rem" | 推荐: ".25rem"
+    "navGap": ".25rem",
+
+    // Logo 字号
+    // 作用: 品牌文字大小（黄金 √φ ≈ 1.272em）
+    // 类型: string（CSS 长度） | 可填: "1rem"–"1.618em" | 推荐: "1.272em"
+    "logoSize": "1.272em",
+
+    // 菜单项字号
+    // 类型: string（CSS 长度） | 可填: ".8125rem"–"1rem" | 推荐: ".9375rem"（15px）
+    "navFontSize": ".9375rem",
+
+    // 图标尺寸
+    // 作用: 导航栏社交/功能图标尺寸（SVG width/height）
+    // 类型: string（CSS 长度） | 可填: "14px"–"24px" | 推荐: "18px"
+    "iconSize": "18px",
+
+    // 滚动阴影
+    // 作用: 页面滚动后显示导航栏底部阴影（未滚动时保持干净）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 覆盖 navbar.shadow
+    "shadowShow": true
   }
 }

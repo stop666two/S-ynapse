@@ -1,123 +1,192 @@
+// =====================================================================
+// sidebar.json5 — 侧栏（开关 / 外观 / 组件列表）
+// ---------------------------------------------------------------------
+// 格式: JSON5（允许注释/尾逗号/无引号键名）
+// 生效: 修改后需重新构建（npm run build / npm run serve）
+// 注释模板: 作用 / 类型 / 可填值及含义 / 不可填值及原因 / 推荐 / 注意
+// 说明: 侧栏位置（left/right）由 theme.layout.sidebarPosition 控制;
+//       移动端抽屉行为由响应式 CSS 自动处理（无需配置）
+// =====================================================================
 {
-  // ==================== 侧边栏全局 ====================
+  // ===================================================================
+  // 一、侧栏总开关
+  // ===================================================================
 
-  "enabled": true,              // 是否启用侧边栏
-  "position": "right",          // 侧边栏位置：left / right
-  "width": "280px",             // 侧边栏宽度
-  "sticky": true,               // 是否启用粘性定位（滚动时保持）
-  "stickyOffset": 20,           // 粘性定位距离顶部偏移（px）
+  // 是否启用侧栏
+  // 作用: 全站右侧/左侧边栏的显示总开关（文章页与首页/列表页同时生效）
+  // 类型: boolean | 可填: true/false | 推荐: true
+  // 注意: 关闭后内容区自动居中加宽;文章 TOC 不受影响
+  "enabled": true,
 
-  // ==================== 侧栏外观选项 ====================
+  // ===================================================================
+  // 二、外观选项（单开关源:此处优先于 sidebar 根级旧键）
+  // ===================================================================
 
   "options": {
-    "width": "318px",              // 侧栏宽度（默认 = 目录 200px × 黄金 φ）
-    "gap": "1.618rem",             // 组件之间的垂直间距（黄金 φ）
-    "radius": "0.618rem",          // 组件圆角（黄金）
-    "padding": "1rem",             // 组件内边距
-    "titleSize": ".9375rem",       // 组件标题字号
-    "titleWeight": 600,            // 组件标题字重
-    "hoverLift": true,             // 组件悬停轻微上浮
-    "borderShow": false,           // 显示组件描边（默认用阴影）
-    "collapseOnMobile": true,      // 移动端折叠为抽屉
-    "scrollFollow": true           // 滚动时组件跟随（粘性）
+    // 侧栏宽度
+    // 作用: --sw 侧栏列宽（默认 318px = 目录 200 × φ 的取整微调）
+    // 类型: string（CSS 长度） | 可填: "240px"–"360px" | 推荐: "318px"
+    // 注意: 需与 theme.density.sidebarWidth 保持同一量级,避免布局断点错位
+    "width": "318px",
+
+    // 组件垂直间距
+    // 作用: 侧栏组件（卡片）之间的 margin-bottom
+    // 类型: string（CSS 长度） | 可填: "0.75rem"–"2.5rem" | 推荐: "1.618rem"（φ）
+    "gap": "1.618rem",
+
+    // 组件圆角
+    // 类型: string（CSS 长度） | 可填: 与全局圆角一致的档位值 | 推荐: "0.618rem"
+    "radius": "0.618rem",
+
+    // 组件内边距
+    // 类型: string（CSS 长度） | 可填: ".75rem"–"1.5rem" | 推荐: "1rem"
+    "padding": "1rem",
+
+    // 组件标题字号
+    // 类型: string（CSS 长度） | 可填: ".8125rem"–"1.125rem" | 推荐: ".9375rem"（15px）
+    "titleSize": ".9375rem",
+
+    // 组件标题字重
+    // 类型: number | 可填: 500–800 | 推荐: 600
+    "titleWeight": 600,
+
+    // 组件悬停上浮
+    // 作用: 鼠标悬停组件时轻微上移（-2px）+ 过渡
+    // 类型: boolean | 可填: true/false | 推荐: true
+    "hoverLift": true,
+
+    // 组件描边
+    // 作用: 为组件添加 1px 边框（默认仅用阴影分隔）
+    // 类型: boolean | 可填: true/false | 推荐: false（阴影层次更轻）
+    "borderShow": false
   },
 
-  // ==================== 侧边栏组件列表 ====================
+  // ===================================================================
+  // 三、组件列表（数组顺序即显示顺序;enabled=false 的项会被跳过）
+  // ===================================================================
+  // 每个组件通用字段:
+  //   type    组件类型（不可填未支持的类型,可选值见下方各段）
+  //   enabled 该项开关
+  //   title   组件标题（中文）;缺省时使用各类型内置默认文案
+  //   titleEn 组件标题（英文）
 
   "widgets": [
+    // 作者卡片（类型: author）
+    // 字段: avatar 头像图片路径（空则按 theme.avatar.badge 生成首字母徽章）
+    //       bio    个人简介（一句话,空则不显示）
     {
-      "type": "author",          // 组件类型：author - 作者简介卡片
-      "enabled": true,           // 是否启用该组件
+      "type": "author",
+      "enabled": true,
       "title": "关于我",
-        "titleEn": "About Me",         // 组件标题
-      "avatar": "/media/avatar.svg",  // 头像图片路径
-      "bio": "全栈开发者，热爱开源",    // 个人简介
-      "social": true             // 是否显示社交链接
+      "titleEn": "About Me",
+      "avatar": "/media/avatar.svg",
+      "bio": "全栈开发者，热爱开源"
     },
+    // 最新文章（类型: recent）
+    // 字段: count    显示条数（1–20）
+    //       showDate 是否在条目下方显示日期（bool）
     {
-      "type": "recent",          // 组件类型：recent - 最近文章列表
+      "type": "recent",
       "enabled": true,
       "title": "最新文章",
-        "titleEn": "Recent Posts",
-      "count": 5,                // 显示文章数量
-      "showDate": true,          // 是否显示日期
-      "excludeDrafts": true      // 是否排除草稿
+      "titleEn": "Recent Posts",
+      "count": 5,
+      "showDate": true
     },
+    // 标签云（类型: tags）
+    // 字段: limit    最多显示标签数（1–50;缺省不限）
+    //       showCount 是否显示每标签文章数（bool）
+    //       sortBy   排序方式: count(按文章数,推荐)/name(按名称)
+    //       minCount 过滤阈值: 仅显示文章数 ≥ 该值的标签（1 = 不过滤）
     {
-      "type": "tags",            // 组件类型：tags - 标签云
+      "type": "tags",
       "enabled": true,
       "title": "标签云",
-        "titleEn": "Tag Cloud",
-      "limit": 20,               // 最多显示标签数
-      "showCount": true,         // 是否显示文章数量
-      "sortBy": "count",         // 排序方式：count / name
-      "minCount": 1              // 最小文章数量过滤
+      "titleEn": "Tag Cloud",
+      "limit": 20,
+      "showCount": true,
+      "sortBy": "count",
+      "minCount": 1
     },
+    // 分类列表（类型: categories）
+    // 字段: showCount 是否显示每分类文章数（bool）
     {
-      "type": "categories",      // 组件类型：categories - 分类列表
+      "type": "categories",
       "enabled": true,
       "title": "分类",
-        "titleEn": "Categories",
-      "showCount": true,         // 是否显示文章数量
-      "hierarchy": true          // 是否显示层级结构
+      "titleEn": "Categories",
+      "showCount": true
     },
+    // 归档入口（类型: archive）
+    // 字段: showCount 是否显示每月文章数（bool）
     {
-      "type": "archive",         // 组件类型：archive - 文章归档
+      "type": "archive",
       "enabled": true,
       "title": "归档",
-        "titleEn": "Archive",
-      "showCount": true          // 是否显示每月文章数量
+      "titleEn": "Archive",
+      "showCount": true
     },
+    // 系列文章（类型: series;存在系列文章时自动显示）
+    // 字段: count 最多显示系列数（1–20）
     {
-      "type": "series",          // 组件类型：series - 系列文章（有系列文章时自动展示）
+      "type": "series",
       "enabled": true,
       "title": "系列文章",
-        "titleEn": "Series",
-      "count": 8                 // 最多显示系列数
+      "titleEn": "Series",
+      "count": 8
     },
+    // 搜索框（类型: search;点击/回车打开全站搜索弹层）
+    // 字段: placeholder 输入框占位文字
     {
-      "type": "search",          // 组件类型：search - 搜索框
+      "type": "search",
       "enabled": true,
       "title": "搜索",
-        "titleEn": "Search",
-      "placeholder": "输入关键词..."  // 搜索框占位文字
+      "titleEn": "Search",
+      "placeholder": "输入关键词..."
     },
+    // 站点统计（类型: stats;默认关闭）
+    // 字段: 无（数据自动计算:文章数/总字数/标签数/分类数）
+    // 注意: 需 features.stats.enabled 且 features.stats.showSidebar 不为 false
     {
-      "type": "stats",           // 组件类型：stats - 站点统计（文章/字数/标签/分类）
-      "enabled": false,           // 默认关闭；若 true 在前台显示（存档页不受此开关影响）
+      "type": "stats",
+      "enabled": false,
       "title": "站点统计",
-        "titleEn": "Site Stats"
+      "titleEn": "Site Stats"
     },
+    // 自定义 HTML（类型: custom;直接注入原始 HTML 片段）
+    // 字段: html 任意 HTML（构建时按原文输出）
+    // 不可填: 不受信任的第三方脚本（受 security.json5 CSP 限制且存在安全风险）
     {
-      "type": "custom",          // 组件类型：custom - 自定义 HTML
+      "type": "custom",
       "enabled": false,
       "title": "自定义位",
-        "titleEn": "Custom",
+      "titleEn": "Custom",
       "html": "<div>自定义内容</div>"
     },
+    // 邮件订阅（类型: newsletter）
+    // 字段: provider        订阅服务商（当前支持 mailchimp）
+    //       mailchimpAction Mailchimp 表单 action URL（以 https:// 开头的托管表单地址）
+    //       buttonText      订阅按钮文字
+    //       placeholder     邮箱输入框占位文字
+    // 不可填: 空 action（表单无法提交;将保持占位 "#"）
+    // 注意: 表单以新窗口提交到服务商页面,本站不处理订阅数据
     {
-      "type": "newsletter",      // 组件类型：newsletter - 邮件订阅
+      "type": "newsletter",
       "enabled": false,
       "title": "订阅更新",
-        "titleEn": "Subscribe",
-      "provider": "mailchimp",   // 订阅服务提供商
-      "mailchimpAction": "",     // Mailchimp 表单 action URL
-      "buttonText": "订阅"       // 订阅按钮文字
+      "titleEn": "Subscribe",
+      "provider": "mailchimp",
+      "mailchimpAction": "",
+      "buttonText": "订阅",
+      "placeholder": "输入邮箱"
     },
+    // 每日一言（类型: quote;文案与刷新频率见 features.dailyQuote）
+    // 字段: 无（标题缺省使用 features.dailyQuote.label）
     {
-      "type": "quote",         // 组件类型：quote - 每日一言
-      "enabled": true,         // 是否启用该组件
+      "type": "quote",
+      "enabled": true,
       "title": "每日一言",
-        "titleEn": "Daily Quote"      // 组件标题
+      "titleEn": "Daily Quote"
     }
-  ],
-
-  // ==================== 移动端适配 ====================
-
-  "mobile": {
-    "enabled": true,             // 移动端是否启用侧边栏
-    "collapsed": true,           // 默认是否折叠
-    "toggleButton": true,        // 是否显示切换按钮
-    "overlay": true              // 展开时是否显示遮罩层
-  }
+  ]
 }

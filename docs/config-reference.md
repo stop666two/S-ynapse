@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(80 模块)](#3-featuresjson5--功能总控80-模块)
+3. [features.json5 — 功能总控(81 模块)](#3-featuresjson5--功能总控81-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -227,7 +227,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(80 模块)
+## 3. features.json5 — 功能总控(81 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -408,7 +408,7 @@ sitemap: {
 `enabled true` / `persistOrder true` / `storageKey 's-sidebarOrder'` / `touchLongPress true` / `showHandleOnHover true` / `resetOnLoadFail true`。用户可拖拽侧栏 widget 重排顺序,存储于 localStorage;移动端长按 500ms 触发。
 
 ### 3.44 ogImageStyle — 社交卡片样式
-`enabled true` / `pattern 'gradient'` / `preview true` / `preferImage true`。自动生成 OG 图片(基于文章卡片),与 site.seo.ogImage 联动。
+`enabled true` / `template 'aurora'`(`aurora|mesh|grid|paper|duotone`;无封面文章的 OG 底图模板) / `palette 'theme'`(`theme|hash`;hash=按首个分类名哈希取色,同分类同色) / `showCategory true`(封面角标) / `align 'center'`(`center|left`) / `showSite true`(站点名) / `useGradient true` / `gradientAngle '135deg'` / `fontSizeBase 64` / `maxLines 4` / `letterSpacing '0.02em'`。构建期为无封面文章生成模板化 OG 图(1200×630;尺寸与字号缩放经 `site.seo.ogImage` 的 width/height/fontScale 控制);有封面文章走"封面+底部渐变条"合成 — `scripts/generate-og.js`。
 
 ### 3.45 hero — 首页 Hero
 `enabled true` / `showSearch true` / `showTags true` / `tagCount 5` / `showDate false`(显示最新文章日期) / `ctaLabelEn View all posts`(en CTA 文案) / `heightVh 60`(Hero 最小高度 vh) / `backgroundImage ''`(背景图 URL,空则纯色/渐变)。首页顶部横幅,显示标题简介+搜索+热门标签。
@@ -475,6 +475,10 @@ sitemap: {
 ### 3.63 speculation — 预取/预渲染
 
 `enabled true` / `mode 'both'`(`prefetch|prerender|both`) / `eagerness 'moderate'`(`moderate|eager|conservative`) / `delivery 'inline'`(`inline`=内联脚本+页内开关可控;`header`=构建 `speculation-rules.json` 并以 `Speculation-Rules` 响应头下发(Speed Brain 会礼让),页内开关不生效;`both`=双下发) / `excludeSelectors ['[download]','[rel~=nofollow]','.no-speculate']` / `toggle { show true, defaultOn true, storageKey 's-speculation' }`。基于 Speculation Rules（悬停约 200ms 预取/预渲染，仅 Chromium 系生效，其余浏览器自动忽略）：排除选择器与含查询串 URL；CSP 已加 `'inline-speculation-rules'` 关键字；预渲染期间统计信标与 Service Worker 注册经 `document.prerendering` 守门延后到 `prerenderingchange`（避免重复计数与副作用）；页内开关同样带记忆。
+
+### 3.64 cardFx — 卡片视觉增强
+
+`enabled true` / `coverOverlay true`(封面底部渐变遮罩) / `categoryChip true`(左下分类色标;按分类名哈希取色经 `--cat-h` 驱动,同分类同色) / `readTimeBadge true`(右上阅读时长徽章) / `hoverShine true`(悬停光泽扫过,自动尊重 reduced-motion)。作用于首页与标签页文章卡片 — `templates/index.ejs` + `templates/tag.ejs` + `templates/layout.ejs`。
 
 ---
 

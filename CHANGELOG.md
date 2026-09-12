@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **封面模板系统（A1）**：`features.ogImageStyle` 接入构建期 OG 图生成——模板（`template`：aurora/mesh/grid/paper/duotone 五种，默认 aurora）、配色（`palette theme|hash`——hash 按分类名哈希取色、同分类同色，默认 theme）、分类角标（`showCategory`）；`site.seo.ogImage` 的 width/height/fontScale 实际生效（默认 1200×630/0.75）；无封面文章与有封面文章分别走模板底/封面合成两条路径 — `scripts/generate-og.js` + `features.json5` + `scripts/lib/features-schema.js`
+- **卡片视觉增强（A2）**：`features.cardFx`（coverOverlay 封面底部渐变遮罩 / categoryChip 分类色标——按分类名哈希取色经 `--cat-h` 驱动 / readTimeBadge 阅读时长徽章 / hoverShine 悬停光泽扫过）；作用于首页与标签页文章卡片；悬停光泽尊重 reduced-motion — `templates/index.ejs` + `templates/tag.ejs` + `templates/layout.ejs` + `features.json5` + `scripts/lib/features-schema.js`
 - **阅读套件（B2）**：TOC 二级分组折叠（`toc.groupCollapse`，箭头收起/展开三级项）；移动端目录胶囊按钮升级为"当前章节名 + 阅读进度百分比"（`mobileToc.showCurrent`）；阅读位置记忆（`readingProgress.rememberPosition` + `rememberPositionMaxAgeHours`，同文章回访恢复滚动位置，哈希导航与前进/后退自动跳过） — `js/domains/toc.js` + `js/domains/read-position.js` + `templates/layout.ejs` + `features.json5`
 - **预渲染增强（B1）**：`speculation.delivery` 三态（`inline` 默认/`header`/`both`）——`header` 模式构建 `speculation-rules.json` 并经 `_headers` 以 `Speculation-Rules` 响应头 + `application/speculationrules+json` MIME 下发（Cloudflare Speed Brain 检测到自有规则会礼让，避免双重投机；该模式下页内开关自动隐藏） — `scripts/build.js` + `js/domains/seamless-nav.js` + `features.json5`
 - **图片管线增强（A5/B5）**：构建期 LQIP 模糊占位（内联 `data-lqip`，运行时经 imageLazy 应用到图片背景，同时加入 sanitize 属性白名单）、AVIF 变体默认开启（effort 5）、srcset sizes 默认改为 `(max-width:768px) 100vw, 768px`、文章首图 `<link rel=preload as=image fetchpriority=high>`（`site.performance.preloadFeaturedImage`，可关） — `scripts/build.js` + `js/domains/image-lazy.js` + `scripts/lib/utils.js` + `site.json5` + `features.json5`

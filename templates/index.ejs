@@ -22,7 +22,7 @@
 </section>
 <% } %>
 <% if (articles && articles.length) { %>
-<div class="blog-grid">
+<div class="blog-grid<%= (typeof tuning!=='undefined'&&tuning.card&&tuning.card.bentoFeatured===false)?'':' bento' %>">
 <% articles.forEach(function(article) { %>
 <article class="post-card">
   <% if (article.featuredImage) { %>

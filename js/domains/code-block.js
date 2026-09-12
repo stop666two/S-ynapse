@@ -13,7 +13,7 @@ if(!lang&&code0){var m=code0.className.match(/language-([\w-]+)/);lang=m?m[1]:''
 if(win&&!p.classList.contains('code-window')){
 var bar=document.createElement('div');bar.className='code-windowbar';
 bar.innerHTML='<span class="cw-dots"><span class="cw-dot cw-red"></span><span class="cw-dot cw-yellow"></span><span class="cw-dot cw-green"></span></span>';
-if(lang){var l=document.createElement('span');l.className='cw-lang';l.textContent=lang;bar.appendChild(l)}
+if(lang&&CB0.showLanguageTag!==false){var l=document.createElement('span');l.className='cw-lang';l.textContent=lang;bar.appendChild(l)}
 p.parentNode.insertBefore(bar,p);p.classList.add('code-window')}
 var row=document.createElement('div');row.className='code-actions';
 if(vis!=='never'){

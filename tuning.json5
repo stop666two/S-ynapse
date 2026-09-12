@@ -160,6 +160,10 @@
     "gridGap": "1.618rem",
     // 封面图悬停缩放（1 = 不缩放）
     "imageHoverScale": "1.02",
+    // 首页首篇大卡（Bento 布局；false = 全部等宽卡片）
+    "bentoFeatured": true,
+    // 首篇大卡封面宽高比
+    "bentoAspect": "21/10",
   },
 
   // ---------- 目录侧栏（9 项） ----------

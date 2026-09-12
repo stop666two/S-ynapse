@@ -293,11 +293,10 @@
   // ==================== 外部资源 ====================
 
   "externalAssets": {
-    "styles": [                    // 外部 CSS 文件 URL 列表
-      "https://fonts.googleapis.com/css2?family=Inter&display=swap"
+    "styles": [                    // 外部 CSS 文件 URL 列表（字体链路由 fontSystem 自动注入本地/外部样式）
     ],
-    "scripts": [                   // 外部 JS 文件 URL 列表
-      "https://cdn.jsdelivr.net/npm/prismjs@1/prism.min.js"
+    "scripts": [                   // 外部 JS 文件 URL 列表（Prism 已本地化：构建从 node_modules 复制到 assets/vendor）
+      "/assets/vendor/prism.js"
     ]
   },
 

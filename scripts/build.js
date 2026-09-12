@@ -318,10 +318,12 @@ const FONT_STACKS = {
   'noto-serif': "'Noto Serif SC',Georgia,'Songti SC','STSong','SimSun',serif",
   system: "-apple-system,BlinkMacSystemFont,'Segoe UI'," + CJK_FALLBACK
 };
+// FONT_LINKS — 字体样式入口：inter/sora/manrope 使用本地 vendor 版本（离线可用）；
+// noto 系列为 CJK 网络字体（体积过大）保留外部 CDN，加载失败时自动回退系统字体链。
 const FONT_LINKS = {
-  inter: 'https://fonts.googleapis.com/css2?family=Inter&display=swap',
-  sora: 'https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap',
-  manrope: 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap',
+  inter: '/assets/vendor/fonts/inter.css',
+  sora: '/assets/vendor/fonts/sora.css',
+  manrope: '/assets/vendor/fonts/manrope.css',
   'noto-sans': 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap',
   'noto-serif': 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap',
   system: null,
@@ -2374,6 +2376,55 @@ function copyJsAssets() {
   console.log('  Copied js/ assets to /assets/js/');
 }
 
+// copyVendorAssets — 本地化第三方前端资产（Prism / Mermaid / KaTeX / 字体）。
+// 源：node_modules（随项目安装）；产物：dist/assets/vendor/**（同源加载，CSP 'self' 即可，不再依赖外部 CDN）。
+const PRISM_LANGS = ['bash', 'diff', 'json', 'python', 'typescript', 'yaml', 'sql', 'markdown'];
+const VENDOR_FONTS = {
+  inter: { family: 'Inter', weights: [400, 500, 600, 700] },
+  sora: { family: 'Sora', weights: [400, 500, 600, 700] },
+  manrope: { family: 'Manrope', weights: [400, 500, 600, 700, 800] }
+};
+const NODE_MODULES = path.join(ROOT, 'node_modules');
+
+function copyVendorAssets() {
+  const VENDOR = path.join(DIST_DIR, 'assets', 'vendor');
+  fs.mkdirSync(VENDOR, { recursive: true });
+  // Prism：核心 + 常用语言组件（构建期拼接为单文件；新增语言在 PRISM_LANGS 登记）
+  let prism = fs.readFileSync(path.join(NODE_MODULES, 'prismjs', 'prism.js'), 'utf-8');
+  PRISM_LANGS.forEach(function (lang) {
+    const f = path.join(NODE_MODULES, 'prismjs', 'components', 'prism-' + lang + '.min.js');
+    if (fs.existsSync(f)) prism += '\n' + fs.readFileSync(f, 'utf-8');
+  });
+  fs.writeFileSync(path.join(VENDOR, 'prism.js'), prism);
+  // Mermaid：单文件压缩版（仅图表文章按需加载）
+  fs.copyFileSync(path.join(NODE_MODULES, 'mermaid', 'dist', 'mermaid.min.js'), path.join(VENDOR, 'mermaid.min.js'));
+  // KaTeX：js/css/auto-render + 字体目录（CSS 以相对路径引用 fonts/）
+  const KATEX = path.join(VENDOR, 'katex');
+  fs.mkdirSync(path.join(KATEX, 'contrib'), { recursive: true });
+  fs.mkdirSync(path.join(KATEX, 'fonts'), { recursive: true });
+  fs.copyFileSync(path.join(NODE_MODULES, 'katex', 'dist', 'katex.min.js'), path.join(KATEX, 'katex.min.js'));
+  fs.copyFileSync(path.join(NODE_MODULES, 'katex', 'dist', 'katex.min.css'), path.join(KATEX, 'katex.min.css'));
+  fs.copyFileSync(path.join(NODE_MODULES, 'katex', 'dist', 'contrib', 'auto-render.min.js'), path.join(KATEX, 'contrib', 'auto-render.min.js'));
+  const kFontsSrc = path.join(NODE_MODULES, 'katex', 'dist', 'fonts');
+  fs.readdirSync(kFontsSrc).forEach(function (f) { fs.copyFileSync(path.join(kFontsSrc, f), path.join(KATEX, 'fonts', f)); });
+  // 字体：按需复制 latin 子集 woff2 并生成 @font-face CSS（中文由系统字体链回退）
+  const FONTS = path.join(VENDOR, 'fonts');
+  fs.mkdirSync(FONTS, { recursive: true });
+  Object.keys(VENDOR_FONTS).forEach(function (name) {
+    const cfg = VENDOR_FONTS[name];
+    let css = '';
+    cfg.weights.forEach(function (w) {
+      const file = name + '-latin-' + w + '-normal.woff2';
+      const src = path.join(NODE_MODULES, '@fontsource', name, 'files', file);
+      if (!fs.existsSync(src)) return;
+      fs.copyFileSync(src, path.join(FONTS, file));
+      css += '@font-face{font-family:\'' + cfg.family + '\';font-style:normal;font-weight:' + w + ';font-display:swap;src:url(\'./' + file + '\') format(\'woff2\')}\n';
+    });
+    fs.writeFileSync(path.join(FONTS, name + '.css'), css);
+  });
+  console.log('  Copied vendor assets to /assets/vendor/ (prism/mermaid/katex/fonts)');
+}
+
 async function generatePWA(config) {
   if (!config.site.pwa || !config.site.pwa.enabled) {
     console.log('  [SKIP] PWA generation disabled');
@@ -2512,6 +2563,7 @@ async function build() {
     await minifyAll(config);
     await cacheBust(config);
     copyJsAssets();
+    copyVendorAssets();
     await generatePWA(config);
     if (hooks && hooks.postBuild) {
       await hooks.postBuild(config, {

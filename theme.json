@@ -23,14 +23,16 @@
   // ==================== 字体系统 ====================
   // stack: inter / noto-sans(思源黑体) / noto-serif(思源宋体) / system / custom
   // scale: 全局字号缩放 0.9~1.2（1=100%）
-  // headingStack: inherit=跟随整体 / sans=无衬线 / serif=衬线
-  // numbersMono: 统计数字用等宽字体（阅读面板、统计卡）
+  // displayStack: 展示层字体（h1/hero 大标题/站点 Logo）——sora / manrope / 同 stack 枚举；中文自动回退 CJK 字体链
+  // headingStack: 次级标题字体（h2-h6/卡片标题/部件标题）；inherit=跟随整体 / sans=无衬线 / serif=衬线 / sora / manrope
+  // numbersMono: 统计数字用等宽字体（阅读面板、统计卡片）
   "fontSystem": {
     "stack": "inter",
     "customStack": "",
     "scale": 1,
     "bodyWeight": 400,
-    "headingStack": "inherit",
+    "displayStack": "sora",
+    "headingStack": "manrope",
     "numbersMono": true
   },
 

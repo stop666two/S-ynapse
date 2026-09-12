@@ -1368,13 +1368,13 @@
       // 是否启用粒子动画(仅 background.mode=particles 时生效)。
       enabled: true,
       // 粒子数量(10~120,越少越省电)。
-      count: 55,
+      count: 72,
       // 粒子运动速度(0.2~2,越大动感越强)。
       speed: 0.5,
       // 粒子连线距离(px),超过此距离不连线。
       linkDistance: 120,
       // 粒子不透明度(0~1)。
-      opacity: 0.6,
+      opacity: 0.7,
       // 是否绘制粒子间连线。
       showLines: true,
       // 触屏设备/窄屏(<640px)自动关闭粒子(性能保护)。

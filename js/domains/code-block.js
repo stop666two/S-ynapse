@@ -4,6 +4,7 @@ var F=window.__FEATURES__||{};
 var CB0=(F&&F.codeBlock)||{};var win=CB0.windowBar!==false;var vis=CB0.copyButtonVisibility||'hover';var th=CB0.maxHeightVh?parseInt(CB0.maxHeightVh)||0:0;
 var IC={dl:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',exp:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6,9 12,15 18,9"/></svg>',col:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="18,15 12,9 6,15"/></svg>'};
 document.querySelectorAll('.post-content pre').forEach(function(p){
+if(p.getAttribute('data-language')==='mermaid'||p.querySelector('div.mermaid')||p.querySelector('code.language-mermaid'))return;
 var code0=p.querySelector('code');
 var CB=(F&&F.codeCopy)||{};var COPYT=CB.buttonText||__T('toolbar.copyCode','复制代码'),COPIED=CB.copiedText||__T('toolbar.copied','已复制'),COPYTIMEOUT=isNaN(+CB.buttonTimeout)?1500:+CB.buttonTimeout;
 if(code0&&code0.classList.contains('language-mermaid'))return;

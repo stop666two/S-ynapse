@@ -308,14 +308,20 @@ function applyDensity(theme) {
 }
 
 // FONT_STACKS — fontSystem.stack 预设枚举 → CSS font-family 栈。
+// CJK_FALLBACK：统一中文字体回退链（鸿蒙 → 苹方 → 微软雅黑 UI → 雅黑），中西混排观感一致。
+const CJK_FALLBACK = "'PingFang SC','HarmonyOS Sans SC','Microsoft YaHei UI','Microsoft YaHei',sans-serif";
 const FONT_STACKS = {
-  inter: "'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
-  'noto-sans': "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif",
-  'noto-serif': "'Noto Serif SC', Georgia, 'Songti SC', serif",
-  system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+  inter: "'Inter','Segoe UI','Helvetica Neue',Arial," + CJK_FALLBACK,
+  sora: "'Sora','Inter','Segoe UI'," + CJK_FALLBACK,
+  manrope: "'Manrope','Inter','Segoe UI'," + CJK_FALLBACK,
+  'noto-sans': "'Noto Sans SC'," + CJK_FALLBACK,
+  'noto-serif': "'Noto Serif SC',Georgia,'Songti SC','STSong','SimSun',serif",
+  system: "-apple-system,BlinkMacSystemFont,'Segoe UI'," + CJK_FALLBACK
 };
 const FONT_LINKS = {
   inter: 'https://fonts.googleapis.com/css2?family=Inter&display=swap',
+  sora: 'https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap',
+  manrope: 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap',
   'noto-sans': 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap',
   'noto-serif': 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap',
   system: null,
@@ -329,16 +335,21 @@ function resolveFontSystem(theme) {
     ? (fs.customStack || theme.fontFamily || FONT_STACKS.inter)
     : (FONT_STACKS[stack] || FONT_STACKS.inter);
   theme.fontFamily = family;
-  theme.fontFamilyHeading = fs.headingStack === 'serif'
+  const hs = fs.headingStack;
+  theme.fontFamilyHeading = hs === 'serif'
     ? "Georgia, 'Noto Serif SC', 'Songti SC', 'STSong', serif"
-    : (fs.headingStack === 'sans' ? FONT_STACKS.inter : family);
+    : (hs === 'sans' ? FONT_STACKS.inter : (FONT_STACKS[hs] || family));
+  const ds = fs.displayStack;
+  theme.fontFamilyDisplay = FONT_STACKS[ds] || theme.fontFamilyHeading;
   theme.fontScale = (typeof fs.scale === 'number' && fs.scale > 0 && fs.scale <= 2) ? fs.scale : 1;
   theme.fontNumbersMono = fs.numbersMono !== false;
-  const link = FONT_LINKS[stack] || null;
-  if (link) {
+  const links = [FONT_LINKS[stack], FONT_LINKS[hs], FONT_LINKS[ds]].filter(Boolean);
+  if (links.length) {
     theme.externalAssets = theme.externalAssets || { styles: [], scripts: [] };
-    theme.externalAssets.styles = theme.externalAssets.styles.filter(s => s !== link);
-    theme.externalAssets.styles.unshift(link);
+    links.forEach(function (link) {
+      theme.externalAssets.styles = theme.externalAssets.styles.filter(s => s !== link);
+    });
+    theme.externalAssets.styles = links.concat(theme.externalAssets.styles);
   }
 }
 

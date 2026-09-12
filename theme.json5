@@ -1,60 +1,139 @@
+// =====================================================================
+// theme.json5 — 视觉与主题（颜色预设 / 字体 / 档位 / 质感 / 布局）
+// ---------------------------------------------------------------------
+// 格式: JSON5（允许注释/尾逗号/无引号键名）
+// 生效: 修改后需重新构建（npm run build / npm run serve）
+// 覆盖链: 本文件 > build.js 内置默认值;任意键可删除以回退默认
+// 注释模板: 作用 / 类型 / 可填值及含义 / 不可填值及原因 / 推荐 / 注意
+// =====================================================================
 {
-  // ==================== 主题预设系统 ====================
-  // 三层优先级（高层覆盖低层）：
-  //   1. 内置六套预设：classic-blue(经典蓝) / night-jet(极夜黑) /
-  //      forest-green(森林绿) / sakura-pink(樱花粉) /
-  //      editorial-grey(编辑部灰) / cyber-purple(赛博紫)
-  //   2. presetOverrides —— 在预设基础上的微调（推荐微调方式）
-  //   3. 非颜色档位（rounding/shadowLevel/borderStyle）与预设正交，随时可调
-  // 注意：preset 非空时 colors / darkMode.colors 整组以预设为准（预设接管），
-  //       手工 colors 不再生效；想改单色请写进 presetOverrides。
-  //       将 preset 设为 null 或删除该字段可回退到手工 colors 模式。
+  // ===================================================================
+  // 一、主题预设系统（颜色层,三层优先级:预设 < presetOverrides < 档位）
+  // ===================================================================
+  // 内置预设（theme-presets.js）:
+  //   classic-blue(经典蓝) / night-jet(极夜黑) / forest-green(森林绿) /
+  //   sakura-pink(樱花粉) / editorial-grey(编辑部灰) / cyber-purple(赛博紫)
+  // 规则: preset 非空时 colors / darkMode.colors 整组以预设为准（预设接管）,
+  //       手工 colors 不再生效;想改单色请写进 presetOverrides。
+  //       将 preset 设为 null（或删除）可回退手工 colors 模式。
 
-  // 预设名称；null=关闭预设接管（走下方手工 colors）
+  // 启用哪套颜色预设
+  // 作用: 一键切换全站配色（明亮+暗色两套同时切换）
+  // 类型: string | null
+  // 可填: "classic-blue" / "night-jet" / "forest-green" / "sakura-pink" /
+  //       "editorial-grey" / "cyber-purple" / null（关闭预设,走手工 colors）
+  // 不可填: 未定义的预设名（会触发校验错误提示可用列表）
+  // 推荐: "classic-blue"
+  // 注意: 预设只接管颜色;圆角/阴影/边框档位与预设正交,可自由组合
   "preset": "classic-blue",
-  // 在预设基础上的颜色微调（最高优先级，任意替换 13 色之一）
+
+  // 预设微调（最高优先级,可替换预设中的任意颜色）
+  // 作用: 在预设基础上覆盖单色,避免整组手工配色
+  // 类型: object{colors?, darkMode.colors?}
+  // 可填: {"colors": {"secondary": "#b91c1c"}, "darkMode": {"colors": {...}}}
+  // 不可填: 未定义的键名（拼写错误的键会被忽略且不报错,请对照 colors 键名）
+  // 推荐: 默认空;需要品牌化时只改少数键
+  // 注意: 键名与 colors 段完全一致（primary/secondary/accent/...共 13 色）
   "presetOverrides": {
-    "colors": {},          // 明亮模式覆盖：如 { "secondary": "#b91c1c" }
-    "darkMode": {          // 暗色模式覆盖
+    "colors": {},
+    "darkMode": {
       "colors": {}
     }
   },
 
-  // ==================== 字体系统 ====================
-  // stack: inter / noto-sans(思源黑体) / noto-serif(思源宋体) / system / custom
-  // scale: 全局字号缩放 0.9~1.2（1=100%）
-  // displayStack: 展示层字体（h1/hero 大标题/站点 Logo）——sora / manrope / 同 stack 枚举；中文自动回退 CJK 字体链
-  // headingStack: 次级标题字体（h2-h6/卡片标题/部件标题）；inherit=跟随整体 / sans=无衬线 / serif=衬线 / sora / manrope
-  // numbersMono: 统计数字用等宽字体（阅读面板、统计卡片）
+  // ===================================================================
+  // 二、字体系统
+  // ===================================================================
+  // 字体三层分工: stack（正文/UI）→ headingStack（h2-h6/卡片/部件）
+  //               → displayStack（h1/hero/站点 Logo）
+  // 中文字符在任意拉丁字体后自动回退 CJK 链:
+  //   PingFang SC → HarmonyOS Sans SC → Microsoft YaHei UI → Microsoft YaHei
+  // 字体文件由构建本地化到 assets/vendor/fonts（离线可用,无需 CDN）
+
   "fontSystem": {
+    // 正文/UI 字体
+    // 类型: string（枚举） | 可填: "inter"(默认) / "noto-sans" / "noto-serif" / "system" / "custom"
+    // 不可填: 直接写字体名字符串（那是 customStack 的职责,写这里会落入未定义分支）
+    // 推荐: "inter"
+    // 注意: "custom" 时须同时填写 customStack;noto 系列走 CDN,其余本地 vendor
     "stack": "inter",
+
+    // 自定义字体栈
+    // 作用: stack="custom" 时作为正文字体族
+    // 类型: string（CSS font-family 列表） | 可填: "'MyFont', 'PingFang SC', sans-serif"
+    // 不可填: 未随站点提供的字体名（用户端会回退,视觉不可控）
     "customStack": "",
+
+    // 全局字号缩放
+    // 作用: 整体字号比例（--fs-base = fontSizeBase × scale）
+    // 类型: number | 可填: 0.9–1.2 | 不可填: ≤0（字号归零）或 >2（布局崩坏）
+    // 推荐: 1
     "scale": 1,
+
+    // 正文字重
+    // 作用: body font-weight（粗细观感）
+    // 类型: number | 可填: 300(细)/400(常规)/500(中等)/600(半粗)/700(粗)
+    // 推荐: 400
     "bodyWeight": 400,
+
+    // 展示层字体（h1 / hero 大标题 / 站点 Logo）
+    // 类型: string（枚举,同 stack 命名空间） | 可填: "sora"(推荐) / "manrope" / "inter" 等
+    // 推荐: "sora"（几何感,标题张力）
+    // 注意: 仅影响拉丁字符;中文字符自动回退 CJK 链
     "displayStack": "sora",
+
+    // 次级标题字体（h2-h6 / 卡片标题 / 侧栏部件标题）
+    // 类型: string | 可填: "manrope"(推荐) / "sora" / "inherit"(跟随正文) / "sans" / "serif"
+    // 推荐: "manrope"
+    // 注意: "inherit" 表示与正文同族;"sans"/"serif" 使用内置通用栈
     "headingStack": "manrope",
+
+    // 数字等宽显示
+    // 作用: 统计数字/阅读面板进度等使用等宽字体（对齐更整齐）
+    // 类型: boolean | 可填: true/false | 推荐: true
     "numbersMono": true
   },
 
-  // 圆角档位: sharp(2px) / sm(4px) / md(0.5rem) / lg(0.75rem)
+  // ===================================================================
+  // 三、视觉档位（选档;每档具体数值见下方 tiers）
+  // ===================================================================
+
+  // 圆角档位
+  // 类型: string（枚举） | 可填: "sharp"(2px)/"sm"(4px)/"md"(0.618rem)/"lg"(0.75rem)
+  // 不可填: 其他值（回退默认 md） | 推荐: "md"（黄金分割圆角）
   "rounding": "md",
-  // 阴影档位: flat(无) / soft(轻) / medium(中) / strong(重)
+
+  // 阴影档位
+  // 类型: string（枚举） | 可填: "flat"(无)/"soft"(轻,推荐)/"medium"(中)/"strong"(重)
+  // 不可填: 其他值（回退 soft）
+  // 注意: 暗色模式阴影另有 dark 变体（tiers.shadow.*.dark）,自动随主题切换
   "shadowLevel": "soft",
-  // 边框档位: none(隐藏边框) / subtle(淡) / visible(明显)
+
+  // 边框档位
+  // 类型: string（枚举） | 可填: "none"(隐藏)/"subtle"(淡,推荐)/"visible"(明显)
+  // 不可填: 其他值（回退 subtle）
   "borderStyle": "subtle",
 
-  // ==================== 档位数值表 ====================
-  // 上方 rounding/shadowLevel/borderStyle/density.preset 只负责"选档"；
-  // 每档具体数值全部定义在这里，改这里即可全局调整档位表现（四组相互独立、与颜色预设正交）。
+  // ===================================================================
+  // 四、档位数值表（改数值不动结构:上方只"选档",这里定义"每档长什么样"）
+  // ===================================================================
+  // 四组相互独立、与颜色预设正交;可直接改数值微调档位表现。
+
   "tiers": {
-    // 圆角档位数值：radius 通用圆角 / radiusLarge 大圆角（图片、弹窗）/ button 按钮圆角
+    // 圆角数值
+    // radius 通用圆角（卡片/输入框） | radiusLarge 大圆角（图片/弹窗） | button 按钮圆角
+    // 类型: 每档 {radius,radiusLarge,button} 均为 CSS 长度
+    // 推荐: 保持 md 与黄金分割体系一致（0.618rem 系）
     "rounding": {
       "sharp": { "radius": "2px", "radiusLarge": "8px", "button": "2px" },
       "sm": { "radius": "4px", "radiusLarge": "10px", "button": "3px" },
       "md": { "radius": "0.618rem", "radiusLarge": "1.618rem", "button": "0.382rem" },
       "lg": { "radius": "0.75rem", "radiusLarge": "1.25rem", "button": "0.5rem" }
     },
-    // 阴影档位数值：card 卡片 / dropdown 浮层 / fixed 吸顶元素；dark 为暗色模式同款（暗底需更深的黑）
+    // 阴影数值
+    // card 卡片 / dropdown 浮层 / fixed 吸顶元素;dark 为暗色模式同款（更深）
+    // 类型: 每档为 CSS box-shadow 值 | 可填: 任意合法阴影组合 | 推荐: 保持多层低透明度
+    // 不可填: inset 用于卡片外阴影（会破坏层次）
     "shadow": {
       "flat": { "card": "none", "dropdown": "none", "fixed": "none", "dark": { "card": "none", "dropdown": "none", "fixed": "none" } },
       "soft": {
@@ -76,13 +155,17 @@
         "dark": { "card": "0 2px 6px rgba(0,0,0,.45),0 18px 44px -16px rgba(0,0,0,.65)", "dropdown": "0 8px 20px rgba(0,0,0,.5),0 32px 72px -26px rgba(0,0,0,.7)", "fixed": "0 2px 6px rgba(0,0,0,.45),0 10px 26px -14px rgba(0,0,0,.6)" }
       }
     },
-    // 边框档位数值：light 明亮模式边框色 / dark 暗色模式边框色（#00000000 = 视觉关闭）
+    // 边框颜色数值
+    // light 明亮模式边框色 / dark 暗色模式边框色
+    // 类型: CSS 颜色 | 推荐: 低对比度灰蓝系 | 注意: "#00000000" 表示透明（视觉关闭）
     "border": {
       "none": { "light": "#00000000", "dark": "#00000000" },
       "subtle": { "light": "#e2e8f0", "dark": "#334155" },
       "visible": { "light": "#cbd5e1", "dark": "#475569" }
     },
-    // 布局密度档位数值：containerWidth 内容最大宽 / gap 主间距 / sidebarWidth 侧栏宽 / columns 卡片列数
+    // 布局密度数值
+    // containerWidth 内容最大宽 / gap 主间距 / sidebarWidth 侧栏宽 / columns 卡片列数
+    // 类型: {长度,长度,长度,整数} | columns 可填: 1–4 | 推荐: 保持 balanced 与黄金分割一致
     "density": {
       "compact": { "containerWidth": "1000px", "gap": "1.25rem", "sidebarWidth": "240px", "columns": 2 },
       "balanced": { "containerWidth": "1250px", "gap": "1.618rem", "sidebarWidth": "318px", "columns": 2 },
@@ -90,155 +173,332 @@
     }
   },
 
-  // 头像与 Logo 显示模式
+  // ===================================================================
+  // 五、头像与 Logo
+  // ===================================================================
+
   "avatar": {
-    "shape": "round",     // 头像形状: round(圆形) / rounded(圆角方形) / square(方形)
-    "ring": false,        // 是否显示品牌色描边
-    "ringColor": "",      // 描边色（留空=用辅色 --color-s）
-    "badge": true        // 无头像图片时生成 首字母+品牌色 徽章
+    // 头像形状
+    // 类型: string（枚举） | 可填: "round"(圆形,推荐)/"rounded"(圆角方形)/"square"(方形)
+    // 不可填: 其他值（回退圆形）
+    "shape": "round",
+
+    // 品牌色描边环
+    // 作用: 头像外加一圈描边（品牌感）
+    // 类型: boolean | 可填: true/false | 推荐: false（内容优先）
+    "ring": false,
+
+    // 描边颜色
+    // 类型: CSS 颜色或空串 | 可填: "#2563eb" / ""（空=使用辅色 --color-s）
+    // 不可填: 带透明度的 rgba 之外的非颜色值
+    "ringColor": "",
+
+    // 首字母徽章
+    // 作用: 侧栏作者部件无头像图时,生成"首字母+品牌色"徽章代替空白
+    // 类型: boolean | 可填: true/false | 推荐: true
+    "badge": true
   },
 
-  // ==================== 页面背景特效 ====================
-  // mode: plain(纯色) / gradient(对角渐变) / grid(网格纸) / dots(点阵) / particles(动态粒子)
-  // particles 的配色/数量/速度/连线等由 features.json5 → background.particles 控制
+  // ===================================================================
+  // 六、页面背景特效
+  // ===================================================================
+  // 粒子（particles）模式的配色/数量/速度/连线由 features.json5 → background.particles 控制。
+
   "background": {
+    // 背景模式
+    // 类型: string（枚举）
+    // 可填: "plain"(纯色)/"gradient"(对角渐变)/"grid"(网格纸)/"dots"(点阵)/"particles"(动态粒子)
+    // 不可填: 其他值（回退 plain）
+    // 推荐: "particles"（动态质感）或 "plain"（极简/性能优先）
     "mode": "particles",
-    "colors": ["#f7fafc", "#e0eaff"],  // gradient 模式的两端色(任意)
-    "gradientAngle": 135,              // 渐变角度(deg)
-    "gridSize": 24,                    // 网格间距(px)
-    "dotSize": 1,                      // 点阵点径(px)
-    "opacity": 1                       // 纹理层不透明度 0~1
+
+    // gradient 模式两端色
+    // 类型: [CSS颜色, CSS颜色]（数组固定 2 项）
+    // 可填: 任意颜色;第二色缺省时回退页面背景色
+    // 推荐: 与主题浅色调和谐的双色（如 #f7fafc → #e0eaff）
+    "colors": ["#f7fafc", "#e0eaff"],
+
+    // 渐变角度
+    // 类型: number（deg） | 可填: 0–360 | 推荐: 135（对角） | 不可填: 负数/超范围（CSS 仍可用但语义混乱）
+    "gradientAngle": 135,
+
+    // 网格间距（grid 模式）
+    // 类型: number（px） | 可填: 12–64 | 推荐: 24 | 不可填: 0（网格线重叠成实心）
+    "gridSize": 24,
+
+    // 点阵点径（dots 模式）
+    // 类型: number（px） | 可填: 1–6 | 推荐: 1 | 不可填: 负数
+    "dotSize": 1,
+
+    // 纹理层不透明度
+    // 类型: number | 可填: 0–1 | 推荐: 1（由各模式自身设计控制观感） | 不可填: 超范围（CSS 截断）
+    "opacity": 1
   },
 
-  // ==================== 导航栏毛玻璃 ====================
-  // 不支持的浏览器自动回退纯色;alpha 为背景不透明度
+  // ===================================================================
+  // 七、导航栏毛玻璃
+  // ===================================================================
+  // 不支持的浏览器自动回退纯色;优先级: navigation.navbarOptions > 本段。
+
   "glass": {
+    // 是否启用毛玻璃导航
+    // 作用: 导航栏 backdrop-filter 模糊 + 半透明背景
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 关闭后导航使用纯色 surface（性能最优）
     "enabled": true,
+
+    // 模糊强度
+    // 类型: string（CSS 长度） | 可填: "0px"–"24px"（可带单位或纯数字,构建自动补 px）
+    // 推荐: "12px" | 不可填: 百分比/负值（backdrop-filter 不支持）
     "blur": "12px",
+
+    // 明亮模式背景不透明度
+    // 类型: number | 可填: 0–1 | 推荐: 0.8 | 注意: 过低会看不清导航文字（对比度）
     "alpha": 0.8,
-    "darkAlpha": 0.85
+
+    // 暗色模式背景不透明度
+    // 类型: number | 可填: 0–1 | 推荐: 0.85（暗色可稍高,保持可读）
+    // 注意: 未设置时回退 alpha
+    "darkAlpha": 0.85,
+
+    // 玻璃底色 RGB（明亮模式）
+    // 作用: 与 alpha 合成 background:rgba(rgb,alpha)
+    // 类型: string（"R,G,B"逗号分隔）
+    // 可填: "255,255,255"（白玻璃）/ "247,250,252"（随背景色）
+    // 不可填: 带括号/字母的写法（直接进入 rgba() 会失效）
+    // 推荐: "255,255,255"
+    "rgb": "255,255,255"
   },
 
-  // ==================== 布局密度档位 ====================
-  // preset: compact(紧凑) / balanced(均衡默认) / airy(宽松)
-  // columns: 文章卡片列数(列表布局同样生效,2-4)
-  // 规则: preset 非 null 时 containerWidth/gap/sidebarWidth/columns 由档位填充;
-  //       完全手调请将 preset 设为 null 并直接改下列四键
+  // ===================================================================
+  // 八、布局密度（选档;数值见 tiers.density;完全手调请设 preset=null）
+  // ===================================================================
+
   "density": {
+    // 密度档位
+    // 类型: string | null
+    // 可填: "compact"/"balanced"(默认)/"airy"/null（关闭档位,以下四键直接生效）
+    // 推荐: "balanced"
     "preset": "balanced",
-    "containerWidth": "1250px",  // 内容区最大宽度
-    "gap": "1.618rem",           // 卡片间距（黄金分割 φ）
-    "sidebarWidth": "318px",     // 侧栏宽（目录 200 × φ ≈ 324，取 318）
-    "columns": 2                 // 卡片列数
+
+    // 内容区最大宽度（preset=null 时生效）
+    // 类型: string（CSS 长度） | 可填: "960px"–"1600px" | 推荐: "1250px"
+    "containerWidth": "1250px",
+
+    // 卡片间距（preset=null 时生效）
+    // 类型: string（CSS 长度） | 推荐: "1.618rem"（黄金分割 φ）
+    "gap": "1.618rem",
+
+    // 侧栏宽度（preset=null 时生效）
+    // 类型: string（CSS 长度） | 推荐: "318px"（目录 200 × φ ≈ 324,微调至 318 与内容对齐）
+    "sidebarWidth": "318px",
+
+    // 卡片列数（preset=null 时生效）
+    // 类型: number（整数） | 可填: 1–4 | 推荐: 2 | 不可填: 0/负数/小数
+    "columns": 2
   },
 
-  // ==================== 颜色方案（明亮模式） ====================
-  // preset 为 null 时以下手工颜色生效；preset 非空时此段被预设接管
+  // ===================================================================
+  // 九、颜色方案（手工模式;preset=null 时生效,preset 非空时被预设接管）
+  // ===================================================================
+  // 13 色语义:primary 主色(标题) / secondary 辅色(链接/按钮) / accent 强调(标记) /
+  //          background 页面底 / surface 卡面 / text 正文 / textSecondary 次要 /
+  //          textLight 弱化(日期/页脚) / border 边框 / shadow 阴影色 /
+  //          hover 悬停底 / codeBackground 代码底 / codeText 代码字
+  // 类型: CSS 颜色（#hex / rgb() / rgba()） | 不可填: 渐变/图片（仅接受颜色值）
+  // 推荐: 明亮模式保持正文与背景对比 ≥ 4.5:1（WCAG AA）
 
   "colors": {
-    "primary": "#2d3748",             // 主色 - 标题和强调元素
-    "secondary": "#2563eb",           // 辅色 - 链接和按钮
-    "accent": "#c53030",              // 强调色 - 特殊标记
-    "background": "#f7fafc",          // 页面背景色
-    "surface": "#ffffff",             // 卡片/表面背景色
-    "text": "#1a202c",                // 主文字颜色
-    "textSecondary": "#4a5568",       // 次要文字颜色
-    "textLight": "#64748b",           // 浅色文字（如日期、页脚）
-    "border": "#e2e8f0",              // 边框颜色
-    "shadow": "rgba(0,0,0,0.1)",      // 阴影颜色
-    "hover": "#edf2f7",               // 悬停背景色
-    "codeBackground": "#e9eef4",      // 代码块背景色（浅色模式；随明暗模式自动切换）
-    "codeText": "#1f2328"             // 代码块文字颜色（浅色模式）
+    "primary": "#2d3748",
+    "secondary": "#2563eb",
+    "accent": "#c53030",
+    "background": "#f7fafc",
+    "surface": "#ffffff",
+    "text": "#1a202c",
+    "textSecondary": "#4a5568",
+    "textLight": "#64748b",
+    "border": "#e2e8f0",
+    "shadow": "rgba(0,0,0,0.1)",
+    "hover": "#edf2f7",
+    "codeBackground": "#e9eef4",
+    "codeText": "#1f2328"
   },
 
-  // ==================== 深色模式 ====================
+  // ===================================================================
+  // 十、深色模式
+  // ===================================================================
 
   "darkMode": {
-    "enabled": true,                   // 是否启用深色模式
-    "toggle": true,                    // 是否显示切换按钮
-    "default": "system",               // 默认模式：light / dark / system（跟随系统）
-    "colors": {                        // 深色模式下的颜色覆盖（如不覆盖则使用默认配色）
-      "background": "#0f172a",         // 页面背景（深蓝灰，比纯黑更柔和）
-      "surface": "#1e293b",            // 卡片/面板背景
-      "text": "#f1f5f9",               // 主文字色（暖白，减轻眼疲劳）
-      "textSecondary": "#a3b2c4",      // 副文字色
-      "textLight": "#9aa8ba",          // 浅色文字
-      "border": "#334155",             // 边框色
-      "shadow": "rgba(0,0,0,0.3)",    // 阴影色
-      "hover": "#334155",              // 悬停背景色
-      "secondary": "#7caeff",          // 链接色（深色下提亮以达 4.5:1）
-      "accent": "#fca5a5",             // 强调色（深色下提亮）
-      "codeBackground": "#0a1120",     // 代码块背景（深色模式，与页面底色区分以保留块感）
-      "codeText": "#e6edf3"            // 代码块文字色（深色模式）
+    // 是否启用深色模式
+    // 作用: 生成暗色配色、跟随切换逻辑与切换按钮
+    // 类型: boolean | 可填: true/false | 推荐: true | 注意: 关闭后切换按钮失效
+    "enabled": true,
+
+    // 是否显示切换按钮
+    // 作用: 导航栏日月切换按钮显隐
+    // 类型: boolean | 可填: true/false | 推荐: true | 注意: 可被 features.themeToggle.enabled 覆盖
+    "toggle": true,
+
+    // 默认模式
+    // 类型: string（枚举） | 可填: "light"(强制亮)/"dark"(强制暗)/"system"(跟随系统,推荐)
+    // 不可填: 其他值（回退 system）
+    // 注意: 用户手动切换后的偏好存 localStorage,优先级高于此默认
+    "default": "system",
+
+    // 暗色颜色覆盖（与明亮 colors 同 13 色键名,此处覆盖常用 12 键）
+    // 类型: 同 colors | 推荐: 保持对比 ≥ 4.5:1（链接/强调色需提亮）
+    // 不可填: 未定义的键名（静默忽略）
+    "colors": {
+      "background": "#0f172a",
+      "surface": "#1e293b",
+      "text": "#f1f5f9",
+      "textSecondary": "#a3b2c4",
+      "textLight": "#9aa8ba",
+      "border": "#334155",
+      "shadow": "rgba(0,0,0,0.3)",
+      "hover": "#334155",
+      "secondary": "#7caeff",
+      "accent": "#fca5a5",
+      "codeBackground": "#0a1120",
+      "codeText": "#e6edf3"
     }
   },
 
-  // ==================== 字体设置 ====================
+  // ===================================================================
+  // 十一、字体细节（fontSystem 之外的补充项）
+  // ===================================================================
 
-  // 正文字体族（fontSystem.stack 为 custom 时此值生效；其他 stack 下由字体系统生成）
+  // 自定义正文字体族（仅 fontSystem.stack="custom" 时生效;其他 stack 由字体系统覆盖）
+  // 类型: string（CSS font-family 列表）
+  // 不可填: 未提供字体文件的自定义字体名（用户端回退不可控）
   "fontFamily": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-  // 等宽字体族（代码块使用，可自由修改）
+
+  // 等宽字体族（代码块/数字）
+  // 类型: string（CSS font-family 列表） | 推荐: 包含系统等宽回退
+  // 注意: 自定义字体需用户环境已安装,建议保留 'Consolas','monospace' 回退
   "fontFamilyMono": "'Fira Code', 'Menlo', 'Consolas', monospace",
+
   // 基础字号
+  // 作用: 根字号（配合 fontSystem.scale 缩放;rem 体系基准）
+  // 类型: string（CSS 长度） | 可填: "14px"–"18px" | 推荐: "16px" | 不可填: "0"（全站塌陷）
   "fontSizeBase": "16px",
+
   // 行高
+  // 作用: 正文 line-height（中文阅读 1.7–1.9 舒适区）
+  // 类型: number | 可填: 1.4–2.0 | 推荐: 1.8 | 不可填: ≤0
+  // 注意: 可被 tuning.typography.lineHeight 覆盖
   "lineHeight": 1.8,
+
   // 标题字重
+  // 类型: number | 可填: 500–800 | 推荐: 700 | 注意: 可被 tuning.typography.headingWeight 覆盖
   "headingFontWeight": 700,
+
   // 字间距
+  // 作用: 正文 letter-spacing（中文字距微调）
+  // 类型: string（CSS 长度） | 可填: "0"–"0.05em" | 推荐: "0.02em" | 不可填: 过长（"0.1em+" 会松散难读）
   "letterSpacing": "0.02em",
 
-  // ==================== 间距与尺寸 ====================
+  // ===================================================================
+  // 十二、间距与尺寸
+  // ===================================================================
 
   "spacing": {
-    "containerWidth": "1250px",  // 内容区最大宽度
-    "gap": "1.618rem",           // 元素间距（黄金分割 φ）
-    "padding": "2.618rem",       // 内边距（黄金分割 φ²）
-    "radius": "0.618rem",        // 默认圆角兜底（正常由 tiers.rounding 档位写入）
-    "radiusLarge": "1.618rem"    // 大圆角兜底（正常由 tiers.rounding 档位写入）
+    // 内容区最大宽度（density 的最终落点,一般不用直接改）
+    // 类型: string（CSS 长度） | 推荐: 与 density.containerWidth 一致
+    "containerWidth": "1250px",
+    // 元素间距（--gap;卡片/区块主间距）
+    // 类型: string（CSS 长度） | 推荐: "1.618rem"（φ） | 注意: 可被 tuning.layout.gap 覆盖
+    "gap": "1.618rem",
+    // 区块内边距（--pad;容器类留白）
+    // 类型: string（CSS 长度） | 推荐: "2.618rem"（φ²） | 注意: 可被 tuning.layout.padding 覆盖
+    "padding": "2.618rem",
+    // 默认圆角兜底（正常由 tiers.rounding 档位写入,此处仅防缺省）
+    // 类型: string（CSS 长度） | 推荐: "0.618rem"
+    "radius": "0.618rem",
+    // 大圆角兜底（正常由 tiers.rounding 档位写入）
+    // 类型: string（CSS 长度） | 推荐: "1.618rem"
+    "radiusLarge": "1.618rem"
   },
 
-  // ==================== 表面质感 ====================
-  // 阴影数值统一由上方 tiers.shadow 按 shadowLevel 档位提供（此处不再重复定义，避免多开关）。
-  // 表面高光/描边：为卡片、面板等"表面"增加的精致层次；"0 0 #0000" = 关闭（透明无效果）
+  // ===================================================================
+  // 十三、表面质感（精致层次）
+  // ===================================================================
+  // 阴影数值统一由 tiers.shadow 按 shadowLevel 提供（不再重复定义,避免多开关）。
+
   "surfaceHighlight": {
-    "light": "0 0 0 1px rgba(16,24,40,.04)",                                      // 浅色模式：极淡描边环
-    "dark": "inset 0 1px 0 rgba(255,255,255,.05),0 0 0 1px rgba(255,255,255,.05)" // 暗色模式：顶部内高光 + 描边环
+    // 明亮模式表面高光/描边
+    // 作用: 卡片/面板等"表面"叠加的极淡描边环（提升层次）
+    // 类型: CSS box-shadow 值 | 可填: "0 0 #0000"（关闭）或描边环组合
+    // 推荐: 保持默认;0.04 级别透明度不破坏简洁
+    "light": "0 0 0 1px rgba(16,24,40,.04)",
+    // 暗色模式表面高光/描边
+    // 作用: 暗底上以顶部内高光模拟受光面
+    // 类型: CSS box-shadow 值 | 推荐: 保持默认
+    "dark": "inset 0 1px 0 rgba(255,255,255,.05),0 0 0 1px rgba(255,255,255,.05)"
   },
 
-  // ==================== 布局 ====================
+  // ===================================================================
+  // 十四、布局结构
+  // ===================================================================
 
   "layout": {
-    "headerStyle": "fixed",       // 导航栏样式：fixed / static
-    "headerHeight": "60px",       // 导航栏高度
-    "footerStyle": "simple",      // 页脚样式
-    "sidebarPosition": "right",   // 侧边栏位置：left / right
-    "contentWidth": "main",       // 内容宽度模式
-    "postLayout": "standard",     // 文章布局：standard / full
-    "archiveLayout": "list"       // 归档布局：list / grid
+    // 导航栏定位
+    // 类型: string（枚举） | 可填: "fixed"(吸顶,推荐)/"static"(随页面滚动)
+    // 不可填: 其他值（回退 relative） | 注意: 可被 navigation.navbar.fixed 覆盖
+    "headerStyle": "fixed",
+    // 导航栏高度（--hh;锚点偏移与内容顶部留白联动）
+    // 类型: string（CSS 长度） | 可填: "48px"–"80px" | 推荐: "60px"
+    "headerHeight": "60px",
+    // 页脚样式
+    // 类型: string（枚举） | 可填: "simple"(简洁,推荐)/"columns"(多列)
+    // 注意: 页脚内容由 footer.json5 控制,此处只影响排版风格
+    "footerStyle": "simple",
+    // 侧栏位置
+    // 类型: string（枚举） | 可填: "left"(左)/"right"(右,推荐) | 不可填: "top"/"bottom"（不支持）
+    "sidebarPosition": "right",
+    // 内容宽度模式
+    // 类型: string（枚举） | 可填: "main"(主内容优先,推荐)/"full"(全宽)
+    "contentWidth": "main",
+    // 文章布局
+    // 类型: string（枚举） | 可填: "standard"(标准栏)/"full"(全宽沉浸)
+    "postLayout": "standard",
+    // 归档布局
+    // 类型: string（枚举） | 可填: "list"(列表,推荐)/"grid"(卡片网格)
+    "archiveLayout": "list"
   },
 
-  // ==================== 动画 ====================
+  // ===================================================================
+  // 十五、动画（兜底值;正常由 tuning.motion 覆盖）
+  // ===================================================================
 
   "animation": {
-    "enable": true,               // 是否启用动画
-    "transitionDuration": "0.3s", // 过渡动画时长（兜底，正常由 tuning.motion.transitionDuration 写入）
-    "transitionTiming": "cubic-bezier(0.22, 1, 0.36, 1)"  // 过渡缓动曲线（兜底，正常由 tuning.motion.transitionTiming 写入）
+    // 动画总开关
+    // 作用: 全局过渡/入场动画总闸（无障碍: 尊重 prefers-reduced-motion 自动降级另由各模块处理）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    "enable": true,
+    // 过渡时长兜底
+    // 类型: string（CSS 时间） | 可填: "0.15s"–"0.5s" | 推荐: "0.3s"
+    "transitionDuration": "0.3s",
+    // 过渡缓动兜底（弹簧感曲线）
+    // 类型: string（CSS timing-function） | 推荐: "cubic-bezier(0.22, 1, 0.36, 1)"
+    "transitionTiming": "cubic-bezier(0.22, 1, 0.36, 1)"
   },
 
-  // ==================== 代码高亮配色 ====================
-  // Prism 按 token 类型着色，浅色/暗色两套随主题自动切换（无需维护外部样式表）。
-  // token 类型：comment 注释 / keyword 关键字 / string 字符串 / number 数字与常量 /
-  //            fn 函数名与类名 / attr 属性名・选择器・标签 / punct 标点与运算符
+  // ===================================================================
+  // 十六、代码高亮配色（Prism token 着色,随明暗自动切换）
+  // ===================================================================
+  // token 语义: comment 注释 / keyword 关键字 / string 字符串 / number 数字常量 /
+  //            fn 函数类名 / attr 属性选择器 / punct 标点运算符
 
   "codeHighlight": {
-    // 明亮模式 token 配色（GitHub Light 调校）
     "palette": {
+      // 明亮模式（GitHub Light 调校）
+      // 类型: 每 token 一个 CSS 颜色 | 不可填: 渐变 | 推荐: 保持对比 ≥ 4.5:1
       "light": {
         "comment": "#6a737d", "keyword": "#cf222e", "string": "#0a3069",
         "number": "#0550ae", "fn": "#8250df", "attr": "#116329", "punct": "#6e7781"
       },
-      // 暗色模式 token 配色（One Dark 调校，暗底使用更高亮度）
+      // 暗色模式（One Dark 调校,暗底更高亮度）
       "dark": {
         "comment": "#8b949e", "keyword": "#ff7b72", "string": "#a5d6ff",
         "number": "#79c0ff", "fn": "#d2a8ff", "attr": "#7ee787", "punct": "#c9d1d9"
@@ -246,82 +506,155 @@
     }
   },
 
-  // ==================== 文章卡片 ====================
+  // ===================================================================
+  // 十七、文章卡片
+  // ===================================================================
 
   "card": {
-    "showDate": true,             // 是否显示日期
-    "showTags": true,             // 是否显示标签
-    "showCategories": true,       // 是否显示分类
-    "showExcerpt": true,          // 是否显示摘要
-    "excerptLength": 150,         // 摘要最大字符数
-    "showReadTime": true,         // 是否显示阅读时间
-    "readTimeSpeed": 265          // 阅读速度（字/分钟）
+    // 卡片元信息开关（均 boolean,推荐 true）
+    "showDate": true,
+    "showTags": true,
+    "showCategories": true,
+    "showExcerpt": true,
+    // 摘要最大字符数
+    // 类型: number（整数） | 可填: 60–300 | 推荐: 150 | 不可填: 负数/0（空摘要）
+    "excerptLength": 150,
+    "showReadTime": true,
+    // 阅读速度（字/分钟;用于估算阅读时间）
+    // 类型: number | 可填: 200–400 | 推荐: 265（中文含停顿的平均值）
+    "readTimeSpeed": 265,
+    // 显示字数统计
+    // 作用: 卡片/文章元信息中的"X 字"显示
+    // 类型: boolean | 可填: true/false | 推荐: true
+    "showWordCount": true
   },
 
-  // ==================== 按钮 ====================
+  // ===================================================================
+  // 十八、按钮
+  // ===================================================================
 
   "button": {
-    "radius": "0.25rem",                  // 按钮圆角兜底（正常由 tiers.rounding.button 写入）
-    "padding": "0.5rem 1.5rem",          // 按钮内边距
-    "primaryBackground": "#4a90d9",       // 主要按钮背景色
-    "primaryText": "#ffffff",             // 主要按钮文字色
-    "hoverScale": 1.02                    // 悬停缩放比例
+    // 按钮圆角兜底（正常由 tiers.rounding.button 档位写入）
+    // 类型: string（CSS 长度） | 推荐: "0.25rem"
+    "radius": "0.25rem",
+    // 按钮内边距
+    // 类型: string（CSS padding 简写） | 可填: "0.5rem 1.5rem" 等 | 推荐: 保持默认
+    "padding": "0.5rem 1.5rem",
+    // 主按钮背景色
+    // 类型: CSS 颜色 | 推荐: 与辅色系一致 | 注意: 留空回退 --color-s
+    "primaryBackground": "#4a90d9",
+    // 主按钮文字色
+    // 类型: CSS 颜色 | 推荐: "#ffffff" | 注意: 需与背景对比 ≥ 4.5:1
+    "primaryText": "#ffffff",
+    // 悬停缩放比例
+    // 类型: number | 可填: 1.0–1.05 | 推荐: 1.02 | 不可填: >1.1（夸张）/≤0（消失）
+    "hoverScale": 1.02
   },
 
-  // ==================== 自定义 CSS ====================
-
-  // 自定义 CSS 变量覆盖，可按组件名传入样式字符串
-
-  // ==================== 外观细节选项（微调） ====================
+  // ===================================================================
+  // 十九、外观细节（微调;统一走此处,避免零散硬编码）
+  // ===================================================================
 
   "appearance": {
-    "selectionBg": "",             // 文本选中背景色（空 = 用辅色 25% 透明）
-    "scrollbarWidth": "8px",       // 滚动条宽度（WebKit）
-    "scrollbarRadius": "4px",      // 滚动条圆角
-    "focusRingWidth": "2px",       // 键盘焦点环宽度（无障碍）
-    "focusRingOffset": "2px",      // 焦点环偏移
-    "codePadding": "1rem",         // 代码块内边距
-    "codeLineHeight": 1.6,         // 代码行高
-    "blockquoteBorderWidth": "3px", // 引用块左侧竖线宽度
-    "tableStripeBg": "",           // 表格斑马纹背景（空 = 用 hover 色 50%）
-    "tableCellPadding": ".6rem .9rem", // 表格单元格内边距
-    "hrOpacity": 0.6,              // 分隔线不透明度
-    "imageCaptionAlign": "center"  // 图注对齐：left/center/right
+    // 文本选中背景色 | 类型: CSS 颜色或空串 | 可填: ""（空=辅色 25% 透明,推荐）或颜色值
+    "selectionBg": "",
+    // 滚动条宽度（WebKit） | 类型: string（CSS 长度） | 可填: "4px"–"12px" | 推荐: "8px"
+    "scrollbarWidth": "8px",
+    // 滚动条圆角 | 类型: string（CSS 长度） | 推荐: "4px"
+    "scrollbarRadius": "4px",
+    // 键盘焦点环宽度（无障碍必备） | 类型: string（CSS 长度） | 可填: "1px"–"4px" | 推荐: "2px"
+    "focusRingWidth": "2px",
+    // 焦点环偏移 | 类型: string（CSS 长度） | 推荐: "2px"
+    "focusRingOffset": "2px",
+    // 代码块内边距 | 类型: string（CSS 长度） | 可填: "0.5rem"–"2rem" | 推荐: "1rem"
+    "codePadding": "1rem",
+    // 代码行高 | 类型: number | 可填: 1.3–1.9 | 推荐: 1.6
+    "codeLineHeight": 1.6,
+    // 引用块左侧竖线宽度 | 类型: string（CSS 长度） | 可填: "2px"–"6px" | 推荐: "3px"
+    "blockquoteBorderWidth": "3px",
+    // 表格斑马纹背景 | 类型: CSS 颜色或空串 | 可填: ""（空=hover 色 50%）或颜色值
+    "tableStripeBg": "",
+    // 表格单元格内边距 | 类型: string（CSS padding 简写） | 推荐: ".6rem .9rem"
+    "tableCellPadding": ".6rem .9rem",
+    // 分隔线不透明度 | 类型: number | 可填: 0–1 | 推荐: 0.6
+    "hrOpacity": 0.6,
+    // 图注对齐 | 类型: string（枚举） | 可填: "left"/"center"(推荐)/"right"
+    "imageCaptionAlign": "center"
   },
 
-
-  // ==================== 外部资源 ====================
+  // ===================================================================
+  // 二十、外部资源
+  // ===================================================================
 
   "externalAssets": {
-    "styles": [                    // 外部 CSS 文件 URL 列表（字体链路由 fontSystem 自动注入本地/外部样式）
-    ],
-    "scripts": [                   // 外部 JS 文件 URL 列表（Prism 已本地化：构建从 node_modules 复制到 assets/vendor）
+    // 外部 CSS 列表
+    // 作用: 额外样式表链接（字体样式由 fontSystem 自动追加,Prism 等由构建本地注入）
+    // 类型: string[]（URL 列表） | 可填: 同源路径或 https（受 security.json5 CSP 约束）
+    // 推荐: 默认空;第三方 CDN 样式须先放行 CSP
+    "styles": [],
+    // 外部 JS 列表
+    // 作用: 额外脚本引入（本地化后 Prism 路径固定如下）
+    // 类型: string[]（URL 列表） | 推荐: 保持 "/assets/vendor/prism.js"
+    "scripts": [
       "/assets/vendor/prism.js"
     ]
   },
 
-  // ==================== 文章页脚公告栏 ====================
+  // ===================================================================
+  // 二十一、文章页脚公告栏
+  // ===================================================================
 
   "articleFooter": {
-    "enabled": true,               // 是否启用
-    "source": "disclaimer",        // pages/ 下的文件名（不含 .md 后缀），例如：disclaimer / privacy / terms / about
-    "backgroundColor": "#f0f4f8",  // 背景色
-    "textColor": "#4a5568",        // 文字色
-    "borderColor": "#cbd5e1",      // 边框色
-    "borderWidth": "1px",          // 边框粗细
-    "paddingTop": "1.25rem",       // 上下留空
+    // 是否启用公告栏
+    // 作用: 文章正文底部展示一段来自 pages/ 的内容（如免责声明）
+    // 类型: boolean | 可填: true/false | 推荐: 按需
+    "enabled": true,
+    // 内容来源
+    // 类型: string（pages/ 下文件名,不含扩展名）
+    // 可填: "disclaimer"/"privacy"/"terms"/"about" 等已存在页面
+    // 不可填: 不存在的文件名（公告栏为空）+ 含路径分隔符
+    // 推荐: "disclaimer"
+    "source": "disclaimer",
+    // 背景色 | 类型: CSS 颜色 | 推荐: 与页面背景轻微区分（浅灰蓝）
+    "backgroundColor": "#f0f4f8",
+    // 文字色 | 类型: CSS 颜色 | 推荐: 与 textSecondary 同系
+    "textColor": "#4a5568",
+    // 边框色 | 类型: CSS 颜色 | 推荐: 与 border 同系
+    "borderColor": "#cbd5e1",
+    // 边框粗细 | 类型: string（CSS 长度） | 可填: "0"–"2px" | 推荐: "1px"
+    "borderWidth": "1px",
+    // 上下留空 | 类型: string（CSS 长度） | 推荐: "1.25rem"
+    "paddingTop": "1.25rem",
     "paddingBottom": "1.25rem",
-    "paddingLeft": "1.5rem",       // 左右留空
+    // 左右留空 | 类型: string（CSS 长度） | 推荐: "1.5rem"
+    "paddingLeft": "1.5rem",
     "paddingRight": "1.5rem",
-    "borderRadius": "0.5rem"       // 圆角
+    // 圆角 | 类型: string（CSS 长度） | 推荐: "0.5rem"
+    "borderRadius": "0.5rem"
   },
 
-  // ==================== 布局微调 ====================
+  // ===================================================================
+  // 二十二、布局微调
+  // ===================================================================
 
-  "contentOffset": -10,            // 内容区偏移（px），负=左移，正=右移，0=居中
-  "headerContentGap": 48,          // 标题与内容区额外间距（px）
-  "tocWidth": "200px",             // 左侧目录宽度
-  "sidebarWidth": "318px",         // 右侧边栏宽度（200 × φ）
-  "tocMinLeft": "10px",            // 左侧目录离屏幕左边缘最小距离
-  "sidebarMinRight": "10px"        // 右侧边栏离屏幕右边缘最小距离
+  // 内容区水平偏移
+  // 作用: 整体内容微调位置(px);负=左移,正=右移,0=严格居中
+  // 类型: number（px） | 可填: -40–40 | 推荐: -10（视觉居中修正） | 不可填: 过大（内容贴边/溢出）
+  "contentOffset": -10,
+  // 标题与内容区间距
+  // 作用: 页面标题块与正文/列表之间的额外垂直间距
+  // 类型: number（px） | 可填: 0–120 | 推荐: 48 | 不可填: 负值（重叠）
+  "headerContentGap": 48,
+  // 左侧目录宽度（--tw;文章页 TOC）
+  // 类型: string（CSS 长度） | 可填: "160px"–"280px" | 推荐: "200px"
+  "tocWidth": "200px",
+  // 右侧边栏宽度（--sw;200 × φ 的取整微调）
+  // 类型: string（CSS 长度） | 可填: "240px"–"360px" | 推荐: "318px"
+  "sidebarWidth": "318px",
+  // 左侧目录离屏幕左缘最小距离
+  // 类型: string（CSS 长度） | 可填: "0px"–"40px" | 推荐: "10px"（窄屏下防贴边）
+  "tocMinLeft": "10px",
+  // 右侧侧栏离屏幕右缘最小距离
+  // 类型: string（CSS 长度） | 推荐: "10px"
+  "sidebarMinRight": "10px"
 }

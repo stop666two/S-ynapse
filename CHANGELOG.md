@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **配置文件统一 `.json5`（破坏性变更）**:`site`/`theme`/`navigation`/`sidebar`/`footer`/`security`/`content-policy`/`tag-aliases`/`friends` 9 个配置由 `.json` 重命名为 `.json5`;不再兼容 `.json`（检测到旧文件时输出重命名提示,旧文件不会被读取）;全部脚本/文档/示例/主题文章引用已同步(118+10 处) — 仓库根目录 + `scripts/` + `docs/` + `articles/`
 - **site.json5 全字段注释与死配置清理**:每个字段标注(作用/类型/可填值/不可填值/推荐/注意);`performance` 段由 15 键精简为 8 键（移除 5 个与 `build.*` 重复的提升开关,以及未实现的 `lazyLoadRootMargin`/`criticalCSS`）;`fontDisplay` 正式接线(@font-face 生成,非法值回退 swap);`features.imageLazy` 移除无实现的 `mode`/`loadMargin`(改用原生 loading=lazy);补齐缺失的 `build.generateGallery`;删除重复 `subtitleEn` — `site.json5` + `scripts/build.js` + `features.json5` + `scripts/lib/features-schema.js` + `docs/config-reference.md`
+- **theme.json5 全字段注释与接线**:每字段按模板标注;新增 glass.rgb/glass.darkAlpha 声明并接线暗色毛玻璃透明度(--glass-a-d);补 card.showWordCount;修正文档过期默认值(secondary/accent/containerWidth);删除 build.js 中已迁至 features 域的死默认值 theme.customCSS;文档第 2 章补 7 行新键 + 新增 3.60 customCSS 章节 — theme.json5 + templates/layout.ejs + scripts/build.js + docs/config-reference.md
 
 - **主题预设 `theme-presets.js`**:6 套预设新增 `labelEn` 字段(Classic Blue/Midnight Black/Forest Green/Sakura Pink/Editorial Gray/Cyber Purple)
 - **`site.json`**:新增 `languages: ['zh','en']`、`titleEn`、`subtitleEn`、`hero.titleEn`、`hero.subtitleEn`、`externalLinkWarning.titleEn/messageEn/confirmTextEn/cancelTextEn`

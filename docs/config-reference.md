@@ -180,8 +180,8 @@
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
 | `colors.primary` | string | `#2d3748` | 主色(标题/高亮) |
-| `colors.secondary` | string | `#4a90d9` | 次色(链接/强调) |
-| `colors.accent` | string | `#e53e3e` | 强调色(危险/徽标) |
+| `colors.secondary` | string | `#2563eb` | 次色(链接/强调) |
+| `colors.accent` | string | `#c53030` | 强调色(危险/徽标) |
 | `colors.background/surface/text/textSecondary/textLight/border/shadow/hover/codeBackground/codeText` | string | 见代码 | 全站色板 |
 | `darkMode.enabled` | bool | `false` | 暗色模式总开关 |
 | `darkMode.toggle` | bool | `true` | 页面切换按钮 |
@@ -192,7 +192,7 @@
 | `fontSizeBase` / `lineHeight` | string/number | `16px`/`1.8` | 基础字号/行高 |
 | `headingFontWeight` | number | `700` | 标题字重 |
 | `letterSpacing` | string | `0.02em` | 字符间距 |
-| `spacing.containerWidth` | string | `960px` | 容器宽度 |
+| `spacing.containerWidth` | string | `1250px` | 容器宽度(balanced 档位写入) |
 | `spacing.gap/padding` | — | — | 间距 |
 | `tiers.rounding/shadow/border/density` | object | — | 档位数值表（"选档"见 rounding/shadowLevel/borderStyle 与 density.preset，数值全部在此定义） |
 | `surfaceHighlight.light/dark` | string | — | 表面高光/描边（`0 0 #0000` = 关闭） |
@@ -209,13 +209,20 @@
 | `card.showReadTime` / `readTimeSpeed` | bool/number | `true`/`265` | 阅读时长(wpm) |
 | `card.showWordCount` | bool | `true` | 字数 |
 | `button.radius/padding/primaryBackground/primaryText/hoverScale` | — | — | 按钮 |
-| `customCSS` | object | `{}` | 注入 CSS |
+| ~~`customCSS`~~ | — | — | 已迁移至 features.customCSS（本文件不再读取该键） |
 | `externalAssets.styles/scripts` | array | `[]` | 额外 CSS/JS（Prism 高亮脚本由构建本地注入；字体样式由 fontSystem 自动追加） |
 | `contentOffset` | number | `0` | 内容偏移 |
 | `headerContentGap` | number | `0` | 头内容间隙 |
 | `tocWidth` | string | `200px` | 目录宽 |
 | `sidebarWidth` | string | `280px` | 侧栏宽 |
 | `tocMinLeft` / `sidebarMinRight` | string | `10px` | 边界 |
+| `preset` / `presetOverrides` | string/object | `classic-blue`/`{}` | 颜色预设与单色微调（预设接管时 colors 段不生效） |
+| `glass.enabled/blur/alpha/darkAlpha/rgb` | bool/string/number | `true`/`12px`/`0.8`/`0.85`/`255,255,255` | 导航毛玻璃（navigation.navbarOptions 优先） |
+| `background.mode/colors/gradientAngle/gridSize/dotSize/opacity` | string/array/number | `particles`/—/`135`/`24`/`1`/`1` | 页面背景特效（粒子细节见 features.background.particles） |
+| `avatar.shape/ring/ringColor/badge` | string/bool/string/bool | `round`/`false`/`''`/`true` | 头像外观与首字母徽章 |
+| `density.preset/columns` | string/number | `balanced`/`2` | 布局密度档位（compact/balanced/airy;数值见 tiers.density） |
+| `appearance.*` | — | 见 theme.json5 | 外观细节（选中色/滚动条/焦点环/代码/表格/分隔线/图注） |
+| `articleFooter.enabled/source/...` | bool/string | `true`/`disclaimer` | 文章页脚公告栏（内容源为 pages/ 下文件） |
 
 ---
 
@@ -444,6 +451,15 @@ sitemap: {
 
 ### 3.59 pwa — PWA 运行时
 `enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true`。运行时总开关(需 `site.pwa.enabled` 同时开启);注册 `site.pwa.serviceWorker` 并监听更新(toast 提示)、监听离线/恢复(toast 提示);修复 `_redirects` 将根 `/manifest.json` 302 到不存在语言路径导致 SW 安装失败的问题。
+
+---
+
+### 3.60 customCSS — 自定义 CSS 注入
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `enabled` | `true` | 总开关（关闭则完全不注入） |
+| `css` | `['blockquote{...}']` | CSS 片段数组：每项一段字符串（支持注释），按顺序合并注入；置空 `[]` 即不注入 |
+| `target` | `before-closing-body` | 注入位置（当前仅实现 `before-closing-body`，其余值保留） |
 
 ---
 

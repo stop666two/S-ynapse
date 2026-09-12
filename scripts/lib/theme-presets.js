@@ -46,14 +46,14 @@ const PRESETS = {
       background: '#f7fafc', surface: '#ffffff', text: '#1a202c',
       textSecondary: '#4a5568', textLight: '#64748b', border: '#e2e8f0',
       shadow: 'rgba(0,0,0,0.1)', hover: '#edf2f7',
-      codeBackground: '#2d3748', codeText: '#f7fafc'
+      codeBackground: '#e9eef4', codeText: '#1f2328'
     },
     dark: {
       primary: '#f1f5f9', secondary: '#7caeff', accent: '#fca5a5',
       background: '#0f172a', surface: '#1e293b', text: '#f1f5f9',
       textSecondary: '#a3b2c4', textLight: '#9aa8ba', border: '#334155',
       shadow: 'rgba(0,0,0,0.3)', hover: '#334155',
-      codeBackground: '#0f172a', codeText: '#e2e8f0'
+      codeBackground: '#0a1120', codeText: '#e6edf3'
     }
   },
   'night-jet': {
@@ -64,14 +64,14 @@ const PRESETS = {
       background: '#f3f4f6', surface: '#ffffff', text: '#111827',
       textSecondary: '#4b5563', textLight: '#636b74', border: '#e5e7eb',
       shadow: 'rgba(0,0,0,0.12)', hover: '#e5e7eb',
-      codeBackground: '#1f2937', codeText: '#f9fafb'
+      codeBackground: '#e5e7eb', codeText: '#111827'
     },
     dark: {
       primary: '#e5e7eb', secondary: '#60a5fa', accent: '#f87171',
       background: '#0b0f14', surface: '#15191f', text: '#f3f4f6',
       textSecondary: '#9ca3af', textLight: '#8b95a3', border: '#232a33',
       shadow: 'rgba(0,0,0,0.5)', hover: '#1e252e',
-      codeBackground: '#0b0f14', codeText: '#e5e7eb'
+      codeBackground: '#060809', codeText: '#e5e7eb'
     }
   },
   'forest-green': {
@@ -82,14 +82,14 @@ const PRESETS = {
       background: '#f4f9f6', surface: '#ffffff', text: '#14231c',
       textSecondary: '#3f5a4e', textLight: '#5e7266', border: '#d4e5dc',
       shadow: 'rgba(0,0,0,0.1)', hover: '#e8f2ec',
-      codeBackground: '#1f3a2d', codeText: '#f0f7f2'
+      codeBackground: '#e6f0ea', codeText: '#14321f'
     },
     dark: {
       primary: '#d9f0e4', secondary: '#4ade80', accent: '#fbbf24',
       background: '#0d1a13', surface: '#142b1f', text: '#e8f5ee',
       textSecondary: '#b7d5c6', textLight: '#93ac9f', border: '#24402f',
       shadow: 'rgba(0,0,0,0.4)', hover: '#1d352a',
-      codeBackground: '#0f2318', codeText: '#dcefe3'
+      codeBackground: '#08120d', codeText: '#dcefe3'
     }
   },
   'sakura-pink': {
@@ -100,14 +100,14 @@ const PRESETS = {
       background: '#fff8fa', surface: '#ffffff', text: '#331a24',
       textSecondary: '#6b4a56', textLight: '#8a6a74', border: '#f2dde4',
       shadow: 'rgba(0,0,0,0.08)', hover: '#fdeef3',
-      codeBackground: '#40222e', codeText: '#fce7ee'
+      codeBackground: '#fae8ee', codeText: '#4a1f2c'
     },
     dark: {
       primary: '#f2c4cf', secondary: '#f472b6', accent: '#fcd34d',
       background: '#1c1014', surface: '#26161c', text: '#f8eef1',
       textSecondary: '#d5b6bf', textLight: '#b1939d', border: '#3a242c',
       shadow: 'rgba(0,0,0,0.5)', hover: '#331e26',
-      codeBackground: '#2a1720', codeText: '#f8e3ea'
+      codeBackground: '#140a0e', codeText: '#f8e3ea'
     }
   },
   'editorial-grey': {
@@ -118,14 +118,14 @@ const PRESETS = {
       background: '#fafafa', surface: '#ffffff', text: '#18181b',
       textSecondary: '#52525b', textLight: '#6b6b74', border: '#e4e4e7',
       shadow: 'rgba(0,0,0,0.07)', hover: '#f4f4f5',
-      codeBackground: '#27272a', codeText: '#fafafa'
+      codeBackground: '#ececec', codeText: '#18181b'
     },
     dark: {
       primary: '#e4e4e7', secondary: '#a1a1aa', accent: '#d4a72c',
       background: '#171717', surface: '#1c1c1e', text: '#fafafa',
       textSecondary: '#a8a8b3', textLight: '#8d8d98', border: '#2e2e33',
       shadow: 'rgba(0,0,0,0.5)', hover: '#26262b',
-      codeBackground: '#141414', codeText: '#e5e5ea'
+      codeBackground: '#0d0d0d', codeText: '#e5e5ea'
     }
   },
   'cyber-purple': {
@@ -136,14 +136,14 @@ const PRESETS = {
       background: '#f8f6ff', surface: '#ffffff', text: '#1c1233',
       textSecondary: '#564b7e', textLight: '#746896', border: '#e4defc',
       shadow: 'rgba(0,0,0,0.11)', hover: '#f1ecff',
-      codeBackground: '#241a3f', codeText: '#f2ecff'
+      codeBackground: '#ebe5f7', codeText: '#241a3f'
     },
     dark: {
       primary: '#d4c7ff', secondary: '#b794f6', accent: '#f472b6',
       background: '#12071f', surface: '#1a0e29', text: '#f7f3ff',
       textSecondary: '#c9b8f0', textLight: '#a894cd', border: '#372a52',
       shadow: 'rgba(0,0,0,0.55)', hover: '#291b40',
-      codeBackground: '#150a26', codeText: '#e5dcf7'
+      codeBackground: '#0b0414', codeText: '#e5dcf7'
     }
   }
 };

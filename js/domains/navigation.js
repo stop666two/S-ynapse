@@ -1,5 +1,20 @@
 export function init() {
   const F = window.__FEATURES__ || {};
+  const TN = (window.__TUNING__ || {}).header || {};
+  const hd = document.querySelector('.site-header');
+  if (hd && TN.scrollShrink !== false) {
+    let ticking = false;
+    const th = parseInt(TN.scrollThresholdPx, 10);
+    const offset = isNaN(th) ? 8 : th;
+    const update = function () {
+      hd.classList.toggle('scrolled', window.scrollY > offset);
+      ticking = false;
+    };
+    window.addEventListener('scroll', function () {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }, { passive: true });
+    update();
+  }
   const MB = (F && F.mobileBottomNav) || {};
   const nav = document.getElementById('mBottomNav');
   if (!nav || MB.enabled === false) return;

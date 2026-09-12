@@ -302,6 +302,14 @@
     "iconSize": "18px",
     // 底阴影不透明度
     "shadowOpacity": "0.08",
+    // 滚动收缩后高度（滚动超过 scrollThresholdPx 时收缩到该高度）
+    "scrolledHeight": "56px",
+    // 是否启用滚动收缩效果（true = 启用，false = 关闭）
+    "scrollShrink": true,
+    // 触发收缩的滚动距离（px）
+    "scrollThresholdPx": "8",
+    // 顶栏底部渐变发丝线强度（基于辅色的混合比例，0% = 关闭）
+    "hairlineStrength": "30%",
   },
 
   // ---------- 侧栏（8 项） ----------
@@ -550,6 +558,32 @@
     "showAfterPx": "400",
     // 层级
     "zIndex": "999",
+  },
+
+  // ---------- 纹理（噪点，2 项） ----------
+  "texture": {
+    // 噪点颗粒密度（fractalNoise baseFrequency，越大颗粒越细；建议 0.5 ~ 1.2）
+    "noiseBaseFrequency": "0.8",
+    // 全局噪点纹理透明度（浅色模式，0 = 关闭；建议 0.015 ~ 0.04）
+    "noiseOpacity": "0.025",
+    // 深色模式噪点透明度（深色下可略高以保留质感）
+    "noiseOpacityDark": "0.035",
+  },
+
+  // ---------- 光晕（2 项） ----------
+  "glow": {
+    // 首页 Hero 径向光晕强度（浅色模式，基于辅色混合；0% = 关闭）
+    "heroStrength": "8%",
+    // 深色模式光晕强度（深色下可略高）
+    "heroStrengthDark": "12%",
+  },
+
+  // ---------- 代码块（2 项） ----------
+  "code": {
+    // 代码块描边宽度（0 = 关闭；token 配色见 theme.json 的 codeHighlight.palette）
+    "borderWidth": "1px",
+    // 代码块描边颜色 = 页面边框色 × 此比例（0% = 透明）
+    "borderMix": "65%",
   },
 
 }

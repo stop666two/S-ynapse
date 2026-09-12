@@ -100,9 +100,7 @@ const DEFAULT_FEATURES = {
     label: '收藏', listIcon: true, notText: '收藏', favedText: '已收藏'
   },
   prismTheme: {
-    enabled: true,
-    themes: [{ id: 'github', label: 'GitHub' }, { id: 'dark', label: 'Dark' }, { id: 'solarized', label: 'Solarized' }, { id: 'django', label: 'Django' }],
-    defaultTheme: 'github', remember: true, storageKey: 's-codeTheme', windowBar: true
+    enabled: true
   },
   cover: {
     enabled: true, patterns: ['gradient', 'stripes', 'dots', 'blob', 'mesh'],

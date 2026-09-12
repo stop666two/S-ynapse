@@ -41,6 +41,53 @@
   // 边框档位: none(隐藏边框) / subtle(淡) / visible(明显)
   "borderStyle": "subtle",
 
+  // ==================== 档位数值表 ====================
+  // 上方 rounding/shadowLevel/borderStyle/density.preset 只负责"选档"；
+  // 每档具体数值全部定义在这里，改这里即可全局调整档位表现（四组相互独立、与颜色预设正交）。
+  "tiers": {
+    // 圆角档位数值：radius 通用圆角 / radiusLarge 大圆角（图片、弹窗）/ button 按钮圆角
+    "rounding": {
+      "sharp": { "radius": "2px", "radiusLarge": "8px", "button": "2px" },
+      "sm": { "radius": "4px", "radiusLarge": "10px", "button": "3px" },
+      "md": { "radius": "0.618rem", "radiusLarge": "1.618rem", "button": "0.382rem" },
+      "lg": { "radius": "0.75rem", "radiusLarge": "1.25rem", "button": "0.5rem" }
+    },
+    // 阴影档位数值：card 卡片 / dropdown 浮层 / fixed 吸顶元素；dark 为暗色模式同款（暗底需更深的黑）
+    "shadow": {
+      "flat": { "card": "none", "dropdown": "none", "fixed": "none", "dark": { "card": "none", "dropdown": "none", "fixed": "none" } },
+      "soft": {
+        "card": "0 1px 2px rgba(16,24,40,.04),0 8px 24px -12px rgba(16,24,40,.12)",
+        "dropdown": "0 4px 12px rgba(16,24,40,.06),0 20px 48px -20px rgba(16,24,40,.20)",
+        "fixed": "0 1px 2px rgba(16,24,40,.05),0 6px 16px -10px rgba(16,24,40,.10)",
+        "dark": { "card": "0 1px 2px rgba(0,0,0,.35),0 8px 24px -12px rgba(0,0,0,.55)", "dropdown": "0 4px 12px rgba(0,0,0,.4),0 20px 48px -20px rgba(0,0,0,.6)", "fixed": "0 1px 2px rgba(0,0,0,.35),0 6px 16px -10px rgba(0,0,0,.5)" }
+      },
+      "medium": {
+        "card": "0 1px 3px rgba(16,24,40,.05),0 12px 32px -14px rgba(16,24,40,.16)",
+        "dropdown": "0 6px 16px rgba(16,24,40,.08),0 24px 56px -22px rgba(16,24,40,.24)",
+        "fixed": "0 2px 4px rgba(16,24,40,.06),0 8px 20px -12px rgba(16,24,40,.12)",
+        "dark": { "card": "0 1px 3px rgba(0,0,0,.4),0 12px 32px -14px rgba(0,0,0,.6)", "dropdown": "0 6px 16px rgba(0,0,0,.45),0 24px 56px -22px rgba(0,0,0,.65)", "fixed": "0 2px 4px rgba(0,0,0,.4),0 8px 20px -12px rgba(0,0,0,.55)" }
+      },
+      "strong": {
+        "card": "0 2px 6px rgba(16,24,40,.06),0 18px 44px -16px rgba(16,24,40,.22)",
+        "dropdown": "0 8px 20px rgba(16,24,40,.1),0 32px 72px -26px rgba(16,24,40,.3)",
+        "fixed": "0 2px 6px rgba(16,24,40,.08),0 10px 26px -14px rgba(16,24,40,.16)",
+        "dark": { "card": "0 2px 6px rgba(0,0,0,.45),0 18px 44px -16px rgba(0,0,0,.65)", "dropdown": "0 8px 20px rgba(0,0,0,.5),0 32px 72px -26px rgba(0,0,0,.7)", "fixed": "0 2px 6px rgba(0,0,0,.45),0 10px 26px -14px rgba(0,0,0,.6)" }
+      }
+    },
+    // 边框档位数值：light 明亮模式边框色 / dark 暗色模式边框色（#00000000 = 视觉关闭）
+    "border": {
+      "none": { "light": "#00000000", "dark": "#00000000" },
+      "subtle": { "light": "#e2e8f0", "dark": "#334155" },
+      "visible": { "light": "#cbd5e1", "dark": "#475569" }
+    },
+    // 布局密度档位数值：containerWidth 内容最大宽 / gap 主间距 / sidebarWidth 侧栏宽 / columns 卡片列数
+    "density": {
+      "compact": { "containerWidth": "1000px", "gap": "1.25rem", "sidebarWidth": "240px", "columns": 2 },
+      "balanced": { "containerWidth": "1250px", "gap": "1.618rem", "sidebarWidth": "318px", "columns": 2 },
+      "airy": { "containerWidth": "1400px", "gap": "2.5rem", "sidebarWidth": "320px", "columns": 3 }
+    }
+  },
+
   // 头像与 Logo 显示模式
   "avatar": {
     "shape": "round",     // 头像形状: round(圆形) / rounded(圆角方形) / square(方形)
@@ -98,8 +145,8 @@
     "border": "#e2e8f0",              // 边框颜色
     "shadow": "rgba(0,0,0,0.1)",      // 阴影颜色
     "hover": "#edf2f7",               // 悬停背景色
-    "codeBackground": "#2d3748",      // 代码块背景色
-    "codeText": "#f7fafc"             // 代码块文字颜色
+    "codeBackground": "#e9eef4",      // 代码块背景色（浅色模式；随明暗模式自动切换）
+    "codeText": "#1f2328"             // 代码块文字颜色（浅色模式）
   },
 
   // ==================== 深色模式 ====================
@@ -119,8 +166,8 @@
       "hover": "#334155",              // 悬停背景色
       "secondary": "#7caeff",          // 链接色（深色下提亮以达 4.5:1）
       "accent": "#fca5a5",             // 强调色（深色下提亮）
-      "codeBackground": "#0f172a",     // 代码块背景
-      "codeText": "#e2e8f0"            // 代码块文字色
+      "codeBackground": "#0a1120",     // 代码块背景（深色模式，与页面底色区分以保留块感）
+      "codeText": "#e6edf3"            // 代码块文字色（深色模式）
     }
   },
 
@@ -145,16 +192,16 @@
     "containerWidth": "1250px",  // 内容区最大宽度
     "gap": "1.618rem",           // 元素间距（黄金分割 φ）
     "padding": "2.618rem",       // 内边距（黄金分割 φ²）
-    "radius": "0.618rem",        // 默认圆角（黄金分割 φ/2.618）
-    "radiusLarge": "1.618rem"    // 大圆角（如搜索弹窗，黄金分割 φ）
+    "radius": "0.618rem",        // 默认圆角兜底（正常由 tiers.rounding 档位写入）
+    "radiusLarge": "1.618rem"    // 大圆角兜底（正常由 tiers.rounding 档位写入）
   },
 
-  // ==================== 阴影 ====================
-
-  "shadow": {
-    "card": "0 4px 6px rgba(0,0,0,0.1)",              // 卡片阴影
-    "dropdown": "0 10px 15px -3px rgba(0,0,0,0.1)",   // 下拉菜单阴影
-    "fixed": "0 2px 4px rgba(0,0,0,0.08)"             // 固定元素阴影（如导航栏）
+  // ==================== 表面质感 ====================
+  // 阴影数值统一由上方 tiers.shadow 按 shadowLevel 档位提供（此处不再重复定义，避免多开关）。
+  // 表面高光/描边：为卡片、面板等"表面"增加的精致层次；"0 0 #0000" = 关闭（透明无效果）
+  "surfaceHighlight": {
+    "light": "0 0 0 1px rgba(16,24,40,.04)",                                      // 浅色模式：极淡描边环
+    "dark": "inset 0 1px 0 rgba(255,255,255,.05),0 0 0 1px rgba(255,255,255,.05)" // 暗色模式：顶部内高光 + 描边环
   },
 
   // ==================== 布局 ====================
@@ -177,11 +224,24 @@
     "transitionTiming": "ease-in-out"  // 过渡缓动函数
   },
 
-  // ==================== 代码高亮 ====================
+  // ==================== 代码高亮配色 ====================
+  // Prism 按 token 类型着色，浅色/暗色两套随主题自动切换（无需维护外部样式表）。
+  // token 类型：comment 注释 / keyword 关键字 / string 字符串 / number 数字与常量 /
+  //            fn 函数名与类名 / attr 属性名・选择器・标签 / punct 标点与运算符
 
   "codeHighlight": {
-    "theme": "github-dark",       // 代码高亮主题
-    "highlightLines": true        // 是否支持行高亮
+    // 明亮模式 token 配色（GitHub Light 调校）
+    "palette": {
+      "light": {
+        "comment": "#6a737d", "keyword": "#cf222e", "string": "#0a3069",
+        "number": "#0550ae", "fn": "#8250df", "attr": "#116329", "punct": "#6e7781"
+      },
+      // 暗色模式 token 配色（One Dark 调校，暗底使用更高亮度）
+      "dark": {
+        "comment": "#8b949e", "keyword": "#ff7b72", "string": "#a5d6ff",
+        "number": "#79c0ff", "fn": "#d2a8ff", "attr": "#7ee787", "punct": "#c9d1d9"
+      }
+    }
   },
 
   // ==================== 文章卡片 ====================
@@ -199,7 +259,7 @@
   // ==================== 按钮 ====================
 
   "button": {
-    "radius": "0.25rem",                  // 按钮圆角
+    "radius": "0.25rem",                  // 按钮圆角兜底（正常由 tiers.rounding.button 写入）
     "padding": "0.5rem 1.5rem",          // 按钮内边距
     "primaryBackground": "#4a90d9",       // 主要按钮背景色
     "primaryText": "#ffffff",             // 主要按钮文字色

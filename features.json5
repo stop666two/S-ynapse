@@ -1466,23 +1466,9 @@
   },
   // ---------------------------------------------------------------------------
   prismTheme: {
-    // 启用代码块主题切换器。
-    enabled: true,
-    // 可选主题列表 id 与 label。
-    themes: [
-      { id: 'github', label: 'GitHub' },
-      { id: 'dark', label: 'Dark' },
-      { id: 'solarized', label: 'Solarized' },
-      { id: 'django', label: 'Django' }
-    ],
-    // 默认主题。
-    defaultTheme: 'github',
-    // 持久化。
-    remember: true,
-    // 存储键。
-    storageKey: 's-codeTheme',
-    // 切换器置于代码块窗口栏(标题栏)。
-    windowBar: true
+    // 代码高亮配色总开关（false = 代码块不着色）。
+    // 配色值定义在 theme.json 的 codeHighlight.palette，浅色/暗色两套随主题自动切换。
+    enabled: true
   },
   // ---------------------------------------------------------------------------
   cover: {

@@ -218,8 +218,7 @@ function loadConfig() {
       spacing: { containerWidth: '960px', gap: '1.618rem', padding: '2.618rem', radius: '0.618rem', radiusLarge: '1.618rem' },
       shadow: { card: '0 4px 6px rgba(0,0,0,0.1)', dropdown: '0 10px 15px -3px rgba(0,0,0,0.1)', fixed: '0 2px 4px rgba(0,0,0,0.08)' },
       layout: { headerStyle: 'fixed', headerHeight: '60px', footerStyle: 'simple', sidebarPosition: 'right', contentWidth: 'main', postLayout: 'standard', archiveLayout: 'list' },
-      animation: { enable: true, transitionDuration: '0.3s', transitionTiming: 'ease-in-out', scrollBehavior: 'smooth', pageTransition: 'fade' },
-      codeHighlight: { theme: 'github-dark', highlightLines: true },
+      animation: { enable: true, transitionDuration: '0.3s', transitionTiming: 'ease-in-out' },
       card: { showDate: true, showTags: true, showCategories: true, showExcerpt: true, excerptLength: 150, showReadTime: true, readTimeSpeed: 265, showWordCount: true },
       button: { radius: '0.25rem', padding: '0.5rem 1.5rem', primaryBackground: '#4a90d9', primaryText: '#ffffff', hoverScale: 1.02 },
       customCSS: {},
@@ -289,23 +288,18 @@ function loadConfig() {
   return config;
 }
 
-// DENSITY_TIERS — 三档布局密度。
-const DENSITY_TIERS = {
-  compact: { containerWidth: '1000px', gap: '1.25rem', sidebarWidth: '240px', columns: 2 },
-  balanced: { containerWidth: '1250px', gap: '1.618rem', sidebarWidth: '318px', columns: 2 },
-  airy: { containerWidth: '1400px', gap: '2.5rem', sidebarWidth: '320px', columns: 3 }
-};
-
+// applyDensity — 布局密度档位解析。档位数值定义在 theme.json 的 tiers.density（配置即唯一来源）。
 function applyDensity(theme) {
   if (!theme.density) theme.density = {};
   const preset = theme.density.preset;
-  const tier = (preset && DENSITY_TIERS[preset]) || null;
+  const tiers = (theme.tiers && theme.tiers.density) || {};
+  const tier = (preset && tiers[preset]) || null;
   const d = theme.density;
-  theme.density.columns = tier ? tier.columns : (Number.isInteger(d.columns) ? d.columns : 2);
+  theme.density.columns = tier && tier.columns != null ? tier.columns : (Number.isInteger(d.columns) ? d.columns : 2);
   if (tier) {
-    theme.density.containerWidth = tier.containerWidth;
-    theme.density.gap = tier.gap;
-    theme.density.sidebarWidth = tier.sidebarWidth;
+    if (tier.containerWidth) theme.density.containerWidth = tier.containerWidth;
+    if (tier.gap) theme.density.gap = tier.gap;
+    if (tier.sidebarWidth) theme.density.sidebarWidth = tier.sidebarWidth;
   }
   theme.spacing = theme.spacing || {};
   theme.spacing.containerWidth = theme.density.containerWidth || theme.spacing.containerWidth || '1250px';
@@ -348,42 +342,31 @@ function resolveFontSystem(theme) {
   }
 }
 
-// VISUAL_TIERS — rounding/shadowLevel/borderStyle 档位 → 具体 CSS 变量值。
-// 这些档位只叠加非颜色项（spacing.radius/shadow.*/colors.border），
-// 与预设色板正交，可在任何预设下自由组合。
-const VISUAL_ROUNDING = {
-  sharp: { radius: '2px', radiusLarge: '8px', button: '2px' },
-  sm: { radius: '4px', radiusLarge: '10px', button: '3px' },
-  md: { radius: '0.618rem', radiusLarge: '1.618rem', button: '0.382rem' },
-  lg: { radius: '0.75rem', radiusLarge: '1.25rem', button: '0.5rem' }
-};
-const VISUAL_SHADOW = {
-  flat: { card: 'none', dropdown: 'none', fixed: 'none' },
-  soft: { card: '0 4px 6px rgba(0,0,0,0.1)', dropdown: '0 10px 15px -3px rgba(0,0,0,0.1)', fixed: '0 2px 4px rgba(0,0,0,0.08)' },
-  medium: { card: '0 6px 16px rgba(0,0,0,0.12)', dropdown: '0 12px 28px rgba(0,0,0,0.14)', fixed: '0 2px 8px rgba(0,0,0,0.10)' },
-  strong: { card: '0 12px 32px rgba(0,0,0,0.16)', dropdown: '0 18px 44px rgba(0,0,0,0.18)', fixed: '0 4px 14px rgba(0,0,0,0.14)' }
-};
-const VISUAL_BORDER = {
-  none: { light: '#00000000', dark: '#00000000' },
-  subtle: { light: '#e2e8f0', dark: '#334155' },
-  visible: { light: '#cbd5e1', dark: '#475569' }
-};
-
+// applyVisualTiers — rounding/shadowLevel/borderStyle 档位解析。
+// 档位数值定义在 theme.json 的 tiers（配置即唯一来源）；档位缺失时保留现有值（兜底见 DEFAULTS）。
 function applyVisualTiers(theme) {
-  const rd = VISUAL_ROUNDING[theme.rounding] || VISUAL_ROUNDING.md;
-  const sh = VISUAL_SHADOW[theme.shadowLevel] || VISUAL_SHADOW.soft;
-  const bd = VISUAL_BORDER[theme.borderStyle] || VISUAL_BORDER.subtle;
-  theme.spacing.radius = rd.radius;
-  theme.spacing.radiusLarge = rd.radiusLarge;
-  theme.button.radius = rd.button;
-  theme.shadow.card = sh.card;
-  theme.shadow.dropdown = sh.dropdown;
-  theme.shadow.fixed = sh.fixed;
-  if (!theme.colors) theme.colors = {};
-  theme.colors.border = bd.light;
-  if (theme.darkMode && theme.darkMode.enabled) {
-    if (!theme.darkMode.colors) theme.darkMode.colors = {};
-    theme.darkMode.colors.border = bd.dark;
+  const tiers = theme.tiers || {};
+  const rd = (tiers.rounding && tiers.rounding[theme.rounding]) || null;
+  const sh = (tiers.shadow && tiers.shadow[theme.shadowLevel]) || null;
+  const bd = (tiers.border && tiers.border[theme.borderStyle]) || null;
+  if (rd) {
+    if (rd.radius) theme.spacing.radius = rd.radius;
+    if (rd.radiusLarge) theme.spacing.radiusLarge = rd.radiusLarge;
+    if (rd.button) theme.button.radius = rd.button;
+  }
+  if (sh) {
+    if (sh.card) theme.shadow.card = sh.card;
+    if (sh.dropdown) theme.shadow.dropdown = sh.dropdown;
+    if (sh.fixed) theme.shadow.fixed = sh.fixed;
+    theme.darkShadow = (theme.darkMode && theme.darkMode.enabled && sh.dark) ? sh.dark : null;
+  }
+  if (bd) {
+    if (!theme.colors) theme.colors = {};
+    if (bd.light) theme.colors.border = bd.light;
+    if (theme.darkMode && theme.darkMode.enabled && bd.dark) {
+      if (!theme.darkMode.colors) theme.darkMode.colors = {};
+      theme.darkMode.colors.border = bd.dark;
+    }
   }
 }
 
@@ -452,9 +435,11 @@ function validateConfig(config) {
 
   const themeErrors = validateThemePreset(config.theme);
   errors.push(...themeErrors);
-  if (config.theme.rounding && !VISUAL_ROUNDING[config.theme.rounding]) errors.push('theme.rounding 无效，可选: sharp | sm | md | lg');
-  if (config.theme.shadowLevel && !VISUAL_SHADOW[config.theme.shadowLevel]) errors.push('theme.shadowLevel 无效，可选: flat | soft | medium | strong');
-  if (config.theme.borderStyle && !VISUAL_BORDER[config.theme.borderStyle]) errors.push('theme.borderStyle 无效，可选: none | subtle | visible');
+  const _tiers = config.theme.tiers || {};
+  const _tk = function (group) { return Object.keys((_tiers[group] || {})); };
+  if (config.theme.rounding && _tk('rounding').length && !_tiers.rounding[config.theme.rounding]) errors.push('theme.rounding 无效，可选: ' + _tk('rounding').join(' | '));
+  if (config.theme.shadowLevel && _tk('shadow').length && !_tiers.shadow[config.theme.shadowLevel]) errors.push('theme.shadowLevel 无效，可选: ' + _tk('shadow').join(' | '));
+  if (config.theme.borderStyle && _tk('border').length && !_tiers.border[config.theme.borderStyle]) errors.push('theme.borderStyle 无效，可选: ' + _tk('border').join(' | '));
 
   if (errors.length > 0) {
     console.error('\n[CONFIG VALIDATION ERRORS]');
@@ -1023,8 +1008,8 @@ async function processArticles(config, mediaManifest) {
       const pinned = attrs.pinned === true || attrs.pinned === 'true';
       const series = attrs.series ? String(attrs.series).trim() : null;
       content = resolveWikiLinks(content, wikiLookup);
-      const hasMath = MATH_RX.test(content);
-      const hasMermaid = MERMAID_RX.test(content);
+  const hasMath = MATH_RX.test(content);
+  const hasMermaid = MERMAID_RX.test(content);
       let htmlContent = marked.parse(content);
       if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
       htmlContent = sanitizeHtml(htmlContent);

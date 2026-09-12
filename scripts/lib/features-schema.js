@@ -22,7 +22,8 @@ const DEFAULT_FEATURES = {
     dotSize: '10px', barHeight: '3px', useGradient: true,
     gradientStart: 'var(--color-s)', gradientEnd: 'var(--color-a)',
     tipDisplayMs: 500, updateThrottleMs: 30, ariaAnnounce: true, topOffset: '0',
-    zIndex: 1000, showTip: true, progressColor: 'var(--color-a)'
+    zIndex: 1000, showTip: true, progressColor: 'var(--color-a)',
+    rememberPosition: true, rememberPositionMaxAgeHours: 72
   },
   backToTop: {
     enabled: true, showAfterPx: 400, rightOffset: '2rem', bottomOffset: '2rem',
@@ -80,13 +81,13 @@ const DEFAULT_FEATURES = {
     enabled: true, minLevel: 2, maxLevel: 4, collapsible: true,
     defaultOpenLevel: 2, highlightActive: true, activeOffset: 120,
     progressLine: true, updateUrl: true, smoothScroll: true,
-    visitedFade: true, titleText: '目录', titleTextEn: 'Contents',
+    visitedFade: true, groupCollapse: true, titleText: '目录', titleTextEn: 'Contents',
     showTitle: true, maxWidthPx: 320
   },
   mobileToc: {
     enabled: true, borderRadius: '1rem',
     maxHeightVh: '70', autoClose: true, overlayClose: true,
-    lockScroll: true, position: 'right'
+    lockScroll: true, position: 'right', showCurrent: true
   },
   readDock: {
     enabled: true, showProgressRing: true, showTocButton: true,

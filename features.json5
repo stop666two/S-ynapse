@@ -109,6 +109,10 @@
     gradientEnd: 'var(--color-a)',
     // 点击后百分比提示的显示时长(ms)。
     tipDisplayMs: 500,
+    // 记忆阅读位置:同一文章再次打开时恢复到上次滚动位置。
+    rememberPosition: true,
+    // 阅读位置最大记忆时长(小时;超时不再恢复)。
+    rememberPositionMaxAgeHours: 72,
     // 滚动时实时更新节流间隔(ms)。
     updateThrottleMs: 30,
     // 是否通过 ARIA 播报进度(屏幕阅读器)。
@@ -401,7 +405,9 @@
     // 锚点跳转使用平滑滚动。
     smoothScroll: true,
     // 已读过的目录项淡色标记(visited)。
-    visitedFade: true
+    visitedFade: true,
+    // 分组折叠:点击二级目录项的箭头收起其下三级项(适合长文)。
+    groupCollapse: true
     // 宽度见 theme.json5 tocWidth 相关
     ,
     // 目录侧栏标题文本(zh 语言)。
@@ -701,7 +707,9 @@
     // 抽屉打开时锁定背景滚动。
     lockScroll: true,
     // 按钮位置:bottom-right/bottom-left。
-    position: 'right'
+    position: 'right',
+    // 胶囊按钮显示当前章节名与阅读进度百分比。
+    showCurrent: true
   },
 
   // ---------------------------------------------------------------------------

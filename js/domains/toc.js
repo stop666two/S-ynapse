@@ -21,6 +21,35 @@ export function init() {
     var ids = [];
     links.forEach(function (l) { var h = l.getAttribute('href'); if (h && h[0] === '#') ids.push(h.slice(1)); });
     if (!ids.length) return;
+    var mgLabel = document.getElementById('mTocLabel'), mgPct = document.getElementById('mTocPct');
+    var MT = (F && F.mobileToc) || {};
+    if (T.groupCollapse !== false) {
+      var groups = [], head = null;
+      links.forEach(function (l) {
+        var li = l.closest('.toc-sidebar-item');
+        if (!li) return;
+        if (l.classList.contains('level-2')) { head = { li: li, children: [], btn: null }; groups.push(head); }
+        else if (l.classList.contains('level-3') && head) { head.children.push(li); }
+      });
+      groups.forEach(function (g) {
+        if (!g.children.length) return;
+        g.li.classList.add('has-group');
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'toc-group-toggle';
+        b.setAttribute('aria-expanded', 'true');
+        b.setAttribute('aria-label', '折叠/展开该章节');
+        b.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>';
+        b.onclick = function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var c = g.li.classList.toggle('collapsed');
+          b.setAttribute('aria-expanded', c ? 'false' : 'true');
+          g.children.forEach(function (ch) { ch.classList.toggle('toc-child-hidden', c); });
+        };
+        g.li.appendChild(b);
+      });
+    }
     function update() {
       var cur = '';
       for (var i = 0; i < ids.length; i++) {
@@ -32,11 +61,18 @@ export function init() {
         l.classList.toggle(cls, h === '#' + cur);
         if (T.visitedFade !== false) l.classList.toggle('visited', h !== '#' + cur && h !== '#' + ids[0] && l.hasAttribute('data-seen'));
       });
+      var sh0 = document.documentElement.scrollHeight - window.innerHeight;
+      var pct0 = sh0 > 0 ? Math.min(1, window.scrollY / sh0) : 0;
+      if (mgLabel && MT.showCurrent !== false) {
+        var curLink = null;
+        links.forEach(function (l) { if (l.getAttribute('href') === '#' + cur) curLink = l; });
+        mgLabel.textContent = curLink ? curLink.textContent : '';
+        if (mgPct) mgPct.textContent = Math.round(pct0 * 100) + '%';
+      }
       if (T.progressLine !== false) {
         var pr = document.getElementById('tocProgress');
         if (pr && pr.firstChild) {
-          var sh = document.documentElement.scrollHeight - window.innerHeight;
-          pr.firstChild.style.width = (sh > 0 ? Math.min(100, (window.scrollY / sh) * 100) : 0) + '%';
+          pr.firstChild.style.width = (sh0 > 0 ? Math.min(100, (window.scrollY / sh0) * 100) : 0) + '%';
         }
       }
     }

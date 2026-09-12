@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **阅读套件（B2）**：TOC 二级分组折叠（`toc.groupCollapse`，箭头收起/展开三级项）；移动端目录胶囊按钮升级为"当前章节名 + 阅读进度百分比"（`mobileToc.showCurrent`）；阅读位置记忆（`readingProgress.rememberPosition` + `rememberPositionMaxAgeHours`，同文章回访恢复滚动位置，哈希导航与前进/后退自动跳过） — `js/domains/toc.js` + `js/domains/read-position.js` + `templates/layout.ejs` + `features.json5`
 - **预渲染增强（B1）**：`speculation.delivery` 三态（`inline` 默认/`header`/`both`）——`header` 模式构建 `speculation-rules.json` 并经 `_headers` 以 `Speculation-Rules` 响应头 + `application/speculationrules+json` MIME 下发（Cloudflare Speed Brain 检测到自有规则会礼让，避免双重投机；该模式下页内开关自动隐藏） — `scripts/build.js` + `js/domains/seamless-nav.js` + `features.json5`
 - **图片管线增强（A5/B5）**：构建期 LQIP 模糊占位（内联 `data-lqip`，运行时经 imageLazy 应用到图片背景，同时加入 sanitize 属性白名单）、AVIF 变体默认开启（effort 5）、srcset sizes 默认改为 `(max-width:768px) 100vw, 768px`、文章首图 `<link rel=preload as=image fetchpriority=high>`（`site.performance.preloadFeaturedImage`，可关） — `scripts/build.js` + `js/domains/image-lazy.js` + `scripts/lib/utils.js` + `site.json5` + `features.json5`
 - **变量字体（A7）**：Inter/Sora/Manrope 改用 `@fontsource-variable` 单文件（100–900 字重插值，OFL 开源），仅 latin 子集 vendor；首屏字体请求从 ~15 个静态 woff2 降至 3 个，字重过渡更顺滑 — `scripts/build.js` + `package.json`

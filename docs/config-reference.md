@@ -254,7 +254,7 @@
 | `rememberPosition` | `false` | 记忆上次位置 |
 
 ### 3.2 readingProgress — 阅读进度条
-`enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500` / `updateThrottleMs 30` / `ariaAnnounce true` / `topOffset 0`
+`enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500` / `updateThrottleMs 30` / `ariaAnnounce true` / `topOffset 0` / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发)
 
 ### 3.3 backToTop — 返回顶部
 `enabled true` / `showAfterPx 400` / `rightOffset 2rem` / `bottomOffset 2rem` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''` / `htmlAnchorFallback false`
@@ -280,10 +280,10 @@
 `enabled true` / `openSearch /`(空=禁用,下同) / `toggleTheme d` / `prevPost k` / `nextPost j` / `help ?` / `close Escape` / `showHelpHint true` / `helpTitle 快捷键一览` / `showHelpTable true` / `ignoreInInputs true`
 
 ### 3.10 toc — 目录(桌面侧)
-`enabled true` / `minLevel 2` / `maxLevel 4` / `collapsible true` / `defaultOpenLevel 2` / `highlightActive true` / `activeOffset 120`
+`enabled true` / `minLevel 2` / `maxLevel 4` / `collapsible true` / `defaultOpenLevel 2` / `highlightActive true` / `activeOffset 120` / `groupCollapse true`(二级项带折叠箭头,可收起其下三级项)
 
 ### 3.11 mobileToc — 移动目录抽屉
-`enabled true` / `borderRadius 1rem` / `maxHeightVh 70` / `autoClose true` / `overlayClose true` / `lockScroll true` / `position right`。移动端目录抽屉;显示断点由 `mobile.tocBreakpoint` 控制。
+`enabled true` / `borderRadius 1rem` / `maxHeightVh 70` / `autoClose true` / `overlayClose true` / `lockScroll true` / `position right` / `showCurrent true`(胶囊按钮显示当前章节名与进度百分比)。移动端目录抽屉;显示断点由 `mobile.tocBreakpoint` 控制。
 
 ### 3.12 readingPanel — 阅读设置面板
 `enabled true` / `fontSizeMin 15`/`fontSizeMax 26`/`fontSizeStep 1`/`fontSizeDefault 19` / `lineHeightMin 1.4`/`LineHeightMax 2.6`/`Step 0.1`/`Default 1.9` / `widthMin 560`/`widthMax 1200`/`Step 40`/`Default 800` / `remember true` / `storageKey readerPrefs` / `resetText 重置` / `position right`

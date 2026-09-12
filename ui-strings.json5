@@ -229,6 +229,11 @@
     devtoolsDetected: '检测到开发者工具已打开',
     curtainText: '已暂停显示',
     screenKey: '已检测到截屏按键',
+    tamperDetected: '检测到页面被篡改',
+    gateTitle: '此内容受保护',
+    gatePlaceholder: '请输入访问密码',
+    gateError: '密码错误，请重试',
+    gateLimit: '今日访问次数已达上限',
   },
 
   en: {
@@ -404,6 +409,11 @@
       devtoolsDetected: 'Developer tools detected',
       curtainText: 'Paused',
       screenKey: 'Screen-capture key detected',
+      tamperDetected: 'Page tampering detected',
+      gateTitle: 'Protected content',
+      gatePlaceholder: 'Enter access password',
+      gateError: 'Wrong password, try again',
+      gateLimit: 'Daily visit limit reached',
     },
   },
 }

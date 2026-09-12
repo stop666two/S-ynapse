@@ -515,5 +515,116 @@
     prtScNotice: false,
     prtScText: '',
     prtScOncePerSession: true
+  },
+
+  // ==========================================================================
+  // 【tamperWatch】注入与篡改监视（15 项）——默认关闭（保留但默认关）
+  // --------------------------------------------------------------------------
+  // 监视：动态 <script>/<iframe> 注入、内联事件属性、fetch/eval 原型替换、
+  //   关键 DOM 节点消失、CSP 违规事件；可选手动上报端点（默认关闭，不上报）。
+  // 诚实声明：攻击者可在控制台先行关闭监视（页面级防护均可绕过）；
+  //   本模块用于“发现异常与噪音治理”，不是安全边界。
+  // ==========================================================================
+  tamperWatch: {
+    // 作用：模块开关；类型：boolean；推荐：false（soft 档需显式 true）
+    enabled: false,
+
+    // 作用：动态脚本注入监视（MutationObserver）
+    // scripts.monitor：boolean；推荐 true（模块开启时）
+    // scripts.action：string；可填 'toast'（提示）| 'remove'（移除脚本）| 'report'（仅上报）
+    // 注意：内联脚本插入即执行，remove 只能事后处理；对扩展注入可能误报
+    scripts: {
+      monitor: true,
+      action: 'toast'
+    },
+
+    // 作用：动态内联事件属性（onclick= 等）监视；类型：boolean；推荐 false
+    // 注意：attributes 全子树观察开销较大，仅在确有需要时开启
+    attrs: {
+      monitor: false
+    },
+
+    // 作用：动态 <iframe> 注入监视
+    // iframes.monitor：boolean；推荐 true（模块开启时）
+    // iframes.action：string；可填 'toast' | 'remove' | 'report'；推荐 'toast'
+    iframes: {
+      monitor: true,
+      action: 'toast'
+    },
+
+    // 作用：关键原型替换监视（fetch / XHR.open / eval / Function）
+    // prototype.watch：boolean；推荐 false（周期性比较，有轻微开销）
+    prototype: {
+      watch: false
+    },
+
+    // 作用：关键 DOM 节点监视（节点消失/被替换即触发）
+    // dom.monitor：boolean；推荐 false
+    // dom.targets：array<string>（CSS 选择器）；推荐 ['.site-header', '.post-content']
+    dom: {
+      monitor: false,
+      targets: ['.site-header', '.post-content']
+    },
+
+    // 作用：原型与 DOM 的检测间隔；类型：number(ms)；可填 1000–10000；推荐：2000
+    probeIntervalMs: 2000,
+
+    // 作用：手动上报端点（POST JSON）；类型：string；空 = 不上报（默认，隐私优先）
+    // 不可填：非 http(s) 地址；注意：数据默认仅含事件类型（见 reportPrivacyMode）
+    reportEndpoint: '',
+    // 作用：隐私模式（仅上报事件类型，不含 URL/UA 等）；类型：boolean；推荐：true
+    reportPrivacyMode: true,
+
+    // 作用：CSP 违规事件（securitypolicyviolation）弹出提示；类型：boolean；推荐：true
+    cspViolationToast: true,
+    // 作用：上述提示每会话只一次；类型：boolean；推荐：true
+    noticeOncePerSession: true,
+    // 作用：控制台输出监视日志；类型：boolean；推荐：false
+    logDetect: false
+  },
+
+  // ==========================================================================
+  // 【accessGate】访问门槛（14 项）——默认关闭（保留但默认关）
+  // --------------------------------------------------------------------------
+  // 能力：路径前缀级的密码门槛 + 访问者限次 + 解锁码（?key=）+ 会话记忆。
+  // 诚实声明：静态站密码为“软防护”——哈希与逻辑都在前端源码中，可被离线
+  //   分析绕过；仅防普通访客误入，敏感内容请使用 Cloudflare Access 等后端方案。
+  // ==========================================================================
+  accessGate: {
+    // 作用：模块开关；类型：boolean；推荐：false（soft 档需显式 true）
+    enabled: false,
+
+    // 作用：密码门槛
+    // hash：string；SHA-256(salt + 密码) 的十六进制（用任何在线/本地工具生成）
+    // salt：string；自定义盐（长度随意，建议 8 位以上随机串）
+    // rememberHours：number(h)；可填 0–720；推荐 72（0 = 关闭浏览器即失效）
+    // title/placeholder/errorText：界面文案（空 = ui-strings 默认）
+    password: {
+      enabled: false,
+      hash: '',
+      salt: '',
+      rememberHours: 72,
+      title: '',
+      placeholder: '',
+      errorText: ''
+    },
+
+    // 作用：生效范围（路径前缀；空数组 = 全站）
+    // 类型：array<string>；推荐 ['/zh/wiki/', '/zh/private/'] 之类
+    // 注意：路径需以 / 开头；语言前缀页也要单列（如 /en/wiki/）
+    paths: [],
+
+    // 作用：每访问者每日页面次数上限（本地计数，软限制）
+    // viewsPerDay：number；0 = 不限制；可填 0–1000；推荐 0
+    // viewsAction：string；可填 'toast' | 'lock'；推荐 'toast'
+    viewsPerDay: 0,
+    viewsAction: 'toast',
+
+    // 作用：解锁码（URL ?key=CODE 访问即永久解锁本机）；类型：array<string>；推荐 []
+    // 不可填：空字符串元素；注意：解锁码会出现在 URL 与浏览器历史中
+    unlockCodes: [],
+
+    // 作用：控制台输出门槛日志；类型：boolean；推荐：false
+    logDetect: false
   }
 }

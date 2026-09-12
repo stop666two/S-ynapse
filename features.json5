@@ -1934,6 +1934,8 @@
     watermark: true,
     devtoolsDetect: true,
     consoleGuard: true,
-    privacyCurtain: true
+    privacyCurtain: true,
+    tamperWatch: true,
+    accessGate: true
   },
 }

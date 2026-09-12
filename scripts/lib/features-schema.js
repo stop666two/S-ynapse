@@ -416,7 +416,7 @@ const DEFAULT_FEATURES = {
     gradientAngle: '135deg', fontSizeBase: 64, maxLines: 4,
     letterSpacing: '0.02em', template: 'aurora', palette: 'theme', showCategory: true
   },
-  guards: { enabled: true, preset: 'soft', contextMenu: true, copyGuard: true, selectionGuard: true, hotkeyGuard: true, watermark: true, devtoolsDetect: true, consoleGuard: true, privacyCurtain: true }
+  guards: { enabled: true, preset: 'soft', contextMenu: true, copyGuard: true, selectionGuard: true, hotkeyGuard: true, watermark: true, devtoolsDetect: true, consoleGuard: true, privacyCurtain: true, tamperWatch: true, accessGate: true }
 };
 
 const FEATURE_MODULES = Object.keys(DEFAULT_FEATURES);

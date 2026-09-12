@@ -471,6 +471,13 @@
     .g-lock p{font-size:.85rem;color:var(--color-ts)}
     .g-lock button{margin-top:.4rem;padding:.45rem 1.2rem;border:1px solid var(--color-border);border-radius:var(--br);background:var(--color-surface);color:var(--color-t);cursor:pointer;font:inherit;font-size:.8125rem}
     .g-lock button:hover{background:color-mix(in srgb,var(--color-s) 12%,transparent)}
+    .g-gate{position:fixed;inset:0;z-index:1898;display:flex;align-items:center;justify-content:center;background:var(--color-bg);padding:1.5rem}
+    .g-gate-card{width:min(92vw,360px);padding:2rem;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--r-lg,1.618rem);box-shadow:var(--sc),var(--surface-hi);display:flex;flex-direction:column;gap:.8rem;text-align:center}
+    .g-gate-card h3{font-size:1.05rem;font-weight:600;color:var(--color-t)}
+    .g-gate-input{padding:.55rem .8rem;border:1px solid var(--color-border);border-radius:var(--br);background:var(--color-bg);color:var(--color-t);font:inherit;font-size:.875rem;text-align:center}
+    .g-gate-input:focus{outline:2px solid var(--color-s);outline-offset:0}
+    .g-gate-card button{padding:.55rem 1rem;border:1px solid var(--color-border);border-radius:var(--br);background:var(--color-s);color:#fff;cursor:pointer;font:inherit;font-size:.875rem}
+    .g-gate-err{min-height:1.1em;font-size:.78rem;color:var(--color-a)}
 <% } %>
     /* —— 代码块:行号列（Prism line-numbers 几何适配）—— */
     .post-content pre.line-numbers{padding-left:3.8em;counter-reset:linenumber}

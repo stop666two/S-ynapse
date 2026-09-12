@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **订阅组件（C1）**：`features.subscribe`——页脚「订阅与更新」条：RSS（`{lang}/feed.xml`）+ JSON Feed + 可选外部邮件订阅表单（`newsletterUrl`，如 Buttondown/Substack，`newTab` 控制）；`subscribe` 界面文案双语；**顺带修复 `<head>` RSS alternate 双斜杠 bug（`/zh//feed.xml` → `/zh/feed.xml`）** — `templates/layout.ejs`
 - **命令面板（B3）**：`features.commandPalette`——Ctrl/Cmd+K 呼出，整合页面导航、快捷操作（切换主题/回到顶部/打开搜索/我的收藏）与文章搜索（懒加载索引）；原生 `<dialog>`（焦点圈定/top-layer/Esc 关闭）、键盘上下选择 + Enter 执行、IME 组合期防误触；`tuning.commandPalette` 可调宽度/位置/背板 — `js/domains/command-palette.js`
 - **滚动进度条（A4）**：`features.scrollIndicator`（`height`/`gradient`/`respectReducedMotion`）——顶部固定 hairline 进度条，基于原生 scroll-driven 动画（`animation-timeline: scroll(root)`），零 JS、零主线程开销；不支持自动隐藏（渐进增强） — `templates/layout.ejs`
 - **共享元素过渡（A3）**：`viewTransition.shared`——列表卡片封面/标题与文章页封面/标题通过 `view-transition-name` 形变衔接（首页/标签页 → 文章）；顺带修复文章页封面 `class` 属性跨行断裂导致 `.post-featured-image` 样式从未生效的历史问题 — `templates/index.ejs` + `templates/tag.ejs` + `templates/post.ejs`

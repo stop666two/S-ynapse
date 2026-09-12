@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(87 模块)](#3-featuresjson5--功能总控87-模块)
+3. [features.json5 — 功能总控(88 模块)](#3-featuresjson5--功能总控88-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -230,7 +230,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(87 模块)
+## 3. features.json5 — 功能总控(88 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -510,6 +510,10 @@ sitemap: {
 ### 3.71 authorCard — 作者卡(关于页)
 
 `enabled true` / `pageSlug 'about'`(显示页面 slug) / `showSocial true` / `showSkills true` / `showTimeline true` / `avatarSize '96px'`(头像尺寸) / `maxTimeline 20`(时间线最多条数,0=不限)。数据源为 `site.authorProfile`(`name`/`avatar`/`bio`/`skills[]`/`timeline[{year,title,desc}]`/`socials[{label,url}]`,全可选、未填项自动隐藏、整块可删除;资料至少一项非空时才渲染) — `templates/page.ejs`。
+
+### 3.72 readingHistory — 继续阅读(本地阅读历史)
+
+`enabled true` / `maxItems 5`(首页最多条数) / `storageKey 's-history'`(localStorage 键,修改会丢弃旧历史) / `showOnHome true`(false=只记录不展示) / `clearable true`(显示清除按钮)。文章页自动记录(标题+路径+时间,上限 50 条),首页在卡片区上方展示最近阅读(相对时间,`Intl.RelativeTimeFormat` 双语);纯本地、无服务端 — `js/domains/reading-history.js`。
 
 ---
 

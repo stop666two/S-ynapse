@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.3]
 
+### Fixed
+
+- **canonical 全站指向根路径（SEO）**：`<link rel="canonical">` 此前对所有页面均输出站点根（模板引用了不存在的 `page.url`），现改用 `currentUrl`（文章/分页/归档/标签等各自 URL），并规整 `site.url` 尾部斜杠 — `templates/layout.ejs`
+
 ### Added
 
+- **继续阅读（E3）**：`features.readingHistory`——本地阅读历史（文章页自动记录，首页展示最近阅读 + 相对时间 + 清除按钮；纯 localStorage，无服务端） — `js/domains/reading-history.js` + `templates/index.ejs`
 - **作者卡（C5）**：`features.authorCard` + `site.authorProfile`——关于页作者卡（头像/简介/技能标签/竖向时间线/社交矩阵胶囊）；数据全配置化、未填项自动隐藏、资料全空时不渲染 — `templates/page.ejs`
 - **赞助增强（C3）**：`features.reward.links[]`——打赏弹窗底部赞助平台胶囊链接（GitHub Sponsors / Ko-fi / 爱发电 等），每项 `{label,url}`，新窗口 `noopener` — `templates/post.ejs`
 - **订阅组件（C1）**：`features.subscribe`——页脚「订阅与更新」条：RSS（`{lang}/feed.xml`）+ JSON Feed + 可选外部邮件订阅表单（`newsletterUrl`，如 Buttondown/Substack，`newTab` 控制）；`subscribe` 界面文案双语；**顺带修复 `<head>` RSS alternate 双斜杠 bug（`/zh//feed.xml` → `/zh/feed.xml`）** — `templates/layout.ejs`

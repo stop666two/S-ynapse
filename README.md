@@ -19,8 +19,8 @@
 ## 特性
 
 **全配置驱动**
-- 12 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2090 项），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
-- `features.json5` 功能总控域：**87 个模块、701 个配置项**，每项功能均可开/关/微调；`tuning.json5` UI 微调层（28 分类 / 185 项）
+- 12 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2099 项），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- `features.json5` 功能总控域：**88 个模块、706 个配置项**，每项功能均可开/关/微调；`tuning.json5` UI 微调层（28 分类 / 185 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
 - 详细参考文档：`docs/config-reference.md`（10 章，逐字段权威参考）
@@ -155,7 +155,7 @@ S-ynapse/
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
 ├── site.json5          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
 ├── theme.json5         # 主题配置（颜色/字体/布局/文章页脚）
-├── features.json5     # 功能总控（87 模块/701 项，可开关/微调，可选文件）
+├── features.json5     # 功能总控（88 模块/706 项，可开关/微调，可选文件）
 ├── ui-strings.json5   # 界面文案词典（zh/en 双语词典，服务端 ui() + 运行时 __T()，可选）
 ├── tuning.json5       # UI 微调参数层（28 分类/185 项，注入 CSS 变量；行为参数运行时读取，可选）
 ├── navigation.json5    # 导航配置
@@ -256,7 +256,7 @@ S-ynapse/
 
 ### features.json5 — 功能总控魔方
 
-`features.json5` 是全部交互与内容功能的统一开关域：87 个模块、701 个配置项，逐项中文注释。几例：
+`features.json5` 是全部交互与内容功能的统一开关域：88 个模块、706 个配置项，逐项中文注释。几例：
 
 ```json5
 {
@@ -342,7 +342,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 加载配置 | 12 个 JSON5 配置（含 tuning.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 87 模块结构校验 |
+| 1 | 加载配置 | 12 个 JSON5 配置（含 tuning.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 88 模块结构校验 |
 | 2 | 设置输出目录 | 清空 `dist/` 并创建子目录 |
 | 3 | 复制静态文件 | `static/` → `dist/` |
 | 3ᵇ | 内容策略 | 按 content-policy.json5 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |

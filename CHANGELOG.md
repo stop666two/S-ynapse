@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **主题预设扩展（E4）**：新增 3 套调色盘——`amber-coffee`(琥珀咖啡) / `ocean-teal`(海沫青) / `plum-wine`(梅子酒)，每套含明亮+暗色各 13 色，全部通过 WCAG AA 对比度测试；预设切换器与 `theme.json5` 注释同步 — `scripts/lib/theme-presets.js`
 - **继续阅读（E3）**：`features.readingHistory`——本地阅读历史（文章页自动记录，首页展示最近阅读 + 相对时间 + 清除按钮；纯 localStorage，无服务端） — `js/domains/reading-history.js` + `templates/index.ejs`
 - **作者卡（C5）**：`features.authorCard` + `site.authorProfile`——关于页作者卡（头像/简介/技能标签/竖向时间线/社交矩阵胶囊）；数据全配置化、未填项自动隐藏、资料全空时不渲染 — `templates/page.ejs`
 - **赞助增强（C3）**：`features.reward.links[]`——打赏弹窗底部赞助平台胶囊链接（GitHub Sponsors / Ko-fi / 爱发电 等），每项 `{label,url}`，新窗口 `noopener` — `templates/post.ejs`

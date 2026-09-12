@@ -220,7 +220,7 @@
 | `tocWidth` | string | `200px` | 目录宽 |
 | `sidebarWidth` | string | `280px` | 侧栏宽 |
 | `tocMinLeft` / `sidebarMinRight` | string | `10px` | 边界 |
-| `preset` / `presetOverrides` | string/object | `classic-blue`/`{}` | 颜色预设与单色微调（预设接管时 colors 段不生效） |
+| `preset` / `presetOverrides` | string/object | `classic-blue`/`{}` | 颜色预设(9 套内置)与单色微调（预设接管时 colors 段不生效） |
 | `glass.enabled/blur/alpha/darkAlpha/rgb` | bool/string/number | `true`/`12px`/`0.8`/`0.85`/`255,255,255` | 导航毛玻璃（navigation.navbarOptions 优先） |
 | `background.mode/colors/gradientAngle/gridSize/dotSize/opacity` | string/array/number | `particles`/—/`135`/`24`/`1`/`1` | 页面背景特效（粒子细节见 features.background.particles） |
 | `avatar.shape/ring/ringColor/badge` | string/bool/string/bool | `round`/`false`/`''`/`true` | 头像外观与首字母徽章 |

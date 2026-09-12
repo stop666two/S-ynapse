@@ -33,7 +33,7 @@
 
 **阅读体验**
 - 暗黑模式（跟随系统 / 手动切换，无闪烁）+ **深色定时切换**（`themeSchedule`，固定时段）
-- **主题预设切换器**（6 套调色盘：Classic Blue / Cyber Purple / Forest Green / Sakura Pink / Editorial Gray / Midnight Black，localStorage 持久化）
+- **主题预设切换器**（9 套调色盘：Classic Blue / Cyber Purple / Forest Green / Sakura Pink / Editorial Gray / Midnight Black / Amber Coffee / Ocean Teal / Plum Wine，localStorage 持久化）
 - 全文搜索（Ctrl+K 快捷键，搜索标题 + 正文 + 标签，**键盘方向键导航 + 搜索历史**）
 - **Giscus 评论**（基于 GitHub Discussions）、**内容级双语**（zh/en：文章分目录 + 全文翻译 + URL 语言前缀 + 界面语言化）
 - 文章目录 TOC（侧边栏自动提取 h2-h4，移动端抽屉；**进度线 + URL 锚点 + 已读淡显**）
@@ -147,7 +147,7 @@ S-ynapse/
 │       ├── utils.js           # 工具函数库（formatDate/safeSlug/stripHtml/CJK 空格等）
 │       ├── content-policy.js  # 三目录内容策略判定（白名单/黑名单/SVG 消毒）
 │       ├── features-schema.js # features 默认 schema 单一真源 + 校验
-│       ├── theme-presets.js   # 6 套主题预设定义与校验
+│       ├── theme-presets.js   # 9 套主题预设定义与校验
 │       └── config-error.js    # JSON5 错误格式化（文件/行列/上下文/提示）
 ├── workers/           # Cloudflare Worker 安全层
 ├── .github/workflows/ # CI/CD 自动部署（含 AGENTS.md 检测 + npm audit 门禁）
@@ -183,7 +183,7 @@ S-ynapse/
 |------|------|------|
 | `site.json5` | 站点信息、SEO、RSS/JSON Feed、社交、构建开关 | ✅ |
 | `theme.json5` | 颜色（亮/暗）、字体、布局微调、文章页脚说明栏 | ✅ |
-| `features.json5` | 81 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、评论…） | 可选（缺失回退默认，功能保持） |
+| `features.json5` | 88 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、评论…） | 可选（缺失回退默认，功能保持） |
 | `ui-strings.json5` | 界面文案词典（zh/en 双语，i18n 切换的文案来源） | 可选（缺失回退内置文案） |
 | `tuning.json5` | UI 微调参数层（28 分类 / 185 项：排版/间距/圆角/动效/组件细节，注入 CSS 变量） | 可选 |
 | `navigation.json5` | 菜单、导航栏、社交顺序、搜索 | ✅ |
@@ -473,7 +473,7 @@ npm run verify:security   # 集成安全回归
 | sanitizeSvg | 3 | SVG 危险内容检测 |
 | escapeJsonForScript | 2 | 搜索索引嵌入 script 的安全序列化 |
 | features-schema validateFeatures | 7 | features 默认/校验/枚举/数组字段 |
-| theme-presets | 6 | 6 套主题预设校验（名称/形状/覆盖结构） |
+| theme-presets | 9 | 9 套主题预设校验（名称/形状/覆盖结构） |
 | formatConfigError | 2 | JSON5 错误格式化 |
 | generate-security-config | 6 | security.json5 → Worker 配置提取/渲染 |
 

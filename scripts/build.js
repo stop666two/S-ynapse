@@ -1767,6 +1767,7 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
           description: ov.description,
           pageTitle: ov.title,
           pageContent: ov.content,
+          pageSlug: cp.slug,
           currentUrl: pf + cp.slug + '/',
           currentPage: 'page'
         };

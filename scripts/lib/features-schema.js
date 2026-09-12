@@ -173,6 +173,10 @@ const DEFAULT_FEATURES = {
     enabled: true, rss: true, jsonFeed: true, newsletterUrl: '',
     newsletterLabel: '', newTab: true
   },
+  authorCard: {
+    enabled: true, pageSlug: 'about', showSocial: true, showSkills: true,
+    showTimeline: true, avatarSize: '96px', maxTimeline: 20
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true

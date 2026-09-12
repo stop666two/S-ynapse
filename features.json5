@@ -1836,4 +1836,24 @@
     // 外链是否新窗口打开(false = 当前窗口)。
     newTab: true
   },
+
+  // ---------------------------------------------------------------------------
+  // 55. 作者卡(关于页;头像/简介/技能/时间线/社交矩阵)
+  // ---------------------------------------------------------------------------
+  authorCard: {
+    // 总开关(false = 关于页不渲染作者卡)。
+    enabled: true,
+    // 显示作者卡的页面 slug(默认关于页 'about';需 site.authorProfile 提供至少一项内容)。
+    pageSlug: 'about',
+    // 是否显示社交矩阵(来自 site.authorProfile.socials)。
+    showSocial: true,
+    // 是否显示技能标签(来自 site.authorProfile.skills)。
+    showSkills: true,
+    // 是否显示时间线(来自 site.authorProfile.timeline,按配置顺序渲染)。
+    showTimeline: true,
+    // 头像尺寸(任意 CSS 长度;96px 适中)。
+    avatarSize: '96px',
+    // 时间线最多渲染条数(防止过长;0 = 不限制)。
+    maxTimeline: 20
+  },
 }

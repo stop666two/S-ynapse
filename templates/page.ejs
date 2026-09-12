@@ -4,3 +4,19 @@
     <%- pageContent %>
   </div>
 </div>
+<% var ac = (typeof features!=='undefined'&&features.authorCard)||{}; var ap = (typeof site!=='undefined'&&site.authorProfile)||{}; var acName=(ap.name||site.author||''); if (pageSlug===(ac.pageSlug||'about')&&ac.enabled!==false&&(ap.bio||ap.avatar||(ap.skills&&ap.skills.length)||(ap.timeline&&ap.timeline.length)||(ap.socials&&ap.socials.length))) { %>
+<div class="post-article" style="padding:0 2rem 2rem">
+<div class="author-card">
+  <div class="author-card-head">
+    <% if (ap.avatar) { %><img class="author-avatar" src="<%= ap.avatar %>" alt="<%= acName %>" loading="lazy" decoding="async" style="width:<%= ac.avatarSize||'96px' %>;height:<%= ac.avatarSize||'96px' %>"><% } %>
+    <div class="author-card-meta">
+      <% if (acName) { %><div class="author-card-name"><%= acName %></div><% } %>
+      <% if (ap.bio) { %><p class="author-card-bio"><%= ap.bio %></p><% } %>
+      <% if (ap.socials&&ap.socials.length&&ac.showSocial!==false) { %><div class="author-socials"><% ap.socials.forEach(function(s){ if(!s||!s.url)return; %><a class="author-social" href="<%= s.url %>" target="_blank" rel="noopener noreferrer"><%= s.label||s.url %></a><% }) %></div><% } %>
+    </div>
+  </div>
+  <% if (ap.skills&&ap.skills.length&&ac.showSkills!==false) { %><div class="author-skills"><% ap.skills.forEach(function(k){ %><span class="author-skill"><%= k %></span><% }) %></div><% } %>
+  <% if (ap.timeline&&ap.timeline.length&&ac.showTimeline!==false) { %><ul class="author-timeline"><% ap.timeline.slice(0, Number(ac.maxTimeline)>0?Number(ac.maxTimeline):ap.timeline.length).forEach(function(t){ if(!t)return; %><li class="author-tl-item"><span class="author-tl-year"><%= t.year||'' %></span><span class="author-tl-title"><%= t.title||'' %></span><% if(t.desc){ %><span class="author-tl-desc"><%= t.desc %></span><% } %></li><% }) %></ul><% } %>
+</div>
+</div>
+<% } %>

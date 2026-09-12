@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **图表尺寸自定义**：`features.mermaid.size`——全局默认宽高（`width`/`height`，支持 px/%/vw/vh/rem）+ `min/max` 钳制 + `fit` 适配策略（`scroll` 不缩放横向滚动（默认，解决时序图被缩小后线条挤压） / `scale` 旧行为）；单图覆盖语法：代码块语言标记后追加 `w=`/`h=`（如 ` ```mermaid w=900 h=520 `），非法值自动忽略 — `scripts/build.js` + `templates/layout.ejs`
 - **公告条升级（C2 增强）**：`features.announcement` 支持**多条轮播**（`items[{text,textEn,url}]` + `rotateMs`，悬停暂停/减少动效降级）、**视觉风格**（`tone: accent|solid|minimal`，含左侧圆点与圆形关闭键）、`tuning.announcement` 字号/字距微调；布局改为 grid 叠层稳定居中 — `templates/layout.ejs` + `js/domains/announcement.js`
 - **侧栏部件图标（A9）**：`sidebar.json5` 每个部件支持 `icon` 字段（内置 16 枚线性图标: clock/folder/tags/archive/collection/chart/quote/image/link/info/book/search/rss/download/home），8 个默认部件已配图标 — `templates/layout.ejs`
 - **公告条（C2）**：`features.announcement`（`text`/`textEn`/`url`/`dismissible`）——顶部固定公告条，`--annH` 统一偏移固定头部/移动菜单/粘性目录/内容；关闭按文本哈希记忆 — `templates/layout.ejs` + `js/domains/announcement.js`

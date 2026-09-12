@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 标题锚点 `#` 与 H2 主色竖线重叠：锚点改为右对齐定宽框（`left:-1.8em;width:1.65em;text-align:right`），与竖线保持 6px 间隙 — `templates/layout.ejs`
+- 公告条关闭后头部无法上移：关闭（及加载时已记忆关闭）时将 `--annH` 收起为 `0px`，固定头部/移动菜单/粘性目录即刻回位 — `js/domains/announcement.js`
+- 公告条文本不可见（绝对定位导致视口零宽裁切）：改为 `display:grid` 叠层，宽度随内容自适应 — `templates/layout.ejs`
 - 代码窗口栏按钮与语言标签重叠：`.code-actions` 恢复文档流（`position:static`）且语言标签 `margin-right:auto` — `templates/layout.ejs`
 - 长行代码横向滚动条过淡难看：正文 `pre` 定制滚动条（thumb 文字色 38%→悬停 62%、9px、圆角、Firefox `scrollbar-color`） — `templates/layout.ejs`
 - 共享元素封面过渡卡顿: 文章封面统一 `aspect-ratio: card.imageAspect`(16/10) 消除形变; 首页 Bento 大卡(21/10)不参与封面形变(标题仍共享) — `templates/layout.ejs` + `templates/index.ejs`
@@ -18,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **公告条升级（C2 增强）**：`features.announcement` 支持**多条轮播**（`items[{text,textEn,url}]` + `rotateMs`，悬停暂停/减少动效降级）、**视觉风格**（`tone: accent|solid|minimal`，含左侧圆点与圆形关闭键）、`tuning.announcement` 字号/字距微调；布局改为 grid 叠层稳定居中 — `templates/layout.ejs` + `js/domains/announcement.js`
 - **侧栏部件图标（A9）**：`sidebar.json5` 每个部件支持 `icon` 字段（内置 16 枚线性图标: clock/folder/tags/archive/collection/chart/quote/image/link/info/book/search/rss/download/home），8 个默认部件已配图标 — `templates/layout.ejs`
 - **公告条（C2）**：`features.announcement`（`text`/`textEn`/`url`/`dismissible`）——顶部固定公告条，`--annH` 统一偏移固定头部/移动菜单/粘性目录/内容；关闭按文本哈希记忆 — `templates/layout.ejs` + `js/domains/announcement.js`
 - **灯箱手势增强（E1）**：`features.lightbox.swipeClose` 下拉滑动关闭（放大状态下不触发）；鼠标拖拽左右翻页（非缩放态） — `js/domains/lightbox.js`

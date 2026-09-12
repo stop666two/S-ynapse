@@ -533,7 +533,7 @@ sitemap: {
 
 ### 3.76 announcement — 公告条
 
-`enabled true` / `text '欢迎来到 S-ynapse'`(中文/默认语言文本) / `textEn 'Welcome to S-ynapse'`(英文站覆盖) / `url ''`(点击跳转链接,留空=纯文本;https 外链自动 target=_blank rel=noopener) / `dismissible true`(显示关闭按钮)。固定于页面顶部(通过 `--annH` 变量将固定头部、移动菜单、粘性目录整体下移,内容偏移同步);关闭后按文本内容哈希记忆(`s-announce-dismissed`)不再出现 — `templates/layout.ejs` + `js/domains/announcement.js`。
+`enabled true` / `text` / `textEn` / `url`(单条模式：中英文文案与可选链接；https 外链自动 `target=_blank rel=noopener`) / `items []`(多条模式，每项 `{text,textEn,url}`，非空时优先) / `rotateMs 6000`(多条轮播间隔毫秒，`0`=只显示第一条；悬停暂停、`prefers-reduced-motion` 下瞬间切换) / `tone 'accent'`(`accent` 主题色渐变淡底 / `solid` 实心主题色 / `minimal` 素色+下边框) / `dismissible true`(关闭按钮)。固定于页面顶部（通过 `--annH` 变量将固定头部、移动菜单、粘性目录整体下移，内容偏移同步；**关闭后 `--annH` 收起为 0，头部自动上移**）；关闭按全部内容哈希记忆（`s-announce-dismissed`）不再出现。视觉细节（字号/字距）在 `tuning.json5` 的 `announcement` 分类调整 — `templates/layout.ejs` + `js/domains/announcement.js`。
 
 ---
 
@@ -648,7 +648,7 @@ sitemap: {
 
 ## 10. tuning.json5 — UI 微调参数层
 
-独立 UI 参数文件(28 分类 / 185 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
+独立 UI 参数文件(29 分类 / 190 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
 **优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已在「tuning 收尾」中全部清理(单一入口归各自模块配置);10 项原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
 

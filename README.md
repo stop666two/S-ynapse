@@ -19,8 +19,8 @@
 ## 特性
 
 **全配置驱动**
-- 12 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2139 项），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
-- `features.json5` 功能总控域：**91 个模块、723 个配置项**，每项功能均可开/关/微调；`tuning.json5` UI 微调层（28 分类 / 185 项）
+- 12 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2143 项），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- `features.json5` 功能总控域：**91 个模块、725 个配置项**，每项功能均可开/关/微调；`tuning.json5` UI 微调层（29 分类 / 190 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
 - 详细参考文档：`docs/config-reference.md`（10 章，逐字段权威参考）
@@ -155,9 +155,9 @@ S-ynapse/
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
 ├── site.json5          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
 ├── theme.json5         # 主题配置（颜色/字体/布局/文章页脚）
-├── features.json5     # 功能总控（91 模块/723 项，可开关/微调，可选文件）
+├── features.json5     # 功能总控（91 模块/725 项，可开关/微调，可选文件）
 ├── ui-strings.json5   # 界面文案词典（zh/en 双语词典，服务端 ui() + 运行时 __T()，可选）
-├── tuning.json5       # UI 微调参数层（28 分类/185 项，注入 CSS 变量；行为参数运行时读取，可选）
+├── tuning.json5       # UI 微调参数层（29 分类/190 项，注入 CSS 变量；行为参数运行时读取，可选）
 ├── navigation.json5    # 导航配置
 ├── sidebar.json5       # 侧边栏配置（含 series/friends/stats/quote 组件）
 ├── footer.json5        # 页脚配置
@@ -185,7 +185,7 @@ S-ynapse/
 | `theme.json5` | 颜色（亮/暗）、字体、布局微调、文章页脚说明栏 | ✅ |
 | `features.json5` | 88 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、评论…） | 可选（缺失回退默认，功能保持） |
 | `ui-strings.json5` | 界面文案词典（zh/en 双语，i18n 切换的文案来源） | 可选（缺失回退内置文案） |
-| `tuning.json5` | UI 微调参数层（28 分类 / 185 项：排版/间距/圆角/动效/组件细节，注入 CSS 变量） | 可选 |
+| `tuning.json5` | UI 微调参数层（29 分类 / 190 项：排版/间距/圆角/动效/组件细节，注入 CSS 变量） | 可选 |
 | `navigation.json5` | 菜单、导航栏、社交顺序、搜索 | ✅ |
 | `sidebar.json5` | 侧栏组件序列（author/recent/tags/categories/archive/series/friends/stats/quote…） | ✅ |
 | `footer.json5` | 页脚列、版权、备案、社交、Powered-by | ✅ |

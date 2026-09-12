@@ -542,7 +542,7 @@ sitemap: {
 
 ### 3.77 guards — 防护与交互控制总控
 
-`enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）。细节参数（菜单项、复制模式、选择/快捷键/水印、绕过通道等 94 项）全部在 `guard.json5`（见第 11 章）；绕过通道优先级：`?guard=on|off` > `localStorage['s-guards-off']` > `guard.json5` `core.bypass.localhost`。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
+`enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）。细节参数（菜单项、复制模式、选择/快捷键/水印/检测/控制台/隐私帘、绕过通道等 137 项）全部在 `guard.json5`（见第 11 章）；绕过通道优先级：`?guard=on|off` > `localStorage['s-guards-off']` > `guard.json5` `core.bypass.localhost`。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
 
 ---
 
@@ -671,7 +671,7 @@ sitemap: {
 
 ## 11. guard.json5 — 防护与交互控制域
 
-第 13 个配置文件（94 项标量字段，空数组不计；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
+第 13 个配置文件（137 项标量字段，空数组不计；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
 
 **结构**：
 - `core`（8 项）：`preset 'soft'` / `bypass.localhost false` / `bypass.queryParam 'guard'` / `bypass.storageFlag 's-guards-off'` / `logLevel 'off'` / `respectEditable true` / `i18nFallbackLang 'zh'` / `edgePadding '8px'`。绕过优先级：URL 参数 > localStorage 标志 > localhost（开启时）。
@@ -680,8 +680,11 @@ sitemap: {
 - `selectionGuard`（8 项，**默认关**）：`mode 'content'`（`allow` | `content` 正文禁选 | `strict` 全域）/ `allowSelectors[]`+`allowCode true`（代码白名单）/ `allowCtrlA|allowShiftArrows true`（保留键盘选择，无障碍优先）/ `noticeToast|noticeText`。实现：CSS `user-select:none`（正文/全域）+ `selectstart` 事件双保险，输入框与代码始终豁免。
 - `hotkeyGuard`（12 项，**默认关**）：`keys.f12|ctrlShiftI|ctrlShiftJ|ctrlShiftC|ctrlU|ctrlS|ctrlP`（macOS 自动等效 Cmd）/ `keys.printScreen false`（仅检测提示）/ `keys.custom[]`（`'ctrl+alt+x'` 语法）/ `noticeToast|noticeText|noticeOncePerSession`。仅拦键盘路径（浏览器菜单/独立窗口不可拦，威慑级），输入框豁免。
 - `watermark`（18 项，**默认关**）：`type 'diagonal'`（`fixed`|`tiled`|`diagonal`）/ `text|textEn`（`{site}{date}{time}{id}`）/ `identity 'none'`（`none`|`random`|`storage` 本地短哈希，无指纹）/ `opacity 0.06` / `fontSize` / `color`（空=主题次级色）/ `rotate -22` / `gapX|gapY` / `position`（fixed 专用）/ `zIndex 40` / `hideOnPrint true` / `showInLightbox false` / `mobileEnabled false` / `animate false`（缓慢漂移，尊重减少动效）。`pointer-events:none` + `aria-hidden`，不挡交互。
+- `devtoolsDetect`（15 项，**默认关**）：`methods.sizeDiff|timingDebugger`（停靠尺寸差 / `debugger` 计时）/ `intervalMs 1500`（下限 1000）/ `thresholdSizePx 160` / `thresholdTimingMs 120` / `action 'notice'`（`none`|`notice`|`blurPage`|`lockOverlay`|`reload`，锁屏自带关闭键）/ `lockTitle|lockText` / `reloadDelayMs` / `pauseWhenHidden` / `logDetect`；命中时派发 `guard:devtools` 事件（供 consoleGuard 联动清屏）。检测非 100%（窗口缩放等会误报），仅威慑。
+- `consoleGuard`（16 项，**默认关**）：`bannerEnabled|bannerText|bannerTextEn|bannerAscii`（控制台站方留言）/ `clearEnabled|clearIntervalMs|clearOnDetect`（周期清屏与检测联动）/ `muteEnabled|muteMethods[]|muteFreeze`（对页面脚本伪装 console 方法）/ `trapEnabled|trapAction|trapText`（console.log 访问陷阱）/ `hideSelfLogs` / `noticeOncePerSession`。无法拦截真实控制台求值，仅作用于页面上下文。
+- `privacyCurtain`（10 项，**默认关**）：`blurOnBlur`（窗口失焦）/ `blurOnVisibility`（切标签）/ `blurAmount '8px'` / `curtainText|curtainTextEn`（帘上文案）/ `revealDelayMs 200`（恢复去抖）/ `prtScNotice|prtScText|prtScOncePerSession`（PrintScreen 仅检测提示）。`backdrop-filter` 静态遮罩 + `pointer-events:none`，不挡交互。
 
-**测试**：`.tmp-scripts/verify-guard-p1.js` 17 项 + `verify-guard-p2.js` 20 项断言（P1：原生菜单拦截、菜单项与上下文匹配、Esc/输入框豁免、复制署名改写、代码块放行、`?guard=off` 完全绕过、block 拦截+toast；P2：选择拦截/代码放行/可编辑豁免、F12 与 Ctrl+Shift+I 拦截+提示、Ctrl+A 保留、水印三模式与默认关反例）；界面截图已目检（明暗菜单、拦截提示、对角/固定角水印） — `js/domains/guard/{core,context-menu,copy-guard,selection-guard,hotkey-guard,watermark}.js`。
+**测试**：`.tmp-scripts/verify-guard-p1.js` 17 项 + `verify-guard-p2.js` 20 项 + `verify-guard-p3.js` 11 项断言（P1：原生菜单拦截、菜单项与上下文匹配、Esc/输入框豁免、复制署名改写、代码块放行、`?guard=off` 完全绕过、block 拦截+toast；P2：选择拦截/代码放行/可编辑豁免、F12 与 Ctrl+Shift+I 拦截+提示、Ctrl+A 保留、水印三模式与默认关反例；P3：检测提示/锁屏与关闭键、控制台静音（页面脚本无输出）、隐私帘显示/恢复与默认关反例）；界面截图已目检（明暗菜单、拦截提示、对角/固定角水印、锁屏、隐私帘） — `js/domains/guard/{core,context-menu,copy-guard,selection-guard,hotkey-guard,watermark,devtools-detect,console-guard,privacy-curtain}.js`。
 
 ## 校验与错误上报行为
 1. **配置错误 → 立即终止**:缺逗号/引号未闭合/非法字符 → `[FATAL]` + 文件名、行列、上下文(带 `^` 定位)、原因、中文修复提示。

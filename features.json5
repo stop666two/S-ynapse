@@ -1925,8 +1925,12 @@
     enabled: true,
     // 一键档位：'off'=全关 | 'soft'=仅右键菜单+复制署名(推荐) | 'strict'=按 guard.json5 各 enabled
     preset: 'soft',
-    // 模块开关：preset='soft' 时仅以下两项生效；'strict' 时以 guard.json5 各模块 enabled 为准
+    // 模块开关：preset='soft' 时仅以下两项默认生效；其余模块需在 guard.json5 显式 enabled:true
+    // 'strict' 档下所有模块以 guard.json5 各 enabled 为准；此处 false 强制关闭任何档位下的该模块
     contextMenu: true,
-    copyGuard: true
+    copyGuard: true,
+    selectionGuard: true,
+    hotkeyGuard: true,
+    watermark: true
   },
 }

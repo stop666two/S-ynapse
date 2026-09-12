@@ -58,13 +58,20 @@ export function init() {
     if (F.guards && F.guards[mod] === false) return false;
     const mc = G[mod] || {};
     if (mc.enabled === false) return false;
-    if (preset === 'soft') return mod === 'contextMenu' || mod === 'copyGuard';
-    return preset === 'strict';
+    if (preset === 'strict') return true;
+    if (preset === 'soft') {
+      if (mod === 'contextMenu' || mod === 'copyGuard') return true;
+      return mc.enabled === true;
+    }
+    return false;
   }
 
   const ctx = { G: G, core: CORE, t: t, isEditable: isEditable, log: log, toast: toast };
 
   if (active('contextMenu')) import('./context-menu.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('contextMenu load failed', e); });
   if (active('copyGuard')) import('./copy-guard.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('copyGuard load failed', e); });
+  if (active('selectionGuard')) import('./selection-guard.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('selectionGuard load failed', e); });
+  if (active('hotkeyGuard')) import('./hotkey-guard.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('hotkeyGuard load failed', e); });
+  if (active('watermark')) import('./watermark.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('watermark load failed', e); });
   log('init', preset);
 }

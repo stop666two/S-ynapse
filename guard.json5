@@ -247,5 +247,138 @@
 
     // 作用：本地统计（仅 console，不发起网络请求）；推荐：false
     logCopyEvents: false
+  },
+
+  // ==========================================================================
+  // 【selectionGuard】选择控制（10 项）——默认关闭（保留但默认关）
+  // --------------------------------------------------------------------------
+  // 诚实声明：禁用选择无法阻止“查看源码/阅读模式/复制本页链接”，只会影响
+  //   正常用户引用与翻译；请仅在确有需要时开启，并保留白名单。
+  // ==========================================================================
+  selectionGuard: {
+    // 作用：模块开关；soft 档下需显式设为 true 才生效（见 core.preset 说明）
+    // 类型：boolean；推荐：false
+    enabled: false,
+
+    // 作用：模式
+    // 类型：string；可填：'allow'（不管）| 'content'（正文禁选，保留代码/输入框/白名单）
+    //                  | 'strict'（除代码/输入框/白名单外全部禁选）
+    // 不可填：其它字符串（回退 'allow'）；推荐：'content'
+    mode: 'content',
+
+    // 作用：选择白名单（即使禁选也允许选择的区域）
+    // 类型：array<string>（CSS 选择器）；推荐：['.post-content pre', '.post-content code']
+    // 注意：代码专属白名单另由 allowCode 控制，此处可留空
+    allowSelectors: [],
+
+    // 作用：代码块始终可选（复制代码是刚需）；类型：boolean；推荐：true
+    allowCode: true,
+
+    // 作用：保留 Ctrl/Cmd+A 全选；类型：boolean；推荐：true
+    // 不可填：false 的原因：会破坏键盘用户与无障碍标准（WCAG）
+    allowCtrlA: true,
+
+    // 作用：保留 Shift+方向键键盘选择；类型：boolean；推荐：true
+    allowShiftArrows: true,
+
+    // 作用：尝试选择时提示一次（弱提醒，不闪烁）；类型：boolean；推荐：false
+    noticeToast: false,
+
+    // 作用：自定义提示文案（空 = 使用 ui-strings 默认）；类型：string；推荐：''
+    noticeText: ''
+  },
+
+  // ==========================================================================
+  // 【hotkeyGuard】开发者工具快捷键拦截（15 项）——默认关闭（保留但默认关）
+  // --------------------------------------------------------------------------
+  // 有效范围：仅拦截“键盘路径”（F12/Ctrl+Shift+I 等），浏览器菜单“检查”、
+  //   独立窗口、外接调试器等无法拦截——纯威慑，请勿视为安全边界。
+  // ==========================================================================
+  hotkeyGuard: {
+    // 作用：模块开关；类型：boolean；推荐：false（soft 档需显式 true 才生效）
+    enabled: false,
+
+    // 作用：各快捷键拦截开关（Windows/Linux 用 Ctrl、macOS 自动等效 Cmd）
+    // 类型：boolean；推荐：true（在已决定开启本模块的前提下）
+    // 注意：ctrlP（打印）与 features.printStyle 功能重叠——打印样式只改样式、
+    //   本项拦按键；两者可共存，也可只留其一
+    keys: {
+      f12: true,
+      ctrlShiftI: true,
+      ctrlShiftJ: true,
+      ctrlShiftC: true,
+      ctrlU: true,
+      ctrlS: true,
+      ctrlP: true,
+      // 作用：PrintScreen 仅检测并提示（无法阻止系统截图）；推荐：false
+      printScreen: false,
+      // 作用：自定义组合键；类型：array<string>；语法 'ctrl+alt+x'、'f5'、'ctrl+shift+k'
+      // 推荐：[]；注意：拦截浏览器保留键（如 F5 刷新）可能造成页面无法刷新，慎用
+      custom: []
+    },
+
+    // 作用：被拦截时提示（轻提示，防困惑）；类型：boolean；推荐：true
+    noticeToast: true,
+    // 作用：自定义提示文案（空 = ui-strings 默认）；类型：string；推荐：''
+    noticeText: '',
+    // 作用：每会话只提示一次；类型：boolean；推荐：true
+    noticeOncePerSession: true
+  },
+
+  // ==========================================================================
+  // 【watermark】页面水印（18 项）——默认关闭（保留但默认关）
+  // --------------------------------------------------------------------------
+  // 诚实声明：水印不能阻止截屏/复制，只用于威慑与泄露溯源（对角平铺为佳）。
+  //   身份标识仅使用浏览器本地随机短哈希，不采集任何设备/个人信息。
+  // ==========================================================================
+  watermark: {
+    // 作用：模块开关；类型：boolean；推荐：false（soft 档需显式 true 才生效）
+    enabled: false,
+
+    // 作用：水印布局
+    // 类型：string；可填：'fixed'（单角固定）| 'tiled'（正交平铺）
+    //                  | 'diagonal'（对角旋转平铺，推荐）
+    // 不可填：其它字符串（回退 'diagonal'）；推荐：'diagonal'
+    type: 'diagonal',
+
+    // 作用：中文页水印文字模板；占位符：{site} 站名、{date} 日期、{time} 时间、{id} 标识
+    // 类型：string；推荐：'{site} · {date}'；不可填：无（纯文本亦可）
+    text: '{site} · {date}',
+    // 作用：英文页模板；推荐：'{site} · {date}'
+    textEn: '{site} · {date}',
+
+    // 作用：访问者标识策略（用于溯源：同一浏览器同一标识）
+    // 类型：string；可填：'none'（不显示）| 'random'（每次刷新随机）| 'storage'（本地持久，推荐）
+    // 推荐：'storage'；隐私说明：仅 localStorage 随机串的截断哈希，无指纹
+    identity: 'none',
+    // 作用：标识显示长度；类型：number；可填 4–16；推荐：6
+    idLength: 6,
+
+    // 作用：视觉参数
+    // opacity：透明度；number 0–0.5；推荐 0.06（可见但不干扰阅读）
+    opacity: 0.06,
+    // fontSize：字号；string；推荐 '13px'
+    fontSize: '13px',
+    // color：颜色；string；空 = 跟随主题次级文字色；推荐 ''
+    color: '',
+    // rotate：旋转角度（仅 diagonal）；number -90–90；推荐 -22
+    rotate: -22,
+    // gapX/gapY：平铺间距；string；推荐 '180px'/'140px'
+    gapX: '180px',
+    gapY: '140px',
+    // position：单角位置（仅 fixed）；string；可填 'top-left|top-right|bottom-left|bottom-right'；推荐 'bottom-right'
+    position: 'bottom-right',
+
+    // 作用：层级（需高于正文、低于灯箱/菜单）；number；推荐 40
+    zIndex: 40,
+    // 作用：打印时隐藏（水印常不希望出现在打印稿）；boolean；推荐 true
+    hideOnPrint: true,
+    // 作用：灯箱查看图片时也显示水印；boolean；推荐 false（避免遮挡图片细节）
+    showInLightbox: false,
+
+    // 作用：移动端是否启用（小屏更易干扰）；boolean；推荐 false
+    mobileEnabled: false,
+    // 作用：缓慢漂移动画（防对齐裁剪，尊重系统减少动效设置）；boolean；推荐 false
+    animate: false
   }
 }

@@ -224,6 +224,8 @@
     copied: '已复制',
     copyBlocked: '内容受保护，禁止复制',
     copyHint: '已附带原文出处',
+    selectDisabled: '本页内容不可选择',
+    hotkeyBlocked: '该快捷键已被站点禁用',
   },
 
   en: {
@@ -394,6 +396,8 @@
       copied: 'Copied',
       copyBlocked: 'Content protected, copying disabled',
       copyHint: 'Source attribution added',
+      selectDisabled: 'Selection is disabled on this page',
+      hotkeyBlocked: 'This shortcut is disabled on this site',
     },
   },
 }

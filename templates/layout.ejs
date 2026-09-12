@@ -446,6 +446,22 @@
     .g-flash.on{animation:g-flash .5s ease}
     @keyframes g-flash{0%{opacity:.9}100%{opacity:0}}
     @media (prefers-reduced-motion:reduce){.g-menu{transition:none}.g-flash.on{animation:none}}
+    .g-wm{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:40;opacity:var(--g-wmOpacity,.06);color:var(--g-wmColor,var(--color-ts));font-size:var(--g-wmSize,13px);user-select:none;-webkit-user-select:none}
+    .g-wm-item{position:absolute;white-space:nowrap;transform:rotate(var(--g-wmRotate,-22deg))}
+    .g-wm-fixed .g-wm-item{font-size:calc(var(--g-wmSize,13px)*1.1)}
+    .g-wm-fixed.pos-bottom-right .g-wm-item{right:1.5rem;bottom:1rem}
+    .g-wm-fixed.pos-bottom-left .g-wm-item{left:1.5rem;bottom:1rem}
+    .g-wm-fixed.pos-top-right .g-wm-item{right:1.5rem;top:calc(var(--hh,64px) + 1rem)}
+    .g-wm-fixed.pos-top-left .g-wm-item{left:1.5rem;top:calc(var(--hh,64px) + 1rem)}
+    .g-wm-tiled,.g-wm-diagonal{display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:center}
+    .g-wm-diagonal{align-content:center}
+    .g-wm-tiled .g-wm-item{position:static;transform:none;width:var(--g-wmGapX,180px);margin:calc(var(--g-wmGapY,140px)/2) 0;text-align:center}
+    .g-wm-diagonal .g-wm-item{position:static;margin:calc(var(--g-wmGapY,140px)/2) calc(var(--g-wmGapX,180px)/2)}
+    .g-wm-over-lightbox{z-index:1700}
+    .g-wm-anim{animation:g-wm-drift 60s linear infinite}
+    @keyframes g-wm-drift{from{transform:translate(0,0)}to{transform:translate(var(--g-wmGapX,180px),var(--g-wmGapY,140px))}}
+    @media (prefers-reduced-motion:reduce){.g-wm-anim{animation:none}}
+    @media print{.g-wm-noprint{display:none!important}}
 <% } %>
     /* —— 代码块:行号列（Prism line-numbers 几何适配）—— */
     .post-content pre.line-numbers{padding-left:3.8em;counter-reset:linenumber}

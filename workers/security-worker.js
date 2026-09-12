@@ -26,7 +26,7 @@ const FALLBACK = {
   csp: {
     directives: {
       "default-src": ["'self'"],
-      "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://giscus.app"],
+      "script-src": ["'self'", "'unsafe-inline'", "'inline-speculation-rules'", "https://cdn.jsdelivr.net", "https://giscus.app"],
       "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       "img-src": ["'self'", "data:", "https:"],
       "font-src": ["'self'", "https://fonts.gstatic.com"],

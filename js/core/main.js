@@ -7,6 +7,7 @@ import { init as lightboxInit } from '../domains/lightbox.js';
 import { init as readingPanelInit } from '../domains/reading-panel.js';
 import { init as ttsInit } from '../domains/tts.js';
 import { init as pageTransitionInit } from '../domains/page-transition.js';
+import { init as seamlessNavInit } from '../domains/seamless-nav.js';
 import { init as shortcutsInit } from '../domains/shortcuts.js';
 import { init as prevNextInit } from '../domains/prev-next.js';
 import { init as shareInit } from '../domains/share.js';
@@ -41,7 +42,7 @@ if (enabled(F.favorites)) {
 
 [
   themeInit, navigationInit, searchInit, tocInit, readingInit, lightboxInit,
-  readingPanelInit, ttsInit, pageTransitionInit, shortcutsInit, prevNextInit,
+  readingPanelInit, ttsInit, seamlessNavInit, pageTransitionInit, shortcutsInit, prevNextInit,
   shareInit, motionInit, imageLazyInit, dailyQuoteInit, rewardInit, backgroundInit,
   i18nInit, readingModeInit, contactPopupInit, externalLinkInit, sidebarDragInit,
   themePresetsInit, themeScheduleInit, pwaInit, codeBlockInit, commentsInit, morphIconsInit

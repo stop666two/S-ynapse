@@ -142,6 +142,15 @@ const DEFAULT_FEATURES = {
     enabled: true, spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},
     icons: { theme: true, copy: true, favorite: true, tts: true, menu: true }
   },
+  viewTransition: {
+    enabled: true, type: 'fade', durationMs: 180, reducedMotion: 'light',
+    toggle: { show: true, defaultOn: true, storageKey: 's-view-transition' }
+  },
+  speculation: {
+    enabled: true, mode: 'both', eagerness: 'moderate',
+    excludeSelectors: ['[download]', '[rel~=nofollow]', '.no-speculate'],
+    toggle: { show: true, defaultOn: true, storageKey: 's-speculation' }
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true
@@ -391,7 +400,11 @@ const ENUM_FIELDS = {
   maintenance: { status: [503, 502, 500] },
   codeBlock: { copyButtonVisibility: ['hover', 'always', 'never'] },
   mobileToc: { position: ['right', 'left'] },
-  readingPanel: { position: ['right', 'left'] }
+  readingPanel: { position: ['right', 'left'] },
+  motion: { reducedMotion: ['light', 'off', 'full'] },
+  morphIcons: { spring: ['smooth', 'snappy', 'bouncy'], reducedMotion: ['light', 'off', 'full'], preload: ['interaction', 'idle', 'immediate'] },
+  viewTransition: { type: ['fade', 'slide'], reducedMotion: ['light', 'off', 'full'] },
+  speculation: { mode: ['prefetch', 'prerender', 'both'], eagerness: ['moderate', 'eager', 'conservative'] }
 };
 // Numeric fields computed per module via typeof === 'number' check. All non-
 // numeric array fields (whitelist/blacklist/order/palette) must be arrays.
@@ -404,9 +417,11 @@ const ARRAY_FIELDS = {
   reward: [], gallery: [], heatmap: ['palette'], stats: [], prevNext: [],
   feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
   comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: [],
-  scrollBehavior: [], toast: [], breadcrumb: [], pageTransition: { type: ['slide', 'fade'], reducedMotion: ['light', 'off', 'full'] }, pwa: [],
-  morphIcons: { spring: ['smooth', 'snappy', 'bouncy'], reducedMotion: ['light', 'off', 'full'], preload: ['interaction', 'idle', 'immediate'] },
-  background: ['particles'], motion: { reducedMotion: ['light', 'off', 'full'] }, ogImageStyle: []
+  scrollBehavior: [], toast: [], breadcrumb: [], pageTransition: [], pwa: [],
+  morphIcons: [],
+  viewTransition: [],
+  speculation: ['excludeSelectors'],
+  background: ['particles'], motion: [], ogImageStyle: []
 };
 
 function typeName(v) {

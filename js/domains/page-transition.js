@@ -2,6 +2,7 @@ export function init() {
   (function () {
     var F = window.__FEATURES__ || {}, PT = (F && F.pageTransition) || {};
     if (PT.enabled === false) return;
+    if (typeof window.__viewTransitionActive === 'function' && window.__viewTransitionActive()) return;
     var RM = PT.reducedMotion;
     if (RM === undefined) RM = PT.respectReducedMotion === false ? 'full' : 'light';
     if (RM === true) RM = 'light'; else if (RM === false) RM = 'full';

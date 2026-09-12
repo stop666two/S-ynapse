@@ -178,19 +178,17 @@
 | `headingFontWeight` | number | `700` | 标题字重 |
 | `letterSpacing` | string | `0.02em` | 字符间距 |
 | `spacing.containerWidth` | string | `960px` | 容器宽度 |
-| `spacing.gap/padding/radius/radiusLarge` | — | — | 间距/圆角 |
-| `shadow.card/dropdown/fixed` | string | — | 阴影 |
+| `spacing.gap/padding` | — | — | 间距 |
+| `tiers.rounding/shadow/border/density` | object | — | 档位数值表（"选档"见 rounding/shadowLevel/borderStyle 与 density.preset，数值全部在此定义） |
+| `surfaceHighlight.light/dark` | string | — | 表面高光/描边（`0 0 #0000` = 关闭） |
 | `layout.headerStyle` | string | `fixed` | 头部 `fixed`/`static` |
 | `layout.headerHeight` | string | `60px` | 头部高度(锚点偏移基准) |
 | `layout.footerStyle` | string | `simple` | 页脚样式 |
 | `layout.sidebarPosition` | string | `right` | 侧栏位置 |
 | `layout.contentWidth`/`postLayout`/`archiveLayout` | string | — | 布局预设 |
 | `animation.enable` | bool | `true` | 动画 |
-| `animation.transitionDuration/timing/scrollBehavior/pageTransition` | — | — | 动画参数 |
-| `codeHighlight.lineNumbers` | bool | `false` | 代码行号 |
-| `codeHighlight.copyButton` | bool | `true` | 复制按钮 |
-| `codeHighlight.wrapLongLines` | bool | `false` | 长行换行 |
-| `codeHighlight.highlightLines` | bool | `true` | 高亮行 |
+| `animation.transitionDuration/timing` | — | — | 动画参数 |
+| `codeHighlight.palette.light/dark` | object | — | 代码 token 配色（comment/keyword/string/number/fn/attr/punct，随明暗模式自动切换；开关见 features.prismTheme.enabled） |
 | `card.showDate/showTags/showCategories/showExcerpt` | bool | `true` | 卡片信息开关 |
 | `card.excerptLength` | number | `150` | 摘要长度 |
 | `card.showReadTime` / `readTimeSpeed` | bool/number | `true`/`265` | 阅读时长(wpm) |
@@ -402,8 +400,8 @@ sitemap: {
 ### 3.49 favorites — 收藏(纯前端)
 `enabled true` / `position 'toolbar'` / `storageKey 's-favorites'` / `label '收藏'` / `listIcon true` / `notText '收藏'` / `favedText '已收藏'`。文章收藏按钮+收藏页(仅 localStorage,无后端);按钮切换收藏/取消(状态+aria-pressed+统一 toast)、收藏页列表渲染与移除、空状态;en 页文案经 ui-strings 词典。
 
-### 3.50 prismTheme — 代码主题切换器
-`enabled true` / `themes[]` (github/dark/solarized/django) / `defaultTheme 'github'` / `remember true` / `storageKey 's-codeTheme'` / `windowBar true`。代码块顶部仿 Mac 栏 + 主题单选。
+### 3.50 prismTheme — 代码高亮配色开关
+`enabled true`。总开关：关闭后代码块不着色（回退纯文本）；token 配色值定义在 `theme.json` 的 `codeHighlight.palette`（浅色/暗色两套，随主题自动切换）。
 
 ### 3.51 cover — 封面样式库
 `enabled true` / `patterns[]` (gradient/stripes/dots/blob/mesh) / `defaultPattern 'gradient'` / `preview true` / `preferImage true`。文章封面样式库(渐变/条纹/圆点/气泡/网格),在线预览。
@@ -549,13 +547,13 @@ sitemap: {
 
 ## 10. tuning.json5 — UI 微调参数层
 
-独立 UI 参数文件(29 分类 / 216 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
+独立 UI 参数文件(32 分类 / 227 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
 **优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(search/toc/tts/dailyQuote/readingPanel)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 完全重叠的项(如 toast.position、archive.dateFormat、gallery.captionShow)由原配置管理;约 30 项当前无 CSS 目标/待接入的保留项(如 comments.*、tags.cloudMinSize、pagination.maxVisible、radius.image)变量已注入,等待对应功能实现。
 
-**分类(29)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / footer / header / sidebar / pagination / heatmap / stats / toast / lightbox / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / gallery / tags / archive / series / backToTop。
+**分类(32)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / footer / header / sidebar / pagination / heatmap / stats / toast / lightbox / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / gallery / tags / archive / series / backToTop / texture / glow / code。
 
-**已绑定示例(94 项 CSS + 15 项行为)**:`--hero-maxWidth`、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`;行为侧:search 历史/热词/去抖/结果上限/空文案、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进。
+**已绑定示例(103 项 CSS + 15 项行为)**:`--hero-maxWidth`、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`、`--header-scrolledHeight/hairlineStrength`、`--code-borderWidth/borderMix`、`--texture-noiseOpacity`、`--glow-heroStrength`;行为侧:search 历史/热词/去抖/结果上限/空文案、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进。
 
 **注意**:绑定值均已对齐现有视觉(如 toast.radius=999px 对应胶囊形),修改前建议先在浏览器 DevTools 中试值。
 

@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **tuning.json5 UI 微调参数层**:新增独立配置文件(29 分类/216 项,逐项中文注释),构建注入为 `:root` CSS 变量(`--{分类}-{参数}`);86 项已直接绑定 CSS 规则(改 tuning 即生效,优先于 theme/features 默认值),值全部对齐现有视觉;其余为 features 重叠项或保留项 — `tuning.json5` + `templates/layout.ejs`
 - **配置扩展接线(71 项)**:`site.performance`(15 项:preconnect/preload 字体/图片 decoding+sizes/脚本加载策略/minify 回退/构建报告)、`sidebar.options`(10 项)、`footer.options`(8 项)、`navigation.navbarOptions`(9 项)、`theme.appearance`(12 项:选区/滚动条/焦点环/代码块/引用/表格/分隔线/图注)、`security.hardening`(8 项:HSTS/Referrer-Policy/Permissions-Policy/XSS/CORS)全部接线生效 — `templates/layout.ejs` + `scripts/build.js`
 - **tuning 行为参数接线**:新增 `window.__TUNING__` 运行时注入;search(历史条数/热词数/去抖/最少字数/结果上限/摘要长度/空结果文案)、toc(滚动高亮偏移/默认折叠)、tts(语速/音调)、dailyQuote(作者显示/每日刷新)、readingPanel(字号/行距步进)经运行时优先读取;新增 TOC/侧栏粘性定位(`--toc-stickyTop`/`--sidebar-stickyTop`)与导航图标尺寸(`--header-iconSize`)绑定 — `templates/layout.ejs` + `templates/post.ejs` + `js/domains/*` + `tuning.json5`
+- **视觉质感系统(批次A)**:多层级柔和阴影(`theme.json` 新增 `tiers` 档位数值表,shadow 四档含暗色变体)、全局噪点纹理(`tuning.texture`:baseFrequency/双模式透明度)、Hero 径向光晕(`tuning.glow`)、导航滚动收缩(收缩高度/触发阈值/发丝线强度入 `tuning.header`)、表面高光/描边(`theme.json` `surfaceHighlight`,20 处表面统一应用) — `theme.json` + `tuning.json5` + `templates/layout.ejs` + `js/domains/navigation.js`
+- **代码块配色体系**:`theme.json` `codeHighlight.palette`(浅色 GitHub / 暗色 One Dark 两套 token 配色,随主题自动切换);代码块背景明暗分模式(6 预设同步,暗色块与页面底色区分);Prism token 本地着色(零外部主题依赖) — `theme.json` + `scripts/lib/theme-presets.js` + `templates/layout.ejs`
+- **Mermaid 图表主题联动**:切换明暗时图表自动重绘(保存源码 → 重初始化 → 重渲染);容器背景跟随代码块配色 — `templates/layout.ejs`
 
 ### Changed
 
@@ -34,10 +37,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **侧栏/页脚/导航配置**:全部 widget/链接/菜单项支持 `titleEn`/`labelEn`
 - **旧参数清理(不兼容变更)**:`themeToggle.persistKey` 取代硬编码 localStorage 键 `theme`(默认 `ss-theme`);`themeSchedule.checkIntervalMs`(毫秒)取代 `tickMinutes`(分钟);`stats.showSidebar` 取代 `stats.sidebarWidgetDefault`;`prevNext.scrollToTopOnClick` 取代 `prevNext.scrollToTop`;`mobile.tocBreakpoint` 取代 `mobileToc.breakpoint`;`contactPopup.copySuccessText` 取代 `contactPopup.copiedText`;`series.prevLabel`/`nextLabel` 取代 `showPrevLabel`/`showNextLabel`;`motion.pageEnterDurationMs` 由 `pageTransition.durationMs` 取代 — `features.json5` + `scripts/lib/features-schema.js`
 - **theme.json**:移除 `animation.scrollBehavior`(由 `features.scrollBehavior` 接管)与死配置 `animation.pageTransition`(由 `features.pageTransition` 接管),不兼容变更 — `theme.json`
+- **档位数值表外置**:`rounding/shadowLevel/borderStyle/density` 的具体数值从 `scripts/build.js` 内联常量迁移至 `theme.json` 的 `tiers`(四组档位,完整注释);`build.js` 仅保留解析逻辑 — `theme.json` + `scripts/build.js`
+- **prismTheme 模块精简**:移除未实现的主题切换器子键(themes/defaultTheme/remember/storageKey/windowBar),仅保留 `enabled` 作为代码高亮配色总开关(配色见 `codeHighlight.palette`),消除多开关 — `features.json5` + `scripts/lib/features-schema.js`
+- **theme.json 清理**:移除被 `tiers.shadow` 取代的 `shadow` 段与死键 `codeHighlight.theme/highlightLines` — `theme.json`
 
 ### Fixed
 
 - **`sanitizeHtml` 剥离 `decoding` 属性**:性能配置注入的 `img decoding=async` 被净化白名单丢弃;白名单补 `decoding` 并附回归测试 — `scripts/lib/utils.js` + `scripts/build.test.js`
+- **代码块窗口栏背景**:修复 `--color-surface-2` 未定义回退深色导致浅色模式窗口栏发黑;改为跟随代码块背景,复制/展开按钮改用 `color-mix` 自适应明暗 — `templates/layout.ejs`
 - **TOC 滚动高亮(scrollspy)失效**:`templates/layout.ejs` 中 tocScrollSpy IIFE 结尾 `})})});` 缺少 IIFE 调用括号 `()`,导致函数只定义从未调用、进度线与当前章节高亮永不生效;修复为 `})})})();`
 - **RSS 重复生成**:移除 build.js 中第二个无语言循环的旧版 `generateRSS`,避免覆盖语言版 feed
 - **根路径 404**:`/search-index.json`、`/manifest.json` 等根别名路径由 500 修复为 302 重定向至语言版本

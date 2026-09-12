@@ -10,7 +10,7 @@ const DEFAULT_FEATURES = {
     dblClickZoom: true, wheelZoom: true, showZoomButtons: true,
     selectors: '.post-content img, .gallery-item img',
     minSize: 60, prevNextButtons: true, closeButton: true,
-    keyboardNavigate: true, escToClose: true, swipeToNavigate: true,
+    keyboardNavigate: true, escToClose: true, swipeToNavigate: true, swipeClose: true,
     closeOnBackdrop: true, showCounter: true, counterFormat: '{current} / {total}',
     maxWidthVw: '92', maxSizePx: '1600', maxHeightVh: '82',
     openDurationMs: 180, switchDurationMs: 120, backdropOpacity: '0.9',

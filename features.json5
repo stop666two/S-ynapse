@@ -55,6 +55,8 @@
     escToClose: true,
     // 是否支持移动端左右滑动切换。
     swipeToNavigate: true,
+    // 是否支持下/上滑动关闭灯箱(移动端下拉关闭,放大状态下不触发)。
+    swipeClose: true,
     // 点击遮罩区域是否关闭灯箱。
     closeOnBackdrop: true,
     // 是否显示"第 N / M 张"计数器。

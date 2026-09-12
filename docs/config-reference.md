@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(83 模块)](#3-featuresjson5--功能总控83-模块)
+3. [features.json5 — 功能总控(84 模块)](#3-featuresjson5--功能总控84-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -230,7 +230,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(83 模块)
+## 3. features.json5 — 功能总控(84 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -473,7 +473,7 @@ sitemap: {
 
 ### 3.62 viewTransition — 跨文档过渡动画
 
-`enabled true` / `type 'fade'`(`fade|slide`) / `durationMs 180` / `reducedMotion 'light'`(`light|off|full`;light=系统 reduce 时 0.1s 纯淡出) / `toggle { show true, defaultOn true, storageKey 's-view-transition' }`。基于跨文档 View Transitions(`@view-transition{navigation:auto}`)：同源跳转无白屏交叉过渡；不支持 VT 的浏览器自动忽略并回退 `pageTransition` 淡出；VT 生效时旧淡出被抑制（避免双重动画）；页内导航栏闪电图标可开关（localStorage 记忆），不支持的浏览器该开关自动置灰、两项均不支持时整组隐藏。
+`enabled true` / `type 'fade'`(`fade|slide`) / `durationMs 180` / `shared true`(共享元素过渡:列表卡片封面/标题 → 文章封面/标题 形变衔接,不支持时自动忽略) / `reducedMotion 'light'`(`light|off|full`;light=系统 reduce 时 0.1s 纯淡出) / `toggle { show true, defaultOn true, storageKey 's-view-transition' }`。基于跨文档 View Transitions(`@view-transition{navigation:auto}`)：同源跳转无白屏交叉过渡；不支持 VT 的浏览器自动忽略并回退 `pageTransition` 淡出；VT 生效时旧淡出被抑制（避免双重动画）；页内导航栏闪电图标可开关（localStorage 记忆），不支持的浏览器该开关自动置灰、两项均不支持时整组隐藏。
 
 ### 3.63 speculation — 预取/预渲染
 
@@ -494,6 +494,10 @@ sitemap: {
 ### 3.67 perfBudget — 性能预算门禁
 
 `enabled true` / `htmlKb 70`(单页 HTML gzip 上限,含内联 CSS/脚本) / `jsKb 90`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入) / `requests 18`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
+
+### 3.68 scrollIndicator — 滚动进度条
+
+`enabled true` / `height '2px'`(任意 CSS 长度) / `gradient true`(`true`=主题次级色→强调色渐变;`false`=单色) / `respectReducedMotion true`(系统减少动态效果时隐藏)。顶部固定 hairline 进度条,基于原生 scroll-driven 动画(`animation-timeline: scroll(root)`)——零 JS、零主线程开销;不支持该特性的浏览器自动不显示(渐进增强) — `templates/layout.ejs`。
 
 ---
 

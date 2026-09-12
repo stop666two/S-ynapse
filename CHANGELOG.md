@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **滚动进度条（A4）**：`features.scrollIndicator`（`height`/`gradient`/`respectReducedMotion`）——顶部固定 hairline 进度条，基于原生 scroll-driven 动画（`animation-timeline: scroll(root)`），零 JS、零主线程开销；不支持自动隐藏（渐进增强） — `templates/layout.ejs`
+- **共享元素过渡（A3）**：`viewTransition.shared`——列表卡片封面/标题与文章页封面/标题通过 `view-transition-name` 形变衔接（首页/标签页 → 文章）；顺带修复文章页封面 `class` 属性跨行断裂导致 `.post-featured-image` 样式从未生效的历史问题 — `templates/index.ejs` + `templates/tag.ejs` + `templates/post.ejs`
 - **性能预算门禁（D4）**：`features.perfBudget`（`htmlKb`/`jsKb`/`requests`/`warnOnly`）——构建收尾统计单页 HTML gzip 最大值、应用 JS 全量 gzip 合计与单页静态请求数，输出 `[budget]` 报告；`warnOnly:false` 超限即终止构建（严格门禁，实测 exit 1） — `scripts/lib/perf-budget.js` + `scripts/build.js`
 - **无障碍审计与修复（D1）**：`npm run audit:a11y`——axe-core 对 8 组页面（中英 × 明暗）执行 WCAG 2.0/2.1 A+AA 扫描，0 critical/serious 门禁；修复 nocover 卡片链接 `aria-hidden` 却可聚焦（补 `tabindex="-1"`）与归档热力图空格文字对比度（`--color-ts`） — `scripts/a11y-audit.js`
 - **杂志排版（A6）**：`features.magazine`——首字下沉（`dropCap`：衬线展示字体 + 主题色，中英文均生效）、图片出血（`figureBleed`：独立成段图片向两侧出血，≤1100px 自动回退）、表格悬停高亮（`tableHover`）、h2 自动编号（`headingNumbers`，默认关）；视觉值经 `tuning.magazine` 6 项可调 — `templates/post.ejs` + `templates/layout.ejs` + `tuning.json5`

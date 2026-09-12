@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **防护与交互控制 P1（G1 自定义右键菜单 + G2 复制控制 + G11 总控）**：新增 `features.guards` 总控（`preset: off|soft|strict`，默认 soft）与第 13 个配置文件 `guard.json5`（60 字段逐项中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。soft 档默认启用：**自定义右键菜单**（文字选择/链接/图片/代码块/空白场景自适应；内置复制/复制链接/新窗口/搜索选中/翻译/返回顶部/切换主题/打印/复制代码/复制源码/下载，`viewSource`/`inspect` 默认关；支持自定义项与 `guard:menu-action` 事件、触屏长按、Esc/滚动/失焦/外点关闭、键盘导航、输入框豁免）与**复制署名**（`attribution` 模式追加 `—— 原文：{title}\n{url}`，`minChars` 防打扰、代码块与可编辑区始终放行；另有 `weakBlock`/`block` 拦截模式）。绕过通道：`?guard=on|off` > `localStorage['s-guards-off']` > localhost；`tuning.guard` 6 项视觉值；客户端懒加载（未启用模块零开销）— `guard.json5` + `features.json5` + `templates/layout.ejs` + `js/domains/guard/{core,context-menu,copy-guard}.js`
 - **构建产物压缩增强**：`dist/assets/js` Terser 压缩（106KB→77KB，注释清零）、HTML 内联脚本压缩（69KB→64KB）、内联样式 CleanCSS 压缩（104KB→101KB，注释清零）、search-index/manifest/speculation-rules/cache-bust 清单 JSON 紧凑输出；vendor 保持上游压缩产物不重复处理（构建提速） — `scripts/build.js`
 - **图表尺寸自定义**：`features.mermaid.size`——全局默认宽高（`width`/`height`，支持 px/%/vw/vh/rem）+ `min/max` 钳制 + `fit` 适配策略（`scroll` 不缩放横向滚动（默认，解决时序图被缩小后线条挤压） / `scale` 旧行为）；单图覆盖语法：代码块语言标记后追加 `w=`/`h=`（如 ` ```mermaid w=900 h=520 `），非法值自动忽略 — `scripts/build.js` + `templates/layout.ejs`
 - **公告条升级（C2 增强）**：`features.announcement` 支持**多条轮播**（`items[{text,textEn,url}]` + `rotateMs`，悬停暂停/减少动效降级）、**视觉风格**（`tone: accent|solid|minimal`，含左侧圆点与圆形关闭键）、`tuning.announcement` 字号/字距微调；布局改为 grid 叠层稳定居中 — `templates/layout.ejs` + `js/domains/announcement.js`

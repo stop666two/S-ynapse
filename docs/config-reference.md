@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(91 模块)](#3-featuresjson5--功能总控91-模块)
+3. [features.json5 — 功能总控(92 模块)](#3-featuresjson5--功能总控92-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -18,6 +18,7 @@
 8. [content-policy.json5 — 内容策略](#8-content-policyjson--内容策略)
 9. [tag-aliases.json5 / friends.json5 — 可选数据文件](#9-tag-aliasesjson--friendsjson--可选数据文件)
 10. [tuning.json5 — UI 微调参数层](#10-tuningjson5--ui-微调参数层)
+11. [guard.json5 — 防护与交互控制域](#11-guardjson5--防护与交互控制域)
 
 ---
 
@@ -230,7 +231,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(91 模块)
+## 3. features.json5 — 功能总控(92 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -529,9 +530,6 @@ sitemap: {
 
 ### 3.74 printStyle — 打印样式
 
-
-### 3.74 printStyle — 打印样式
-
 `enabled true` / `hideInteractive true`(打印隐藏导航/页脚/侧栏/按钮/评论/相关推荐等) / `expandLinks true`(正文外链打印为 `文字 (URL)`) / `avoidBreaks true`(代码块/图片/表格/引用避免跨页断裂)。打印/导出 PDF 时强制白底黑字、去阴影、正文全宽 — `templates/layout.ejs`。
 
 ### 3.75 atmosphere — 氛围
@@ -541,6 +539,10 @@ sitemap: {
 ### 3.76 announcement — 公告条
 
 `enabled true` / `text` / `textEn` / `url`(单条模式：中英文文案与可选链接；https 外链自动 `target=_blank rel=noopener`) / `items []`(多条模式，每项 `{text,textEn,url}`，非空时优先) / `rotateMs 6000`(多条轮播间隔毫秒，`0`=只显示第一条；悬停暂停、`prefers-reduced-motion` 下瞬间切换) / `tone 'accent'`(`accent` 主题色渐变淡底 / `solid` 实心主题色 / `minimal` 素色+下边框) / `dismissible true`(关闭按钮)。固定于页面顶部（通过 `--annH` 变量将固定头部、移动菜单、粘性目录整体下移，内容偏移同步；**关闭后 `--annH` 收起为 0，头部自动上移**）；关闭按全部内容哈希记忆（`s-announce-dismissed`）不再出现。视觉细节（字号/字距）在 `tuning.json5` 的 `announcement` 分类调整 — `templates/layout.ejs` + `js/domains/announcement.js`。
+
+### 3.77 guards — 防护与交互控制总控
+
+`enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）。细节参数（菜单项、复制模式、绕过通道等 60 个字段）全部在 `guard.json5`（见第 11 章）；绕过通道优先级：`?guard=on|off` > `localStorage['s-guards-off']` > `guard.json5` `core.bypass.localhost`。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
 
 ---
 
@@ -655,17 +657,28 @@ sitemap: {
 
 ## 10. tuning.json5 — UI 微调参数层
 
-独立 UI 参数文件(29 分类 / 190 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
+独立 UI 参数文件(30 分类 / 196 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
 **优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已在「tuning 收尾」中全部清理(单一入口归各自模块配置);10 项原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
 
-**分类(27)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / icons / morphicons。
+**分类(30)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / icons / morphicons / magazine / commandPalette / announcement / guard。
 
 **已绑定示例(118 项 CSS + 19 项行为)**:`--hero-maxWidth`、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`、`--header-scrolledHeight/hairlineStrength`、`--code-borderWidth/borderMix`、`--texture-noiseOpacity`、`--glow-heroStrength`、`--card-imageHoverScale/excerptLines/gridGap`、`--motion-transitionTiming/buttonPressScale`、`--reading-quoteTint/imageHoverScale/h2AccentWidth/Height`;行为侧:search 历史/热词/去抖/结果上限/空文案、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进、morphicons 弹簧刚度/阻尼/轻量版弹簧。
 
 **注意**:绑定值均已对齐现有视觉(如 toast.radius=999px 对应胶囊形),修改前建议先在浏览器 DevTools 中试值。
 
 ---
+
+## 11. guard.json5 — 防护与交互控制域
+
+第 13 个配置文件（60 个字段 / 计数脚本记 57 项标量叶，空数组不计；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
+
+**结构**：
+- `core`（8 项）：`preset 'soft'` / `bypass.localhost false` / `bypass.queryParam 'guard'` / `bypass.storageFlag 's-guards-off'` / `logLevel 'off'` / `respectEditable true` / `i18nFallbackLang 'zh'` / `edgePadding '8px'`。绕过优先级：URL 参数 > localStorage 标志 > localhost（开启时）。
+- `contextMenu`（34 项）：`enabled` / `disableNative` / `trigger.longPress`+`longPressMs 550` / `behavior.closeOnEsc|closeOnScroll|closeOnOutside|closeOnBlur` / `style.width|radius|blur|animMs|shadowOpacity`（width/radius 留空=走 `tuning.json5` → `guard` 分类）/ `showOn.selection|link|image|code|blank` / `builtin.*`（copy/copyLink/openNewTab/searchSelected/translate/backToTop/toggleTheme/print/copyCode/copyRaw/download；`viewSource`/`inspect` 默认关）/ `items[]` 自定义项（`label`/`labelEn`/`icon`/`url`|`action`/`selector`；自定义动作派发 `guard:menu-action` 事件）/ `excludeSelectors[]` / `ariaLabel`。
+- `copyGuard`（18 项）：`mode 'attribution'`（`off` | `attribution` 追加出处 | `weakBlock` 首次拦截并提示、再次放行 | `block` 硬拦截）/ `attribution.text`+`textEn`（占位符 `{title}{url}{author}{site}`）/ `position after|before` / `separator` / `minChars 40`（短复制不打扰）/ `onlyArticles true` / `allow.codeBlocks true`+`allow.selectors[]`（代码块与可编辑区始终放行）/ `block.toast|toastText|flash`（复用统一 `__toast`）/ `extra.alsoCut|imageNotice|iOSOverride` / `noticeOncePerSession true` / `logCopyEvents false`（仅本地 console，无网络上报）。
+
+**测试**：`.tmp-scripts/verify-guard-p1.js` 17 项断言（原生菜单拦截、菜单项与上下文匹配、Esc/输入框豁免、复制署名改写、代码块放行、`?guard=off` 完全绕过、block 模式拦截+toast、零页面错误）；浅色/深色菜单与拦截提示截图已目检 — `js/domains/guard/{core,context-menu,copy-guard}.js`。
 
 ## 校验与错误上报行为
 1. **配置错误 → 立即终止**:缺逗号/引号未闭合/非法字符 → `[FATAL]` + 文件名、行列、上下文(带 `^` 定位)、原因、中文修复提示。

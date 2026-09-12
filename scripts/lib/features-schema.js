@@ -149,9 +149,12 @@ const DEFAULT_FEATURES = {
     toggle: { show: true, defaultOn: true, storageKey: 's-view-transition' }
   },
   speculation: {
-    enabled: true, mode: 'both', eagerness: 'moderate', delivery: 'inline',
+    enabled: true, mode: 'both', eagerness: 'moderate',
     excludeSelectors: ['[download]', '[rel~=nofollow]', '.no-speculate'],
     toggle: { show: true, defaultOn: true, storageKey: 's-speculation' }
+  },
+  cardFx: {
+    enabled: true, coverOverlay: true, categoryChip: true, readTimeBadge: true, hoverShine: true
   },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
@@ -375,7 +378,7 @@ const DEFAULT_FEATURES = {
   ogImageStyle: {
     enabled: true, align: 'center', showSite: true, useGradient: true,
     gradientAngle: '135deg', fontSizeBase: 64, maxLines: 4,
-    letterSpacing: '0.02em'
+    letterSpacing: '0.02em', template: 'aurora', palette: 'theme', showCategory: true
   }
 };
 
@@ -406,7 +409,8 @@ const ENUM_FIELDS = {
   motion: { reducedMotion: ['light', 'off', 'full'] },
   morphIcons: { spring: ['smooth', 'snappy', 'bouncy'], reducedMotion: ['light', 'off', 'full'], preload: ['interaction', 'idle', 'immediate'] },
   viewTransition: { type: ['fade', 'slide'], reducedMotion: ['light', 'off', 'full'] },
-  speculation: { mode: ['prefetch', 'prerender', 'both'], eagerness: ['moderate', 'eager', 'conservative'], delivery: ['inline', 'header', 'both'] }
+  speculation: { mode: ['prefetch', 'prerender', 'both'], eagerness: ['moderate', 'eager', 'conservative'], delivery: ['inline', 'header', 'both'] },
+  ogImageStyle: { template: ['aurora', 'mesh', 'grid', 'paper', 'duotone'], palette: ['theme', 'hash'] }
 };
 // Numeric fields computed per module via typeof === 'number' check. All non-
 // numeric array fields (whitelist/blacklist/order/palette) must be arrays.

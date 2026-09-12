@@ -1072,6 +1072,12 @@
   ogImageStyle: {
     // 启用自动 OG 封面图(文章无 featuredImage 时生成)。
     enabled: true,
+    // 封面模板: aurora(渐变极光)/mesh(光斑星云)/grid(科技栅格)/paper(纸感浅底)/duotone(双色对角)。
+    template: 'aurora',
+    // 配色来源: theme(站点主/辅色)/hash(按文章首个分类哈希出色,同分类同色)。
+    palette: 'theme',
+    // 是否在封面显示分类角标(取文章 categories 第一项)。
+    showCategory: true,
     // 标题对齐:center(居中排版)/left(左侧排版)。
     align: 'center',
     // 是否在封面底部显示站点名。
@@ -1712,5 +1718,21 @@
       // localStorage 记忆键。
       storageKey: 's-speculation'
     }
+  },
+
+  // ---------------------------------------------------------------------------
+  // 49. 卡片视觉增强(封面遮罩/分类色标/阅读时长徽章/悬停光泽)
+  // ---------------------------------------------------------------------------
+  cardFx: {
+    // 总开关(false = 卡片恢复为纯图片+文字的基础样式)。
+    enabled: true,
+    // 封面底部渐变遮罩(提升文字可读性与层次感)。
+    coverOverlay: true,
+    // 封面左下分类色标(按分类名哈希取色,同分类同色)。
+    categoryChip: true,
+    // 封面右上阅读时长徽章。
+    readTimeBadge: true,
+    // 悬停扫过光泽(自动尊重 reduced-motion)。
+    hoverShine: true
   },
 }

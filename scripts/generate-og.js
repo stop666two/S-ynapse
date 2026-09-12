@@ -8,8 +8,8 @@ const sharp = require('sharp');
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
 const OUT_DIR = path.join(ROOT, 'dist', 'og');
-const WIDTH = 1200;
-const HEIGHT = 630;
+let WIDTH = 1200;
+let HEIGHT = 630;
 const FONT = 'Microsoft YaHei, system-ui, sans-serif';
 const DEFAULT_FROM = '#1a2b4a';
 const DEFAULT_TO = '#2d4a7a';
@@ -127,20 +127,23 @@ function wrapTitle(text, maxChars) {
   return out;
 }
 
-function fitLines(lines) {
-  if (lines.length <= 2) return lines;
-  lines = lines.slice(0, 2);
-  lines[1] = lines[1] + '…';
+function fitLines(lines, max) {
+  const n = max > 0 ? max : 2;
+  if (lines.length <= n) return lines;
+  lines = lines.slice(0, n);
+  lines[n - 1] = lines[n - 1] + '…';
   return lines;
 }
 
-function shadowTextLines(x, y, size, lines, lineHeight, anchor) {
+function shadowTextLines(x, y, size, lines, lineHeight, anchor, fill, shadow, letterSpacing) {
+  fill = fill || '#fff';
+  const lsStyle = letterSpacing ? ` letter-spacing="${letterSpacing}"` : '';
   const safeLines = lines.map(esc);
   const parts = [];
   safeLines.forEach((ln, i) => {
     const ty = y + i * lineHeight;
-    parts.push(`<text x="${x}" y="${ty + 2}" text-anchor="${anchor}" font-family="${FONT}" font-size="${size}" font-weight="700" fill="#000" opacity="0.4">${ln}</text>`);
-    parts.push(`<text x="${x}" y="${ty}" text-anchor="${anchor}" font-family="${FONT}" font-size="${size}" font-weight="700" fill="#fff" font-style="normal">${ln}</text>`);
+    if (shadow !== false) parts.push(`<text x="${x}" y="${ty + 2}" text-anchor="${anchor}" font-family="${FONT}" font-size="${size}" font-weight="700" fill="#000" opacity="0.4"${lsStyle}>${ln}</text>`);
+    parts.push(`<text x="${x}" y="${ty}" text-anchor="${anchor}" font-family="${FONT}" font-size="${size}" font-weight="700" fill="${fill}" font-style="normal"${lsStyle}>${ln}</text>`);
   });
   return parts.join('\n  ');
 }
@@ -160,20 +163,101 @@ function coverOverlay(siteTitle, titleLines) {
 </svg>`;
 }
 
-function gradientSvg(siteTitle, titleLines, siteUrl, fromColor, toColor) {
-  const titleSize = 58;
-  const lineHeight = 74;
-  const startY = 315 - Math.round(((titleLines.length - 1) * lineHeight) / 2) + 20;
+const TEMPLATE_CHARS = { aurora: 12, mesh: 14, grid: 14, paper: 16, duotone: 14 };
+
+function hashHue(str) {
+  let h = 0;
+  const s = String(str || '');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return h;
+}
+function hsl(h, s, l) { return 'hsl(' + (((h % 360) + 360) % 360) + ',' + s + '%,' + l + '%)'; }
+function catOf(raw) {
+  const m = String(raw || '').match(/\[([^\]]*)\]|(.+)/);
+  const inner = (m && (m[1] || m[2])) || '';
+  return inner.split(/[,，]/)[0].replace(/["']/g, '').trim();
+}
+function angleXY(angle) {
+  const a = (parseFloat(angle) || 135) * Math.PI / 180;
+  return { x1: '0%', y1: '0%', x2: Math.round((Math.cos(a) + 1) * 50) + '%', y2: Math.round((Math.sin(a) + 1) * 50) + '%' };
+}
+function textLayer(siteTitle, siteUrl, lines, size, lineHeight, align, style, fill, shadow) {
   const parts = [];
-  parts.push(`<text x="80" y="110" font-family="${FONT}" font-size="42" font-weight="700" fill="#fff" opacity="0.95">${esc(siteTitle)}</text>`);
-  parts.push(shadowTextLines(600, startY, titleSize, titleLines, lineHeight, 'middle'));
-  if (siteUrl) {
-    parts.push(`<text x="1120" y="588" text-anchor="end" font-family="${FONT}" font-size="24" fill="#fff" opacity="0.6">${esc(siteUrl)}</text>`);
+  if (style.showSite !== false) parts.push(`<text x="80" y="110" font-family="${FONT}" font-size="42" font-weight="700" fill="${fill}" opacity="0.95">${esc(siteTitle)}</text>`);
+  const left = align === 'left';
+  const x = left ? 90 : Math.round(WIDTH / 2);
+  const anchor = left ? 'start' : 'middle';
+  const total = (lines.length - 1) * lineHeight;
+  const startY = Math.round(HEIGHT / 2 - total / 2 + size * 0.36);
+  parts.push(shadowTextLines(x, startY, size, lines, lineHeight, anchor, fill, shadow, style.letterSpacing || ''));
+  if (siteUrl) parts.push(`<text x="${WIDTH - 80}" y="${HEIGHT - 42}" text-anchor="end" font-family="${FONT}" font-size="24" fill="${fill}" opacity="0.6">${esc(siteUrl)}</text>`);
+  return parts.join('\n  ');
+}
+function chipLayer(category, style, from) {
+  if (!category || style.showCategory === false) return '';
+  const label = esc(category);
+  const w = Math.max(120, label.length * 26 + 48);
+  const x = WIDTH - 80 - w;
+  return `<rect x="${x}" y="64" rx="24" width="${w}" height="48" fill="${from}" opacity="0.92"/><text x="${x + w / 2}" y="96" text-anchor="middle" font-family="${FONT}" font-size="24" font-weight="600" fill="#fff">${label}</text>`;
+}
+function renderCover(o) {
+  const style = o.style || {};
+  const t = o.template || 'aurora';
+  const from = o.from, to = o.to;
+  const grad = angleXY(style.gradientAngle);
+  const text = textLayer(o.siteTitle, o.siteUrl, o.lines, o.size, o.lineHeight, style.align, style, t === 'paper' ? '#23262d' : '#ffffff', t !== 'paper');
+  const chip = chipLayer(o.category, style, from);
+  if (t === 'mesh') {
+    const a = hsl(hashHue(o.category || o.siteTitle) + 40, 62, 55);
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
+  <defs>
+    <radialGradient id="m1" cx="20%" cy="18%" r="70%"><stop offset="0%" stop-color="${from}" stop-opacity="0.95"/><stop offset="100%" stop-color="${from}" stop-opacity="0"/></radialGradient>
+    <radialGradient id="m2" cx="82%" cy="30%" r="65%"><stop offset="0%" stop-color="${to}" stop-opacity="0.9"/><stop offset="100%" stop-color="${to}" stop-opacity="0"/></radialGradient>
+    <radialGradient id="m3" cx="55%" cy="95%" r="70%"><stop offset="0%" stop-color="${a}" stop-opacity="0.55"/><stop offset="100%" stop-color="${a}" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="#0a0e1a"/>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#m1)"/>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#m2)"/>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#m3)"/>
+  ${chip}
+  ${text}
+</svg>`;
   }
+  if (t === 'grid') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
+  <defs><pattern id="gp" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="1"/></pattern>
+  <linearGradient id="gb" x1="${grad.x1}" y1="${grad.y1}" x2="${grad.x2}" y2="${grad.y2}"><stop offset="0%" stop-color="${from}"/><stop offset="100%" stop-color="${to}"/></linearGradient></defs>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#gb)"/>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#gp)"/>
+  <rect x="0" y="${HEIGHT - 10}" width="${WIDTH}" height="10" fill="${from}"/>
+  ${chip}
+  ${text}
+</svg>`;
+  }
+  if (t === 'paper') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
+  <defs><filter id="nz"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter></defs>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="#f6f1e7"/>
+  <rect width="${WIDTH}" height="${HEIGHT}" filter="url(#nz)" opacity="0.05"/>
+  <rect x="90" y="${Math.round(HEIGHT * 0.74)}" width="160" height="8" rx="4" fill="${from}"/>
+  ${chip}
+  ${text}
+</svg>`;
+  }
+  if (t === 'duotone') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="${from}"/>
+  <polygon points="${WIDTH},0 ${WIDTH},${HEIGHT} ${Math.round(WIDTH * 0.42)},${HEIGHT} ${Math.round(WIDTH * 0.62)},0" fill="${to}"/>
+  ${chip}
+  ${text}
+</svg>`;
+  }
+  const useGrad = style.useGradient !== false;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
-  <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${fromColor}"/><stop offset="100%" stop-color="${toColor}"/></linearGradient></defs>
-  <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#bg)"/>
-  ${parts.join('\n  ')}
+  <defs><linearGradient id="bg" x1="${grad.x1}" y1="${grad.y1}" x2="${grad.x2}" y2="${grad.y2}"><stop offset="0%" stop-color="${from}"/><stop offset="100%" stop-color="${to}"/></linearGradient></defs>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="${useGrad ? 'url(#bg)' : from}"/>
+  ${chip}
+  ${text}
 </svg>`;
 }
 
@@ -185,6 +269,12 @@ async function main() {
   const themeColors = themeConfig.colors || themeConfig;
   const fromColor = parseColor(themeColors.primary || themeConfig.colorPrimary, DEFAULT_FROM);
   const toColor = parseColor(themeColors.secondary || themeConfig.colorSecondary, DEFAULT_TO);
+  const featuresConfig = readConfigFile('features.json5') || {};
+  const ogCfg = featuresConfig.ogImage || {};
+  const styleCfg = featuresConfig.ogImageStyle || {};
+  const paletteMode = styleCfg.palette || 'theme';
+  if (+ogCfg.width > 0) WIDTH = +ogCfg.width;
+  if (+ogCfg.height > 0) HEIGHT = +ogCfg.height;
 
   const args = process.argv.slice(2);
   let only = null;
@@ -209,6 +299,7 @@ async function main() {
     let title;
     let cover;
     let fileTitle;
+    let catRaw = '';
     let slugBase;
     let langDir = 'zh';
     try {
@@ -231,6 +322,7 @@ async function main() {
       fileTitle = path.basename(rel);
       title = (attrs.title || '').trim() || fileTitle;
       cover = (attrs.cover || attrs.featuredImage || '').trim();
+      catRaw = (attrs.categories || '').toString();
     } catch (err) {
       failed++;
       console.error(`  [ERROR] ${path.relative(ARTICLES_DIR, file)}: ${err.message}`);
@@ -260,7 +352,13 @@ async function main() {
         }
       }
       if (!img) {
-        const svg = Buffer.from(gradientSvg(siteTitle, fitLines(wrapTitle(title, 12)), siteUrl, fromColor, toColor));
+        let palFrom = fromColor, palTo = toColor;
+        if (paletteMode === 'hash' && catRaw) { const h = hashHue(catRaw); palFrom = hsl(h, 52, 34); palTo = hsl(h + 38, 52, 16); }
+        const chars = TEMPLATE_CHARS[styleCfg.template] || 12;
+        const maxLines = Math.min(4, Math.max(1, +styleCfg.maxLines || 2));
+        const size = Math.round((+styleCfg.fontSizeBase || 64) * ((+ogCfg.fontScale > 0) ? +ogCfg.fontScale : 1));
+        const lh = Math.round(size * 1.2);
+        const svg = Buffer.from(renderCover({ template: styleCfg.template || 'aurora', siteTitle, siteUrl, lines: fitLines(wrapTitle(title, chars), maxLines), size, lineHeight: lh, from: palFrom, to: palTo, style: styleCfg, category: catOf(catRaw) }));
         await sharp(svg).png().toFile(outPath);
       }
       madeSlugs.set(slug, path.basename(outPath));

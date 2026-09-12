@@ -77,6 +77,14 @@ const CACHE_BUST_MANIFEST_PATH = path.join(DIST_DIR, 'cache-bust-manifest.json')
 
 // Filter out draft articles unless SHOW_DRAFTS is active
 function getPublished(articles) { return articles.filter(a => !a.draft || SHOW_DRAFTS); }
+// Deterministic hue for a category/tag name (same name → same color everywhere).
+function hashHue(str) {
+  let h = 0;
+  const s = String(str || '');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return h;
+}
+function categoryHue(name) { return hashHue(name); }
 
 // Build a detailed, actionable error report for a JSON5 parse failure:
 // file path, line/column, the offending line with a caret, context lines, cause
@@ -1419,6 +1427,7 @@ function buildPageData(config, articles, tags, categories) {
     })(),
     formatDate: (d) => formatDate(d, config.site.dateFormat),
     generateSlug: safeSlug,
+    categoryHue: categoryHue,
     escapeAttr: escapeAttr,
     ui: function(path, fallback, lang) {
       let o = config.uiStrings || {};

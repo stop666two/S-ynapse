@@ -24,10 +24,13 @@
 <% if (articles && articles.length) { %>
 <div class="blog-grid<%= (typeof tuning!=='undefined'&&tuning.card&&tuning.card.bentoFeatured===false)?'':' bento' %>">
 <% articles.forEach(function(article) { %>
-<article class="post-card">
+<article class="post-card<%= (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.hoverShine!==false)?' card-shine':'' %>">
   <% if (article.featuredImage) { %>
-  <a href="<%= article.url %>">
+  <a href="<%= article.url %>" class="card-media">
     <img src="<%= article.featuredImage %>" alt="<%= article.title %>" class="post-card-image" loading="lazy">
+    <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.coverOverlay!==false) { %><span class="card-overlay" aria-hidden="true"></span><% } %>
+    <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.categoryChip!==false&&article.categories&&article.categories.length) { %><span class="card-cat" style="--cat-h:<%= categoryHue(article.categories[0]) %>"><%= article.categories[0] %></span><% } %>
+    <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.readTimeBadge!==false&&article.readTime) { %><span class="card-time"><%= ui('card.minute','{minutes} 分钟阅读').replace('{minutes}', article.readTime) %></span><% } %>
   </a>
   <% } else { %>
   <a href="<%= article.url %>" class="post-card-nocover <%= listCoverEnabled ? 'has-cover-pattern' : '' %>" aria-hidden="true"><%= article.title %></a>

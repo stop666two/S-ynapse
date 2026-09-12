@@ -355,6 +355,16 @@
     .pagination .page-link.ellipsis{cursor:default;opacity:.6}
     .post-content>p:first-of-type{font-size:var(--typography-leadSize,1.272em)}
     <% var _cdv=(typeof tuning!=='undefined'&&tuning.comments&&String(tuning.comments.dividerShow))||'true'; if(_cdv!=='false'){ %>.comments-section::before{content:'';display:block;height:1px;background:var(--color-border);margin-bottom:1.25rem}<% } %>
+    /* —— 卡片视觉增强：遮罩/分类色标/时长徽章/悬停光泽 —— */
+    .card-media{position:relative;display:block;overflow:hidden}
+    .card-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 52%,rgba(10,14,26,.55));opacity:.85;pointer-events:none;transition:opacity var(--td) var(--te)}
+    .post-card:hover .card-overlay{opacity:1}
+    .card-cat{position:absolute;left:.7rem;bottom:.7rem;font-size:.6875rem;line-height:1;padding:.26rem .58rem;border-radius:999px;color:#fff;background:hsl(var(--cat-h,215),52%,38%);opacity:.95;pointer-events:none}
+    .card-time{position:absolute;right:.7rem;top:.7rem;font-size:.6875rem;line-height:1;padding:.26rem .52rem;border-radius:999px;color:#fff;background:rgba(12,16,26,.55);pointer-events:none}
+    .post-card.card-shine{position:relative;overflow:hidden}
+    .post-card.card-shine::after{content:'';position:absolute;top:0;bottom:0;left:-45%;width:35%;background:linear-gradient(105deg,transparent,rgba(255,255,255,.16),transparent);transform:skewX(-12deg);transition:transform .8s var(--te);pointer-events:none;z-index:3}
+    .post-card.card-shine:hover::after{transform:translateX(320%) skewX(-12deg)}
+    @media (prefers-reduced-motion: reduce){.post-card.card-shine::after{display:none}.card-overlay{transition:none}}
     /* —— 代码块:行号列（Prism line-numbers 几何适配）—— */
     .post-content pre.line-numbers{padding-left:3.8em;counter-reset:linenumber}
     .post-content pre.line-numbers>code{position:relative;white-space:inherit}

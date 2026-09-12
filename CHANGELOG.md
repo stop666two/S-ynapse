@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **代码块与图标增强**：行号列(Prism line-numbers 本地插件,纯文本块也可用;`tuning.code.lineNumberColor/lineNumberOpacity`)、终端语言标签(bash/sh/zsh/fish→`$ lang`；powershell→`PS> powershell`；console→`> console`)、diff 增删行着色(`tuning.code.diffAddMix/diffDelMix`)、代码块悬停描边+阴面(`tuning.code.hoverBorderMix/hoverShadowMix/hoverBgMix`)、内联代码精修(`tuning.code.inlineRadius/inlineHairlineMix`)、复制全部按钮、复制/下载图标描边绘制动画(`icon-draw`)、图标体系(描边统一 1.75/`tuning.icons.strokeWidth`、hover 上移、主题切换旋转)、导航菜单内置图标表(NAV_ICONS 10 枚:home/archive/tags/info/book/link/folder/search/rss/download)
+
 - **内容级双语(i18n)**:`articles/zh/` 与 `articles/en/` 双目录;19 篇文章全文翻译为英文(`scripts/build.js` 按语言扫描,文章对象带 `lang`/`langPrefix`);URL 全站语言前缀化 `/zh/slug/`、`/en/slug/`;根路径 `/` 输出中文首页 + 内置语言检测脚本(`navigator.language` 命中 en 时跳 `/en/`,localStorage `s-ss-lang` 记忆)— `templates/layout.ejs` + `scripts/build.js`
 - **全站页面语言化**:首页分页、文章、归档、标签、分类、搜索、收藏、图库、友链、404 每语言一套,`generatePages` 按 `site.languages`(默认 `['zh','en']`)循环生成;`navigation.json`/`footer.json`/`sidebar.json` 新增 `labelEn`/`titleEn` 字段,`site.json` 新增 `titleEn`/`subtitleEn`/`hero.titleEn`/`hero.subtitleEn` — `scripts/build.js` `localizeNav`/`localizeFooter`/`localizeSidebar` 函数
 - **SEO 分语言**:`<html lang>`(en 时 `en-US`)、`og:locale`、`og:url`(当前语言 URL)、`og:image`(`/og/{lang}/{slug}.png` 分语言目录)、`hreflang` 交替链接(自动补全 i18n.languages + 当前语言)— `templates/layout.ejs`

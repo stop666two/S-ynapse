@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(89 模块)](#3-featuresjson5--功能总控89-模块)
+3. [features.json5 — 功能总控(90 模块)](#3-featuresjson5--功能总控90-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -230,7 +230,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(89 模块)
+## 3. features.json5 — 功能总控(90 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -520,6 +520,11 @@ sitemap: {
 `enabled true` / `includeSelf true`(当前语言条目也输出) / `canonical true` / `xDefault true`(输出 `hreflang="x-default"`,指向 `features.i18n.defaultLanguage` 版本)。与 `features.i18n` 配合:每页输出各语言(URL 前缀替换)+ x-default 的 `<link rel="alternate">`;新增翻译时按 `articles/{lang}/{slug}.md` 同 slug 放置即可获得互链与声明 — `templates/layout.ejs`。
 
 ### 3.74 printStyle — 打印样式
+
+
+### 3.75 atmosphere — 氛围
+
+enabled true / grain true(全局颗粒纹理叠层) / glow true(首页 Hero 主题色光晕)。颗粒/光晕的视觉参数在 	uning.json5 的 	exture(noiseOpacity/noiseOpacityDark/noiseBaseFrequency)与 glow(heroStrength/heroStrengthDark)分类微调 — 	emplates/layout.ejs。
 
 `enabled true` / `hideInteractive true`(打印隐藏导航/页脚/侧栏/按钮/评论/相关推荐等) / `expandLinks true`(正文外链打印为 `文字 (URL)`) / `avoidBreaks true`(代码块/图片/表格/引用避免跨页断裂)。打印/导出 PDF 时强制白底黑字、去阴影、正文全宽 — `templates/layout.ejs`。
 

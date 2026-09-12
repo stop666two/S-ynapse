@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **氛围开关（A8）**：eatures.atmosphere（grain/glow）——颗粒纹理与 Hero 光晕的页面级开关（视觉参数仍在 	uning.texture/	uning.glow） — 	emplates/layout.ejs
 - **打印样式（D2）**：`features.printStyle`——打印/PDF 导出优化：隐藏交互元素、白底黑字、正文外链展开为 `文字 (URL)`、代码块/图表避免跨页断裂 — `templates/layout.ejs`
 - **多语言增强（D3）**：`features.hreflang.xDefault`（x-default 替代声明，指向默认语言）+ `features.i18n.translationNotice`（文章页翻译互链胶囊：另一语言存在同 slug 文章时自动显示，文案 `post.translationNotice` 双语可配）— `templates/post.ejs` + `templates/layout.ejs`
 - **主题预设扩展（E4）**：新增 3 套调色盘——`amber-coffee`(琥珀咖啡) / `ocean-teal`(海沫青) / `plum-wine`(梅子酒)，每套含明亮+暗色各 13 色，全部通过 WCAG AA 对比度测试；预设切换器与 `theme.json5` 注释同步 — `scripts/lib/theme-presets.js`

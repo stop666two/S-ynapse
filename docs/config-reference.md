@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(94 模块)](#3-featuresjson5--功能总控94-模块)
+3. [features.json5 — 功能总控(95 模块)](#3-featuresjson5--功能总控95-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -231,7 +231,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(94 模块)
+## 3. features.json5 — 功能总控(95 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -551,6 +551,10 @@ sitemap: {
 ### 3.79 boot — 启动调度
 
 `enabled true`（false = 旧行为：全部模块立即初始化）/ `idleTimeoutMs 800`（`requestIdleCallback` 超时兜底）/ `interactionWake true`（首次点击/按键/触摸/滚轮立即唤醒后续批次，保 INP）/ `log false`（`[boot]` 时间线）。机制：仅 14 个关键模块静态初始化；17 个交互类模块动态导入、按 40ms 空闲切片加载；重模块（粒子背景/打赏）最后；时间线写入 `window.__BOOT__`（start/critEnd/idleEnd/heavyEnd），完成后置 `window.__APP_READY__`。实测启动后长任务为 0（原两个长任务 238ms+66ms 已消除） — `js/core/main.js` + `js/core/boot.js`。
+
+### 3.80 imageFit — 图片适配（四域）
+
+`enabled true`。**四域**：`content`（正文图片：`upscale 'never'`（默认不放大）| `'cap'` 最多放大 `cap 1.5` 倍 | `'full'` 铺满；`maxHeightVh 0` 限高（如 60=最多 60vh）；`align 'center'|'left'`）· `cover`（封面与卡片：`fit 'cover'|'contain'|'fill'`；`position 'center'|'top'|'bottom'|'left'|'right'` 或自定义 `'50% 30%'` 焦点）· `gallery`（`stretch false` 小图不再被拉伸（修复旧版变形）| `true` 旧行为；`maxHeightPx 0` 单图限高）· `lightbox`（`fit 'contain'`（默认）| `'actual'` 原始尺寸）。实现（运行时零 JS）：构建期为图片注入 `data-iw`（自然宽）并在 cap 模式生成 `[data-iw]` 宽度规则；四域分别烘焙为 `--if-*` CSS 变量 — `scripts/build.js` + `templates/layout.ejs` + `scripts/lib/utils.js`。
 
 ---
 

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 图库页说明文案 `{count}` 占位符未替换且句子重复（模板误用 `gallery.desc` 两次）：改为「共 N 张图片 · 站内图片集，点击查看大图。」单句组合 — `templates/gallery.ejs`
 - 公告条「关闭后刷新/切页仍闪现」根因修复：`data-items` 属性双重转义（`escapeAttr` 与 EJS `<%=` 叠加）导致浏览器 `JSON.parse` 失败、关闭哈希与内容哈希错位、`<head>` 首帧早检脚本永不命中；现改为单层转义，并**反转为「默认隐藏，`<head>` 早检确认未关闭后才显示」**（关闭态刷新/导航实测零可见帧；禁用 JS 时公告不显示，属预期设计） — `templates/layout.ejs` + `js/domains/announcement.js`
 - 联系弹窗（导航/页脚）与 `data-site-title`/`data-article-title` 属性双重转义：`escapeAttr` 与 EJS 转义叠加导致属性值失真（呈现 `&amp;quot;` 形态），统一为单层 EJS 转义 — `templates/layout.ejs`
 - 构建压缩管线顺序错误：`minifyAll` 原先跑在资源拷贝**之前**，导致 `dist/assets/js` 从未被 Terser 压缩（注释/空白原样上线）；已重排为「拷贝 → PWA → 压缩 → cache-bust」，并让 cache-bust 排除 `assets/` 与 `sw.js`（避免破坏 ESM 相对导入与 Service Worker 固定路径） — `scripts/build.js`
@@ -31,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **图片适配四域（`features.imageFit`）**：`content`（不放大/放大上限/铺满 + vh 限高 + 对齐）· `cover`（cover/contain/fill + 九宫格或百分比焦点）· `gallery`（默认不拉伸小图，修复旧版变形）· `lightbox`（contain/actual）；运行时零 JS：构建期注入 `data-iw` + cap 模式宽度规则 + `--if-*` 变量；13 项浏览器断言双模式验证（默认/tuned 翻转） + 截图目检 — `features.json5` + `scripts/build.js` + `templates/layout.ejs` + `scripts/lib/utils.js`
 - **加载遮罩**（`features.loading`）：启动慢于延迟阈值时显示主题化全屏遮罩，延迟出现/最短显示/硬超时兜底三保险 + `prefers-reduced-motion` 可跳过 + 无 JS 不渲染；文案复用 `ui-strings.common.loading` 双语 — `js/core/boot.js` + `templates/layout.ejs`
 - **三阶段启动调度**（`features.boot`）：仅 14 个关键模块静态初始化；17 个交互类模块改动态导入、按 40ms 空闲切片加载；粒子背景/打赏最后；首交互（点击/按键/触摸/滚轮）可唤醒剩余批次。实测启动后长任务 **0 个**（原 238ms+66ms 两个阻塞长任务消除），启动时间线写入 `window.__BOOT__` 供验证 — `js/core/main.js` + `js/core/boot.js`
 - 启动期间 `<body aria-busy>` 无障碍提示（可关）；代码高亮的纯文本块补全改为空闲分片执行（消除 93ms DCL 长任务） — `js/core/boot.js` + `templates/layout.ejs`

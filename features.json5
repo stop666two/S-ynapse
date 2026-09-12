@@ -894,7 +894,17 @@
     // 是否显示流程图内文本的复制按钮。
     copyAfterRender: false,
     // 渲染失败占位文本。
-    errorText: '[图表渲染失败]'
+    errorText: '[图表渲染失败]',
+    // 图表尺寸(全局默认;单图可在代码块上覆盖,写法 ```mermaid w=900 h=520)。
+    size: {
+      width: '',
+      height: '',
+      minWidth: '320px',
+      maxWidth: 'none',
+      minHeight: '200px',
+      maxHeight: 'none',
+      fit: 'scroll'
+    }
   },
 
   // ---------------------------------------------------------------------------

@@ -883,9 +883,19 @@ function setupMarkedRenderer(config, mediaManifest) {
         if (showLineNumbers) preCls.push('line-numbers');
         if (F.codeBlock && F.codeBlock.wrapLongLines) preCls.push('wrap-lines');
         const preClsAttr = preCls.length ? ` class="${preCls.join(' ')}"` : '';
-        const langAttr = lang ? ` class="language-${escapeAttr(lang)}"` : '';
-        const langLabel = lang ? ` data-language="${escapeAttr(lang)}"` : '';
-        return `<pre${preClsAttr}${langLabel}><code${langAttr}>${escapeHtml(text)}</code></pre>`;
+        const rawLang = lang ? String(lang).trim() : '';
+        const langName = rawLang.split(/\s+/)[0] || '';
+        let sizeAttrs = '';
+        if (langName === 'mermaid') {
+          const norm = v => (/^[0-9.]+$/.test(v) ? v + 'px' : v);
+          const wm = rawLang.match(/(?:^|\s)w=([0-9.]+(?:px|%|vw|vh|rem)?)(?=\s|$)/);
+          const hm = rawLang.match(/(?:^|\s)h=([0-9.]+(?:px|%|vw|vh|rem)?)(?=\s|$)/);
+          if (wm) sizeAttrs += ` data-w="${escapeAttr(norm(wm[1]))}"`;
+          if (hm) sizeAttrs += ` data-h="${escapeAttr(norm(hm[1]))}"`;
+        }
+        const langAttr = langName ? ` class="language-${escapeAttr(langName)}"` : '';
+        const langLabel = langName ? ` data-language="${escapeAttr(langName)}"` : '';
+        return `<pre${preClsAttr}${langLabel}${sizeAttrs}><code${langAttr}>${escapeHtml(text)}</code></pre>`;
       }
     }
   });

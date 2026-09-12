@@ -295,7 +295,8 @@ const DEFAULT_FEATURES = {
   mermaid: {
     enabled: true, autoDetect: true, version: '11.4.1', followTheme: true,
     lightTheme: 'default', darkTheme: 'dark', securityLevel: 'strict',
-    copyAfterRender: false, errorText: '[图表渲染失败]'
+    copyAfterRender: false, errorText: '[图表渲染失败]',
+    size: { width: '', height: '', minWidth: '320px', maxWidth: 'none', minHeight: '200px', maxHeight: 'none', fit: 'scroll' }
   },
   series: {
     enabled: true, showBadge: true, badgeFormat: '系列 · {name}',
@@ -425,7 +426,7 @@ const ENUM_FIELDS = {
   externalLink: { mode: ['warn', 'prohibit', 'hint'] },
   themeToggle: { defaultTheme: ['light', 'dark', 'system'], iconStyle: ['auto', 'sun-moon', 'toggle'] },
   wikiLinks: { unknownMode: ['text', 'link', 'hide'] },
-  mermaid: { followTheme: ['enabled', true, false] },
+  mermaid: { followTheme: ['enabled', true, false], 'size.fit': ['scroll', 'scale'] },
   series: { order: ['asc', 'desc'] },
   pinned: { badgeStyle: ['pill', 'corner', 'none'], sortRule: ['pinned-first', 'normal'] },
   share: { position: ['toolbar', 'floating'] },
@@ -507,7 +508,9 @@ function validateFeatures(features, moduleName) {
     const enumSpec = ENUM_FIELDS[mod];
     if (enumSpec) {
       for (const [key, allowed] of Object.entries(enumSpec)) {
-        if (cfg[key] != null && !allowed.includes(cfg[key])) {
+        let cur = cfg;
+        for (const part of key.split('.')) { cur = (cur == null) ? null : cur[part]; }
+        if (cur != null && !allowed.includes(cur)) {
           const list = allowed.map(String).join(', ');
           errors.push(`${moduleName}.${mod}.${key} must be one of: ${list}`);
         }

@@ -463,6 +463,10 @@ sitemap: {
 | `css` | `['blockquote{...}']` | CSS 片段数组：每项一段字符串（支持注释），按顺序合并注入；置空 `[]` 即不注入 |
 | `target` | `before-closing-body` | 注入位置（当前仅实现 `before-closing-body`，其余值保留） |
 
+### 3.61 morphIcons — 图标变形动画
+
+`enabled true` / `spring 'snappy'`(`smooth|snappy|bouncy`) / `reducedMotion true` / `icons { theme, copy, favorite, tts, menu }`(各图标独立开关)。基于 morphicons(本地 vendor,懒加载,~7.5KB gzip):状态切换类图标用弹簧物理做形状变形(主题 sun↔moon、复制 copy→check、收藏空心↔实心、朗读扬声器↔停止、移动端汉堡↔X);首次悬停/触摸/聚焦才加载 vendor,`reducedMotion` 开启时系统 reduce-motion 直接切换不变形;关闭任意开关均回退原有静态实现;弹簧参数见 `tuning.morphicons.stiffness/damping`(两者同时设置时优先于 spring 预设)。
+
 ---
 
 ## 4. navigation.json5 — 导航
@@ -576,13 +580,13 @@ sitemap: {
 
 ## 10. tuning.json5 — UI 微调参数层
 
-独立 UI 参数文件(25 分类 / 162 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
+独立 UI 参数文件(26 分类 / 164 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
 **优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已在「tuning 收尾」中全部清理(单一入口归各自模块配置);10 项原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
 
-**分类(25)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code。
+**分类(26)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / morphicons。
 
-**已绑定示例(118 项 CSS + 15 项行为)**:`--hero-maxWidth`、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`、`--header-scrolledHeight/hairlineStrength`、`--code-borderWidth/borderMix`、`--texture-noiseOpacity`、`--glow-heroStrength`、`--card-imageHoverScale/excerptLines/gridGap`、`--motion-transitionTiming/buttonPressScale`、`--reading-quoteTint/imageHoverScale/h2AccentWidth/Height`;行为侧:search 历史/热词/去抖/结果上限/空文案、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进。
+**已绑定示例(118 项 CSS + 17 项行为)**:`--hero-maxWidth`、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`、`--header-scrolledHeight/hairlineStrength`、`--code-borderWidth/borderMix`、`--texture-noiseOpacity`、`--glow-heroStrength`、`--card-imageHoverScale/excerptLines/gridGap`、`--motion-transitionTiming/buttonPressScale`、`--reading-quoteTint/imageHoverScale/h2AccentWidth/Height`;行为侧:search 历史/热词/去抖/结果上限/空文案、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进、morphicons 弹簧刚度/阻尼。
 
 **注意**:绑定值均已对齐现有视觉(如 toast.radius=999px 对应胶囊形),修改前建议先在浏览器 DevTools 中试值。
 

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **图标变形动画(morphicons)**：状态切换类图标弹簧物理变形——主题 sun↔moon、复制 copy→check、收藏空心↔实心、朗读扬声器↔停止、移动端汉堡↔X；本地 vendor 懒加载(首次悬停/触摸/聚焦才下载,~7.5KB gzip)、尊重系统 reduce-motion、`tuning.morphicons` 可调弹簧刚度/阻尼、逐图标开关(`features.morphIcons.icons.*`)、关闭即完全回退静态实现 — `js/domains/morphicons.js` + `features.json5` + `tuning.json5` + `scripts/build.js`
 - **双语验收文章集**：zh/en 各 8 篇可发布文章 + 各 1 篇草稿，覆盖站内/外跳转、wiki 链接与锚点、Mermaid×5 与 KaTeX、12 种代码块、系列 3 篇前后篇导航、超长压力文（13 个二级章节）、图片画廊与灯箱、置顶与草稿排除 — `articles/{zh,en}/`
 - **代码块与图标增强**：行号列(Prism line-numbers 本地插件,纯文本块也可用;`tuning.code.lineNumberColor/lineNumberOpacity`)、终端语言标签(bash/sh/zsh/fish→`$ lang`；powershell→`PS> powershell`；console→`> console`)、diff 增删行着色(`tuning.code.diffAddMix/diffDelMix`)、代码块悬停描边+阴面(`tuning.code.hoverBorderMix/hoverShadowMix/hoverBgMix`)、内联代码精修(`tuning.code.inlineRadius/inlineHairlineMix`)、复制全部按钮、复制/下载图标描边绘制动画(`icon-draw`)、图标体系(描边统一 1.75/`tuning.icons.strokeWidth`、hover 上移、主题切换旋转)、导航菜单内置图标表(NAV_ICONS 10 枚:home/archive/tags/info/book/link/folder/search/rss/download)
 

@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **阅读页视觉(批次D)**:引用块主色渐变底纹(`reading.quoteTint`)、正文图片圆角阴影+悬停放大(`reading.imageHoverScale`)、h2 前置主色竖线(`h2AccentWidth/Height/Color`)、阅读模式宽度(`readingMaxWidth`);进度条全参数接线(`barHeight/useGradient/gradientStart/gradientEnd/dotSize/showDot`) — `templates/layout.ejs` + `tuning.json5`
 - **字体分层（Sora + Manrope）**:`theme.fontSystem.displayStack='sora'`（h1/hero/Logo 展示层）与 `headingStack='manrope'`（h2-h6/卡片/部件标题）；`resolveFontSystem` 支持任意 FONT_STACKS 枚举并自动加载对应 Google Fonts；统一中英文回退链（PingFang/HarmonyOS/雅黑 UI） — `scripts/build.js` + `theme.json` + `templates/layout.ejs`
 - **首页粒子增强**:`features.background.particles` count 55→72 / opacity 0.6→0.7 — `features.json5`
+- **前端资产本地化（去 CDN 依赖）**:Prism（多语言拼接）/Mermaid/KaTeX（含字体）/Inter·Sora·Manrope（latin 子集）全部由构建从 `node_modules` 复制到 `assets/vendor/` 同源加载;修复 `externalAssets.styles` 从未渲染为样式表导致字体从未真正加载的潜伏缺陷;新增依赖 `prismjs`/`mermaid`/`katex`/`@fontsource/*`（锁定版本,npmmirror 安装) — `scripts/build.js` + `templates/layout.ejs` + `theme.json` + `package.json`
+- **首页视觉强化（Hero/Bento/色彩）**:Hero 标题渐变装饰条、CTA 主色→强调色渐变按钮、标签悬停提亮;首篇文章 Bento 大卡（1.618fr 图文分栏,移动端回退单列) — `templates/index.ejs` + `templates/layout.ejs` + `tuning.json5`
 
 ### Changed
 
@@ -50,6 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`sanitizeHtml` 剥离 `decoding` 属性**:性能配置注入的 `img decoding=async` 被净化白名单丢弃;白名单补 `decoding` 并附回归测试 — `scripts/lib/utils.js` + `scripts/build.test.js`
+- **代码块语言标签修复**:普通代码块重复标签（死类 `has-windowbar` → 实际 `code-window` 排除）与窗口栏标签门控 `showLanguageTag`;Mermaid 块不再被误加窗口栏/重复标签 — `templates/layout.ejs` + `js/domains/code-block.js`
+- **`externalAssets.styles` 从未渲染**:该配置仅被 preload 引用、未输出 `<link rel=stylesheet>`,导致外部字体样式从未生效;现已渲染并清空遗留 Google Fonts 链接 — `templates/layout.ejs` + `theme.json`
+- **字体样式预加载**:`site.performance.preloadFonts` 现同时预加载本地 vendor 字体样式（原先仅匹配 Google Fonts) — `templates/layout.ejs`
 - **代码块窗口栏背景**:修复 `--color-surface-2` 未定义回退深色导致浅色模式窗口栏发黑;改为跟随代码块背景,复制/展开按钮改用 `color-mix` 自适应明暗 — `templates/layout.ejs`
 - **表格斑马纹硬编码**:改接 `theme.appearance.tableStripeBg`(`--ap-str`,原为双模式硬编码 rgba,且该配置项此前完全未生效) — `templates/layout.ejs`
 - **阅读进度条梯度死键**:`features.readingProgress.progressColor` 不存在导致永远回退;改用 `gradientStart/gradientEnd`(与文档一致),删除 tuning 重复键 `reading.progressColor`;进度圆点 `dotSize/showDot` 接线(原固定 10px 常显) — `templates/layout.ejs` + `tuning.json5`

@@ -174,7 +174,7 @@
 | `darkMode.default` | string | `system` | `light`/`dark`/`system` |
 | `darkMode.colors.*` | — | `{}` | 暗色覆盖色板 |
 | `fontFamily` / `fontFamilyMono` | string | `sans-serif`/`monospace` | 字体 |
-| `fontSystem.stack/displayStack/headingStack/scale` | string/number | `inter`/`sora`/`manrope`/`1` | 字体系统：正文族 / 展示层（h1·Logo）/ 次级标题（h2-h6·卡片·部件）族 / 全局缩放；中文字符自动回退 CJK 字体链 |
+| `fontSystem.stack/displayStack/headingStack/scale` | string/number | `inter`/`sora`/`manrope`/`1` | 字体系统：正文族 / 展示层（h1·Logo）/ 次级标题（h2-h6·卡片·部件）族 / 全局缩放；中文字符自动回退 CJK 字体链；字体文件构建期本地化到 `assets/vendor/fonts/` 并自动预加载 |
 | `fontSizeBase` / `lineHeight` | string/number | `16px`/`1.8` | 基础字号/行高 |
 | `headingFontWeight` | number | `700` | 标题字重 |
 | `letterSpacing` | string | `0.02em` | 字符间距 |
@@ -196,7 +196,7 @@
 | `card.showWordCount` | bool | `true` | 字数 |
 | `button.radius/padding/primaryBackground/primaryText/hoverScale` | — | — | 按钮 |
 | `customCSS` | object | `{}` | 注入 CSS |
-| `externalAssets.styles/scripts` | array | `[]` | 额外 CSS/JS |
+| `externalAssets.styles/scripts` | array | `[]` | 额外 CSS/JS（Prism 高亮脚本由构建本地注入；字体样式由 fontSystem 自动追加） |
 | `contentOffset` | number | `0` | 内容偏移 |
 | `headerContentGap` | number | `0` | 头内容间隙 |
 | `tocWidth` | string | `200px` | 目录宽 |

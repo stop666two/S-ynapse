@@ -662,7 +662,7 @@ async function optimizeMedia(config) {
   };
   await Promise.all(images.map(p => processImage(p)));
   const manifestPath = path.join(DIST_DIR, 'media-manifest.json');
-  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest));
   console.log(`  Optimized ${count} images`);
   return manifest;
 }
@@ -2098,7 +2098,7 @@ function generateSearchIndex(config, articles) {
     const outputPath = path.join(DIST_DIR, lang, 'search-index.json');
     const outDir = path.dirname(outputPath);
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(outputPath, JSON.stringify(index, null, 2), 'utf-8');
+    fs.writeFileSync(outputPath, JSON.stringify(index), 'utf-8');
     console.log(`  Created: /${lang}/search-index.json (${index.length} entries)`);
   }
 }
@@ -2312,7 +2312,7 @@ function generateSecurityHeaders(config) {
     const mode = spec.mode || 'both';
     if (mode === 'prefetch' || mode === 'both') rulesJson.prefetch = [rule];
     if (mode === 'prerender' || mode === 'both') rulesJson.prerender = [rule];
-    fs.writeFileSync(path.join(DIST_DIR, 'speculation-rules.json'), JSON.stringify(rulesJson, null, 2), 'utf-8');
+      fs.writeFileSync(path.join(DIST_DIR, 'speculation-rules.json'), JSON.stringify(rulesJson), 'utf-8');
     console.log('  Created: speculation-rules.json');
     lines.push('  Speculation-Rules: /speculation-rules.json');
     extraSections.push('/speculation-rules.json\n  Content-Type: application/speculationrules+json\n  Access-Control-Allow-Origin: *');
@@ -2352,8 +2352,8 @@ function generateSecurityHeaders(config) {
 
 // Minify all HTML files in a directory tree using @minify-html/node.
 // Only runs when site.build.minifyHTML is enabled and the package is installed.
-// Structural compression is handled here; JS/CSS keep their dedicated pass
-// (terser / CleanCSS) so minify_js / minify_css stay off by default.
+// minify_js / minify_css also compress inline <script>/<style> content
+// (comments and whitespace inside inline code are removed here).
 async function minifyHTMLInDir(dir, config) {
   if (!config.site.build.minifyHTML || !minifyHtmlNode) return;
   const files = getAllFiles(dir).filter(f => /\.html?$/i.test(f));
@@ -2362,8 +2362,8 @@ async function minifyHTMLInDir(dir, config) {
       const content = fs.readFileSync(file, 'utf-8');
       const minified = minifyHtmlNode.minify(Buffer.from(content, 'utf-8'), {
         keep_comments: false,
-        minify_js: false,
-        minify_css: false,
+        minify_js: true,
+        minify_css: true,
         minify_doctype: false,
         keep_html_and_head_opening_tags: true,
         preserve_brace_template_syntax: true
@@ -2380,6 +2380,7 @@ async function minifyHTMLInDir(dir, config) {
 // Minify all CSS files in a directory tree using CleanCSS (level 2 optimization).
 async function minifyCSSInDir(dir, config) {
   if (!config.site.build.minifyCSS || !CleanCSS) return;
+  if (!fs.existsSync(dir)) return;
   const files = getAllFiles(dir).filter(f => /\.css$/i.test(f));
   const minifier = new CleanCSS({ level: 2 });
   for (const file of files) {
@@ -2400,11 +2401,13 @@ async function minifyCSSInDir(dir, config) {
 // Optionally removes console.* statements when site.build.removeConsole is true.
 async function minifyJSInDir(dir, config) {
   if (!config.site.build.minifyJS || !terser) return;
+  if (!fs.existsSync(dir)) return;
   const files = getAllFiles(dir).filter(f => /\.js$/i.test(f));
   for (const file of files) {
     try {
       const content = fs.readFileSync(file, 'utf-8');
       const result = await terser.minify(content, {
+        module: true,
         compress: { drop_console: config.site.build.removeConsole || false },
         mangle: { toplevel: true },
         output: { comments: false }
@@ -2419,13 +2422,42 @@ async function minifyJSInDir(dir, config) {
   }
 }
 
+// Minify inline <style> blocks inside HTML files using CleanCSS (level 1).
+// @minify-html skips very large style blocks; this pass guarantees inline CSS
+// comments/whitespace removal while preserving modern syntax (@property/:has/color-mix).
+async function minifyInlineStylesInDir(dir, config) {
+  if (!config.site.build.minifyCSS || !CleanCSS) return;
+  const minifier = new CleanCSS({ level: 1 });
+  const files = getAllFiles(dir).filter(f => /\.html?$/i.test(f));
+  for (const file of files) {
+    try {
+      let html = fs.readFileSync(file, 'utf-8');
+      let changed = false;
+      html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/g, function (all, attrs, css) {
+        if (css.length < 200) return all;
+        const r = minifier.minify(css);
+        if (r.errors.length) return all;
+        if (r.styles.length && r.styles.length < css.length) {
+          changed = true;
+          return '<style' + attrs + '>' + r.styles + '</style>';
+        }
+        return all;
+      });
+      if (changed) fs.writeFileSync(file, html, 'utf-8');
+    } catch (err) {
+      console.error(`  [ERROR] Inline CSS minify ${file}: ${err.message}`);
+    }
+  }
+}
+
 // Run all three minifiers (HTML, CSS, JS) across the dist/ directory.
 // Each skips gracefully if its package is missing or the feature is disabled.
 async function minifyAll(config) {
   console.log('[11/14] Minifying assets...');
   await minifyHTMLInDir(DIST_DIR, config);
+  await minifyInlineStylesInDir(DIST_DIR, config);
   await minifyCSSInDir(DIST_DIR, config);
-  await minifyJSInDir(DIST_DIR, config);
+  await minifyJSInDir(path.join(DIST_DIR, 'assets', 'js'), config);
   const types = [];
   if (config.site.build.minifyHTML) types.push('HTML');
   if (config.site.build.minifyCSS) types.push('CSS');
@@ -2446,7 +2478,7 @@ async function cacheBust(config) {
   console.log('[12/14] Cache busting...');
   const bustPattern = config.site.build.cacheBustingPattern || '.*\\.(css|js|png|jpg|svg)$';
   const bustRegex = new RegExp(bustPattern, 'i');
-  const files = getAllFiles(DIST_DIR).filter(f => bustRegex.test(f) && !f.includes('node_modules') && !f.includes('media' + path.sep + 'og'));
+  const files = getAllFiles(DIST_DIR).filter(f => bustRegex.test(f) && !f.includes('node_modules') && !f.includes('media' + path.sep + 'og') && !f.includes(path.sep + 'assets' + path.sep) && path.basename(f) !== 'sw.js');
   const mapping = {};
   for (const file of files) {
     try {
@@ -2487,7 +2519,7 @@ async function cacheBust(config) {
         console.error(`  [ERROR] Update refs in ${htmlFile}: ${err.message}`);
       }
     }
-    fs.writeFileSync(CACHE_BUST_MANIFEST_PATH, JSON.stringify(mapping, null, 2), 'utf-8');
+    fs.writeFileSync(CACHE_BUST_MANIFEST_PATH, JSON.stringify(mapping), 'utf-8');
     console.log(`  Renamed ${Object.keys(mapping).length} files, updated HTML refs`);
   } else {
     console.log('  No files to bust');
@@ -2589,7 +2621,7 @@ async function generatePWA(config) {
   const manifest = config.site.pwa.manifest || {};
   if (Object.keys(manifest).length > 0) {
     const manifestPath = path.join(DIST_DIR, 'manifest.json');
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest), 'utf-8');
     console.log('  Created: manifest.json');
   }
   const swUrl = config.site.pwa.serviceWorker || '/sw.js';
@@ -2741,11 +2773,11 @@ async function build() {
     if (generateWorkerSecurity) {
       generateWorkerSecurity(config.security, path.join(ROOT, 'workers', 'security-config.js'));
     }
-    await minifyAll(config);
-    await cacheBust(config);
     copyJsAssets();
     copyVendorAssets(config);
     await generatePWA(config);
+    await minifyAll(config);
+    await cacheBust(config);
     if (hooks && hooks.postBuild) {
       await hooks.postBuild(config, {
         articles: articles.length,

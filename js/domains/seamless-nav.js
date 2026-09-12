@@ -32,9 +32,13 @@ function vtActive() {
   if (rm === 'off' && sysReduce()) return false;
   return getOn(c, 's-view-transition');
 }
+function spDelivery() {
+  return cfgSP().delivery || 'inline';
+}
 function spActive() {
   const c = cfgSP();
   if (c.enabled === false || !SP_SUPPORTED) return false;
+  if (spDelivery() === 'header') return false;
   return getOn(c, 's-speculation');
 }
 window.__viewTransitionActive = vtActive;
@@ -89,7 +93,9 @@ function initUI() {
     else { vtWrap.classList.add('unavailable'); vtBox.disabled = true; vtBox.checked = false; vtWrap.title = '当前浏览器不支持 View Transitions'; }
   }
   if (spBox) {
-    if (SP_SUPPORTED) { spBox.checked = spActive(); usable = true; }
+    if (spDelivery() === 'header') {
+      spWrap.style.display = 'none';
+    } else if (SP_SUPPORTED) { spBox.checked = spActive(); usable = true; }
     else { spWrap.classList.add('unavailable'); spBox.disabled = true; spBox.checked = false; spWrap.title = '当前浏览器不支持 Speculation Rules'; }
   }
   if (!usable) { const root = document.getElementById('navBoost'); if (root) root.style.display = 'none'; return; }
@@ -122,6 +128,6 @@ function initUI() {
 }
 export function init() {
   if (cfgVT().enabled !== false) setVtOff(!vtActive());
-  setSpeculation(spActive());
+  if (spDelivery() !== 'header') setSpeculation(spActive());
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initUI); } else { initUI(); }
 }

@@ -2178,6 +2178,7 @@ function generateRedirects(config, customPages) {
 function generateSecurityHeaders(config) {
   console.log('[10/14] Generating security files...');
   const lines = [];
+  const extraSections = [];
 
   if (config.security.csp && config.security.csp.enabled) {
     const cspName = config.security.csp.reportOnly ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
@@ -2226,8 +2227,27 @@ function generateSecurityHeaders(config) {
     if (val) lines.push(`  ${key}: ${val}`);
   }
 
+  // Speculation Rules 响应头下发（delivery=header/both）：写规则文件 + 让 CDN 以
+  // application/speculationrules+json 提供；Cloudflare Speed Brain 检测到自有规则后会礼让。
+  const spec = (config.features && config.features.speculation) || {};
+  const specDelivery = spec.delivery || 'inline';
+  if (spec.enabled !== false && (specDelivery === 'header' || specDelivery === 'both')) {
+    const rule = { where: { and: [{ href_matches: '/*' }] }, eagerness: spec.eagerness || 'moderate' };
+    (spec.excludeSelectors || []).forEach(function (sel) { if (sel) rule.where.and.push({ not: { selector_matches: sel } }); });
+    rule.where.and.push({ not: { href_matches: '/*\\?*' } });
+    const rulesJson = {};
+    const mode = spec.mode || 'both';
+    if (mode === 'prefetch' || mode === 'both') rulesJson.prefetch = [rule];
+    if (mode === 'prerender' || mode === 'both') rulesJson.prerender = [rule];
+    fs.writeFileSync(path.join(DIST_DIR, 'speculation-rules.json'), JSON.stringify(rulesJson, null, 2), 'utf-8');
+    console.log('  Created: speculation-rules.json');
+    lines.push('  Speculation-Rules: /speculation-rules.json');
+    extraSections.push('/speculation-rules.json\n  Content-Type: application/speculationrules+json\n  Access-Control-Allow-Origin: *');
+  }
+
   if (lines.length > 0) {
-    const headerContent = '/*\n' + lines.join('\n') + '\n';
+    let headerContent = '/*\n' + lines.join('\n') + '\n';
+    if (extraSections.length) headerContent += '\n' + extraSections.join('\n\n') + '\n';
     fs.writeFileSync(path.join(DIST_DIR, '_headers'), headerContent, 'utf-8');
     console.log('  Created: _headers');
   }

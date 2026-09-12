@@ -148,7 +148,7 @@ const DEFAULT_FEATURES = {
     toggle: { show: true, defaultOn: true, storageKey: 's-view-transition' }
   },
   speculation: {
-    enabled: true, mode: 'both', eagerness: 'moderate',
+    enabled: true, mode: 'both', eagerness: 'moderate', delivery: 'inline',
     excludeSelectors: ['[download]', '[rel~=nofollow]', '.no-speculate'],
     toggle: { show: true, defaultOn: true, storageKey: 's-speculation' }
   },
@@ -405,7 +405,7 @@ const ENUM_FIELDS = {
   motion: { reducedMotion: ['light', 'off', 'full'] },
   morphIcons: { spring: ['smooth', 'snappy', 'bouncy'], reducedMotion: ['light', 'off', 'full'], preload: ['interaction', 'idle', 'immediate'] },
   viewTransition: { type: ['fade', 'slide'], reducedMotion: ['light', 'off', 'full'] },
-  speculation: { mode: ['prefetch', 'prerender', 'both'], eagerness: ['moderate', 'eager', 'conservative'] }
+  speculation: { mode: ['prefetch', 'prerender', 'both'], eagerness: ['moderate', 'eager', 'conservative'], delivery: ['inline', 'header', 'both'] }
 };
 // Numeric fields computed per module via typeof === 'number' check. All non-
 // numeric array fields (whitelist/blacklist/order/palette) must be arrays.

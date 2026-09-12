@@ -474,7 +474,7 @@ sitemap: {
 
 ### 3.63 speculation — 预取/预渲染
 
-`enabled true` / `mode 'both'`(`prefetch|prerender|both`) / `eagerness 'moderate'`(`moderate|eager|conservative`) / `excludeSelectors ['[download]','[rel~=nofollow]','.no-speculate']` / `toggle { show true, defaultOn true, storageKey 's-speculation' }`。基于 Speculation Rules（悬停约 200ms 预取/预渲染，仅 Chromium 系生效，其余浏览器自动忽略）：排除选择器与含查询串 URL；CSP 已加 `'inline-speculation-rules'` 关键字；预渲染期间统计信标与 Service Worker 注册经 `document.prerendering` 守门延后到 `prerenderingchange`（避免重复计数与副作用）；页内开关同样带记忆。
+`enabled true` / `mode 'both'`(`prefetch|prerender|both`) / `eagerness 'moderate'`(`moderate|eager|conservative`) / `delivery 'inline'`(`inline`=内联脚本+页内开关可控;`header`=构建 `speculation-rules.json` 并以 `Speculation-Rules` 响应头下发(Speed Brain 会礼让),页内开关不生效;`both`=双下发) / `excludeSelectors ['[download]','[rel~=nofollow]','.no-speculate']` / `toggle { show true, defaultOn true, storageKey 's-speculation' }`。基于 Speculation Rules（悬停约 200ms 预取/预渲染，仅 Chromium 系生效，其余浏览器自动忽略）：排除选择器与含查询串 URL；CSP 已加 `'inline-speculation-rules'` 关键字；预渲染期间统计信标与 Service Worker 注册经 `document.prerendering` 守门延后到 `prerenderingchange`（避免重复计数与副作用）；页内开关同样带记忆。
 
 ---
 

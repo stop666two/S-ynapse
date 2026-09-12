@@ -1687,6 +1687,8 @@
   speculation: {
     // 总开关(false = 不注入任何投机规则)。
     enabled: true,
+    // 规则下发方式: inline(内联脚本,页内开关可控;默认) / header(响应头+规则文件,全站生效且让 Cloudflare Speed Brain 礼让,但页内开关不生效) / both(双下发,可能轻微重复)。
+    delivery: 'inline',
     // 投机模式: prefetch(仅下载文档体,零 JS 执行) / prerender(整页预渲染,最快但耗资源) / both(同时下发,浏览器择优)。
     mode: 'both',
     // 触发档位: moderate(悬停约 200ms,推荐) / eager(立即,较耗流量) / conservative(按下鼠标时)。

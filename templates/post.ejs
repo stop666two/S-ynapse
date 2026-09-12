@@ -97,6 +97,7 @@
 <%# Comments section — supports Giscus (GitHub Discussions), Utterances (GitHub Issues), or Disqus. %>
 <% if (site.comments && site.comments.enabled && features.comments && features.comments.enabled!==false) { %>
 <section class="comments-section">
+<div class="comments-head" aria-hidden="true"><span class="comments-avatar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span></div>
   <% if (site.comments.provider === 'giscus') { %>
   <script src="https://giscus.app/client.js"
           data-repo="<%= site.comments.giscus.repo %>"
@@ -145,6 +146,7 @@
 <% if (article.series && features.series && features.series.enabled!==false && features.series.showNavPanel!==false) { %>
 <div class="series-nav" role="navigation" aria-label="系列导航">
   <div class="series-nav-head"><span class="series-nav-badge"><span data-i18n="post.series">系列</span></span><span class="series-nav-name"><%= article.series %></span><span class="series-nav-progress"><%= String(features.series.progressLabel||'{index} / {total}').replace('{index}',article.seriesIndex).replace('{total}',article.seriesTotal) %></span></div>
+  <% var _spct=article.seriesTotal>0?Math.round((article.seriesIndex/article.seriesTotal)*100):0; %><div class="series-progress" aria-hidden="true"><i style="width:<%= _spct %>%"></i></div>
   <div class="series-nav-links">
     <% if (article.seriesPrevUrl) { %><a href="<%= article.seriesPrevUrl %>" class="series-nav-link prev">← <%= features.series.prevLabel||'上一篇' %></a><% } %>
     <% if (article.seriesNextUrl) { %><a href="<%= article.seriesNextUrl %>" class="series-nav-link next"><%= features.series.nextLabel||'下一篇' %> →</a><% } %>

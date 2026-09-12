@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **security/content-policy 两文件全字段注释与死键清理**:security.json5 移除 4 个无实现的死块(sri/securityLogging/contentFilter/uploadSecurity)与 hardening 中 2 个死键(限流统一由 rateLimiting 段单一控制),明确 hardening 为 headers 覆盖层;content-policy.json5 逐字段注释;build.js 同步删除 4 个死默认值 — security.json5 + content-policy.json5 + scripts/build.js + docs/config-reference.md
 - **tag-aliases/friends 两文件全字段注释**:tag-aliases 补充匹配规则说明(精确+小写回退);friends 新增 labels 多语言标题配置并接线,修正示例字段(desc);文档第 9 章同步修正 — tag-aliases.json5 + friends.json5 + docs/config-reference.md
 - **features/tuning/ui-strings 头部规范补全**:三文件补充「作用/加载/校验规则/覆盖链/边界提示」规范头(features 增加 schema 校验与数组替换语义;tuning 增加双生效方式与「待实现」约定;ui-strings 增加回退链与占位符说明) — features.json5 + tuning.json5 + ui-strings.json5
+- **tuning 10 项「待实现」全部接线**:typography.leadSize(文章首段导语)、comments.avatarSize/width/borderRadius/dividerShow(评论区标记头像与宽度/iframe 圆角/分隔线)、pagination.maxVisible(分页窗口省略:新增 buildPaginationItems,首尾+当前窗口+省略号;字符串参数自动解析)、reward.popupRadius(打赏弹窗)、tags.cloudMinSize/MaxSize(标签云字号按热度梯度 calc 插值)、series.progressHeight(系列进度条元素,含宽度百分比);移除全部「待实现」标注,文档同步 — tuning.json5 + templates/{layout,post,index}.ejs + scripts/build.js
 
 - **主题预设 `theme-presets.js`**:6 套预设新增 `labelEn` 字段(Classic Blue/Midnight Black/Forest Green/Sakura Pink/Editorial Gray/Cyber Purple)
 - **`site.json`**:新增 `languages: ['zh','en']`、`titleEn`、`subtitleEn`、`hero.titleEn`、`hero.subtitleEn`、`externalLinkWarning.titleEn/messageEn/confirmTextEn/cancelTextEn`

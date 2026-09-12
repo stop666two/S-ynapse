@@ -75,8 +75,8 @@
   <span class="page-link disabled" aria-hidden="true">&laquo; <%= pagination.prevLabel %></span>
   <% } %>
 
-  <% pagination.pages.forEach(function(p) { %>
-  <a href="<%= p.url %>" class="page-link <%= p.current ? 'active' : '' %>"<%= p.current ? ' aria-current="page"' : '' %>><%= p.num %></a>
+  <% pagination.items.forEach(function(p) { %>
+  <% if (p.ellipsis) { %><span class="page-link ellipsis" aria-hidden="true">…</span><% } else { %><a href="<%= p.url %>" class="page-link <%= p.current ? 'active' : '' %>"<%= p.current ? ' aria-current="page"' : '' %>><%= p.num %></a><% } %>
   <% }) %>
 
   <% if (pagination.next) { %>

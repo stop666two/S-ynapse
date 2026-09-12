@@ -1517,6 +1517,26 @@ function localizeFooter(footer, pf, lang) {
   return copy;
 }
 
+// 分页窗口化:total<=maxVisible 时全显示;超出时保留首尾与当前窗口,间隔用省略号。
+// maxVisibleRaw 可来自 tuning(字符串)或 undefined(默认 5);下限 3。
+function buildPaginationItems(totalPages, current, maxVisibleRaw, urlFor) {
+  const mv = Math.max(3, parseInt(maxVisibleRaw, 10) || 5);
+  const items = [];
+  if (totalPages <= mv) {
+    for (let p = 1; p <= totalPages; p++) items.push({ num: p, url: urlFor(p), current: p === current });
+    return items;
+  }
+  const half = Math.max(1, Math.floor((mv - 2) / 2));
+  const nums = new Set([1, totalPages]);
+  for (let p = current - half; p <= current + half; p++) { if (p >= 1 && p <= totalPages) nums.add(p); }
+  let prev = 0;
+  for (let p = 1; p <= totalPages; p++) {
+    if (nums.has(p)) { items.push({ num: p, url: urlFor(p), current: p === current }); prev = p; }
+    else if (prev !== -1) { items.push({ ellipsis: true }); prev = -1; }
+  }
+  return items;
+}
+
 async function generatePages(config, articles, preBuiltBaseData, customPages) {
   console.log('[6/14] Generating pages...');
   const layoutTemplate = getTemplate('layout.ejs');
@@ -1601,11 +1621,7 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
             next: page < totalPages ? pf + 'page/' + (page + 1) + '/' : null,
             prevLabel: lang === 'en' ? 'Previous' : (config.site.paginationPrev || '上一页'),
             nextLabel: lang === 'en' ? 'Next' : (config.site.paginationNext || '下一页'),
-            pages: Array.from({ length: totalPages }, (_, i) => ({
-              num: i + 1,
-              url: i === 0 ? pf : pf + 'page/' + (i + 1) + '/',
-              current: i + 1 === page
-            }))
+            items: buildPaginationItems(totalPages, page, config.tuning && config.tuning.pagination && config.tuning.pagination.maxVisible, function (p) { return p === 1 ? pf : pf + 'page/' + p + '/'; })
           },
           currentUrl: page === 1 ? pf : pf + 'page/' + page + '/',
           currentPage: 'index'
@@ -1751,7 +1767,7 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
         prev: null,
         next: totalPages > 1 ? pf + 'page/2/' : null,
         prevLabel: '上一页', nextLabel: '下一页',
-        pages: Array.from({ length: totalPages }, (_, i) => ({ num: i + 1, url: i === 0 ? pf : pf + 'page/' + (i + 1) + '/', current: i === 0 }))
+        items: buildPaginationItems(totalPages, 1, config.tuning && config.tuning.pagination && config.tuning.pagination.maxVisible, function (p) { return p === 1 ? pf : pf + 'page/' + p + '/'; })
       },
       currentUrl: pf,
       currentPage: 'index'

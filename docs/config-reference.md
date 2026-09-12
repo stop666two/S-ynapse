@@ -531,13 +531,9 @@ sitemap: {
 | `robots.enabled` / `rules[]` | `false`/`[]` | robots 规则 |
 | `rateLimiting.enabled` | `false` | Worker 限流(100 req/60s) |
 | `rateLimiting.maxRequests/windowMs` | `100`/`60000` | 参数 |
-| `sri.enabled` / `algorithms` | `false`/`['sha256','sha384']` | SRI |
-| `pathRestrictions` | `[]` | 路径限制(如 `/admin/*`) |
-| `forceHttps` | `false` | HTTPS 强制 |
-| `securityLogging.enabled` | `false` | 安全日志 |
-| `customHeaders` | `{}` | 额外头 |
-| `contentFilter.disallowTags/disallowAttributes/escapeHTML` | `[]`/`[]`/`true` | 内容过滤 |
-| `uploadSecurity.maxFileSize` | `5242880` | 上传上限(字节) |
+| `hardening.hstsMaxAge/hstsIncludeSubDomains` | `31536000`/`true` | 覆盖 HSTS 有效期与子域开关（优先级高于 headers 段） |
+| `hardening.referrerPolicy/permissionsPolicy/xssProtection` | — | 覆盖 headers 段同名头 |
+| `hardening.corsAllowedOrigins` | `[]` | 非空时输出 Access-Control-Allow-Origin（多来源逗号拼接） |
 
 > 注意:`workers/security-config.js` 由构建从本文件自动生成,不要手改(生成器:scripts/generate-security-config.js)。
 

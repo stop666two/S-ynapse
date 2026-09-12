@@ -1,127 +1,230 @@
+// =====================================================================
+// security.json5 — 安全（CSP / 安全头 / 限流 / robots / 路径限制 / 加固）
+// ---------------------------------------------------------------------
+// 格式: JSON5（允许注释/尾逗号/无引号键名）
+// 生效: 修改后需重新构建（npm run build / npm run serve）
+// 产物: dist/_headers（静态托管头）与 workers/security-config.js（Worker 数据）
+//       两者均由构建从本文件生成,不要手改产物
+// 注释模板: 作用 / 类型 / 可填值及含义 / 不可填值及原因 / 推荐 / 注意
+// =====================================================================
 {
-  // ==================== 内容安全策略 (CSP) ====================
-  // 控制浏览器允许加载哪些资源，防止 XSS 攻击
+  // ===================================================================
+  // 一、内容安全策略（CSP）
+  // ===================================================================
+  // 控制浏览器允许加载哪些资源,是防 XSS 的第一道防线。
+  // 指令语义与取值规则遵循 W3C CSP3 规范:
+  //   'self' 同源 / 'none' 禁止 / 'unsafe-inline' 允许内联（谨慎） / https:// 域名白名单
 
   "csp": {
-    "enabled": true,             // 是否启用 CSP 头
-    "directives": {              // CSP 指令列表
-      "default-src": ["'self'"],                             // 默认资源加载来源
-      "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com", "https://giscus.app"],  // 脚本来源
-      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],  // 样式来源
-      "img-src": ["'self'", "data:", "https:"],              // 图片来源
-      "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],   // 字体来源
-      "connect-src": ["'self'", "https://cloudflareinsights.com"],  // 接口请求来源
-      "media-src": ["'self'"],                                // 媒体资源来源
-      "object-src": ["'none'"],                               // 插件对象来源（建议设为 'none'）
-      "frame-src": ["https://giscus.app"],                    // 框架嵌入来源（giscus 评论）
-      "worker-src": ["'self'"],                               // Web Worker 来源
-      "manifest-src": ["'self'"],                             // Manifest 来源
-      "base-uri": ["'self'"],                                 // <base> 标签限制
-      "form-action": ["'self'"]                               // 表单提交目标限制
+    // 是否启用 CSP 响应头
+    // 作用: 输出 Content-Security-Policy 头（静态托管经 _headers 生效）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 关闭后站点失去 CSP 防护,仅调试第三方资源时临时关闭
+    "enabled": true,
+
+    // 指令列表（均为 string[];空数组的指令会被跳过）
+    // 类型: { [指令名]: string[] }
+    // 不可填: 未列入计划的资源域名（会被浏览器拦截）
+    "directives": {
+      // 默认资源来源（未单独声明的资源类型的兜底）
+      // 推荐: ["'self'"]（仅同源）
+      "default-src": ["'self'"],
+      // 脚本来源
+      // 可填: 同源 + 必要的内联（本项目模板内联脚本需要 'unsafe-inline'）
+      //       统计（static.cloudflareinsights.com）/ 评论（giscus.app）
+      // 不可填: 未使用的第三方 CDN（攻击面扩大）
+      "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com", "https://giscus.app"],
+      // 样式来源（Google Fonts 样式表 / jsdelivr 兜底）
+      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
+      // 图片来源（data: 用于内联占位图;https: 整域放行便于外链封面）
+      "img-src": ["'self'", "data:", "https:"],
+      // 字体来源（Google Fonts 字体文件 / jsdelivr 兜底;本地 vendor 字体为同源）
+      "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+      // 网络请求来源（fetch/XHR/beacon;CF 统计上报）
+      "connect-src": ["'self'", "https://cloudflareinsights.com"],
+      // 音视频来源 | 推荐: ["'self'"]（媒体文件均本地化）
+      "media-src": ["'self'"],
+      // 插件对象来源（<object>/<embed>） | 推荐: ["'none'"]（彻底禁用,防老式 XSS）
+      "object-src": ["'none'"],
+      // iframe 嵌入来源（giscus 评论为 iframe） | 推荐: ["https://giscus.app"]
+      "frame-src": ["https://giscus.app"],
+      // Web Worker 来源 | 推荐: ["'self'"]
+      "worker-src": ["'self'"],
+      // Manifest 来源 | 推荐: ["'self'"]
+      "manifest-src": ["'self'"],
+      // <base> 标签限制 | 推荐: ["'self'"]（防 base 劫持）
+      "base-uri": ["'self'"],
+      // 表单提交目标限制 | 推荐: ["'self'"]（防表单劫持外发）
+      "form-action": ["'self'"]
     },
-    "reportOnly": false,         // true = 仅报告不阻止，false = 强制执行
-    "reportUri": "/csp-report"   // CSP 违规报告接收地址
+
+    // 仅报告模式
+    // 作用: true=发 Content-Security-Policy-Report-Only 头（不拦截,只上报违规）
+    // 类型: boolean | 可填: true(上线新策略前观察)/false(强制执行,推荐)
+    "reportOnly": false,
+
+    // 违规报告接收地址
+    // 作用: 追加 report-uri 指令,浏览器将违规上报到该路径
+    // 类型: string（站内路径或 https URL）
+    // 推荐: "/csp-report"（需 Worker/服务端配合接收;静态托管无接收端时仅记录于浏览器）
+    "reportUri": "/csp-report"
   },
 
-  // ==================== HTTP 安全头 ====================
-  // 通过 HTTP 响应头增强浏览器安全
+  // ===================================================================
+  // 二、HTTP 安全响应头（基础层;hardening 段可覆盖其中同名项）
+  // ===================================================================
+  // 均为标准 HTTP 头（IANA / W3C 规范）;值语法详见各规范。
 
   "headers": {
-    "X-Frame-Options": "DENY",                                          // 禁止页面被嵌入 iframe，防止点击劫持
-    "X-Content-Type-Options": "nosniff",                                // 禁止 MIME 类型嗅探
-    "Referrer-Policy": "strict-origin-when-cross-origin",               // 控制 Referer 头发送策略
-    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",   // 禁用不必要的浏览器 API 权限
-    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",  // HSTS 强制 HTTPS
-    "X-XSS-Protection": "1; mode=block",                                // 启用 XSS 过滤器
-    "Cross-Origin-Resource-Policy": "same-origin",                      // 跨域资源策略
-    "Cross-Origin-Embedder-Policy": "unsafe-none",                     // 跨域嵌入策略
-    "Cross-Origin-Opener-Policy": "same-origin"                         // 跨域打开者策略
+    // 禁止页面被 iframe 嵌入（防点击劫持）
+    // 可填: "DENY"(完全禁止,推荐)/"SAMEORIGIN"(同源允许)
+    "X-Frame-Options": "DENY",
+    // 禁止 MIME 嗅探（防类型混淆攻击） | 固定 "nosniff"（唯一有效值）
+    "X-Content-Type-Options": "nosniff",
+    // Referer 发送策略（防隐私泄露）
+    // 可填: "strict-origin-when-cross-origin"(推荐)/"no-referrer"(最严格)
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    // 浏览器 API 权限策略
+    // 可填: "feature=()" 逗号分隔;括号内为允许来源（空=全禁）
+    // 推荐: 按需启用（如 geolocation=()/microphone=()/camera=()）
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+    // HSTS 强制 HTTPS
+    // 可填: "max-age=秒数; includeSubDomains; preload"
+    // 注意: 部署必须已全站 HTTPS;被 hardening.hstsMaxAge 覆盖重建
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+    // 旧浏览器 XSS 过滤器（现代浏览器已废弃该头,仅向后兼容）
+    "X-XSS-Protection": "1; mode=block",
+    // 跨域资源策略
+    // 可填: "same-origin"(推荐)/"same-site"/"cross-origin"
+    "Cross-Origin-Resource-Policy": "same-origin",
+    // 跨域嵌入策略（COEP;开启 require-corp 需所有资源带 CORP 头）
+    "Cross-Origin-Embedder-Policy": "unsafe-none",
+    // 跨域打开者策略（COOP;防跨窗口引用攻击）
+    "Cross-Origin-Opener-Policy": "same-origin"
   },
 
-  // ==================== 速率限制 ====================
-  // 防止暴力破解和 DDoS 攻击
+  // ===================================================================
+  // 三、速率限制（由 Workers 层执行;静态托管无效）
+  // ===================================================================
+  // 数据流: 构建提取本段 → workers/security-config.js → security-worker.js 执行。
 
   "rateLimiting": {
-    "enabled": true,             // 是否启用速率限制
-    "maxRequests": 100,          // 时间窗口内允许的最大请求数
-    "windowMs": 60000,           // 时间窗口（毫秒）
-    "blockDuration": 300000,     // 超过限制后的封禁时长（毫秒）
-    "whitelist": ["192.168.1.1"],  // 白名单 IP（不受限制）
-    "blacklist": []                // 黑名单 IP（始终封禁）
+    // 是否启用限流
+    // 类型: boolean | 可填: true/false | 推荐: true（Worker 部署时）
+    // 注意: 纯静态托管（无 Worker）时本段不生效
+    "enabled": true,
+
+    // 时间窗口内请求上限
+    // 类型: number（整数） | 可填: 10–1000 | 推荐: 100 | 不可填: 0/负数（全部拦截）
+    "maxRequests": 100,
+
+    // 时间窗口
+    // 类型: number（毫秒） | 可填: 10000–300000 | 推荐: 60000（1 分钟）
+    "windowMs": 60000,
+
+    // 超限封禁时长
+    // 类型: number（毫秒） | 可填: 60000–3600000 | 推荐: 300000（5 分钟）
+    "blockDuration": 300000,
+
+    // IP 白名单（不限流）
+    // 类型: string[]（IP 或 CIDR） | 可填: ["192.168.1.1","10.0.0.0/8"] | 推荐: 默认占位按需清理
+    "whitelist": ["192.168.1.1"],
+
+    // IP 黑名单（始终封禁）
+    // 类型: string[]（IP 或 CIDR） | 不可填: 泛化网段（可能误伤） | 推荐: 默认空按需添加
+    "blacklist": []
   },
 
-  // ==================== robots.txt ====================
-  // 控制搜索引擎爬虫的抓取行为
+  // ===================================================================
+  // 四、robots.txt（爬虫协议;遵循 RFC 9309）
+  // ===================================================================
 
   "robots": {
-    "enabled": true,             // 是否生成 robots.txt
-    "rules": [                   // 爬虫规则列表
+    // 是否生成 robots.txt
+    // 作用: 输出 dist/robots.txt 供搜索引擎读取
+    // 类型: boolean | 可填: true/false | 推荐: true
+    "enabled": true,
+
+    // 规则列表（按顺序输出为多组 User-agent 段）
+    // 字段: userAgent 适用爬虫（"*" 通配）/ allow 允许路径 / disallow 禁止路径
+    // 不可填: 空 userAgent;路径需以 / 开头
+    // 推荐: 默认全放行 + 屏蔽敏感路径（如 /admin）
+    "rules": [
       { "userAgent": "*", "allow": "/", "disallow": "/admin" },
       { "userAgent": "Googlebot", "allow": "/" }
     ],
-    "sitemap": "/sitemap.xml"    // sitemap 地址
+
+    // sitemap 地址（追加 Sitemap: 行,自动拼接 site.url）
+    // 类型: string（以 / 开头） | 推荐: "/sitemap.xml"
+    "sitemap": "/sitemap.xml"
   },
 
-  // ==================== SRI 子资源完整性 ====================
-  // 确保外部加载的资源未被篡改
+  // ===================================================================
+  // 五、路径访问限制（Workers 层;静态托管无效）
+  // ===================================================================
 
-  "sri": {
-    "enabled": false,                        // 是否启用 SRI
-    "algorithms": ["sha256", "sha384"]       // 支持的哈希算法
-  },
-
-  // ==================== 路径访问限制 ====================
-
+  // 受保护路径列表
+  // 字段: path 匹配模式（支持 /admin/* 通配）/ requireAuth 是否要求登录（Worker 按需扩展）
+  //       allowedIPs 允许的 IP（CIDR;有 Worker 鉴权逻辑时生效）
+  // 类型: 数组[{path,requireAuth?,allowedIPs?}]
+  // 不可填: 空 path;与站点实际路径不匹配的模式（配置无效）
+  // 推荐: 无受保护目录时置为 []
   "pathRestrictions": [
     {
-      "path": "/admin/*",                         // 受限制的路径模式
-      "requireAuth": true,                        // 是否需要登录
-      "allowedIPs": ["192.168.1.0/24"]            // 允许的 IP 范围
+      "path": "/admin/*",
+      "requireAuth": true,
+      "allowedIPs": ["192.168.1.0/24"]
     }
   ],
 
-  // ==================== HTTPS 强制跳转 ====================
+  // ===================================================================
+  // 六、HTTPS 强制与自定义响应头
+  // ===================================================================
 
-  "forceHttps": true,            // 是否将所有 HTTP 请求重定向到 HTTPS
+  // 强制 HTTPS 跳转
+  // 作用: Worker 将 HTTP 请求 301 到 HTTPS（静态托管由平台自带 HTTPS 处理）
+  // 类型: boolean | 可填: true(推荐)/false
+  "forceHttps": true,
 
-  // ==================== 安全日志 ====================
+  // 自定义响应头
+  // 作用: 追加任意响应头到 _headers（key-value,与 headers 段合并输出）
+  // 类型: { [头名]: 值 }
+  // 不可填: 与内置头重复的键名（会被覆盖或重复输出,请改用 headers 段）
+  // 推荐: {}（默认空）
+  "customHeaders": {},
 
-  "securityLogging": {
-    "enabled": false,             // 是否启用安全日志记录
-    "logFailedRequests": true,    // 是否记录失败的请求
-    "logBlockedIPs": true         // 是否记录被封禁的 IP
-  },
-
-  // ==================== 自定义响应头 ====================
-
-  "customHeaders": {},           // 额外的自定义响应头（key-value 格式）
-
-  // ==================== 内容过滤 ====================
-  // 防止 XSS 和 HTML 注入
-
-  "contentFilter": {
-    "enabled": true,                                // 是否启用内容过滤
-    "disallowTags": ["script", "iframe", "object"],  // 禁止使用的 HTML 标签
-    "disallowAttributes": ["onerror", "onload"],     // 禁止使用的 HTML 属性（事件处理器）
-    "escapeHTML": true                               // 是否转义 HTML 特殊字符
-  },
-
-  // ==================== 上传安全 ====================
-
-  "uploadSecurity": {
-    "maxFileSize": 5242880,                          // 最大上传文件大小（字节），默认 5MB
-    "allowedExtensions": ["jpg", "png", "webp", "mp4"]  // 允许上传的文件扩展名
-  },
-  // ==================== 安全加固选项 ====================
+  // ===================================================================
+  // 七、安全加固（覆盖 headers 段中的同名项;Workers 与 _headers 双端同步）
+  // ===================================================================
 
   "hardening": {
-    "hstsMaxAge": 31536000,              // HSTS 有效期（秒），默认 1 年；仅 HTTPS 生效
-    "hstsIncludeSubDomains": true,       // HSTS 覆盖所有子域名
-    "referrerPolicy": "strict-origin-when-cross-origin", // Referrer-Policy 策略
-    "permissionsPolicy": {},             // Permissions-Policy（如 {"camera": "()"} 禁用摄像头）
-    "corsAllowedOrigins": [],            // CORS 白名单（空 = 不发送 CORS 头）
-    "rateLimitEnabled": false,           // 速率限制（需 Workers 层配合）
-    "rateLimitPerMinute": 60,            // 每分钟请求上限（rateLimitEnabled=true 时生效）
-    "xssProtection": "1; mode=block"     // X-XSS-Protection（旧浏览器兼容）
+    // HSTS 有效期
+    // 作用: 覆盖 headers 中的 Strict-Transport-Security 的 max-age
+    // 类型: number（秒） | 可填: 86400–63072000 | 推荐: 31536000（1 年）
+    // 注意: 仅 HTTPS 生效;首次上线建议先用较短时长
+    "hstsMaxAge": 31536000,
+
+    // HSTS 覆盖子域名
+    // 类型: boolean | 可填: true(推荐,所有子域强制 HTTPS)/false
+    "hstsIncludeSubDomains": true,
+
+    // Referrer-Policy 覆盖值
+    // 类型: string | 可填: 同 headers 段的 Referrer-Policy 取值 | 推荐: "strict-origin-when-cross-origin"
+    "referrerPolicy": "strict-origin-when-cross-origin",
+
+    // Permissions-Policy 覆盖值
+    // 类型: object{功能名: 允许来源} | 可填: {"camera": "()"}（禁用)
+    // 推荐: {}（不覆盖 headers 段的值）
+    "permissionsPolicy": {},
+
+    // CORS 允许来源
+    // 作用: 非空时输出 Access-Control-Allow-Origin 头（多个来源逗号拼接）
+    // 类型: string[] | 可填: ["https://a.com"];不可填: ["*"]（配合凭证时违规）
+    // 推荐: []（不发送 CORS 头,同源策略最安全）
+    "corsAllowedOrigins": [],
+
+    // X-XSS-Protection 覆盖值
+    // 类型: string | 推荐: "1; mode=block"（旧浏览器兼容;现代浏览器忽略）
+    "xssProtection": "1; mode=block"
   }
 }

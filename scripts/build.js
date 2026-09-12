@@ -241,12 +241,8 @@ function loadConfig() {
       headers: {}, csp: { enabled: false, directives: {}, reportOnly: false },
       robots: { enabled: false, rules: [] },
       rateLimiting: { enabled: false, maxRequests: 100, windowMs: 60000 },
-      sri: { enabled: false, algorithms: ['sha256', 'sha384'] },
       pathRestrictions: [], forceHttps: false,
-      securityLogging: { enabled: false },
-      customHeaders: {},
-      contentFilter: { enabled: false, disallowTags: [], disallowAttributes: [], escapeHTML: true },
-      uploadSecurity: { maxFileSize: 5242880 }
+      customHeaders: {}
     }
   };
 

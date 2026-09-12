@@ -597,7 +597,7 @@ async function optimizeMedia(config) {
   const manifest = {};
   const sizes = config.site.build.mediaResponsiveSizes || [640, 1024, 1920];
   const quality = config.site.build.mediaQuality || 85;
-  const avifCfg = config.site.build.avif || { enabled: false, quality: 50, effort: 6 };
+  const avifCfg = config.site.build.avif || { enabled: true, quality: 50, effort: 5 };
   const formats = config.site.build.mediaFormats || ['webp', 'original'];
   const destDir = path.join(DIST_DIR, 'media');
   if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
@@ -614,6 +614,14 @@ async function optimizeMedia(config) {
       const originalWidth = metadata.width;
       const urlDir = parsed.dir ? parsed.dir + '/' : '';
       const entry = { original: `/media/${urlDir}${parsed.base}`, variants: {} };
+      const imageLazyCfg = (config.features && config.features.imageLazy) || {};
+      if (imageLazyCfg.lqip !== false) {
+        try {
+          const lw = Math.max(8, Math.min(64, parseInt(imageLazyCfg.lqipWidth) || 24));
+          const buf = await sharp(imgPath).resize(lw, null, { withoutEnlargement: true }).blur(12).webp({ quality: 30 }).toBuffer();
+          entry.lqip = 'data:image/webp;base64,' + buf.toString('base64');
+        } catch (e) { /* LQIP 失败不影响主流程 */ }
+      }
       const activeFormats = avifCfg.enabled ? ['avif', ...formats.filter(f => f !== 'avif')] : formats;
       for (const size of sizes) {
         if (originalWidth <= size) continue;
@@ -798,10 +806,11 @@ function setupMarkedRenderer(config, mediaManifest) {
           const normHref = decodedHref.replace(/^\//, '');
           const entry = mediaManifest[normHref];
           if (entry && entry.variants && Object.keys(entry.variants).length > 0) {
+            const lqipAttr = entry.lqip ? ` data-lqip="${escapeAttr(entry.lqip)}"` : '';
             const webpSources = [];
             const avifSources = [];
             const origSources = [];
-            const sizesAttr = (_perf.imageSizes && _perf.imageSizes !== 'auto') ? _perf.imageSizes : '(max-width: 640px) 640px, (max-width: 1024px) 1024px, 1920px';
+            const sizesAttr = (_perf.imageSizes && _perf.imageSizes !== 'auto') ? _perf.imageSizes : '(max-width: 768px) 100vw, 768px';
             for (const [key, val] of Object.entries(entry.variants)) {
               const [size, fmt] = key.split('-');
               const escaped = escapeAttr(val);
@@ -816,7 +825,7 @@ function setupMarkedRenderer(config, mediaManifest) {
             html += webpSources.join('\n');
             if (webpSources.length && origSources.length) html += '\n';
             html += origSources.join('\n') + '\n';
-            html += `  <img src="${fallbackSrc}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}>\n`;
+            html += `  <img src="${fallbackSrc}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}${lqipAttr}>\n`;
             html += '</picture>';
             return html;
           }
@@ -825,7 +834,8 @@ function setupMarkedRenderer(config, mediaManifest) {
           const norm = decodedHref.replace(/^\//, '');
           const entry = mediaManifest[norm];
           if (entry && entry.original) {
-            return `<img src="${escapeAttr(entry.original)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}>`;
+            const lqipAttr = entry.lqip ? ` data-lqip="${escapeAttr(entry.lqip)}"` : '';
+            return `<img src="${escapeAttr(entry.original)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}${lqipAttr}>`;
           }
         }
         return `<img src="${escapeAttr(decodedHref)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}>`;

@@ -113,7 +113,7 @@
 | `build.mediaQuality` | number | `85` | 压缩质量 |
 | `build.mediaResponsiveSizes` | array | `[640,1024,1920]` | 响应式宽度档位 |
 | `build.mediaFormats` | array | `['webp','original']` | 输出格式(可含 avif) |
-| `build.avif.enabled` | bool | `false` | AVIF 输出 |
+| `build.avif.enabled` | bool | `true` | AVIF 输出（图多省流量；构建时间敏感可关） |
 | `build.avif.quality` | number | `50` | AVIF 质量 |
 | `build.avif.effort` | number | `6` | AVIF 编码努力(0-10) |
 | `build.lazyLoadImages` | bool | `true` | loading=lazy |
@@ -139,6 +139,7 @@
 | `performance.prefetchNextPage` | bool | `false` | 空闲预取下一页 |
 | `performance.resourceHints` | bool | `true` | 输出 preconnect/dns-prefetch |
 | `performance.imageSizes` | string | `auto` | srcset sizes 策略:auto/自定义表达式 |
+| `performance.preloadFeaturedImage` | bool | `true` | 文章首图 `<link rel=preload as=image fetchpriority=high>`（LCP 提速） |
 
 > 说明:压缩、缓存戳、构建报告等构建级开关统一由 `site.build.*` 提供（单开关原则,不再提供 performance.* 重复项）;本段仅保留渲染期与网络提示项。
 
@@ -262,7 +263,7 @@
 `enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true` / `showCount true` / `placeholder 搜索...` / `emptyHint 输入关键词开始搜索` / `noResultText 未找到匹配内容` / `excerptLength 120` / `includeContent true` / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `closeOnOverlay true` / `focusOnOpen true` / `openAnimation fade` / `pinyinFuzzy false`
 
 ### 3.5 imageLazy — 懒加载
-`enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载)
+`enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
 
 ### 3.6 codeBlock — 代码块
 `enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `showLanguageTag true` / `lineNumbers true`(纯文本块也可用) / `wrapLongLines false`(true=软换行,行号仍按行高对齐) / `highlightBackground var(--color-hover)`(hover 混色基色,力度见 tuning.code.hoverBgMix) / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false`(true=首块上方一键复制全页) / `downloadButton true`

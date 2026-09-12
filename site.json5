@@ -744,8 +744,8 @@
     "avif": {
       // 是否额外生成 AVIF 变体
       // 作用: AVIF 比 WebP 更小但编码慢数倍
-      // 类型: boolean | 可填: true/false | 推荐: 图多时可 true,构建时间敏感则 false
-      "enabled": false,
+      // 类型: boolean | 可填: true/false | 推荐: true（图多时更省流量;构建时间敏感可 false）
+      "enabled": true,
 
       // AVIF 质量
       // 类型: number | 可填: 40–70 | 推荐: 50
@@ -994,6 +994,11 @@
     // 类型: boolean | 可填: true/false | 推荐: true
     // 注意: 预加载会与首屏关键资源竞争带宽;字体极多时可关闭
     "preloadFonts": true,
+
+    // 首屏大图预加载
+    // 作用: 文章页为首屏封面图输出 <link rel="preload" as="image" fetchpriority="high">,加速 LCP
+    // 类型: boolean | 可填: true/false | 推荐: true
+    "preloadFeaturedImage": true,
 
     // 字体显示策略
     // 作用: 生成 @font-face 的 font-display 值（本地 vendor 字体生效）

@@ -41,7 +41,8 @@ const DEFAULT_FEATURES = {
   imageLazy: {
     enabled: true, fadeIn: true,
     fadeInDurationMs: 300, placeholderColor: 'var(--color-hover)', preserveAspectRatio: true,
-    loadingClass: 'img-loading', errorClass: 'img-error', eagerFirst: 3
+    loadingClass: 'img-loading', errorClass: 'img-error', eagerFirst: 3,
+    lqip: true, lqipWidth: 24
   },
   codeBlock: {
     enabled: true, copyButtonVisibility: 'hover', copySuccessText: '已复制',

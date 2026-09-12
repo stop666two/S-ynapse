@@ -216,7 +216,11 @@
     // 前 N 张图片立即加载(视口顶部),不做懒加载。
     eagerFirst: 3,
     // 是否保留 width/height 防止布局抖动。
-    preserveAspectRatio: true
+    preserveAspectRatio: true,
+    // 构建期生成 LQIP 模糊占位(内联 base64 背景;图片加载时先模糊后清晰,推荐)。
+    lqip: true,
+    // LQIP 缩略图宽度(px;8-64,越小体积越小)。
+    lqipWidth: 24
   },
 
   // ---------------------------------------------------------------------------

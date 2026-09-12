@@ -310,7 +310,7 @@ const DEFAULT_FEATURES = {
     enabled: false, buttonText: '打赏', note: '感谢支持', popupTitle: '打赏支持',
     closeByBtn: true, closeByOverlay: true, closeByEsc: true,
     qrSize: '180px', maxWidth: '560px', showNote: true,
-    qrMaxWidth: '180px', closeText: '关闭'
+    qrMaxWidth: '180px', closeText: '关闭', links: []
   },
   gallery: {
     enabled: true, title: '图库', description: '站内图片集，点击查看大图。',

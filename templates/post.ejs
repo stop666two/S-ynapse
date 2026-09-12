@@ -178,6 +178,7 @@
       </div>
       <% }) %>
     </div>
+    <% if (Array.isArray(features.reward.links) && features.reward.links.length) { %><div class="reward-links"><% features.reward.links.forEach(function(l){ if(!l || !l.url) return; %><a class="reward-link-btn" href="<%= l.url %>" target="_blank" rel="noopener noreferrer"><%= l.label || l.url %></a><% }) %></div><% } %>
   </div>
 </div>
 <% } } %>

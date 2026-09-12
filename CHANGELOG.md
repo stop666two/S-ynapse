@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 构建压缩管线顺序错误：`minifyAll` 原先跑在资源拷贝**之前**，导致 `dist/assets/js` 从未被 Terser 压缩（注释/空白原样上线）；已重排为「拷贝 → PWA → 压缩 → cache-bust」，并让 cache-bust 排除 `assets/` 与 `sw.js`（避免破坏 ESM 相对导入与 Service Worker 固定路径） — `scripts/build.js`
+- 内联 CSS 注释/空白残留（minify-html 对超大 `<style>` 静默跳过）：新增 CleanCSS(level 1) 内联样式专用压缩 pass（保留 `@property`/`:has`/`color-mix` 等现代语法） — `scripts/build.js`
 - 公告条在渐进渲染下仍可能闪现一帧：新增 `<head>` 早检脚本（构建期预计算内容哈希），首帧前即置 `data-ann-dismissed` 并由 CSS 隐藏（`html[data-ann-dismissed] .announcement-bar{display:none}`） — `templates/layout.ejs`
 - Mermaid 图表标签使用内置 trebuchet 字体并带半透明白色底（文字挤压/白边/排版异常）：`initialize` 注入站点字体、`edgeLabelBackground` 透明、flowchart/class/state 关闭 htmlLabels，渲染移至 `document.fonts.ready` 之后；CSS 兜底标签背景透明 + 宽图表横向滚动 — `templates/layout.ejs`
 - 数学公式发虚：reveal 动画残留 `will-change` 致文本长期驻留合成层，`.motion-reveal.in` 改 `will-change:auto` — `templates/layout.ejs`
@@ -27,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **构建产物压缩增强**：`dist/assets/js` Terser 压缩（106KB→77KB，注释清零）、HTML 内联脚本压缩（69KB→64KB）、内联样式 CleanCSS 压缩（104KB→101KB，注释清零）、search-index/manifest/speculation-rules/cache-bust 清单 JSON 紧凑输出；vendor 保持上游压缩产物不重复处理（构建提速） — `scripts/build.js`
 - **图表尺寸自定义**：`features.mermaid.size`——全局默认宽高（`width`/`height`，支持 px/%/vw/vh/rem）+ `min/max` 钳制 + `fit` 适配策略（`scroll` 不缩放横向滚动（默认，解决时序图被缩小后线条挤压） / `scale` 旧行为）；单图覆盖语法：代码块语言标记后追加 `w=`/`h=`（如 ` ```mermaid w=900 h=520 `），非法值自动忽略 — `scripts/build.js` + `templates/layout.ejs`
 - **公告条升级（C2 增强）**：`features.announcement` 支持**多条轮播**（`items[{text,textEn,url}]` + `rotateMs`，悬停暂停/减少动效降级）、**视觉风格**（`tone: accent|solid|minimal`，含左侧圆点与圆形关闭键）、`tuning.announcement` 字号/字距微调；布局改为 grid 叠层稳定居中 — `templates/layout.ejs` + `js/domains/announcement.js`
 - **侧栏部件图标（A9）**：`sidebar.json5` 每个部件支持 `icon` 字段（内置 16 枚线性图标: clock/folder/tags/archive/collection/chart/quote/image/link/info/book/search/rss/download/home），8 个默认部件已配图标 — `templates/layout.ejs`

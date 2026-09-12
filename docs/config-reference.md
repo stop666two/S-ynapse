@@ -107,8 +107,8 @@
 | `pwa.manifest` | object | `{}` | manifest 字段 |
 | `pwa.serviceWorker` | string | `/sw.js` | SW 路径 |
 | `build.cleanDist` | bool | `true` | 构建前清空 dist |
-| `build.minifyHTML/CSS/JS` | bool | `false` | 压缩开关 |
-| `build.removeConsole` | bool | `false` | 剥离 console.* |
+| `build.minifyHTML/CSS/JS` | bool | `true` | 压缩开关：HTML（含**内联** CSS/JS）压缩去注释；内联 `<style>` 由 CleanCSS 二次压缩；JS 压缩范围 = `dist/assets/js`（vendor 上游已压缩、自动跳过）；JSON 输出（search-index/manifest/speculation-rules 等）始终紧凑 |
+| `build.removeConsole` | bool | `false` | 剥离 console.*（仅作用于 `dist/assets/js`） |
 | `build.generateIndex/Archive/Tags/Categories/Gallery` | bool | `true` | 页面生成开关 |
 | `build.generateAuthorPages` | bool | `false` | 作者页 |
 | `build.copyStatic` | bool | `true` | 复制 static/ |

@@ -7,11 +7,15 @@ function run() {
   try { items = JSON.parse(bar.getAttribute('data-items') || '[]'); } catch (e) { items = []; }
   var key = 's-announce-dismissed';
   var h = hashStr(JSON.stringify(items));
-  try { if (localStorage.getItem(key) === h) { bar.remove(); collapseAnnH(); return; } } catch (e) {}
+  var dismissed = false;
+  try { if (bar.getAttribute('data-dismiss-hash') && localStorage.getItem(key) === h) dismissed = true; } catch (e) {}
+  if (dismissed) { bar.remove(); collapseAnnH(); return; }
+  try { document.documentElement.classList.add('ann-on'); } catch (e) {}
   try { document.documentElement.classList.add('ann-anim'); } catch (e) {}
   var close = document.getElementById('announceClose');
   if (close) close.addEventListener('click', function () {
     try { localStorage.setItem(key, h); } catch (e) {}
+    try { document.documentElement.classList.remove('ann-on'); } catch (e) {}
     bar.classList.add('closing');
     collapseAnnH();
     setTimeout(function () { bar.remove(); }, 340);

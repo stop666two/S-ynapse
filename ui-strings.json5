@@ -149,6 +149,9 @@
   },
 
   // PWA 运行时提示
+  announcement: {
+    close: '关闭公告',
+  },
   pwa: {
     updateReady: '新版本可用，刷新页面以更新',
     offline: '网络已断开',
@@ -319,6 +322,9 @@
       searchSite: 'Search the site', hotArticles: 'Popular posts',
     },
     pagination: { label: 'Pagination', prev: 'Previous', next: 'Next' },
+    announcement: {
+      close: 'Dismiss announcement',
+    },
     pwa: {
       updateReady: 'A new version is available. Refresh to update.',
       offline: 'You are offline',

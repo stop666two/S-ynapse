@@ -187,6 +187,9 @@ const DEFAULT_FEATURES = {
   atmosphere: {
     enabled: true, grain: true, glow: true
   },
+  announcement: {
+    enabled: true, text: '', textEn: '', url: '', dismissible: true
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true

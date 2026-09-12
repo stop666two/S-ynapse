@@ -4,6 +4,7 @@ import { init as searchInit } from '../domains/search.js';
 import { init as tocInit } from '../domains/toc.js';
 import { init as readingInit } from '../domains/reading.js';
 import { init as lightboxInit } from '../domains/lightbox.js';
+import { init as announcementInit } from '../domains/announcement.js';
 import { init as readingPanelInit } from '../domains/reading-panel.js';
 import { init as ttsInit } from '../domains/tts.js';
 import { init as pageTransitionInit } from '../domains/page-transition.js';
@@ -48,7 +49,7 @@ if (enabled(F.favorites)) {
   readingPanelInit, ttsInit, seamlessNavInit, pageTransitionInit, shortcutsInit, prevNextInit,
   shareInit, motionInit, imageLazyInit, dailyQuoteInit, rewardInit, backgroundInit,
   i18nInit, readingModeInit, contactPopupInit, externalLinkInit, sidebarDragInit,
-  themePresetsInit, themeScheduleInit, pwaInit, codeBlockInit, commentsInit, morphIconsInit, readPositionInit, commandPaletteInit, readingHistoryInit
+  themePresetsInit, themeScheduleInit, pwaInit, codeBlockInit, commentsInit, morphIconsInit, readPositionInit, commandPaletteInit, readingHistoryInit, announcementInit
 ].forEach(fn => {
   try { tasks.push(Promise.resolve(fn())); } catch (e) { tasks.push(Promise.reject(e)); }
 });

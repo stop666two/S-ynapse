@@ -549,6 +549,10 @@
     "overlayAlpha": "92%",
     // 遮罩毛玻璃模糊（6px 清透；0 = 关闭模糊）
     "blurPx": "6px",
+    // 单环转圈器尺寸（spinnerStyle: 'ring' 时生效；2rem 适中）
+    "ringSize": "2rem",
+    // 站点名标题字号（showTitle: true 时生效；1rem 适中）
+    "titleSize": "1rem",
   },
 
 }

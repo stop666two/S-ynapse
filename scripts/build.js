@@ -358,6 +358,10 @@ function resolveFontSystem(theme) {
   theme.fontScale = (typeof fs.scale === 'number' && fs.scale > 0 && fs.scale <= 2) ? fs.scale : 1;
   theme.fontNumbersMono = fs.numbersMono !== false;
   const links = [FONT_LINKS[stack], FONT_LINKS[hs], FONT_LINKS[ds]].filter(Boolean);
+  const fontPreloads = [];
+  [stack, hs, ds].forEach(function (n) { if (n && VENDOR_FONTS[n]) fontPreloads.push('/assets/vendor/fonts/' + VENDOR_FONTS[n].file); });
+  theme.externalAssets = theme.externalAssets || { styles: [], scripts: [] };
+  theme.externalAssets.fontPreloads = fontPreloads.filter(function (v, i, a) { return a.indexOf(v) === i; });
   if (links.length) {
     theme.externalAssets = theme.externalAssets || { styles: [], scripts: [] };
     links.forEach(function (link) {

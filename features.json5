@@ -1956,7 +1956,19 @@
     // 遮罩文案（空 = 使用 ui-strings 的 loading.text；建议留空以便双语）
     text: '',
     // 启动期间为 <body> 设置 aria-busy（无障碍提示；推荐 true）
-    ariaBusy: true
+    ariaBusy: true,
+    // 是否显示转圈动画（false = 仅文字）
+    spinner: true,
+    // 转圈样式：'orbit'=三点轨道（默认） | 'ring'=单环旋转
+    spinnerStyle: 'orbit',
+    // 是否在动画上方显示站点名标题（取页面标题栏的站点名）
+    showTitle: false,
+    // 转圈主色（空 = 跟随主题次要色 var(--color-s)；可填任意 CSS 颜色）
+    overlayColor: '',
+    // 淡出时长(ms)（收尾动画；推荐 300-500）
+    fadeMs: 380,
+    // 遮罩层级（应高于导航 1000 与公告；推荐 2500-3500）
+    zIndex: 3000
   },
 
   // ---------------------------------------------------------------------------
@@ -1970,7 +1982,15 @@
     // 首次交互（点击/按键/触摸/滚轮）立即唤醒后续批次（推荐 true，保 INP）
     interactionWake: true,
     // 控制台输出启动时间线（[boot] 前缀；排查性能时开，生产建议 false）
-    log: false
+    log: false,
+    // 每批时间片上限(ms)：一批内连续执行模块的预算（推荐 30-50）
+    budgetMs: 40,
+    // 重模块启动时机：'idle'=空闲即启（默认） | 'interaction'=等首次交互或兜底 | 'immediate'=不等待
+    heavyMode: 'idle',
+    // 无 requestIdleCallback 时的回退间隔(ms)（推荐 80-200）
+    idleFallbackMs: 120,
+    // 唤醒后续批次的交互事件名列表（默认四件套；可增删，如 'scroll'）
+    interactionEvents: ['pointerdown', 'keydown', 'touchstart', 'wheel']
   },
 
   // ---------------------------------------------------------------------------
@@ -1995,7 +2015,13 @@
       // 适配方式：'cover' 裁切填充（推荐）| 'contain' 完整显示（留白）| 'fill' 拉伸（不推荐）
       fit: 'cover',
       // 裁切焦点：'center'|'top'|'bottom'|'left'|'right' 或自定义 'x% y%'（如 '50% 30%' 偏上）
-      position: 'center'
+      position: 'center',
+      // 封面最大高度（vh）：0 = 不限制（长图建议 40-60）
+      maxHeightVh: 0,
+      // 封面宽高比（空 = 用模板默认 16/10；如 '16/9'、'21/9'）
+      aspect: '',
+      // 是否把 fit/position 同时应用到列表卡片封面（false = 仅文章头图）
+      applyToCards: true
     },
     // 画廊（/gallery/ 图库页与文章内图库）
     gallery: {
@@ -2007,7 +2033,11 @@
     // 灯箱（点击大图）
     lightbox: {
       // 'contain' 适配屏幕（推荐）| 'actual' 原始尺寸（超出可平移查看）
-      fit: 'contain'
+      fit: 'contain',
+      // 灯箱图最大宽（vw 百分比；推荐 85-95）
+      maxWidthPct: 92,
+      // 灯箱图最大高（vh；推荐 75-90）
+      maxHeightVh: 82
     }
   },
 }

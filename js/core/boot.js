@@ -15,7 +15,7 @@ export function yieldToMain() {
 function whenIdle(timeoutMs) {
   return new Promise(function (resolve) {
     if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(function () { resolve(); }, { timeout: timeoutMs });
-    else setTimeout(resolve, Math.min(timeoutMs, 120));
+    else setTimeout(resolve, Math.min(timeoutMs, parseInt(B.idleFallbackMs, 10) || 120));
   });
 }
 
@@ -26,10 +26,24 @@ function createOverlay() {
   el.setAttribute('aria-live', 'polite');
   const inner = document.createElement('div');
   inner.className = 'boot-inner';
-  const orbit = document.createElement('span');
-  orbit.className = 'boot-orbit';
-  orbit.setAttribute('aria-hidden', 'true');
-  orbit.innerHTML = '<i></i><i></i><i></i>';
+  const spinnerOn = L.spinner !== false;
+  const spinnerStyle = L.spinnerStyle === 'ring' ? 'ring' : 'orbit';
+  if (L.showTitle) {
+    const siteTitle = document.documentElement.getAttribute('data-site-title') || '';
+    if (siteTitle) {
+      const titleEl = document.createElement('span');
+      titleEl.className = 'boot-title';
+      titleEl.textContent = siteTitle;
+      inner.appendChild(titleEl);
+    }
+  }
+  if (spinnerOn) {
+    const orbit = document.createElement('span');
+    orbit.className = spinnerStyle === 'ring' ? 'boot-ring' : 'boot-orbit';
+    orbit.setAttribute('aria-hidden', 'true');
+    orbit.innerHTML = spinnerStyle === 'ring' ? '<i></i>' : '<i></i><i></i><i></i>';
+    inner.appendChild(orbit);
+  }
   const text = document.createElement('span');
   text.className = 'boot-text';
   let label = L.text || '';
@@ -38,7 +52,6 @@ function createOverlay() {
     label = S.loading || 'Loading…';
   }
   text.textContent = label;
-  inner.appendChild(orbit);
   inner.appendChild(text);
   el.appendChild(inner);
   document.body.appendChild(el);
@@ -61,12 +74,14 @@ export function boot(queues) {
     const minShow = parseInt(L.minShowMs, 10);
     const minMs = isNaN(minShow) ? 250 : Math.max(0, minShow);
     const wait = Math.max(0, minMs - (performance.now() - shownAt));
+    const f = parseInt(L.fadeMs, 10);
+    const fadeMs = isNaN(f) ? 380 : Math.max(0, f);
     const el = overlay;
     overlay = null;
     setTimeout(function () {
       el.style.animation = 'none';
       el.classList.add('out');
-      setTimeout(function () { el.remove(); stats.overlayRemovedAt = performance.now(); }, 420);
+      setTimeout(function () { el.remove(); stats.overlayRemovedAt = performance.now(); }, fadeMs);
       log('overlay hidden');
     }, wait);
   }
@@ -104,7 +119,8 @@ export function boot(queues) {
     const wake = function () {
       if (resolveAccel) { const r = resolveAccel; resolveAccel = null; log('interaction wake'); r(); }
     };
-    ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(function (ev) {
+    const wakes = (Array.isArray(B.interactionEvents) && B.interactionEvents.length) ? B.interactionEvents : ['pointerdown', 'keydown', 'touchstart', 'wheel'];
+    wakes.forEach(function (ev) {
       window.addEventListener(ev, wake, { once: true, passive: true, capture: true });
     });
   }
@@ -119,7 +135,9 @@ export function boot(queues) {
     runQueues();
   });
 
-  const budget = B.enabled === false ? Infinity : 40;
+  const budget = B.enabled === false ? Infinity : (parseInt(B.budgetMs, 10) || 40);
+  stats.budgetMs = budget === Infinity ? 'off' : budget;
+  stats.heavyMode = B.heavyMode || 'idle';
   async function runQueue(list) {
     while (list.length) {
       const t = performance.now();
@@ -136,6 +154,9 @@ export function boot(queues) {
       await runQueue(idleQ);
       stats.idleEnd = performance.now();
       log('idle queue done');
+      const heavyMode = B.heavyMode || 'idle';
+      if (heavyMode === 'interaction') await Promise.race([whenIdle(parseInt(B.idleTimeoutMs, 10) || 800), accel]);
+      else if (heavyMode === 'idle') await whenIdle(parseInt(B.idleTimeoutMs, 10) || 800);
       await runQueue(heavyQ);
       stats.heavyEnd = performance.now();
       log('all queues done');

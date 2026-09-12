@@ -417,9 +417,9 @@ const DEFAULT_FEATURES = {
     letterSpacing: '0.02em', template: 'aurora', palette: 'theme', showCategory: true
   },
   guards: { enabled: true, preset: 'soft', contextMenu: true, copyGuard: true, selectionGuard: true, hotkeyGuard: true, watermark: true, devtoolsDetect: true, consoleGuard: true, privacyCurtain: true, tamperWatch: true, accessGate: true },
-  loading: { enabled: true, delayMs: 120, minShowMs: 250, maxShowMs: 2000, reducedMotion: 'skip', text: '', ariaBusy: true },
-  boot: { enabled: true, idleTimeoutMs: 800, interactionWake: true, log: false },
-  imageFit: { enabled: true, content: { upscale: 'never', cap: 1.5, maxHeightVh: 0, align: 'center' }, cover: { fit: 'cover', position: 'center' }, gallery: { stretch: false, maxHeightPx: 0 }, lightbox: { fit: 'contain' } }
+  loading: { enabled: true, delayMs: 120, minShowMs: 250, maxShowMs: 2000, reducedMotion: 'skip', text: '', ariaBusy: true, spinner: true, spinnerStyle: 'orbit', showTitle: false, overlayColor: '', fadeMs: 380, zIndex: 3000 },
+  boot: { enabled: true, idleTimeoutMs: 800, interactionWake: true, log: false, budgetMs: 40, heavyMode: 'idle', idleFallbackMs: 120, interactionEvents: ['pointerdown', 'keydown', 'touchstart', 'wheel'] },
+  imageFit: { enabled: true, content: { upscale: 'never', cap: 1.5, maxHeightVh: 0, align: 'center' }, cover: { fit: 'cover', position: 'center', maxHeightVh: 0, aspect: '', applyToCards: true }, gallery: { stretch: false, maxHeightPx: 0 }, lightbox: { fit: 'contain', maxWidthPct: 92, maxHeightVh: 82 } }
 };
 
 const FEATURE_MODULES = Object.keys(DEFAULT_FEATURES);
@@ -453,7 +453,8 @@ const ENUM_FIELDS = {
   ogImageStyle: { template: ['aurora', 'mesh', 'grid', 'paper', 'duotone'], palette: ['theme', 'hash'] },
   announcement: { tone: ['accent', 'solid', 'minimal'] },
   guards: { preset: ['off', 'soft', 'strict'] },
-  loading: { reducedMotion: ['skip', 'static'] },
+  loading: { reducedMotion: ['skip', 'static'], spinnerStyle: ['orbit', 'ring'] },
+  boot: { heavyMode: ['idle', 'interaction', 'immediate'] },
   imageFit: { 'content.upscale': ['never', 'cap', 'full'], 'content.align': ['center', 'left'], 'cover.fit': ['cover', 'contain', 'fill'], 'lightbox.fit': ['contain', 'actual'] }
 };
 // Numeric fields computed per module via typeof === 'number' check. All non-

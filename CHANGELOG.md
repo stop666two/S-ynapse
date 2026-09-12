@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **pageTransition 模块**:页面切换过渡——`features.pageTransition`(enabled/type/durationMs/outDurationMs/respectReducedMotion/excludeSelector);内链点击淡出 → 导航 → 新页入场(slide/fade 两型);外链/新窗口/hash/下载链接与 `[data-no-transition]` 元素不拦截 — `templates/layout.ejs` + `features.json5`
 - **pwa 模块**:PWA 运行时——`features.pwa`(enabled/registerSW/updatePrompt/offlineNotice);注册 service worker、SW 更新 toast 提示、离线/恢复 toast 提示(复用统一 toast);新增 `ui-strings` pwa 双语文案 — `templates/layout.ejs` + `ui-strings.json5` + `features.json5`
 - **ESM 模块化架构**:`templates/layout.ejs` 内联脚本(~150KB/40 个 IIFE)迁移至 `js/core/`(入口+共享运行时)与 `js/domains/`(28 个按功能域拆分的 ESM 模块);构建复制到 `dist/assets/js/`,`<script type="module">` 动态加载;新增 `window.__APP_READY__` 就绪标志;保留 theme 引导等必要同步内联 — `js/` + `scripts/build.js` + `templates/layout.ejs`
+- **tuning.json5 UI 微调参数层**:新增独立配置文件(29 分类/216 项,逐项中文注释),构建注入为 `:root` CSS 变量(`--{分类}-{参数}`);86 项已直接绑定 CSS 规则(改 tuning 即生效,优先于 theme/features 默认值),值全部对齐现有视觉;其余为 features 重叠项或保留项 — `tuning.json5` + `templates/layout.ejs`
+- **配置扩展接线(71 项)**:`site.performance`(15 项:preconnect/preload 字体/图片 decoding+sizes/脚本加载策略/minify 回退/构建报告)、`sidebar.options`(10 项)、`footer.options`(8 项)、`navigation.navbarOptions`(9 项)、`theme.appearance`(12 项:选区/滚动条/焦点环/代码块/引用/表格/分隔线/图注)、`security.hardening`(8 项:HSTS/Referrer-Policy/Permissions-Policy/XSS/CORS)全部接线生效 — `templates/layout.ejs` + `scripts/build.js`
 
 ### Changed
 
@@ -34,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`sanitizeHtml` 剥离 `decoding` 属性**:性能配置注入的 `img decoding=async` 被净化白名单丢弃;白名单补 `decoding` 并附回归测试 — `scripts/lib/utils.js` + `scripts/build.test.js`
 - **TOC 滚动高亮(scrollspy)失效**:`templates/layout.ejs` 中 tocScrollSpy IIFE 结尾 `})})});` 缺少 IIFE 调用括号 `()`,导致函数只定义从未调用、进度线与当前章节高亮永不生效;修复为 `})})})();`
 - **RSS 重复生成**:移除 build.js 中第二个无语言循环的旧版 `generateRSS`,避免覆盖语言版 feed
 - **根路径 404**:`/search-index.json`、`/manifest.json` 等根别名路径由 500 修复为 302 重定向至语言版本

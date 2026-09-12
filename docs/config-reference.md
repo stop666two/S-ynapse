@@ -551,11 +551,11 @@ sitemap: {
 
 独立 UI 参数文件(29 分类 / 216 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
-**优先级语义**:已绑定的参数直接写进 CSS 规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);与 `features.json5` 重叠的行为类参数(如 toast.durationMs、comments.loadDelayMs)仍由 features 管理;少数纯行为/无 CSS 目标的参数(如 search.debounceMs、radius.image)已注入变量作为保留项,等待对应功能接入。
+**优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(search/toc/tts/dailyQuote/readingPanel)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 完全重叠的项(如 toast.position、archive.dateFormat、gallery.captionShow)由原配置管理;约 30 项当前无 CSS 目标/待接入的保留项(如 comments.*、tags.cloudMinSize、pagination.maxVisible、radius.image)变量已注入,等待对应功能实现。
 
 **分类(29)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / footer / header / sidebar / pagination / heatmap / stats / toast / lightbox / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / gallery / tags / archive / series / backToTop。
 
-**已绑定示例(86 项)**:`--hero-maxWidth`(.hero 宽度)、`--layout-tabletBreakpoint`/`--layout-mobileBreakpoint`/`--layout-tocHideBreakpoint`(媒体查询断点 1024/768/900)、`--radius-default/large/button/avatar`(全局圆角定义层)、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--hero-actionsGap/tagGap/dateSize/paddingTop/paddingBottom` 等。
+**已绑定示例(94 项 CSS + 15 项行为)**:`--hero-maxWidth`、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`;行为侧:search 历史/热词/去抖/结果上限/空文案、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进。
 
 **注意**:绑定值均已对齐现有视觉(如 toast.radius=999px 对应胶囊形),修改前建议先在浏览器 DevTools 中试值。
 

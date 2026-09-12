@@ -2417,10 +2417,12 @@ function copyJsAssets() {
 // copyVendorAssets — 本地化第三方前端资产（Prism / Mermaid / KaTeX / 字体）。
 // 源：node_modules（随项目安装）；产物：dist/assets/vendor/**（同源加载，CSP 'self' 即可，不再依赖外部 CDN）。
 const PRISM_LANGS = ['bash', 'diff', 'json', 'python', 'typescript', 'yaml', 'sql', 'markdown'];
+// 变量字体（@fontsource-variable，OFL 开源）：单文件覆盖 100–900 字重，体积更小、字重过渡更顺滑。
+// 仅取 latin 子集（中文由系统字体链回退），详见 copyVendorAssets 中的 @font-face 生成。
 const VENDOR_FONTS = {
-  inter: { family: 'Inter', weights: [400, 500, 600, 700] },
-  sora: { family: 'Sora', weights: [400, 500, 600, 700] },
-  manrope: { family: 'Manrope', weights: [400, 500, 600, 700, 800] }
+  inter: { family: 'Inter', pkg: '@fontsource-variable/inter', file: 'inter-latin-wght-normal.woff2' },
+  sora: { family: 'Sora', pkg: '@fontsource-variable/sora', file: 'sora-latin-wght-normal.woff2' },
+  manrope: { family: 'Manrope', pkg: '@fontsource-variable/manrope', file: 'manrope-latin-wght-normal.woff2' }
 };
 const NODE_MODULES = path.join(ROOT, 'node_modules');
 
@@ -2463,13 +2465,13 @@ function copyVendorAssets(config) {
   Object.keys(VENDOR_FONTS).forEach(function (name) {
     const cfg = VENDOR_FONTS[name];
     let css = '';
-    cfg.weights.forEach(function (w) {
-      const file = name + '-latin-' + w + '-normal.woff2';
-      const src = path.join(NODE_MODULES, '@fontsource', name, 'files', file);
-      if (!fs.existsSync(src)) return;
-      fs.copyFileSync(src, path.join(FONTS, file));
-      css += '@font-face{font-family:\'' + cfg.family + '\';font-style:normal;font-weight:' + w + ';font-display:' + fontDisplay + ';src:url(\'./' + file + '\') format(\'woff2\')}\n';
-    });
+    const src = path.join(NODE_MODULES, cfg.pkg, 'files', cfg.file);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(FONTS, cfg.file));
+      css = '@font-face{font-family:\'' + cfg.family + '\';font-style:normal;font-weight:100 900;font-display:' + fontDisplay + ';src:url(\'./' + cfg.file + '\') format(\'woff2-variations\')}\n';
+    } else {
+      console.warn('  [WARN] variable font file missing: ' + cfg.pkg + '/files/' + cfg.file);
+    }
     fs.writeFileSync(path.join(FONTS, name + '.css'), css);
   });
   console.log('  Copied vendor assets to /assets/vendor/ (prism/mermaid/katex/fonts)');

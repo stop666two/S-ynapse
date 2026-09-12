@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **变量字体（A7）**：Inter/Sora/Manrope 改用 `@fontsource-variable` 单文件（100–900 字重插值，OFL 开源），仅 latin 子集 vendor；首屏字体请求从 ~15 个静态 woff2 降至 3 个，字重过渡更顺滑 — `scripts/build.js` + `package.json`
 - **无缝切页（原生两件套）**：跨文档 `@view-transition` 过渡动画（fade/slide、可调时长、reduce-motion 轻量版、不支持浏览器自动回退旧淡出并抑制双重动画）+ Speculation Rules 预取/预渲染（prefetch/prerender/both、eagerness 档位、选择器与查询串排除）；导航栏新增闪电图标双开关（过渡动画 / 预取预渲染，localStorage 记忆、不支持自动置灰）；预渲染期间统计信标与 SW 注册经 `document.prerendering` 守门延后；CSP 增加 `'inline-speculation-rules'` — `js/domains/seamless-nav.js` + `templates/layout.ejs` + `security.json5` + `workers/security-worker.js` + `features.json5`
 - **morphicons 配置扩展**：`preload`(interaction/idle/immediate 加载策略)、`perIcon`(单图标弹簧覆盖,预设名或 `{stiffness,damping}`);`tuning.morphicons` 扩至 4 项(+轻量版弹簧 reducedStiffness/reducedDamping) — `features.json5` + `tuning.json5` + `js/domains/morphicons.js`
 - **图标变形动画(morphicons)**：状态切换类图标弹簧物理变形——主题 sun↔moon、复制 copy→check、收藏空心↔实心、朗读扬声器↔停止、移动端汉堡↔X；本地 vendor 懒加载(首次悬停/触摸/聚焦才下载,~7.5KB gzip)、尊重系统 reduce-motion、`tuning.morphicons` 可调弹簧刚度/阻尼、逐图标开关(`features.morphIcons.icons.*`)、关闭即完全回退静态实现 — `js/domains/morphicons.js` + `features.json5` + `tuning.json5` + `scripts/build.js`

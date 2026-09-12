@@ -159,6 +159,9 @@ const DEFAULT_FEATURES = {
   magazine: {
     enabled: true, dropCap: true, figureBleed: true, tableHover: true, headingNumbers: false
   },
+  perfBudget: {
+    enabled: true, htmlKb: 70, jsKb: 90, requests: 18, warnOnly: true
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true

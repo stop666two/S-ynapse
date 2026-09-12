@@ -11,6 +11,7 @@
     "init": "node scripts/init-project.js",
     "test": "node --test scripts/*.test.js",
     "verify:security": "node scripts/security-verify.js",
+    "audit:a11y": "node scripts/a11y-audit.js",
     "import": "node scripts/import.js",
     "build": "node scripts/build.js",
     "dev": "node scripts/build.js --watch --drafts",
@@ -40,6 +41,7 @@
     "terser": "5.49.0"
   },
   "devDependencies": {
+    "axe-core": "4.10.2",
     "puppeteer-core": "24.16.0",
     "wrangler": "4.129.0"
   }

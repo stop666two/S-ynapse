@@ -55,6 +55,7 @@ const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
 const { DEFAULT_FEATURES, validateFeatures } = require('./lib/features-schema');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset } = require('./lib/theme-presets');
 const { formatConfigError } = require('./lib/config-error');
+const { evaluatePerfBudget, gzipSize, formatPerfBudget } = require('./lib/perf-budget');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -2087,6 +2088,53 @@ function generateSearchIndex(config, articles) {
   }
 }
 
+function collectBudgetStats() {
+  const htmlFiles = [];
+  (function walk(dir) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (err) { return; }
+    for (const entry of entries) {
+      if (entry.isDirectory()) walk(path.join(dir, entry.name));
+      else if (entry.name === 'index.html') htmlFiles.push(path.join(dir, entry.name));
+    }
+  })(DIST_DIR);
+  let htmlKb = 0;
+  let requests = 0;
+  for (const file of htmlFiles) {
+    const raw = fs.readFileSync(file);
+    const kb = gzipSize(raw) / 1024;
+    if (kb > htmlKb) htmlKb = kb;
+    const html = raw.toString('utf-8');
+    const req = (html.match(/<script[^>]*\ssrc=/gi) || []).length
+      + (html.match(/<link[^>]*rel=["']?stylesheet/gi) || []).length
+      + (html.match(/<link[^>]*rel=["']?modulepreload/gi) || []).length;
+    if (req > requests) requests = req;
+  }
+  let jsBytes = 0;
+  (function walkJs(dir) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (err) { return; }
+    for (const entry of entries) {
+      const p = path.join(dir, entry.name);
+      if (entry.isDirectory()) walkJs(p);
+      else if (entry.name.endsWith('.js')) jsBytes += gzipSize(fs.readFileSync(p));
+    }
+  })(path.join(DIST_DIR, 'assets', 'js'));
+  return { htmlKb, jsKb: jsBytes / 1024, requests, pages: htmlFiles.length };
+}
+
+function checkPerfBudget(config) {
+  const budget = (config.features && config.features.perfBudget) || {};
+  if (budget.enabled === false) return;
+  const stats = collectBudgetStats();
+  const report = evaluatePerfBudget(stats, budget);
+  console.log('\n' + formatPerfBudget(report, budget.warnOnly !== false));
+  console.log('  (统计页数: ' + stats.pages + '；JS 预算仅计 assets/js 应用代码，vendor 库按需懒加载不计入)');
+  if (!report.ok && budget.warnOnly === false) {
+    throw new Error('性能预算超限: ' + report.items.filter(item => !item.ok).map(item => item.label).join(', '));
+  }
+}
+
 // Generate an HTML build report page with stats: build time, article count, tag/category counts,
 // output size, and feature enablement status. Written to dist/build-report.html.
 function generateBuildReport(config, articles, tags, categories, customPages, elapsed, policyResult) {
@@ -2672,6 +2720,7 @@ async function build() {
     console.log(`  Output: dist/`);
     console.log(`========================================`);
     if (config.site.build.buildReport !== false) generateBuildReport(config, articles, tags, categories, customPages, elapsed, policyResult);
+    checkPerfBudget(config);
   } catch (err) {
     console.error(`\n[FATAL] Build failed: ${err.message}`);
     console.error(err.stack);

@@ -4,6 +4,7 @@ const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacin
 const { extractWorkerSecurity, renderWorkerConfig } = require('./generate-security-config');
 const { validateFeatures, DEFAULT_FEATURES, FEATURE_MODULES } = require('./lib/features-schema');
 const { formatConfigError } = require('./lib/config-error');
+const { evaluatePerfBudget } = require('./lib/perf-budget');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset, contrastRatio } = require('./lib/theme-presets');
 
 describe('formatConfigError', () => {
@@ -51,8 +52,8 @@ describe('features-schema validateFeatures', () => {
     const r = validateFeatures({ lightbox: 42 }, 'features');
     assert.ok(r.errors.some(e => e.includes('must be an object')));
   });
-  it('exposes 82 feature modules for configuration', () => {
-    assert.strictEqual(FEATURE_MODULES.length, 82);
+  it('exposes 83 feature modules for configuration', () => {
+    assert.strictEqual(FEATURE_MODULES.length, 83);
   });
 });
 
@@ -397,5 +398,19 @@ describe('theme-presets', () => {
     assert.ok(errs.some(e => e.includes('typo-blue') && e.includes('classic-blue')));
     assert.strictEqual(validateThemePreset({ preset: 'night-jet' }).length, 0);
     assert.ok(validateThemePreset({ presetOverrides: 42 }).length > 0);
+  });
+});
+
+describe('perf-budget', () => {
+  it('flags over-budget metrics and passes others', () => {
+    const report = evaluatePerfBudget({ htmlKb: 40, jsKb: 10, requests: 5 }, { htmlKb: 30 });
+    assert.strictEqual(report.ok, false);
+    assert.strictEqual(report.items.find(item => item.key === 'htmlKb').ok, false);
+    assert.strictEqual(report.items.find(item => item.key === 'jsKb').ok, true);
+  });
+  it('passes when all metrics are within budget', () => {
+    const report = evaluatePerfBudget({ htmlKb: 20, jsKb: 50, requests: 10 }, { htmlKb: 30, jsKb: 90, requests: 18 });
+    assert.strictEqual(report.ok, true);
+    assert.strictEqual(report.items.length, 3);
   });
 });

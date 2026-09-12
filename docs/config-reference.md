@@ -562,13 +562,13 @@ sitemap: {
 ```json
 { "enabled": true, "aliases": { "js": "JavaScript", "ts": "TypeScript" } }
 ```
-影响:标签页聚合、卡片标签显示。
+影响:标签页聚合、卡片标签显示。 匹配规则:先精确匹配键名,再按键名小写回退（键建议统一小写,值即最终展示名）。
 
 **friends.json5**: 友链。
 ```json
-{ "enabled": false, "title": "友情链接", "description": "", "applyNote": "", "friends": [ { "name": "示例", "url": "https://example.com", "description": "", "logo": "" } ] }
+{ "enabled": false, "title": "友情链接", "labels": { "zh": "友情链接", "en": "Friends" }, "description": "", "applyNote": "", "friends": [ { "name": "示例", "url": "https://example.com", "desc": "一句话简介", "logo": "" } ] }
 ```
-影响:自动注入导航「友链」、/links/ 页、侧栏 friends widget。
+影响:自动注入导航「友链」、/links/ 页、侧栏 friends widget。 友链项字段为 `{name,url,desc,logo}`（desc 不是 description）;labels 为多语言标题覆盖。
 
 ---
 

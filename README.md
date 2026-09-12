@@ -12,18 +12,18 @@
 
 | 文档 | 用途 |
 | --- | --- |
-| [配置参考](docs/config-reference.md) | 全部 11 个配置文件（site/theme/navigation/sidebar/footer/security/features/ui-strings/content-policy/tag-aliases/friends）的逐字段权威说明：每个配置项的含义、可填值、推荐值与默认值，以及值域校验、环境变量、重定向/友链/标签别名示例 |
+| [配置参考](docs/config-reference.md) | 全部 12 个配置文件（site/theme/tuning/navigation/sidebar/footer/security/features/ui-strings/content-policy/tag-aliases/friends）的逐字段权威说明：每个配置项的含义、可填值、推荐值与默认值，以及值域校验、环境变量、重定向/友链/标签别名示例 |
 | [变更日志](CHANGELOG.md) | 按版本号记录本项目的全部变更：安全修复、新增功能、配置项变化，遵循 Keep a Changelog 格式，每个条目注明涉及的源文件 |
 | [增量构建设计](docs/incremental-build-design.md) | 增量构建（`--watch`）的架构设计文档：哈希指纹缓存、按页面拆分构建、默认跳过未变化源的完整方案 |
 
 ## 特性
 
 **全配置驱动**
-- 11 个 JSON5 配置文件（支持注释），**1200+ 可配置项**，逐字段中文注释（含可填值/推荐值/禁用值）
-- `features.json5` 功能总控域：**54 个模块、440 个配置项**，每项功能均可开/关/微调
+- 12 个 JSON5 配置文件（支持注释），**1600+ 可配置项**（实测 1625 项），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- `features.json5` 功能总控域：**77 个模块、608 个配置项**，每项功能均可开/关/微调；`tuning.json5` UI 微调层（25 分类 / 164 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
-- 详细参考文档：`docs/config-reference.md`（9 章，逐字段权威参考）
+- 详细参考文档：`docs/config-reference.md`（10 章，逐字段权威参考）
 
 **内容创作**
 - Markdown 扩展：上标/下标（`X^2^` / `H~2~O`）、KaTeX 数学公式（`$`/`$$`）、Mermaid 图表、Wiki 双链（`[[标题]]`）、定义列表、任务列表
@@ -42,7 +42,7 @@
 - 阅读进度条（点击跳转 + 百分比提示）+ 返回顶部 + **阅读侧栏**（进度环 / 回目录 / 回顶）
 - TTS 朗读（倍速可调）、快捷键（`/` 搜索、`D` 主题、`J`/`K` 翻篇、`?` 帮助）
 - 关联推荐（同标签/同分类）、CJK 中英文自动加细空格
-- **代码主题切换器**（GitHub / Dark / Solarized / Django，文章内 Mac 窗栏样条）
+- **代码高亮体系**（本地 Prism + `theme.codeHighlight.palette` 浅色/暗色两套 token 配色，随明暗自动切换；文章内 Mac 窗栏样条）
 - **文章封面样式库**（渐变/条纹/圆点/气泡/网格，在线预览）
 
 **站内体系**
@@ -57,7 +57,7 @@
 **安全加固**
 - Markdown 内嵌 HTML 白名单消毒（XSS 防护，含 SVG 消毒）
 - 外部链接安全警告弹窗，白名单/黑名单双轨控制
-- CSP 内容安全策略自动生成，SRI 子资源完整性
+- CSP 内容安全策略自动生成（`security.json5` 单源同步 `_headers` 与 Worker 安全层）
 - HTTP 安全头（HSTS, X-Frame-Options, Permissions-Policy 等）
 - 速率限制 + 路径访问控制 + 维护模式（需 Workers，配置单源同步）
 - 内置 `npm run verify:security` 集成安全回归（真实构建注入恶意文章断言）
@@ -65,12 +65,12 @@
 **性能极致**
 - 全静态 HTML，全球 CDN 加速
 - HTML/CSS/JS 自动压缩（`@minify-html/node`），内容哈希缓存
-- 图片 WebP + AVIF + 多尺寸响应式；关键 CSS 内联；图片懒加载
+- 图片 WebP + AVIF + 多尺寸响应式；图片懒加载；本地 vendor 资产（Prism/Mermaid/KaTeX/字体）免 CDN
 
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html` 含详细统计（含内容策略拦截清单）
-- 单元测试：`npm test` 覆盖核心纯函数（67 项 / 17 组）
+- 单元测试：`npm test` 覆盖核心纯函数（68 项 / 17 组）
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -117,6 +117,7 @@ S-ynapse/
 ├── videos/            # 视频资源（content-policy 排除制过滤后复制）
 ├── assets/            # 素材文件（PDF/文档/压缩包/音频/字体，content-policy 白名单）
 ├── static/            # 静态文件（直接复制到输出）
+├── js/                # 前端 ESM 源码（core/ 入口与运行时 + domains/ 领域模块；构建复制到 dist/assets/js/）
 ├── templates/         # EJS 模板
 │   ├── layout.ejs     # 基础布局（CSS变量 + 暗黑模式 + 搜索 + 链接警告 + 灯箱）
 │   ├── index.ejs      # 首页（分页）
@@ -133,9 +134,12 @@ S-ynapse/
 │   └── 404.ejs        # 404 页
 ├── scripts/
 │   ├── build.js       # 构建脚本（14 步管线）
-│   ├── build.test.js  # 单元测试（67 项 / 17 组）
+│   ├── build.test.js  # 单元测试（68 项 / 17 组）
 │   ├── security-verify.js  # 安全集成验证（注入恶意文章→构建→语义断言）
 │   ├── import.js      # 内容导入 CLI（hexo/hugo/wordpress）
+│   ├── export.js      # 备份导出 CLI（配置 + 文章 + 媒体打包）
+│   ├── audit-media.js # 媒体审计（--json / --duplicates）
+│   ├── generate-og.js # 自动 OG 图生成（serve 模式跳过）
 │   ├── generate-security-config.js # 从 security.json5 生成 Worker 配置
 │   ├── generate-test-media.js      # 程序化生成测试图片
 │   ├── init-project.js# 项目初始化（自动配置 git hooks/gitignore/gitattributes）
@@ -143,6 +147,7 @@ S-ynapse/
 │       ├── utils.js           # 工具函数库（formatDate/safeSlug/stripHtml/CJK 空格等）
 │       ├── content-policy.js  # 三目录内容策略判定（白名单/黑名单/SVG 消毒）
 │       ├── features-schema.js # features 默认 schema 单一真源 + 校验
+│       ├── theme-presets.js   # 6 套主题预设定义与校验
 │       └── config-error.js    # JSON5 错误格式化（文件/行列/上下文/提示）
 ├── workers/           # Cloudflare Worker 安全层
 ├── .github/workflows/ # CI/CD 自动部署（含 AGENTS.md 检测 + npm audit 门禁）
@@ -150,8 +155,9 @@ S-ynapse/
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
 ├── site.json5          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
 ├── theme.json5         # 主题配置（颜色/字体/布局/文章页脚）
-├── features.json5     # 功能总控（54+ 模块/440+ 项，可开关/微调，可选文件）
+├── features.json5     # 功能总控（77 模块/608 项，可开关/微调，可选文件）
 ├── ui-strings.json5   # 界面文案词典（zh/en 双语词典，服务端 ui() + 运行时 __T()，可选）
+├── tuning.json5       # UI 微调参数层（25 分类/164 项，注入 CSS 变量；行为参数运行时读取，可选）
 ├── navigation.json5    # 导航配置
 ├── sidebar.json5       # 侧边栏配置（含 series/friends/stats/quote 组件）
 ├── footer.json5        # 页脚配置
@@ -177,8 +183,9 @@ S-ynapse/
 |------|------|------|
 | `site.json5` | 站点信息、SEO、RSS/JSON Feed、社交、构建开关 | ✅ |
 | `theme.json5` | 颜色（亮/暗）、字体、布局微调、文章页脚说明栏 | ✅ |
-| `features.json5` | 54 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、Giscus…） | 可选（缺失回退默认，功能保持） |
+| `features.json5` | 77 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、评论…） | 可选（缺失回退默认，功能保持） |
 | `ui-strings.json5` | 界面文案词典（zh/en 双语，i18n 切换的文案来源） | 可选（缺失回退内置文案） |
+| `tuning.json5` | UI 微调参数层（25 分类 / 164 项：排版/间距/圆角/动效/组件细节，注入 CSS 变量） | 可选 |
 | `navigation.json5` | 菜单、导航栏、社交顺序、搜索 | ✅ |
 | `sidebar.json5` | 侧栏组件序列（author/recent/tags/categories/archive/series/friends/stats/quote…） | ✅ |
 | `footer.json5` | 页脚列、版权、备案、社交、Powered-by | ✅ |
@@ -187,7 +194,7 @@ S-ynapse/
 | `tag-aliases.json5` | 标签别名归一（可选） | 可选 |
 | `friends.json5` | 友情链接（可选） | 可选 |
 
-> 📖 **完整逐字段参考**：`docs/config-reference.md`（9 章：每个配置项的类型、默认值、取值、校验行为）。
+> 📖 **完整逐字段参考**：`docs/config-reference.md`（10 章：每个配置项的类型、默认值、取值、校验行为）。
 
 ### site.json5 — 站点核心信息（节选）
 
@@ -241,7 +248,7 @@ S-ynapse/
     generateGallery: true,
     cjkSpacing: true,
     buildReport: true,
-    forceContentWidth: true,       // 内容区 1600px 居中
+    forceContentWidth: true,       // 无侧栏页面强制与有侧栏同宽
     ...
   }
 }
@@ -249,18 +256,17 @@ S-ynapse/
 
 ### features.json5 — 功能总控魔方
 
-`features.json5` 是批 2-4 所有新增交互的统一开关域，54 个模块、440 个配置项，全部带注释。几例：
+`features.json5` 是全部交互与内容功能的统一开关域：77 个模块、608 个配置项，逐项中文注释。几例：
 
 ```json5
 {
-  lightbox: { enabled: true, canNav: true, kbNav: true, esc: true, bdClose: true, swipe: true, preload: true, cntShow: true },
-  math:     { enabled: true, katexCss: "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css", strict: false },
-  readingProgress: { enabled: true, articleOnly: true, canJump: true, showDot: true, tipDisplayMs: 450 },
+  lightbox: { enabled: true, zoomEnabled: true, panEnabled: true, rotateEnabled: true, pinchEnabled: true, zoomStep: 0.25, minSize: 60, closeButton: true, keyboardNavigate: true },
+  math:     { enabled: true, version: "0.16.22", inlineDelimiters: ["$"], blockDelimiters: ["$$"], throwOnError: false },
+  readingProgress: { enabled: true, articleOnly: true, clickToJump: true, showDot: true, tipDisplayMs: 500 },
   shortcuts: { search: "/", toggleTheme: "d", nextPost: "j", prevPost: "k", help: "?" },
-  tts: { enabled: true, rate: 1.0, lang: "" },
+  tts: { enabled: true, rate: 0.5, pitch: 1, volume: 1, voiceBy: "lang" },
   share: { enabled: true, order: ["weibo", "qq", "wechat", "x", "facebook", "mail", "copy"] },
-  gallery: { enabled: true },
-  heatmap: { colorIntensity: [0.25, 0.45, 0.65, 1.0], showLegend: true },
+  heatmap: { enabled: true, levels: 5, scaling: "auto", showLegend: true },
   ...
 }
 ```
@@ -269,7 +275,7 @@ S-ynapse/
 - 缺失 `features.json5` 文件 → 完全回退内建默认（与旧版本行为一致），不报错
 - 未知模块名 → 构建警告（防拼写错误）；非法值（如枚举外取值）→ 构建终止并定位
 - `share.order` 等数组字段为**整体替换**语义（deepmerge 不会拼接），删掉某平台即从页面消失
-- 模块与页面绑定：`enabled: false` 时对应元素零残留（不渲染 + 不加载对应 CDN）
+- 模块与页面绑定：`enabled: false` 时对应元素零残留（不渲染 + 不加载对应资源；Prism/Mermaid/KaTeX/字体均为本地 vendor）
 
 ### security.json5 / content-policy.json5
 
@@ -336,7 +342,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 加载配置 | 11 个 JSON5 配置 + 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 54 模块结构校验 |
+| 1 | 加载配置 | 12 个 JSON5 配置（含 tuning.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 77 模块结构校验 |
 | 2 | 设置输出目录 | 清空 `dist/` 并创建子目录 |
 | 3 | 复制静态文件 | `static/` → `dist/` |
 | 3ᵇ | 内容策略 | 按 content-policy.json5 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
@@ -350,6 +356,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 | 10 | 安全文件 | `_headers`（CSP + HSTS + 安全头）、`robots.txt`、`_redirects`（配置重定向）、Worker 配置生成 |
 | 11 | 压缩 | 压缩 HTML（@minify-html）、CSS（CleanCSS）、JS（Terser） |
 | 12 | 缓存破坏 | MD5 内容哈希重命名文件，更新 HTML 引用 |
+| 12ᵇ | 前端资产 | `js/` ESM 模块 → `dist/assets/js/`；vendor（Prism/Mermaid/KaTeX/字体）→ `dist/assets/vendor/` |
 | 13 | PWA | manifest.json + Service Worker（启用时） |
 | 14 | 构建报告 | build-report.html（耗时/文章数/体积/功能状态/内容策略拦截清单） |
 
@@ -420,6 +427,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | 分享 | 文章底部 7 平台按钮（微信/复制=写剪贴板并提示） |
 | 打赏 | 文章底部按钮弹窗（二维码 / 外链，`site.reward` 配置） |
 | 汇总图库 | `/gallery/` 瀑布流，点击图片进灯箱 |
+| 收藏 | 卡片/文章星标按钮，localStorage 持久化，`/favorites/` 页管理 |
+| 每日一言 | 侧栏 quote 组件（内置语句按日期轮换） |
 
 ---
 
@@ -431,7 +440,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（67 项 / 17 组） |
+| `npm test` | 运行单元测试（68 项 / 17 组） |
 | `npm run verify:security` | 集成安全回归（注入恶意文章 → 真实构建 → 语义断言） |
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
@@ -443,7 +452,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 67 项 / 17 组，全部通过
+npm test            # 68 项 / 17 组，全部通过
 npm run verify:security   # 集成安全回归
 ```
 
@@ -457,12 +466,13 @@ npm run verify:security   # 集成安全回归
 | insertCjkSpacing | 4 | 中英文自动加空格（含纯中文/纯英文边界） |
 | applyCjkSpacingToHtml | 1 | HTML 安全的 CJK 空格 |
 | extractToc | 2 | 文章目录提取（含无标题页） |
-| sanitizeHtml | 8 | 白名单消毒（危险标签/事件属性/危险协议） |
+| sanitizeHtml | 10 | 白名单消毒（含 decoding 保留/危险标签/事件属性/危险协议） |
 | sanitizeHtml 媒体元素 | 4 | video/audio 保留与站内 src 限制 |
 | content-policy classifyFile | 5 | 三目录白名单/黑名单判定 |
 | sanitizeSvg | 3 | SVG 危险内容检测 |
 | escapeJsonForScript | 2 | 搜索索引嵌入 script 的安全序列化 |
 | features-schema validateFeatures | 7 | features 默认/校验/枚举/数组字段 |
+| theme-presets | 6 | 6 套主题预设校验（名称/形状/覆盖结构） |
 | formatConfigError | 2 | JSON5 错误格式化 |
 | generate-security-config | 6 | security.json5 → Worker 配置提取/渲染 |
 
@@ -481,6 +491,9 @@ npm run verify:security   # 集成安全回归
 | CSS 压缩 | clean-css 5 |
 | JS 压缩 | terser 5 |
 | RSS/JSON Feed | feed 4 |
+| 代码高亮 | Prism 1.29（本地 vendor，多语言按需拼接） |
+| 字体 | Inter / Sora / Manrope（@fontsource latin woff2，本地 vendor） |
+| 前端模块 | 原生 ESM（js/core + js/domains，无打包器） |
 | 分析 | Cloudflare Web Analytics |
 | 部署 | Cloudflare Pages / Workers |
 | CI/CD | GitHub Actions |

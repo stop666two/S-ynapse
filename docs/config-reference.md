@@ -174,6 +174,7 @@
 | `darkMode.default` | string | `system` | `light`/`dark`/`system` |
 | `darkMode.colors.*` | — | `{}` | 暗色覆盖色板 |
 | `fontFamily` / `fontFamilyMono` | string | `sans-serif`/`monospace` | 字体 |
+| `fontSystem.stack/displayStack/headingStack/scale` | string/number | `inter`/`sora`/`manrope`/`1` | 字体系统：正文族 / 展示层（h1·Logo）/ 次级标题（h2-h6·卡片·部件）族 / 全局缩放；中文字符自动回退 CJK 字体链 |
 | `fontSizeBase` / `lineHeight` | string/number | `16px`/`1.8` | 基础字号/行高 |
 | `headingFontWeight` | number | `700` | 标题字重 |
 | `letterSpacing` | string | `0.02em` | 字符间距 |

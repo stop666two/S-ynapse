@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **卡片与列表视觉(批次B)**:封面悬停缩放(`tuning.card.imageHoverScale`)、栅格间距/摘要行数接线、分类卡悬停分层阴影+上浮;修复卡片宽高比被固定值覆盖(`tuning.card.imageAspect` 现生效) — `tuning.json5` + `templates/layout.ejs`
 - **微交互(批次C)**:统一弹簧曲线(`tuning.motion.transitionTiming` → `--te`)、按钮按压缩放(`buttonPressScale`,13 类按钮/开关/分页/移动导航)、滚动渐入错峰(`staggerDelayMs`,批内递增延迟、上限 8 级);`revealThreshold/revealOnce` 接线生效;motion.js 数值统一 tuning 优先/features 回退 — `js/domains/motion.js` + `tuning.json5` + `theme.json` + `features.json5`
 - **阅读页视觉(批次D)**:引用块主色渐变底纹(`reading.quoteTint`)、正文图片圆角阴影+悬停放大(`reading.imageHoverScale`)、h2 前置主色竖线(`h2AccentWidth/Height/Color`)、阅读模式宽度(`readingMaxWidth`);进度条全参数接线(`barHeight/useGradient/gradientStart/gradientEnd/dotSize/showDot`) — `templates/layout.ejs` + `tuning.json5`
+- **字体分层（Sora + Manrope）**:`theme.fontSystem.displayStack='sora'`（h1/hero/Logo 展示层）与 `headingStack='manrope'`（h2-h6/卡片/部件标题）；`resolveFontSystem` 支持任意 FONT_STACKS 枚举并自动加载对应 Google Fonts；统一中英文回退链（PingFang/HarmonyOS/雅黑 UI） — `scripts/build.js` + `theme.json` + `templates/layout.ejs`
+- **首页粒子增强**:`features.background.particles` count 55→72 / opacity 0.6→0.7 — `features.json5`
 
 ### Changed
 
@@ -52,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **表格斑马纹硬编码**:改接 `theme.appearance.tableStripeBg`(`--ap-str`,原为双模式硬编码 rgba,且该配置项此前完全未生效) — `templates/layout.ejs`
 - **阅读进度条梯度死键**:`features.readingProgress.progressColor` 不存在导致永远回退;改用 `gradientStart/gradientEnd`(与文档一致),删除 tuning 重复键 `reading.progressColor`;进度圆点 `dotSize/showDot` 接线(原固定 10px 常显) — `templates/layout.ejs` + `tuning.json5`
 - **统一过渡曲线死配置**:`--te` 原为硬编码曲线,`theme.animation.transitionTiming` 与 `features.motion.ease` 均未生效;统一为 tuning → theme 两级读取并删除重复键 — `templates/layout.ejs` + `theme.json` + `features.json5` + `scripts/lib/features-schema.js`
+- **侧栏独立滚动条**:`.sidebar` 的 sticky/max-height/overflow 组合导致主页右侧出现第二条滚动条(内容 2179px vs 视口 804px);恢复自然流式布局,全页仅保留主滚动条 — `templates/layout.ejs`
+- **Mermaid 图表旁文字外泄**:图表块被执行顺序绕过跳过逻辑而误加代码窗口栏(含 "mermaid" 语言标签),`data-language` 亦触发 `pre::before` 标签;代码块模块增加前置三重识别(`data-language`/`div.mermaid`/`code.language-mermaid`),Mermaid 转换时移除 `data-language` 并清理误加窗口栏 — `js/domains/code-block.js` + `templates/layout.ejs`
 - **TOC 滚动高亮(scrollspy)失效**:`templates/layout.ejs` 中 tocScrollSpy IIFE 结尾 `})})});` 缺少 IIFE 调用括号 `()`,导致函数只定义从未调用、进度线与当前章节高亮永不生效;修复为 `})})})();`
 - **RSS 重复生成**:移除 build.js 中第二个无语言循环的旧版 `generateRSS`,避免覆盖语言版 feed
 - **根路径 404**:`/search-index.json`、`/manifest.json` 等根别名路径由 500 修复为 302 重定向至语言版本

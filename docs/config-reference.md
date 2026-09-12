@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(81 模块)](#3-featuresjson5--功能总控81-模块)
+3. [features.json5 — 功能总控(82 模块)](#3-featuresjson5--功能总控82-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -57,6 +57,9 @@
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
 | `seo.metaKeywords` | array | `[]` | meta keywords |
+| `seo.ogImageAlt` | boolean | `true` | 为 `og:image` 输出 alt 文本(文章页=标题) |
+| `seo.articleTimes` | boolean | `true` | 文章页输出 `article:published_time`/`article:modified_time`(modified 仅当 frontmatter 提供) |
+| `seo.twitterLabels` | boolean | `true` | 分享卡片读数标签(`twitter:label1/2`=阅读时长/字数,仅文章页) |
 | `seo.metaRobots` | string | `index, follow` | robots meta |
 | `seo.ogImage` | string | `''` | 全局 OG 图(留空则文章自动生成) |
 | `seo.ogType` | string | `website` | og:type |
@@ -227,7 +230,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(81 模块)
+## 3. features.json5 — 功能总控(82 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -480,6 +483,14 @@ sitemap: {
 
 `enabled true` / `coverOverlay true`(封面底部渐变遮罩) / `categoryChip true`(左下分类色标;按分类名哈希取色经 `--cat-h` 驱动,同分类同色) / `readTimeBadge true`(右上阅读时长徽章) / `hoverShine true`(悬停光泽扫过,自动尊重 reduced-motion)。作用于首页与标签页文章卡片 — `templates/index.ejs` + `templates/tag.ejs` + `templates/layout.ejs`。
 
+### 3.65 magazine — 杂志排版
+
+`enabled true` / `dropCap true`(首段首字下沉:衬线展示字体 + 主题色,中英文均生效) / `figureBleed true`(正文独立成段的图片向两侧出血,宽屏超出正文栏、≤1100px 自动回退;基于 `:has()` 的渐进增强) / `tableHover true`(表格行悬停高亮,主色混合) / `headingNumbers false`(h2 自动编号 01/02…,默认关以免与手写序号重复)。视觉值经 `tuning.magazine` 6 项可调(dropCapSize/dropCapColor/dropCapWeight/bleedWidth/tableHoverMix/headingNumberColor) — `templates/post.ejs` + `templates/layout.ejs`。
+
+### 3.66 schemaRich — 结构化数据增强
+
+`enabled true` / `breadcrumbs true` / `dateModified true` / `blogHomepage true` / `authorUrl true`(Article 增加作者主页 URL) / `wordCount true`(正文字数) / `timeRequired true`(预计阅读时长 `PT{n}M`) / `keywords true`(标签拼接为 keywords) / `articleSection true`(首个分类) / `image true`(指向生成的 OG 图)。开关关闭或数据缺失时对应字段自动省略 — `templates/layout.ejs`。
+
 ---
 
 ## 4. navigation.json5 — 导航
@@ -593,7 +604,7 @@ sitemap: {
 
 ## 10. tuning.json5 — UI 微调参数层
 
-独立 UI 参数文件(27 分类 / 179 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
+独立 UI 参数文件(28 分类 / 185 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
 **优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已在「tuning 收尾」中全部清理(单一入口归各自模块配置);10 项原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
 

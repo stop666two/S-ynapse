@@ -1692,6 +1692,10 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
         title: article.title,
         prevArticle: prev && !prev.draft ? { title: prev.title, url: prev.url, featuredImage: prev.featuredImage || '' } : null,
         nextArticle: next && !next.draft ? { title: next.title, url: next.url, featuredImage: next.featuredImage || '' } : null,
+        altArticle: (() => {
+          const alt = articles.find(a => a.lang !== article.lang && a.slug === article.slug && !a.draft);
+          return alt ? { url: alt.url, lang: alt.lang, title: alt.title } : null;
+        })(),
         currentUrl: article.url,
         currentPage: 'post'
       };

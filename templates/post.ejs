@@ -9,7 +9,8 @@
 %>
 <article class="post-article">
   <header class="post-header">
-    <h1 class="post-title" id="<%= article.slug %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> style="view-transition-name:title-<%= article.slug %>"<% } %>><% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span> <% } %><%= article.title %></h1>
+    <h1 class="post-title" id="<%= article.slug %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> style="view-transition-name:title-<%= article.slug %>"<% } %>><% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span>       <% } %><%= article.title %></h1>
+    <% if (features.i18n && features.i18n.translationNotice !== false && typeof altArticle !== 'undefined' && altArticle) { %><div class="translation-notice"><a href="<%= altArticle.url %>"><%= ui('post.translationNotice','本文也有 {lang} 版本').replace('{lang}', altArticle.lang === 'en' ? 'English' : '中文') %></a></div><% } %>
     <div class="post-meta">
       <% if (article.date) { %>
       <span><%= article.formattedDate || article.date %></span>

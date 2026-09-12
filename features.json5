@@ -514,7 +514,9 @@
     // 是否包含自身语言条目(默认 zh 与 en 均输出)。
     includeSelf: true,
     // 是否同时输出 canonical 链接。
-    canonical: true
+    canonical: true,
+    // 是否输出 x-default 替代声明(指向默认语言版本;SEO 推荐开启)。
+    xDefault: true
   },
 
   // ---------------------------------------------------------------------------
@@ -1524,7 +1526,9 @@
     // 支持语言。
     languages: ['zh', 'en'],
     // 切换按钮是否置于导航。
-    navToggle: true
+    navToggle: true,
+    // 文章页显示翻译互链提示(若另一语言存在同 slug 文章;关闭则隐藏提示)。
+    translationNotice: true
   },
   // ---------------------------------------------------------------------------
   pagefind: {

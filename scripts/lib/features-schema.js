@@ -109,7 +109,7 @@ const DEFAULT_FEATURES = {
     defaultPattern: 'gradient', preview: true, preferImage: true
   },
   i18n: {
-    enabled: true, defaultLanguage: 'zh', languages: ['zh', 'en'], navToggle: true
+    enabled: true, defaultLanguage: 'zh', languages: ['zh', 'en'], navToggle: true, translationNotice: true
   },
   pagefind: {
     enabled: true, indexPath: '/pagefind', integrate: true
@@ -201,7 +201,7 @@ const DEFAULT_FEATURES = {
     enabled: false, engines: ['google'], onlyProduction: true, timeoutMs: 5000
   },
   hreflang: {
-    enabled: true, includeSelf: true, canonical: true
+    enabled: true, includeSelf: true, canonical: true, xDefault: true
   },
   schemaRich: {
     enabled: true, breadcrumbs: true, dateModified: true, blogHomepage: true,

@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(84 模块)](#3-featuresjson5--功能总控84-模块)
+3. [features.json5 — 功能总控(85 模块)](#3-featuresjson5--功能总控85-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -230,7 +230,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(84 模块)
+## 3. features.json5 — 功能总控(85 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -498,6 +498,10 @@ sitemap: {
 ### 3.68 scrollIndicator — 滚动进度条
 
 `enabled true` / `height '2px'`(任意 CSS 长度) / `gradient true`(`true`=主题次级色→强调色渐变;`false`=单色) / `respectReducedMotion true`(系统减少动态效果时隐藏)。顶部固定 hairline 进度条,基于原生 scroll-driven 动画(`animation-timeline: scroll(root)`)——零 JS、零主线程开销;不支持该特性的浏览器自动不显示(渐进增强) — `templates/layout.ejs`。
+
+### 3.69 commandPalette — 命令面板
+
+`enabled true` / `hotkey 'k'`(Ctrl/Cmd+组合键,单个小写字母) / `includeNavigation true`(页面导航项) / `includeActions true`(切换主题/回到顶部/打开搜索/我的收藏) / `includeSearch true`(首次打开时懒加载 search-index.json) / `maxResults 10`(结果上限) / `autoFocus true`。快捷键呼出居中面板,支持键盘上下选择、Enter 执行、Esc 关闭,中文输入法(IME)组合期不误触;样式由 `tuning.commandPalette`(`width`/`topOffset`/`backdropMix`)微调 — `js/domains/command-palette.js`。
 
 ---
 

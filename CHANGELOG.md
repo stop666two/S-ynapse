@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **命令面板（B3）**：`features.commandPalette`——Ctrl/Cmd+K 呼出，整合页面导航、快捷操作（切换主题/回到顶部/打开搜索/我的收藏）与文章搜索（懒加载索引）；原生 `<dialog>`（焦点圈定/top-layer/Esc 关闭）、键盘上下选择 + Enter 执行、IME 组合期防误触；`tuning.commandPalette` 可调宽度/位置/背板 — `js/domains/command-palette.js`
 - **滚动进度条（A4）**：`features.scrollIndicator`（`height`/`gradient`/`respectReducedMotion`）——顶部固定 hairline 进度条，基于原生 scroll-driven 动画（`animation-timeline: scroll(root)`），零 JS、零主线程开销；不支持自动隐藏（渐进增强） — `templates/layout.ejs`
 - **共享元素过渡（A3）**：`viewTransition.shared`——列表卡片封面/标题与文章页封面/标题通过 `view-transition-name` 形变衔接（首页/标签页 → 文章）；顺带修复文章页封面 `class` 属性跨行断裂导致 `.post-featured-image` 样式从未生效的历史问题 — `templates/index.ejs` + `templates/tag.ejs` + `templates/post.ejs`
 - **性能预算门禁（D4）**：`features.perfBudget`（`htmlKb`/`jsKb`/`requests`/`warnOnly`）——构建收尾统计单页 HTML gzip 最大值、应用 JS 全量 gzip 合计与单页静态请求数，输出 `[budget]` 报告；`warnOnly:false` 超限即终止构建（严格门禁，实测 exit 1） — `scripts/lib/perf-budget.js` + `scripts/build.js`

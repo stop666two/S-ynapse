@@ -188,7 +188,7 @@ const DEFAULT_FEATURES = {
     enabled: true, grain: true, glow: true
   },
   announcement: {
-    enabled: true, text: '', textEn: '', url: '', dismissible: true
+    enabled: true, text: '', textEn: '', url: '', items: [], rotateMs: 6000, tone: 'accent', dismissible: true
   },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
@@ -445,7 +445,8 @@ const ENUM_FIELDS = {
   morphIcons: { spring: ['smooth', 'snappy', 'bouncy'], reducedMotion: ['light', 'off', 'full'], preload: ['interaction', 'idle', 'immediate'] },
   viewTransition: { type: ['fade', 'slide'], reducedMotion: ['light', 'off', 'full'] },
   speculation: { mode: ['prefetch', 'prerender', 'both'], eagerness: ['moderate', 'eager', 'conservative'], delivery: ['inline', 'header', 'both'] },
-  ogImageStyle: { template: ['aurora', 'mesh', 'grid', 'paper', 'duotone'], palette: ['theme', 'hash'] }
+  ogImageStyle: { template: ['aurora', 'mesh', 'grid', 'paper', 'duotone'], palette: ['theme', 'hash'] },
+  announcement: { tone: ['accent', 'solid', 'minimal'] }
 };
 // Numeric fields computed per module via typeof === 'number' check. All non-
 // numeric array fields (whitelist/blacklist/order/palette) must be arrays.
@@ -462,6 +463,7 @@ const ARRAY_FIELDS = {
   morphIcons: [],
   viewTransition: [],
   speculation: ['excludeSelectors'],
+  announcement: ['items'],
   background: ['particles'], motion: [], ogImageStyle: []
 };
 

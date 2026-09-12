@@ -377,6 +377,10 @@
     .post-content.mg-h2num{counter-reset:mg-h2}.post-content.mg-h2num>h2{display:flex;align-items:baseline;counter-increment:mg-h2}
     .post-content.mg-h2num>h2::after{content:counter(mg-h2,decimal-leading-zero);margin-left:auto;font-size:.55em;font-family:var(--ff-mono);letter-spacing:.08em;font-weight:500;color:var(--magazine-headingNumberColor,color-mix(in srgb,var(--color-ts) 55%,transparent))}
     @media(max-width:1100px){.post-content.mg-bleed>p:has(>img:only-child),.post-content.mg-bleed>figure{margin-left:0;margin-right:0}.post-content.mg-bleed>p:has(>img:only-child)>img,.post-content.mg-bleed>figure img{width:100%}}
+    .scroll-progress{display:none;position:fixed;top:0;left:0;right:0;height:<%= (features.scrollIndicator&&features.scrollIndicator.height)||'2px' %>;background:<%= (features.scrollIndicator&&features.scrollIndicator.gradient===false)?'var(--color-s)':'linear-gradient(90deg,var(--color-s),var(--color-a))' %>;transform-origin:0 50%;pointer-events:none;z-index:1100}
+    @supports (animation-timeline: scroll()){.scroll-progress{display:block;animation:scroll-progress-grow linear;animation-timeline:scroll(root)}}
+    @keyframes scroll-progress-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+    <% if(!(features.scrollIndicator&&features.scrollIndicator.respectReducedMotion===false)){ %>@media (prefers-reduced-motion: reduce){.scroll-progress{display:none}}<% } %>
     /* —— 代码块:行号列（Prism line-numbers 几何适配）—— */
     .post-content pre.line-numbers{padding-left:3.8em;counter-reset:linenumber}
     .post-content pre.line-numbers>code{position:relative;white-space:inherit}
@@ -412,7 +416,7 @@
 <script>window.__FEATURES__=<%- escapeJsonForScript(typeof features!=='undefined'?features:{}) %>;window.__TUNING__=<%- escapeJsonForScript(typeof tuning!=='undefined'?tuning:{}) %>;<% if(typeof features!=='undefined'&&features.morphIcons&&features.morphIcons.enabled!==false){ %>window.__MORPH__=<%- escapeJsonForScript(features.morphIcons) %>;<% } %><% if(typeof presets!=='undefined'&&presets&&presets.length){ %>window.__PRESETS__=<%- escapeJsonForScript(presets) %>;<% } %><% if(typeof dailyQuotes!=='undefined'&&dailyQuotes){ %>window.__QUOTES__=<%- escapeJsonForScript(dailyQuotes) %>;<% } %><% if(typeof uiStrings!=='undefined'&&uiStrings){ %>window.__I18N__=<%- escapeJsonForScript(uiStrings) %>;<% } %><% if(typeof site!=='undefined'&&site.externalLinkWarning){ %>window.__LINK_WARNING__=<%- escapeJsonForScript(site.externalLinkWarning) %>;<% } %><% if(typeof site!=='undefined'&&site.pwa){ %>window.__PWA_ON__=<%- site.pwa.enabled?'true':'false' %>;window.__PWA_SW__=<%- escapeJsonForScript(site.pwa.serviceWorker||'/sw.js') %>;<% } %>window.__SITE_TITLE__=<%- escapeJsonForScript((typeof site!=='undefined'&&site.title)||'') %>;<% if(typeof article!=='undefined'&&article){ %>window.__ART_TITLE__=<%- escapeJsonForScript(article.title||'') %>;<% } %></script>
 <script>window.__SEARCH_DATA__=<%- typeof searchData === 'string' ? searchData : '[]' %>;</script>
 </head>
-<body class="bg-<%=theme.background&&theme.background.mode?theme.background.mode:'plain'%>" data-article-title="<%= escapeAttr(typeof article!=='undefined'&&article?article.title:'') %>">
+<body class="bg-<%=theme.background&&theme.background.mode?theme.background.mode:'plain'%>" data-article-title="<%= escapeAttr(typeof article!=='undefined'&&article?article.title:'') %>"><% if(features.scrollIndicator&&features.scrollIndicator.enabled!==false){ %><div class="scroll-progress" aria-hidden="true"></div><% } %>
 <canvas id="bgFx" aria-hidden="true"></canvas>
 <div class="reading-progress" id="rp" role="progressbar" aria-label="阅读进度" data-i18n-aria="toolbar.readingProgress"><span class="rp-dot" id="rpDot"></span><span class="rp-tip" id="rpTip" hidden>0%</span></div>
 <%- site.customBodyStart || '' %>

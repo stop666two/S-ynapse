@@ -145,7 +145,7 @@ const DEFAULT_FEATURES = {
     icons: { theme: true, copy: true, favorite: true, tts: true, menu: true }
   },
   viewTransition: {
-    enabled: true, type: 'fade', durationMs: 180, reducedMotion: 'light',
+    enabled: true, type: 'fade', durationMs: 180, shared: true, reducedMotion: 'light',
     toggle: { show: true, defaultOn: true, storageKey: 's-view-transition' }
   },
   speculation: {
@@ -161,6 +161,9 @@ const DEFAULT_FEATURES = {
   },
   perfBudget: {
     enabled: true, htmlKb: 70, jsKb: 90, requests: 18, warnOnly: true
+  },
+  scrollIndicator: {
+    enabled: true, height: '2px', gradient: true, respectReducedMotion: true
   },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',

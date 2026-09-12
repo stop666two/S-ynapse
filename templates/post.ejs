@@ -9,7 +9,7 @@
 %>
 <article class="post-article">
   <header class="post-header">
-    <h1 class="post-title" id="<%= article.slug %>"><% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span> <% } %><%= article.title %></h1>
+    <h1 class="post-title" id="<%= article.slug %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> style="view-transition-name:title-<%= article.slug %>"<% } %>><% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span> <% } %><%= article.title %></h1>
     <div class="post-meta">
       <% if (article.date) { %>
       <span><%= article.formattedDate || article.date %></span>
@@ -39,19 +39,17 @@
   </header>
 
   <% if (article.featuredImage) { %>
-  <img src="<%= article.featuredImage %>" alt="<%= article.title %>" class="post-
-<% if(features.cover&&features.cover.enabled!==false&&article.featuredImage){ %>
-<div class="cover-strip cover-apply" data-article="<%= article.slug %>">
-  <span class="cover-strip-label">封面样式</span>
-  <div class="cover-thumb-row" role="radiogroup" aria-label="封面样式">
+  <img src="<%= article.featuredImage %>" alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> style="view-transition-name:cover-<%= article.slug %>"<% } %> class="post-featured-image" loading="eager">
+  <% if(features.cover&&features.cover.enabled!==false&&article.featuredImage){ %>
+  <div class="cover-strip cover-apply" data-article="<%= article.slug %>">
+    <span class="cover-strip-label">封面样式</span>
+    <div class="cover-thumb-row" role="radiogroup" aria-label="封面样式">
     <% (features.cover.patterns||['gradient','stripes','dots','blob','mesh']).forEach(function(pat,i){ %>
     <button type="button" class="cover-thumb cover-pattern-<%= pat %> <%= i===0?'active':'' %>" data-cover="<%= pat %>" aria-label="<%= pat %>" title="<%= pat %>"></button>
     <% }) %>
+    </div>
   </div>
-</div>
-<% } %>
-
-    featured-image" loading="eager">
+  <% } %>
   <% } %>
 
   <div class="post-content<% var _mg=(typeof features!=='undefined'&&features.magazine)||{}; if(_mg.enabled!==false){ if(_mg.dropCap!==false){%> mg-dropcap<%} if(_mg.figureBleed!==false){%> mg-bleed<%} if(_mg.tableHover!==false){%> mg-tablehover<%} if(_mg.headingNumbers){%> mg-h2num<%} } %>">

@@ -252,14 +252,6 @@ function loadConfig() {
   };
 
   const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy, features, uiStrings, tuning }, { tagAliases: tagAliasData, friends: friendsData }]);
-  if (config.site.performance) {
-    const _p = config.site.performance;
-    if (_p.htmlMinify === true) config.site.build.minifyHTML = true;
-    if (_p.cssMinify === true) config.site.build.minifyCSS = true;
-    if (_p.jsMinify === true) config.site.build.minifyJS = true;
-    if (_p.cacheBust === true) config.site.build.enableCacheBusting = true;
-    if (_p.buildReport === true) config.site.build.buildReport = true;
-  }
   // Features arrays must replace, not concatenate (e.g. share.order must drop
   // platforms the user removed). Deepmerge's default arrayMerge concatenates,
   // so features gets its own merge pass with a replace strategy.
@@ -2396,7 +2388,7 @@ const VENDOR_FONTS = {
 };
 const NODE_MODULES = path.join(ROOT, 'node_modules');
 
-function copyVendorAssets() {
+function copyVendorAssets(config) {
   const VENDOR = path.join(DIST_DIR, 'assets', 'vendor');
   fs.mkdirSync(VENDOR, { recursive: true });
   // Prism：核心 + 常用语言组件（构建期拼接为单文件；新增语言在 PRISM_LANGS 登记）
@@ -2420,6 +2412,9 @@ function copyVendorAssets() {
   // 字体：按需复制 latin 子集 woff2 并生成 @font-face CSS（中文由系统字体链回退）
   const FONTS = path.join(VENDOR, 'fonts');
   fs.mkdirSync(FONTS, { recursive: true });
+  const FONT_DISPLAY_ALLOWED = ['auto', 'block', 'swap', 'fallback', 'optional'];
+  const _fd = config && config.site && config.site.performance && config.site.performance.fontDisplay;
+  const fontDisplay = FONT_DISPLAY_ALLOWED.indexOf(_fd) >= 0 ? _fd : 'swap';
   Object.keys(VENDOR_FONTS).forEach(function (name) {
     const cfg = VENDOR_FONTS[name];
     let css = '';
@@ -2428,7 +2423,7 @@ function copyVendorAssets() {
       const src = path.join(NODE_MODULES, '@fontsource', name, 'files', file);
       if (!fs.existsSync(src)) return;
       fs.copyFileSync(src, path.join(FONTS, file));
-      css += '@font-face{font-family:\'' + cfg.family + '\';font-style:normal;font-weight:' + w + ';font-display:swap;src:url(\'./' + file + '\') format(\'woff2\')}\n';
+      css += '@font-face{font-family:\'' + cfg.family + '\';font-style:normal;font-weight:' + w + ';font-display:' + fontDisplay + ';src:url(\'./' + file + '\') format(\'woff2\')}\n';
     });
     fs.writeFileSync(path.join(FONTS, name + '.css'), css);
   });
@@ -2573,7 +2568,7 @@ async function build() {
     await minifyAll(config);
     await cacheBust(config);
     copyJsAssets();
-    copyVendorAssets();
+    copyVendorAssets(config);
     await generatePWA(config);
     if (hooks && hooks.postBuild) {
       await hooks.postBuild(config, {

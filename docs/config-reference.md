@@ -128,6 +128,20 @@
 | `build.cacheBustingPattern` | string | `.*\.(css\|js\|png\|jpg\|svg)$` | 戳名模式 |
 | `build.externalLinksTarget` / `externalLinksRel` | string | `_blank` / `noopener noreferrer` | 外链属性 |
 
+### site.performance — 性能优化
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `performance.preloadFonts` | bool | `true` | 预加载字体样式(preload) |
+| `performance.fontDisplay` | string | `swap` | @font-face 显示策略:swap/block/fallback/optional/auto(非法值回退 swap) |
+| `performance.imageDecoding` | string | `async` | 图片解码:async/sync/auto |
+| `performance.scriptLoading` | string | `defer` | 外部脚本加载:defer/module/async |
+| `performance.preconnect` | array | `[fonts.googleapis.com, fonts.gstatic.com]` | preconnect 域名列表 |
+| `performance.prefetchNextPage` | bool | `false` | 空闲预取下一页 |
+| `performance.resourceHints` | bool | `true` | 输出 preconnect/dns-prefetch |
+| `performance.imageSizes` | string | `auto` | srcset sizes 策略:auto/自定义表达式 |
+
+> 说明:压缩、缓存戳、构建报告等构建级开关统一由 `site.build.*` 提供（单开关原则,不再提供 performance.* 重复项）;本段仅保留渲染期与网络提示项。
+
 ### site.externalLinkWarning — 外链警告(与 features.externalLink 联动)
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -241,7 +255,7 @@
 `enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true` / `showCount true` / `placeholder 搜索...` / `emptyHint 输入关键词开始搜索` / `noResultText 未找到匹配内容` / `excerptLength 120` / `includeContent true` / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `closeOnOverlay true` / `focusOnOpen true` / `openAnimation fade` / `pinyinFuzzy false`
 
 ### 3.5 imageLazy — 懒加载
-`enabled true` / `mode lazy`(`lazy|native|eager`) / `loadMargin 200px` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载)
+`enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载)
 
 ### 3.6 codeBlock — 代码块
 `enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `showLanguageTag true` / `lineNumbers false` / `wrapLongLines false` / `highlightBackground var(--color-hover)` / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false` / `downloadButton false`

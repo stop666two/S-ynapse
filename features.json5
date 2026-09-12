@@ -196,12 +196,8 @@
   // 5. 图片懒加载与表现
   // ---------------------------------------------------------------------------
   imageLazy: {
-    // 启用原生 loading=lazy。
+    // 启用原生 loading=lazy（加载时机由浏览器管理,无 JS 观察器,不提供自定义预取边距）。
     enabled: true,
-    // 加载策略:lazy/native/eager。
-    mode: 'lazy',
-    // 进入视口多少 px 时开始加载。
-    loadMargin: '200px',
     // 是否淡入显示。
     fadeIn: true,
     // 淡入时长(ms)。

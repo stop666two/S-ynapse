@@ -1,106 +1,412 @@
+// =====================================================================
+// site.json5 — 站点核心配置（单文件总控）
+// ---------------------------------------------------------------------
+// 格式: JSON5（允许注释/尾逗号/无引号键名;解析失败会给出精确行号与修复提示）
+// 生效: 修改后需重新构建（npm run build / npm run serve）
+// 优先级: 本文件 > build.js 内置默认值（缺省字段自动回退默认,可安全删除可选键）
+// 关联: 功能开关见 features.json5;视觉微调见 tuning.json5;文案见 ui-strings.json5
+// 注意: 本文件顶部字段中,title/titleEn 为语言对应关系（zh 用 title,en 用 titleEn）
+// =====================================================================
 {
+  // ===================================================================
+  // 一、站点标识
+  // ===================================================================
+
+  // 站点主标题（中文站）
+  // 作用: 导航 Logo、<title> 模板 {site} 占位、RSS/Feed 标题、og:site_name
+  // 类型: string
+  // 可填: 任意短文本,建议 ≤ 30 字符（过长会挤压导航与社交卡片）
+  // 不可填: 空字符串——会导致标题模板出现空段与 SEO 标题残缺
+  // 推荐: "S-ynapse"
+  // 废弃: 无
+  // 注意: 改名后需 rebuild;英文站标题用下方 titleEn,勿在此写双语
   "title": "S-ynapse",
+
+  // 站点副标题（中文站）
+  // 作用: 导航 Logo 副行、首页 <title> 模板 {subtitle}、meta description 回退
+  // 类型: string
+  // 可填: 任意短文本,建议 ≤ 20 字符
+  // 不可填: 无硬性限制;留空则不显示副标题行
+  // 推荐: "思考的突触"
+  // 注意: 与 seo.titleTemplate.index 的 {subtitle} 联动
   "subtitle": "思考的突触",
+
+  // 站点副标题（英文站）
+  // 作用: en 语言页面的副标题（与 subtitle 同逻辑,按语言取用）
+  // 类型: string
+  // 可填: 英文短文本,建议 ≤ 40 字符
+  // 不可填: 无;留空回退到 subtitle
+  // 推荐: "Thought Synapses"
   "subtitleEn": "Thought Synapses",
+
+  // 站点主标题（英文站）
+  // 作用: en 语言页面的 {site} 占位与 Logo 标题
+  // 类型: string
+  // 可填: 英文短文本
+  // 不可填: 空字符串（同上,会导致英文标题残缺）
+  // 推荐: 与中文站同名（品牌一致）"S-ynapse"
+  "titleEn": "S-ynapse",
+
+  // 站点描述
+  // 作用: <meta name="description">、RSS <description>、hero 副标题为空时的回退值
+  // 类型: string
+  // 可填: 60–160 字符的一句话简介（超出会被搜索引擎截断）
+  // 不可填: 空字符串（SEO 权重项,缺失会降低摘要质量）
+  // 推荐: "个人技术博客，记录编程与生活"
+  "description": "个人技术博客，记录编程与生活",
+
+  // 作者名
+  // 作用: 文章 meta（作者行）、结构化数据 author.name、默认版权署名
+  // 类型: string
+  // 可填: 真名/笔名（会公开展示）
+  // 不可填: 隐私敏感信息（本值为公开数据）
+  // 推荐: 你的公开笔名
+  "author": "Your Name",
+
+  // 联系邮箱
+  // 作用: 社交图标 email 项默认地址、RSS 作者邮箱、部分结构化数据
+  // 类型: string（邮箱格式）
+  // 可填: 公开联系邮箱;可留空
+  // 不可填: 不想公开的私人邮箱（会被写进页面源码）
+  // 推荐: 专用公开邮箱
+  "email": "admin@example.com",
+
+  // 站点正式域名
+  // 作用: canonical URL、og:url、RSS 自链接、sitemap <loc> 的绝对地址前缀
+  // 类型: string（完整 https URL,结尾不带 /）
+  // 可填: 部署后的真实域名,如 https://blog.example.com
+  // 不可填: 带路径的地址（如 https://x.com/blog,会破坏各绝对链接拼接）、http（非加密）
+  // 推荐: 你的生产域名
+  // 注意: 本地预览可保留占位值;上线前务必替换否则 canonical/sitemap 指向错误
+  "url": "https://synapse.dev",
+
+  // 站点主语言（默认语言）
+  // 作用: <html lang> 中文值、日期/时间本地化回退、RSS language 字段
+  // 类型: string（BCP 47 语言标签）
+  // 可填: "zh-CN"/"zh-TW"/"en-US" 等标准标签
+  // 不可填: 非标准缩写（如 "cn"）——会导致部分解析器识别失败
+  // 推荐: "zh-CN"
+  "language": "zh-CN",
+
+  // 时区
+  // 作用: 文章日期渲染/相对时间/构建报告的时间基准（IANA 时区名）
+  // 类型: string（IANA tz database 名称）
+  // 可填: "Asia/Shanghai"/"UTC"/"America/New_York" 等
+  // 不可填: 中文时区别名（如 "北京时间"）或 UTC+8 这类偏移写法
+  // 推荐: "Asia/Shanghai"
+  "timezone": "Asia/Shanghai",
+
+  // 日期显示格式
+  // 作用: 文章卡片/文内日期、RSS pubDate 之外的所有可见日期格式
+  // 类型: string（占位符模板）
+  // 可填: YYYY(年) MM(月) DD(日) HH(时) mm(分) 的任意组合,如 "MM-DD"
+  // 不可填: strftime 写法（%Y-%m）——本项目不识别
+  // 推荐: "YYYY-MM-DD HH:mm"
+  "dateFormat": "YYYY-MM-DD HH:mm",
+
+  // 版权声明
+  // 作用: 页脚版权行文本（原样输出,支持 © 等符号）
+  // 类型: string
+  // 可填: 任意文本;常用 "© 2026 你的名字"
+  // 不可填: HTML 标签（会被转义显示为源码）
+  // 推荐: "© 2026 Your Name"
+  "copyright": "© 2026 Your Name",
+
+  // ===================================================================
+  // 二、分页与导航文案
+  // ===================================================================
+
+  // 每页文章数
+  // 作用: 首页/归档/标签页/分类页的分页大小
+  // 类型: number（整数）
+  // 可填: 1–50 的整数（过大拖慢首屏;卡片渲染为服务端静态输出）
+  // 不可填: 0/负数/小数（会生成空页或分页计算异常）
+  // 推荐: 10
+  "postsPerPage": 10,
+
+  // 分页"上一页"文案（中文）
+  // 作用: 分页器上一页按钮文本;en 站点由 ui-strings.json5 覆盖
+  // 类型: string | 可填: 短文本 | 不可填: HTML | 推荐: "上一页"
+  "paginationPrev": "上一页",
+
+  // 分页"下一页"文案（中文）
+  // 作用: 分页器下一页按钮文本
+  // 类型: string | 可填: 短文本 | 不可填: HTML | 推荐: "下一页"
+  "paginationNext": "下一页",
+
+  // 文章底部"上一篇"文案
+  // 作用: 文章导航（prevNext 模块）上一篇标签
+  // 类型: string | 可填: 短文本 | 不可填: HTML | 推荐: "上一篇"
+  "prevPostLabel": "上一篇",
+
+  // 文章底部"下一篇"文案
+  // 作用: 文章导航（prevNext 模块）下一篇标签
+  // 类型: string | 可填: 短文本 | 不可填: HTML | 推荐: "下一篇"
+  "nextPostLabel": "下一篇",
+
+  // ===================================================================
+  // 三、Hero 首屏区（首页顶部大标题区）
+  // ===================================================================
+
   "hero": {
+    // 是否显示 Hero 区域
+    // 作用: 首页顶部大标题/搜索/CTA/标签云的显示总开关
+    // 类型: boolean | 可填: true 显示 / false 隐藏 | 推荐: true
+    // 注意: 关闭后首页直接从文章列表开始;SEO 不受影响
     "enabled": true,
+
+    // Hero 主标题（中文站）
+    // 作用: 首屏 H1 文本;留空时回退 site.title（v1.0.3 起支持）
+    // 类型: string | 可填: 短文本或 ""（回退） | 推荐: ""（用站点名）
     "title": "",
+
+    // Hero 副标题（中文站）
+    // 作用: H1 下方一句话;留空回退 site.subtitle → site.description
+    // 类型: string | 可填: 短文本或 ""（回退） | 推荐: ""（用站点副标题）
     "subtitle": "",
+
+    // 是否显示搜索按钮
+    // 作用: Hero 搜索入口按钮（打开搜索弹层;搜索数据由构建生成）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 与 features.search.enabled 联动——搜索模块关闭时按钮无功能
     "showSearch": true,
+
+    // 是否显示 CTA 按钮
+    // 作用: 主行动按钮（默认跳转锚点 #latest-post 即最新文章区）
+    // 类型: boolean | 可填: true/false | 推荐: true
     "showCta": true,
+
+    // CTA 按钮文案（中文）
+    // 作用: CTA 文本;英文站点可用 features.hero.ctaLabelEn 或此处 ctaLabel 对应逻辑
+    // 类型: string | 可填: 短动词短语 | 推荐: "查看全部文章"
     "ctaLabel": "查看全部文章",
+
+    // CTA 跳转地址
+    // 作用: CTA 按钮 href;支持站内相对路径/锚点/完整外链
+    // 类型: string | 可填: "#latest-post"/"/zh/archive/"/"https://…"
+    // 推荐: "#latest-post"（滚动到最新文章）
     "ctaUrl": "#latest-post",
+
+    // 是否显示标签云
+    // 作用: Hero 区域热门标签胶囊列表显示开关
+    // 类型: boolean | 可填: true/false | 推荐: true
     "showTags": true,
+
+    // Hero 标签显示数量
+    // 作用: 标签云最多展示几个最热门标签（按文章数排序）
+    // 类型: number（整数） | 可填: 1–20 | 不可填: 0/负数（渲染空容器）
+    // 推荐: 8
     "tagCount": 8,
+
+    // Hero 主标题（英文站）
+    // 作用: en 首页 H1;留空回退 site.titleEn
+    // 类型: string | 可填: 英文短文本 | 推荐: "S-ynapse"
     "titleEn": "S-ynapse",
+
+    // Hero 副标题（英文站）
+    // 作用: en 首页 H1 下方文本;留空回退 site.subtitleEn → site.description
+    // 类型: string | 可填: 英文短文本 | 推荐: "Thought Synapses"
     "subtitleEn": "Thought Synapses"
   },
-  "description": "个人技术博客，记录编程与生活",
-  "author": "Your Name",
-  "email": "admin@example.com",
-  "url": "https://synapse.dev",
-  "language": "zh-CN",
-  "timezone": "Asia/Shanghai",
-  "dateFormat": "YYYY-MM-DD HH:mm",
-  "copyright": "© 2026 Your Name",
-  "postsPerPage": 10,
-  "paginationPrev": "上一页",
-  "paginationNext": "下一页",
-  "prevPostLabel": "上一篇",
-  "nextPostLabel": "下一篇",
+
+  // ===================================================================
+  // 四、RSS / JSON Feed
+  // ===================================================================
+
   "rss": {
+    // 是否生成 RSS feed
+    // 作用: 生成 /{lang}/feed.xml（RSS 2.0）
+    // 类型: boolean | 可填: true/false | 推荐: true
     "enabled": true,
+
+    // RSS 输出路径
+    // 作用: feed 文件在站点中的路径（按语言自动加前缀）
+    // 类型: string（以 / 开头） | 可填: "/feed.xml" 或自定义 | 推荐: "/feed.xml"
+    // 注意: 修改后根路径重定向规则同步更新（构建自动处理）
     "path": "/feed.xml",
+
+    // 是否输出全文
+    // 作用: true=feed 含文章全文 HTML;false=仅摘要（excerpt）
+    // 类型: boolean | 可填: true/false
+    // 推荐: true（便于阅读器离线阅读）;注意: 全文会增大 feed 体积
     "fullContent": true,
+
+    // feed 最大条目数
+    // 作用: 后向截断,最多包含多少篇最新文章
+    // 类型: number（整数） | 可填: 1–200 | 不可填: 0/负数 | 推荐: 50
     "maxItems": 50,
+
+    // JSON Feed 配置块
     "jsonFeed": {
+      // 是否生成 JSON Feed（/feed.json）
+      // 作用: 供 JSON Feed 协议阅读器使用（与 RSS 并存）
+      // 类型: boolean | 可填: true/false | 推荐: true
       "enabled": true
     }
   },
+
+  // ===================================================================
+  // 五、SEO 与结构化数据
+  // ===================================================================
+
   "seo": {
+    // 全局 meta keywords
+    // 作用: <meta name="keywords"> 内容（现代搜索引擎权重低,仅少量场景使用）
+    // 类型: string[]（关键词数组） | 可填: 3–10 个词 | 推荐: 与站点主题相关
+    // 注意: 文章页不追加各自标签,仅用本列表
     "metaKeywords": [
       "博客",
       "技术",
       "编程"
     ],
+
+    // Robots 指令
+    // 作用: <meta name="robots"> 内容;控制搜索引擎索引/跟随策略
+    // 类型: string（逗号分隔指令）
+    // 可填: "index, follow"（索引+跟踪）/ "noindex, nofollow"（整站下线时用）
+    // 不可填: 未定义指令拼写（被搜索引擎忽略视为 index,follow）
+    // 推荐: "index, follow"
     "metaRobots": "index, follow",
+
+    // 默认社交分享图
+    // 作用: 无文章级封面时的 og:image/twitter:image 回退图
+    // 类型: string（站内路径或完整 URL） | 可填: /media/… 或 https://…
+    // 推荐: 1200×630 尺寸图（社交卡片最优比例）
+    // 注意: 文章有 featuredImage 时优先用文章图
     "ogImage": "/media/og-image.svg",
+
+    // og:type 默认值
+    // 作用: Open Graph 类型;文章页自动为 article,列表/首页用此值
+    // 类型: string | 可填: "website"/"article"/"blog" | 推荐: "website"
     "ogType": "website",
+
+    // Twitter 卡片类型
+    // 作用: twitter:card 值,决定推特分享样式
+    // 类型: string | 可填: "summary_large_image"（大图）/"summary"（小图）
+    // 推荐: "summary_large_image"
     "twitterCard": "summary_large_image",
+
+    // Twitter 账号
+    // 作用: twitter:site 元数据（内容归属账号）;无账号可留空
+    // 类型: string（@开头） | 可填: "@yourhandle" 或 ""
+    // 推荐: ""（无账号时）
     "twitterSite": "@yourtwitter",
+
+    // 是否输出 canonical 链接
+    // 作用: <link rel="canonical"> 指向当前页规范 URL（防重复内容）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 依赖 site.url 正确,否则指向错误域名
     "canonicalURL": true,
+
+    // 结构化数据（JSON-LD）
     "structuredData": {
+      // 是否输出 JSON-LD
+      // 作用: 生成 schema.org 结构化数据（首页/文章/面包屑）
+      // 类型: boolean | 可填: true/false | 推荐: true
       "enabled": true,
+
+      // 默认文章类型
+      // 作用: 文章页 JSON-LD @type
+      // 类型: string | 可填: "BlogPosting"/"Article"/"NewsArticle" | 推荐: "BlogPosting"
       "type": "BlogPosting"
     },
+
+    // 标题模板
+    // 作用: 控制各页面 <title> 拼接方式;占位符 {site}/{title}/{subtitle}
+    // 类型: object（三种页面类型)
+    // 不可填: 未知占位符（会原样输出,如 {author}）
     "titleTemplate": {
+      // 首页模板 | 推荐: "{site} · {subtitle}"
       "index": "{site} · {subtitle}",
+      // 文章页模板 | 推荐: "{title} | {site}"
       "post": "{title} | {site}",
+      // 其他页面模板（归档/标签/分类/关于等） | 推荐: "{title} | {site}"
       "default": "{title} | {site}"
     }
   },
+
+  // ===================================================================
+  // 六、访问统计
+  // ===================================================================
+
   "webAnalytics": {
+    // 是否启用 Cloudflare Web Analytics
+    // 作用: 注入统计 <script>（无 Cookie/隐私友好）
+    // 类型: boolean | 可填: true/false
+    // 注意: 需配合 security.json5 CSP 放行 static.cloudflareinsights.com（已预置）
     "enabled": true,
+
+    // 统计站点 Token
+    // 作用: Cloudflare Web Analytics 的站点标识（beacon token）
+    // 类型: string（32 位十六进制）
+    // 可填: 控制台获取的 token;留空则不注入脚本
+    // 不可填: 其它平台的统计代码（格式不兼容）
+    // 推荐: 填你自己的 token;注意: 该值会公开在页面源码中（属正常设计）
     "token": ""
   },
+
+  // ===================================================================
+  // 七、社交图标（导航栏右侧）
+  // ===================================================================
+  // 通用字段说明（每个社交项通用,不逐一重复）:
+  //   enabled: boolean 是否显示该图标（推荐: 仅开启真实使用的 3–6 个,过多拥挤）
+  //   type:    "link" 点击跳转链接（用 url 字段）
+  //            "popup" 点击弹出信息层（用 value/popupTitle/popupContent 字段）
+  //   url:     type=link 时的跳转地址（支持 https:// 与 mailto:）
+  //   value:   type=popup 时的内部值（用于复制/记录,不直接展示）
+  //   popupTitle: type=popup 时的弹层标题
+  //   popupContent: type=popup 时的弹层正文（展示给用户,建议含 value）
+  // 不可填: 不存在的平台键名（新增平台需同步 templates 与图标映射）
   "social": {
+    // 社交区总开关
+    // 作用: 关闭后导航栏不渲染任何社交图标（不论子项 enabled）
+    // 类型: boolean | 可填: true/false | 推荐: true
     "enabled": true,
+
     "items": {
+      // GitHub 链接（type=link 示例）
       "github": {
         "enabled": true,
         "type": "link",
         "url": "https://github.com/stop666two"
       },
+      // X（推特）链接
       "x": {
         "enabled": false,
         "type": "link",
         "url": ""
       },
+      // 微博链接
       "weibo": {
         "enabled": false,
         "type": "link",
         "url": ""
       },
+      // Telegram 链接
       "telegram": {
         "enabled": false,
         "type": "link",
         "url": ""
       },
+      // Facebook 链接
       "facebook": {
         "enabled": false,
         "type": "link",
         "url": ""
       },
+      // RSS 订阅（通常指向 /feed.xml）
       "rss": {
         "enabled": true,
         "type": "link",
         "url": "/feed.xml"
       },
+      // 邮箱（mailto: 链接）
       "email": {
         "enabled": true,
         "type": "link",
         "url": "mailto:admin@example.com"
       },
+      // QQ（type=popup 示例: 弹层展示号码）
       "qq": {
         "enabled": false,
         "type": "popup",
@@ -108,6 +414,7 @@
         "popupTitle": "QQ",
         "popupContent": "QQ 号：123456789"
       },
+      // QQ 群（弹层展示群号）
       "qqgroup": {
         "enabled": true,
         "type": "popup",
@@ -115,6 +422,7 @@
         "popupTitle": "QQ 群",
         "popupContent": "QQ 群号：987654321"
       },
+      // 微信（弹层展示微信号）
       "wechat": {
         "enabled": true,
         "type": "popup",
@@ -122,6 +430,7 @@
         "popupTitle": "微信",
         "popupContent": "微信号：MyWeChatID"
       },
+      // 电话（弹层展示号码）
       "phone": {
         "enabled": true,
         "type": "popup",
@@ -131,46 +440,187 @@
       }
     }
   },
+
+  // ===================================================================
+  // 八、评论系统
+  // ===================================================================
+  // 说明: 三套 provider 二选一启用（giscus/disqus/utterances）;
+  //       enabled=false 时文章底部显示占位区（文案见 features.comments）
+  // 注意: giscus 需 CSP 放行 giscus.app（security.json5 已预置）;
+  //       启用后必须填真实的 repo/repoId/categoryId,否则评论区空白
   "comments": {
+    // 评论总开关
+    // 作用: 启用后文章页加载所选评论 provider
+    // 类型: boolean | 可填: true/false | 推荐: 按需（默认 false）
     "enabled": false,
+
+    // 启用的服务商
+    // 作用: 选择加载哪套评论组件
+    // 类型: string（枚举）
+    // 可填: "giscus" / "disqus" / "utterances"
+    // 不可填: 其他字符串（会 fallback 到 giscus 配置但脚本不加载）
+    // 推荐: "giscus"（GitHub Discussions 驱动,无广告）
     "provider": "giscus",
+
+    // giscus 配置
+    // 获取方式: https://giscus.app 按向导生成以下 4 个 ID 字段
     "giscus": {
+      // 仓库（必须公开）
+      // 作用: 评论数据存储于该仓库的 Discussions
+      // 类型: string（owner/repo）
+      // 可填: 真实公开仓库,如 "username/blog-comments"
+      // 不可填: 私有仓库（评论不可见）
+      // 推荐: 单独建一个公开的 comments 仓库
       "repo": "yourname/your-repo",
+
+      // 仓库 ID（giscus.app 生成）
+      // 作用: giscus API 识别仓库
+      // 类型: string（R_ 开头） | 不可填: 出错会加载失败
       "repoId": "R_kgDO...",
+
+      // Discussion 分类名
+      // 作用: 评论存入哪个 Discussions 分类
+      // 类型: string | 可填: 你仓库中真实存在的分类名（如 "Announcements"）
+      // 推荐: "Announcements"（或新建 "Comments"）
       "category": "Announcements",
+
+      // 分类 ID（giscus.app 生成）
+      // 类型: string（DIC_ 开头） | 不可填: 出错会加载失败
       "categoryId": "DIC_kwDO...",
+
+      // 页面与 Discussion 的映射方式
+      // 作用: 决定哪篇文章对应哪个讨论帖
+      // 类型: string（枚举）
+      // 可填: "pathname"（路径映射,推荐）/ "url" / "title" / "og:title" / "specific"
+      // 不可填: 其他值 | 推荐: "pathname"
+      // 注意: 迁移 URL 结构后旧评论会失联,慎换
       "mapping": "pathname",
+
+      // 严格匹配
+      // 作用: "1"=仅匹配标题一致的 Discussion;"0"=宽松
+      // 类型: string（"0"/"1"） | 推荐: "0"
       "strict": "0",
+
+      // 表情回应
+      // 作用: "1"=开启评论表情回应 | 类型: string（"0"/"1"） | 推荐: "1"
       "reactionsEnabled": "1",
+
+      // 元数据发送
+      // 作用: "1"=向 giscus 发送页面元数据 | 类型: string（"0"/"1"） | 推荐: "0"
       "emitMetadata": "0",
+
+      // 输入框位置
+      // 作用: 评论输入框在列表上方还是下方
+      // 类型: string | 可填: "top"/"bottom" | 推荐: "bottom"
       "inputPosition": "bottom",
+
+      // giscus 主题
+      // 作用: 评论组件配色;本项目跟随站点亮暗切换需用 "preferred_color_scheme"
+      // 类型: string | 可填: "light"/"dark"/"preferred_color_scheme" 等 giscus 主题名
+      // 推荐: "preferred_color_scheme"（自动跟随系统/站点）
       "theme": "light",
+
+      // 组件语言
+      // 作用: 评论 UI 语言
+      // 类型: string（BCP 47） | 可填: "zh-CN"/"en" 等 | 推荐: "zh-CN"
       "lang": "zh-CN"
     },
+
+    // Disqus 配置（provider=disqus 时使用）
     "disqus": {
+      // Disqus 站点短名
+      // 作用: 加载 https://{shortname}.disqus.com 的评论
+      // 类型: string | 可填: 控制台创建的 shortname | 不可填: 含空格/大写
       "shortname": "your-shortname"
     },
+
+    // utterances 配置（provider=utterances 时使用）
     "utterances": {
+      // 仓库（GitHub Issues 存储评论,必须公开且安装 utterances App）
+      // 类型: string（owner/repo） | 推荐: 单独的评论仓库
       "repo": "yourname/your-repo",
+
+      // Issue 标签
+      // 作用: 只挂载带该标签的 Issue 评论
+      // 类型: string | 推荐: "comment"
       "label": "comment",
+
+      // 主题
+      // 作用: 评论组件配色
+      // 类型: string | 可填: "github-light"/"github-dark"/"preferred-color-scheme"
+      // 推荐: "preferred-color-scheme"
       "theme": "github-light"
     }
   },
+
+  // ===================================================================
+  // 九、Sitemap
+  // ===================================================================
+
   "sitemap": {
+    // 是否生成 sitemap.xml
+    // 作用: 生成 /sitemap.xml（所有语言页面合并,含 hreflang 变体）
+    // 类型: boolean | 可填: true/false | 推荐: true
     "enabled": true,
+
+    // sitemap 输出路径
+    // 类型: string（以 / 开头） | 推荐: "/sitemap.xml"
     "path": "/sitemap.xml",
+
+    // 更新频率提示
+    // 作用: <changefreq> 标签（对搜索引擎只是提示,非承诺）
+    // 类型: string（枚举）
+    // 可填: always/hourly/daily/weekly/monthly/yearly/never
+    // 不可填: 其他值（会被 sitemap 校验器判为无效）
+    // 推荐: "weekly"
     "changefreq": "weekly",
+
+    // 优先级
+    // 作用: <priority> 相对权重（0.0–1.0,仅站内比较有意义）
+    // 类型: number（保留 1 位小数）
+    // 可填: 0.0–1.0 | 不可填: 超出区间/字符串 | 推荐: 0.8
     "priority": 0.8
   },
+
+  // ===================================================================
+  // 十、PWA（渐进式 Web 应用）
+  // ===================================================================
+  // 双层开关: 本处 site.pwa.enabled 控制"生成 manifest/sw 等资源";
+  //          features.pwa.enabled 控制"运行时注册 Service Worker"
+  //          两者同时启用才是完整 PWA 体验（离线/安装）
   "pwa": {
+    // 是否生成 PWA 资源
+    // 类型: boolean | 可填: true/false | 推荐: 需要安装/离线能力时 true
+    // 注意: 启用后构建生成 /manifest.json 与 /sw.js
     "enabled": false,
+
+    // Web App Manifest（原样输出到 manifest.json,字段遵循 W3C 规范）
+    // 字段说明: https://www.w3.org/TR/appmanifest/
     "manifest": {
+      // 应用全称（安装弹窗/应用列表显示） | 类型: string | 推荐: 与 site.title 一致
       "name": "S-ynapse",
+
+      // 应用短名（桌面图标下方） | 类型: string | 可填: ≤ 12 字符
       "short_name": "S-ynapse",
+
+      // 启动地址 | 类型: string | 推荐: "/"（由 _redirects 跳转到默认语言）
       "start_url": "/",
+
+      // 显示模式 | 类型: string（枚举）
+      // 可填: standalone(独立窗口,推荐)/fullscreen/minimal-ui/browser
       "display": "standalone",
+
+      // 启动背景色 | 类型: string（CSS 颜色） | 推荐: 与站点背景色一致
       "background_color": "#ffffff",
+
+      // 主题色（状态栏/任务切换器着色） | 类型: string（CSS 颜色）
+      // 推荐: 与 theme.json5 colors.primary 一致
       "theme_color": "#2d3748",
+
+      // 应用图标列表（必须至少有 192 与 512 两种尺寸）
+      // 类型: 数组[{src,sizes,type,purpose?}]
+      // 可填: 实际存在的 PNG 路径;不可填: 不存在的路径/SVG（兼容性差）
+      // 推荐: 192x192 与 512x512 PNG,另加 512 maskable 用于自适应图标
       "icons": [
         {
           "src": "/icons/icon-192.png",
@@ -184,64 +634,270 @@
         }
       ]
     },
+
+    // Service Worker 输出路径
+    // 类型: string（站内绝对路径） | 推荐: "/sw.js"
+    // 注意: SW 作用域为该路径所在目录（/sw.js → 全站）
     "serviceWorker": "/sw.js"
   },
+
+  // ===================================================================
+  // 十一、构建行为（build.* 为唯一开关源）
+  // ===================================================================
   "build": {
+    // 构建前清空 dist 目录
+    // 作用: 防止旧产物残留（重命名/删除文章后不留孤儿文件）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 关闭后必须手动清理 dist,否则可能出现过期页面
     "cleanDist": true,
+
+    // HTML 压缩
+    // 作用: 构建后用 minify-html 压缩所有 .html（去空白/可选属性引号）
+    // 类型: boolean | 可填: true/false | 推荐: 生产 true
+    // 不可填: 无;调试 HTML 结构时可临时 false
     "minifyHTML": true,
+
+    // CSS 压缩
+    // 作用: 压缩内联/产出 CSS（CleanCSS）
+    // 类型: boolean | 可填: true/false | 推荐: 生产 true
     "minifyCSS": true,
+
+    // JS 压缩
+    // 作用: 压缩产出 JS（terser）
+    // 类型: boolean | 可填: true/false | 推荐: 生产 true
+    // 注意: 压缩失败会自动回退未压缩并警告
     "minifyJS": true,
+
+    // 移除 console 输出
+    // 作用: 压缩 JS 时剔除 console.* 调用
+    // 类型: boolean | 可填: true/false | 推荐: true
     "removeConsole": true,
+
+    // 生成首页
+    // 作用: 是否生成 /{lang}/index.html 与分页
+    // 类型: boolean | 可填: true/false | 推荐: true（关闭会没有首页）
     "generateIndex": true,
+
+    // 生成归档页
+    // 作用: 是否生成 /{lang}/archive/（按年归档列表）
+    // 类型: boolean | 可填: true/false | 推荐: true
     "generateArchive": true,
+
+    // 生成标签页
+    // 作用: 是否生成标签云与标签聚合页
+    // 类型: boolean | 可填: true/false | 推荐: true
     "generateTags": true,
+
+    // 生成分类页
+    // 作用: 是否生成分类聚合页
+    // 类型: boolean | 可填: true/false | 推荐: true
     "generateCategories": true,
+
+    // 生成图库页
+    // 作用: 是否生成 /{lang}/gallery/（媒体库聚合,配合 features.gallery 前端模块）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 关闭后导航中的图库入口需另行移除,否则指向 404
+    "generateGallery": true,
+
+    // 生成作者页
+    // 作用: 是否生成作者聚合页（单人博客通常不需要）
+    // 类型: boolean | 可填: true/false | 推荐: false
     "generateAuthorPages": false,
+
+    // 复制静态资源
+    // 作用: 是否复制 static/ 目录到 dist 根
+    // 类型: boolean | 可填: true/false | 推荐: true
     "copyStatic": true,
+
+    // 媒体优化
+    // 作用: 用 sharp 生成响应式尺寸/WebP（构建最耗时步骤）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: sharp 未安装时自动跳过并警告
     "optimizeMedia": true,
+
+    // 媒体输出质量
+    // 作用: WebP/JPEG 有损压缩质量（1–100）
+    // 类型: number | 可填: 60–95 | 不可填: <40（明显糊）或 >95（体积暴涨）
+    // 推荐: 85
     "mediaQuality": 85,
+
+    // 响应式图片宽度档位
+    // 作用: 为每张图片生成这些宽度的变体（srcset 数据源）
+    // 类型: number[] | 可填: 递增的像素宽度数组
+    // 推荐: [640,1024,1920]（小图 640/平板 1024/大屏 1920）
     "mediaResponsiveSizes": [
       640,
       1024,
       1920
     ],
+
+    // 输出图片格式优先级
+    // 作用: 控制 <picture> 的 source 类型与顺序
+    // 类型: string[] | 可填: "webp"/"avif"/"original"（可组合）
+    // 推荐: ["webp","original"]（兼容性与体积平衡）
     "mediaFormats": [
       "webp",
       "original"
     ],
+
+    // AVIF 增强（实验性）
     "avif": {
+      // 是否额外生成 AVIF 变体
+      // 作用: AVIF 比 WebP 更小但编码慢数倍
+      // 类型: boolean | 可填: true/false | 推荐: 图多时可 true,构建时间敏感则 false
       "enabled": false,
+
+      // AVIF 质量
+      // 类型: number | 可填: 40–70 | 推荐: 50
       "quality": 50,
+
+      // AVIF 编码努力度
+      // 作用: libaom 编码档位,越高越慢越小
+      // 类型: number | 可填: 0–9 | 推荐: 6
       "effort": 6
     },
+
+    // 图片懒加载
+    // 作用: 为内容区图片注入 loading="lazy"（配合 features.imageLazy 运行时光效）
+    // 类型: boolean | 可填: true/false | 推荐: true
     "lazyLoadImages": true,
+
+    // 输出 srcset 属性
+    // 作用: 生成响应式图片候选集（依赖媒体优化产物）
+    // 类型: boolean | 可填: true/false | 推荐: true
     "useSrcset": true,
+
+    // 输出 <picture> 标签
+    // 作用: 用 <picture> 包裹实现格式协商（WebP 优先）
+    // 类型: boolean | 可填: true/false | 推荐: true
     "usePictureTag": true,
+
+    // 启用缓存失效查询串
+    // 作用: 为匹配的静态资源 URL 追加 ?v=hash,强制浏览器拉新版本
+    // 类型: boolean | 可填: true/false | 推荐: 生产 true
+    // 注意: 与 CDN 长期缓存配合最佳;开发时可 false 便于调试
     "enableCacheBusting": true,
+
+    // 缓存失效匹配规则
+    // 作用: 正则,决定哪些文件参与 hash 查询串
+    // 类型: string（正则表达式）
+    // 不可填: 无效正则（构建会报错）
+    // 推荐: ".*\\.(css|js|png|jpg|svg)$"
     "cacheBustingPattern": ".*\\.(css|js|png|jpg|svg)$",
+
+    // 外链 target
+    // 作用: 正文外链自动添加的 target 值
+    // 类型: string | 可填: "_blank"（新窗口）或 ""（同窗口） | 推荐: "_blank"
     "externalLinksTarget": "_blank",
+
+    // 外链 rel
+    // 作用: 正文外链自动添加的 rel（安全/SEO）
+    // 类型: string | 可填: "noopener noreferrer" 等组合
+    // 推荐: "noopener noreferrer"（防 tabnabbing）
     "externalLinksRel": "noopener noreferrer",
+
+    // 搜索索引收录全文
+    // 作用: true=搜索索引含全文（搜索能命中正文）;false=仅标题/摘要
+    // 类型: boolean | 可填: true/false
+    // 推荐: true;注意: 全文索引会增大 search-index.json 体积
     "searchFullContent": true,
+
+    // 相关文章
+    // 作用: 基于标签/分类计算文章底部"相关阅读"
+    // 类型: boolean | 可填: true/false | 推荐: true
     "relatedArticles": true,
+
+    // CJK 间距
+    // 作用: 在中英文/数字之间插入细空格优化排版
+    // 类型: boolean | 可填: true/false | 推荐: true
     "cjkSpacing": true,
+
+    // 构建报告
+    // 作用: 生成 dist/build-report.html（耗时/体积/文件统计）
+    // 类型: boolean | 可填: true/false | 推荐: true
     "buildReport": true,
+
+    // 自动 OG 图
+    // 作用: 为无封面文章生成默认社交分享图（/og/{lang}/{slug}.png）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 需 sharp;serve 模式自动跳过以加速
     "autoOgImage": true,
+
+    // 强制内容宽度
+    // 作用: 无侧栏页面强制与有侧栏页面同宽（视觉一致）
+    // 类型: boolean | 可填: true/false | 推荐: true
     "forceContentWidth": true
   },
+
+  // 重定向规则
+  // 作用: 追加到 dist/_redirects（Cloudflare Pages 格式）
+  // 类型: 数组[{from,to,status?}]
+  // 可填: { "from": "/old/", "to": "/new/", "status": 301 }
+  // 不可填: 与内置规则冲突的 from（内置规则优先,自定义追加在后）
+  // 推荐: 默认空数组;文章迁移后用 301 保权重
   "redirects": [],
+
+  // 自定义 <head> 注入
+  // 作用: 原样插入每个页面 </head> 前（可用于第三方验证 meta 等）
+  // 类型: string（HTML 片段）
+  // 不可填: <script> 外链 CDN（会被 CSP 拦截,除非同步放行 security.json5）
+  // 推荐: "";仅放必要验证标签
   "customHead": "",
+
+  // <body> 开始处注入
+  // 作用: 原样插入 <body> 后（如 GTM noscript）
+  // 类型: string（HTML 片段） | 推荐: ""
   "customBodyStart": "",
+
+  // </body> 结束前注入
+  // 作用: 原样插入 </body> 前（如统计脚本,注意 CSP）
+  // 类型: string（HTML 片段） | 推荐: ""
   "customBodyEnd": "",
-"externalLinkWarning": {
-  "enabled": true,
-  "title": "安全提醒",
-  "titleEn": "Security Notice",
-  "message": "您即将离开本站，前往外部网站。\n\n请注意核实链接的真实性，不要输入任何个人信息。\n谨防钓鱼网站和诈骗。\n\n目标链接：",
-  "messageEn": "You are about to leave this site and visit an external website.\n\nPlease verify the link's authenticity and do not enter any personal information.\nBeware of phishing sites and scams.\n\nTarget link:",
-  "confirmText": "继续访问",
-  "confirmTextEn": "Continue",
-  "cancelText": "取消返回",
-  "cancelTextEn": "Cancel",
+
+  // ===================================================================
+  // 十二、外部链接安全提醒
+  // ===================================================================
+  "externalLinkWarning": {
+    // 是否启用外链提醒弹层
+    // 作用: 点击外链时先弹窗确认（防钓鱼/误点）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 白名单命中的链接不弹窗;同域链接不弹窗
+    "enabled": true,
+
+    // 弹层标题（中文）
+    // 类型: string | 推荐: "安全提醒"
+    "title": "安全提醒",
+
+    // 弹层标题（英文）
+    // 类型: string | 推荐: "Security Notice"
+    "titleEn": "Security Notice",
+
+    // 提示正文（中文,支持 \n 换行）
+    // 作用: 弹层主体文案;会拼接目标 URL 在末尾
+    // 类型: string（多行） | 不可填: HTML 标签（按纯文本渲染）
+    "message": "您即将离开本站，前往外部网站。\n\n请注意核实链接的真实性，不要输入任何个人信息。\n谨防钓鱼网站和诈骗。\n\n目标链接：",
+
+    // 提示正文（英文）
+    "messageEn": "You are about to leave this site and visit an external website.\n\nPlease verify the link's authenticity and do not enter any personal information.\nBeware of phishing sites and scams.\n\nTarget link:",
+
+    // 确认按钮文案（中文） | 类型: string | 推荐: "继续访问"
+    "confirmText": "继续访问",
+
+    // 确认按钮文案（英文） | 推荐: "Continue"
+    "confirmTextEn": "Continue",
+
+    // 取消按钮文案（中文） | 推荐: "取消返回"
+    "cancelText": "取消返回",
+
+    // 取消按钮文案（英文） | 推荐: "Cancel"
+    "cancelTextEn": "Cancel",
+
+    // 白名单（不弹窗的域名）
+    // 作用: 命中即直接跳转;支持通配符 *.example.com（含子域）
+    // 类型: string[]（域名模式）
+    // 可填: "github.com" 精确匹配 / "*.github.com" 通配子域
+    // 不可填: 完整 URL（含 https:// 或路径）——只写域名
+    // 推荐: 仅放行你信任的常用站点
     "whitelist": [
       "*.github.com",
       "*.google.com",
@@ -256,49 +912,137 @@
       "beian.miit.gov.cn",
       "www.beian.gov.cn"
     ],
+
+    // 黑名单（强制弹窗,优先级高于白名单）
+    // 作用: 即使命中白名单也弹窗（用于高风险域名）
+    // 类型: string[]（域名模式,同白名单语法）
+    // 推荐: 默认空;必要时添加
     "blacklist": []
   },
+
+  // ===================================================================
+  // 十三、打赏
+  // ===================================================================
   "reward": {
+    // 是否启用打赏区
+    // 作用: 文章底部显示打赏卡片（微信/支付宝/自定义方式）
+    // 类型: boolean | 可填: true/false | 推荐: 按需
+    // 注意: 运行时可被 features.reward.enabled 覆盖（双开关,同时开才显示）
     "enabled": false,
+
+    // 打赏引导语
+    // 类型: string（一句话） | 推荐: 真诚简短的感谢语
     "note": "如果这篇文章对你有帮助，欢迎打赏支持；谢谢！",
+
+    // 微信收款方式
+    // image: 收款码图片路径（站内）;url: 收款链接（与 image 二选一）
+    // 不可填: 同时为空（会显示空卡片）
     "wechat": {
       "label": "微信",
       "image": "",
       "url": ""
     },
+
+    // 支付宝收款方式（字段同上）
     "alipay": {
       "label": "支付宝",
       "image": "",
       "url": ""
     },
+
+    // 自定义打赏方式
+    // 类型: 数组[{label,image?,url?}] | 推荐: 默认空
     "custom": []
   },
+
+  // ===================================================================
+  // 十四、页脚仓库链接
+  // ===================================================================
+
+  // 是否显示"本站开源"仓库链接
+  // 作用: 页脚展示项目仓库入口
+  // 类型: boolean | 可填: true/false | 推荐: true
   "showRepoLink": true,
+
+  // 仓库地址
+  // 作用: 页脚仓库链接 href
+  // 类型: string（https URL） | 推荐: 你的 fork/项目地址
   "repoUrl": "https://github.com/stop666two/S-ynapse",
-  "titleEn": "S-ynapse",
+
+  // ===================================================================
+  // 十五、多语言
+  // ===================================================================
+
+  // 启用语言列表与顺序
+  // 作用: 决定生成哪些语言站点;第一个为默认语言（根路径 302 目标）
+  // 类型: string[]（语言代码数组）
+  // 可填: ["zh"]（纯中文）/ ["en"]（纯英文）/ ["zh","en"]（双语）
+  // 不可填: 无对应 articles/{lang}/ 目录的语言代码（会生成空站点）
+  // 推荐: ["zh","en"]
+  // 注意: 顺序即 URL 语义（/zh/ 或 /en/ 前缀始终存在）;切换语言按钮自动生成
   "languages": [
     "zh",
     "en"
   ],
-  "subtitleEn": "Thought Synapses",
+
+  // ===================================================================
+  // 十六、性能优化（其余构建开关见 build.*,此处为渲染期/网络提示项）
+  // ===================================================================
   "performance": {
-    "preloadFonts": true,           // 预加载字体（<link rel=preload> 提前请求）
-    "fontDisplay": "swap",          // 字体显示策略：swap(先用回退字体)/block/fallback/optional
-    "lazyLoadRootMargin": "200px",  // 图片懒加载预取边距（视口外多远开始加载）
-    "imageDecoding": "async",       // 图片解码方式：async(不阻塞渲染)/sync/auto
-    "scriptLoading": "defer",       // 脚本加载策略：defer(解析后执行)/module/async
-    "preconnect": [                 // 预连接域名（提前 DNS+TLS 握手，降低首字节延迟）
+    // 预加载字体样式
+    // 作用: 对字体 CSS 输出 <link rel="preload" as="style">（提前拉取,减少字体闪烁）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 预加载会与首屏关键资源竞争带宽;字体极多时可关闭
+    "preloadFonts": true,
+
+    // 字体显示策略
+    // 作用: 生成 @font-face 的 font-display 值（本地 vendor 字体生效）
+    // 类型: string（枚举）
+    // 可填: "swap"（先用回退字体,推荐）/"block"（短暂隐身等待）/"fallback"/"optional"/"auto"
+    // 不可填: 其他字符串（非法值自动回退 swap）
+    // 推荐: "swap"
+    "fontDisplay": "swap",
+
+    // 图片解码方式
+    // 作用: 为内容图片输出 decoding 属性
+    // 类型: string（枚举）
+    // 可填: "async"（异步解码,推荐）/"sync"/"auto"
+    // 推荐: "async"
+    "imageDecoding": "async",
+
+    // 脚本加载策略
+    // 作用: 外部脚本（如 Prism）的加载属性
+    // 类型: string（枚举）
+    // 可填: "defer"（解析后顺序执行,推荐）/"module"/"async"
+    // 不可填: 其他值（会原样输出破坏语义）
+    // 推荐: "defer"
+    "scriptLoading": "defer",
+
+    // 预连接域名
+    // 作用: 输出 <link rel="preconnect">,提前完成 DNS+TLS 握手
+    // 类型: string[]（域名数组）
+    // 可填: 站点实际使用的外部域名;不可填: 不使用的域名（浪费连接）
+    // 推荐: 保留字体 CDN;本地化字体后可精简
+    "preconnect": [
       "https://fonts.googleapis.com",
       "https://fonts.gstatic.com"
     ],
-    "prefetchNextPage": false,      // 空闲时预取下一页（提高连续阅读体验）
-    "cacheBust": true,              // 构建产物加 hash 查询串防缓存（生产建议 true）
-    "criticalCSS": false,           // 内联首屏关键 CSS（实验性，需谨慎启用）
-    "resourceHints": true,          // 输出 preconnect/dns-prefetch 资源提示
-    "imageSizes": "auto",           // srcset 的 sizes 属性策略：auto/固定值
-    "htmlMinify": false,            // HTML 压缩（构建级，生产建议 true）
-    "cssMinify": false,             // CSS 压缩（构建级，生产建议 true）
-    "jsMinify": false,              // JS 压缩（构建级，生产建议 true）
-    "buildReport": true             // 生成 build-report.html 构建报告
+
+    // 预取下一页
+    // 作用: 空闲时 <link rel="prefetch"> 下一篇/下一页,提升连续阅读速度
+    // 类型: boolean | 可填: true/false | 推荐: false（省流量,按需开启）
+    "prefetchNextPage": false,
+
+    // 资源提示
+    // 作用: 控制 preconnect/dns-prefetch 整体输出开关
+    // 类型: boolean | 可填: true/false | 推荐: true
+    "resourceHints": true,
+
+    // srcset sizes 策略
+    // 作用: 输出 <img sizes> 属性;影响浏览器选图分辨率
+    // 类型: string（"auto" 或自定义 sizes 值）
+    // 可填: "auto"（内置响应式断点）/ 完整 sizes 表达式
+    // 推荐: "auto"
+    "imageSizes": "auto"
   }
 }

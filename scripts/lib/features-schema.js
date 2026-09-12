@@ -39,7 +39,7 @@ const DEFAULT_FEATURES = {
     debounceMs: 120, showHistoryOnFocus: true, maxHistory: 5
   },
   imageLazy: {
-    enabled: true, mode: 'lazy', loadMargin: '200px', fadeIn: true,
+    enabled: true, fadeIn: true,
     fadeInDurationMs: 300, placeholderColor: 'var(--color-hover)', preserveAspectRatio: true,
     loadingClass: 'img-loading', errorClass: 'img-error', eagerFirst: 3
   },

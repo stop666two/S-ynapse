@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **灯箱手势增强（E1）**：eatures.lightbox.swipeClose 下拉滑动关闭（放大状态下不触发）；鼠标拖拽左右翻页（非缩放态） — js/domains/lightbox.js
 - **PWA 商业化增强（B6）**：`features.pwa.offlinePage` 生成离线兜底页（断网访问未缓存页面→双语提示+重试按钮，SW 预缓存并导航回退）；`features.pwa.installPrompt` 安装引导（beforeinstallprompt 浮动按钮，可关闭并记忆） — `scripts/build.js` + `js/domains/pwa.js`
 - **氛围开关（A8）**：eatures.atmosphere（grain/glow）——颗粒纹理与 Hero 光晕的页面级开关（视觉参数仍在 	uning.texture/	uning.glow） — 	emplates/layout.ejs
 - **打印样式（D2）**：`features.printStyle`——打印/PDF 导出优化：隐藏交互元素、白底黑字、正文外链展开为 `文字 (URL)`、代码块/图表避免跨页断裂 — `templates/layout.ejs`

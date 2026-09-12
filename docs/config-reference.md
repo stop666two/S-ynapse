@@ -247,6 +247,7 @@
 | `keyboardNavigate` | `true` | ←/→ 切图 |
 | `escToClose` | `true` | Esc 关闭 |
 | `swipeToNavigate` | `true` | 移动端滑动 |
+| `swipeClose` | `true` | 下/上滑动关闭(移动端下拉关闭、放大态不触发) |
 | `closeOnBackdrop` | `true` | 点遮罩关闭 |
 | `showCounter` | `true` | N / M 计数器 |
 | `counterFormat` | `{current} / {total}` | 计数模板 |

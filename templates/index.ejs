@@ -21,6 +21,9 @@
   <% } %>
 </section>
 <% } %>
+<% if (typeof features!=='undefined'&&features.readingHistory&&features.readingHistory.enabled!==false) { %>
+<div class="reading-history" id="readingHistory" hidden></div>
+<% } %>
 <% if (articles && articles.length) { %>
 <div class="blog-grid<%= (typeof tuning!=='undefined'&&tuning.card&&tuning.card.bentoFeatured===false)?'':' bento' %>">
 <% articles.forEach(function(article) { %>

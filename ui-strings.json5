@@ -192,6 +192,11 @@
     aria: '订阅入口',
   },
 
+  readingHistory: {
+    title: '继续阅读',
+    clear: '清除',
+  },
+
   en: {
     common: {
       loading: 'Loading…',
@@ -328,6 +333,10 @@
       title: 'Subscribe & Updates',
       mail: 'Email updates',
       aria: 'Subscribe',
+    },
+    readingHistory: {
+      title: 'Continue reading',
+      clear: 'Clear',
     },
   },
 }

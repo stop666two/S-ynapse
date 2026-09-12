@@ -177,6 +177,10 @@ const DEFAULT_FEATURES = {
     enabled: true, pageSlug: 'about', showSocial: true, showSkills: true,
     showTimeline: true, avatarSize: '96px', maxTimeline: 20
   },
+  readingHistory: {
+    enabled: true, maxItems: 5, storageKey: 's-history',
+    showOnHome: true, clearable: true
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true

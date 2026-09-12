@@ -44,6 +44,10 @@ if (enabled(F.favorites)) {
   tasks.push(import('../domains/favorites.js').then(m => m.init()));
 }
 
+if (window.__GUARD__) {
+  tasks.push(import('../domains/guard/core.js').then(m => m.init()).catch(() => {}));
+}
+
 [
   themeInit, navigationInit, searchInit, tocInit, readingInit, lightboxInit,
   readingPanelInit, ttsInit, seamlessNavInit, pageTransitionInit, shortcutsInit, prevNextInit,

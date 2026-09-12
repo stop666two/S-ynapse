@@ -169,6 +169,11 @@ function loadConfig() {
   // UI tuning domain: optional tuning.json5 — fine-grained UI values (typography,
   // layout, radius, motion, ...). Missing file keeps every CSS fallback in place.
   const tuning = loadOptionalConfigFile('tuning.json5') || {};
+  // Guard domain (module 60): optional guard.json5 — protection & interaction
+  // controls (custom context menu, copy guard, hotkey guard, detection, ...).
+  // Missing file keeps guards inert (client only reads it when features.guards
+  // is enabled and the preset activates a module).
+  const guard = loadOptionalConfigFile('guard.json5') || {};
 
   const defaults = {
     site: {
@@ -256,7 +261,7 @@ function loadConfig() {
     }
   };
 
-  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy, features, uiStrings, tuning }, { tagAliases: tagAliasData, friends: friendsData }]);
+  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy, features, uiStrings, tuning, guard }, { tagAliases: tagAliasData, friends: friendsData }]);
   // Features arrays must replace, not concatenate (e.g. share.order must drop
   // platforms the user removed). Deepmerge's default arrayMerge concatenates,
   // so features gets its own merge pass with a replace strategy.
@@ -1409,6 +1414,7 @@ function buildPageData(config, articles, tags, categories) {
     features: config.features,
     uiStrings: config.uiStrings || {},
     tuning: config.tuning || {},
+    guard: config.guard || {},
     nav,
     sidebar: config.sidebar,
     footer: config.footer,

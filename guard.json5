@@ -1,0 +1,251 @@
+// ============================================================================
+// guard.json5 —— 防护与交互控制域（Guard）细项配置
+// ----------------------------------------------------------------------------
+// 这是第 13 个配置文件，只负责“防护类”功能的细节参数。
+//   · 总开关与模块启停：features.json5 → guards 模块（preset: off/soft/strict）
+//   · 本文件：每个模块的细节行为（菜单项、复制规则、绕过通道……）
+//
+// 生效规则（重要）：
+//   features.guards.enabled = false  → 本文件所有配置失效（防护完全关闭）
+//   preset = 'off'    → 全部关闭
+//   preset = 'soft'   → 仅“自定义右键菜单 + 复制署名”生效（默认，体验友好）
+//   preset = 'strict' → 各模块按本文件内的 enabled 字段生效（含拦截/检测类）
+//
+// 绕过通道（调试/无障碍必需，优先级从高到低）：
+//   1. URL 参数  ?guard=off 强制关闭      ?guard=on 强制开启（覆盖一切）
+//   2. localStorage['s-guards-off']='1'  持久关闭（控制台执行一次即可）
+//   3. core.bypass.localhost = true 时，localhost/127.0.0.1 自动关闭
+//
+// 诚实声明：所有“拦截/检测”类能力均为威慑手段，均可被浏览器菜单、
+//   开发者工具、阅读模式等绕过；且可能影响可访问性与正常用户操作。
+//   请逐字段阅读“注意”后再开启；默认配置（soft 档 + 各拦截项关闭）最安全。
+//
+// 类型约定：单位支持 px/%/rem/vh/vw；纯数字仅用于毫秒（ms）与次数；
+//   非法值（类型不符/超出枚举/负数）会被忽略并回退到“推荐值”。
+// ============================================================================
+
+{
+  // ==========================================================================
+  // 【core】全局行为与绕过通道（8 项）
+  // ==========================================================================
+  core: {
+    // 作用：一键档位（供 features.guards.preset 读取；此处保持默认 'soft'）
+    // 类型：string；可填：'off' | 'soft' | 'strict'
+    // 不可填：其它字符串（校验不通过时回退 'soft'）
+    // 推荐：'soft'；废弃值：无
+    // 注意：'strict' 会按本文件 enabled 字段开启拦截类模块，普通用户会感到被冒犯
+    preset: 'soft',
+
+    // 作用：localhost/127.0.0.1 自动关闭全部防护（开发预览不被打扰）
+    // 类型：boolean；可填：true | false
+    // 推荐：false（本地预览所见即所得；需要安静时用 ?guard=off）
+    // 注意：true 时你本机看到的界面与线上不一致，排查问题前先关掉它
+    bypass: {
+      localhost: false,
+
+      // 作用：URL 参数名，?guard=off / ?guard=on 强制开关（覆盖一切其它设置）
+      // 类型：string；可填：任意参数名（避免与已有参数冲突）
+      // 不可填：空字符串（为空则禁用该通道）
+      // 推荐：'guard'
+      queryParam: 'guard',
+
+      // 作用：localStorage 键名，值为 '1' 时持久关闭防护
+      // 类型：string；可填：任意键名
+      // 推荐：'s-guards-off'；注意：用户一旦设置，线上不会再看到防护
+      storageFlag: 's-guards-off'
+    },
+
+    // 作用：控制台日志级别（前缀 [guard]，便于过滤）
+    // 类型：string；可填：'off' | 'info' | 'debug'
+    // 推荐：'off'（生产不留痕）；排查问题时临时改 'debug'
+    logLevel: 'off',
+
+    // 作用：输入框/文本域/可编辑区内不劫持右键与快捷键（无障碍与表单体验）
+    // 类型：boolean；可填：true | false
+    // 不可填：false（强烈不建议，会破坏表单复制粘贴）
+    // 推荐：true
+    respectEditable: true,
+
+    // 作用：i18n 键缺失时的回退语言
+    // 类型：string；可填：'zh' | 'en'
+    // 推荐：'zh'（ui-strings.json5 顶层为中文）
+    i18nFallbackLang: 'zh',
+
+    // 作用：菜单/提示语的动态定位边距（防止贴边溢出）
+    // 类型：string（CSS 长度）；可填：px/rem/%；不可填：负数
+    // 推荐：'8px'
+    edgePadding: '8px'
+  },
+
+  // ==========================================================================
+  // 【contextMenu】自定义右键菜单（30 项）
+  // --------------------------------------------------------------------------
+  // 在“选择文字/链接/图片/代码块/空白处”时弹出站内菜单，替换浏览器默认菜单。
+  // soft 档默认开启；这是体验增强类功能，无副作用。
+  // ==========================================================================
+  contextMenu: {
+    // 作用：模块开关；preset='soft' 时随之启用；preset='off' 时忽略
+    // 类型：boolean；推荐：true
+    enabled: true,
+
+    // 作用：是否屏蔽浏览器原生右键菜单（屏蔽后才叫“自定义菜单”）
+    // 类型：boolean；可填：true | false
+    // 不可填：无；注意：false 时站内菜单与原生菜单同时在（通常很丑）
+    // 推荐：true
+    disableNative: true,
+
+    // 作用：触屏长按是否弹出菜单（移动端右键的替代手势）
+    // 类型：boolean；推荐：true
+    // 注意：部分 iOS 版本会同时弹出系统选择菜单，两者叠加时以系统为准
+    trigger: {
+      longPress: true,
+      // 作用：长按触发时长；类型：number(ms)；可填 300–1200；推荐：550
+      // 不可填：<300（误触率极高）或 >1500（用户以为没反应）
+      longPressMs: 550
+    },
+
+    // 作用：关闭时机集合
+    behavior: {
+      // Esc 关闭；推荐 true
+      closeOnEsc: true,
+      // 页面滚动时关闭；推荐 true（防菜单悬空漂移）
+      closeOnScroll: true,
+      // 点击菜单外区域关闭；推荐 true
+      closeOnOutside: true,
+      // 窗口失焦关闭；推荐 true
+      closeOnBlur: true
+    },
+
+    // 作用：菜单视觉（空字符串 = 使用 tuning.json5 → guard 分类的值）
+    style: {
+      // 类型：string(CSS 长度)；可填 px/rem；推荐：''（走 tuning）
+      width: '',
+      // 类型：string；推荐：''（走 tuning）
+      radius: '',
+      // 作用：菜单背景毛玻璃；类型 boolean；推荐 true
+      blur: true,
+      // 作用：弹出动画时长；类型 number(ms)；可填 80–300；推荐 140
+      animMs: 140,
+      // 作用：投影强度 0–1；类型 number；推荐 0.18
+      shadowOpacity: 0.18
+    },
+
+    // 作用：在哪些场景显示菜单（精准控制，避免打扰）
+    // 类型：boolean；推荐如上（代码/空白/图片/链接/文字选择全开）
+    showOn: {
+      selection: true,
+      link: true,
+      image: true,
+      code: true,
+      blank: true
+    },
+
+    // 作用：内置菜单项开关（均可单独关闭以精简菜单）
+    // 类型：boolean；推荐值见注释
+    builtin: {
+      copy: true,          // 复制（有选中文字时）
+      copyLink: true,      // 复制链接（在链接上时）
+      openNewTab: true,    // 新标签页打开链接
+      searchSelected: true,// 用站内搜索搜选中词
+      translate: true,     // 调用在线翻译（新标签页打开，外部服务）
+      backToTop: true,     // 返回顶部
+      toggleTheme: true,   // 切换深浅色
+      print: true,         // 打印
+      copyCode: true,      // 复制代码（代码块内）
+      copyRaw: true,       // 复制源码（代码块内，不等同于代码）
+      download: true,      // 下载代码（代码块内）
+      viewSource: false,   // 查看网页源码；注意：暴露源码，默认关（无防护意义）
+      inspect: false       // 检查元素；注意：多数浏览器无效，默认关
+    },
+
+    // 作用：自定义菜单项（追加在内置项之后）
+    // 类型：array；元素：{ label:'显示名', labelEn:'英文名', url:'打开地址',
+    //   action:'自定义动作名', selector:'仅对匹配选择器显示' }
+    // 可填：label 必填；url 与 action 二选一；不可填：两者都填或都不填
+    // 推荐：[]（无自定义项）；注意：action 需自行在页面脚本监听
+    //   事件 'guard:menu-action'（detail.action），否则该项点击无反应
+    items: [],
+
+    // 作用：不弹出菜单的区域白名单（CSS 选择器数组）
+    // 类型：array<string>；推荐：[]；注意：输入框/文本域已由
+    //   core.respectEditable 自动放行，无需在此重复添加
+    excludeSelectors: [],
+
+    // 作用：菜单的无障碍标签（空 = 使用 ui-strings 默认文案）
+    // 类型：string；推荐：''
+    ariaLabel: ''
+  },
+
+  // ==========================================================================
+  // 【copyGuard】复制控制（20 项）
+  // --------------------------------------------------------------------------
+  // 四种模式：off（不管）｜attribution（追加出处，推荐默认）｜
+  //          weakBlock（拦截并提示，仍可继续）｜block（硬拦截，不建议）
+  // 诚实声明：文本已在网页源码中，任何拦截都可被查看源码/阅读模式绕过；
+  //   拦截还会影响用户引用、翻译、笔记，请谨慎开启 block。
+  // ==========================================================================
+  copyGuard: {
+    // 作用：模块开关；类型：boolean；推荐：true（attribution 模式）
+    enabled: true,
+
+    // 作用：工作模式
+    // 类型：string；可填：'off' | 'attribution' | 'weakBlock' | 'block'
+    // 不可填：其它字符串（回退 'off'）
+    // 推荐：'attribution'；不可填值原因：自定义字符串无对应逻辑
+    mode: 'attribution',
+
+    // 作用：署名追加规则（mode='attribution' 时生效）
+    attribution: {
+      // 作用：中文附件模板；占位符：{title} 标题、{url} 链接、{author} 作者、
+      //   {site} 站名；类型：string；不可填：无占位符也可（纯文本）
+      // 推荐：'—— 原文：{title}\n{url}'（换行缩进由 attribution.separator 统一追加）
+      text: '—— 原文：{title}\n{url}',
+      // 作用：英文附件模板（英文页面使用）；推荐：'— From: {title}\n{url}'
+      textEn: '— From: {title}\n{url}',
+      // 作用：追加位置；类型：string；可填：'after' | 'before'
+      // 推荐：'after'（复制正文尾部，不打断引用习惯）
+      position: 'after',
+      // 作用：模板缺占位符时补在正文间的分隔符；推荐：'\n\n'
+      separator: '\n\n',
+      // 作用：小于该字数不追加（复制一个词不打扰）；类型：number（字符数）
+      // 可填：0–200；推荐：40；不可填：负数
+      minChars: 40,
+      // 作用：仅文章页生效（首页/归档等不追加）；推荐：true
+      onlyArticles: true
+    },
+
+    // 作用：允许放行（不拦不署名）的区域
+    allow: {
+      // 代码块永远放行（复制代码是刚需）；类型：boolean；推荐：true
+      codeBlocks: true,
+      // 白名单选择器；类型：array<string>；推荐：[]（如需放行引用块可加 '.post-content blockquote'）
+      selectors: []
+    },
+
+    // 作用：拦截提示（mode='weakBlock' 或 'block' 时生效）
+    block: {
+      // 类型：boolean；推荐：true（弹出提示，否则被拦无反馈很困惑）
+      toast: true,
+      // 作用：提示文案覆盖（空 = ui-strings 默认）；类型：string；推荐：''
+      toastText: '',
+      // 作用：被拦时页面边缘闪烁一次（视觉反馈）；类型：boolean；推荐：false
+      flash: false
+    },
+
+    // 作用：其它小动作
+    extra: {
+      // 剪切（Ctrl+X）也遵循同策略；类型：boolean；推荐：false（剪切是编辑行为）
+      alsoCut: false,
+      // 图片：右键另存提示代替真正拦截（浏览器无法可靠拦截保存）；推荐：false
+      imageNotice: false,
+      // iOS 长按图片菜单覆盖（实验性）；推荐：false
+      iOSOverride: false
+    },
+
+    // 作用：被拦时是否只在每会话提示一次（防轰炸）；推荐：true
+    noticeOncePerSession: true,
+
+    // 作用：本地统计（仅 console，不发起网络请求）；推荐：false
+    logCopyEvents: false
+  }
+}

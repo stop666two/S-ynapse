@@ -415,7 +415,8 @@ const DEFAULT_FEATURES = {
     enabled: true, align: 'center', showSite: true, useGradient: true,
     gradientAngle: '135deg', fontSizeBase: 64, maxLines: 4,
     letterSpacing: '0.02em', template: 'aurora', palette: 'theme', showCategory: true
-  }
+  },
+  guards: { enabled: true, preset: 'soft', contextMenu: true, copyGuard: true }
 };
 
 const FEATURE_MODULES = Object.keys(DEFAULT_FEATURES);
@@ -447,7 +448,8 @@ const ENUM_FIELDS = {
   viewTransition: { type: ['fade', 'slide'], reducedMotion: ['light', 'off', 'full'] },
   speculation: { mode: ['prefetch', 'prerender', 'both'], eagerness: ['moderate', 'eager', 'conservative'], delivery: ['inline', 'header', 'both'] },
   ogImageStyle: { template: ['aurora', 'mesh', 'grid', 'paper', 'duotone'], palette: ['theme', 'hash'] },
-  announcement: { tone: ['accent', 'solid', 'minimal'] }
+  announcement: { tone: ['accent', 'solid', 'minimal'] },
+  guards: { preset: ['off', 'soft', 'strict'] }
 };
 // Numeric fields computed per module via typeof === 'number' check. All non-
 // numeric array fields (whitelist/blacklist/order/palette) must be arrays.

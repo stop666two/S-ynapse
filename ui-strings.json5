@@ -206,6 +206,26 @@
     clear: '清除',
   },
 
+  guard: {
+    menuLabel: '操作菜单',
+    copy: '复制',
+    copyLink: '复制链接',
+    openNewTab: '新窗口打开',
+    searchSelected: '搜索“{text}”',
+    translate: '翻译选中内容',
+    backToTop: '返回顶部',
+    toggleTheme: '切换深浅色',
+    print: '打印',
+    copyCode: '复制代码',
+    copyRaw: '复制源码',
+    download: '下载',
+    viewSource: '查看源码',
+    inspect: '检查元素',
+    copied: '已复制',
+    copyBlocked: '内容受保护，禁止复制',
+    copyHint: '已附带原文出处',
+  },
+
   en: {
     common: {
       loading: 'Loading…',
@@ -355,6 +375,25 @@
     readingHistory: {
       title: 'Continue reading',
       clear: 'Clear',
+    },
+    guard: {
+      menuLabel: 'Actions menu',
+      copy: 'Copy',
+      copyLink: 'Copy link',
+      openNewTab: 'Open in new tab',
+      searchSelected: 'Search “{text}”',
+      translate: 'Translate selection',
+      backToTop: 'Back to top',
+      toggleTheme: 'Toggle theme',
+      print: 'Print',
+      copyCode: 'Copy code',
+      copyRaw: 'Copy source',
+      download: 'Download',
+      viewSource: 'View source',
+      inspect: 'Inspect element',
+      copied: 'Copied',
+      copyBlocked: 'Content protected, copying disabled',
+      copyHint: 'Source attribution added',
     },
   },
 }

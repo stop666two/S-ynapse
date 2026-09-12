@@ -184,6 +184,9 @@ const DEFAULT_FEATURES = {
   printStyle: {
     enabled: true, hideInteractive: true, expandLinks: true, avoidBreaks: true
   },
+  atmosphere: {
+    enabled: true, grain: true, glow: true
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true

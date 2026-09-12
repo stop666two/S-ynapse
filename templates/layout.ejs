@@ -462,6 +462,15 @@
     @keyframes g-wm-drift{from{transform:translate(0,0)}to{transform:translate(var(--g-wmGapX,180px),var(--g-wmGapY,140px))}}
     @media (prefers-reduced-motion:reduce){.g-wm-anim{animation:none}}
     @media print{.g-wm-noprint{display:none!important}}
+    .g-curtain-overlay{position:fixed;inset:0;z-index:1880;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .1s;backdrop-filter:blur(var(--g-curtainBlur,8px));-webkit-backdrop-filter:blur(var(--g-curtainBlur,8px));background:color-mix(in srgb,var(--color-bg) 30%,transparent)}
+    .g-curtain-on .g-curtain-overlay{opacity:1}
+    .g-curtain-text{font-size:.875rem;color:var(--color-ts);letter-spacing:.1em}
+    .g-dt-blur .content-wrapper{filter:blur(var(--g-dtBlur,6px));transition:filter .3s var(--te)}
+    .g-lock{position:fixed;inset:0;z-index:1895;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.8rem;background:var(--color-bg);color:var(--color-t);text-align:center;padding:2rem}
+    .g-lock h3{font-size:1.05rem;font-weight:600}
+    .g-lock p{font-size:.85rem;color:var(--color-ts)}
+    .g-lock button{margin-top:.4rem;padding:.45rem 1.2rem;border:1px solid var(--color-border);border-radius:var(--br);background:var(--color-surface);color:var(--color-t);cursor:pointer;font:inherit;font-size:.8125rem}
+    .g-lock button:hover{background:color-mix(in srgb,var(--color-s) 12%,transparent)}
 <% } %>
     /* —— 代码块:行号列（Prism line-numbers 几何适配）—— */
     .post-content pre.line-numbers{padding-left:3.8em;counter-reset:linenumber}

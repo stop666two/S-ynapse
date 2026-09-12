@@ -380,5 +380,140 @@
     mobileEnabled: false,
     // 作用：缓慢漂移动画（防对齐裁剪，尊重系统减少动效设置）；boolean；推荐 false
     animate: false
+  },
+
+  // ==========================================================================
+  // 【devtoolsDetect】开发者工具入侵检测（15 项）——默认关闭（保留但默认关）
+  // --------------------------------------------------------------------------
+  // 检定手段：停靠尺寸差（sizeDiff）与调试器计时（timingDebugger，含 debugger 语句）。
+  // 诚实声明：检测非 100% 准确（窗口缩放、特殊布局会误报）；且“检测≠阻止”，
+  //   控制台代码仍可执行。仅在确有需要时开启，并建议 action 用 'notice'。
+  // ==========================================================================
+  devtoolsDetect: {
+    // 作用：模块开关；类型：boolean；推荐：false（soft 档需显式 true）
+    enabled: false,
+
+    // 作用：检测手段开关（可组合；任一命中即视为打开）
+    // sizeDiff：停靠式开发者工具会改变内外窗口尺寸差，超过阈值即判定
+    // timingDebugger：以 debugger 语句前后耗时判定（开发者工具打开时会被暂停）
+    // 类型：boolean；推荐：sizeDiff true + timingDebugger false（后者有性能波动）
+    methods: {
+      sizeDiff: true,
+      timingDebugger: false
+    },
+
+    // 作用：检测周期；类型：number(ms)；可填 1000–10000；推荐：1500
+    // 不可填：<1000 的原因：频繁检定拖慢页面且无必要
+    intervalMs: 1500,
+    // 作用：尺寸差阈值（宽/高任一超出即判定）；类型：number(px)；可填 80–400；推荐：160
+    thresholdSizePx: 160,
+    // 作用：计时阈值（timingDebugger 用）；类型：number(ms)；可填 50–1000；推荐：120
+    thresholdTimingMs: 120,
+
+    // 作用：命中动作
+    // 类型：string；可填：'none'（仅记录）| 'notice'（轻提示，推荐）|
+    //                  'blurPage'（页面加模糊）| 'lockOverlay'（全屏遮罩）| 'reload'（刷新页面）
+    // 不可填：其它字符串（回退 'none'）；推荐：'notice'
+    // 注意：'lockOverlay' 会挡操作，遮罩自带关闭按钮可退出
+    action: 'notice',
+    // 作用：提示文案（空 = ui-strings 默认）；类型：string；推荐：''
+    noticeText: '',
+    // 作用：每会话只触发一次；类型：boolean；推荐：true（防打扰）
+    noticeOncePerSession: true,
+
+    // 作用：'blurPage' 的模糊强度；类型：string；推荐：'6px'
+    blurAmount: '6px',
+    // 作用：'lockOverlay' 的标题与正文；类型：string；推荐见右
+    lockTitle: '开发者工具已打开',
+    lockText: '请关闭开发者工具后继续浏览',
+    // 作用：'reload' 延迟（给提示留时间）；类型：number(ms)；可填 0–3000；推荐：800
+    reloadDelayMs: 800,
+
+    // 作用：页面隐藏（切标签页）时暂停检测；类型：boolean；推荐：true
+    pauseWhenHidden: true,
+    // 作用：控制台输出检测日志（前缀 [guard]）；类型：boolean；推荐：false
+    logDetect: false
+  },
+
+  // ==========================================================================
+  // 【consoleGuard】控制台克制与反制（16 项）——默认关闭（保留但默认关）
+  // --------------------------------------------------------------------------
+  // 诚实声明：页面脚本无法拦截 DevTools 真实控制台的代码求值；本模块全部能力
+  //   仅作用于“页面上下文可见的 console 对象”（防脚本噪音/误导性输出），
+  //   对高级用户无效——属威慑与整洁性功能，不是安全边界。
+  // ==========================================================================
+  consoleGuard: {
+    // 作用：模块开关；类型：boolean；推荐：false（soft 档需显式 true）
+    enabled: false,
+
+    // 作用：控制台欢迎语（打开控制台可见的站方留言）
+    // bannerEnabled：boolean；推荐 false（避免噪音）
+    // bannerText/bannerTextEn：string；不可填：无；推荐见右
+    // bannerAscii：boolean；true 时以大字 ASCII 艺术输出；推荐 false
+    bannerEnabled: false,
+    bannerText: '本站为静态博客，请勿粘贴执行陌生代码',
+    bannerTextEn: 'This is a static blog. Never paste unknown code here.',
+    bannerAscii: false,
+
+    // 作用：周期性清空控制台（对抗脚本刷屏）
+    // clearEnabled：boolean；推荐 false
+    // clearIntervalMs：number(ms)；可填 2000–60000；推荐 2000
+    // clearOnDetect：boolean；检测（devtoolsDetect）命中时清空一次；推荐 true
+    // 注意：清空属于与用户“抢控制台”，调试时会互相干扰
+    clearEnabled: false,
+    clearIntervalMs: 2000,
+    clearOnDetect: true,
+
+    // 作用：对页面脚本伪装 console（把指定方法替换为 no-op；仅影响页面自己的输出）
+    // muteEnabled：boolean；推荐 false
+    // muteMethods：array<string>；可填 'log','info','warn','error','debug','table' 子集
+    // muteFreeze：boolean；冻结 console 对象防页面改回；推荐 false（可能破坏第三方脚本）
+    muteEnabled: false,
+    muteMethods: ['log', 'info', 'debug'],
+    muteFreeze: false,
+
+    // 作用：console.log 访问陷阱（页面脚本一碰 console.log 即触发动作）
+    // trapEnabled：boolean；推荐 false
+    // trapAction：string；可填 'notice' | 'none'；推荐 'notice'
+    // trapText：string；空 = ui-strings 默认；推荐 ''
+    trapEnabled: false,
+    trapAction: 'notice',
+    trapText: '',
+
+    // 作用：隐藏 guard 自身全部控制台输出（覆盖 core.logLevel）；类型：boolean；推荐：false
+    hideSelfLogs: false,
+    // 作用：上述提示每会话只一次；类型：boolean；推荐：true
+    noticeOncePerSession: true
+  },
+
+  // ==========================================================================
+  // 【privacyCurtain】窗口隐私帘（10 项）——默认关闭（保留但默认关）
+  // --------------------------------------------------------------------------
+  // 场景：切出标签页/窗口失焦时遮罩内容，防止旁人瞥见或录屏采集。
+  // 诚实声明：OS 级截屏/录屏无法阻止；PrintScreen 只能“检测提示”。
+  // ==========================================================================
+  privacyCurtain: {
+    // 作用：模块开关；类型：boolean；推荐：false（soft 档需显式 true）
+    enabled: false,
+
+    // 作用：窗口失焦（切到别的应用）时显示隐私帘；类型：boolean；推荐：true
+    blurOnBlur: true,
+    // 作用：标签页隐藏（切标签）时显示隐私帘；类型：boolean；推荐：true
+    blurOnVisibility: true,
+    // 作用：模糊强度；类型：string；可填 px/rem；推荐：'8px'
+    blurAmount: '8px',
+    // 作用：帘上文案（中/英）；类型：string；推荐：'已暂停显示' / 'Paused'
+    curtainText: '已暂停显示',
+    curtainTextEn: 'Paused',
+    // 作用：恢复显示的去抖延迟（快速切回不闪）；类型：number(ms)；可填 0–1000；推荐：200
+    revealDelayMs: 200,
+
+    // 作用：PrintScreen 按键检测提示（仅键盘路径；无法真正阻止截图）
+    // prtScNotice：boolean；推荐 false
+    // prtScText：string；空 = ui-strings 默认；推荐 ''
+    // prtScOncePerSession：boolean；推荐 true
+    prtScNotice: false,
+    prtScText: '',
+    prtScOncePerSession: true
   }
 }

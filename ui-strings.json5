@@ -226,6 +226,9 @@
     copyHint: '已附带原文出处',
     selectDisabled: '本页内容不可选择',
     hotkeyBlocked: '该快捷键已被站点禁用',
+    devtoolsDetected: '检测到开发者工具已打开',
+    curtainText: '已暂停显示',
+    screenKey: '已检测到截屏按键',
   },
 
   en: {
@@ -398,6 +401,9 @@
       copyHint: 'Source attribution added',
       selectDisabled: 'Selection is disabled on this page',
       hotkeyBlocked: 'This shortcut is disabled on this site',
+      devtoolsDetected: 'Developer tools detected',
+      curtainText: 'Paused',
+      screenKey: 'Screen-capture key detected',
     },
   },
 }

@@ -1931,6 +1931,9 @@
     copyGuard: true,
     selectionGuard: true,
     hotkeyGuard: true,
-    watermark: true
+    watermark: true,
+    devtoolsDetect: true,
+    consoleGuard: true,
+    privacyCurtain: true
   },
 }

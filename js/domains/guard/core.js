@@ -73,5 +73,8 @@ export function init() {
   if (active('selectionGuard')) import('./selection-guard.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('selectionGuard load failed', e); });
   if (active('hotkeyGuard')) import('./hotkey-guard.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('hotkeyGuard load failed', e); });
   if (active('watermark')) import('./watermark.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('watermark load failed', e); });
+  if (active('devtoolsDetect')) import('./devtools-detect.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('devtoolsDetect load failed', e); });
+  if (active('consoleGuard')) import('./console-guard.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('consoleGuard load failed', e); });
+  if (active('privacyCurtain')) import('./privacy-curtain.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('privacyCurtain load failed', e); });
   log('init', preset);
 }

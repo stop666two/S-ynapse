@@ -40,24 +40,20 @@
     "captionSize": ".8125rem",
     // 元信息字号
     "metaSize": ".875rem",
-    // 导语字号（黄金 √φ）
+    // 导语字号（黄金 √φ）（待实现：导语段落样式暂无目标）
     "leadSize": "1.272em",
   },
 
-  // ---------- 布局系统（16 项） ----------
+  // ---------- 布局系统（12 项） ----------
   "layout": {
     // 内容区最大宽度
     "containerWidth": "1250px",
     // 左侧目录宽度
     "tocWidth": "200px",
-    // 右侧边栏宽度（= 目录 × φ）
-    "sidebarWidth": "318px",
     // 模块间距（黄金 φ）
     "gap": "1.618rem",
     // 页面内边距（黄金 φ²）
     "padding": "2.618rem",
-    // 导航栏高度
-    "headerHeight": "60px",
     // 内容区水平偏移
     "contentOffset": "-10px",
     // 标题与内容区间距
@@ -72,15 +68,11 @@
     "tocHideBreakpoint": "900px",
     // 平板断点
     "tabletBreakpoint": "1024px",
-    // 宽屏断点
-    "wideBreakpoint": "1556px",
     // 超宽屏内容上限
     "maxContentWidth": "1600px",
-    // 页脚列数
-    "footerColumns": "3",
   },
 
-  // ---------- 圆角系统（8 项） ----------
+  // ---------- 圆角系统（7 项） ----------
   "radius": {
     // 默认圆角（黄金）
     "default": "0.618rem",
@@ -88,19 +80,17 @@
     "large": "1.618rem",
     // 按钮圆角
     "button": "0.382rem",
-    // 卡片圆角
-    "card": "0.618rem",
     // 图片圆角
     "image": "0.618rem",
     // 头像圆角
     "avatar": "50%",
     // 徽章圆角
-    "badge": "0.25rem",
+    "badge": "1rem",
     // 输入框圆角
     "input": "0.382rem",
   },
 
-  // ---------- 动效系统（10 项） ----------
+  // ---------- 动效系统（11 项） ----------
   "motion": {
     // 卡片悬停上浮距离（px）
     "hoverLiftPx": "4",
@@ -126,10 +116,8 @@
     "transitionTiming": "cubic-bezier(0.22, 1, 0.36, 1)",
   },
 
-  // ---------- 首屏 Hero（10 项） ----------
+  // ---------- 首屏 Hero（9 项） ----------
   "hero": {
-    // 首屏高度（黄金 61.8vh）
-    "heightVh": "61.8",
     // Hero 标题字号（黄金 φ²）
     "titleSize": "2.618em",
     // Hero 副标题字号
@@ -162,8 +150,6 @@
     "titleSize": "1.272rem",
     // 摘要最大行数
     "excerptLines": "3",
-    // 悬停上浮（px）
-    "hoverLiftPx": "4",
     // 元信息字号
     "metaSize": ".8125rem",
     // 无封面占位字号下限
@@ -176,7 +162,7 @@
     "imageHoverScale": "1.02",
   },
 
-  // ---------- 目录侧栏（10 项） ----------
+  // ---------- 目录侧栏（9 项） ----------
   "toc": {
     // 目录正文字号
     "fontSize": ".8125rem",
@@ -192,8 +178,6 @@
     "progressHeight": "3px",
     // 吸顶偏移
     "stickyTop": "80px",
-    // 目录最大宽度
-    "maxWidthPx": "320",
     // 滚动高亮偏移
     "scrollOffset": "80",
     // 默认折叠
@@ -224,14 +208,10 @@
     "emptyText": "未找到匹配内容",
   },
 
-  // ---------- 阅读体验（10 项） ----------
+  // ---------- 阅读体验（12 项） ----------
   "reading": {
     // 阅读进度条高度
     "progressHeight": "3px",
-    // 返回顶部按钮尺寸
-    "backToTopSize": "44px",
-    // 返回顶部偏移
-    "backToTopOffset": "2rem",
     // 阅读坞底部偏移
     "dockBottom": "5.6rem",
     // TTS 语速
@@ -256,64 +236,28 @@
     "h2AccentColor": "var(--color-s)",
   },
 
-  // ---------- 评论区（8 项） ----------
+  // ---------- 评论区（5 项） ----------
   "comments": {
-    // 占位延迟（ms）
-    "loadDelayMs": "300",
-    // 加载中占位文案
-    "placeholderText": "评论加载中…",
-    // 空评论文案
-    "emptyText": "暂无评论",
-    // 头像尺寸
+    // 头像尺寸（待实现：评论为第三方 iframe (giscus)，内部样式无法注入）
     "avatarSize": "40px",
     // 区域上边距
     "marginTop": "2rem",
-    // 区域宽度
+    // 区域宽度（待实现：评论容器样式预留）
     "width": "100%",
-    // 区域圆角
+    // 区域圆角（待实现：评论为第三方 iframe (giscus)，内部样式无法注入）
     "borderRadius": "0.618rem",
-    // 显示分隔线
+    // 显示分隔线（待实现：评论为第三方 iframe (giscus)，内部样式无法注入）
     "dividerShow": "true",
   },
 
-  // ---------- 页脚（8 项） ----------
-  "footer": {
-    // 上下内边距
-    "paddingV": "2.618rem",
-    // 列间距
-    "gap": "2rem",
-    // 备案字号
-    "icpSize": ".75rem",
-    // 链接字号
-    "linkSize": ".875rem",
-    // 版权字号
-    "copyrightSize": ".8125rem",
-    // 列数
-    "columns": "3",
-    // 社交图标尺寸
-    "socialIconSize": "18px",
-    // 社交图标间距
-    "socialGap": ".75rem",
-  },
-
-  // ---------- 导航栏（8 项） ----------
+  // ---------- 导航栏（7 项） ----------
   "header": {
     // 导航栏高度
     "height": "60px",
-    // 毛玻璃模糊
-    "glassBlur": "12px",
-    // 毛玻璃透明度
-    "glassAlpha": "0.8",
     // Logo 字号
     "logoSize": "1.272em",
-    // 导航字号
-    "navFontSize": ".9375rem",
-    // 导航项间距
-    "navGap": ".25rem",
     // 图标尺寸
     "iconSize": "18px",
-    // 底阴影不透明度
-    "shadowOpacity": "0.08",
     // 滚动收缩后高度（滚动超过 scrollThresholdPx 时收缩到该高度）
     "scrolledHeight": "56px",
     // 是否启用滚动收缩效果（true = 启用，false = 关闭）
@@ -324,62 +268,20 @@
     "hairlineStrength": "30%",
   },
 
-  // ---------- 侧栏（8 项） ----------
-  "sidebar": {
-    // 侧栏宽度
-    "width": "318px",
-    // 部件间距
-    "widgetGap": "1.618rem",
-    // 部件标题字号
-    "widgetTitleSize": ".875rem",
-    // 部件圆角
-    "widgetRadius": "0.618rem",
-    // 部件内边距
-    "widgetPadding": "1rem",
-    // 头像尺寸
-    "avatarSize": "80px",
-    // 吸顶偏移
-    "stickyTop": "80px",
-    // 移动端折叠断点
-    "mobileBreakpoint": "1024px",
-  },
-
-  // ---------- 分页（6 项） ----------
+  // ---------- 分页（4 项） ----------
   "pagination": {
-    // 最大可见页数
+    // 最大可见页数（待实现：分页窗口省略逻辑需实现）
     "maxVisible": "5",
     // 按钮间距
     "gap": ".5rem",
-    // 上一页文案
-    "prevText": "上一页",
-    // 下一页文案
-    "nextText": "下一页",
     // 当前页缩放
     "activeScale": "1.05",
     // 按钮圆角
     "radius": "0.618rem",
   },
 
-  // ---------- 热力图（6 项） ----------
-  "heatmap": {
-    // 单元格尺寸
-    "cellSize": "13px",
-    // 单元格间距
-    "gap": "3px",
-    // 单元格圆角
-    "radius": "3px",
-    // 空格颜色
-    "emptyColor": "var(--color-border)",
-    // 月份标签字号
-    "labelSize": ".75rem",
-    // 最大宽度
-    "maxWidth": "100%",
-  },
-
-  // ---------- 统计卡片（6 项） ----------
+  // ---------- 统计卡片（5 项） ----------
   "stats": {
-    // 列数（auto-fit 自适应）
-    "cardColumns": "auto-fit",
     // 数值字号
     "numberSize": "1.5rem",
     // 标签字号
@@ -388,46 +290,12 @@
     "cardPadding": "1rem 1.25rem",
     // 卡片间距
     "gap": "1rem",
-    // 悬停上浮（px）
-    "hoverLiftPx": "2",
+    // 悬停上浮（px，需带单位）
+    "hoverLiftPx": "2px",
   },
 
-  // ---------- 轻提示（6 项） ----------
-  "toast": {
-    // 显示位置
-    "position": "bottom-center",
-    // 显示时长（ms）
-    "durationMs": "2500",
-    // 最大同时显示
-    "maxVisible": "3",
-    // 底部偏移
-    "offsetBottom": "2rem",
-    // 圆角
-    "radius": "999px",
-    // 边框粗细
-    "borderWidth": "1px",
-  },
-
-  // ---------- 图片灯箱（6 项） ----------
-  "lightbox": {
-    // 背景不透明度
-    "bgOpacity": "0.9",
-    // 过渡时长（ms）
-    "transitionMs": "220",
-    // 按钮尺寸
-    "btnSize": "46px",
-    // 图注字号
-    "captionSize": ".875rem",
-    // 图注最大行数
-    "captionMaxLines": "2",
-    // 缩放步长
-    "zoomStep": "0.25",
-  },
-
-  // ---------- 面包屑（5 项） ----------
+  // ---------- 面包屑（4 项） ----------
   "breadcrumb": {
-    // 分隔符
-    "separator": "›",
     // 字号
     "fontSize": ".8125rem",
     // 项间距
@@ -464,12 +332,10 @@
     "titleLines": "1",
   },
 
-  // ---------- 联系弹窗（5 项） ----------
+  // ---------- 联系弹窗（4 项） ----------
   "contactPopup": {
-    // 最大条目数
-    "maxItems": "4",
     // 图标尺寸
-    "iconSize": "1.5rem",
+    "iconSize": "30px",
     // 圆角
     "radius": "1.618rem",
     // 条目字号
@@ -478,13 +344,11 @@
     "titleSize": "1.25rem",
   },
 
-  // ---------- 赞赏（4 项） ----------
+  // ---------- 赞赏（3 项） ----------
   "reward": {
-    // 二维码尺寸
-    "qrSize": "180px",
     // 按钮字号
     "btnFontSize": ".8125rem",
-    // 弹窗圆角
+    // 弹窗圆角（待实现：红包弹窗样式需实现）
     "popupRadius": "0.618rem",
     // 条目间距
     "entryGap": ".75rem",
@@ -504,25 +368,11 @@
     "refreshDaily": "true",
   },
 
-  // ---------- 图库（5 项） ----------
-  "gallery": {
-    // 列数
-    "columns": "3",
-    // 间距
-    "gap": "1rem",
-    // 圆角
-    "radius": "0.618rem",
-    // 悬停缩放
-    "hoverZoom": "1.02",
-    // 显示图注
-    "captionShow": "true",
-  },
-
   // ---------- 标签云（5 项） ----------
   "tags": {
-    // 最小字号
+    // 最小字号（待实现：标签云字号梯度需按热度算法实现）
     "cloudMinSize": ".75rem",
-    // 最大字号
+    // 最大字号（待实现：标签云字号梯度需按热度算法实现）
     "cloudMaxSize": "1.25rem",
     // 标签间距
     "cloudGap": ".5rem",
@@ -532,25 +382,11 @@
     "hoverScale": "1.05",
   },
 
-  // ---------- 归档页（5 项） ----------
-  "archive": {
-    // 条目间距
-    "itemGap": "1rem",
-    // 年份字号
-    "yearFontSize": "1.5em",
-    // 显示计数
-    "showCount": "true",
-    // 日期格式
-    "dateFormat": "YYYY-MM-DD",
-    // 按年分组
-    "groupByYear": "true",
-  },
-
   // ---------- 系列文章（4 项） ----------
   "series": {
     // 面板圆角
     "panelRadius": "0.618rem",
-    // 进度条高度
+    // 进度条高度（待实现：系列进度条元素需实现）
     "progressHeight": "4px",
     // 徽章颜色
     "badgeColor": "var(--color-s)",
@@ -558,18 +394,12 @@
     "panelPadding": "1rem 1.25rem",
   },
 
-  // ---------- 返回顶部（5 项） ----------
+  // ---------- 返回顶部（2 项） ----------
   "backToTop": {
-    // 按钮尺寸
-    "size": "44px",
     // 底部偏移
     "offsetBottom": "2rem",
     // 侧边偏移
     "offsetSide": "2rem",
-    // 滚动多少像素后显示
-    "showAfterPx": "400",
-    // 层级
-    "zIndex": "999",
   },
 
   // ---------- 纹理（噪点，2 项） ----------

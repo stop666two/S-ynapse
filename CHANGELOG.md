@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **作者卡（C5）**：`features.authorCard` + `site.authorProfile`——关于页作者卡（头像/简介/技能标签/竖向时间线/社交矩阵胶囊）；数据全配置化、未填项自动隐藏、资料全空时不渲染 — `templates/page.ejs`
 - **赞助增强（C3）**：`features.reward.links[]`——打赏弹窗底部赞助平台胶囊链接（GitHub Sponsors / Ko-fi / 爱发电 等），每项 `{label,url}`，新窗口 `noopener` — `templates/post.ejs`
 - **订阅组件（C1）**：`features.subscribe`——页脚「订阅与更新」条：RSS（`{lang}/feed.xml`）+ JSON Feed + 可选外部邮件订阅表单（`newsletterUrl`，如 Buttondown/Substack，`newTab` 控制）；`subscribe` 界面文案双语；**顺带修复 `<head>` RSS alternate 双斜杠 bug（`/zh//feed.xml` → `/zh/feed.xml`）** — `templates/layout.ejs`
 - **命令面板（B3）**：`features.commandPalette`——Ctrl/Cmd+K 呼出，整合页面导航、快捷操作（切换主题/回到顶部/打开搜索/我的收藏）与文章搜索（懒加载索引）；原生 `<dialog>`（焦点圈定/top-layer/Esc 关闭）、键盘上下选择 + Enter 执行、IME 组合期防误触；`tuning.commandPalette` 可调宽度/位置/背板 — `js/domains/command-palette.js`

@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(86 模块)](#3-featuresjson5--功能总控86-模块)
+3. [features.json5 — 功能总控(87 模块)](#3-featuresjson5--功能总控87-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -230,7 +230,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(86 模块)
+## 3. features.json5 — 功能总控(87 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -506,6 +506,10 @@ sitemap: {
 ### 3.70 subscribe — 订阅组件
 
 `enabled true` / `rss true`(页脚订阅条显示 RSS 链接,指向 `{lang}/feed.xml`) / `jsonFeed true`(显示 JSON Feed,仍受 `site.rss.jsonFeed.enabled` 总控) / `newsletterUrl ''`(外部邮件订阅表单地址,如 Buttondown/Substack;空 = 隐藏按钮) / `newsletterLabel ''`(按钮文案,空 = 界面文案表 `subscribe.mail`) / `newTab true`。页脚自动渲染「订阅与更新」条;顺带修复 `<head>` 中 RSS alternate 链接双斜杠问题(`/zh//feed.xml`→`/zh/feed.xml`) — `templates/layout.ejs`。
+
+### 3.71 authorCard — 作者卡(关于页)
+
+`enabled true` / `pageSlug 'about'`(显示页面 slug) / `showSocial true` / `showSkills true` / `showTimeline true` / `avatarSize '96px'`(头像尺寸) / `maxTimeline 20`(时间线最多条数,0=不限)。数据源为 `site.authorProfile`(`name`/`avatar`/`bio`/`skills[]`/`timeline[{year,title,desc}]`/`socials[{label,url}]`,全可选、未填项自动隐藏、整块可删除;资料至少一项非空时才渲染) — `templates/page.ejs`。
 
 ---
 

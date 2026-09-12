@@ -8,20 +8,20 @@
 ---
 
 ## 目录
-1. [site.json — 站点主体](#1-sitejson--站点主体)
-2. [theme.json — 视觉与主题](#2-themejson--视觉与主题)
+1. [site.json5 — 站点主体](#1-sitejson--站点主体)
+2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
 3. [features.json5 — 功能总控(54 模块)](#3-featuresjson5--功能总控54-模块)
-4. [navigation.json — 导航](#4-navigationjson--导航)
-5. [sidebar.json — 侧栏](#5-sidebarjson--侧栏)
-6. [footer.json — 页脚](#6-footerjson--页脚)
-7. [security.json — 安全](#7-securityjson--安全)
-8. [content-policy.json — 内容策略](#8-content-policyjson--内容策略)
-9. [tag-aliases.json / friends.json — 可选数据文件](#9-tag-aliasesjson--friendsjson--可选数据文件)
+4. [navigation.json5 — 导航](#4-navigationjson--导航)
+5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
+6. [footer.json5 — 页脚](#6-footerjson--页脚)
+7. [security.json5 — 安全](#7-securityjson--安全)
+8. [content-policy.json5 — 内容策略](#8-content-policyjson--内容策略)
+9. [tag-aliases.json5 / friends.json5 — 可选数据文件](#9-tag-aliasesjson--friendsjson--可选数据文件)
 10. [tuning.json5 — UI 微调参数层](#10-tuningjson5--ui-微调参数层)
 
 ---
 
-## 1. site.json — 站点主体
+## 1. site.json5 — 站点主体
 
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -161,7 +161,7 @@
 
 ---
 
-## 2. theme.json — 视觉与主题
+## 2. theme.json5 — 视觉与主题
 
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -283,7 +283,7 @@
 `enabled true` / `autoDetect true` / `version 11.4.1` / `followTheme true` / `lightTheme default` / `darkTheme dark` / `securityLevel strict` / `copyAfterRender false` / `errorText [图表渲染失败]`
 
 ### 3.19 series — 系列
-`enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8` / `prevLabel 上一篇` / `nextLabel 下一篇` / `progressLabel {index} / {total}`(进度模板) / `sidebarTitle 系列`(侧栏 widget 标题,sidebar.json w.title 为空时使用)
+`enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8` / `prevLabel 上一篇` / `nextLabel 下一篇` / `progressLabel {index} / {total}`(进度模板) / `sidebarTitle 系列`(侧栏 widget 标题,sidebar.json5 w.title 为空时使用)
 
 ### 3.20 related — 相关推荐
 `enabled true` / `topN 4` / `sameCategoryWeight 2` / `sameTagWeight 3` / `minScore 2` / `excludeCurrent true` / `title 相关推荐` / `showExcerpt true`(卡片显示摘要) / `excerptLength 80`(摘要截断长度) / `showCount false`(显示共享标签数徽章)
@@ -319,7 +319,7 @@
 `enabled true` / `scriptSrc https://static.cloudflareinsights.com/beacon.min.js` / `injectAt body` / `emitBeacon true` / `siteTag ''`
 
 ### 3.31 redirects
-`enabled false`(规则在 site.json redirects) / `generatePagesFile true` / `applyInServe true` / `invalidRule abort`(`warn-only|abort`)
+`enabled false`(规则在 site.json5 redirects) / `generatePagesFile true` / `applyInServe true` / `invalidRule abort`(`warn-only|abort`)
 
 ### 3.32 maintenance
 `enabled false` / `message 站点维护中，请稍后再来。` / `status 503` / `setRetryAfter true` / `retryAfter 3600`
@@ -343,7 +343,7 @@
 `verbose false` / `listPages false` / `dumpConfig false`
 
 ### 3.39 sitemap — 站点地图拆分(Sitemap Split)
-> 配置位于 `features.json5` 下的 `sitemap` 段。拆分语义:URL 总数 ≤ `maxUrlsPerFile` → 单一 `<urlset>` sitemap.xml;URL 总数 > `maxUrlsPerFile` → 生成 `sitemap-1.xml … sitemap-N.xml` + `sitemap.xml`(sitemapindex 索引)。与 `site.json` 的 `sitemap` 段(csp 开关)联动——`site.sitemap.enabled=false` 时整体跳过。
+> 配置位于 `features.json5` 下的 `sitemap` 段。拆分语义:URL 总数 ≤ `maxUrlsPerFile` → 单一 `<urlset>` sitemap.xml;URL 总数 > `maxUrlsPerFile` → 生成 `sitemap-1.xml … sitemap-N.xml` + `sitemap.xml`(sitemapindex 索引)。与 `site.json5` 的 `sitemap` 段(csp 开关)联动——`site.sitemap.enabled=false` 时整体跳过。
 
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -402,7 +402,7 @@ sitemap: {
 `enabled true` / `position 'toolbar'` / `storageKey 's-favorites'` / `label '收藏'` / `listIcon true` / `notText '收藏'` / `favedText '已收藏'`。文章收藏按钮+收藏页(仅 localStorage,无后端);按钮切换收藏/取消(状态+aria-pressed+统一 toast)、收藏页列表渲染与移除、空状态;en 页文案经 ui-strings 词典。
 
 ### 3.50 prismTheme — 代码高亮配色开关
-`enabled true`。总开关：关闭后代码块不着色（回退纯文本）；token 配色值定义在 `theme.json` 的 `codeHighlight.palette`（浅色/暗色两套，随主题自动切换）。
+`enabled true`。总开关：关闭后代码块不着色（回退纯文本）；token 配色值定义在 `theme.json5` 的 `codeHighlight.palette`（浅色/暗色两套，随主题自动切换）。
 
 ### 3.51 cover — 封面样式库
 `enabled true` / `patterns[]` (gradient/stripes/dots/blob/mesh) / `defaultPattern 'gradient'` / `preview true` / `preferImage true`。文章封面样式库(渐变/条纹/圆点/气泡/网格),在线预览。
@@ -433,7 +433,7 @@ sitemap: {
 
 ---
 
-## 4. navigation.json — 导航
+## 4. navigation.json5 — 导航
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
@@ -449,7 +449,7 @@ sitemap: {
 
 ---
 
-## 5. sidebar.json — 侧栏
+## 5. sidebar.json5 — 侧栏
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
@@ -470,13 +470,13 @@ sitemap: {
 - `toc` `{title}`(仅文章页)
 - `stats` `{title}`(需 features.stats.enabled)
 - `series` `{title}`(需 features.series.enabled)
-- `friends` `{title}`(需 friends.json)
+- `friends` `{title}`(需 friends.json5)
 - `newsletter` `{title,action,buttonText}`
 - `custom` `{title,html}`(原始 HTML)
 
 ---
 
-## 6. footer.json — 页脚
+## 6. footer.json5 — 页脚
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
@@ -492,7 +492,7 @@ sitemap: {
 
 ---
 
-## 7. security.json — 安全
+## 7. security.json5 — 安全
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
@@ -513,7 +513,7 @@ sitemap: {
 
 ---
 
-## 8. content-policy.json — 内容策略
+## 8. content-policy.json5 — 内容策略
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
@@ -530,15 +530,15 @@ sitemap: {
 
 ---
 
-## 9. tag-aliases.json / friends.json — 可选数据文件
+## 9. tag-aliases.json5 / friends.json5 — 可选数据文件
 
-**tag-aliases.json**: 标签归一化。
+**tag-aliases.json5**: 标签归一化。
 ```json
 { "enabled": true, "aliases": { "js": "JavaScript", "ts": "TypeScript" } }
 ```
 影响:标签页聚合、卡片标签显示。
 
-**friends.json**: 友链。
+**friends.json5**: 友链。
 ```json
 { "enabled": false, "title": "友情链接", "description": "", "applyNote": "", "friends": [ { "name": "示例", "url": "https://example.com", "description": "", "logo": "" } ] }
 ```
@@ -569,5 +569,5 @@ sitemap: {
 ## 环境变量
 | 变量 | 作用 |
 |---|---|
-| `CF_WEB_ANALYTICS_TOKEN` | 未在 site.json 填写 token 时读取;缺失则跳过注入并警告 |
+| `CF_WEB_ANALYTICS_TOKEN` | 未在 site.json5 填写 token 时读取;缺失则跳过注入并警告 |
 | `MAINTENANCE` | 生产 Worker / 本地 serve 维护模式(`1` 生效) |

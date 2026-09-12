@@ -353,7 +353,7 @@ Keyboard shortcuts:
 
 ## UI Customization
 
-The following major UI features are configured via features.json5 and theme.json, all togglable:
+The following major UI features are configured via features.json5 and theme.json5, all togglable:
 
 - Theme presets: 6 sets (Classic Blue / Polar Night / Forest Green / Sakura Pink / Editorial Gray / Cyber Purple), linked light & dark modes, fine-tunable via presetOverrides
 - Layout density: compact / balanced / airy tiers (list columns, container width, spacing, sidebar width)
@@ -390,7 +390,7 @@ The following major UI features are configured via features.json5 and theme.json
 
 The bottom toolbar of the article body includes 7 share entries: Weibo, QQ, WeChat, X, Facebook, Email, Copy link.
 
-Rewards: the `reward` feature of this project is off by default (enabled in site.json; supports Alipay/WeChat image QR codes or links).
+Rewards: the `reward` feature of this project is off by default (enabled in site.json5; supports Alipay/WeChat image QR codes or links).
 
 ## Long-Text Stress Test
 

@@ -178,8 +178,8 @@ function gradientSvg(siteTitle, titleLines, siteUrl, fromColor, toColor) {
 }
 
 async function main() {
-  const siteConfig = readConfigFile('site.json') || {};
-  const themeConfig = readConfigFile('theme.json') || {};
+  const siteConfig = readConfigFile('site.json5') || {};
+  const themeConfig = readConfigFile('theme.json5') || {};
   const siteTitle = (siteConfig.title || 'S-ynapse').toString();
   const siteUrl = String(siteConfig.domain || siteConfig.url || '');
   const themeColors = themeConfig.colors || themeConfig;

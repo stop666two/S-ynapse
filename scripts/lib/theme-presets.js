@@ -171,7 +171,7 @@ function resolveTheme(theme) {
   let base = PRESETS[presetName];
   if (!base) {
     out.warnings.push(
-      'theme.json: preset "' + presetName + '" 不存在。可用预设: ' +
+      'theme.json5: preset "' + presetName + '" 不存在。可用预设: ' +
       Object.keys(PRESETS).map(function (k) { return k + '(' + PRESETS[k].label + ')'; }).join(', ') +
       '。已回退至 classic-blue；如需临时关闭预设接管请设 preset 为 null。'
     );
@@ -194,18 +194,18 @@ function resolveTheme(theme) {
 // 返回错误数组（FATAL），不含警告。
 function validatePreset(theme) {
   const errors = [];
-  if (!theme || typeof theme !== 'object') return ['theme.json 必须为对象'];
+  if (!theme || typeof theme !== 'object') return ['theme.json5 必须为对象'];
   const name = theme.preset == null ? null : String(theme.preset).trim();
   if (name && !PRESETS[name]) {
     errors.push(
-      'theme.json "preset" 值 "' + name + '" 无效。可选: ' +
+      'theme.json5 "preset" 值 "' + name + '" 无效。可选: ' +
       Object.keys(PRESETS).map(function (k) { return k; }).join(' | ') +
       ' 或 null(关闭预设接管)'
     );
   }
   const overrides = theme.presetOverrides;
   if (overrides != null && typeof overrides !== 'object') {
-    errors.push('theme.json "presetOverrides" 必须为对象');
+    errors.push('theme.json5 "presetOverrides" 必须为对象');
   }
   return errors;
 }

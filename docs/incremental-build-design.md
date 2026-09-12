@@ -94,4 +94,4 @@ build(changedFiles) {
 |------|------|
 | `scripts/build.js` | 主构建脚本，增量逻辑需在此实现 |
 | `scripts/lib/utils.js` | 工具函数（哈希计算可复用 crypto） |
-| `site.json` | 构建配置（`build.enableCacheBusting` 已提供哈希计算基础设施） |
+| `site.json5` | 构建配置（`build.enableCacheBusting` 已提供哈希计算基础设施） |

@@ -12,7 +12,7 @@ scripts/init-project.js @project-owner
 scripts/lib/utils.js @project-owner
 
 # 安全配置需审查
-security.json @project-owner
+security.json5 @project-owner
 workers/security-worker.js @project-owner
 workers/wrangler.toml @project-owner
 

@@ -87,7 +87,11 @@ function getPublished(articles) { return articles.filter(a => !a.draft || SHOW_D
 function loadConfigFile(filename) {
   const filePath = path.join(ROOT, filename);
   if (!fs.existsSync(filePath)) {
+    const legacyPath = filename.endsWith('.json5') ? path.join(ROOT, filename.replace(/\.json5$/, '.json')) : null;
     console.error(`  [FATAL] Config file not found: ${filename}`);
+    if (legacyPath && fs.existsSync(legacyPath)) {
+      console.error(`          v1.0.3 起配置文件统一为 .json5：请将 ${path.basename(legacyPath)} 重命名为 ${filename}`);
+    }
     process.exit(1);
   }
   try {
@@ -107,7 +111,13 @@ function loadConfigFile(filename) {
 // Present-but-invalid → fatal, matching the strict behavior of loadConfigFile.
 function loadOptionalConfigFile(filename) {
   const filePath = path.join(ROOT, filename);
-  if (!fs.existsSync(filePath)) return null;
+  if (!fs.existsSync(filePath)) {
+    const legacyPath = filename.endsWith('.json5') ? path.join(ROOT, filename.replace(/\.json5$/, '.json')) : null;
+    if (legacyPath && fs.existsSync(legacyPath)) {
+      console.warn(`  [WARN] ${filename} 未找到，但检测到旧版 ${path.basename(legacyPath)}（v1.0.3 起配置文件统一为 .json5，旧文件将被忽略；请重命名）`);
+    }
+    return null;
+  }
   try {
     let raw = fs.readFileSync(filePath, 'utf-8');
     if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
@@ -128,18 +138,18 @@ function loadOptionalConfigFile(filename) {
 // Each loaded config overrides only the keys the user explicitly set.
 function loadConfig() {
   console.log('[1/14] Loading configuration...');
-  const site = loadConfigFile('site.json');
-  const theme = loadConfigFile('theme.json');
-  const navigation = loadConfigFile('navigation.json');
-  const sidebar = loadConfigFile('sidebar.json');
-  const footer = loadConfigFile('footer.json');
-  const security = loadConfigFile('security.json');
+  const site = loadConfigFile('site.json5');
+  const theme = loadConfigFile('theme.json5');
+  const navigation = loadConfigFile('navigation.json5');
+  const sidebar = loadConfigFile('sidebar.json5');
+  const footer = loadConfigFile('footer.json5');
+  const security = loadConfigFile('security.json5');
   // Content policy is optional — when the file is missing the built-in default
   // policy from scripts/lib/content-policy.js is used.
-  const contentPolicy = loadOptionalConfigFile('content-policy.json') || {};
+  const contentPolicy = loadOptionalConfigFile('content-policy.json5') || {};
   // Tag aliases + friends are optional external config files (single source per feature).
-  const tagAliasData = loadOptionalConfigFile('tag-aliases.json') || {};
-  const friendsData = loadOptionalConfigFile('friends.json') || {};
+  const tagAliasData = loadOptionalConfigFile('tag-aliases.json5') || {};
+  const friendsData = loadOptionalConfigFile('friends.json5') || {};
   // Features domain is optional: missing features.json5 falls back to the
   // built-in DEFAULT_FEATURES (matching current behavior).
   const features = loadOptionalConfigFile('features.json5') || {};
@@ -195,7 +205,7 @@ function loadConfig() {
       externalLinkWarning: { enabled: false, whitelist: [], blacklist: [] },
       showRepoLink: true, repoUrl: ''
     },
-    // Content policy defaults are minimal here — content-policy.json (optional)
+    // Content policy defaults are minimal here — content-policy.json5 (optional)
     // supplies the real lists; classifyFile() in lib/content-policy.js falls
     // back to its own built-in default policy when keys are absent.
     contentPolicy: { enabled: true },
@@ -265,7 +275,7 @@ function loadConfig() {
   }
   // Theme preset resolution: built-in preset → presetOverrides. When a preset
   // is active it takes over colors/dark colors; manual colors field is only
-  // honored when preset is null (see theme.json header notes).
+  // honored when preset is null (see theme.json5 header notes).
   const themeRes = resolveThemePreset(config.theme);
   if (themeRes.warnings.length > 0) {
     themeRes.warnings.forEach(w => console.log('  [WARN] ' + w));
@@ -288,7 +298,7 @@ function loadConfig() {
   return config;
 }
 
-// applyDensity — 布局密度档位解析。档位数值定义在 theme.json 的 tiers.density（配置即唯一来源）。
+// applyDensity — 布局密度档位解析。档位数值定义在 theme.json5 的 tiers.density（配置即唯一来源）。
 function applyDensity(theme) {
   if (!theme.density) theme.density = {};
   const preset = theme.density.preset;
@@ -356,7 +366,7 @@ function resolveFontSystem(theme) {
 }
 
 // applyVisualTiers — rounding/shadowLevel/borderStyle 档位解析。
-// 档位数值定义在 theme.json 的 tiers（配置即唯一来源）；档位缺失时保留现有值（兜底见 DEFAULTS）。
+// 档位数值定义在 theme.json5 的 tiers（配置即唯一来源）；档位缺失时保留现有值（兜底见 DEFAULTS）。
 function applyVisualTiers(theme) {
   const tiers = theme.tiers || {};
   const rd = (tiers.rounding && tiers.rounding[theme.rounding]) || null;
@@ -508,7 +518,7 @@ function copyDirSync(src, dest) {
   }
 }
 
-// Apply the content policy (content-policy.json) to videos/, assets/, and the
+// Apply the content policy (content-policy.json5) to videos/, assets/, and the
 // non-sharp-optimized part of media/ (svg sanitized, gif/avif/bmp/ico raw copy).
 // Violations are NOT copied → the deployed URL naturally 404s.
 // Returns { copied, blocked: [{ path, reason }] } for the build report.
@@ -1267,7 +1277,7 @@ function getTemplate(name) {
 // 2. Wrap body in layout.ejs with merged data
 // 3. Run hooks.transformHTML if available
 // Returns full HTML string, or null on failure.
-// Compose the final HTML <title> for a page based on seo.titleTemplate in site.json.
+// Compose the final HTML <title> for a page based on seo.titleTemplate in site.json5.
 // Placeholders: {site} {subtitle} {title}. Falls back to '{title} | {site}' (index: just site title).
 function applyTitleTemplate(config, pageType, pageTitle, lang) {
   const tplSrc = (config.site.seo && config.site.seo.titleTemplate) || null;
@@ -2075,9 +2085,9 @@ function getDirSize(dir) {
 
 // Generate Cloudflare-compatible _headers file and robots.txt.
 // The _headers file sets CSP directives, HTTP security headers, and custom headers
-// from the security.json configuration. Applied to all paths (/*).
+// from the security.json5 configuration. Applied to all paths (/*).
 // Note: security-worker.js provides a parallel security layer at the Worker level.
-// Generate Cloudflare Pages _redirects file from site.json redirects array.
+// Generate Cloudflare Pages _redirects file from site.json5 redirects array.
 // Each entry: {from, to, permanent} — permanent=true → 301, false → 302.
 // Supports wildcard syntax (e.g. "/old/* /new/:splat 301") via CF Pages native matching.
 function generateRedirects(config, customPages) {
@@ -2480,7 +2490,7 @@ self.addEventListener('fetch', (event) => {
 // Returns true if all files parse successfully, false otherwise.
 // This is a fast check — loadConfig() does the actual parsing with fatal error handling.
 function validateJsonSyntax() {
-  const files = ['site.json', 'theme.json', 'navigation.json', 'sidebar.json', 'footer.json', 'security.json'];
+  const files = ['site.json5', 'theme.json5', 'navigation.json5', 'sidebar.json5', 'footer.json5', 'security.json5'];
   let hasError = false;
   for (const file of files) {
     const filePath = path.join(ROOT, file);

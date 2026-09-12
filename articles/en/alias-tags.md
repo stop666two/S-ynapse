@@ -8,7 +8,7 @@ categories: [tech]
 
 # Tag Alias Test
 
-This article deliberately uses abbreviated tags (`js`, `cpp`). With `tag-aliases.json` enabled:
+This article deliberately uses abbreviated tags (`js`, `cpp`). With `tag-aliases.json5` enabled:
 
 - `js` is normalized to `JavaScript`
 - `cpp` is normalized to `C++`

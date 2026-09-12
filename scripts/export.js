@@ -7,17 +7,17 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
 const CONFIG_FILES = [
-  'site.json',
-  'theme.json',
-  'navigation.json',
-  'sidebar.json',
-  'footer.json',
-  'security.json',
+  'site.json5',
+  'theme.json5',
+  'navigation.json5',
+  'sidebar.json5',
+  'footer.json5',
+  'security.json5',
   'features.json5',
   'ui-strings.json5',
-  'content-policy.json',
-  'tag-aliases.json',
-  'friends.json'
+  'content-policy.json5',
+  'tag-aliases.json5',
+  'friends.json5'
 ];
 const MEDIA_DIRS = ['media', 'assets', 'videos'];
 const DEFAULT_OUTPUT_DIR = 'exports';

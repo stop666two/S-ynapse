@@ -57,7 +57,7 @@
   <div class="post-content">
     <%- article.content %>
   </div>
-  <%# Article footer: rendered from pages/ content. Source filename is set in theme.json articleFooter.source. %>
+  <%# Article footer: rendered from pages/ content. Source filename is set in theme.json5 articleFooter.source. %>
   <% if(features.favorites&&features.favorites.enabled!==false&&!page.favoriteExclude){ %>
   <button type="button" class="fav-btn" id="favBtn" data-url="<%= article.url %>" data-title="<%= article.title %>" aria-label="收藏"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.6-9.6-8.4C.6 9.2 2.6 5.5 6.2 5.5c2.1 0 3.6 1.2 4.4 2.4.8-1.2 2.3-2.4 4.4-2.4 3.6 0 5.6 3.7 3.8 7.1C19 16.4 12 21 12 21z"/></svg><span><%= ui('favorites.not', features.favorites.notText||'收藏') %></span></button>
   <% } %>

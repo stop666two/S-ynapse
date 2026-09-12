@@ -261,7 +261,7 @@
   // 7. 外部链接安全(白名单/弹窗)
   // ---------------------------------------------------------------------------
   externalLink: {
-    // 启用外部链接警告弹窗(与 site.json 的 externalLinkWarning.enabled 同时为 true 才生效)。
+    // 启用外部链接警告弹窗(与 site.json5 的 externalLinkWarning.enabled 同时为 true 才生效)。
     enabled: true,
     // 白名单域名(精确匹配 hostname 或 hostname+pathname 前缀)。
     whitelist: [],
@@ -1361,7 +1361,7 @@
   // ---------------------------------------------------------------------------
   // 39. 背景粒子特效
   // ---------------------------------------------------------------------------
-  // 与 theme.json → background.mode = "particles" 配合;mode 非 particles 时
+  // 与 theme.json5 → background.mode = "particles" 配合;mode 非 particles 时
   // 本模块不生效(即使 enabled=true)。颜色自动跟随主题辅助色(--color-s)。
   background: {
     particles: {
@@ -1465,7 +1465,7 @@
   // ---------------------------------------------------------------------------
   prismTheme: {
     // 代码高亮配色总开关（false = 代码块不着色）。
-    // 配色值定义在 theme.json 的 codeHighlight.palette，浅色/暗色两套随主题自动切换。
+    // 配色值定义在 theme.json5 的 codeHighlight.palette，浅色/暗色两套随主题自动切换。
     enabled: true
   },
   // ---------------------------------------------------------------------------

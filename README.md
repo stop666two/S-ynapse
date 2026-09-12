@@ -136,7 +136,7 @@ S-ynapse/
 │   ├── build.test.js  # 单元测试（67 项 / 17 组）
 │   ├── security-verify.js  # 安全集成验证（注入恶意文章→构建→语义断言）
 │   ├── import.js      # 内容导入 CLI（hexo/hugo/wordpress）
-│   ├── generate-security-config.js # 从 security.json 生成 Worker 配置
+│   ├── generate-security-config.js # 从 security.json5 生成 Worker 配置
 │   ├── generate-test-media.js      # 程序化生成测试图片
 │   ├── init-project.js# 项目初始化（自动配置 git hooks/gitignore/gitattributes）
 │   └── lib/
@@ -148,17 +148,17 @@ S-ynapse/
 ├── .github/workflows/ # CI/CD 自动部署（含 AGENTS.md 检测 + npm audit 门禁）
 ├── .githooks/         # Git hooks（pre-commit 保护 AGENTS.md）
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
-├── site.json          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
-├── theme.json         # 主题配置（颜色/字体/布局/文章页脚）
+├── site.json5          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
+├── theme.json5         # 主题配置（颜色/字体/布局/文章页脚）
 ├── features.json5     # 功能总控（54+ 模块/440+ 项，可开关/微调，可选文件）
 ├── ui-strings.json5   # 界面文案词典（zh/en 双语词典，服务端 ui() + 运行时 __T()，可选）
-├── navigation.json    # 导航配置
-├── sidebar.json       # 侧边栏配置（含 series/friends/stats/quote 组件）
-├── footer.json        # 页脚配置
-├── security.json      # 安全策略（CSP/限流/路径/头/robots/转向）
-├── content-policy.json # 内容策略（media/videos/assets 白黑名单，可选）
-├── tag-aliases.json   # 标签别名映射（可选）
-├── friends.json       # 友情链接数据（可选）
+├── navigation.json5    # 导航配置
+├── sidebar.json5       # 侧边栏配置（含 series/friends/stats/quote 组件）
+├── footer.json5        # 页脚配置
+├── security.json5      # 安全策略（CSP/限流/路径/头/robots/转向）
+├── content-policy.json5 # 内容策略（media/videos/assets 白黑名单，可选）
+├── tag-aliases.json5   # 标签别名映射（可选）
+├── friends.json5       # 友情链接数据（可选）
 ├── .env.example       # 环境变量模板（CF_WEB_ANALYTICS_TOKEN / MAINTENANCE）
 ├── .gitattributes     # Git 属性配置
 ├── build.bat          # Windows 一键构建
@@ -175,21 +175,21 @@ S-ynapse/
 
 | 文件 | 职责 | 必填 |
 |------|------|------|
-| `site.json` | 站点信息、SEO、RSS/JSON Feed、社交、构建开关 | ✅ |
-| `theme.json` | 颜色（亮/暗）、字体、布局微调、文章页脚说明栏 | ✅ |
+| `site.json5` | 站点信息、SEO、RSS/JSON Feed、社交、构建开关 | ✅ |
+| `theme.json5` | 颜色（亮/暗）、字体、布局微调、文章页脚说明栏 | ✅ |
 | `features.json5` | 54 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、Giscus…） | 可选（缺失回退默认，功能保持） |
 | `ui-strings.json5` | 界面文案词典（zh/en 双语，i18n 切换的文案来源） | 可选（缺失回退内置文案） |
-| `navigation.json` | 菜单、导航栏、社交顺序、搜索 | ✅ |
-| `sidebar.json` | 侧栏组件序列（author/recent/tags/categories/archive/series/friends/stats/quote…） | ✅ |
-| `footer.json` | 页脚列、版权、备案、社交、Powered-by | ✅ |
-| `security.json` | CSP、安全头、限流、路径限制、robots | ✅ |
-| `content-policy.json` | media/videos/assets 三目录白黑名单（可选） | 可选 |
-| `tag-aliases.json` | 标签别名归一（可选） | 可选 |
-| `friends.json` | 友情链接（可选） | 可选 |
+| `navigation.json5` | 菜单、导航栏、社交顺序、搜索 | ✅ |
+| `sidebar.json5` | 侧栏组件序列（author/recent/tags/categories/archive/series/friends/stats/quote…） | ✅ |
+| `footer.json5` | 页脚列、版权、备案、社交、Powered-by | ✅ |
+| `security.json5` | CSP、安全头、限流、路径限制、robots | ✅ |
+| `content-policy.json5` | media/videos/assets 三目录白黑名单（可选） | 可选 |
+| `tag-aliases.json5` | 标签别名归一（可选） | 可选 |
+| `friends.json5` | 友情链接（可选） | 可选 |
 
 > 📖 **完整逐字段参考**：`docs/config-reference.md`（9 章：每个配置项的类型、默认值、取值、校验行为）。
 
-### site.json — 站点核心信息（节选）
+### site.json5 — 站点核心信息（节选）
 
 ```json5
 {
@@ -271,9 +271,9 @@ S-ynapse/
 - `share.order` 等数组字段为**整体替换**语义（deepmerge 不会拼接），删掉某平台即从页面消失
 - 模块与页面绑定：`enabled: false` 时对应元素零残留（不渲染 + 不加载对应 CDN）
 
-### security.json / content-policy.json
+### security.json5 / content-policy.json5
 
-`security.json` 是**唯一安全配置源**：构建时生成 `_headers` + `workers/security-config.js`（Worker 运行时读取），CSP/限流/路径限制/安全头两边永远一致。`content-policy.json` 则规定 `media/`（图片白名单 + SVG 消毒）、`videos/`（排除制 = 除可执行与渲染型文档外放行）、`assets/`（素材白名单）三目录的构建期过滤——被拦截文件不复制进 `dist/`（线上 404），并在构建报告中逐条列出原因。
+`security.json5` 是**唯一安全配置源**：构建时生成 `_headers` + `workers/security-config.js`（Worker 运行时读取），CSP/限流/路径限制/安全头两边永远一致。`content-policy.json5` 则规定 `media/`（图片白名单 + SVG 消毒）、`videos/`（排除制 = 除可执行与渲染型文档外放行）、`assets/`（素材白名单）三目录的构建期过滤——被拦截文件不复制进 `dist/`（线上 404），并在构建报告中逐条列出原因。
 
 ---
 
@@ -288,7 +288,7 @@ S-ynapse/
 
 内置图标支持：`github` / `x` / `weibo` / `telegram` / `facebook` / `rss` / `email` / `phone` / `qq` / `qqgroup` / `wechat`，未匹配到的 key 使用通用地球图标。
 
-在 `navigation.json` 的 `socialInNav.order` 中控制显示顺序。社交图标按钮支持 **title 悬浮提示**。
+在 `navigation.json5` 的 `socialInNav.order` 中控制显示顺序。社交图标按钮支持 **title 悬浮提示**。
 
 ---
 
@@ -336,10 +336,10 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 加载配置 | 11 个 JSON5 配置 + 可选 content-policy.json/tag-aliases.json/friends.json，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 54 模块结构校验 |
+| 1 | 加载配置 | 11 个 JSON5 配置 + 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 54 模块结构校验 |
 | 2 | 设置输出目录 | 清空 `dist/` 并创建子目录 |
 | 3 | 复制静态文件 | `static/` → `dist/` |
-| 3ᵇ | 内容策略 | 按 content-policy.json 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
+| 3ᵇ | 内容策略 | 按 content-policy.json5 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
 | 4 | 媒体优化 | sharp 生成 WebP/AVIF + 多尺寸响应式图片（输出 manifest） |
 | 5 | 处理文章 | Frontmatter 校验（slug 唯一/date 合法）→ 上标/公式守护 → Markdown → Wiki 双链 → CJK 空格 → 提取 TOC → 自动 OG 图 |
 | 6 | 生成页面 | 首页分页、文章（系列/分享/打赏/关联/评论）、归档（统计+热力图）、标签、分类、图库、友链、搜索、404 |
@@ -379,10 +379,10 @@ npm run build
 npx wrangler deploy --config workers/wrangler.toml
 ```
 
-> **Worker 安全配置自动同步**：`npm run build` 会从 `security.json`（唯一配置源）生成
+> **Worker 安全配置自动同步**：`npm run build` 会从 `security.json5`（唯一配置源）生成
 > `workers/security-config.js`（自动生成文件，已加入 `.gitignore`，勿手改）。Worker
 > 运行时读取该文件，实现边缘层与静态层 CSP/速率限制/路径限制/安全头完全一致，
-> 修改安全设置只需编辑 `security.json` 一处。
+> 修改安全设置只需编辑 `security.json5` 一处。
 
 Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特定 IP）、CSP 报告收集（`/csp-report` 端点）、HTTP 安全头注入、HTTPS 强制跳转、**维护模式**（环境变量 `MAINTENANCE=1` → 503 维护页，`MAINTENANCE_MESSAGE` 自定义文案）。
 
@@ -464,7 +464,7 @@ npm run verify:security   # 集成安全回归
 | escapeJsonForScript | 2 | 搜索索引嵌入 script 的安全序列化 |
 | features-schema validateFeatures | 7 | features 默认/校验/枚举/数组字段 |
 | formatConfigError | 2 | JSON5 错误格式化 |
-| generate-security-config | 6 | security.json → Worker 配置提取/渲染 |
+| generate-security-config | 6 | security.json5 → Worker 配置提取/渲染 |
 
 ---
 

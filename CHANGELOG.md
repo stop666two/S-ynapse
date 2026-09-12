@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **配置文件统一 `.json5`（破坏性变更）**:`site`/`theme`/`navigation`/`sidebar`/`footer`/`security`/`content-policy`/`tag-aliases`/`friends` 9 个配置由 `.json` 重命名为 `.json5`;不再兼容 `.json`（检测到旧文件时输出重命名提示,旧文件不会被读取）;全部脚本/文档/示例/主题文章引用已同步(118+10 处) — 仓库根目录 + `scripts/` + `docs/` + `articles/`
+
 - **主题预设 `theme-presets.js`**:6 套预设新增 `labelEn` 字段(Classic Blue/Midnight Black/Forest Green/Sakura Pink/Editorial Gray/Cyber Purple)
 - **`site.json`**:新增 `languages: ['zh','en']`、`titleEn`、`subtitleEn`、`hero.titleEn`、`hero.subtitleEn`、`externalLinkWarning.titleEn/messageEn/confirmTextEn/cancelTextEn`
 - **OG 图管线**:`scripts/generate-og.js` 按语言目录输出 `dist/og/{lang}/{slug}.png`,`usedSlugs` 按语言独立去重(zh/en 同 slug 不再冲突);移除 build.js 内联 SVG OG 管线

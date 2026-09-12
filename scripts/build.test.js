@@ -10,17 +10,17 @@ describe('formatConfigError', () => {
   it('reports filename, line, column and caret context', () => {
     const fileText = '{\n  enabled: true,\n  title: "x" \n}';
     const err = new Error("JSON5: invalid character '\\n' at 3:16");
-    const out = formatConfigError('site.json', err, { fileText, filePath: '/proj/site.json' });
-    assert.ok(out.includes('[FATAL] 配置文件解析失败: site.json'));
-    assert.ok(out.includes('/proj/site.json 第 3 行'));
+    const out = formatConfigError('site.json5', err, { fileText, filePath: '/proj/site.json5' });
+    assert.ok(out.includes('[FATAL] 配置文件解析失败: site.json5'));
+    assert.ok(out.includes('/proj/site.json5 第 3 行'));
     assert.ok(out.includes('JSON5: invalid character'));
     assert.ok(out.includes('^'));
     assert.ok(out.includes('常见原因'));
   });
   it('falls back when no position is known and file is unavailable', () => {
     const err = new Error('Unexpected end of input');
-    const out = formatConfigError('theme.json', err, {});
-    assert.ok(out.includes('theme.json'));
+    const out = formatConfigError('theme.json5', err, {});
+    assert.ok(out.includes('theme.json5'));
     assert.ok(out.includes('Unexpected end'));
   });
 });
@@ -312,7 +312,7 @@ describe('sanitizeSvg', () => {
 
 
 describe('generate-security-config', () => {
-  it('extracts rate limiting fields from security.json shape', () => {
+  it('extracts rate limiting fields from security.json5 shape', () => {
     const out = extractWorkerSecurity({ rateLimiting: { enabled: true, maxRequests: 50, windowMs: 60000, blockDuration: 300000, whitelist: ['10.0.0.1'], blacklist: ['1.2.3.4'] } });
     assert.strictEqual(out.rateLimiting.maxRequests, 50);
     assert.deepStrictEqual(out.rateLimiting.whitelist, ['10.0.0.1']);

@@ -426,7 +426,7 @@
 
   // ---------- 代码块（2 项） ----------
   "code": {
-    // 代码块描边宽度（0 = 关闭；token 配色见 theme.json 的 codeHighlight.palette）
+    // 代码块描边宽度（0 = 关闭；token 配色见 theme.json5 的 codeHighlight.palette）
     "borderWidth": "1px",
     // 代码块描边颜色 = 页面边框色 × 此比例（0% = 透明）
     "borderMix": "65%",

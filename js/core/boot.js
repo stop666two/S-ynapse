@@ -1,0 +1,146 @@
+// Boot scheduler —— 三阶段启动调度（关键同步 → 空闲批次 → 重模块），含加载遮罩控制。
+// 配置：features.loading（遮罩）/ features.boot（调度）；时间线写入 window.__BOOT__ 供验证。
+const F = window.__FEATURES__ || {};
+const L = F.loading || {};
+const B = F.boot || {};
+function log(msg) { if (B.log) console.info('[boot] ' + Math.round(performance.now()) + 'ms ' + msg); }
+
+export function yieldToMain() {
+  if (typeof scheduler !== 'undefined' && typeof scheduler.yield === 'function') return scheduler.yield();
+  return new Promise(function (resolve) {
+    setTimeout(function () { requestAnimationFrame(function () { resolve(); }); }, 0);
+  });
+}
+
+function whenIdle(timeoutMs) {
+  return new Promise(function (resolve) {
+    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(function () { resolve(); }, { timeout: timeoutMs });
+    else setTimeout(resolve, Math.min(timeoutMs, 120));
+  });
+}
+
+function createOverlay() {
+  const el = document.createElement('div');
+  el.className = 'boot-overlay';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  const inner = document.createElement('div');
+  inner.className = 'boot-inner';
+  const orbit = document.createElement('span');
+  orbit.className = 'boot-orbit';
+  orbit.setAttribute('aria-hidden', 'true');
+  orbit.innerHTML = '<i></i><i></i><i></i>';
+  const text = document.createElement('span');
+  text.className = 'boot-text';
+  let label = L.text || '';
+  if (!label) {
+    const S = ((window.__I18N__ || {}).common) || {};
+    label = S.loading || 'Loading…';
+  }
+  text.textContent = label;
+  inner.appendChild(orbit);
+  inner.appendChild(text);
+  el.appendChild(inner);
+  document.body.appendChild(el);
+  return el;
+}
+
+export function boot(queues) {
+  const stats = { start: performance.now(), critEnd: 0, idleEnd: 0, heavyEnd: 0 };
+  window.__BOOT__ = stats;
+  const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const loaderOn = L.enabled !== false && !(reduced && (L.reducedMotion || 'skip') === 'skip');
+  let overlay = null, shownAt = 0, showTimer = null, failsafeTimer = null;
+
+  function hideOverlay() {
+    if (showTimer) { clearTimeout(showTimer); showTimer = null; }
+    if (failsafeTimer) { clearTimeout(failsafeTimer); failsafeTimer = null; }
+    if (L.ariaBusy !== false && document.body) document.body.removeAttribute('aria-busy');
+    if (!overlay) return;
+    stats.overlayHideAt = performance.now();
+    const minShow = parseInt(L.minShowMs, 10);
+    const minMs = isNaN(minShow) ? 250 : Math.max(0, minShow);
+    const wait = Math.max(0, minMs - (performance.now() - shownAt));
+    const el = overlay;
+    overlay = null;
+    setTimeout(function () {
+      el.style.animation = 'none';
+      el.classList.add('out');
+      setTimeout(function () { el.remove(); stats.overlayRemovedAt = performance.now(); }, 420);
+      log('overlay hidden');
+    }, wait);
+  }
+
+  if (loaderOn) {
+    const d = parseInt(L.delayMs, 10);
+    const delayMs = isNaN(d) ? 120 : Math.max(0, d);
+    if (delayMs === 0) {
+      overlay = createOverlay();
+      shownAt = performance.now();
+      stats.overlayShownAt = shownAt;
+      log('overlay shown (immediate)');
+    } else {
+      showTimer = setTimeout(function () {
+        if (stats.critEnd) return;
+        overlay = createOverlay();
+        shownAt = performance.now();
+        stats.overlayShownAt = shownAt;
+        log('overlay shown');
+      }, delayMs);
+    }
+    const m = parseInt(L.maxShowMs, 10);
+    const maxMs = isNaN(m) ? 2000 : Math.max(300, m);
+    failsafeTimer = setTimeout(function () { if (overlay) hideOverlay(); }, maxMs + 60);
+    if (L.ariaBusy !== false && document.body) document.body.setAttribute('aria-busy', 'true');
+  }
+
+  const critical = (queues && queues.critical) || [];
+  const idleQ = ((queues && queues.idle) || []).slice();
+  const heavyQ = ((queues && queues.heavy) || []).slice();
+
+  let resolveAccel = null;
+  const accel = (B.interactionWake === false) ? new Promise(function () {}) : new Promise(function (r) { resolveAccel = r; });
+  if (resolveAccel) {
+    const wake = function () {
+      if (resolveAccel) { const r = resolveAccel; resolveAccel = null; log('interaction wake'); r(); }
+    };
+    ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(function (ev) {
+      window.addEventListener(ev, wake, { once: true, passive: true, capture: true });
+    });
+  }
+
+  const results = critical.map(function (fn) {
+    try { return Promise.resolve(fn()); } catch (e) { return Promise.reject(e); }
+  });
+  Promise.allSettled(results).then(function () {
+    stats.critEnd = performance.now();
+    log('critical done');
+    hideOverlay();
+    runQueues();
+  });
+
+  const budget = B.enabled === false ? Infinity : 40;
+  async function runQueue(list) {
+    while (list.length) {
+      const t = performance.now();
+      while (list.length && (performance.now() - t) < budget) {
+        const fn = list.shift();
+        try { await fn(); } catch (e) { log('phase item failed'); }
+      }
+      if (list.length) await Promise.race([whenIdle(parseInt(B.idleTimeoutMs, 10) || 800), accel]);
+      await yieldToMain();
+    }
+  }
+  async function runQueues() {
+    try {
+      await runQueue(idleQ);
+      stats.idleEnd = performance.now();
+      log('idle queue done');
+      await runQueue(heavyQ);
+      stats.heavyEnd = performance.now();
+      log('all queues done');
+    } finally {
+      window.__APP_READY__ = true;
+    }
+  }
+}

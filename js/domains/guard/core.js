@@ -48,11 +48,13 @@ function toast(msg) {
   if (typeof window.__toast === 'function') window.__toast(msg, { type: 'info' });
 }
 
+function markReady() { try { window.__GUARD_READY__ = true; } catch (e) {} }
+
 export function init() {
-  if (!Object.keys(G).length) return;
-  if (bypassed()) { log('bypassed'); return; }
+  if (!Object.keys(G).length) { markReady(); return; }
+  if (bypassed()) { log('bypassed'); markReady(); return; }
   const preset = (F.guards && F.guards.preset) || 'soft';
-  if (preset === 'off') { log('preset off'); return; }
+  if (preset === 'off') { log('preset off'); markReady(); return; }
 
   function active(mod) {
     if (F.guards && F.guards[mod] === false) return false;
@@ -79,4 +81,5 @@ export function init() {
   if (active('tamperWatch')) import('./tamper-watch.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('tamperWatch load failed', e); });
   if (active('accessGate')) import('./access-gate.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('accessGate load failed', e); });
   log('init', preset);
+  markReady();
 }

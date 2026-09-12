@@ -416,7 +416,9 @@ const DEFAULT_FEATURES = {
     gradientAngle: '135deg', fontSizeBase: 64, maxLines: 4,
     letterSpacing: '0.02em', template: 'aurora', palette: 'theme', showCategory: true
   },
-  guards: { enabled: true, preset: 'soft', contextMenu: true, copyGuard: true, selectionGuard: true, hotkeyGuard: true, watermark: true, devtoolsDetect: true, consoleGuard: true, privacyCurtain: true, tamperWatch: true, accessGate: true }
+  guards: { enabled: true, preset: 'soft', contextMenu: true, copyGuard: true, selectionGuard: true, hotkeyGuard: true, watermark: true, devtoolsDetect: true, consoleGuard: true, privacyCurtain: true, tamperWatch: true, accessGate: true },
+  loading: { enabled: true, delayMs: 120, minShowMs: 250, maxShowMs: 2000, reducedMotion: 'skip', text: '', ariaBusy: true },
+  boot: { enabled: true, idleTimeoutMs: 800, interactionWake: true, log: false }
 };
 
 const FEATURE_MODULES = Object.keys(DEFAULT_FEATURES);
@@ -449,7 +451,8 @@ const ENUM_FIELDS = {
   speculation: { mode: ['prefetch', 'prerender', 'both'], eagerness: ['moderate', 'eager', 'conservative'], delivery: ['inline', 'header', 'both'] },
   ogImageStyle: { template: ['aurora', 'mesh', 'grid', 'paper', 'duotone'], palette: ['theme', 'hash'] },
   announcement: { tone: ['accent', 'solid', 'minimal'] },
-  guards: { preset: ['off', 'soft', 'strict'] }
+  guards: { preset: ['off', 'soft', 'strict'] },
+  loading: { reducedMotion: ['skip', 'static'] }
 };
 // Numeric fields computed per module via typeof === 'number' check. All non-
 // numeric array fields (whitelist/blacklist/order/palette) must be arrays.

@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(77 模块)](#3-featuresjson5--功能总控77-模块)
+3. [features.json5 — 功能总控(80 模块)](#3-featuresjson5--功能总控80-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -226,7 +226,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(77 模块)
+## 3. features.json5 — 功能总控(80 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -467,6 +467,14 @@ sitemap: {
 
 `enabled true` / `spring 'snappy'`(`smooth|snappy|bouncy`) / `reducedMotion 'light'`(`light|off|full`;light=系统 reduce-motion 下改用更快的轻量弹簧) / `preload 'interaction'`(`interaction|idle|immediate`) / `perIcon {}`(单图标弹簧覆盖,值=预设名或 `{stiffness,damping}`) / `icons { theme, copy, favorite, tts, menu }`(各图标独立开关)。基于 morphicons(本地 vendor,懒加载,~7.5KB gzip):状态切换类图标用弹簧物理做形状变形(主题 sun↔moon、复制 copy→check、收藏空心↔实心、朗读扬声器↔停止、移动端汉堡↔X);关闭任意开关均回退原有静态实现;弹簧参数见 `tuning.morphicons`(stiffness/damping 与轻量版 reducedStiffness/reducedDamping;同时设置时优先于 spring 预设)。
 
+### 3.62 viewTransition — 跨文档过渡动画
+
+`enabled true` / `type 'fade'`(`fade|slide`) / `durationMs 180` / `reducedMotion 'light'`(`light|off|full`;light=系统 reduce 时 0.1s 纯淡出) / `toggle { show true, defaultOn true, storageKey 's-view-transition' }`。基于跨文档 View Transitions(`@view-transition{navigation:auto}`)：同源跳转无白屏交叉过渡；不支持 VT 的浏览器自动忽略并回退 `pageTransition` 淡出；VT 生效时旧淡出被抑制（避免双重动画）；页内导航栏闪电图标可开关（localStorage 记忆），不支持的浏览器该开关自动置灰、两项均不支持时整组隐藏。
+
+### 3.63 speculation — 预取/预渲染
+
+`enabled true` / `mode 'both'`(`prefetch|prerender|both`) / `eagerness 'moderate'`(`moderate|eager|conservative`) / `excludeSelectors ['[download]','[rel~=nofollow]','.no-speculate']` / `toggle { show true, defaultOn true, storageKey 's-speculation' }`。基于 Speculation Rules（悬停约 200ms 预取/预渲染，仅 Chromium 系生效，其余浏览器自动忽略）：排除选择器与含查询串 URL；CSP 已加 `'inline-speculation-rules'` 关键字；预渲染期间统计信标与 Service Worker 注册经 `document.prerendering` 守门延后到 `prerenderingchange`（避免重复计数与副作用）；页内开关同样带记忆。
+
 ---
 
 ## 4. navigation.json5 — 导航
@@ -580,11 +588,11 @@ sitemap: {
 
 ## 10. tuning.json5 — UI 微调参数层
 
-独立 UI 参数文件(26 分类 / 166 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
+独立 UI 参数文件(27 分类 / 179 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
 **优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已在「tuning 收尾」中全部清理(单一入口归各自模块配置);10 项原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
 
-**分类(26)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / morphicons。
+**分类(27)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / icons / morphicons。
 
 **已绑定示例(118 项 CSS + 19 项行为)**:`--hero-maxWidth`、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`、`--header-scrolledHeight/hairlineStrength`、`--code-borderWidth/borderMix`、`--texture-noiseOpacity`、`--glow-heroStrength`、`--card-imageHoverScale/excerptLines/gridGap`、`--motion-transitionTiming/buttonPressScale`、`--reading-quoteTint/imageHoverScale/h2AccentWidth/Height`;行为侧:search 历史/热词/去抖/结果上限/空文案、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进、morphicons 弹簧刚度/阻尼/轻量版弹簧。
 

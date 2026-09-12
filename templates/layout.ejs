@@ -426,6 +426,7 @@
     .cmdp-item.active{background:color-mix(in srgb,var(--color-s) 14%,transparent);color:var(--color-s)}
     .cmdp-empty{padding:1.2rem;text-align:center;color:var(--color-tl);font-size:.9rem}
     @media (prefers-reduced-motion: no-preference){dialog.cmdp[open]{animation:cmdp-in .16s var(--te)}@keyframes cmdp-in{from{opacity:0;transform:translateX(-50%) translateY(-6px)}to{opacity:1;transform:translateX(-50%)}}}
+    <% if(features.pwa&&features.pwa.enabled!==false&&features.pwa.installPrompt!==false){ %>.pwa-install-btn{position:fixed;left:1.25rem;bottom:1.25rem;z-index:1050;display:inline-flex;align-items:center;gap:.4rem;padding:.55rem .95rem;border-radius:999px;background:var(--color-surface);color:var(--color-t);border:1px solid var(--color-border);box-shadow:var(--sd);cursor:pointer;font-family:var(--ff);font-size:.85rem;transition:transform var(--td) var(--te),box-shadow var(--td) var(--te)}.pwa-install-btn:hover{transform:translateY(-2px)}.pwa-install-close{opacity:.5;padding:0 .15rem;font-size:1rem;line-height:1}.pwa-install-close:hover{opacity:1}@media(max-width:768px){.pwa-install-btn{bottom:4.9rem}}<% } %>
     /* —— 代码块:行号列（Prism line-numbers 几何适配）—— */
     .post-content pre.line-numbers{padding-left:3.8em;counter-reset:linenumber}
     .post-content pre.line-numbers>code{position:relative;white-space:inherit}

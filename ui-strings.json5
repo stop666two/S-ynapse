@@ -153,6 +153,11 @@
     updateReady: '新版本可用，刷新页面以更新',
     offline: '网络已断开',
     online: '网络已恢复',
+    install: '安装到桌面',
+    installed: '应用已安装',
+    offlineTitle: '当前处于离线状态',
+    offlineDesc: '网络已断开，请检查连接后重试。',
+    retry: '重试',
   },
 
   // ==========================================================================
@@ -318,6 +323,11 @@
       updateReady: 'A new version is available. Refresh to update.',
       offline: 'You are offline',
       online: 'Back online',
+      install: 'Install app',
+      installed: 'App installed',
+      offlineTitle: 'You are offline',
+      offlineDesc: 'Network connection lost. Check and retry.',
+      retry: 'Retry',
     },
     commandPalette: {
       open: 'Open command palette',

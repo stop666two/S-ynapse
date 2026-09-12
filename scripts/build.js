@@ -2583,10 +2583,24 @@ async function generatePWA(config) {
     console.log('  Created: manifest.json');
   }
   const swUrl = config.site.pwa.serviceWorker || '/sw.js';
+  const featPwa = (config.features && config.features.pwa) || {};
+  const pwaOffline = featPwa.offlinePage !== false;
+  if (pwaOffline) {
+    const isEn = config.site.defaultLanguage === 'en';
+    const zh = (config.uiStrings && config.uiStrings.pwa) || {};
+    const en = (config.uiStrings && config.uiStrings.en && config.uiStrings.en.pwa) || {};
+    const S = isEn
+      ? { t: en.offlineTitle || 'You are offline', d: en.offlineDesc || 'Network connection lost. Check and retry.', r: en.retry || 'Retry', h: 'Back to home' }
+      : { t: zh.offlineTitle || '当前处于离线状态', d: zh.offlineDesc || '网络已断开，请检查连接后重试。', r: zh.retry || '重试', h: '返回首页' };
+    const home = isEn ? '/en/' : '/zh/';
+    const offlineHtml = '<!DOCTYPE html><html lang="' + (isEn ? 'en' : 'zh') + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' + S.t + ' · ' + config.site.title + '</title><style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f7fafc;color:#1a2430;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:26rem;padding:2.5rem;text-align:center}h1{font-size:1rem;opacity:.6;margin:0 0 1.25rem}.t{font-size:1.35rem;font-weight:700;margin:0 0 .5rem}.d{opacity:.7;line-height:1.7;margin:0 0 1.75rem}button,a{font:inherit}button{cursor:pointer;padding:.6rem 1.4rem;border-radius:999px;border:0;background:#3b6ea5;color:#fff}button:hover{filter:brightness(1.08)}a{color:inherit;margin-left:1rem;text-decoration:underline;text-underline-offset:3px}@media(prefers-color-scheme:dark){body{background:#0e141b;color:#e6edf3}button{background:#5b8fc9}}</style></head><body><main><h1>' + config.site.title + '</h1><p class="t">' + S.t + '</p><p class="d">' + S.d + '</p><p><button onclick="location.reload()">' + S.r + '</button><a href="' + home + '">' + S.h + '</a></p></main></body></html>';
+    fs.writeFileSync(path.join(DIST_DIR, 'offline.html'), offlineHtml, 'utf-8');
+    console.log('  Created: offline.html');
+  }
   const swContent = `const CACHE = 's-ynapse-v1';
 const ASSETS = [
   '/',
-  '/manifest.json'
+  '/manifest.json'${pwaOffline ? ",\n  '/offline.html'" : ''}
 ];
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -2600,6 +2614,18 @@ self.addEventListener('activate', (event) => {
 });
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => ${pwaOffline ? "caches.match('/offline.html').then((off) => off || caches.match('/'))" : "caches.match('/')"})
+    );
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetchPromise = fetch(event.request).then((response) => {

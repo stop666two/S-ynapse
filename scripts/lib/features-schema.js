@@ -138,7 +138,7 @@ const DEFAULT_FEATURES = {
     reducedMotion: 'light', excludeSelector: '[data-no-transition]'
   },
   pwa: {
-    enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true
+    enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true, offlinePage: true, installPrompt: true
   },
   morphIcons: {
     enabled: true, spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},

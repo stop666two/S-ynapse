@@ -1651,14 +1651,7 @@
   // 45. PWA 运行时(SW 注册 / 更新提示 / 离线提示)
   // ---------------------------------------------------------------------------
   pwa: {
-    // 运行时总开关(需 site.pwa.enabled 同时开启)。
-    enabled: true,
-    // 注册 service worker。
-    registerSW: true,
-    // 新版本可用时 toast 提示。
-    updatePrompt: true,
-    // 离线/恢复时 toast 提示。
-    offlineNotice: true
+    enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true, offlinePage: true, installPrompt: true
   },
 
   // ---------------------------------------------------------------------------

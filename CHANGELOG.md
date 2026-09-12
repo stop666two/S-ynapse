@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **双语验收文章集**：zh/en 各 8 篇可发布文章 + 各 1 篇草稿，覆盖站内/外跳转、wiki 链接与锚点、Mermaid×5 与 KaTeX、12 种代码块、系列 3 篇前后篇导航、超长压力文（13 个二级章节）、图片画廊与灯箱、置顶与草稿排除 — `articles/{zh,en}/`
 - **代码块与图标增强**：行号列(Prism line-numbers 本地插件,纯文本块也可用;`tuning.code.lineNumberColor/lineNumberOpacity`)、终端语言标签(bash/sh/zsh/fish→`$ lang`；powershell→`PS> powershell`；console→`> console`)、diff 增删行着色(`tuning.code.diffAddMix/diffDelMix`)、代码块悬停描边+阴面(`tuning.code.hoverBorderMix/hoverShadowMix/hoverBgMix`)、内联代码精修(`tuning.code.inlineRadius/inlineHairlineMix`)、复制全部按钮、复制/下载图标描边绘制动画(`icon-draw`)、图标体系(描边统一 1.75/`tuning.icons.strokeWidth`、hover 上移、主题切换旋转)、导航菜单内置图标表(NAV_ICONS 10 枚:home/archive/tags/info/book/link/folder/search/rss/download)
 
 - **内容级双语(i18n)**:`articles/zh/` 与 `articles/en/` 双目录;19 篇文章全文翻译为英文(`scripts/build.js` 按语言扫描,文章对象带 `lang`/`langPrefix`);URL 全站语言前缀化 `/zh/slug/`、`/en/slug/`;根路径 `/` 输出中文首页 + 内置语言检测脚本(`navigator.language` 命中 en 时跳 `/en/`,localStorage `s-ss-lang` 记忆)— `templates/layout.ejs` + `scripts/build.js`
@@ -64,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **侧栏与聚合数据未按语言/草稿过滤**：`recentPosts`/归档/`seriesList`/图库/`siteStats` 在语言域重算；标签与分类聚合、系列、相关文章剔除草稿并限定同语言，修复中文页侧栏混入英文文章与草稿分类泄露 — `scripts/build.js`
 - **`sanitizeHtml` 剥离 `decoding` 属性**:性能配置注入的 `img decoding=async` 被净化白名单丢弃;白名单补 `decoding` 并附回归测试 — `scripts/lib/utils.js` + `scripts/build.test.js`
 - **代码块语言标签修复**:普通代码块重复标签（死类 `has-windowbar` → 实际 `code-window` 排除）与窗口栏标签门控 `showLanguageTag`;Mermaid 块不再被误加窗口栏/重复标签 — `templates/layout.ejs` + `js/domains/code-block.js`
 - **`externalAssets.styles` 从未渲染**:该配置仅被 preload 引用、未输出 `<link rel=stylesheet>`,导致外部字体样式从未生效;现已渲染并清空遗留 Google Fonts 链接 — `templates/layout.ejs` + `theme.json`

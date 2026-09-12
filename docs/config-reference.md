@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(82 模块)](#3-featuresjson5--功能总控82-模块)
+3. [features.json5 — 功能总控(83 模块)](#3-featuresjson5--功能总控83-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -230,7 +230,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(82 模块)
+## 3. features.json5 — 功能总控(83 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -490,6 +490,10 @@ sitemap: {
 ### 3.66 schemaRich — 结构化数据增强
 
 `enabled true` / `breadcrumbs true` / `dateModified true` / `blogHomepage true` / `authorUrl true`(Article 增加作者主页 URL) / `wordCount true`(正文字数) / `timeRequired true`(预计阅读时长 `PT{n}M`) / `keywords true`(标签拼接为 keywords) / `articleSection true`(首个分类) / `image true`(指向生成的 OG 图)。开关关闭或数据缺失时对应字段自动省略 — `templates/layout.ejs`。
+
+### 3.67 perfBudget — 性能预算门禁
+
+`enabled true` / `htmlKb 70`(单页 HTML gzip 上限,含内联 CSS/脚本) / `jsKb 90`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入) / `requests 18`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
 
 ---
 

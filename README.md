@@ -19,8 +19,8 @@
 ## 特性
 
 **全配置驱动**
-- 12 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2028 项），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
-- `features.json5` 功能总控域：**82 个模块、671 个配置项**，每项功能均可开/关/微调；`tuning.json5` UI 微调层（28 分类 / 185 项）
+- 12 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2033 项），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- `features.json5` 功能总控域：**83 个模块、676 个配置项**，每项功能均可开/关/微调；`tuning.json5` UI 微调层（28 分类 / 185 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
 - 详细参考文档：`docs/config-reference.md`（10 章，逐字段权威参考）
@@ -70,7 +70,7 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html` 含详细统计（含内容策略拦截清单）
-- 单元测试：`npm test` 覆盖核心纯函数（68 项 / 17 组）
+- 单元测试：`npm test` 覆盖核心纯函数（70 项 / 18 组）
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -134,7 +134,7 @@ S-ynapse/
 │   └── 404.ejs        # 404 页
 ├── scripts/
 │   ├── build.js       # 构建脚本（14 步管线）
-│   ├── build.test.js  # 单元测试（68 项 / 17 组）
+│   ├── build.test.js  # 单元测试（70 项 / 18 组）
 │   ├── security-verify.js  # 安全集成验证（注入恶意文章→构建→语义断言）
 │   ├── import.js      # 内容导入 CLI（hexo/hugo/wordpress）
 │   ├── export.js      # 备份导出 CLI（配置 + 文章 + 媒体打包）
@@ -155,7 +155,7 @@ S-ynapse/
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
 ├── site.json5          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
 ├── theme.json5         # 主题配置（颜色/字体/布局/文章页脚）
-├── features.json5     # 功能总控（82 模块/671 项，可开关/微调，可选文件）
+├── features.json5     # 功能总控（83 模块/676 项，可开关/微调，可选文件）
 ├── ui-strings.json5   # 界面文案词典（zh/en 双语词典，服务端 ui() + 运行时 __T()，可选）
 ├── tuning.json5       # UI 微调参数层（28 分类/185 项，注入 CSS 变量；行为参数运行时读取，可选）
 ├── navigation.json5    # 导航配置
@@ -256,7 +256,7 @@ S-ynapse/
 
 ### features.json5 — 功能总控魔方
 
-`features.json5` 是全部交互与内容功能的统一开关域：82 个模块、671 个配置项，逐项中文注释。几例：
+`features.json5` 是全部交互与内容功能的统一开关域：83 个模块、676 个配置项，逐项中文注释。几例：
 
 ```json5
 {
@@ -342,7 +342,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 加载配置 | 12 个 JSON5 配置（含 tuning.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 82 模块结构校验 |
+| 1 | 加载配置 | 12 个 JSON5 配置（含 tuning.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 83 模块结构校验 |
 | 2 | 设置输出目录 | 清空 `dist/` 并创建子目录 |
 | 3 | 复制静态文件 | `static/` → `dist/` |
 | 3ᵇ | 内容策略 | 按 content-policy.json5 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
@@ -440,7 +440,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（68 项 / 17 组） |
+| `npm test` | 运行单元测试（70 项 / 18 组） |
 | `npm run verify:security` | 集成安全回归（注入恶意文章 → 真实构建 → 语义断言） |
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
@@ -452,7 +452,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 68 项 / 17 组，全部通过
+npm test            # 70 项 / 18 组，全部通过
+npm run audit:a11y  # WCAG 2.x 无障碍审计（需先 npm run serve；0 critical/serious 门禁）
 npm run verify:security   # 集成安全回归
 ```
 

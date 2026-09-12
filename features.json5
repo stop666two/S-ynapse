@@ -1389,8 +1389,6 @@
   motion: {
     // 总开关:false 时本模块全部不生效。
     enabled: true,
-    // 全局缓动曲线(绝大部分过渡复用)。
-    ease: 'cubic-bezier(.4,0,.2,1)',
     // 卡片悬停缩放倍数(1=不缩放)。
     cardHoverScale: 1.02,
     // 链接下划线相对文字的偏移(px)。

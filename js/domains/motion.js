@@ -1,16 +1,20 @@
 export function init() {
   (function () {
     var F = window.__FEATURES__ || {}, M = F.motion || {};
+    var TM = (window.__TUNING__ || {}).motion || {};
+    var pick = function (k1, k2) { var v = TM[k1]; return v !== undefined && v !== '' && v !== null ? v : M[k2]; };
     if (M.enabled === false) return;
     if (M.respectReducedMotion !== false && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var lift = M.cardHoverLiftPx || 4;
+    var lift = pick('hoverLiftPx', 'cardHoverLiftPx') || 4;
     document.documentElement.style.setProperty('--mh-lift', lift + 'px');
-    document.documentElement.style.setProperty('--mh-under', (M.linkUnderlineThickness || '2px'));
-    document.documentElement.style.setProperty('--mh-scale', (isNaN(+M.cardHoverScale) ? 1.02 : +M.cardHoverScale));
-    document.documentElement.style.setProperty('--mh-under-offset', (M.linkUnderlineOffset || '3px'));
-    document.documentElement.style.setProperty('--mh-ripple', (M.rippleDurationMs ? +M.rippleDurationMs : 500) + 'ms');
-    document.documentElement.style.setProperty('--mh-dur', (M.revealDurationMs ? +M.revealDurationMs : 250) + 'ms');
-    document.documentElement.style.setProperty('--mh-offset', M.revealOffset || '10px');
+    document.documentElement.style.setProperty('--mh-under', pick('underlineThickness', 'linkUnderlineThickness') || '2px');
+    var sc = +pick('hoverScale', 'cardHoverScale');
+    document.documentElement.style.setProperty('--mh-scale', isNaN(sc) ? 1.02 : sc);
+    document.documentElement.style.setProperty('--mh-under-offset', pick('underlineOffset', 'linkUnderlineOffset') || '3px');
+    document.documentElement.style.setProperty('--mh-ripple', (+pick('rippleDurationMs', 'rippleDurationMs') || 500) + 'ms');
+    document.documentElement.style.setProperty('--mh-dur', (+pick('revealDurationMs', 'revealDurationMs') || 250) + 'ms');
+    document.documentElement.style.setProperty('--mh-offset', pick('revealOffset', 'revealOffset') || '10px');
+    var stagger = +pick('staggerDelayMs', 'revealDelayMs') || 0;
     function boot() {
       var it = window.location.pathname.replace(/\/index\.html$/, '/');
       document.querySelectorAll('header .nav-link').forEach(function (a) {
@@ -48,15 +52,25 @@ export function init() {
         if (M.revealImages !== false) document.querySelectorAll('.post-content img,.post-card-image:not(.motion-reveal)').forEach(function (x) { els.push(x); });
         if (M.revealBlocks !== false) document.querySelectorAll('.post-content pre,.post-content blockquote,.post-content table').forEach(function (x) { els.push(x); });
         if (els.length) {
+          var once = M.revealOnce !== false;
+          var th = +(M.revealThreshold);
+          if (isNaN(th) || th < 0) th = 0;
           var io = new IntersectionObserver(function (es) {
+            var batch = [];
             es.forEach(function (en) {
               if (en.isIntersecting) {
-                var d = +(M.revealDelayMs || 60);
-                en.target.classList.add('in');
-                io.unobserve(en.target);
+                batch.push(en.target);
+                if (once) io.unobserve(en.target);
               }
             });
-          }, { threshold: 0 });
+            batch.forEach(function (el, idx) {
+              if (stagger > 0) {
+                el.style.transitionDelay = (Math.min(idx, 8) * stagger) + 'ms';
+                setTimeout(function () { el.style.transitionDelay = ''; }, 1400);
+              }
+              el.classList.add('in');
+            });
+          }, { threshold: th });
           els.forEach(function (x) { x.classList.add('motion-reveal'); io.observe(x); });
         }
       }

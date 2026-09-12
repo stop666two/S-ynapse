@@ -220,8 +220,8 @@
 
   "animation": {
     "enable": true,               // 是否启用动画
-    "transitionDuration": "0.3s", // 过渡动画时长
-    "transitionTiming": "ease-in-out"  // 过渡缓动函数
+    "transitionDuration": "0.3s", // 过渡动画时长（兜底，正常由 tuning.motion.transitionDuration 写入）
+    "transitionTiming": "cubic-bezier(0.22, 1, 0.36, 1)"  // 过渡缓动曲线（兜底，正常由 tuning.motion.transitionTiming 写入）
   },
 
   // ==================== 代码高亮配色 ====================

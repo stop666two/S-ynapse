@@ -122,6 +122,8 @@
     "buttonPressScale": "0.97",
     // 通用过渡时长
     "transitionDuration": "0.3s",
+    // 通用过渡缓动曲线（弹簧感，out 型）
+    "transitionTiming": "cubic-bezier(0.22, 1, 0.36, 1)",
   },
 
   // ---------- 首屏 Hero（10 项） ----------

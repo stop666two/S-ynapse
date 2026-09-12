@@ -346,7 +346,7 @@ const DEFAULT_FEATURES = {
     }
   },
   motion: {
-    enabled: true, ease: 'cubic-bezier(.4,0,.2,1)',
+    enabled: true,
     cardHoverScale: 1.02,
     linkUnderlineOffset: '3px',
     cardHoverLift: true, cardHoverLiftPx: 4,

@@ -337,7 +337,7 @@
     // 当前页缩放
     "activeScale": "1.05",
     // 按钮圆角
-    "radius": "0.382rem",
+    "radius": "0.618rem",
   },
 
   // ---------- 热力图（6 项） ----------
@@ -451,7 +451,7 @@
     // 图标尺寸
     "iconSize": "1.5rem",
     // 圆角
-    "radius": "0.618rem",
+    "radius": "1.618rem",
     // 条目字号
     "valueFontSize": "1.25rem",
     // 标题字号
@@ -493,7 +493,7 @@
     // 圆角
     "radius": "0.618rem",
     // 悬停缩放
-    "hoverZoom": "1.05",
+    "hoverZoom": "1.02",
     // 显示图注
     "captionShow": "true",
   },

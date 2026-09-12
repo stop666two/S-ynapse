@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **档位数值表外置**:`rounding/shadowLevel/borderStyle/density` 的具体数值从 `scripts/build.js` 内联常量迁移至 `theme.json` 的 `tiers`(四组档位,完整注释);`build.js` 仅保留解析逻辑 — `theme.json` + `scripts/build.js`
 - **prismTheme 模块精简**:移除未实现的主题切换器子键(themes/defaultTheme/remember/storageKey/windowBar),仅保留 `enabled` 作为代码高亮配色总开关(配色见 `codeHighlight.palette`),消除多开关 — `features.json5` + `scripts/lib/features-schema.js`
 - **theme.json 清理**:移除被 `tiers.shadow` 取代的 `shadow` 段与死键 `codeHighlight.theme/highlightLines` — `theme.json`
+- **tuning 收尾（单一入口 + 保留项接线）**:删除与 features/site/theme 重复的 57 个键（toast/gallery/heatmap/footer/sidebar/archive/lightbox 整组 + 分散键），消除多开关；接线 18 项保留项（typography quote/caption/meta/small/tiny、hero.ctaRadius、radius.image/badge、search.inputHeight、stats.hoverLiftPx、pagination.activeScale、breadcrumb.currentWeight、tags.hoverScale、share.iconSize、prevNext.titleLines、contactPopup.iconSize/valueFontSize、comments.marginTop）；10 项无实现目标的键在注释标注「待实现」 — `tuning.json5` + `templates/layout.ejs`
 
 ### Fixed
 

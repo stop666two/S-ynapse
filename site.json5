@@ -275,6 +275,12 @@
     // 注意: 文章有 featuredImage 时优先用文章图
     "ogImage": "/media/og-image.svg",
 
+    // og:image:alt 替代文本
+    // 作用: 为 og:image 输出 alt 文本（文章页=文章标题）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 仅文章页且 ogImage 相关功能开启时输出
+    "ogImageAlt": true,
+
     // og:type 默认值
     // 作用: Open Graph 类型;文章页自动为 article,列表/首页用此值
     // 类型: string | 可填: "website"/"article"/"blog" | 推荐: "website"
@@ -291,6 +297,18 @@
     // 类型: string（@开头） | 可填: "@yourhandle" 或 ""
     // 推荐: ""（无账号时）
     "twitterSite": "@yourtwitter",
+
+    // 文章时间元数据
+    // 作用: 文章页输出 article:published_time / article:modified_time
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: modified_time 仅当 frontmatter 提供 modified 字段时输出
+    "articleTimes": true,
+
+    // Twitter 读数标签
+    // 作用: 分享卡片展示"阅读时长 + 字数"双标签（label1/data1/label2/data2）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 不可填: 非文章页无数据,自动跳过
+    "twitterLabels": true,
 
     // 是否输出 canonical 链接
     // 作用: <link rel="canonical"> 指向当前页规范 URL（防重复内容）

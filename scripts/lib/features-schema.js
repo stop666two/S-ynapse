@@ -156,6 +156,9 @@ const DEFAULT_FEATURES = {
   cardFx: {
     enabled: true, coverOverlay: true, categoryChip: true, readTimeBadge: true, hoverShine: true
   },
+  magazine: {
+    enabled: true, dropCap: true, figureBleed: true, tableHover: true, headingNumbers: false
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true
@@ -179,7 +182,8 @@ const DEFAULT_FEATURES = {
     enabled: true, includeSelf: true, canonical: true
   },
   schemaRich: {
-    enabled: true, breadcrumbs: true, dateModified: true, blogHomepage: true
+    enabled: true, breadcrumbs: true, dateModified: true, blogHomepage: true,
+    authorUrl: true, wordCount: true, timeRequired: true, keywords: true, articleSection: true, image: true
   },
   ogImage: {
     enabled: true, width: 1200, height: 630, useCover: true,

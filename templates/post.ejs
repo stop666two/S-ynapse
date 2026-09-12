@@ -54,7 +54,7 @@
     featured-image" loading="eager">
   <% } %>
 
-  <div class="post-content">
+  <div class="post-content<% var _mg=(typeof features!=='undefined'&&features.magazine)||{}; if(_mg.enabled!==false){ if(_mg.dropCap!==false){%> mg-dropcap<%} if(_mg.figureBleed!==false){%> mg-bleed<%} if(_mg.tableHover!==false){%> mg-tablehover<%} if(_mg.headingNumbers){%> mg-h2num<%} } %>">
     <%- article.content %>
   </div>
   <%# Article footer: rendered from pages/ content. Source filename is set in theme.json5 articleFooter.source. %>

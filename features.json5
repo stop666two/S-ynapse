@@ -526,7 +526,19 @@
     // Article schema 增加 dateModified 字段。
     dateModified: true,
     // 首页输出 Blog 类型 schema。
-    blogHomepage: true
+    blogHomepage: true,
+    // Article schema 增加作者主页 URL。
+    authorUrl: true,
+    // Article schema 增加正文字数(wordCount)。
+    wordCount: true,
+    // Article schema 增加预计阅读时长(timeRequired,PT{n}M)。
+    timeRequired: true,
+    // Article schema 增加关键词(keywords,来自标签)。
+    keywords: true,
+    // Article schema 增加所属栏目(articleSection,取首个分类)。
+    articleSection: true,
+    // Article schema 增加封面图(image,指向生成的 OG 图)。
+    image: true
   },
 
   // ---------------------------------------------------------------------------
@@ -1734,5 +1746,21 @@
     readTimeBadge: true,
     // 悬停扫过光泽(自动尊重 reduced-motion)。
     hoverShine: true
+  },
+
+  // ---------------------------------------------------------------------------
+  // 50. 杂志排版(首字下沉/图片出血/表格悬停/标题编号)
+  // ---------------------------------------------------------------------------
+  magazine: {
+    // 总开关(false = 恢复基础排版)。
+    enabled: true,
+    // 首段首字下沉(衬线展示字体+主题色;中英文均生效)。
+    dropCap: true,
+    // 正文图片向两侧出血(宽屏超出正文栏;窄屏自动回退)。
+    figureBleed: true,
+    // 表格行悬停高亮(主色调混合)。
+    tableHover: true,
+    // h2 自动编号(01/02…;默认关,避免与手写序号重复)。
+    headingNumbers: false
   },
 }

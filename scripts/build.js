@@ -192,6 +192,7 @@ function loadConfig() {
         ogImage: '', ogType: 'website',
         twitterCard: 'summary_large_image', twitterSite: '',
         canonicalURL: false,
+        ogImageAlt: true, articleTimes: true, twitterLabels: true,
         structuredData: { enabled: false, type: 'BlogPosting' }
       },
       social: { enabled: false, items: {} },

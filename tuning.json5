@@ -477,4 +477,20 @@
     "reducedDamping": 55,
   },
 
+  // ---------- 杂志排版（6 项） ----------
+  "magazine": {
+    // 首字下沉字号（3.4em 醒目大气;2.5em 内敛;0px = 关闭）
+    "dropCapSize": "3.4em",
+    // 首字颜色（var(--color-s) 跟随主题色;任何合法 CSS 颜色均可）
+    "dropCapColor": "var(--color-s)",
+    // 首字字重（600 半粗;400 常规;700 加重）
+    "dropCapWeight": "600",
+    // 图片出血宽度（向两侧各扩展一半;4rem 适中;0 = 关闭）
+    "bleedWidth": "4rem",
+    // 表格悬停底色混合比例（6% 轻微;10% 明显;0% = 关闭）
+    "tableHoverMix": "6%",
+    // h2 编号颜色（默认 55% 次级文字色）
+    "headingNumberColor": "color-mix(in srgb, var(--color-ts) 55%, transparent)",
+  },
+
 }

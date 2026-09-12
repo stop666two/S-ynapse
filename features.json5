@@ -1815,4 +1815,22 @@
     // 打开时自动聚焦输入框(false = 需点击输入框;一般保持 true)。
     autoFocus: true
   },
+
+  // ---------------------------------------------------------------------------
+  // 54. 订阅组件(RSS / JSON Feed / 外邮件订阅表单)
+  // ---------------------------------------------------------------------------
+  subscribe: {
+    // 总开关(false = 页脚不渲染订阅条)。
+    enabled: true,
+    // 是否显示 RSS 链接(指向当前语言的 {lang}/feed.xml)。
+    rss: true,
+    // 是否显示 JSON Feed 链接(仍受 site.rss.jsonFeed.enabled 总控)。
+    jsonFeed: true,
+    // 外部邮件订阅表单地址(如 Buttondown/Substack 主页;空字符串 = 隐藏该按钮)。
+    newsletterUrl: '',
+    // 邮件订阅按钮文案(空 = 用界面文案表 subscribe.mail)。
+    newsletterLabel: '',
+    // 外链是否新窗口打开(false = 当前窗口)。
+    newTab: true
+  },
 }

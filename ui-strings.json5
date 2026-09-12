@@ -186,6 +186,12 @@
     actFavorites: '我的收藏',
   },
 
+  subscribe: {
+    title: '订阅与更新',
+    mail: '邮件订阅',
+    aria: '订阅入口',
+  },
+
   en: {
     common: {
       loading: 'Loading…',
@@ -317,6 +323,11 @@
       actTop: 'Back to top',
       actSearch: 'Open search',
       actFavorites: 'My favorites',
+    },
+    subscribe: {
+      title: 'Subscribe & Updates',
+      mail: 'Email updates',
+      aria: 'Subscribe',
     },
   },
 }

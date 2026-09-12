@@ -169,6 +169,10 @@ const DEFAULT_FEATURES = {
     enabled: true, hotkey: 'k', includeNavigation: true, includeActions: true,
     includeSearch: true, maxResults: 10, autoFocus: true
   },
+  subscribe: {
+    enabled: true, rss: true, jsonFeed: true, newsletterUrl: '',
+    newsletterLabel: '', newTab: true
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true

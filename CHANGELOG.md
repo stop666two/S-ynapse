@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **侧栏部件图标（A9）**：`sidebar.json5` 每个部件支持 `icon` 字段（内置 16 枚线性图标: clock/folder/tags/archive/collection/chart/quote/image/link/info/book/search/rss/download/home），8 个默认部件已配图标 — `templates/layout.ejs`
+- **公告条（C2）**：`features.announcement`（`text`/`textEn`/`url`/`dismissible`）——顶部固定公告条，`--annH` 统一偏移固定头部/移动菜单/粘性目录/内容；关闭按文本哈希记忆 — `templates/layout.ejs` + `js/domains/announcement.js`
 - **灯箱手势增强（E1）**：eatures.lightbox.swipeClose 下拉滑动关闭（放大状态下不触发）；鼠标拖拽左右翻页（非缩放态） — js/domains/lightbox.js
 - **PWA 商业化增强（B6）**：`features.pwa.offlinePage` 生成离线兜底页（断网访问未缓存页面→双语提示+重试按钮，SW 预缓存并导航回退）；`features.pwa.installPrompt` 安装引导（beforeinstallprompt 浮动按钮，可关闭并记忆） — `scripts/build.js` + `js/domains/pwa.js`
 - **氛围开关（A8）**：eatures.atmosphere（grain/glow）——颗粒纹理与 Hero 光晕的页面级开关（视觉参数仍在 	uning.texture/	uning.glow） — 	emplates/layout.ejs

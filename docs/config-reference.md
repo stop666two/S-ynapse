@@ -523,11 +523,17 @@ sitemap: {
 ### 3.74 printStyle — 打印样式
 
 
-### 3.75 atmosphere — 氛围
-
-enabled true / grain true(全局颗粒纹理叠层) / glow true(首页 Hero 主题色光晕)。颗粒/光晕的视觉参数在 	uning.json5 的 	exture(noiseOpacity/noiseOpacityDark/noiseBaseFrequency)与 glow(heroStrength/heroStrengthDark)分类微调 — 	emplates/layout.ejs。
+### 3.74 printStyle — 打印样式
 
 `enabled true` / `hideInteractive true`(打印隐藏导航/页脚/侧栏/按钮/评论/相关推荐等) / `expandLinks true`(正文外链打印为 `文字 (URL)`) / `avoidBreaks true`(代码块/图片/表格/引用避免跨页断裂)。打印/导出 PDF 时强制白底黑字、去阴影、正文全宽 — `templates/layout.ejs`。
+
+### 3.75 atmosphere — 氛围
+
+`enabled true` / `grain true`(全局颗粒纹理叠层) / `glow true`(首页 Hero 主题色光晕)。颗粒/光晕的视觉参数在 `tuning.json5` 的 `texture`(noiseOpacity/noiseOpacityDark/noiseBaseFrequency)与 `glow`(heroStrength/heroStrengthDark)分类微调 — `templates/layout.ejs`。
+
+### 3.76 announcement — 公告条
+
+`enabled true` / `text '欢迎来到 S-ynapse'`(中文/默认语言文本) / `textEn 'Welcome to S-ynapse'`(英文站覆盖) / `url ''`(点击跳转链接,留空=纯文本;https 外链自动 target=_blank rel=noopener) / `dismissible true`(显示关闭按钮)。固定于页面顶部(通过 `--annH` 变量将固定头部、移动菜单、粘性目录整体下移,内容偏移同步);关闭后按文本内容哈希记忆(`s-announce-dismissed`)不再出现 — `templates/layout.ejs` + `js/domains/announcement.js`。
 
 ---
 
@@ -556,7 +562,7 @@ enabled true / grain true(全局颗粒纹理叠层) / glow true(首页 Hero 主�
 | `enabled` | `true` | 侧栏总开关（关闭后内容区自动加宽居中） |
 | `options.width/gap/radius/padding/titleSize/titleWeight` | `318px`/`1.618rem`/`0.618rem`/`1rem`/`.9375rem`/`600` | 外观选项（width 优先于根级旧键） |
 | `options.hoverLift` / `borderShow` | `true`/`false` | 组件悬停上浮 / 描边显示 |
-| `widgets[]` | `[]` | 组件列表（数组顺序即显示顺序;位置由 theme.layout.sidebarPosition 控制） |
+| `widgets[]` | `[]` | 组件列表（数组顺序即显示顺序;位置由 theme.layout.sidebarPosition 控制;每个部件可选 `icon` 字段,内置: clock/folder/tags/archive/collection/chart/quote/image/link/info/book/search/rss/download/home） |
 
 组件类型(`type` 字段):
 - `author` `{title,avatar,bio}`

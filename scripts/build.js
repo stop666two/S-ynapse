@@ -628,7 +628,7 @@ async function optimizeMedia(config) {
       const metadata = await sharp(imgPath).metadata();
       const originalWidth = metadata.width;
       const urlDir = parsed.dir ? parsed.dir + '/' : '';
-      const entry = { original: `/media/${urlDir}${parsed.base}`, variants: {} };
+      const entry = { original: `/media/${urlDir}${parsed.base}`, variants: {}, width: originalWidth, height: metadata.height };
       const imageLazyCfg = (config.features && config.features.imageLazy) || {};
       if (imageLazyCfg.lqip !== false) {
         try {
@@ -822,6 +822,7 @@ function setupMarkedRenderer(config, mediaManifest) {
           const entry = mediaManifest[normHref];
           if (entry && entry.variants && Object.keys(entry.variants).length > 0) {
             const lqipAttr = entry.lqip ? ` data-lqip="${escapeAttr(entry.lqip)}"` : '';
+            const iwAttr = entry.width ? ` data-iw="${entry.width}"` : '';
             const webpSources = [];
             const avifSources = [];
             const origSources = [];
@@ -840,7 +841,7 @@ function setupMarkedRenderer(config, mediaManifest) {
             html += webpSources.join('\n');
             if (webpSources.length && origSources.length) html += '\n';
             html += origSources.join('\n') + '\n';
-            html += `  <img src="${fallbackSrc}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}${lqipAttr}>\n`;
+            html += `  <img src="${fallbackSrc}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}${lqipAttr}${iwAttr}>\n`;
             html += '</picture>';
             return html;
           }
@@ -850,7 +851,8 @@ function setupMarkedRenderer(config, mediaManifest) {
           const entry = mediaManifest[norm];
           if (entry && entry.original) {
             const lqipAttr = entry.lqip ? ` data-lqip="${escapeAttr(entry.lqip)}"` : '';
-            return `<img src="${escapeAttr(entry.original)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}${lqipAttr}>`;
+            const iwAttr = entry.width ? ` data-iw="${entry.width}"` : '';
+          return `<img src="${escapeAttr(entry.original)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}${lqipAttr}${iwAttr}>`;
           }
         }
         return `<img src="${escapeAttr(decodedHref)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}>`;
@@ -1408,6 +1410,16 @@ function buildPageData(config, articles, tags, categories) {
       nav = { ...nav, menu };
     }
   }
+  let imageFitCss = '';
+  const _ifCfg = (config.features && config.features.imageFit) || {};
+  if (_ifCfg.enabled !== false && _ifCfg.content && _ifCfg.content.upscale === 'cap') {
+    try {
+      const mf = JSON.parse(fs.readFileSync(path.join(DIST_DIR, 'media-manifest.json'), 'utf8'));
+      const widths = new Set();
+      Object.keys(mf).forEach(function (k) { const e = mf[k]; if (e && e.width) widths.add(e.width); });
+      imageFitCss = Array.from(widths).map(function (w) { return '[data-iw="' + w + '"]{--iw:' + w + 'px}'; }).join('');
+    } catch (e) { imageFitCss = ''; }
+  }
   return {
     site: config.site,
     theme: config.theme,
@@ -1415,6 +1427,7 @@ function buildPageData(config, articles, tags, categories) {
     uiStrings: config.uiStrings || {},
     tuning: config.tuning || {},
     guard: config.guard || {},
+    imageFitCss,
     nav,
     sidebar: config.sidebar,
     footer: config.footer,

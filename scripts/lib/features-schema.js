@@ -418,7 +418,8 @@ const DEFAULT_FEATURES = {
   },
   guards: { enabled: true, preset: 'soft', contextMenu: true, copyGuard: true, selectionGuard: true, hotkeyGuard: true, watermark: true, devtoolsDetect: true, consoleGuard: true, privacyCurtain: true, tamperWatch: true, accessGate: true },
   loading: { enabled: true, delayMs: 120, minShowMs: 250, maxShowMs: 2000, reducedMotion: 'skip', text: '', ariaBusy: true },
-  boot: { enabled: true, idleTimeoutMs: 800, interactionWake: true, log: false }
+  boot: { enabled: true, idleTimeoutMs: 800, interactionWake: true, log: false },
+  imageFit: { enabled: true, content: { upscale: 'never', cap: 1.5, maxHeightVh: 0, align: 'center' }, cover: { fit: 'cover', position: 'center' }, gallery: { stretch: false, maxHeightPx: 0 }, lightbox: { fit: 'contain' } }
 };
 
 const FEATURE_MODULES = Object.keys(DEFAULT_FEATURES);
@@ -452,7 +453,8 @@ const ENUM_FIELDS = {
   ogImageStyle: { template: ['aurora', 'mesh', 'grid', 'paper', 'duotone'], palette: ['theme', 'hash'] },
   announcement: { tone: ['accent', 'solid', 'minimal'] },
   guards: { preset: ['off', 'soft', 'strict'] },
-  loading: { reducedMotion: ['skip', 'static'] }
+  loading: { reducedMotion: ['skip', 'static'] },
+  imageFit: { 'content.upscale': ['never', 'cap', 'full'], 'content.align': ['center', 'left'], 'cover.fit': ['cover', 'contain', 'fill'], 'lightbox.fit': ['contain', 'actual'] }
 };
 // Numeric fields computed per module via typeof === 'number' check. All non-
 // numeric array fields (whitelist/blacklist/order/palette) must be arrays.

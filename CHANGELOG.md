@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **自动摘要混入源码**：摘要从正文 HTML 提取时未剔除代码块/mermaid 图表源/LaTeX，卡片、meta、RSS 与搜索摘要出现"莫名其妙代码"；现先剥离 `<pre>` 块、标题锚点 `#`、实体化标签与公式再截断 — `scripts/build.js`
 - **侧栏与聚合数据未按语言/草稿过滤**：`recentPosts`/归档/`seriesList`/图库/`siteStats` 在语言域重算；标签与分类聚合、系列、相关文章剔除草稿并限定同语言，修复中文页侧栏混入英文文章与草稿分类泄露 — `scripts/build.js`
 - **`sanitizeHtml` 剥离 `decoding` 属性**:性能配置注入的 `img decoding=async` 被净化白名单丢弃;白名单补 `decoding` 并附回归测试 — `scripts/lib/utils.js` + `scripts/build.test.js`
 - **代码块语言标签修复**:普通代码块重复标签（死类 `has-windowbar` → 实际 `code-window` 排除）与窗口栏标签门控 `showLanguageTag`;Mermaid 块不再被误加窗口栏/重复标签 — `templates/layout.ejs` + `js/domains/code-block.js`

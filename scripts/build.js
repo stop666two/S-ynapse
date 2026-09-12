@@ -1027,10 +1027,23 @@ async function processArticles(config, mediaManifest) {
       let htmlContent = marked.parse(content);
       if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
       htmlContent = sanitizeHtml(htmlContent);
-      // Auto-generate excerpt from rendered HTML (strip tags, truncate)
+      // Auto-generate excerpt from rendered HTML (strip tags, truncate).
+      // Code blocks (incl. mermaid sources) and math are stripped first so
+      // raw code / TeX never leaks into cards, meta, feeds or search index.
       let excerptText = excerpt;
       if (!excerptText) {
-        const textOnly = htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        const noBlocks = htmlContent
+          .replace(/<pre[\s\S]*?<\/pre>/gi, ' ')
+          .replace(/<a[^>]*class="heading-anchor"[^>]*>[\s\S]*?<\/a>/gi, ' ');
+        const textOnly = noBlocks
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\$\$[\s\S]*?\$\$/g, ' ')
+          .replace(/\\\[[\s\S]*?\\\]/g, ' ')
+          .replace(/\\\([\s\S]*?\\\)/g, ' ')
+          .replace(/\$\S[^$\n]*?\S\$|\$\S\$/g, ' ')
+          .replace(/&lt;\/?[a-zA-Z][^&]*?&gt;/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
         const as = (config.features && config.features.autoSummary) || {};
         const excerptLen = as.maxLength || config.site.build.excerptLength || config.theme.card?.excerptLength || 150;
         excerptText = textOnly.length > excerptLen ? textOnly.slice(0, excerptLen) + (as.ellipsis || '...') : textOnly;

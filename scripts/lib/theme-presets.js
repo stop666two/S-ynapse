@@ -35,7 +35,7 @@ function contrastRatio(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-// 六套预设。
+// 九套预设。
 // light/dark 各 13 色；label 为菜单展示名。
 const PRESETS = {
   'classic-blue': {
@@ -144,6 +144,60 @@ const PRESETS = {
       textSecondary: '#c9b8f0', textLight: '#a894cd', border: '#372a52',
       shadow: 'rgba(0,0,0,0.55)', hover: '#291b40',
       codeBackground: '#0b0414', codeText: '#e5dcf7'
+    }
+  },
+  'amber-coffee': {
+    label: '琥珀咖啡',
+    labelEn: 'Amber Coffee',
+    light: {
+      primary: '#3b2a1e', secondary: '#b45309', accent: '#9a3412',
+      background: '#fbf7f2', surface: '#ffffff', text: '#2b1d14',
+      textSecondary: '#5c4a3d', textLight: '#7d6a5c', border: '#e9dfd3',
+      shadow: 'rgba(0,0,0,0.1)', hover: '#f3ebe1',
+      codeBackground: '#f0e8dd', codeText: '#33241a'
+    },
+    dark: {
+      primary: '#f5e9dc', secondary: '#f59e0b', accent: '#fb923c',
+      background: '#171310', surface: '#211a15', text: '#f5ede5',
+      textSecondary: '#cbb9a8', textLight: '#a08f7f', border: '#3a2f26',
+      shadow: 'rgba(0,0,0,0.5)', hover: '#2b221b',
+      codeBackground: '#100d0a', codeText: '#f0e6da'
+    }
+  },
+  'ocean-teal': {
+    label: '海沫青',
+    labelEn: 'Ocean Teal',
+    light: {
+      primary: '#12303a', secondary: '#0f766e', accent: '#0e7490',
+      background: '#f2faf9', surface: '#ffffff', text: '#0f2b33',
+      textSecondary: '#3d5c64', textLight: '#56727a', border: '#d3e8e6',
+      shadow: 'rgba(0,0,0,0.1)', hover: '#e6f4f3',
+      codeBackground: '#e2f0ef', codeText: '#10333b'
+    },
+    dark: {
+      primary: '#d3f0ee', secondary: '#2dd4bf', accent: '#22d3ee',
+      background: '#071a1d', surface: '#0e2529', text: '#e3f7f5',
+      textSecondary: '#a9cfcb', textLight: '#86aaa6', border: '#1e3d42',
+      shadow: 'rgba(0,0,0,0.5)', hover: '#143034',
+      codeBackground: '#041112', codeText: '#d9f0ee'
+    }
+  },
+  'plum-wine': {
+    label: '梅子酒',
+    labelEn: 'Plum Wine',
+    light: {
+      primary: '#2e1526', secondary: '#9d174d', accent: '#6d28d9',
+      background: '#fdf6f9', surface: '#ffffff', text: '#2b1422',
+      textSecondary: '#5f3d52', textLight: '#816275', border: '#eed9e4',
+      shadow: 'rgba(0,0,0,0.1)', hover: '#f7e9f0',
+      codeBackground: '#f2e2ea', codeText: '#361a2c'
+    },
+    dark: {
+      primary: '#f3d9e5', secondary: '#f472b6', accent: '#a78bfa',
+      background: '#160a12', surface: '#22101c', text: '#f9edf4',
+      textSecondary: '#d3aec2', textLight: '#ab8a9c', border: '#3d2335',
+      shadow: 'rgba(0,0,0,0.55)', hover: '#2e1626',
+      codeBackground: '#0e060c', codeText: '#f2dcea'
     }
   }
 };

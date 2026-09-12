@@ -12,7 +12,8 @@
   // ===================================================================
   // 内置预设（theme-presets.js）:
   //   classic-blue(经典蓝) / night-jet(极夜黑) / forest-green(森林绿) /
-  //   sakura-pink(樱花粉) / editorial-grey(编辑部灰) / cyber-purple(赛博紫)
+  //   sakura-pink(樱花粉) / editorial-grey(编辑部灰) / cyber-purple(赛博紫) /
+  //   amber-coffee(琥珀咖啡) / ocean-teal(海沫青) / plum-wine(梅子酒)
   // 规则: preset 非空时 colors / darkMode.colors 整组以预设为准（预设接管）,
   //       手工 colors 不再生效;想改单色请写进 presetOverrides。
   //       将 preset 设为 null（或删除）可回退手工 colors 模式。
@@ -21,7 +22,8 @@
   // 作用: 一键切换全站配色（明亮+暗色两套同时切换）
   // 类型: string | null
   // 可填: "classic-blue" / "night-jet" / "forest-green" / "sakura-pink" /
-  //       "editorial-grey" / "cyber-purple" / null（关闭预设,走手工 colors）
+  //       "editorial-grey" / "cyber-purple" / "amber-coffee" / "ocean-teal" /
+  //       "plum-wine" / null（关闭预设,走手工 colors）
   // 不可填: 未定义的预设名（会触发校验错误提示可用列表）
   // 推荐: "classic-blue"
   // 注意: 预设只接管颜色;圆角/阴影/边框档位与预设正交,可自由组合

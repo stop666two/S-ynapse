@@ -352,8 +352,8 @@ describe('generate-security-config', () => {
 });
 
 describe('theme-presets', () => {
-  it('provides six presets with full light+dark palettes', () => {
-    assert.strictEqual(Object.keys(THEME_PRESETS).length, 6);
+  it('provides nine presets with full light+dark palettes', () => {
+    assert.strictEqual(Object.keys(THEME_PRESETS).length, 9);
     for (const key of Object.keys(THEME_PRESETS)) {
       const p = THEME_PRESETS[key];
       assert.ok(p.label, key + ' has label');

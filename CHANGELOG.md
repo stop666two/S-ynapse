@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- 代码窗口栏按钮与语言标签重叠: .code-actions 恢复文档流(position:static)且语言标签 margin-right:auto — 	emplates/layout.ejs
-- 长行代码横向滚动条过淡难看: 正文 pre 定制滚动条(thumb 文字色 38%→悬停 62%、9px、圆角、Firefox scrollbar-color) — 	emplates/layout.ejs
-- 共享元素封面过渡卡顿: 文章封面统一 spect-ratio: card.imageAspect(16/10) 消除形变; 首页 Bento 大卡(21/10)不参与封面形变(标题仍共享) — 	emplates/layout.ejs + 	emplates/index.ejs
+- 代码窗口栏按钮与语言标签重叠：`.code-actions` 恢复文档流（`position:static`）且语言标签 `margin-right:auto` — `templates/layout.ejs`
+- 长行代码横向滚动条过淡难看：正文 `pre` 定制滚动条（thumb 文字色 38%→悬停 62%、9px、圆角、Firefox `scrollbar-color`） — `templates/layout.ejs`
+- 共享元素封面过渡卡顿: 文章封面统一 spect-ratio: card.imageAspect(16/10) 消除形变; 首页 Bento 大卡(21/10)不参与封面形变(标题仍共享) — `templates/layout.ejs + `templates/index.ejs
 - features 模块计数同步为 91; README/config-reference 计数修正(91 模块/723 项)
 
 - **canonical 全站指向根路径（SEO）**：`<link rel="canonical">` 此前对所有页面均输出站点根（模板引用了不存在的 `page.url`），现改用 `currentUrl`（文章/分页/归档/标签等各自 URL），并规整 `site.url` 尾部斜杠 — `templates/layout.ejs`
@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **公告条（C2）**：`features.announcement`（`text`/`textEn`/`url`/`dismissible`）——顶部固定公告条，`--annH` 统一偏移固定头部/移动菜单/粘性目录/内容；关闭按文本哈希记忆 — `templates/layout.ejs` + `js/domains/announcement.js`
 - **灯箱手势增强（E1）**：eatures.lightbox.swipeClose 下拉滑动关闭（放大状态下不触发）；鼠标拖拽左右翻页（非缩放态） — js/domains/lightbox.js
 - **PWA 商业化增强（B6）**：`features.pwa.offlinePage` 生成离线兜底页（断网访问未缓存页面→双语提示+重试按钮，SW 预缓存并导航回退）；`features.pwa.installPrompt` 安装引导（beforeinstallprompt 浮动按钮，可关闭并记忆） — `scripts/build.js` + `js/domains/pwa.js`
-- **氛围开关（A8）**：eatures.atmosphere（grain/glow）——颗粒纹理与 Hero 光晕的页面级开关（视觉参数仍在 	uning.texture/	uning.glow） — 	emplates/layout.ejs
+- **氛围开关（A8）**：eatures.atmosphere（grain/glow）——颗粒纹理与 Hero 光晕的页面级开关（视觉参数仍在 `tuning.texture/`tuning.glow） — `templates/layout.ejs
 - **打印样式（D2）**：`features.printStyle`——打印/PDF 导出优化：隐藏交互元素、白底黑字、正文外链展开为 `文字 (URL)`、代码块/图表避免跨页断裂 — `templates/layout.ejs`
 - **多语言增强（D3）**：`features.hreflang.xDefault`（x-default 替代声明，指向默认语言）+ `features.i18n.translationNotice`（文章页翻译互链胶囊：另一语言存在同 slug 文章时自动显示，文案 `post.translationNotice` 双语可配）— `templates/post.ejs` + `templates/layout.ejs`
 - **主题预设扩展（E4）**：新增 3 套调色盘——`amber-coffee`(琥珀咖啡) / `ocean-teal`(海沫青) / `plum-wine`(梅子酒)，每套含明亮+暗色各 13 色，全部通过 WCAG AA 对比度测试；预设切换器与 `theme.json5` 注释同步 — `scripts/lib/theme-presets.js`

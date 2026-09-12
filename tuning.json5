@@ -228,8 +228,6 @@
   "reading": {
     // 阅读进度条高度
     "progressHeight": "3px",
-    // 进度条颜色
-    "progressColor": "var(--color-s)",
     // 返回顶部按钮尺寸
     "backToTopSize": "44px",
     // 返回顶部偏移
@@ -246,6 +244,16 @@
     "lineHeightStep": "0.1",
     // 阅读模式最大宽度
     "readingMaxWidth": "72ch",
+    // 引用块主色底纹强度（0% = 无底纹）
+    "quoteTint": "6%",
+    // 正文图片悬停缩放（1 = 不缩放）
+    "imageHoverScale": "1.01",
+    // h2 前置短竖线宽度
+    "h2AccentWidth": ".25rem",
+    // h2 前置短竖线高度
+    "h2AccentHeight": "1em",
+    // h2 前置短竖线颜色
+    "h2AccentColor": "var(--color-s)",
   },
 
   // ---------- 评论区（8 项） ----------

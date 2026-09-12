@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 公告条关闭无动画：增加滑出动画（`@property --annH` 注册属性过渡，固定头部/内容偏移同步上移；`prefers-reduced-motion` 直接收起） — `templates/layout.ejs` + `js/domains/announcement.js`
+- 公告条已关闭状态在刷新/跳页时短暂闪现：EJS 预计算内容哈希 + 条后内联脚本在解析期即移除并置 `data-ann-dismissed` 属性（首帧无过渡、头部零抖动） — `templates/layout.ejs`
 - 标题锚点 `#` 与 H2 主色竖线重叠：锚点改为右对齐定宽框（`left:-1.8em;width:1.65em;text-align:right`），与竖线保持 6px 间隙 — `templates/layout.ejs`
 - 公告条关闭后头部无法上移：关闭（及加载时已记忆关闭）时将 `--annH` 收起为 `0px`，固定头部/移动菜单/粘性目录即刻回位 — `js/domains/announcement.js`
 - 公告条文本不可见（绝对定位导致视口零宽裁切）：改为 `display:grid` 叠层，宽度随内容自适应 — `templates/layout.ejs`

@@ -546,15 +546,15 @@ sitemap: {
 
 ### 3.78 loading — 加载遮罩
 
-`enabled true`（false = 不渲染遮罩；无 JS 时也不会出现）/ `delayMs 120`（启动快于该值不显示，防“一闪而过”）/ `minShowMs 250`（一旦出现至少停留，含淡出共约 670ms）/ `maxShowMs 2000`（硬超时强制淡出，失败兜底；同时写入 CSS 动画兜底）/ `reducedMotion 'skip'`（`skip` 不显示 | `static` 显示但无动画）/ `text ''`（空 = `ui-strings` 的 `common.loading` 双语）/ `ariaBusy true`（启动期间 `<body aria-busy>`）。视觉（圆点大小/间距/跳动高度/文案字号/底色透明度/模糊）在 `tuning.json5` → `loading` 分类 — `js/core/boot.js` + `templates/layout.ejs`。
+`enabled true`（false = 不渲染遮罩；无 JS 时也不会出现）/ `delayMs 120`（启动快于该值不显示，防“一闪而过”）/ `minShowMs 250`（一旦出现至少停留，含淡出）/ `maxShowMs 2000`（硬超时强制淡出，失败兜底；同时写入 CSS 动画兜底）/ `reducedMotion 'skip'`（`skip` 不显示 | `static` 显示但无动画）/ `text ''`（空 = `ui-strings` 的 `common.loading` 双语）/ `ariaBusy true`（启动期间 `<body aria-busy>`）/ `spinner true`（转圈动画开关，false 仅文字）/ `spinnerStyle 'orbit'`（`orbit` 三点轨道 | `ring` 单环旋转）/ `showTitle false`（在动画上方显示站点名，取自页面标题栏站点名）/ `overlayColor ''`（转圈主色，空 = 跟随主题 `--color-s`）/ `fadeMs 380`（收尾淡出时长，同步 CSS 变量 `--loading-fade`）/ `zIndex 3000`（遮罩层级，高于导航/公告）。视觉（圆点大小/间距/跳动高度/文案字号/底色透明度/模糊/单环尺寸/标题字号）在 `tuning.json5` → `loading` 分类 — `js/core/boot.js` + `templates/layout.ejs`。
 
 ### 3.79 boot — 启动调度
 
-`enabled true`（false = 旧行为：全部模块立即初始化）/ `idleTimeoutMs 800`（`requestIdleCallback` 超时兜底）/ `interactionWake true`（首次点击/按键/触摸/滚轮立即唤醒后续批次，保 INP）/ `log false`（`[boot]` 时间线）。机制：仅 14 个关键模块静态初始化；17 个交互类模块动态导入、按 40ms 空闲切片加载；重模块（粒子背景/打赏）最后；时间线写入 `window.__BOOT__`（start/critEnd/idleEnd/heavyEnd），完成后置 `window.__APP_READY__`。实测启动后长任务为 0（原两个长任务 238ms+66ms 已消除） — `js/core/main.js` + `js/core/boot.js`。
+`enabled true`（false = 旧行为：全部模块立即初始化）/ `idleTimeoutMs 800`（`requestIdleCallback` 超时兜底）/ `interactionWake true`（首次点击/按键/触摸/滚轮立即唤醒后续批次，保 INP）/ `log false`（`[boot]` 时间线）/ `budgetMs 40`（每批时间片上限，越大越快但更易长任务；推荐 30-50）/ `heavyMode 'idle'`（重模块时机：`idle` 空闲即启 | `interaction` 等首次交互或兜底 | `immediate` 不等待）/ `idleFallbackMs 120`（无 `requestIdleCallback` 浏览器的回退间隔）/ `interactionEvents ['pointerdown','keydown','touchstart','wheel']`（唤醒事件名列表，可增删如 `scroll`）。机制：仅 14 个关键模块静态初始化；17 个交互类模块动态导入、按 `budgetMs` 空闲切片加载；重模块（粒子背景/打赏）按 `heavyMode` 时机启动；时间线写入 `window.__BOOT__`（start/critEnd/idleEnd/heavyEnd/budgetMs/heavyMode），完成后置 `window.__APP_READY__`。实测启动后长任务为 0（原两个长任务 238ms+66ms 已消除） — `js/core/main.js` + `js/core/boot.js`。
 
 ### 3.80 imageFit — 图片适配（四域）
 
-`enabled true`。**四域**：`content`（正文图片：`upscale 'never'`（默认不放大）| `'cap'` 最多放大 `cap 1.5` 倍 | `'full'` 铺满；`maxHeightVh 0` 限高（如 60=最多 60vh）；`align 'center'|'left'`）· `cover`（封面与卡片：`fit 'cover'|'contain'|'fill'`；`position 'center'|'top'|'bottom'|'left'|'right'` 或自定义 `'50% 30%'` 焦点）· `gallery`（`stretch false` 小图不再被拉伸（修复旧版变形）| `true` 旧行为；`maxHeightPx 0` 单图限高）· `lightbox`（`fit 'contain'`（默认）| `'actual'` 原始尺寸）。实现（运行时零 JS）：构建期为图片注入 `data-iw`（自然宽）并在 cap 模式生成 `[data-iw]` 宽度规则；四域分别烘焙为 `--if-*` CSS 变量 — `scripts/build.js` + `templates/layout.ejs` + `scripts/lib/utils.js`。
+`enabled true`。**四域**：`content`（正文图片：`upscale 'never'`（默认不放大）| `'cap'` 最多放大 `cap 1.5` 倍 | `'full'` 铺满；`maxHeightVh 0` 限高（如 60=最多 60vh）；`align 'center'|'left'`）· `cover`（封面与卡片：`fit 'cover'|'contain'|'fill'`；`position 'center'|'top'|'bottom'|'left'|'right'` 或自定义 `'50% 30%'` 焦点；`maxHeightVh 0` 封面限高；`aspect ''` 封面宽高比（空 = 模板默认 16/10，如 `'16/9'`、`'21/9'`）；`applyToCards true` 是否同时作用于列表卡片封面）· `gallery`（`stretch false` 小图不再被拉伸（修复旧版变形）| `true` 旧行为；`maxHeightPx 0` 单图限高）· `lightbox`（`fit 'contain'`（默认）| `'actual'` 原始尺寸；`maxWidthPct 92` 最大宽（vw）、`maxHeightVh 82` 最大高）。实现（运行时零 JS）：构建期为图片注入 `data-iw`（自然宽）并在 cap 模式生成 `[data-iw]` 宽度规则；四域分别烘焙为 `--if-*` CSS 变量 — `scripts/build.js` + `templates/layout.ejs` + `scripts/lib/utils.js`。
 
 ---
 
@@ -669,7 +669,7 @@ sitemap: {
 
 ## 10. tuning.json5 — UI 微调参数层
 
-独立 UI 参数文件(31 分类 / 202 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
+独立 UI 参数文件(31 分类 / 204 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
 **优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已在「tuning 收尾」中全部清理(单一入口归各自模块配置);10 项原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
 

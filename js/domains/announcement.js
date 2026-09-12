@@ -1,5 +1,5 @@
 function hashStr(s) { var h = 0; for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; } return String(h); }
-function collapseAnnH() { try { document.documentElement.style.setProperty('--annH', '0px'); } catch (e) {} }
+function collapseAnnH() { try { document.documentElement.setAttribute('data-ann-dismissed', '1'); } catch (e) {} }
 function run() {
   var bar = document.getElementById('announceBar');
   if (!bar) return;
@@ -8,11 +8,13 @@ function run() {
   var key = 's-announce-dismissed';
   var h = hashStr(JSON.stringify(items));
   try { if (localStorage.getItem(key) === h) { bar.remove(); collapseAnnH(); return; } } catch (e) {}
+  try { document.documentElement.classList.add('ann-anim'); } catch (e) {}
   var close = document.getElementById('announceClose');
   if (close) close.addEventListener('click', function () {
     try { localStorage.setItem(key, h); } catch (e) {}
-    bar.remove();
+    bar.classList.add('closing');
     collapseAnnH();
+    setTimeout(function () { bar.remove(); }, 340);
   });
   var rot = parseInt(bar.getAttribute('data-rotate'), 10) || 0;
   var spans = Array.prototype.slice.call(bar.querySelectorAll('.announce-item'));

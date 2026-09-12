@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 公告条在渐进渲染下仍可能闪现一帧：新增 `<head>` 早检脚本（构建期预计算内容哈希），首帧前即置 `data-ann-dismissed` 并由 CSS 隐藏（`html[data-ann-dismissed] .announcement-bar{display:none}`） — `templates/layout.ejs`
+- Mermaid 图表标签使用内置 trebuchet 字体并带半透明白色底（文字挤压/白边/排版异常）：`initialize` 注入站点字体、`edgeLabelBackground` 透明、flowchart/class/state 关闭 htmlLabels，渲染移至 `document.fonts.ready` 之后；CSS 兜底标签背景透明 + 宽图表横向滚动 — `templates/layout.ejs`
+- 数学公式发虚：reveal 动画残留 `will-change` 致文本长期驻留合成层，`.motion-reveal.in` 改 `will-change:auto` — `templates/layout.ejs`
+- 灯箱计数器与图片说明重叠：计数器移至顶部居中；旋转拆分为左转/右转两个按钮；重置按钮原用 × 图标与关闭混淆，改为“适配视图”图标；工具/导航/关闭按钮统一为 `--lightbox-btnSize`（44px，移动端 38px） — `templates/layout.ejs` + `js/domains/lightbox.js`
 - 公告条关闭无动画：增加滑出动画（`@property --annH` 注册属性过渡，固定头部/内容偏移同步上移；`prefers-reduced-motion` 直接收起） — `templates/layout.ejs` + `js/domains/announcement.js`
 - 公告条已关闭状态在刷新/跳页时短暂闪现：EJS 预计算内容哈希 + 条后内联脚本在解析期即移除并置 `data-ann-dismissed` 属性（首帧无过渡、头部零抖动） — `templates/layout.ejs`
 - 标题锚点 `#` 与 H2 主色竖线重叠：锚点改为右对齐定宽框（`left:-1.8em;width:1.65em;text-align:right`），与竖线保持 6px 间隙 — `templates/layout.ejs`

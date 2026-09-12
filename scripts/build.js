@@ -855,13 +855,17 @@ function setupMarkedRenderer(config, mediaManifest) {
       },
 
       // Code block renderer — wraps in <pre><code> with language class.
-      // When line numbers are enabled, adds data-line-numbers attribute.
+      // lineNumbers → pre.line-numbers（Prism line-numbers 插件在客户端渲染行号列）;
+      // wrapLongLines → pre.wrap-lines（软换行替代横向滚动）。
       // The data-language attribute drives the CSS ::before label in layout.ejs.
       code(text, lang) {
+        const preCls = [];
+        if (showLineNumbers) preCls.push('line-numbers');
+        if (F.codeBlock && F.codeBlock.wrapLongLines) preCls.push('wrap-lines');
+        const preClsAttr = preCls.length ? ` class="${preCls.join(' ')}"` : '';
         const langAttr = lang ? ` class="language-${escapeAttr(lang)}"` : '';
-        const lnAttr = showLineNumbers ? ' data-line-numbers="true"' : '';
         const langLabel = lang ? ` data-language="${escapeAttr(lang)}"` : '';
-        return `<pre${lnAttr}${langLabel}><code${langAttr}>${escapeHtml(text)}</code></pre>`;
+        return `<pre${preClsAttr}${langLabel}><code${langAttr}>${escapeHtml(text)}</code></pre>`;
       }
     }
   });
@@ -2402,12 +2406,14 @@ const NODE_MODULES = path.join(ROOT, 'node_modules');
 function copyVendorAssets(config) {
   const VENDOR = path.join(DIST_DIR, 'assets', 'vendor');
   fs.mkdirSync(VENDOR, { recursive: true });
-  // Prism：核心 + 常用语言组件（构建期拼接为单文件；新增语言在 PRISM_LANGS 登记）
+  // Prism：核心 + 常用语言组件 + line-numbers 插件（构建期拼接为单文件；新增语言在 PRISM_LANGS 登记）
   let prism = fs.readFileSync(path.join(NODE_MODULES, 'prismjs', 'prism.js'), 'utf-8');
   PRISM_LANGS.forEach(function (lang) {
     const f = path.join(NODE_MODULES, 'prismjs', 'components', 'prism-' + lang + '.min.js');
     if (fs.existsSync(f)) prism += '\n' + fs.readFileSync(f, 'utf-8');
   });
+  const prismLn = path.join(NODE_MODULES, 'prismjs', 'plugins', 'line-numbers', 'prism-line-numbers.min.js');
+  if (fs.existsSync(prismLn)) prism += '\n' + fs.readFileSync(prismLn, 'utf-8');
   fs.writeFileSync(path.join(VENDOR, 'prism.js'), prism);
   // Mermaid：单文件压缩版（仅图表文章按需加载）
   fs.copyFileSync(path.join(NODE_MODULES, 'mermaid', 'dist', 'mermaid.min.js'), path.join(VENDOR, 'mermaid.min.js'));

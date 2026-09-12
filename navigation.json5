@@ -13,7 +13,7 @@
   //   label    中文菜单文字（必填）
   //   labelEn  英文菜单文字（en 语言站点使用;缺省回退 label）
   //   url      链接地址（以 / 开头的站内路径会自动补语言前缀,如 /about → /zh/about）
-  //   icon     可选图标名（当前内置: home/archive;缺省则不显示图标）
+  //   icon     可选图标名（当前内置: home/archive/tags/info/book/link/folder/search/rss/download;缺省则不显示图标）
   // 不可填: 完整外链（外链请用 target:"_blank" + https 开头的 url）
   // 注意: 菜单顺序即数组顺序;增删菜单项后需 rebuild
 
@@ -34,12 +34,14 @@
     {
       "label": "标签",
       "labelEn": "Tags",
-      "url": "/tags"
+      "url": "/tags",
+      "icon": "tags"
     },
     {
       "label": "关于",
       "labelEn": "About",
-      "url": "/about"
+      "url": "/about",
+      "icon": "info"
     }
   ],
 

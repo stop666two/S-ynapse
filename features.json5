@@ -235,11 +235,11 @@
     showLanguageTag: true,
     // 是否显示 macOS 三圆点窗口栏(代码块顶部装饰栏)。
     windowBar: true,
-    // 是否显示行号。
-    lineNumbers: false,
-    // 长代码是否自动换行。
+    // 是否显示行号（Prism line-numbers 插件,本地 vendor;默认开启）。
+    lineNumbers: true,
+    // 长代码是否自动换行（true=软换行替代横向滚动;换行时行号由 Prism 插件按行高对齐,仍然显示）。
     wrapLongLines: false,
-    // 高亮行背景色(prism html/attr 扩展)。
+    // 代码块悬停时的背景提亮底色（与 code-bg 混合,混合力度见 tuning.code.hoverBgMix）。
     highlightBackground: 'var(--color-hover)',
     // 代码块圆角。
     borderRadius: '0.375rem',
@@ -252,7 +252,7 @@
     headerHeight: '36px',
     // 代码块正文字号(em 相对单位)。
     fontSize: '0.92em',
-    // 一键复制全部代码块的按钮(顶部)。
+    // 代码块上方"复制全部代码"按钮（多代码块页面适用;true=首块上方显示按钮,一键复制全页所有代码块）。
     copyAllButton: false,
     // 下载按钮。
     downloadButton: true

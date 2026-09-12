@@ -431,12 +431,38 @@
     "heroStrengthDark": "12%",
   },
 
-  // ---------- 代码块（2 项） ----------
+  // ---------- 代码块（11 项） ----------
   "code": {
     // 代码块描边宽度（0 = 关闭；token 配色见 theme.json5 的 codeHighlight.palette）
     "borderWidth": "1px",
     // 代码块描边颜色 = 页面边框色 × 此比例（0% = 透明）
     "borderMix": "65%",
+    // 行号文字颜色
+    "lineNumberColor": "var(--color-tl)",
+    // 行号不透明度（0~1）
+    "lineNumberOpacity": ".5",
+    // 悬停描边中辅色占比（0% = 不变色）
+    "hoverBorderMix": "35%",
+    // 悬停阴影中辅色占比（0% = 无阴影）
+    "hoverShadowMix": "25%",
+    // 悬停背景中高亮底色占比（100% = 完全使用 highlightBackground）
+    "hoverBgMix": "92%",
+    // 内联代码圆角
+    "inlineRadius": "4px",
+    // 内联代码细描边颜色 = 边框色 × 此比例（0% = 透明）
+    "inlineHairlineMix": "70%",
+    // diff 新增行背景浓度（随明暗自动适配色相）
+    "diffAddMix": "12%",
+    // diff 删除行背景浓度
+    "diffDelMix": "12%",
+  },
+
+  // ---------- 图标（2 项） ----------
+  "icons": {
+    // 统一描边宽度（UI 图标;1.75 轻盈精致,2 为标准,1.5 极细）
+    "strokeWidth": "1.75",
+    // 悬停上移动画距离（0px = 关闭）
+    "hoverLift": "1px",
   },
 
 }

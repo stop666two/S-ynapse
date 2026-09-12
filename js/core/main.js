@@ -28,6 +28,7 @@ import { init as codeBlockInit } from '../domains/code-block.js';
 import { init as commentsInit } from '../domains/comments.js';
 import { init as morphIconsInit } from '../domains/morphicons.js';
 import { init as readPositionInit } from '../domains/read-position.js';
+import { init as commandPaletteInit } from '../domains/command-palette.js';
 
 const F = window.__FEATURES__ || {};
 
@@ -46,7 +47,7 @@ if (enabled(F.favorites)) {
   readingPanelInit, ttsInit, seamlessNavInit, pageTransitionInit, shortcutsInit, prevNextInit,
   shareInit, motionInit, imageLazyInit, dailyQuoteInit, rewardInit, backgroundInit,
   i18nInit, readingModeInit, contactPopupInit, externalLinkInit, sidebarDragInit,
-  themePresetsInit, themeScheduleInit, pwaInit, codeBlockInit, commentsInit, morphIconsInit, readPositionInit
+  themePresetsInit, themeScheduleInit, pwaInit, codeBlockInit, commentsInit, morphIconsInit, readPositionInit, commandPaletteInit
 ].forEach(fn => {
   try { tasks.push(Promise.resolve(fn())); } catch (e) { tasks.push(Promise.reject(e)); }
 });

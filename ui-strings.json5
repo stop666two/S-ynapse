@@ -173,6 +173,19 @@
     top: '回到顶部',
   },
 
+  commandPalette: {
+    open: '打开命令面板',
+    placeholder: '搜索文章、页面或操作…',
+    noResults: '没有匹配结果',
+    groupNav: '页面',
+    groupAction: '操作',
+    groupPost: '文章',
+    actTheme: '切换主题',
+    actTop: '回到顶部',
+    actSearch: '打开搜索',
+    actFavorites: '我的收藏',
+  },
+
   en: {
     common: {
       loading: 'Loading…',
@@ -292,6 +305,18 @@
       updateReady: 'A new version is available. Refresh to update.',
       offline: 'You are offline',
       online: 'Back online',
+    },
+    commandPalette: {
+      open: 'Open command palette',
+      placeholder: 'Search posts, pages or actions…',
+      noResults: 'No matching results',
+      groupNav: 'Pages',
+      groupAction: 'Actions',
+      groupPost: 'Posts',
+      actTheme: 'Toggle theme',
+      actTop: 'Back to top',
+      actSearch: 'Open search',
+      actFavorites: 'My favorites',
     },
   },
 }

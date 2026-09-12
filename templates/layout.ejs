@@ -381,6 +381,16 @@
     @supports (animation-timeline: scroll()){.scroll-progress{display:block;animation:scroll-progress-grow linear;animation-timeline:scroll(root)}}
     @keyframes scroll-progress-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
     <% if(!(features.scrollIndicator&&features.scrollIndicator.respectReducedMotion===false)){ %>@media (prefers-reduced-motion: reduce){.scroll-progress{display:none}}<% } %>
+    dialog.cmdp{position:fixed;inset:auto;top:var(--commandPalette-topOffset,16vh);left:50%;transform:translateX(-50%);margin:0;padding:0;border:0;background:transparent;width:min(var(--commandPalette-width,560px),92vw);max-width:92vw;color:var(--color-t)}
+    dialog.cmdp::backdrop{background:color-mix(in srgb,var(--color-bg) var(--commandPalette-backdropMix,45%),rgba(0,0,0,.45));backdrop-filter:blur(6px)}
+    .cmdp-box{background:var(--color-surface);border:1px solid color-mix(in srgb,var(--color-border) 70%,transparent);border-radius:var(--r-lg);box-shadow:var(--sd),var(--surface-hi);overflow:hidden;font-family:var(--ff)}
+    .cmdp-input{width:100%;padding:.9rem 1.1rem;border:0;border-bottom:1px solid var(--color-border);background:transparent;color:var(--color-t);font-family:var(--ff);font-size:1rem;outline:none}
+    .cmdp-list{max-height:min(46vh,420px);overflow-y:auto;padding:.4rem}
+    .cmdp-group{padding:.45rem .7rem .2rem;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--color-tl)}
+    .cmdp-item{display:flex;align-items:center;gap:.6rem;padding:.5rem .7rem;border-radius:var(--br);cursor:pointer;font-size:.92rem}
+    .cmdp-item.active{background:color-mix(in srgb,var(--color-s) 14%,transparent);color:var(--color-s)}
+    .cmdp-empty{padding:1.2rem;text-align:center;color:var(--color-tl);font-size:.9rem}
+    @media (prefers-reduced-motion: no-preference){dialog.cmdp[open]{animation:cmdp-in .16s var(--te)}@keyframes cmdp-in{from{opacity:0;transform:translateX(-50%) translateY(-6px)}to{opacity:1;transform:translateX(-50%)}}}
     /* —— 代码块:行号列（Prism line-numbers 几何适配）—— */
     .post-content pre.line-numbers{padding-left:3.8em;counter-reset:linenumber}
     .post-content pre.line-numbers>code{position:relative;white-space:inherit}

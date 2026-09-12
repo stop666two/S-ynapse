@@ -165,6 +165,10 @@ const DEFAULT_FEATURES = {
   scrollIndicator: {
     enabled: true, height: '2px', gradient: true, respectReducedMotion: true
   },
+  commandPalette: {
+    enabled: true, hotkey: 'k', includeNavigation: true, includeActions: true,
+    includeSearch: true, maxResults: 10, autoFocus: true
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true

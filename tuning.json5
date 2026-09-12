@@ -383,7 +383,7 @@
     // 底部偏移
     "offsetBottom": "2rem",
     // 圆角
-    "radius": "0.618rem",
+    "radius": "999px",
     // 边框粗细
     "borderWidth": "1px",
   },
@@ -411,7 +411,7 @@
     // 字号
     "fontSize": ".8125rem",
     // 项间距
-    "gap": ".5rem",
+    "gap": ".4rem",
     // 下边距
     "marginBottom": "1rem",
     // 当前项字重

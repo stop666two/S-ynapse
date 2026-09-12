@@ -435,7 +435,7 @@ sitemap: {
 `enabled true` / `patterns[]` (gradient/stripes/dots/blob/mesh) / `defaultPattern 'gradient'` / `preview true` / `preferImage true`。文章封面样式库(渐变/条纹/圆点/气泡/网格),在线预览。
 
 ### 3.52 i18n — 内容级双语
-`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true`。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/search-index),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段。
+`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true` / `translationNotice true`(文章页翻译互链提示:另一语言存在同 slug 文章时在标题下显示胶囊链接,文案 `post.translationNotice` 支持 `{lang}` 占位) — `features.i18n` 另见 §3.73。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/search-index),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段。
 
 ### 3.53 pagefind — Pagefind 全文搜索
 `enabled true` / `indexPath '/pagefind'` / `integrate true`。使用 Pagefind 的离线全文搜索(search.provider='pagefind' 时生效,构建生成索引)。
@@ -514,6 +514,10 @@ sitemap: {
 ### 3.72 readingHistory — 继续阅读(本地阅读历史)
 
 `enabled true` / `maxItems 5`(首页最多条数) / `storageKey 's-history'`(localStorage 键,修改会丢弃旧历史) / `showOnHome true`(false=只记录不展示) / `clearable true`(显示清除按钮)。文章页自动记录(标题+路径+时间,上限 50 条),首页在卡片区上方展示最近阅读(相对时间,`Intl.RelativeTimeFormat` 双语);纯本地、无服务端 — `js/domains/reading-history.js`。
+
+### 3.73 hreflang — 多语言替代声明(SEO)
+
+`enabled true` / `includeSelf true`(当前语言条目也输出) / `canonical true` / `xDefault true`(输出 `hreflang="x-default"`,指向 `features.i18n.defaultLanguage` 版本)。与 `features.i18n` 配合:每页输出各语言(URL 前缀替换)+ x-default 的 `<link rel="alternate">`;新增翻译时按 `articles/{lang}/{slug}.md` 同 slug 放置即可获得互链与声明 — `templates/layout.ejs`。
 
 ---
 

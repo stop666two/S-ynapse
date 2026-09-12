@@ -138,6 +138,10 @@ const DEFAULT_FEATURES = {
   pwa: {
     enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true
   },
+  morphIcons: {
+    enabled: true, spring: 'snappy', reducedMotion: true,
+    icons: { theme: true, copy: true, favorite: true, tts: true, menu: true }
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true
@@ -401,6 +405,7 @@ const ARRAY_FIELDS = {
   feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
   comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: [],
   scrollBehavior: [], toast: [], breadcrumb: [], pageTransition: [], pwa: [],
+  morphIcons: [],
   background: ['particles'], motion: [], ogImageStyle: []
 };
 

@@ -2438,6 +2438,13 @@ function copyVendorAssets(config) {
   fs.writeFileSync(path.join(VENDOR, 'prism.js'), prism);
   // Mermaid：单文件压缩版（仅图表文章按需加载）
   fs.copyFileSync(path.join(NODE_MODULES, 'mermaid', 'dist', 'mermaid.min.js'), path.join(VENDOR, 'mermaid.min.js'));
+  // morphicons：图标变形动画（懒加载；仅复制 JS 入口与共享 chunk，types 不落地）
+  const MORPH_VENDOR = path.join(VENDOR, 'morphicons');
+  fs.mkdirSync(MORPH_VENDOR, { recursive: true });
+  const morphDist = path.join(NODE_MODULES, 'morphicons', 'dist');
+  fs.readdirSync(morphDist).filter(function (f) { return /^(index|dom|adapters)\.js$/.test(f) || /^(controller|normalize|spring)-[^/]+\.js$/.test(f); }).forEach(function (f) {
+    fs.copyFileSync(path.join(morphDist, f), path.join(MORPH_VENDOR, f));
+  });
   // KaTeX：js/css/auto-render + 字体目录（CSS 以相对路径引用 fonts/）
   const KATEX = path.join(VENDOR, 'katex');
   fs.mkdirSync(path.join(KATEX, 'contrib'), { recursive: true });

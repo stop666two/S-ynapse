@@ -1623,4 +1623,30 @@
     // 离线/恢复时 toast 提示。
     offlineNotice: true
   },
+
+  // ---------------------------------------------------------------------------
+  // 46. 图标变形动画(状态切换类图标 ↔ 弹簧物理变形)
+  // ---------------------------------------------------------------------------
+  morphIcons: {
+    // 总开关(false = 全部图标恢复静态切换,不加载任何 vendor 代码)。
+    enabled: true,
+    // 弹簧预设: smooth(无回弹) / snappy(快速微回弹) / bouncy(弹跳感);
+    // tuning.morphicons.stiffness/damping 同时设置时优先于预设。
+    spring: 'snappy',
+    // 尊重系统"减少动态效果":开启后系统 reduce-motion 时直接切换不变形。
+    reducedMotion: true,
+    // 各图标独立开关(false = 该图标保持原有静态实现)。
+    icons: {
+      // 主题切换 sun ↔ moon。
+      theme: true,
+      // 复制按钮 copy → check → copy。
+      copy: true,
+      // 收藏 空心 → 实心。
+      favorite: true,
+      // 朗读按钮 扬声器 → 停止。
+      tts: true,
+      // 移动端菜单 汉堡 → X。
+      menu: true
+    }
+  },
 }

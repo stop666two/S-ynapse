@@ -29,7 +29,7 @@ if(hasBtns&&lang&&CB0.showLanguageTag!==false&&!p.classList.contains('code-windo
 if(hasBtns&&!p.classList.contains('code-window'))p.classList.add('has-actions');
 if(vis!=='never'){
 var cb=document.createElement('button');cb.className='code-action-btn copy';cb.innerHTML=copyIco();cb.title=COPYT;
-cb.onclick=function(){var c=p.querySelector('code')||p;navigator.clipboard.writeText(c.textContent).then(function(){cb.innerHTML=checkIco();cb.title=COPIED;setTimeout(function(){cb.innerHTML=copyIco();cb.title=COPYT},COPYTIMEOUT)}).catch(function(){})};
+cb.onclick=function(){var c=p.querySelector('code')||p;navigator.clipboard.writeText(c.textContent).then(function(){cb.title=COPIED;if(!(window.__morphCopy&&window.__morphCopy(cb,'check')))cb.innerHTML=checkIco();setTimeout(function(){cb.title=COPYT;if(!(window.__morphCopy&&window.__morphCopy(cb,'copy')))cb.innerHTML=copyIco()},COPYTIMEOUT)}).catch(function(){})};
 row.appendChild(cb)}
 if(CB0.downloadButton!==false){
 var db=document.createElement('button');db.className='code-action-btn download';db.innerHTML=IC.dl;db.title=__T('toolbar.downloadCode','下载代码文件');
@@ -53,6 +53,7 @@ var ab=document.createElement('button');ab.className='code-copy-all-btn';ab.type
 ab.onclick=function(){navigator.clipboard.writeText(all).then(function(){drawIco(ab.querySelector('svg'));ab.querySelector('span').textContent=COPIED;setTimeout(function(){ab.querySelector('span').textContent=__T('toolbar.copyAllCode','复制全部代码')},1500);if(window.__toast)window.__toast(COPIED,{type:'success'})}).catch(function(){})};
 var first=blocks[0].previousElementSibling&&blocks[0].previousElementSibling.classList.contains('code-windowbar')?blocks[0].previousElementSibling:blocks[0];
 first.parentNode.insertBefore(row2,first);row2.appendChild(ab)}
+if(window.__morphScan)window.__morphScan();
 }
 export function init() {
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',boot)}else{boot()}

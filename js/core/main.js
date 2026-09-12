@@ -25,6 +25,7 @@ import { init as themeScheduleInit } from '../domains/theme-schedule.js';
 import { init as pwaInit } from '../domains/pwa.js';
 import { init as codeBlockInit } from '../domains/code-block.js';
 import { init as commentsInit } from '../domains/comments.js';
+import { init as morphIconsInit } from '../domains/morphicons.js';
 
 const F = window.__FEATURES__ || {};
 
@@ -43,7 +44,7 @@ if (enabled(F.favorites)) {
   readingPanelInit, ttsInit, pageTransitionInit, shortcutsInit, prevNextInit,
   shareInit, motionInit, imageLazyInit, dailyQuoteInit, rewardInit, backgroundInit,
   i18nInit, readingModeInit, contactPopupInit, externalLinkInit, sidebarDragInit,
-  themePresetsInit, themeScheduleInit, pwaInit, codeBlockInit, commentsInit
+  themePresetsInit, themeScheduleInit, pwaInit, codeBlockInit, commentsInit, morphIconsInit
 ].forEach(fn => {
   try { tasks.push(Promise.resolve(fn())); } catch (e) { tasks.push(Promise.reject(e)); }
 });

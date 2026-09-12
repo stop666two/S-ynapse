@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **morphicons 配置扩展**：`preload`(interaction/idle/immediate 加载策略)、`perIcon`(单图标弹簧覆盖,预设名或 `{stiffness,damping}`);`tuning.morphicons` 扩至 4 项(+轻量版弹簧 reducedStiffness/reducedDamping) — `features.json5` + `tuning.json5` + `js/domains/morphicons.js`
 - **图标变形动画(morphicons)**：状态切换类图标弹簧物理变形——主题 sun↔moon、复制 copy→check、收藏空心↔实心、朗读扬声器↔停止、移动端汉堡↔X；本地 vendor 懒加载(首次悬停/触摸/聚焦才下载,~7.5KB gzip)、尊重系统 reduce-motion、`tuning.morphicons` 可调弹簧刚度/阻尼、逐图标开关(`features.morphIcons.icons.*`)、关闭即完全回退静态实现 — `js/domains/morphicons.js` + `features.json5` + `tuning.json5` + `scripts/build.js`
 - **双语验收文章集**：zh/en 各 8 篇可发布文章 + 各 1 篇草稿，覆盖站内/外跳转、wiki 链接与锚点、Mermaid×5 与 KaTeX、12 种代码块、系列 3 篇前后篇导航、超长压力文（13 个二级章节）、图片画廊与灯箱、置顶与草稿排除 — `articles/{zh,en}/`
 - **代码块与图标增强**：行号列(Prism line-numbers 本地插件,纯文本块也可用;`tuning.code.lineNumberColor/lineNumberOpacity`)、终端语言标签(bash/sh/zsh/fish→`$ lang`；powershell→`PS> powershell`；console→`> console`)、diff 增删行着色(`tuning.code.diffAddMix/diffDelMix`)、代码块悬停描边+阴面(`tuning.code.hoverBorderMix/hoverShadowMix/hoverBgMix`)、内联代码精修(`tuning.code.inlineRadius/inlineHairlineMix`)、复制全部按钮、复制/下载图标描边绘制动画(`icon-draw`)、图标体系(描边统一 1.75/`tuning.icons.strokeWidth`、hover 上移、主题切换旋转)、导航菜单内置图标表(NAV_ICONS 10 枚:home/archive/tags/info/book/link/folder/search/rss/download)
@@ -42,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **reduce-motion 不再一刀切停播**：`motion` / `pageTransition` / `morphIcons` 统一新增 `reducedMotion: 'light'|'off'|'full'`（默认 `light`）——系统"减少动态效果"下改为播放更短、幅度更小的轻量版动画；`off`=旧行为（直接关闭/不拦截），`full`=始终完整播放；旧布尔字段 `respectReducedMotion` 自动兼容映射（true→light / false→full） — `js/domains/motion.js` + `js/domains/page-transition.js` + `js/domains/morphicons.js` + `templates/layout.ejs`
 - **文档全量刷新**:README 更新为当前实现（12 个配置文件 / 1600+ 配置项（实测 1625）/ features 77 模块 608 项 / tuning 25 分类 164 项 / 测试 68 项 17 组 / 本地 vendor 资产 / `js/` ESM 目录 / 移除 SRI 与代码主题切换器过期表述 / 修正 forceContentWidth 注释 / 技术栈补 Prism·字体·原生 ESM）；config-reference 模块数校正(38/54→77) — README.md + docs/config-reference.md
 - **演示内容清空**:删除全部 39 篇演示文章（zh 19 + en 20,git 历史可恢复）,仓库以空内容启动;空站构建验证通过（空状态首页/空 feed/无 sitemap 条目/0 搜索索引/无残留异常标记） — articles/
 - **配置文件统一 `.json5`（破坏性变更）**:`site`/`theme`/`navigation`/`sidebar`/`footer`/`security`/`content-policy`/`tag-aliases`/`friends` 9 个配置由 `.json` 重命名为 `.json5`;不再兼容 `.json`（检测到旧文件时输出重命名提示,旧文件不会被读取）;全部脚本/文档/示例/主题文章引用已同步(118+10 处) — 仓库根目录 + `scripts/` + `docs/` + `articles/`

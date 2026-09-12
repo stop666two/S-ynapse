@@ -1089,10 +1089,11 @@ function collectTopTags(articles, limit, lang) {
 
 function collectTags(articles) {
   const result = [];
-  const langSet = new Set(articles.map(a => a.lang).filter(Boolean));
+  const pubs = getPublished(articles);
+  const langSet = new Set(pubs.map(a => a.lang).filter(Boolean));
   for (const lang of langSet) {
     const map = new Map();
-    for (const a of articles) {
+    for (const a of pubs) {
       if (a.lang !== lang) continue;
       for (const tag of a.tags) {
         const slug = safeSlug(tag);
@@ -1113,8 +1114,9 @@ function computeRelatedArticles(articles, maxCount) {
   maxCount = maxCount || 4;
   const published = getPublished(articles);
   for (const article of published) {
+    const peers = published.filter(o => o.lang === article.lang);
     const scored = [];
-    for (const other of published) {
+    for (const other of peers) {
       if (other.slug === article.slug) continue;
       let score = 0;
       const sharedTags = article.tags.filter(t => other.tags.includes(t));
@@ -1133,7 +1135,7 @@ function computeRelatedArticles(articles, maxCount) {
 // with prev/next navigation inside the series for the detail-page panel.
 function collectSeries(articles) {
   const map = new Map();
-  for (const a of articles) {
+  for (const a of getPublished(articles)) {
     if (!a.series) continue;
     if (!map.has(a.series)) map.set(a.series, []);
     map.get(a.series).push(a);
@@ -1222,10 +1224,11 @@ function collectSiteStats(articles, tags, categories) {
 // Returns array sorted by count descending.
 function collectCategories(articles) {
   const result = [];
-  const langSet = new Set(articles.map(a => a.lang).filter(Boolean));
+  const pubs = getPublished(articles);
+  const langSet = new Set(pubs.map(a => a.lang).filter(Boolean));
   for (const lang of langSet) {
     const map = new Map();
-    for (const a of articles) {
+    for (const a of pubs) {
       if (a.lang !== lang) continue;
       for (const cat of a.categories) {
         const slug = safeSlug(cat);
@@ -1588,6 +1591,11 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
       allTags: langTags,
       categories: langCategories,
       allCategories: langCategories,
+      recentPosts: langPublished.slice(0, 10),
+      archives: groupByYearMonth(langPublished),
+      seriesList: collectSeries(langPublished),
+      galleryItems: collectGalleryImages(langArticles),
+      siteStats: collectSiteStats(langArticles, langTags, langCategories),
       nav: localizeNav(baseData.nav, pf, lang),
       footer: localizeFooter(baseData.footer, pf, lang),
       sidebar: localizeSidebar(baseData.sidebar, lang)

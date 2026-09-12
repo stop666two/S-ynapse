@@ -6,6 +6,7 @@ export function init() {
     var d = document.querySelector('.toc-sidebar-list');
     if (!d) return;
     var tg = document.getElementById('tocToggle');
+    var TNT = (window.__TUNING__ || {}).toc || {};
     if (tg && T.collapsible !== false) {
       tg.onclick = function () {
         var open = !d.classList.contains('collapsed');
@@ -14,7 +15,8 @@ export function init() {
         tg.classList.toggle('rotated', open);
       };
     }
-    var off = isNaN(+TSS.offset) ? (isNaN(+T.activeOffset) ? 120 : +T.activeOffset) : +TSS.offset;
+    if (String(TNT.collapsedByDefault) === 'true') { d.classList.add('collapsed'); if (tg) tg.setAttribute('aria-expanded', 'false'); }
+    var off = isNaN(+TNT.scrollOffset) ? (isNaN(+TSS.offset) ? (isNaN(+T.activeOffset) ? 120 : +T.activeOffset) : +TSS.offset) : +TNT.scrollOffset;
     var links = d.querySelectorAll('.toc-sidebar-link');
     var ids = [];
     links.forEach(function (l) { var h = l.getAttribute('href'); if (h && h[0] === '#') ids.push(h.slice(1)); });

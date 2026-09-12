@@ -42,7 +42,9 @@ export function init() {
       if (!t) return;
       u = new SpeechSynthesisUtterance(t);
       u.lang = document.documentElement.lang || 'zh-CN';
-      u.rate = parseFloat(b.getAttribute('data-rate')) || 1;
+      var TNR = (window.__TUNING__ || {}).reading || {};
+      u.rate = isNaN(+TNR.ttsRate) ? (parseFloat(b.getAttribute('data-rate')) || 1) : +TNR.ttsRate;
+      u.pitch = isNaN(+TNR.ttsPitch) ? 1 : +TNR.ttsPitch;
       u.onboundary = function (e) { if (e && typeof e.charIndex === 'number') hlAt(e.charIndex); };
       u.onend = function () { clearHL(); set(false); };
       u.onerror = function () { clearHL(); set(false); };

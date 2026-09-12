@@ -9,9 +9,10 @@ export function init() {
     var n = qs.length;
     if (!n) return;
     var d = new Date();
-    var k = (d.getDate() * 7 + d.getMonth() * 3 + d.getFullYear()) % (n || 1);
+    var TNQ = (window.__TUNING__ || {}).dailyQuote || {};
+    var k = String(TNQ.refreshDaily) === 'false' ? Math.floor(Math.random() * n) : (d.getDate() * 7 + d.getMonth() * 3 + d.getFullYear()) % (n || 1);
     var pick = qs[k % n];
     qt.textContent = pick.text || '';
-    if (qa && pick.author) qa.textContent = '— ' + pick.author;
+    if (qa && pick.author && String(TNQ.showAuthor) !== 'false') qa.textContent = '— ' + pick.author;
   })();
 }

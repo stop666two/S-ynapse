@@ -191,7 +191,7 @@
     // 目录最大宽度
     "maxWidthPx": "320",
     // 滚动高亮偏移
-    "scrollOffset": "120",
+    "scrollOffset": "80",
     // 默认折叠
     "collapsedByDefault": "false",
   },
@@ -205,19 +205,19 @@
     // 输入字号
     "inputFontSize": "1.375rem",
     // 历史记录条数
-    "historyCount": "8",
+    "historyCount": "5",
     // 热门搜索条数
-    "hotCount": "6",
+    "hotCount": "5",
     // 输入防抖（ms）
-    "debounceMs": "200",
+    "debounceMs": "120",
     // 最小查询长度
     "minQueryLength": "1",
     // 结果摘要长度
-    "excerptLength": "80",
+    "excerptLength": "120",
     // 结果最大条数
-    "resultLimit": "20",
+    "resultLimit": "30",
     // 空结果文案
-    "emptyText": "无匹配结果",
+    "emptyText": "未找到匹配内容",
   },
 
   // ---------- 阅读体验（10 项） ----------
@@ -237,7 +237,7 @@
     // TTS 音调
     "ttsPitch": "1",
     // 字号调节步长
-    "fontSizeStep": "0.1",
+    "fontSizeStep": "1",
     // 行高调节步长
     "lineHeightStep": "0.1",
     // 阅读模式最大宽度

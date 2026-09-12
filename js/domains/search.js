@@ -1,4 +1,5 @@
 export function init() {
+  var TNS = (window.__TUNING__ || {}).search || {};
   var searchKbIdx = -1;
   var searchKbList = [];
   function searchKbDir(dir) {
@@ -63,7 +64,7 @@ export function init() {
   function __hs() {
     var F = window.__FEATURES__ || {}, HS = (F && F.hotSearches) || {};
     __HSK = HS.storageKey || 's-hotSearches';
-    __HST = isNaN(+HS.top) ? 5 : +HS.top;
+    __HST = isNaN(+TNS.hotCount) ? (isNaN(+HS.top) ? 5 : +HS.top) : +TNS.hotCount;
   }
   (function () {
     var F0 = window.__FEATURES__ || {}, SC0 = (F0 && F0.search) || {};
@@ -80,7 +81,7 @@ export function init() {
     var d = document.getElementById('searchResults');
     if (!d) return;
     var F = window.__FEATURES__ || {}, SC = (F && F.search) || {};
-    var db = isNaN(+SC.debounceMs) ? 120 : +SC.debounceMs;
+    var db = isNaN(+TNS.debounceMs) ? (isNaN(+SC.debounceMs) ? 120 : +SC.debounceMs) : +TNS.debounceMs;
     if (__sdT) clearTimeout(__sdT);
     __sdT = setTimeout(function () { doSearchNow(q); }, db);
   }
@@ -89,7 +90,7 @@ export function init() {
     if (!d) return;
     var F = window.__FEATURES__ || {}, SC = (F && F.search) || {};
     var HS = (F && F.hotSearches) || {}, en = HS.enabled !== false;
-    var mc = isNaN(+SC.minChars) ? 1 : +SC.minChars;
+    var mc = isNaN(+TNS.minQueryLength) ? (isNaN(+SC.minChars) ? 1 : +SC.minChars) : +TNS.minQueryLength;
     var hist = document.getElementById('searchHistory');
     if (hist) {
       if (en && (!q || q.length < mc)) renderHistory();
@@ -104,8 +105,8 @@ export function init() {
     }
     if (en) saveHistory(q);
     var w = window.__SEARCH_DATA__ || [], r = [], lq = q.toLowerCase();
-    var mrst = isNaN(+SC.maxResults) ? 30 : +SC.maxResults;
-    var el = isNaN(+SC.excerptLength) ? 120 : +SC.excerptLength;
+    var mrst = isNaN(+TNS.resultLimit) ? (isNaN(+SC.maxResults) ? 30 : +SC.maxResults) : +TNS.resultLimit;
+    var el = isNaN(+TNS.excerptLength) ? (isNaN(+SC.excerptLength) ? 120 : +SC.excerptLength) : +TNS.excerptLength;
     var shl = (F && F.searchHighlight) || {};
     var mm = isNaN(+shl.maxMatches) ? 20 : +shl.maxMatches;
     function hl(sx, qq) {
@@ -156,7 +157,7 @@ export function init() {
       d.classList.remove('has-results');
       var empty = document.createElement('div');
       empty.className = 'search-result-empty';
-      empty.textContent = SC.noResultText || __T('search.noResult', '未找到相关内容');
+      empty.textContent = TNS.emptyText || SC.noResultText || __T('search.noResult', '未找到相关内容');
       d.appendChild(empty);
       if (cnt) cnt.textContent = '';
     }
@@ -169,7 +170,7 @@ export function init() {
     __hs();
     var h = getHistory();
     var F2 = window.__FEATURES__ || {}, SC2 = (F2 && F2.search) || {};
-    var mx = isNaN(+SC2.maxHistory) ? 5 : +SC2.maxHistory;
+    var mx = isNaN(+TNS.historyCount) ? (isNaN(+SC2.maxHistory) ? 5 : +SC2.maxHistory) : +TNS.historyCount;
     h = h.filter(function (x) { return x !== q; });
     h.unshift(q);
     h = h.slice(0, mx);

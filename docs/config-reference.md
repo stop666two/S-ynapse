@@ -10,7 +10,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(92 模块)](#3-featuresjson5--功能总控92-模块)
+3. [features.json5 — 功能总控(94 模块)](#3-featuresjson5--功能总控94-模块)
 4. [navigation.json5 — 导航](#4-navigationjson--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson--页脚)
@@ -231,7 +231,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(92 模块)
+## 3. features.json5 — 功能总控(94 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -544,6 +544,14 @@ sitemap: {
 
 `enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）。细节参数（菜单项、复制模式、选择/快捷键/水印/检测/控制台/隐私帘/篡改/门槛、绕过通道等 164 项）全部在 `guard.json5`（见第 11 章）；绕过通道优先级：`?guard=on|off` > `localStorage['s-guards-off']` > `guard.json5` `core.bypass.localhost`。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
 
+### 3.78 loading — 加载遮罩
+
+`enabled true`（false = 不渲染遮罩；无 JS 时也不会出现）/ `delayMs 120`（启动快于该值不显示，防“一闪而过”）/ `minShowMs 250`（一旦出现至少停留，含淡出共约 670ms）/ `maxShowMs 2000`（硬超时强制淡出，失败兜底；同时写入 CSS 动画兜底）/ `reducedMotion 'skip'`（`skip` 不显示 | `static` 显示但无动画）/ `text ''`（空 = `ui-strings` 的 `common.loading` 双语）/ `ariaBusy true`（启动期间 `<body aria-busy>`）。视觉（圆点大小/间距/跳动高度/文案字号/底色透明度/模糊）在 `tuning.json5` → `loading` 分类 — `js/core/boot.js` + `templates/layout.ejs`。
+
+### 3.79 boot — 启动调度
+
+`enabled true`（false = 旧行为：全部模块立即初始化）/ `idleTimeoutMs 800`（`requestIdleCallback` 超时兜底）/ `interactionWake true`（首次点击/按键/触摸/滚轮立即唤醒后续批次，保 INP）/ `log false`（`[boot]` 时间线）。机制：仅 14 个关键模块静态初始化；17 个交互类模块动态导入、按 40ms 空闲切片加载；重模块（粒子背景/打赏）最后；时间线写入 `window.__BOOT__`（start/critEnd/idleEnd/heavyEnd），完成后置 `window.__APP_READY__`。实测启动后长任务为 0（原两个长任务 238ms+66ms 已消除） — `js/core/main.js` + `js/core/boot.js`。
+
 ---
 
 ## 4. navigation.json5 — 导航
@@ -657,11 +665,11 @@ sitemap: {
 
 ## 10. tuning.json5 — UI 微调参数层
 
-独立 UI 参数文件(30 分类 / 196 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
+独立 UI 参数文件(31 分类 / 202 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
 **优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已在「tuning 收尾」中全部清理(单一入口归各自模块配置);10 项原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
 
-**分类(30)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / icons / morphicons / magazine / commandPalette / announcement / guard。
+**分类(31)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / icons / morphicons / magazine / commandPalette / announcement / guard / loading。
 
 **已绑定示例(118 项 CSS + 19 项行为)**:`--hero-maxWidth`、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`、`--header-scrolledHeight/hairlineStrength`、`--code-borderWidth/borderMix`、`--texture-noiseOpacity`、`--glow-heroStrength`、`--card-imageHoverScale/excerptLines/gridGap`、`--motion-transitionTiming/buttonPressScale`、`--reading-quoteTint/imageHoverScale/h2AccentWidth/Height`;行为侧:search 历史/热词/去抖/结果上限/空文案、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进、morphicons 弹簧刚度/阻尼/轻量版弹簧。
 

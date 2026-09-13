@@ -1,7 +1,7 @@
 <div class="post-article tag-hero">
   <h1><%= tagName %></h1>
   <p class="tag-count"><%= articles.length %> <%= ui('tag.postCount','篇文章') %></p>
-  <p class="tag-desc"><%= ui('tag.readWith','阅读与') %>「<%= tagName %>」<%= ui('tag.readWith','相关的文章') %></p>
+  <p class="tag-desc"><%= ui('tag.readWith','阅读与「{tag}」相关的文章').replace('{tag}', tagName) %></p>
 </div>
 
 <% if (articles && articles.length) { %>

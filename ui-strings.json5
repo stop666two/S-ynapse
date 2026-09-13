@@ -121,7 +121,7 @@
   },
   tag: {
     title: '标签', postCount: '{count} 篇文章', empty: '该标签下暂无文章',
-    readWith: '阅读与下文相关的文章', minutes: '{count} 分钟',
+    readWith: '阅读与「{tag}」相关的文章', minutes: '{count} 分钟',
   },
   tags: { title: '标签', empty: '暂无标签' },
   links: {
@@ -335,7 +335,7 @@
     },
     tag: {
       title: 'Tag', postCount: '{count} posts', empty: 'No posts with this tag',
-      readWith: 'Reading related posts', minutes: '{count} min',
+      readWith: 'Posts related to “{tag}”', minutes: '{count} min',
     },
     tags: { title: 'Tags', empty: 'No tags' },
     links: {

@@ -21,6 +21,9 @@ export function init(ctx) {
   }
 
   async function sha256hex(s) {
+    if (!(typeof crypto !== 'undefined' && crypto.subtle && crypto.subtle.digest)) {
+      throw new Error('crypto.subtle unavailable');
+    }
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
     return Array.prototype.map.call(new Uint8Array(buf), function (b) { return b.toString(16).padStart(2, '0'); }).join('');
   }
@@ -54,6 +57,8 @@ export function init(ctx) {
           } else {
             err.textContent = pw.errorText || ctx.t('gateError', '密码错误，请重试');
           }
+        }).catch(function () {
+          err.textContent = ctx.t('gateInsecure', '当前环境无法校验密码（需 HTTPS 或 localhost）');
         });
       });
       input.addEventListener('keydown', function (e) { if (e.key === 'Enter') btn.click(); });

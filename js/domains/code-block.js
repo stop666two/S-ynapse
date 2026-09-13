@@ -29,7 +29,7 @@ if(hasBtns&&lang&&CB0.showLanguageTag!==false&&!p.classList.contains('code-windo
 if(hasBtns&&!p.classList.contains('code-window'))p.classList.add('has-actions');
 if(vis!=='never'){
 var cb=document.createElement('button');cb.className='code-action-btn copy';cb.innerHTML=copyIco();cb.title=COPYT;
-cb.onclick=function(){var c=p.querySelector('code')||p;navigator.clipboard.writeText(c.textContent).then(function(){cb.title=COPIED;if(!(window.__morphCopy&&window.__morphCopy(cb,'check')))cb.innerHTML=checkIco();setTimeout(function(){cb.title=COPYT;if(!(window.__morphCopy&&window.__morphCopy(cb,'copy')))cb.innerHTML=copyIco()},COPYTIMEOUT)}).catch(function(){})};
+cb.onclick=function(){var c=p.querySelector('code')||p;var done=function(){cb.title=COPIED;if(!(window.__morphCopy&&window.__morphCopy(cb,'check')))cb.innerHTML=checkIco();setTimeout(function(){cb.title=COPYT;if(!(window.__morphCopy&&window.__morphCopy(cb,'copy')))cb.innerHTML=copyIco()},COPYTIMEOUT)};var fb=function(){var ta=document.createElement('textarea');ta.value=c.textContent;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(err){}document.body.removeChild(ta);if(ok)done()};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(c.textContent).then(done).catch(fb)}else{fb()}};
 row.appendChild(cb)}
 if(CB0.downloadButton!==false){
 var db=document.createElement('button');db.className='code-action-btn download';db.innerHTML=IC.dl;db.title=__T('toolbar.downloadCode','下载代码文件');

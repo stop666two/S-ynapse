@@ -6,14 +6,28 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   check-agents:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check for AGENTS.md in PR changes
+        with:
+          fetch-depth: 0
+      - name: Check for AGENTS.md in changes
         run: |
-          CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD)
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            RANGE="${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
+          elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            RANGE="${{ github.event.before }}..${{ github.sha }}"
+          else
+            EMPTY_TREE=$(git hash-object -t tree /dev/null)
+            RANGE="$EMPTY_TREE..${{ github.sha }}"
+          fi
+          echo "Diff range: $RANGE"
+          CHANGED=$(git diff --name-only "$RANGE" || git show --name-only --format= "${{ github.sha }}")
           echo "Changed files:"
           echo "$CHANGED"
           echo "$CHANGED" | grep -qiE '(AGENTS\.md|AGENTS\.txt|AGENT\.md|AGENT\.txt|agent-readme\.md|RULES\.md)' && { echo "ERROR: AI rule files detected in changes. Blocking merge."; exit 1; } || echo "OK: No AI rule files detected."
@@ -29,9 +43,10 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Dependency security audit
-        if: github.ref == 'refs/heads/main'
         run: npm audit --audit-level=high
       - run: npm test
+      - name: Security verification (malicious-content build regression)
+        run: npm run verify:security
       - run: npm run build
       - name: Deploy to Cloudflare Pages
         if: github.ref == 'refs/heads/main'

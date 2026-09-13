@@ -10,6 +10,36 @@ const path = require('path');
 // 静态层（_headers）与边缘层（Worker）永远一致，消除"需人工双改"导致的漂移。
 
 const OUT_FILE = path.join(__dirname, '..', 'workers', 'security-config.js');
+const DEFAULT_SKIP_PATHS = ['/assets/', '/media/', '/og/', '/icons/', '/pagefind/'];
+
+/**
+ * 将 hardening / customHeaders 段合并进最终响应头对象，返回合并结果。
+ * _headers 与 Worker 共用本函数，确保两层头部完全一致（含 HSTS preload 保留）。
+ */
+function applyHeaderHardening(security) {
+  const s = security && typeof security === 'object' ? security : {};
+  const headers = Object.assign({}, s.headers && typeof s.headers === 'object' ? s.headers : {});
+  const hd = s.hardening && typeof s.hardening === 'object' ? s.hardening : {};
+  if (hd.hstsMaxAge) {
+    const baseHsts = String(headers['Strict-Transport-Security'] || '');
+    const preload = hd.hstsPreload === true || (/preload/i.test(baseHsts) && hd.hstsPreload !== false);
+    headers['Strict-Transport-Security'] =
+      `max-age=${hd.hstsMaxAge}` + (hd.hstsIncludeSubDomains ? '; includeSubDomains' : '') + (preload ? '; preload' : '');
+  }
+  if (hd.referrerPolicy) headers['Referrer-Policy'] = hd.referrerPolicy;
+  if (hd.permissionsPolicy && Object.keys(hd.permissionsPolicy).length) {
+    headers['Permissions-Policy'] = Object.entries(hd.permissionsPolicy).map(([k, v]) => `${k}=${v}`).join(', ');
+  }
+  if (hd.xssProtection) headers['X-XSS-Protection'] = hd.xssProtection;
+  if (Array.isArray(hd.corsAllowedOrigins) && hd.corsAllowedOrigins.length) {
+    headers['Access-Control-Allow-Origin'] = hd.corsAllowedOrigins.join(', ');
+  }
+  const custom = s.customHeaders && typeof s.customHeaders === 'object' ? s.customHeaders : {};
+  for (const [key, val] of Object.entries(custom)) {
+    if (val) headers[key] = val;
+  }
+  return headers;
+}
 
 /**
  * 从已解析的 security 配置中提取 Worker 需要的字段。
@@ -22,12 +52,19 @@ function extractWorkerSecurity(security) {
   const csp = s.csp && typeof s.csp === 'object' ? s.csp : {};
   const directives =
     csp.directives && typeof csp.directives === 'object' ? csp.directives : {};
-  const headers = s.headers && typeof s.headers === 'object' ? s.headers : {};
   const paths = Array.isArray(s.pathRestrictions)
     ? s.pathRestrictions
+        .map((p) => (typeof p === 'string' ? { path: p } : p))
         .filter((p) => p && typeof p === 'object' && typeof p.path === 'string' && p.path.length > 0)
-        .map((p) => p.path)
-    : ['/admin'];
+        .map((p) => {
+          const rule = { path: p.path };
+          if (p.requireAuth === true) rule.requireAuth = true;
+          if (Array.isArray(p.allowedIPs) && p.allowedIPs.length) {
+            rule.allowedIPs = p.allowedIPs.filter((x) => typeof x === 'string' && x.trim());
+          }
+          return rule;
+        })
+    : [{ path: '/admin/*' }];
 
   return {
     rateLimiting: {
@@ -36,7 +73,10 @@ function extractWorkerSecurity(security) {
       windowMs: Number.isFinite(rl.windowMs) ? rl.windowMs : 60000,
       blockDuration: Number.isFinite(rl.blockDuration) ? rl.blockDuration : 300000,
       whitelist: Array.isArray(rl.whitelist) ? rl.whitelist.filter((x) => typeof x === 'string') : [],
-      blacklist: Array.isArray(rl.blacklist) ? rl.blacklist.filter((x) => typeof x === 'string') : []
+      blacklist: Array.isArray(rl.blacklist) ? rl.blacklist.filter((x) => typeof x === 'string') : [],
+      skipPaths: Array.isArray(rl.skipPaths) && rl.skipPaths.length
+        ? rl.skipPaths.filter((x) => typeof x === 'string' && x.startsWith('/'))
+        : DEFAULT_SKIP_PATHS
     },
     csp: {
       directives,
@@ -45,7 +85,7 @@ function extractWorkerSecurity(security) {
     },
     pathRestrictions: paths,
     forceHttps: s.forceHttps === true,
-    headers
+    headers: applyHeaderHardening(s)
   };
 }
 
@@ -69,7 +109,7 @@ function generateSecurityConfig(securityConfig, outFile) {
   return file;
 }
 
-module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, OUT_FILE };
+module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, applyHeaderHardening, DEFAULT_SKIP_PATHS, OUT_FILE };
 
 if (require.main === module) {
   const ROOT = path.join(__dirname, '..');

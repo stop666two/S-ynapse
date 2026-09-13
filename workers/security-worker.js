@@ -11,7 +11,13 @@
 // directives. Static `_headers` covers all paths on Pages; this Worker adds the dynamic parts
 // (rate limiting, path blocking, HTTPS redirect, CSP report endpoint) at the edge.
 
-const rateLimitMap = new Map();
+import { ipMatchesAny, isPathBlocked } from "./lib/ip-utils.mjs";
+import { RateLimiter, isStaticAsset } from "./lib/rate-limit.mjs";
+
+const DEFAULT_SKIP_PATHS = ["/assets/", "/media/", "/og/", "/icons/", "/pagefind/"];
+const CSP_REPORT_MAX_BYTES = 16384;
+
+const limiter = new RateLimiter(5000);
 
 // Safety baseline when security-config.js is absent — mirrors the repo defaults.
 const FALLBACK = {
@@ -21,7 +27,8 @@ const FALLBACK = {
     windowMs: 60000,
     blockDuration: 300000,
     whitelist: [],
-    blacklist: []
+    blacklist: [],
+    skipPaths: DEFAULT_SKIP_PATHS
   },
   csp: {
     directives: {
@@ -36,7 +43,7 @@ const FALLBACK = {
     reportOnly: false,
     reportUri: "/csp-report"
   },
-  pathRestrictions: ["/admin"],
+  pathRestrictions: ["/admin/*"],
   forceHttps: true,
   headers: {
     "X-Frame-Options": "DENY",
@@ -58,128 +65,158 @@ try {
 
 const rl = CONFIG.rateLimiting || FALLBACK.rateLimiting;
 const cspConfig = CONFIG.csp || FALLBACK.csp;
-const blockedPaths = (Array.isArray(CONFIG.pathRestrictions) && CONFIG.pathRestrictions.length > 0
+const blockedRules = Array.isArray(CONFIG.pathRestrictions) && CONFIG.pathRestrictions.length > 0
   ? CONFIG.pathRestrictions
-  : FALLBACK.pathRestrictions).map((p) => (p.endsWith("/*") ? p.slice(0, -2) : p));
+  : FALLBACK.pathRestrictions;
+const skipPaths = Array.isArray(rl.skipPaths) && rl.skipPaths.length > 0 ? rl.skipPaths : DEFAULT_SKIP_PATHS;
 
-function isBlockedPath(pathname) {
-  return blockedPaths.some((base) => base !== "/" && pathname.startsWith(base));
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[c]);
+}
+
+function buildCsp() {
+  const directives = [];
+  for (const [key, vals] of Object.entries(cspConfig.directives || {})) {
+    if (Array.isArray(vals) && vals.length > 0) {
+      directives.push(`${key} ${vals.join(" ")}`);
+    }
+  }
+  if (directives.length === 0) return null;
+  if (cspConfig.reportUri) directives.push(`report-uri ${cspConfig.reportUri}`);
+  return {
+    name: cspConfig.reportOnly ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy",
+    value: directives.join("; ")
+  };
+}
+
+function baseHeaders(extra) {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(CONFIG.headers || {})) {
+    headers.set(name, value);
+  }
+  const csp = buildCsp();
+  if (csp) headers.set(csp.name, csp.value);
+  if (extra) {
+    for (const [name, value] of Object.entries(extra)) headers.set(name, value);
+  }
+  return headers;
+}
+
+function edgeResponse(body, status, extra) {
+  return new Response(body, { status, headers: baseHeaders(extra) });
 }
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
-
-  // Maintenance mode — enabled by setting env var MAINTENANCE=1 (e.g. via wrangler deploy).
-  // Optional env var MAINTENANCE_MESSAGE customizes the notice.
-  if (env && env.MAINTENANCE === "1") {
-    const message = env.MAINTENANCE_MESSAGE || "本站正在维护中，请稍后再来。";
-    return new Response(
-      `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ${message}</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f7fafc;color:#1a202c}h1{font-weight:700}p{color:#4a5568}</style></head><body><main><h1>🚧</h1><h1>维护中</h1><p>${message}</p></main></body></html>`,
-      {
-        status: 503,
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          "Retry-After": "3600",
-          "Cache-Control": "no-store",
-        },
-      }
-    );
-  }
-
-  // Skip rate limiting when clientIP is null (not behind Cloudflare — e.g. local dev)
-  // This prevents all local requests from sharing a single 'unknown' rate limit bucket.
   const clientIP = request.headers.get("CF-Connecting-IP");
 
-  // HTTP→HTTPS redirect in production only (local dev uses HTTP)
-  if (CONFIG.forceHttps && url.protocol !== "https:" && env.ENVIRONMENT === "production") {
-    url.protocol = "https:";
-    return Response.redirect(url.toString(), 301);
+  // Maintenance mode — enabled by setting env var MAINTENANCE=1 (e.g. via wrangler deploy).
+  // Optional env var MAINTENANCE_MESSAGE customizes the notice (HTML-escaped).
+  if (env && env.MAINTENANCE === "1") {
+    const message = escapeHtml(env.MAINTENANCE_MESSAGE || "本站正在维护中，请稍后再来。");
+    const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ${message}</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f7fafc;color:#1a202c}h1{font-weight:700}p{color:#4a5568}</style></head><body><main><h1>维护中</h1><p>${message}</p></main></body></html>`;
+    return edgeResponse(html, 503, {
+      "Content-Type": "text/html; charset=utf-8",
+      "Retry-After": "3600",
+      "Cache-Control": "no-store"
+    });
   }
 
-  // CSP violation report endpoint — accepts POST from browsers and logs the report
-  if (url.pathname === cspConfig.reportUri && request.method === "POST") {
-    try {
-      const report = await request.json();
-      console.log("CSP Violation:", JSON.stringify(report));
-    } catch (e) {
-      console.warn("CSP report parse failed:", e.message);
-    }
-    return new Response("ok", { status: 200 });
+  // HTTP→HTTPS redirect in production only (local dev uses HTTP)
+  if (CONFIG.forceHttps && url.protocol !== "https:" && env && env.ENVIRONMENT === "production") {
+    url.protocol = "https:";
+    return edgeResponse(null, 301, { Location: url.toString() });
   }
 
   if (rl.enabled && clientIP) {
-    // Blacklist IPs are always blocked — checked before the sliding window.
-    if (rl.blacklist.includes(clientIP)) {
-      return new Response("Forbidden", { status: 403 });
+    // Blacklist entries (IP or CIDR) are always blocked — checked before the sliding window.
+    if (ipMatchesAny(clientIP, rl.blacklist)) {
+      return edgeResponse("Forbidden", 403);
     }
-    // Whitelist IPs bypass rate limiting entirely.
-    if (!rl.whitelist.includes(clientIP)) {
-      const now = Date.now();
-      const windowMs = rl.windowMs;
-      const maxRequests = rl.maxRequests;
-      const blockDuration = rl.blockDuration;
-
-      let entry = rateLimitMap.get(clientIP);
-      if (entry) {
-        if (entry.blockedUntil && now < entry.blockedUntil) {
-          return new Response("Too Many Requests", { status: 429 });
-        }
-        entry.hits = entry.hits.filter((t) => now - t < windowMs);
-        if (entry.hits.length >= maxRequests) {
-          entry.blockedUntil = now + blockDuration;
-          return new Response("Too Many Requests", { status: 429 });
-        }
-        entry.hits.push(now);
-      } else {
-        rateLimitMap.set(clientIP, { hits: [now] });
-      }
-      // Lazy eviction when the map grows beyond 5000 entries.
-      if (rateLimitMap.size > 5000) {
-        for (const [ip, data] of rateLimitMap) {
-          if (data.blockedUntil && data.blockedUntil < now) {
-            rateLimitMap.delete(ip);
-          } else {
-            data.hits = data.hits.filter((t) => now - t < windowMs);
-            if (data.hits.length === 0) rateLimitMap.delete(ip);
-          }
-        }
+    const whitelisted = ipMatchesAny(clientIP, rl.whitelist);
+    const assetRequest = isStaticAsset(url.pathname, skipPaths);
+    if (!whitelisted && !assetRequest) {
+      const verdict = limiter.check(clientIP, rl);
+      if (verdict === "blocked" || verdict === "limited") {
+        return edgeResponse("Too Many Requests", 429, {
+          "Retry-After": String(Math.ceil((Number(rl.blockDuration) || 300000) / 1000))
+        });
       }
     }
   }
 
-  // Block restricted paths at the edge before they reach static assets
-  if (isBlockedPath(url.pathname)) {
-    return new Response("Forbidden", { status: 403 });
+  // CSP violation report endpoint — accepts POST from browsers and logs key fields.
+  // Runs after rate limiting so anonymous floods cannot bypass the limit.
+  const reportUri = cspConfig.reportUri || "/csp-report";
+  if (url.pathname === reportUri && request.method === "POST") {
+    let text = "";
+    try {
+      text = await request.text();
+    } catch (e) {
+      return edgeResponse("Bad Request", 400);
+    }
+    if (text.length > CSP_REPORT_MAX_BYTES) {
+      return edgeResponse("Payload Too Large", 413);
+    }
+    try {
+      const parsed = JSON.parse(text);
+      const report = parsed && typeof parsed === "object" ? parsed : {};
+      const body = report["csp-report"] || report.body || report;
+      const fields = body && typeof body === "object" ? {
+        documentUri: String(body["document-uri"] || body.documentURL || "").slice(0, 512),
+        directive: String(body["violated-directive"] || body.effectiveDirective || body["effective-directive"] || "").slice(0, 256),
+        blockedUri: String(body["blocked-uri"] || body.blockedURL || "").slice(0, 512)
+      } : {};
+      console.log("CSP Violation:", JSON.stringify(fields).replace(/[\r\n]+/g, " "));
+    } catch (e) {
+      console.warn("CSP report parse failed");
+    }
+    return edgeResponse("ok", 200, { "Cache-Control": "no-store" });
+  }
+
+  // Block restricted paths at the edge before they reach static assets.
+  // Rules may carry allowedIPs (CIDR): matching clients bypass the block.
+  const rule = isPathBlocked(url.pathname, blockedRules);
+  if (rule) {
+    const allowed = Array.isArray(rule.allowedIPs) && ipMatchesAny(clientIP, rule.allowedIPs);
+    if (!allowed) {
+      if (rule.requireAuth === true) {
+        console.warn("[security-worker] requireAuth rule hit without an auth provider configured — failing closed:", rule.path);
+      }
+      return edgeResponse("Forbidden", 403);
+    }
   }
 
   // Fetch the static asset from Cloudflare Pages
-  const response = await env.ASSETS.fetch(request);
+  let response;
+  try {
+    response = await env.ASSETS.fetch(request);
+  } catch (err) {
+    console.error("[security-worker] ASSETS fetch failed:", err && err.message);
+    return edgeResponse("Bad Gateway", 502);
+  }
 
-  // Attach security headers to the response (same directives as _headers, from security.json5)
+  // Attach security headers + CSP (same directives as _headers, from security.json5)
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(CONFIG.headers || {})) {
     headers.set(name, value);
   }
-
-  // CSP header — report-only mode switches to the report-only header name.
-  const cspDirectives = [];
-  for (const [key, vals] of Object.entries(cspConfig.directives)) {
-    if (Array.isArray(vals) && vals.length > 0) {
-      cspDirectives.push(`${key} ${vals.join(" ")}`);
-    }
-  }
-  if (cspDirectives.length > 0) {
-    const cspHeader = cspConfig.reportOnly ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy";
-    headers.set(cspHeader, cspDirectives.join("; "));
-  }
+  const csp = buildCsp();
+  if (csp) headers.set(csp.name, csp.value);
 
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers,
+    headers
   });
 }
 
 export default {
-  fetch: handleRequest,
+  fetch: handleRequest
 };

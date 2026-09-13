@@ -132,7 +132,14 @@
 
     // IP 黑名单（始终封禁）
     // 类型: string[]（IP 或 CIDR） | 不可填: 泛化网段（可能误伤） | 推荐: 默认空按需添加
-    "blacklist": []
+    "blacklist": [],
+
+    // 不计限流的静态资源路径前缀（避免正常浏览单页引用上百个子资源时误触 429）
+    // 作用: 命中这些前缀的 GET/HEAD 请求不消耗限流额度
+    // 类型: string[]（以 / 开头的路径前缀）
+    // 可填: ["/assets/","/media/","/og/","/icons/","/pagefind/"]
+    // 推荐: 默认列表;空数组 = 使用内置默认（无法完全关闭跳过）
+    "skipPaths": ["/assets/", "/media/", "/og/", "/icons/", "/pagefind/"]
   },
 
   // ===================================================================
@@ -164,8 +171,9 @@
   // ===================================================================
 
   // 受保护路径列表
-  // 字段: path 匹配模式（支持 /admin/* 通配）/ requireAuth 是否要求登录（Worker 按需扩展）
-  //       allowedIPs 允许的 IP（CIDR;有 Worker 鉴权逻辑时生效）
+  // 字段: path 匹配模式（支持 /admin/* 通配;匹配时解码 %xx 并忽略大小写）
+  //       requireAuth 是否要求登录（未接入鉴权提供方时保持拦截, fail-closed）
+  //       allowedIPs 允许的 IP/CIDR（如 "10.0.0.0/8"、"2001:db8::/32";命中者放行该路径）
   // 类型: 数组[{path,requireAuth?,allowedIPs?}]
   // 不可填: 空 path;与站点实际路径不匹配的模式（配置无效）
   // 推荐: 无受保护目录时置为 []
@@ -207,6 +215,12 @@
     // HSTS 覆盖子域名
     // 类型: boolean | 可填: true(推荐,所有子域强制 HTTPS)/false
     "hstsIncludeSubDomains": true,
+
+    // HSTS preload 标记（加入浏览器预载列表;提交 hstspreload.org 后不可轻易回退）
+    // 作用: 在 max-age/includeSubDomains 之后追加 "; preload"
+    // 类型: boolean | 可填: true(保留 preload,推荐)/false(移除)
+    // 不可填: 未提交预载列表时保持 true 会提前声明意图（无害但需知悉）
+    "hstsPreload": true,
 
     // Referrer-Policy 覆盖值
     // 类型: string | 可填: 同 headers 段的 Referrer-Policy 取值 | 推荐: "strict-origin-when-cross-origin"

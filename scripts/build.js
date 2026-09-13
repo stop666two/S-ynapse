@@ -44,7 +44,12 @@ try { CleanCSS = require('clean-css'); } catch (e) { CleanCSS = null; }
 try { terser = require('terser'); } catch (e) { terser = null; }
 try { chokidar = require('chokidar'); } catch (e) { chokidar = null; }
 let generateWorkerSecurity;
-try { generateWorkerSecurity = require('./generate-security-config').generateSecurityConfig; } catch (e) { generateWorkerSecurity = null; }
+let applyHeaderHardening = function (security) { return (security && security.headers) || {}; };
+try {
+  const secConfig = require('./generate-security-config');
+  generateWorkerSecurity = secConfig.generateSecurityConfig;
+  applyHeaderHardening = secConfig.applyHeaderHardening;
+} catch (e) { generateWorkerSecurity = null; }
 
 // Optional local hooks script (scripts/hooks.js) — allows external plugins to hook into build lifecycle
 // Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
@@ -2352,34 +2357,8 @@ function generateSecurityHeaders(config) {
     }
   }
 
-  for (const [key, val] of Object.entries(config.security.headers || {})) {
-    if (val) lines.push(`  ${key}: ${val}`);
-  }
-
-  const hd = config.security.hardening || {};
-  if (hd.hstsMaxAge) {
-    const hsts = `max-age=${hd.hstsMaxAge}` + (hd.hstsIncludeSubDomains ? '; includeSubDomains' : '');
-    const i = lines.findIndex(l => l.trim().startsWith('Strict-Transport-Security:'));
-    if (i >= 0) lines[i] = `  Strict-Transport-Security: ${hsts}`; else lines.push(`  Strict-Transport-Security: ${hsts}`);
-  }
-  if (hd.referrerPolicy) {
-    const i = lines.findIndex(l => l.trim().startsWith('Referrer-Policy:'));
-    if (i >= 0) lines[i] = `  Referrer-Policy: ${hd.referrerPolicy}`; else lines.push(`  Referrer-Policy: ${hd.referrerPolicy}`);
-  }
-  if (hd.permissionsPolicy && Object.keys(hd.permissionsPolicy).length) {
-    const pp = Object.entries(hd.permissionsPolicy).map(([k, v]) => `${k}=${v}`).join(', ');
-    const i = lines.findIndex(l => l.trim().startsWith('Permissions-Policy:'));
-    if (i >= 0) lines[i] = `  Permissions-Policy: ${pp}`; else lines.push(`  Permissions-Policy: ${pp}`);
-  }
-  if (hd.xssProtection) {
-    const i = lines.findIndex(l => l.trim().startsWith('X-XSS-Protection:'));
-    if (i >= 0) lines[i] = `  X-XSS-Protection: ${hd.xssProtection}`; else lines.push(`  X-XSS-Protection: ${hd.xssProtection}`);
-  }
-  if (Array.isArray(hd.corsAllowedOrigins) && hd.corsAllowedOrigins.length) {
-    lines.push(`  Access-Control-Allow-Origin: ${hd.corsAllowedOrigins.join(', ')}`);
-  }
-
-  for (const [key, val] of Object.entries(config.security.customHeaders || {})) {
+  const finalHeaders = applyHeaderHardening(config.security);
+  for (const [key, val] of Object.entries(finalHeaders)) {
     if (val) lines.push(`  ${key}: ${val}`);
   }
 

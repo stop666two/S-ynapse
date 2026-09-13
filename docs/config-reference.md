@@ -686,12 +686,16 @@ sitemap: {
 | `csp.enabled` / `directives` / `reportOnly` / `reportUri` | `false`/`{}`/`false`/`/csp-report` | Content-Security-Policy |
 | `robots.enabled` / `rules[]` | `false`/`[]` | robots 规则 |
 | `rateLimiting.enabled` | `false` | Worker 限流(100 req/60s) |
-| `rateLimiting.maxRequests/windowMs` | `100`/`60000` | 参数 |
-| `hardening.hstsMaxAge/hstsIncludeSubDomains` | `31536000`/`true` | 覆盖 HSTS 有效期与子域开关（优先级高于 headers 段） |
+| `rateLimiting.maxRequests/windowMs/blockDuration` | `100`/`60000`/`300000` | 参数（封禁时长毫秒） |
+| `rateLimiting.whitelist[]`/`blacklist[]` | `[]` | IP 或 **CIDR**（IPv4/IPv6，如 `10.0.0.0/8`、`2001:db8::/32`；黑名单始终拦截，白名单跳过限流） |
+| `rateLimiting.skipPaths[]` | `/assets/ /media/ /og/ /icons/ /pagefind/` | 不计限流的静态资源前缀（空数组 = 内置默认）；避免单页上百子资源误触 429 |
+| `pathRestrictions[]` | `[{path}]` | 元素 `{path, requireAuth?, allowedIPs?}`：路径支持 `/*` 后缀、匹配时解码百分号编码并忽略大小写；`allowedIPs` 为 CIDR 时命中者放行；`requireAuth` 无鉴权提供方时保持拦截（fail-closed） |
+| `hardening.hstsMaxAge/hstsIncludeSubDomains/hstsPreload` | `31536000`/`true`/`true` | 覆盖 HSTS（优先级高于 headers 段）；preload 默认保留 headers 段声明 |
 | `hardening.referrerPolicy/permissionsPolicy/xssProtection` | — | 覆盖 headers 段同名头 |
 | `hardening.corsAllowedOrigins` | `[]` | 非空时输出 Access-Control-Allow-Origin（多来源逗号拼接） |
+| `customHeaders` | `{}` | 追加响应头（同步进 Worker） |
 
-> 注意:`workers/security-config.js` 由构建从本文件自动生成,不要手改(生成器:scripts/generate-security-config.js)。
+> 注意:`workers/security-config.js` 由构建从本文件自动生成,不要手改(生成器:scripts/generate-security-config.js)。Worker 与静态层 `_headers` 共用同一 hardening 合并逻辑（`applyHeaderHardening`），两层头部完全一致；Worker 侧 `_headers` 的路径限制与限流逻辑见 `workers/security-worker.js` 与 `workers/lib/*.mjs`（CIDR/限流均有单元测试）。`/csp-report` 端点受限流保护、载荷上限 16KB、日志只记录关键字段。
 
 ---
 

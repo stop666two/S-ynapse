@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pagefind 索引 0 页根因修复**：minify-html 省略 `</head>` 虽合法，但 Pagefind 1.5.2 解析器会丢弃此类页面（已用 API/CLI/极简页二分复现）；现 minify 保留闭合标签（每页约 +20B），索引恢复 84 页 / zh-cn + en-us — `scripts/build.js`
 - **Pagefind 生成不再跳过 serve/watch**：serve 启动会清空 dist 且跳过生成导致预览必 404；现所有模式一致生成 — `scripts/build.js` + `README.md` + `docs/config-reference.md`
 - **命令面板默认热键 k → p**：Ctrl+K 固定保留给全站搜索；若手动改回 k 且搜索启用，面板自动让位 — `features.json5` + `js/domains/command-palette.js`
+- **Worker 边缘安全层加固**：IP 黑白名单与路径 `allowedIPs` 支持 IPv4/IPv6 CIDR（含 `::ffff:` 映射、`%xx` 解码与大小写归一）；修复限流「封禁条目在清理时被提前删除导致提前解封」；静态资源前缀默认免限流（避免正常浏览误触 429）；`/csp-report` 移至限流之后并加 16KB 载荷上限、日志只记关键字段；维护页消息 HTML 转义；ASSETS 获取失败返回 502 且所有早期响应（403/429/503/502）补齐安全头；Worker CSP 补 `report-uri` — `workers/security-worker.js` + `workers/lib/ip-utils.mjs` + `workers/lib/rate-limit.mjs` + `workers/package.json`
+- **Worker 与 `_headers` 头部统一**：新增共享 `applyHeaderHardening`（构建期生成 `_headers` 与 Worker 配置同源调用），修复 hardening 覆盖 HSTS 时丢失 `preload` 的问题；新增 `hardening.hstsPreload`；`rateLimiting.skipPaths` 与 `pathRestrictions.requireAuth/allowedIPs` 全量透传 Worker — `scripts/generate-security-config.js` + `scripts/build.js` + `security.json5` + `docs/config-reference.md`
+- **CI 门禁修复**：AGENTS.md 检查因 `fetch-depth:1` 导致 diff 恒空而失效（现 `fetch-depth: 0` + 按事件计算范围：PR base...head / push before..sha / 首次推送空树回退）；`npm audit` 与 `verify:security` 纳入所有 PR 构建；补 `permissions: contents: read` — `.github/workflows/deploy.yml`
+- **Worker/CIDR 测试补充**：新增 18 项单元 + 集成测试（IP/CIDR 解析、限流封禁持久、静态资源跳过、路径归一、报告上限、维护转义、错误兜底、头部一致性） — `scripts/security-worker.test.js`
 
 ### Added
 

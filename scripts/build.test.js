@@ -373,11 +373,33 @@ describe('generate-security-config', () => {
     assert.strictEqual(out.rateLimiting.windowMs, 60000);
     assert.deepStrictEqual(out.rateLimiting.whitelist, []);
     assert.strictEqual(out.csp.reportOnly, false);
-    assert.deepStrictEqual(out.pathRestrictions, ['/admin']);
+    assert.deepStrictEqual(out.pathRestrictions, [{ path: '/admin/*' }]);
+    assert.deepStrictEqual(out.rateLimiting.skipPaths, ['/assets/', '/media/', '/og/', '/icons/', '/pagefind/']);
   });
-  it('normalizes path restrictions and drops malformed entries', () => {
-    const out = extractWorkerSecurity({ pathRestrictions: [{ path: '/admin/*' }, { noPath: true }, null] });
-    assert.deepStrictEqual(out.pathRestrictions, ['/admin/*']);
+  it('normalizes path restrictions (keeps requireAuth/allowedIPs) and drops malformed entries', () => {
+    const out = extractWorkerSecurity({ pathRestrictions: [{ path: '/admin/*', requireAuth: true, allowedIPs: ['10.0.0.0/8'] }, { path: '/x' }, { noPath: true }, null] });
+    assert.deepStrictEqual(out.pathRestrictions, [
+      { path: '/admin/*', requireAuth: true, allowedIPs: ['10.0.0.0/8'] },
+      { path: '/x' }
+    ]);
+  });
+  it('applies hardening + custom headers to worker headers (parity with _headers)', () => {
+    const out = extractWorkerSecurity({
+      headers: { 'Strict-Transport-Security': 'max-age=100; includeSubDomains; preload', 'Referrer-Policy': 'no-referrer' },
+      hardening: { hstsMaxAge: 31536000, hstsIncludeSubDomains: true, referrerPolicy: 'strict-origin-when-cross-origin', xssProtection: '1; mode=block' },
+      customHeaders: { 'X-Custom': 'v1' }
+    });
+    assert.strictEqual(out.headers['Strict-Transport-Security'], 'max-age=31536000; includeSubDomains; preload');
+    assert.strictEqual(out.headers['Referrer-Policy'], 'strict-origin-when-cross-origin');
+    assert.strictEqual(out.headers['X-XSS-Protection'], '1; mode=block');
+    assert.strictEqual(out.headers['X-Custom'], 'v1');
+  });
+  it('allows disabling preload via hardening.hstsPreload=false', () => {
+    const out = extractWorkerSecurity({
+      headers: { 'Strict-Transport-Security': 'max-age=100; preload' },
+      hardening: { hstsMaxAge: 600, hstsIncludeSubDomains: false, hstsPreload: false }
+    });
+    assert.strictEqual(out.headers['Strict-Transport-Security'], 'max-age=600');
   });
   it('preserves csp directives and report fields', () => {
     const out = extractWorkerSecurity({ csp: { directives: { 'default-src': ['\'self\''], 'frame-src': ['\'none\''] }, reportOnly: true, reportUri: '/csp-rpt' } });

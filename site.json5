@@ -752,11 +752,6 @@
     // 注意: 关闭后导航中的图库入口需另行移除,否则指向 404
     "generateGallery": true,
 
-    // 生成作者页
-    // 作用: 是否生成作者聚合页（单人博客通常不需要）
-    // 类型: boolean | 可填: true/false | 推荐: false
-    "generateAuthorPages": false,
-
     // 复制静态资源
     // 作用: 是否复制 static/ 目录到 dist 根
     // 类型: boolean | 可填: true/false | 推荐: true
@@ -810,16 +805,6 @@
       "effort": 6
     },
 
-    // 图片懒加载
-    // 作用: 为内容区图片注入 loading="lazy"（配合 features.imageLazy 运行时光效）
-    // 类型: boolean | 可填: true/false | 推荐: true
-    "lazyLoadImages": true,
-
-    // 输出 srcset 属性
-    // 作用: 生成响应式图片候选集（依赖媒体优化产物）
-    // 类型: boolean | 可填: true/false | 推荐: true
-    "useSrcset": true,
-
     // 输出 <picture> 标签
     // 作用: 用 <picture> 包裹实现格式协商（WebP 优先）
     // 类型: boolean | 可填: true/false | 推荐: true
@@ -849,12 +834,6 @@
     // 推荐: "noopener noreferrer"（防 tabnabbing）
     "externalLinksRel": "noopener noreferrer",
 
-    // 搜索索引收录全文
-    // 作用: true=搜索索引含全文（搜索能命中正文）;false=仅标题/摘要
-    // 类型: boolean | 可填: true/false
-    // 推荐: true;注意: 全文索引会增大 search-index.json 体积
-    "searchFullContent": true,
-
     // 相关文章
     // 作用: 基于标签/分类计算文章底部"相关阅读"
     // 类型: boolean | 可填: true/false | 推荐: true
@@ -869,12 +848,6 @@
     // 作用: 生成 dist/build-report.html（耗时/体积/文件统计）
     // 类型: boolean | 可填: true/false | 推荐: true
     "buildReport": true,
-
-    // 自动 OG 图
-    // 作用: 为无封面文章生成默认社交分享图（/og/{lang}/{slug}.png）
-    // 类型: boolean | 可填: true/false | 推荐: true
-    // 注意: 需 sharp;serve 模式自动跳过以加速
-    "autoOgImage": true,
 
     // 强制内容宽度
     // 作用: 无侧栏页面强制与有侧栏页面同宽（视觉一致）

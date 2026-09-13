@@ -50,7 +50,7 @@ try { generateWorkerSecurity = require('./generate-security-config').generateSec
 // Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
-const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks } = require('./lib/utils');
+const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks } = require('./lib/utils');
 const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
 const { DEFAULT_FEATURES, validateFeatures } = require('./lib/features-schema');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset } = require('./lib/theme-presets');
@@ -226,10 +226,10 @@ function loadConfig() {
         removeConsole: false,
         generateIndex: true, generateArchive: true, generateTags: true, generateCategories: true,
         generateGallery: true,
-        generateAuthorPages: false, copyStatic: true, optimizeMedia: false, mediaQuality: 85,
+        copyStatic: true, optimizeMedia: false, mediaQuality: 85,
         mediaResponsiveSizes: [640, 1024, 1920], mediaFormats: ['webp', 'original'],
-        lazyLoadImages: true, useSrcset: true, usePictureTag: true,
-        searchFullContent: true, relatedArticles: true, cjkSpacing: true, buildReport: true, autoOgImage: true, forceContentWidth: true,
+        usePictureTag: true,
+        relatedArticles: true, cjkSpacing: true, buildReport: true, forceContentWidth: true,
         enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer'
       },
@@ -705,25 +705,6 @@ function getAllFiles(dir) {
   return results;
 }
 
-// Read the media manifest from dist/ (build output) or root (pre-generated).
-// The manifest maps original image paths to their responsive variants.
-// Returns null if no manifest exists (images render without optimization).
-function getMediaManifest() {
-  const manifestPath = path.join(DIST_DIR, 'media-manifest.json');
-  if (fs.existsSync(manifestPath)) {
-    try { return JSON.parse(fs.readFileSync(manifestPath, 'utf-8')); } catch (e) {
-      console.warn(`  [WARN] Failed to parse media manifest: ${e.message}`);
-    }
-  }
-  const rootManifest = path.join(ROOT, 'media-manifest.json');
-  if (fs.existsSync(rootManifest)) {
-    try { return JSON.parse(fs.readFileSync(rootManifest, 'utf-8')); } catch (e) {
-      console.warn(`  [WARN] Failed to parse root media manifest: ${e.message}`);
-    }
-  }
-  return null;
-}
-
 // Configure the marked Markdown renderer with custom handlers for:
 // - Image: responsive <picture> tags with WebP sources (when mediaManifest is available)
 // - Link: external links get target="_blank" + rel="noopener noreferrer"
@@ -852,7 +833,7 @@ function setupMarkedRenderer(config, mediaManifest) {
               const escaped = escapeAttr(val);
               if (fmt === 'webp') webpSources.push(`  <source srcset="${escaped}" sizes="${sizesAttr}" type="image/webp">`);
               else if (fmt === 'avif') avifSources.push(`  <source srcset="${escaped}" sizes="${sizesAttr}" type="image/avif">`);
-              else origSources.push(`  <source srcset="${escaped}" sizes="${sizesAttr}" type="image/${fmt}">`);
+              else origSources.push(`  <source srcset="${escaped}" sizes="${sizesAttr}"${fmt === 'original' ? '' : ` type="image/${fmt}"`}>`);
             }
             const fallbackSrc = escapeAttr(entry.original || decodedHref);
             let html = '<picture>\n';
@@ -2364,11 +2345,6 @@ function generateSecurityHeaders(config) {
     console.log('  Created: _headers');
   }
 
-  const redirectLines = ['# S-ynapse redirects'];
-  if (config.security.forceHttps) {
-    redirectLines.push('');
-    redirectLines.push('# Force HTTPS');
-  }
   if (config.security.robots && config.security.robots.enabled) {
     const robotLines = [];
     for (const rule of config.security.robots.rules || []) {
@@ -2667,7 +2643,7 @@ async function generatePWA(config) {
   const featPwa = (config.features && config.features.pwa) || {};
   const pwaOffline = featPwa.offlinePage !== false;
   if (pwaOffline) {
-    const isEn = config.site.defaultLanguage === 'en';
+    const isEn = config.site.language === 'en';
     const zh = (config.uiStrings && config.uiStrings.pwa) || {};
     const en = (config.uiStrings && config.uiStrings.en && config.uiStrings.en.pwa) || {};
     const S = isEn

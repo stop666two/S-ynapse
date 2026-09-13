@@ -1,0 +1,84 @@
+# S-ynapse 会话交接文档 — 2026-09-13（全项目审查 → 5 批次修复 → 终审 → 双态验证）
+
+> 用法：新会话先读本文件 + `AGENTS.md`。本会话全部提交在本地 `main`，**未推送远端、未建 tag**。
+> 状态：工作区干净（仅本文件与计划文档在本提交中入库）。
+
+---
+
+## 1. 用户原始请求（原文保留）
+
+- 「请阅读和检测整个项目。包括安全审查，性能优化，功能推荐，当然必须要想告诉我让我选择。」
+- 「还有几个文档没看吗？」→「`docs/handoff` 这里面的必须读」（已全读 09-11/09-12 两份）
+- 「注意没有我的允许不允许提交云端」
+- 「开启和关闭的功能都要测试！！！」（本会话全部验证按「开/关双态」执行）
+- 「公告条必须继续加强，可用设置多个以及多样式等等，继续扩充配置文件。以及有些注释不够详细。这些留着最后完成了现在的任务后再进行这些」（已作为追加项完成）
+- 「在最后的最后完全更新所有文档然后打印时间启动电脑30秒后自动关机」「注意如果关机时间在14：50之前那么就不关机」
+- 「必须保证没有然后遗留」
+- 「违规！！！使用太长的命令！！！」（长命令须拆分，见 §6）「没有设置超时时间」（所有命令显式超时）
+- 用户通过 question 工具确认：执行全部 5 个批次 + 先做真实运行时性能验证。
+
+## 2. 提交链（本地 main）
+
+| 提交 | 内容 |
+|---|---|
+| `64dc2dd` | Pagefind 收尾：门控改 `navigation.search.provider`、压缩后生成、清旧索引、`indexPath` 跟随、文档对齐 + 空构建中止守卫 |
+| `3bae616` | 安全 P0：消毒器迁移 `sanitize-html@2.17.7`（三个绕过复现并封堵）、SVG 实体解码、slug 强校验、build-report/og 转义、Worker 部署配置修正（`main`+`[assets]`+`--env production`，dry-run 验证） |
+| `518cc13` | 前端缺陷包 12 项 + Pagefind 0 页根因（minify 省略 `</head>` 致 Pagefind 解析器丢弃页面 → `keep_closing_tags: true`） |
+| `f4df17e` | Worker/CI 加固：CIDR（IPv4/IPv6）、限流封禁误放修复、静态资源免限流、`/csp-report` 防护、双层头部统一（`applyHeaderHardening`）、CI 门禁修复（fetch-depth/diff 范围/permissions/audit+verify 纳入 PR）、18 项新测试 |
+| `5cc9cb1` | 性能：搜索语料按需 fetch、首卡/封面 `fetchpriority=high`、search-index 媒体路径随 cache-bust 重写（修 404）。首页 LCP 795→348ms、HTML -16% |
+| `317e73f` | 公告条增强：多条目 icon、`tone gradient`、`transition fade/slide`、`showProgress`、`pauseOnHover`、`showDot`、`newTab` |
+| `2ade962` | 配置注释审查：补全 pwa/guards/atmosphere/giscus 等；标注 8 个未接线键与 3 处枚举不符 |
+| `71400ac` | 终审修复：预渲染守卫联动、Pagefind 双层降级、CIDR 校验告警、slug 非法中止、`%2F` 折叠、GET/HEAD 限流边界、注释/文档校正 |
+
+## 3. 验证证据（全部通过）
+
+- `npm test`：**100/100**（含新增 IP/CIDR、限流、路径、Worker 集成、slug、消毒绕过等）
+- `npm run verify:security`：**PASS**（恶意文章含实体编码/属性截断/srcset 逃逸载荷；Phase 2 断言非法 slug 中止构建；search-index featuredImage 存在性断言）
+- `npm run audit:a11y`：checks=8，violations=0
+- 浏览器断言（.tmp-scripts 中已按「无残留」删除）：主页/搜索/命令面板/复制/主题 14 项；运行时开关双态 9 项；**关态组合**（pagefind 禁用 + 公告关态键 + 预渲染守卫）8 项；Pagefind 开启态 6 项；公告多条/渐变/slide/进度 6 项；pagefind 关闭 + 搜索关闭 + 公告关闭 4 项
+- 性能 trace：首页 LCP 795→**348ms**、CLS 0.03（<0.1，无归因）；文章 LCP 468ms、CLS 0
+- `wrangler deploy --dry-run --config workers/wrangler.toml --env production`：bindings = ASSETS + ENVIRONMENT("production")
+
+## 4. 关键技术决策
+
+- 消毒器选 `sanitize-html`（精确锁 2.17.7）而非自研解析：安全边界不赌正则；未知标签前置转义保持原展示语义，危险标签走 `nonTextTags` 子树删除。
+- Pagefind 0 页根因：minify-html 省略 `</head>`（合法）但 Pagefind 1.5.2 直接丢页 → 保留闭合标签（每页 +~20B）。
+- 搜索语料按需化：`window.__SEARCH_INDEX_URL__` + 就绪标记 + 在途去重；浮层与独立搜索页共用；搜索结果图与 cache-bust 映射对齐。
+- Worker/静态层头部单一来源：`applyHeaderHardening`（含 HSTS preload 保留，新增 `hardening.hstsPreload`）。
+- 控制台热键：Ctrl+K 固定搜索；命令面板默认改 Ctrl+P，并双向互斥。
+
+## 5. 遗留事项（如实交接）
+
+1. **技术债：内联 CSS 外链化**（`templates/layout.ejs` 每页约 121KB）— 需视觉回归专项，未实施。搜索语料已外链，HTML 仍 199KB。
+2. **8 个未接线键**（已在 features.json5 注释标注「预留/已废弃」）：`readingProgress.progressColor`、`search.openAnimation`、`favorites.position('meta')`、`series.defaultWidgetCount`、`readingPanel.storageKey`、`backToTop.hotkey`、`shortcuts.ignoreInInputs`、`dailyQuote.source(自定义JSON)`。请决策：接线 / 删除。
+3. **favicon 缺失**：`/favicon.ico` 404（无图标资产）；需用户提供 icon 后加 `<link rel="icon">`。同理 `giscus` 的 features 键位多为冗余（真实配置在 `site.json5→comments.giscus`）。
+4. **Pagefind 依赖**：provider=pagefind 时未安装 `pagefind` 会构建告警并跳过索引；前端已做降级，但建议部署前 `npm install -D pagefind` 并跑一次构建。
+5. **npm audit 本机不可用**：npmmirror 无 audit 接口；CI 使用官方 registry 已在 PR 阶段执行（`--audit-level=high`）。
+6. script/style 内联与 CSP `'unsafe-inline'` 的取舍未动（CSP 需要重设计才可去 unsafe-inline）。
+
+## 6. 环境与踩坑（务必遵守）
+
+- **长命令必须拆分**（用户点名违规）：≤5 个子命令/条，`&&`/`;` 串联不得 ≥6。
+- **所有终端命令必须显式超时**（快速 15–30s；构建/测试 120–300s；预计 >300s 用后台+轮询）。
+- 只按**自建 PID 文件**（`.tmp-scripts/serve.pid`）停进程；严禁 `Get-Process node | Stop-Process`（曾误杀 OpenCode）。
+- 本机 `npm audit` 不可用（镜像）；`npm install` 会提示 esbuild/workerd 安装脚本被 allowScripts 拦截（wrangler dry-run 仍可用）。
+- PowerShell 内联 `node -e` 含引号/正则必炸 → 用 here-string 管道（`@'...'@ | node`）或写 `.tmp-scripts/*.js`（本次已全部清理）。
+- git 提示 `workers/lib/*.mjs` LF→CRLF（autocrlf 行为，仓库既有 JS 同样如此）。
+- 本次会话结束前：已停止 3224 serve、已删除全部自建临时脚本/探针/日志/测试产物（无残留检查通过）。
+
+## 7. 下一步建议
+
+1. 决策 §5 的 8 个未接线键（接线或删除，删除需同步 features-schema 默认值与文档）。
+2. 提供 favicon 资产后补 `<link rel="icon">`。
+3. 若需要内联 CSS 外链化：单独专项 + 逐页视觉对比（建议截图 diff）。
+4. 推送前询问用户备份（AGENTS 121/122）；不建 tag、不推远端除非用户明确要求。
+
+## 8. 快速验证命令（新会话复制）
+
+```powershell
+npm test
+npm run verify:security
+npm run audit:a11y          # 需先起 serve 3224
+node .tmp-scripts/run-build.js
+node scripts/build.js --serve --port 3224   # 后台启动，记录 PID 后再浏览器验证
+```

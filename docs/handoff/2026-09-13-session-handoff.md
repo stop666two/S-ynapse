@@ -50,7 +50,7 @@
 ## 5. 遗留事项（如实交接）
 
 1. **技术债：内联 CSS 外链化**（`templates/layout.ejs` 每页约 121KB）— 需视觉回归专项，未实施。搜索语料已外链，HTML 仍 199KB。
-2. **8 个未接线键**（已在 features.json5 注释标注「预留/已废弃」）：`readingProgress.progressColor`、`search.openAnimation`、`favorites.position('meta')`、`series.defaultWidgetCount`、`readingPanel.storageKey`、`backToTop.hotkey`、`shortcuts.ignoreInInputs`、`dailyQuote.source(自定义JSON)`。请决策：接线 / 删除。
+2. ~~8 个未接线键~~ **已解决（2026-09-13 续会话，commit `0aec780`）**：接线 6 个（`search.openAnimation`、`favorites.position('meta')`、`series.defaultWidgetCount`、`backToTop.hotkey`、`shortcuts.ignoreInInputs`、`dailyQuote.source`），删除 2 个废弃键（`readingProgress.progressColor`、`readingPanel.storageKey`，同步 features-schema 与 config-reference）；开/关双态构建断言 + 浏览器断言全通过。
 3. **favicon 缺失**：`/favicon.ico` 404（无图标资产）；需用户提供 icon 后加 `<link rel="icon">`。同理 `giscus` 的 features 键位多为冗余（真实配置在 `site.json5→comments.giscus`）。
 4. **Pagefind 依赖**：provider=pagefind 时未安装 `pagefind` 会构建告警并跳过索引；前端已做降级，但建议部署前 `npm install -D pagefind` 并跑一次构建。
 5. **npm audit 本机不可用**：npmmirror 无 audit 接口；CI 使用官方 registry 已在 PR 阶段执行（`--audit-level=high`）。
@@ -64,11 +64,11 @@
 - 本机 `npm audit` 不可用（镜像）；`npm install` 会提示 esbuild/workerd 安装脚本被 allowScripts 拦截（wrangler dry-run 仍可用）。
 - PowerShell 内联 `node -e` 含引号/正则必炸 → 用 here-string 管道（`@'...'@ | node`）或写 `.tmp-scripts/*.js`（本次已全部清理）。
 - git 提示 `workers/lib/*.mjs` LF→CRLF（autocrlf 行为，仓库既有 JS 同样如此）。
-- 本次会话结束前：已停止 3224 serve、已删除全部自建临时脚本/探针/日志/测试产物（无残留检查通过）。
+- 2026-09-13 续会话结束前：已停止 3224 serve（自建 PID）、已删除本会话自建临时脚本/探针/日志/测试产物（12 个）；`.tmp-scripts/` 仍有 **238 个历史会话文件**（含 config-reference §7 引用的 verify-guard-p*.js、§8 引用的 run-build.js），未动，待用户决策是否清理。
 
 ## 7. 下一步建议
 
-1. 决策 §5 的 8 个未接线键（接线或删除，删除需同步 features-schema 默认值与文档）。
+1. ~~决策 §5 的 8 个未接线键~~ 已完成（接线 6 + 删除 2，见 §5.2）。
 2. 提供 favicon 资产后补 `<link rel="icon">`。
 3. 若需要内联 CSS 外链化：单独专项 + 逐页视觉对比（建议截图 diff）。
 4. 推送前询问用户备份（AGENTS 121/122）；不建 tag、不推远端除非用户明确要求。

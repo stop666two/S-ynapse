@@ -174,6 +174,22 @@ describe('security-worker integration (fixture config)', () => {
     assert.strictEqual(allowed.status, 200);
   });
 
+  it('normalizes %2F and duplicated slashes in blocked paths', async () => {
+    const encodedSlash = await worker.fetch(req('https://example.com/%2Fadmin/panel', {}, '203.0.113.90'), makeEnv());
+    assert.strictEqual(encodedSlash.status, 403);
+    const doubleSlash = await worker.fetch(req('https://example.com//admin/panel', {}, '203.0.113.91'), makeEnv());
+    assert.strictEqual(doubleSlash.status, 403);
+  });
+
+  it('does not skip rate limiting for non-GET static-asset paths', async () => {
+    const ip = '203.0.113.92';
+    for (let i = 0; i < 3; i++) {
+      await worker.fetch(req('https://example.com/assets/x.js', { method: 'POST' }, ip), makeEnv());
+    }
+    const fourth = await worker.fetch(req('https://example.com/assets/x.js', { method: 'POST' }, ip), makeEnv());
+    assert.strictEqual(fourth.status, 429);
+  });
+
   it('accepts CSP reports after rate limit, rejects oversized payloads', async () => {
     const ok = await worker.fetch(req('https://example.com/csp-report', {
       method: 'POST',

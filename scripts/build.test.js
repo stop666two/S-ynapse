@@ -401,6 +401,15 @@ describe('generate-security-config', () => {
     });
     assert.strictEqual(out.headers['Strict-Transport-Security'], 'max-age=600');
   });
+  it('drops invalid IP/CIDR entries from whitelist/blacklist/allowedIPs', () => {
+    const out = extractWorkerSecurity({
+      rateLimiting: { whitelist: ['10.0.0.1', 'not-an-ip', '10.0.0.0/99'], blacklist: ['2001:db8::/32', 'zzz'] },
+      pathRestrictions: [{ path: '/admin/*', allowedIPs: ['192.168.0.0/16', 'bad/entry'] }]
+    });
+    assert.deepStrictEqual(out.rateLimiting.whitelist, ['10.0.0.1']);
+    assert.deepStrictEqual(out.rateLimiting.blacklist, ['2001:db8::/32']);
+    assert.deepStrictEqual(out.pathRestrictions[0].allowedIPs, ['192.168.0.0/16']);
+  });
   it('preserves csp directives and report fields', () => {
     const out = extractWorkerSecurity({ csp: { directives: { 'default-src': ['\'self\''], 'frame-src': ['\'none\''] }, reportOnly: true, reportUri: '/csp-rpt' } });
     assert.deepStrictEqual(out.csp.directives['frame-src'], ['\'none\'']);

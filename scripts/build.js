@@ -1045,8 +1045,9 @@ async function processArticles(config, mediaManifest) {
       if (attrs.slug != null) {
         const slugCheck = validateSlug(attrs.slug);
         if (!slugCheck.ok) {
-          console.error(`  [ERROR] ${file}: frontmatter slug "${String(attrs.slug).slice(0, 80)}" is invalid (${slugCheck.reason}). Skipping.`);
-          continue;
+          const abortErr = new Error(`${file}: frontmatter slug "${String(attrs.slug).slice(0, 80)}" is invalid (${slugCheck.reason}). Aborting build.`);
+          abortErr.isBuildAbort = true;
+          throw abortErr;
         }
         slug = slugCheck.slug;
       } else {
@@ -1130,6 +1131,7 @@ async function processArticles(config, mediaManifest) {
       });
       console.log(`  Processed: ${file} -> ${url}`);
     } catch (err) {
+      if (err.isBuildAbort) throw err;
       console.error(`  [ERROR] Failed to process ${file}: ${err.message}`);
     }
   }

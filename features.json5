@@ -2007,7 +2007,7 @@
     showDot: true,
 
     // 外链打开方式(仅 url 为 http(s) 外链时生效;站内链接始终当前窗口)
-    // 类型: string | 可填: "_blank"(新窗口,推荐)/"_self"(当前窗口)
+    // 类型: boolean | 可填: true(新窗口 target=_blank,推荐)/false(当前窗口)
     newTab: true,
 
     // 可关闭(× 按钮)

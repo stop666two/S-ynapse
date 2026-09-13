@@ -140,7 +140,7 @@ async function handleRequest(request, env) {
       return edgeResponse("Forbidden", 403);
     }
     const whitelisted = ipMatchesAny(clientIP, rl.whitelist);
-    const assetRequest = isStaticAsset(url.pathname, skipPaths);
+    const assetRequest = (request.method === "GET" || request.method === "HEAD") && isStaticAsset(url.pathname, skipPaths);
     if (!whitelisted && !assetRequest) {
       const verdict = limiter.check(clientIP, rl);
       if (verdict === "blocked" || verdict === "limited") {

@@ -146,6 +146,8 @@ export function init() {
   function open() {
     build();
     if (dlg.open) return;
+    var so = document.getElementById('searchOverlay');
+    if (so && so.classList.contains('open') && typeof window.closeSearch === 'function') window.closeSearch();
     input.value = '';
     update('');
     dlg.showModal();

@@ -83,10 +83,14 @@ export function init(ctx) {
     return rec.n > limit;
   }
 
-  const over = document.prerendering ? false : countView();
-  if (over) {
+  function applyOverlimit() {
     if ((cfg.viewsAction || 'toast') === 'lock') renderGate(true);
     else ctx.toast(ctx.t('gateLimit', '今日访问次数已达上限'));
+  }
+  if (document.prerendering) {
+    document.addEventListener('prerenderingchange', function () { if (countView()) applyOverlimit(); }, { once: true });
+  } else if (countView()) {
+    applyOverlimit();
   }
 
   if (pw.enabled && inScope) {

@@ -51,6 +51,14 @@ export function init() {
     var i = wrap && wrap.querySelector('input');
     if (i) i.focus();
   }
+  function restoreLocalSearch() {
+    var fi = document.getElementById('searchInput');
+    if (fi) fi.hidden = false;
+    var kb = document.querySelector('.search-kbd');
+    if (kb) kb.hidden = false;
+    var wrap = document.getElementById('pfWrap');
+    if (wrap) wrap.hidden = true;
+  }
   function ensurePagefind() {
     if (window.__pfReady__) { focusPagefind(); return; }
     if (window.__pfLoading__) { window.__pfLoading__.then(focusPagefind); return; }
@@ -63,22 +71,27 @@ export function init() {
       var s = document.createElement('script');
       s.src = base + '/pagefind-ui.js';
       s.onload = function () {
+        var ok = false;
         try {
           var wrap = document.getElementById('pfWrap');
-          var fi = document.getElementById('searchInput');
-          if (fi) fi.hidden = true;
-          var kb = document.querySelector('.search-kbd');
-          if (kb) kb.hidden = true;
-          if (window.PagefindUI && wrap && !wrap.getAttribute('data-ready')) {
-            new window.PagefindUI({ element: '#pfWrap', showSubResults: true, showImages: false, autofocus: false });
-            wrap.setAttribute('data-ready', '1');
+          if (window.PagefindUI && wrap) {
+            if (!wrap.getAttribute('data-ready')) {
+              new window.PagefindUI({ element: '#pfWrap', showSubResults: true, showImages: false, autofocus: false });
+              wrap.setAttribute('data-ready', '1');
+            }
+            var fi = document.getElementById('searchInput');
+            if (fi) fi.hidden = true;
+            var kb = document.querySelector('.search-kbd');
+            if (kb) kb.hidden = true;
+            wrap.hidden = false;
+            ok = true;
           }
-          if (wrap) wrap.hidden = false;
-          window.__pfReady__ = true;
-        } catch (e) { /* Pagefind 初始化失败时保持既有搜索可用 */ }
+        } catch (e) { ok = false; }
+        if (ok) window.__pfReady__ = true;
+        else restoreLocalSearch();
         resolve();
       };
-      s.onerror = function () { resolve(); };
+      s.onerror = function () { restoreLocalSearch(); resolve(); };
       document.body.appendChild(s);
     });
     window.__pfLoading__.then(focusPagefind);
@@ -100,7 +113,11 @@ export function init() {
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
       var o = document.getElementById('searchOverlay');
-      if (o && !o.classList.contains('open')) openSearch(); else closeSearch();
+      if (o && !o.classList.contains('open')) {
+        var cd = document.querySelector('dialog.cmdp');
+        if (cd && cd.open && typeof cd.close === 'function') cd.close();
+        openSearch();
+      } else closeSearch();
     }
   });
   (function () {

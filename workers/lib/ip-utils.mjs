@@ -115,6 +115,7 @@ export function normalizePath(pathname) {
   try {
     p = decodeURIComponent(p);
   } catch (e) { /* 保留原值 */ }
+  p = p.replace(/\/{2,}/g, '/');
   if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
   return p.toLowerCase();
 }

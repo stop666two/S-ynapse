@@ -68,12 +68,11 @@ function build() {
 let failed = false;
 try {
   fs.writeFileSync(TEMP_FILE, MALICIOUS, 'utf-8');
-  fs.writeFileSync(TEMP_SLUG_FILE, MALICIOUS_SLUG, 'utf-8');
   build();
 
   if (!fs.existsSync(DIST_INDEX)) fail(`post page not generated: ${DIST_INDEX}`);
   const html = fs.readFileSync(DIST_INDEX, 'utf-8');
-  const searchRaw = fs.readFileSync(DIST_SEARCH, 'utf-8');
+  const searchRaw = fs.existsSync(DIST_SEARCH) ? fs.readFileSync(DIST_SEARCH, 'utf-8') : '';
   // HTML semantics: <title> is RCDATA, and quoted attribute values never
   // start elements — minify-html re-serializes character references there,
   // so a naked `<script>window.__SEC_PWNED__` inside them is inert text, not
@@ -148,11 +147,28 @@ try {
   if (!html.includes('<dl>') || !html.includes('<dt>术语') || !html.includes('说明')) {
     fail('whitelisted dl/dt/dd was stripped');
   }
+  const searchJson = searchRaw ? JSON.parse(searchRaw) : [];
+  if (!Array.isArray(searchJson)) fail('search index is not valid JSON array');
+  // Regression: cache-bust must rewrite featuredImage paths inside search-index.json,
+  // otherwise lazy search thumbnails 404 in production.
+  for (const item of searchJson) {
+    if (item && item.featuredImage) {
+      const rel = String(item.featuredImage).replace(/^\//, '');
+      if (!fs.existsSync(path.join(ROOT, 'dist', rel))) {
+        fail('search index featuredImage missing in dist (cache-bust rewrite broken): ' + item.featuredImage);
+      }
+    }
+  }
+
+  // Phase 2: an invalid front-matter slug must abort the build (no silent content loss,
+  // no path escape). Build is expected to exit non-zero.
+  fs.writeFileSync(TEMP_SLUG_FILE, MALICIOUS_SLUG, 'utf-8');
+  let slugAborted = false;
+  try { build(); } catch (e) { slugAborted = true; }
+  if (!slugAborted) fail('invalid article slug did not abort the build');
   if (fs.existsSync(path.join(ROOT, ESCAPE_NAME))) fail('invalid article slug escaped the project directory');
   if (fs.existsSync(path.join(ROOT, 'dist', 'zh', ESCAPE_NAME))) fail('invalid article slug produced a page outside its language directory');
-  if (fs.existsSync(path.join(ROOT, 'dist', 'zh', '_sec-slug'))) fail('article with invalid slug was rendered instead of skipped');
-  const searchJson = JSON.parse(searchRaw);
-  if (!Array.isArray(searchJson)) fail('search index is not valid JSON array');
+  fs.rmSync(TEMP_SLUG_FILE, { force: true });
 
   console.log('[PASS] Security verification: no XSS payload reached dist/; whitelist preserved.');
 } catch (err) {

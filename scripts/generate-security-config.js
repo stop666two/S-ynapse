@@ -12,6 +12,38 @@ const path = require('path');
 const OUT_FILE = path.join(__dirname, '..', 'workers', 'security-config.js');
 const DEFAULT_SKIP_PATHS = ['/assets/', '/media/', '/og/', '/icons/', '/pagefind/'];
 
+/** 基本校验单个 IP / CIDR 条目（IPv4 点分或 IPv6 冒号形式；供构建期告警用）。 */
+function isValidIpEntry(entry) {
+  if (typeof entry !== 'string') return false;
+  const s = entry.trim();
+  if (!s) return false;
+  const slash = s.lastIndexOf('/');
+  const addr = slash === -1 ? s : s.slice(0, slash);
+  const prefix = slash === -1 ? null : Number(s.slice(slash + 1));
+  const v4parts = addr.split('.');
+  const isV4 = v4parts.length === 4 && v4parts.every((n) => /^\d{1,3}$/.test(n) && Number(n) <= 255);
+  const isV6 = addr.includes(':') && /^[0-9a-f:.]+$/i.test(addr);
+  if (!isV4 && !isV6) return false;
+  if (prefix !== null) {
+    const bits = isV4 ? 32 : 128;
+    if (!Number.isInteger(prefix) || prefix < 0 || prefix > bits) return false;
+  }
+  return true;
+}
+
+function filterIpEntries(list, context) {
+  const out = [];
+  for (const item of Array.isArray(list) ? list : []) {
+    if (typeof item !== 'string') continue;
+    if (!isValidIpEntry(item)) {
+      console.warn(`  [WARN] security.json5 ${context}: invalid IP/CIDR entry ignored: "${item}"`);
+      continue;
+    }
+    out.push(item);
+  }
+  return out;
+}
+
 /**
  * 将 hardening / customHeaders 段合并进最终响应头对象，返回合并结果。
  * _headers 与 Worker 共用本函数，确保两层头部完全一致（含 HSTS preload 保留）。
@@ -60,7 +92,8 @@ function extractWorkerSecurity(security) {
           const rule = { path: p.path };
           if (p.requireAuth === true) rule.requireAuth = true;
           if (Array.isArray(p.allowedIPs) && p.allowedIPs.length) {
-            rule.allowedIPs = p.allowedIPs.filter((x) => typeof x === 'string' && x.trim());
+            const allowed = filterIpEntries(p.allowedIPs, `pathRestrictions[${p.path}].allowedIPs`);
+            if (allowed.length) rule.allowedIPs = allowed;
           }
           return rule;
         })
@@ -72,8 +105,8 @@ function extractWorkerSecurity(security) {
       maxRequests: Number.isFinite(rl.maxRequests) ? rl.maxRequests : 100,
       windowMs: Number.isFinite(rl.windowMs) ? rl.windowMs : 60000,
       blockDuration: Number.isFinite(rl.blockDuration) ? rl.blockDuration : 300000,
-      whitelist: Array.isArray(rl.whitelist) ? rl.whitelist.filter((x) => typeof x === 'string') : [],
-      blacklist: Array.isArray(rl.blacklist) ? rl.blacklist.filter((x) => typeof x === 'string') : [],
+      whitelist: filterIpEntries(rl.whitelist, 'rateLimiting.whitelist'),
+      blacklist: filterIpEntries(rl.blacklist, 'rateLimiting.blacklist'),
       skipPaths: Array.isArray(rl.skipPaths) && rl.skipPaths.length
         ? rl.skipPaths.filter((x) => typeof x === 'string' && x.startsWith('/'))
         : DEFAULT_SKIP_PATHS
@@ -109,7 +142,7 @@ function generateSecurityConfig(securityConfig, outFile) {
   return file;
 }
 
-module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, applyHeaderHardening, DEFAULT_SKIP_PATHS, OUT_FILE };
+module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, applyHeaderHardening, isValidIpEntry, DEFAULT_SKIP_PATHS, OUT_FILE };
 
 if (require.main === module) {
   const ROOT = path.join(__dirname, '..');

@@ -14,7 +14,10 @@ export function init() {
     try { localStorage.setItem(KEY, JSON.stringify(a.slice(0, 50))); } catch (e) { /* storage 满或被禁用时静默降级 */ }
   }
   function record() {
-    if (document.prerendering) return;
+    if (document.prerendering) {
+      document.addEventListener('prerenderingchange', function () { record(); }, { once: true });
+      return;
+    }
     if (!document.querySelector('.post-content')) return;
     var can = document.querySelector('link[rel="canonical"]');
     var url = can ? can.getAttribute('href') : location.pathname;

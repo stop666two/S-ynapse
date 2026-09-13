@@ -1908,13 +1908,64 @@
   // 59. 公告条(站顶单行公告,可关闭并记忆)
   // ---------------------------------------------------------------------------
   announcement: {
+    // 总开关(false = 不渲染公告条,同时不注入头部防闪脚本)
+    // 类型: boolean | 可填: true/false | 推荐: true
     enabled: true,
+
+    // 单条公告文本(zh 站使用;items 非空时本字段被忽略)
+    // 类型: string | 可填: 任意短文本(建议 ≤ 40 字,超长会省略号截断)
     text: '欢迎来到 S-ynapse',
+
+    // 单条公告英文文本(en 站使用;items 非空时本字段被忽略)
+    // 类型: string | 可填: 任意短文本 | 空 = en 站回退为 text
     textEn: 'Welcome to S-ynapse',
+
+    // 单条公告点击跳转(空 = 不可点击的纯文本;items 非空时本字段被忽略)
+    // 类型: string | 可填: 站内路径("/about/")或完整外链("https://…")
     url: '',
+
+    // 多条公告轮播列表(非空时覆盖上面的 text/textEn/url 三键)
+    // 作用: 支持多条公告按时序轮播;每条可独立设置文案/跳转/徽标
+    // 字段: text 中文正文(必填其一的其中之一) / textEn 英文正文 / url 跳转(空=纯文本) / icon 前缀徽标短文本(如 "NEW"/"活动")
+    // 类型: 数组[{text?,textEn?,url?,icon?}]
+    // 不可填: 全空条目(text 与 textEn 均空会被跳过);条目数建议 2–5 条
+    // 推荐: 2–3 条(超出后用户很难看完)
     items: [],
+
+    // 自动轮播间隔(毫秒;0 = 不轮播,仅显示第一条)
+    // 类型: number | 可填: 0 或 2000–30000 | 推荐: 6000(6 秒)
     rotateMs: 6000,
+
+    // 悬停/按住暂停轮播
+    // 作用: 鼠标悬停或触屏按住时暂停轮播与进度条,移开后恢复
+    // 类型: boolean | 可填: true(推荐,便于阅读)/false(全程轮播)
+    pauseOnHover: true,
+
+    // 条目切换动画
+    // 类型: string | 可填: "fade"(淡入淡出,推荐)/"slide"(上滑+淡入)
+    // 不可填: 其他值(回退 fade);reduced-motion 用户自动禁用动画
+    transition: 'fade',
+
+    // 配色风格
+    // 类型: string | 可填: "accent"(主色淡渐变,推荐)/"solid"(主色实底白字)/"minimal"(表面色极简)/"gradient"(主→辅强渐变白字)
+    // 不可填: 其他值(回退 accent)
     tone: 'accent',
+
+    // 轮播进度条(显示当前条目剩余停留时间;仅多条轮播时渲染)
+    // 类型: boolean | 可填: true/false | 推荐: false(更简洁;需要提示节奏时开启)
+    showProgress: false,
+
+    // 左侧装饰圆点
+    // 类型: boolean | 可填: true(推荐)/false
+    showDot: true,
+
+    // 外链打开方式(仅 url 为 http(s) 外链时生效;站内链接始终当前窗口)
+    // 类型: string | 可填: "_blank"(新窗口,推荐)/"_self"(当前窗口)
+    newTab: true,
+
+    // 可关闭(× 按钮)
+    // 作用: 点击后按「条目内容哈希」记忆关闭;内容更新后哈希变化,公告会重新出现
+    // 类型: boolean | 可填: true(推荐)/false(常驻不可关)
     dismissible: true
   },
 

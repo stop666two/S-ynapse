@@ -21,9 +21,18 @@ function run() {
     collapseAnnH();
     setTimeout(function () { bar.remove(); }, 340);
   });
+  var A = (window.__FEATURES__ || {}).announcement || {};
   var rot = parseInt(bar.getAttribute('data-rotate'), 10) || 0;
   var spans = Array.prototype.slice.call(bar.querySelectorAll('.announce-item'));
+  var progI = bar.querySelector('.announce-progress i');
   var rotTimer = null;
+  function kickProgress() {
+    if (!progI) return;
+    progI.style.animation = 'none';
+    void progI.offsetWidth;
+    progI.style.animation = '';
+    progI.style.animationPlayState = '';
+  }
   if (rot > 0 && spans.length > 1) {
     var i = 0, paused = false;
     rotTimer = setInterval(function () {
@@ -31,9 +40,12 @@ function run() {
       spans[i].classList.remove('on');
       i = (i + 1) % spans.length;
       spans[i].classList.add('on');
+      kickProgress();
     }, rot);
-    bar.addEventListener('pointerenter', function () { paused = true; });
-    bar.addEventListener('pointerleave', function () { paused = false; });
+    if (A.pauseOnHover !== false) {
+      bar.addEventListener('pointerenter', function () { paused = true; if (progI) progI.style.animationPlayState = 'paused'; });
+      bar.addEventListener('pointerleave', function () { paused = false; if (progI) progI.style.animationPlayState = ''; });
+    }
   }
 }
 export function init() {

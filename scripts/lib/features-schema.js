@@ -188,7 +188,8 @@ const DEFAULT_FEATURES = {
     enabled: true, grain: true, glow: true
   },
   announcement: {
-    enabled: true, text: '', textEn: '', url: '', items: [], rotateMs: 6000, tone: 'accent', dismissible: true
+    enabled: true, text: '', textEn: '', url: '', items: [], rotateMs: 6000,
+    pauseOnHover: true, transition: 'fade', tone: 'accent', showProgress: false, showDot: true, newTab: true, dismissible: true
   },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
@@ -451,7 +452,7 @@ const ENUM_FIELDS = {
   viewTransition: { type: ['fade', 'slide'], reducedMotion: ['light', 'off', 'full'] },
   speculation: { mode: ['prefetch', 'prerender', 'both'], eagerness: ['moderate', 'eager', 'conservative'], delivery: ['inline', 'header', 'both'] },
   ogImageStyle: { template: ['aurora', 'mesh', 'grid', 'paper', 'duotone'], palette: ['theme', 'hash'] },
-  announcement: { tone: ['accent', 'solid', 'minimal'] },
+  announcement: { tone: ['accent', 'solid', 'minimal', 'gradient'], transition: ['fade', 'slide'] },
   guards: { preset: ['off', 'soft', 'strict'] },
   loading: { reducedMotion: ['skip', 'static'], spinnerStyle: ['orbit', 'ring'] },
   boot: { heavyMode: ['idle', 'interaction', 'immediate'] },

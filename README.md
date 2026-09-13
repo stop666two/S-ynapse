@@ -19,8 +19,8 @@
 ## 特性
 
 **全配置驱动**
-- 13 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2413 项），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
-- `features.json5` 功能总控域：**95 个模块、783 个配置项**，每项功能均可开/关/微调；`tuning.json5` UI 微调层（31 分类 / 204 项）
+- 13 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2455 项，按叶子键递归统计：对象逐层展开、数组元素逐项计入），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- `features.json5` 功能总控域：**95 个模块、782 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（32 分类 / 204 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
 - 详细参考文档：`docs/config-reference.md`（11 章，逐字段权威参考）
@@ -52,7 +52,7 @@
 - **每日一言**（侧栏，内置 7 条按日期轮换）、**收藏**（纯前端 localStorage，`/favorites/`）
 - RSS + JSON Feed、**sitemap 按类型拆分**（URL 超阈值自动分文件）、搜索索引、PWA、构建报告
 - **侧栏拖拽重排**（桌面拖拽 + 移动端长按，localStorage 持久化）、**404 页美化**（插图 + 搜索 + 热门文章）
-- **Pagefind 全文搜索**（`search.provider='pagefind'` 时生效，离线索引）
+- **Pagefind 全文搜索**（`search.provider='pagefind'` 时生效，离线索引；**构建管线不生成 Pagefind 索引，启用前需先安装并运行 Pagefind 生成索引，例如 `npx pagefind --site dist`，否则前端请求 `/pagefind/*` 会 404**）
 
 **安全加固**
 - Markdown 内嵌 HTML 白名单消毒（XSS 防护，含 SVG 消毒）
@@ -114,8 +114,8 @@ S-ynapse/
 ├── articles/          # Markdown 文章（按语言分目录：zh/ 中文、en/ 英文，front-matter: title/slug/tags/categories/date/draft/pinned/series/featuredImage）
 ├── pages/             # 自定义页面 & 可复用内容块（博客底部公告、关于、隐私、条款等）
 ├── media/             # 图片资源（自动优化：WebP/AVIF/尺寸变体 + SVG 消毒）
-├── videos/            # 视频资源（content-policy 排除制过滤后复制）
-├── assets/            # 素材文件（PDF/文档/压缩包/音频/字体，content-policy 白名单）
+├── videos/            # 视频资源（可选，按需创建；content-policy 排除制过滤后复制）
+├── assets/            # 素材文件（可选，按需创建；PDF/文档/压缩包/音频/字体，content-policy 白名单）
 ├── static/            # 静态文件（直接复制到输出）
 ├── js/                # 前端 ESM 源码（core/ 入口与运行时 + domains/ 领域模块；构建复制到 dist/assets/js/）
 ├── templates/         # EJS 模板
@@ -155,10 +155,10 @@ S-ynapse/
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
 ├── site.json5          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
 ├── theme.json5         # 主题配置（颜色/字体/布局/文章页脚）
-├── features.json5     # 功能总控（95 模块/783 项，可开关/微调，可选文件）
+├── features.json5     # 功能总控（95 模块/782 项，可开关/微调，可选文件）
 ├── ui-strings.json5   # 界面文案词典（zh/en 双语词典，服务端 ui() + 运行时 __T()，可选）
-├── tuning.json5       # UI 微调参数层（31 分类/204 项，注入 CSS 变量；行为参数运行时读取，可选）
-├── guard.json5        # 防护与交互控制域（164 项：右键/复制/选择/快捷键/水印/检测/控制台/隐私帘/篡改监视/访问门槛，逐项注释，可选）
+├── tuning.json5       # UI 微调参数层（32 分类/204 项，注入 CSS 变量；行为参数运行时读取，可选）
+├── guard.json5        # 防护与交互控制域（11 个模块/164 项：右键/复制/选择/快捷键/水印/检测/控制台/隐私帘/篡改监视/访问门槛，逐项注释，可选）
 ├── navigation.json5    # 导航配置
 ├── sidebar.json5       # 侧边栏配置（含 series/friends/stats/quote 组件）
 ├── footer.json5        # 页脚配置
@@ -186,8 +186,8 @@ S-ynapse/
 | `theme.json5` | 颜色（亮/暗）、字体、布局微调、文章页脚说明栏 | ✅ |
 | `features.json5` | 95 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、评论…） | 可选（缺失回退默认，功能保持） |
 | `ui-strings.json5` | 界面文案词典（zh/en 双语，i18n 切换的文案来源） | 可选（缺失回退内置文案） |
-| `tuning.json5` | UI 微调参数层（31 分类 / 204 项：排版/间距/圆角/动效/组件细节，注入 CSS 变量） | 可选 |
-| `guard.json5` | 防护与交互控制域（164 项：自定义右键菜单、复制控制/署名、选择控制、快捷键拦截、水印、检测与控制台反制、窗口隐私帘、篡改监视、访问门槛、绕过通道等） | 可选（缺失时防护功能关闭） |
+| `tuning.json5` | UI 微调参数层（32 分类 / 204 项：排版/间距/圆角/动效/组件细节，注入 CSS 变量） | 可选 |
+| `guard.json5` | 防护与交互控制域（11 个模块 / 164 项：自定义右键菜单、复制控制/署名、选择控制、快捷键拦截、水印、检测与控制台反制、窗口隐私帘、篡改监视、访问门槛、绕过通道等） | 可选（缺失时防护功能关闭） |
 | `navigation.json5` | 菜单、导航栏、社交顺序、搜索 | ✅ |
 | `sidebar.json5` | 侧栏组件序列（author/recent/tags/categories/archive/series/friends/stats/quote…） | ✅ |
 | `footer.json5` | 页脚列、版权、备案、社交、Powered-by | ✅ |
@@ -258,7 +258,7 @@ S-ynapse/
 
 ### features.json5 — 功能总控魔方
 
-`features.json5` 是全部交互与内容功能的统一开关域：95 个模块、783 个配置项，逐项中文注释。几例：
+`features.json5` 是全部交互与内容功能的统一开关域：95 个模块、782 个配置项，逐项中文注释。几例：
 
 ```json5
 {
@@ -344,7 +344,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 加载配置 | 13 个 JSON5 配置（含 tuning.json5 与 guard.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 92 模块结构校验 |
+| 1 | 加载配置 | 13 个 JSON5 配置（含 tuning.json5 与 guard.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 95 模块结构校验 |
 | 2 | 设置输出目录 | 清空 `dist/` 并创建子目录 |
 | 3 | 复制静态文件 | `static/` → `dist/` |
 | 3ᵇ | 内容策略 | 按 content-policy.json5 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |

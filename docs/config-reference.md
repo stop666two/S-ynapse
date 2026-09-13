@@ -447,7 +447,7 @@ sitemap: {
 `enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true` / `translationNotice true`(文章页翻译互链提示:另一语言存在同 slug 文章时在标题下显示胶囊链接,文案 `post.translationNotice` 支持 `{lang}` 占位) — `features.i18n` 另见 §3.73。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/search-index),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段。
 
 ### 3.53 pagefind — Pagefind 全文搜索
-`enabled true` / `indexPath '/pagefind'` / `integrate true`。使用 Pagefind 的离线全文搜索(search.provider='pagefind' 时生效,构建生成索引)。
+`enabled true` / `indexPath '/pagefind'` / `integrate true`。使用 Pagefind 的离线全文搜索(search.provider='pagefind' 时生效)。**构建管线不生成 Pagefind 索引:启用前需先安装并运行 Pagefind 生成索引(例如 `npx pagefind --site dist`),否则前端请求 `/pagefind/*` 会 404。**
 
 ### 3.54 giscus — Giscus 评论
 `enabled false`(默认关) / `repo ''` / `repoId ''` / `category 'Announcements'` / `categoryId ''` / `mapping 'title'` / `theme 'preferred_color_scheme'` / `loading 'lazy'` / `crossorigin 'anonymous'`。与 site.comments(provider='giscus')联动——两者都必须配置才显示。
@@ -555,6 +555,66 @@ sitemap: {
 ### 3.80 imageFit — 图片适配（四域）
 
 `enabled true`。**四域**：`content`（正文图片：`upscale 'never'`（默认不放大）| `'cap'` 最多放大 `cap 1.5` 倍 | `'full'` 铺满；`maxHeightVh 0` 限高（如 60=最多 60vh）；`align 'center'|'left'`）· `cover`（封面与卡片：`fit 'cover'|'contain'|'fill'`；`position 'center'|'top'|'bottom'|'left'|'right'` 或自定义 `'50% 30%'` 焦点；`maxHeightVh 0` 封面限高；`aspect ''` 封面宽高比（空 = 模板默认 16/10，如 `'16/9'`、`'21/9'`）；`applyToCards true` 是否同时作用于列表卡片封面）· `gallery`（`stretch false` 小图不再被拉伸（修复旧版变形）| `true` 旧行为；`maxHeightPx 0` 单图限高）· `lightbox`（`fit 'contain'`（默认）| `'actual'` 原始尺寸；`maxWidthPct 92` 最大宽（vw）、`maxHeightVh 82` 最大高）。实现（运行时零 JS）：构建期为图片注入 `data-iw`（自然宽）并在 cap 模式生成 `[data-iw]` 宽度规则；四域分别烘焙为 `--if-*` CSS 变量 — `scripts/build.js` + `templates/layout.ejs` + `scripts/lib/utils.js`。
+
+### 3.81 exportBackup — 备份导出
+
+`enabled true`（总开关）/ `includeMedia true`（打包 `media/` 图片）/ `includeConfig true`（打包 13 个 JSON5 配置）/ `outputDir 'exports'`（输出目录）/ `fileNamePrefix 's-ynapse-backup'`（归档名前缀，实际文件名追加时间戳）。由 `npm run export` 调用：配置 + 文章 + 媒体打包为单一归档，便于迁移与留档 — `scripts/export.js`。
+
+### 3.82 mediaAudit — 媒体审计
+
+`enabled true` / `reportMissed true`（报告文章引用但磁盘缺失的图片）/ `reportUnreferenced true`（报告存在但未被任何文章引用的图片）/ `reportDuplicate false`（报告内容重复的文件，默认关，大站耗时）/ `output 'console'`（报告输出方式）。由 `npm run audit:media` 调用；构建期发现引用缺失会记入构建报告 — `scripts/audit-media.js`。
+
+### 3.83 autoSummary — 自动摘要
+
+`enabled true` / `maxLength 160`（摘要最大字符数）/ `fallback 'firstParagraph'`（front-matter 无 `description` 时的回退取值）/ `stripMarkdown true`（剥离 Markdown 标记再截断）/ `ellipsis '…'`（截断省略号，空则不加）。用于 SEO `<meta name="description">` 与列表摘要 — `scripts/build.js`。
+
+### 3.84 searchEnginePing — 搜索引擎推送
+
+`enabled false`（**默认关闭**）/ `engines ['google']`（推送目标引擎列表）/ `onlyProduction true`（仅生产构建推送，本地构建跳过）/ `timeoutMs 5000`（单次请求超时）。推送失败只写构建日志、不终止构建 — `scripts/build.js`。
+
+### 3.85 ogImage — 自动 OG 图
+
+`enabled true` / `width 1200` / `height 630`（输出尺寸）/ `useCover true`（有封面时以封面为底图）/ `gradientForNoCover true`（无封面时生成渐变底）/ `fontScale 0.75`（标题字号相对缩放）/ `cacheDir '.og-cache'`（生成结果缓存目录，命中即复用）。`serve` 模式跳过生成 — `scripts/generate-og.js` + `templates/layout.ejs`。
+
+### 3.86 hotSearches — 热门搜索
+
+`enabled true` / `top 5`（展示条数）/ `storageKey 's-hotSearches'`（localStorage 键，修改会丢弃旧记录）/ `showInDropdown true`（搜索下拉中展示）/ `showClear true`（提供清空按钮）。数据源为本地搜索历史，纯前端、无服务端 — `js/domains/search.js`。
+
+### 3.87 readingTime — 阅读时长
+
+`enabled true` / `wordsPerMinuteCJK 250`（中文每分钟字数）/ `wordsPerMinuteLatin 200`（拉丁文每分钟词数）/ `showInMeta true`（文章元信息区展示）/ `labelBefore ''` / `labelAfter '阅读约需'`（前/后缀文案，空则回退 `ui-strings` 词典）。CJK 与拉丁字符分别按各自速率估算后相加 — `templates/post.ejs`。
+
+### 3.88 codeCopy — 代码块复制按钮
+
+`enabled true` / `buttonText '复制'` / `copiedText '已复制'`（成功态文案）/ `buttonTimeout 1500`（成功态停留毫秒）/ `showLineNumbers false`（行号列）/ `includeWindowBar true`（Mac 窗栏样条）。文案留空时回退 `ui-strings` 词典 — `js/domains/code-block.js`。
+
+### 3.89 tocScrollSpy — 目录滚动高亮
+
+`enabled true` / `activeClass 'current'`（当前标题对应条目的类名）/ `offset 80`（高亮判定用的顶部偏移像素，通常与固定头部高度一致）/ `throttleMs 60`（滚动监听节流毫秒）。与 `features.toc` 配合，仅负责「当前阅读到哪一节」的高亮 — `js/domains/toc.js`。
+
+### 3.90 searchHighlight — 搜索结果高亮
+
+`enabled true` / `markClass 'search-hit'`（高亮标记类名）/ `maxMatches 20`（单页最多高亮处数，防止超长文渲染卡顿）。命中片段在结果列表与正文内以该样式标注 — `js/domains/search.js`。
+
+### 3.91 darkImageFilter — 暗色图片滤镜
+
+`enabled true` / `filter 'brightness(0.85) saturate(0.9)'`（暗色模式下的 CSS `filter` 值，可直接填任意合法滤镜串）/ `applyImages true` / `applyVideos true`（是否分别作用于 `<img>` 与 `<video>`）。缓解纯白图在暗色主题下过曝刺眼 — `templates/layout.ejs`。
+
+### 3.92 listCover — 列表封面
+
+`enabled true` / `showOnHome true`（首页卡片）/ `showOnArchive true`（归档列表）/ `fallback 'none'`（无封面文章的回退取值）/ `aspectRatio '21/9'`（列表封面宽高比）/ `lazy true`（懒加载）。与 `features.cover`（文章封面样式库）分工：此项控制列表页是否展示封面及其比例 — `templates/index.ejs` + `scripts/build.js`。
+
+### 3.93 imageFallback — 图片兜底
+
+`enabled true` / `fallbackImage ''`（兜底图路径，空 = 不替换，仅隐藏破图）/ `showAlt true`（加载失败时以 `alt` 文本占位）。图片 404 或解码失败时避免页面出现破图与布局跳动 — `js/domains/image-lazy.js`。
+
+### 3.94 mobileBottomNav — 移动端底部导航
+
+`enabled true` / `items ['home','archive','search','theme']`（底部按钮项列表，按序展示）/ `onlyMobile true`（仅移动端断点内显示）/ `useSafeArea true`（适配 iOS 安全区 `env(safe-area-inset-bottom)`）。与 `features.mobile` 的抽屉菜单互补：底部导航负责高频入口 — `templates/layout.ejs` + `js/domains/navigation.js`。
+
+### 3.95 incrementalBuild — 增量构建
+
+**预留开关，当前未实现**；增量构建方案见 `docs/incremental-build-design.md`，站点内容增长到 100+ 篇后再评估实现。键位已预留：`enabled true` / `cacheDir '.build-cache'`（哈希指纹缓存目录）/ `fullFlag '--full'`（强制全量构建的命令行参数）/ `watch true`（监听源文件变更）/ `fingerprintHash 'sha1'`（指纹算法）/ `skipUnchanged true`（跳过未变化源）。当前构建始终为全量，以上键位不产生实际效果 — `scripts/lib/features-schema.js`（仅登记校验，无运行时实现）。
 
 ---
 
@@ -669,7 +729,7 @@ sitemap: {
 
 ## 10. tuning.json5 — UI 微调参数层
 
-独立 UI 参数文件(31 分类 / 204 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
+独立 UI 参数文件(32 分类 / 204 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
 **优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已在「tuning 收尾」中全部清理(单一入口归各自模块配置);10 项原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
 

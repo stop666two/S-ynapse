@@ -41,7 +41,7 @@ date: 2026-07-19
 
 **核心特性**：
 
-- 6 个 JSON5 配置文件控制所有行为
+- 13 个 JSON5 配置文件控制所有行为（site / theme / features / ui-strings / tuning / guard / navigation / sidebar / footer / security / content-policy / tag-aliases / friends）
 - 14 步构建管线：配置校验、媒体优化、CJK 排版、文章目录、关联推荐
 - 全面的安全机制：CSP、外部链接白名单、速率限制
 - 丰富的交互功能：暗黑模式、全文搜索、阅读模式、代码复制

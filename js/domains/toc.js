@@ -50,19 +50,23 @@ export function init() {
         g.li.appendChild(b);
       });
     }
+    var headingEls = ids.map(function (id) { return document.getElementById(id); });
     function update() {
       var cur = '';
-      for (var i = 0; i < ids.length; i++) {
-        var el = document.getElementById(ids[i]);
-        if (el && el.getBoundingClientRect().top < off) cur = ids[i];
+      var tops = [];
+      for (var i = 0; i < headingEls.length; i++) {
+        var el = headingEls[i];
+        tops.push(el ? el.getBoundingClientRect().top : Infinity);
       }
+      for (i = 0; i < tops.length; i++) { if (tops[i] < off) cur = ids[i]; }
+      var sh0 = document.documentElement.scrollHeight - window.innerHeight;
+      var y = window.scrollY;
+      var pct0 = sh0 > 0 ? Math.min(1, y / sh0) : 0;
       links.forEach(function (l) {
         var h = l.getAttribute('href');
         l.classList.toggle(cls, h === '#' + cur);
         if (T.visitedFade !== false) l.classList.toggle('visited', h !== '#' + cur && h !== '#' + ids[0] && l.hasAttribute('data-seen'));
       });
-      var sh0 = document.documentElement.scrollHeight - window.innerHeight;
-      var pct0 = sh0 > 0 ? Math.min(1, window.scrollY / sh0) : 0;
       if (mgLabel && MT.showCurrent !== false) {
         var curLink = null;
         links.forEach(function (l) { if (l.getAttribute('href') === '#' + cur) curLink = l; });
@@ -72,11 +76,16 @@ export function init() {
       if (T.progressLine !== false) {
         var pr = document.getElementById('tocProgress');
         if (pr && pr.firstChild) {
-          pr.firstChild.style.width = (sh0 > 0 ? Math.min(100, (window.scrollY / sh0) * 100) : 0) + '%';
+          pr.firstChild.style.width = (sh0 > 0 ? Math.min(100, (y / sh0) * 100) : 0) + '%';
         }
       }
     }
-    window.addEventListener('scroll', update);
+    var tocTicking = false;
+    window.addEventListener('scroll', function () {
+      if (tocTicking) return;
+      tocTicking = true;
+      requestAnimationFrame(function () { tocTicking = false; update(); });
+    }, { passive: true });
     update();
     links.forEach(function (l) {
       l.addEventListener('click', function () {

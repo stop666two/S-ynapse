@@ -158,6 +158,7 @@ export function init() {
   }
   document.addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === hotkey) {
+      if (hotkey === 'k' && document.getElementById('searchOverlay')) return;
       e.preventDefault();
       toggle();
     }

@@ -2,6 +2,7 @@ export function init() {
   var TNS = (window.__TUNING__ || {}).search || {};
   var searchKbIdx = -1;
   var searchKbList = [];
+  var lcIndex = null;
   function searchKbDir(dir) {
     var items = document.querySelectorAll('.search-result-item');
     searchKbList = Array.prototype.slice.call(items);
@@ -18,12 +19,52 @@ export function init() {
       location.href = searchKbList[searchKbIdx].getAttribute('href');
     }
   }
+  function isPagefind() {
+    return String(window.__SEARCH_PROVIDER__ || '') === 'pagefind';
+  }
+  function focusPagefind() {
+    var wrap = document.getElementById('pfWrap');
+    var i = wrap && wrap.querySelector('input');
+    if (i) i.focus();
+  }
+  function ensurePagefind() {
+    if (window.__pfReady__) { focusPagefind(); return; }
+    if (window.__pfLoading__) { window.__pfLoading__.then(focusPagefind); return; }
+    var base = window.__SEARCH_PROVIDER_PATH__ || '/pagefind';
+    window.__pfLoading__ = new Promise(function (resolve) {
+      var css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = base + '/pagefind-ui.css';
+      document.head.appendChild(css);
+      var s = document.createElement('script');
+      s.src = base + '/pagefind-ui.js';
+      s.onload = function () {
+        try {
+          var wrap = document.getElementById('pfWrap');
+          var fi = document.getElementById('searchInput');
+          if (fi) fi.hidden = true;
+          var kb = document.querySelector('.search-kbd');
+          if (kb) kb.hidden = true;
+          if (window.PagefindUI && wrap && !wrap.getAttribute('data-ready')) {
+            new window.PagefindUI({ element: '#pfWrap', showSubResults: true, showImages: false, autofocus: false });
+            wrap.setAttribute('data-ready', '1');
+          }
+          if (wrap) wrap.hidden = false;
+          window.__pfReady__ = true;
+        } catch (e) { /* Pagefind 初始化失败时保持既有搜索可用 */ }
+        resolve();
+      };
+      s.onerror = function () { resolve(); };
+      document.body.appendChild(s);
+    });
+    window.__pfLoading__.then(focusPagefind);
+  }
   function openSearch() {
     var o = document.getElementById('searchOverlay');
-    if (o) {
-      o.classList.add('open');
-      setTimeout(function () { var i = document.getElementById('searchInput'); if (i) i.focus(); }, 100);
-    }
+    if (!o) return;
+    o.classList.add('open');
+    if (isPagefind()) { ensurePagefind(); return; }
+    setTimeout(function () { var i = document.getElementById('searchInput'); if (i) i.focus(); }, 100);
   }
   function closeSearch() {
     var o = document.getElementById('searchOverlay');
@@ -39,25 +80,7 @@ export function init() {
   });
   (function () {
     var F = window.__FEATURES__ || {}, PF = (F && F.pagefind) || {};
-    if (PF.enabled !== false && PF.indexPath) {
-      var done = false;
-      function loadPF() {
-        if (done || window.__pagefind__) return;
-        done = true;
-        var s = document.createElement('script');
-        s.src = (PF.indexPath.replace(/\/$/, '')) + '/pagefind-ui.js';
-        s.onload = function () {
-          if (window.PagefindUI && document.getElementById('pfWrap')) {
-            if (window.__pfInit__ === false) {
-              window.__pfInit__ = new window.PagefindUI({ element: '#pfWrap', showSubResults: true, translations: window.__I18N__ && window.__I18N__['zh'] ? {} : {} });
-            }
-          }
-        };
-        document.body.appendChild(s);
-      }
-      var inp = document.getElementById('searchInput');
-      if (inp) inp.addEventListener('focus', loadPF);
-    }
+    window.__SEARCH_PROVIDER_PATH__ = String(PF.indexPath || '/pagefind').replace(/\/$/, '');
   })();
   var __HSK = 's-hotSearches';
   var __HST = 5;
@@ -111,14 +134,28 @@ export function init() {
     var mm = isNaN(+shl.maxMatches) ? 20 : +shl.maxMatches;
     function hl(sx, qq) {
       var esc = sx.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      var re = new RegExp('(' + qq.replace(/[.*+?^${}()|]/g, '$&') + ')', 'gi');
+      var re;
+      try { re = new RegExp('(' + qq.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'); }
+      catch (e) { return esc; }
       var n = 0;
       return esc.replace(re, function (m) { return n++ < mm ? '<mark>' + m + '</mark>' : m; });
     }
-    for (var i = 0; i < w.length; i++) {
-      var it = w[i];
-      if (it.title && it.title.toLowerCase().includes(lq) || it.excerpt && it.excerpt.toLowerCase().includes(lq) || it.content && it.content.toLowerCase().includes(lq)) {
-        r.push(it);
+    if (!lcIndex || lcIndex.length !== w.length) {
+      lcIndex = [];
+      for (var ci = 0; ci < w.length; ci++) {
+        var it0 = w[ci] || {};
+        lcIndex.push({
+          it: it0,
+          t: String(it0.title || '').toLowerCase(),
+          e: String(it0.excerpt || '').toLowerCase(),
+          c: String(it0.content || '').toLowerCase()
+        });
+      }
+    }
+    for (var i = 0; i < lcIndex.length; i++) {
+      var row = lcIndex[i];
+      if (row.t.includes(lq) || row.e.includes(lq) || row.c.includes(lq)) {
+        r.push(row.it);
         if (r.length >= mrst) break;
       }
     }
@@ -155,6 +192,7 @@ export function init() {
       saveHistory(q);
     } else {
       d.classList.remove('has-results');
+      d.innerHTML = '';
       var empty = document.createElement('div');
       empty.className = 'search-result-empty';
       empty.textContent = TNS.emptyText || SC.noResultText || __T('search.noResult', '未找到相关内容');

@@ -14,7 +14,7 @@ export function init() {
     wd.oninput = function () { prefs.wd = +wd.value; save(); apply(); };
     function save() { try { localStorage.setItem(PK, JSON.stringify(prefs)); } catch (e) {} }
     var rset = document.getElementById('rReset');
-    if (rset) rset.onclick = function () { prefs = {}; localStorage.removeItem(PK); apply(); syncUI(); };
+    if (rset) rset.onclick = function () { prefs = {}; try { localStorage.removeItem(PK); } catch (e) {} apply(); syncUI(); };
     apply();
   })();
 }

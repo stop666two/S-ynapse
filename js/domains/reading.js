@@ -1,8 +1,8 @@
 export function toggleReadingMode() {
   var d = document.documentElement;
   var a = d.getAttribute('data-reading');
-  if (a === 'true') { d.removeAttribute('data-reading'); localStorage.setItem('readingMode', 'false'); }
-  else { d.setAttribute('data-reading', 'true'); localStorage.setItem('readingMode', 'true'); }
+  if (a === 'true') { d.removeAttribute('data-reading'); try { localStorage.setItem('readingMode', 'false'); } catch (e) {} }
+  else { d.setAttribute('data-reading', 'true'); try { localStorage.setItem('readingMode', 'true'); } catch (e) {} }
 }
 
 export function init() {

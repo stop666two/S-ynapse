@@ -50,7 +50,10 @@ if(CB0.copyAllButton!==false&&blocks.length){
 var all=blocks.map(function(p){var c=p.querySelector('code')||p;return(c.textContent||'')}).join('\n\n');
 var row2=document.createElement('div');row2.className='code-copy-all-row';
 var ab=document.createElement('button');ab.className='code-copy-all-btn';ab.type='button';ab.innerHTML=copyIco()+'<span>'+__T('toolbar.copyAllCode','复制全部代码')+'</span>';
-ab.onclick=function(){navigator.clipboard.writeText(all).then(function(){drawIco(ab.querySelector('svg'));ab.querySelector('span').textContent=COPIED;setTimeout(function(){ab.querySelector('span').textContent=__T('toolbar.copyAllCode','复制全部代码')},1500);if(window.__toast)window.__toast(COPIED,{type:'success'})}).catch(function(){})};
+var ALLCOPYT=(F&&F.codeCopy&&F.codeCopy.copiedText)||__T('toolbar.copied','已复制');
+var doneAll=function(){drawIco(ab.querySelector('svg'));var sp=ab.querySelector('span');if(sp)sp.textContent=ALLCOPYT;setTimeout(function(){var sp2=ab.querySelector('span');if(sp2)sp2.textContent=__T('toolbar.copyAllCode','复制全部代码')},1500);if(window.__toast)window.__toast(ALLCOPYT,{type:'success'})};
+var fbAll=function(){var ta=document.createElement('textarea');ta.value=all;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(err){}document.body.removeChild(ta);if(ok)doneAll();else if(window.__toast)window.__toast(__T('toolbar.copyFailed','复制失败'),{type:'error'})};
+ab.onclick=function(){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(all).then(doneAll).catch(fbAll)}else{fbAll()}};
 var first=blocks[0].previousElementSibling&&blocks[0].previousElementSibling.classList.contains('code-windowbar')?blocks[0].previousElementSibling:blocks[0];
 first.parentNode.insertBefore(row2,first);row2.appendChild(ab)}
 if(window.__morphScan)window.__morphScan();

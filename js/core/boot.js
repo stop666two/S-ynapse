@@ -128,7 +128,10 @@ export function boot(queues) {
   const results = critical.map(function (fn) {
     try { return Promise.resolve(fn()); } catch (e) { return Promise.reject(e); }
   });
-  Promise.allSettled(results).then(function () {
+  Promise.allSettled(results).then(function (settled) {
+    settled.forEach(function (s, i) {
+      if (s.status === 'rejected') console.error('[boot] critical module #' + i + ' failed:', s.reason);
+    });
     stats.critEnd = performance.now();
     log('critical done');
     hideOverlay();
@@ -143,7 +146,7 @@ export function boot(queues) {
       const t = performance.now();
       while (list.length && (performance.now() - t) < budget) {
         const fn = list.shift();
-        try { await fn(); } catch (e) { log('phase item failed'); }
+        try { await fn(); } catch (e) { console.error('[boot] phase item failed:', e); log('phase item failed'); }
       }
       if (list.length) await Promise.race([whenIdle(parseInt(B.idleTimeoutMs, 10) || 800), accel]);
       await yieldToMain();

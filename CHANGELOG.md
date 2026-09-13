@@ -37,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **front-matter `slug` 强校验**：显式 slug 此前绕过 `safeSlug`，可致路径遍历写出 `dist/` 之外、`"><script>` 注入 og:image 属性、污染 `_redirects`；现统一经 `validateSlug`（拒绝分隔符/`..`/HTML 与系统保留字符，超长拒绝），文章不合法即跳过并报错、自定义页不合法即中止；sitemap `<loc>` 统一 XML 转义、`_redirects` 条目清洗空白与控制符 — `scripts/build.js` + `scripts/lib/utils.js` + `templates/layout.ejs`
 - **构建报告与 og:image 转义**：被拦截文件名/原因经 HTML 转义、报告页加 `noindex`；og:image 属性值经 `escapeAttr` 单层转义 — `scripts/build.js` + `templates/layout.ejs`
 - **Worker 安全层部署配置修复**：`workers/wrangler.toml` 此前无 `main` 入口且用旧 Workers Sites 配置（`env.ASSETS` 实为不存在），实际不可部署；现补 `main = "security-worker.js"`、改为 `[assets]`（`binding = "ASSETS"`、`run_worker_first = true`），部署脚本加 `--env production`（ENVIRONMENT 生效），README 同步；`wrangler deploy --dry-run` 验证通过（bindings: ASSETS + ENVIRONMENT） — `workers/wrangler.toml` + `package.json` + `README.md`
+- **前端 12 项缺陷修复**：搜索特殊字符 `[`/`\` 致 RegExp 崩溃与空态重复渲染（转义修正 + 单空态）；Ctrl+K 搜索与命令面板双开（面板默认热键改 Ctrl+P，保留「搜索启用时让位」兜底）；PagefindUI 死代码聚焦即 404（改 provider='pagefind' 时正确挂载 `#pfWrap` 并隐藏本地输入）；toc 滚动改 rAF 节流 + 读写分离；搜索小写语料预计算；reading-history/access-gate 增加预渲染守卫；5 处 localStorage 未防护（含内联主题脚本两处，存储被禁用时页面可完整启动）；boot 失败无条件 console.error；代码块「复制全部」在 `copyAllButton=true` 时的 ReferenceError 与无回退（execCommand 回退 + toast）；公告条关闭未清理 setInterval；lightbox 双 wheel 监听致 Ctrl+滚轮双倍缩放（合并单监听）+ 死代码清理；morphicons 加载失败重试风暴 — `js/core/boot.js` + `js/domains/*` + `templates/layout.ejs`
+- **Pagefind 索引 0 页根因修复**：minify-html 省略 `</head>` 虽合法，但 Pagefind 1.5.2 解析器会丢弃此类页面（已用 API/CLI/极简页二分复现）；现 minify 保留闭合标签（每页约 +20B），索引恢复 84 页 / zh-cn + en-us — `scripts/build.js`
+- **Pagefind 生成不再跳过 serve/watch**：serve 启动会清空 dist 且跳过生成导致预览必 404；现所有模式一致生成 — `scripts/build.js` + `README.md` + `docs/config-reference.md`
+- **命令面板默认热键 k → p**：Ctrl+K 固定保留给全站搜索；若手动改回 k 且搜索启用，面板自动让位 — `features.json5` + `js/domains/command-palette.js`
 
 ### Added
 

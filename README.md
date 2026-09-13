@@ -52,7 +52,7 @@
 - **每日一言**（侧栏，内置 7 条按日期轮换）、**收藏**（纯前端 localStorage，`/favorites/`）
 - RSS + JSON Feed、**sitemap 按类型拆分**（URL 超阈值自动分文件）、搜索索引、PWA、构建报告
 - **侧栏拖拽重排**（桌面拖拽 + 移动端长按，localStorage 持久化）、**404 页美化**（插图 + 搜索 + 热门文章）
-- **Pagefind 全文搜索**（`navigation.search.provider='pagefind'` 且 `features.pagefind.enabled` 时生效，离线索引；**构建在压缩与哈希之后自动生成索引到 `features.pagefind.indexPath`（默认 `/pagefind`，不参与 cache-bust）；未安装 `pagefind` 依赖时告警跳过（`npm install -D pagefind`）**；`--serve` 模式跳过生成）
+- **Pagefind 全文搜索**（`navigation.search.provider='pagefind'` 且 `features.pagefind.enabled` 时生效，离线索引；**构建在压缩与哈希之后自动生成索引到 `features.pagefind.indexPath`（默认 `/pagefind`，不参与 cache-bust）；未安装 `pagefind` 依赖时告警跳过（`npm install -D pagefind`）；serve/watch 模式同样生成，保证预览与生产一致**）
 
 **安全加固**
 - Markdown 内嵌 HTML 白名单消毒（XSS 防护，含 SVG 消毒）

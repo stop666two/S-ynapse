@@ -16,15 +16,17 @@ function run() {
   if (close) close.addEventListener('click', function () {
     try { localStorage.setItem(key, h); } catch (e) {}
     try { document.documentElement.classList.remove('ann-on'); } catch (e) {}
+    if (rotTimer) { clearInterval(rotTimer); rotTimer = null; }
     bar.classList.add('closing');
     collapseAnnH();
     setTimeout(function () { bar.remove(); }, 340);
   });
   var rot = parseInt(bar.getAttribute('data-rotate'), 10) || 0;
   var spans = Array.prototype.slice.call(bar.querySelectorAll('.announce-item'));
+  var rotTimer = null;
   if (rot > 0 && spans.length > 1) {
     var i = 0, paused = false;
-    setInterval(function () {
+    rotTimer = setInterval(function () {
       if (paused || document.hidden) return;
       spans[i].classList.remove('on');
       i = (i + 1) % spans.length;

@@ -35,16 +35,9 @@ export function init() {
     /* zoom & pan & rotate */
     if (zIn) zIn.onclick = function () { zoomTo(sc + step); }; if (zOut) zOut.onclick = function () { zoomTo(sc - step); }; if (rotL) rotL.onclick = function () { rot = (rot + 270) % 360; apply(); }; if (rotR) rotR.onclick = function () { rot = (rot + 90) % 360; apply(); }; if (rst) rst.onclick = reset;
     if (dbl) stage.addEventListener('dblclick', function (e) { if (sc > 1) { reset(); } else { var r = stage.getBoundingClientRect(); zoomTo(2, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); } });
-    if (wheel) stage.addEventListener('wheel', function (e) { e.preventDefault(); zoomTo(sc + (e.deltaY < 0 ? step : -step)); }, { passive: false });
+    if (wheel) stage.addEventListener('wheel', function (e) { e.preventDefault(); var mul = (e.ctrlKey || e.metaKey) ? 2 : 1; zoomTo(sc + (e.deltaY < 0 ? step : -step) * mul); }, { passive: false });
     if (panE) stage.addEventListener('pointerdown', function (e) { if (sc <= 1 && rot === 0) return; panning = true; sx = e.clientX - px; sy = e.clientY - py; img.style.cursor = 'grabbing'; stage.setPointerCapture(e.pointerId); });
     if (panE) stage.addEventListener('pointermove', function (e) { if (!panning) return; px = e.clientX - sx; py = e.clientY - sy; apply(); });
-    if (panE) {
-      let d0 = 0;
-      stage.addEventListener('pointerdown', function (e) { if (!pinchE || e.pointerType !== 'touch') return; var t = [e.clientX, e.clientY]; window.__lbTouch = [t]; });
-      stage.addEventListener('pointermove', function (e) { if (!pinchE || e.pointerType !== 'touch') return; var arr = window.__lbTouch; if (!arr) return; if (arr.length === 1) { arr[0] = [e.clientX, e.clientY]; } });
-      stage.addEventListener('pointerup', function () { if (pinchE) { window.__lbTouch = []; } });
-      stage.addEventListener('wheel', function (e) { e.preventDefault(); if (e.ctrlKey || e.metaKey) { zoomTo(sc + (e.deltaY < 0 ? step : -step) * 2); } }, { passive: false });
-    }
     stage.addEventListener('pointerup', function () { panning = false; if (img) img.style.cursor = (sc > 1 && panE) ? 'grab' : 'default'; });
     stage.addEventListener('pointercancel', function () { panning = false; });
     /* classic touch pinch via two pointers */

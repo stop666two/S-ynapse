@@ -1462,6 +1462,7 @@ function buildPageData(config, articles, tags, categories) {
     siteStats: collectSiteStats(articles, tags, categories),
     listCoverEnabled: !!(config.features && config.features.listCover && config.features.listCover.enabled !== false),
     topTags: collectTopTags(published, 8),
+    searchProvider: (config.navigation && config.navigation.search && config.navigation.search.provider) || 'local',
     currentUrl: '/',
     currentPage: 'index',
     presets: (function() {
@@ -2164,7 +2165,10 @@ async function generatePagefindIndex(config) {
     if (!created || !created.index) {
       throw new Error((created && created.errors && created.errors.join('; ')) || 'createIndex 未返回索引');
     }
-    await created.index.addDirectory({ path: DIST_DIR });
+    const pfAdd = await created.index.addDirectory({ path: DIST_DIR });
+    if (pfAdd && pfAdd.errors && pfAdd.errors.length) {
+      console.warn('  [WARN] Pagefind addDirectory errors: ' + pfAdd.errors.join('; '));
+    }
     await created.index.writeFiles({ outputPath: outDir });
     console.log(`  Created: ${indexPath}/ (Pagefind 全文索引)`);
     return outDir;
@@ -2440,6 +2444,7 @@ async function minifyHTMLInDir(dir, config) {
         minify_css: true,
         minify_doctype: false,
         keep_html_and_head_opening_tags: true,
+        keep_closing_tags: true,
         preserve_brace_template_syntax: true
       }).toString('utf-8');
       if (minified.length < content.length) {
@@ -2854,7 +2859,7 @@ async function build() {
     await generatePWA(config);
     await minifyAll(config);
     await cacheBust(config);
-    if (!SERVE_MODE) await generatePagefindIndex(config);
+    await generatePagefindIndex(config);
     if (hooks && hooks.postBuild) {
       await hooks.postBuild(config, {
         articles: articles.length,

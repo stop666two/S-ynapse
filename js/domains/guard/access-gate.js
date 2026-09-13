@@ -83,7 +83,7 @@ export function init(ctx) {
     return rec.n > limit;
   }
 
-  const over = countView();
+  const over = document.prerendering ? false : countView();
   if (over) {
     if ((cfg.viewsAction || 'toast') === 'lock') renderGate(true);
     else ctx.toast(ctx.t('gateLimit', '今日访问次数已达上限'));

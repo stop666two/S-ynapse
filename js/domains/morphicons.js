@@ -195,7 +195,7 @@ export function init() {
     if (!t || !t.closest) return;
     if (!t.closest('.dark-toggle,#favBtn,#ttsBtn,#navToggle,.code-action-btn.copy')) return;
     loadVendor().then(function (m) {
-      if (!m) return;
+      if (!m) { events.forEach(function (ev) { document.removeEventListener(ev, arm, true); }); return; }
       initAll();
       events.forEach(function (ev) { document.removeEventListener(ev, arm, true); });
     });

@@ -1,1 +1,1 @@
-export function init() {if(localStorage.getItem('readingMode')==='true')document.documentElement.setAttribute('data-reading','true')}
+export function init() {var rm=false;try{rm=localStorage.getItem('readingMode')==='true'}catch(e){}if(rm)document.documentElement.setAttribute('data-reading','true')}

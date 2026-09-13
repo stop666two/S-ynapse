@@ -3,6 +3,30 @@ export function init() {
   var searchKbIdx = -1;
   var searchKbList = [];
   var lcIndex = null;
+  var dataPromise = null;
+  function ensureData() {
+    var cur = window.__SEARCH_DATA__;
+    if (cur && cur.length) return Promise.resolve(cur);
+    if (window.__SEARCH_DATA_READY__) return Promise.resolve(cur || []);
+    if (dataPromise) return dataPromise;
+    var url = window.__SEARCH_INDEX_URL__;
+    if (!url) {
+      var m = location.pathname.match(/^\/([a-z]{2})(\/|$)/);
+      url = '/' + (m ? m[1] : 'zh') + '/search-index.json';
+    }
+    dataPromise = fetch(url, { credentials: 'same-origin' }).then(function (r) {
+      return r.ok ? r.json() : [];
+    }).then(function (d) {
+      window.__SEARCH_DATA__ = Array.isArray(d) ? d : [];
+      window.__SEARCH_DATA_READY__ = true;
+      return window.__SEARCH_DATA__;
+    }).catch(function () {
+      window.__SEARCH_DATA__ = [];
+      window.__SEARCH_DATA_READY__ = true;
+      return [];
+    });
+    return dataPromise;
+  }
   function searchKbDir(dir) {
     var items = document.querySelectorAll('.search-result-item');
     searchKbList = Array.prototype.slice.call(items);
@@ -64,6 +88,7 @@ export function init() {
     if (!o) return;
     o.classList.add('open');
     if (isPagefind()) { ensurePagefind(); return; }
+    ensureData();
     setTimeout(function () { var i = document.getElementById('searchInput'); if (i) i.focus(); }, 100);
   }
   function closeSearch() {
@@ -127,7 +152,13 @@ export function init() {
       return;
     }
     if (en) saveHistory(q);
-    var w = window.__SEARCH_DATA__ || [], r = [], lq = q.toLowerCase();
+    var w = window.__SEARCH_DATA__ || [];
+    if (!w.length && !window.__SEARCH_DATA_READY__) {
+      ensureData().then(function () {
+        if ((window.__SEARCH_DATA__ || []).length) doSearchNow(q);
+      });
+    }
+    var r = [], lq = q.toLowerCase();
     var mrst = isNaN(+TNS.resultLimit) ? (isNaN(+SC.maxResults) ? 30 : +SC.maxResults) : +TNS.resultLimit;
     var el = isNaN(+TNS.excerptLength) ? (isNaN(+SC.excerptLength) ? 120 : +SC.excerptLength) : +TNS.excerptLength;
     var shl = (F && F.searchHighlight) || {};

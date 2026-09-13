@@ -1384,24 +1384,6 @@ function renderPage(templateName, data, layoutTemplate, cfg) {
   }
 }
 
-// Build the search JSON data embedded into the page for client-side search.
-// Each entry: {title, url, excerpt (200 chars), content (3000 chars), tags, categories}.
-// Returns stringified JSON, or '[]' if search is disabled/not local.
-function generateSearchData(config, articles) {
-  if (!config.navigation.search || !config.navigation.search.enabled || config.navigation.search.provider !== 'local') return '[]';
-  const fullContent = !!(config.features && config.features.search && config.features.search.fullContent !== false);
-  const data = getPublished(articles).map(a => ({
-    title: a.title,
-    url: a.url,
-    excerpt: a.excerpt ? stripHtml(a.excerpt).substring(0, 200) : '',
-    featuredImage: a.featuredImage || '',
-    content: fullContent ? stripHtml(a.content).substring(0, 3000) : '',
-    tags: a.tags || [],
-    categories: a.categories || []
-  }));
-  return escapeJsonForScript(data);
-}
-
 // Build the unified data object passed to every EJS template.
 // Contains: site config, theme, nav, sidebar, footer, security settings,
 // all articles, tags, categories, archives, and helper functions.
@@ -1500,8 +1482,7 @@ function buildPageData(config, articles, tags, categories) {
     Math: Math,
     Date: Date,
     config,
-    dailyQuotes: BUILTIN_QUOTES,
-    searchData: generateSearchData(config, published)
+    dailyQuotes: BUILTIN_QUOTES
   };
 }
 
@@ -2579,6 +2560,24 @@ async function cacheBust(config) {
     }
     fs.writeFileSync(CACHE_BUST_MANIFEST_PATH, JSON.stringify(mapping), 'utf-8');
     console.log(`  Renamed ${Object.keys(mapping).length} files, updated HTML refs`);
+    // Search indexes reference media paths (featuredImage) generated before hashing;
+    // rewrite them with the same mapping so lazy-loaded search results never 404.
+    const jsonIndexes = getAllFiles(DIST_DIR).filter(f => /search-index\.json$/i.test(f));
+    for (const jf of jsonIndexes) {
+      try {
+        let jsonText = fs.readFileSync(jf, 'utf-8');
+        let jsonChanged = false;
+        for (const [orig, hashed] of Object.entries(mapping)) {
+          if (jsonText.includes(orig)) {
+            jsonText = jsonText.split(orig).join(hashed);
+            jsonChanged = true;
+          }
+        }
+        if (jsonChanged) fs.writeFileSync(jf, jsonText, 'utf-8');
+      } catch (err) {
+        console.error(`  [ERROR] Cache bust ${jf}: ${err.message}`);
+      }
+    }
   } else {
     console.log('  No files to bust');
   }

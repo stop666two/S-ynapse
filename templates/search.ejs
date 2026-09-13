@@ -10,6 +10,14 @@
 
 <script>
 var searchData = window.__SEARCH_DATA__ || [];
+function ensureSearchData(cb){
+  if(searchData.length||window.__SEARCH_DATA_READY__){cb();return}
+  var url=window.__SEARCH_INDEX_URL__;
+  if(!url){var m=location.pathname.match(/^\/([a-z]{2})(\/|$)/);url='/'+(m?m[1]:'zh')+'/search-index.json'}
+  fetch(url,{credentials:'same-origin'}).then(function(r){return r.ok?r.json():[]}).then(function(d){
+    searchData=Array.isArray(d)?d:[];window.__SEARCH_DATA__=searchData;window.__SEARCH_DATA_READY__=true;cb();
+  }).catch(function(){window.__SEARCH_DATA_READY__=true;cb()});
+}
 function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function hlOnce(s,qq){
   var esc=escHtml(s), t=qq.toLowerCase();
@@ -33,6 +41,7 @@ function searchPage(query){
     rDiv.innerHTML='<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">'+__T('search.startHint','输入关键词开始搜索')+'</p>';
     return;
   }
+  if(!searchData.length&&!window.__SEARCH_DATA_READY__){ensureSearchData(function(){searchPage(query)});return}
   var lq=query.toLowerCase(),results=[];
   for(var i=0;i<searchData.length;i++){
     var it=searchData[i],score=0;
@@ -68,6 +77,6 @@ window.addEventListener('DOMContentLoaded',function(){
   if(q){
     document.getElementById('searchPageInput').value=q;
     searchPage(q);
-  }
+  }else{ensureSearchData(function(){})}
 });
 </script>

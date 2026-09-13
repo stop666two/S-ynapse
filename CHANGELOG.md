@@ -45,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Worker 与 `_headers` 头部统一**：新增共享 `applyHeaderHardening`（构建期生成 `_headers` 与 Worker 配置同源调用），修复 hardening 覆盖 HSTS 时丢失 `preload` 的问题；新增 `hardening.hstsPreload`；`rateLimiting.skipPaths` 与 `pathRestrictions.requireAuth/allowedIPs` 全量透传 Worker — `scripts/generate-security-config.js` + `scripts/build.js` + `security.json5` + `docs/config-reference.md`
 - **CI 门禁修复**：AGENTS.md 检查因 `fetch-depth:1` 导致 diff 恒空而失效（现 `fetch-depth: 0` + 按事件计算范围：PR base...head / push before..sha / 首次推送空树回退）；`npm audit` 与 `verify:security` 纳入所有 PR 构建；补 `permissions: contents: read` — `.github/workflows/deploy.yml`
 - **Worker/CIDR 测试补充**：新增 18 项单元 + 集成测试（IP/CIDR 解析、限流封禁持久、静态资源跳过、路径归一、报告上限、维护转义、错误兜底、头部一致性） — `scripts/security-worker.test.js`
+- **性能优化（本地 trace 实测）**：搜索语料由每页内联改为按需 fetch `/…/search-index.json`（浮层搜索与独立搜索页共用缓存与就绪标记，首开无感预取）；首页首卡与文章封面输出 `fetchpriority="high"`（首卡 `loading="eager"`）；cache-bust 同步重写 search-index.json 内媒体路径（修复搜索结果缩略图 404）。首页 LCP 795→348ms、HTML 236→199KB（-16%）；文章页 HTML 242→205KB、CLS 0 — `templates/layout.ejs` + `templates/index.ejs` + `templates/post.ejs` + `templates/search.ejs` + `js/domains/search.js` + `scripts/build.js`
+- **遗留（技术债，未在本轮实施）**：`templates/layout.ejs` 每页内联约 121KB CSS 的外链化——需配合视觉回归专项评估，见交接文档
 
 ### Added
 

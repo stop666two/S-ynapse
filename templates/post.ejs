@@ -40,7 +40,7 @@
   </header>
 
   <% if (article.featuredImage) { %>
-  <img src="<%= article.featuredImage %>" alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> style="view-transition-name:cover-<%= article.slug %>"<% } %> class="post-featured-image" loading="eager">
+  <img src="<%= article.featuredImage %>" alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> style="view-transition-name:cover-<%= article.slug %>"<% } %> class="post-featured-image" loading="eager" fetchpriority="high">
   <% if(features.cover&&features.cover.enabled!==false&&article.featuredImage){ %>
   <div class="cover-strip cover-apply" data-article="<%= article.slug %>">
     <span class="cover-strip-label">封面样式</span>

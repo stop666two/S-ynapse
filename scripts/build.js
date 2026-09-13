@@ -76,6 +76,14 @@ const SHOW_DRAFTS = process.argv.includes('--drafts') || WATCH_MODE;  // Include
 
 const CACHE_BUST_MANIFEST_PATH = path.join(DIST_DIR, 'cache-bust-manifest.json');
 
+const PKG_VERSION = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8')).version || '0.0.0';
+  } catch (err) {
+    return '0.0.0';
+  }
+})();
+
 // Filter out draft articles unless SHOW_DRAFTS is active
 function getPublished(articles) { return articles.filter(a => !a.draft || SHOW_DRAFTS); }
 // Deterministic hue for a category/tag name (same name → same color everywhere).
@@ -93,15 +101,25 @@ function categoryHue(name) { return hashHue(name); }
 // Load a JSON5 config file from project root.
 // Strips BOM and normalizes line endings before parsing.
 // Exits the process with [FATAL] on any failure — config errors must not be silent.
+function abortBuild(message) {
+  console.error(message);
+  if (WATCH_MODE) {
+    const err = new Error(message);
+    err.isBuildAbort = true;
+    throw err;
+  }
+  process.exit(1);
+}
+
 function loadConfigFile(filename) {
   const filePath = path.join(ROOT, filename);
   if (!fs.existsSync(filePath)) {
     const legacyPath = filename.endsWith('.json5') ? path.join(ROOT, filename.replace(/\.json5$/, '.json')) : null;
-    console.error(`  [FATAL] Config file not found: ${filename}`);
+    let message = `  [FATAL] Config file not found: ${filename}`;
     if (legacyPath && fs.existsSync(legacyPath)) {
-      console.error(`          v1.0.3 起配置文件统一为 .json5：请将 ${path.basename(legacyPath)} 重命名为 ${filename}`);
+      message += `\n          v1.0.3 起配置文件统一为 .json5：请将 ${path.basename(legacyPath)} 重命名为 ${filename}`;
     }
-    process.exit(1);
+    abortBuild(message);
   }
   try {
     let raw = fs.readFileSync(filePath, 'utf-8');
@@ -111,8 +129,7 @@ function loadConfigFile(filename) {
   } catch (err) {
     const filePath = path.join(ROOT, filename);
     const fileText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '';
-    console.error(formatConfigError(filename, err, { filePath, fileText }));
-    process.exit(1);
+    abortBuild(formatConfigError(filename, err, { filePath, fileText }));
   }
 }
 
@@ -135,8 +152,7 @@ function loadOptionalConfigFile(filename) {
   } catch (err) {
     const filePath = path.join(ROOT, filename);
     const fileText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '';
-    console.error(formatConfigError(filename, err, { filePath, fileText }));
-    process.exit(1);
+    abortBuild(formatConfigError(filename, err, { filePath, fileText }));
   }
 }
 
@@ -2743,18 +2759,16 @@ function validateJsonSyntax() {
 // On any fatal error, exits with code 1 after printing the error stack.
 async function build() {
   console.log('========================================');
-  console.log('  S-ynapse Static Blog Builder v1.0.0');
+  console.log('  S-ynapse Static Blog Builder v' + PKG_VERSION);
   console.log('========================================\n');
   const startTime = Date.now();
   if (!validateJsonSyntax()) {
-    console.error('\n[FATAL] Build aborted due to configuration errors.\n');
-    process.exit(1);
+    abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
   }
   try {
     const config = loadConfig();
     if (!validateConfig(config)) {
-      console.error('\n[FATAL] Build aborted due to configuration errors.\n');
-      process.exit(1);
+      abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
     }
     if (hooks && hooks.preBuild) await hooks.preBuild(config);
     setupDist(config);
@@ -2819,7 +2833,8 @@ async function build() {
     checkPerfBudget(config);
   } catch (err) {
     console.error(`\n[FATAL] Build failed: ${err.message}`);
-    console.error(err.stack);
+    if (!err.isBuildAbort) console.error(err.stack);
+    if (WATCH_MODE) throw err;
     process.exit(1);
   }
 }
@@ -2838,8 +2853,11 @@ if (WATCH_MODE) {
     if (building) { rebuildQueued = true; return; }
     building = true;
     rebuildQueued = false;
-    console.log('\n[WATCH] Change detected, rebuilding...\n');
-    await build();
+    try {
+      await build();
+    } catch (err) {
+      console.error('[WATCH] 构建失败，已保留监听；修改文件后会自动重试。');
+    }
     building = false;
     if (rebuildQueued) rebuild();
   }
@@ -2850,10 +2868,15 @@ if (WATCH_MODE) {
     path.join(ROOT, 'media', '**', '*'),
     path.join(ROOT, 'videos', '**', '*'),
     path.join(ROOT, 'assets', '**', '*'),
-    path.join(ROOT, '*.json')
+    path.join(ROOT, 'pages', '**', '*.md'),
+    path.join(ROOT, '*.json'),
+    path.join(ROOT, '*.json5')
   ];
   const watcher = chokidar.watch(watchPaths, { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 300 } });
-  watcher.on('all', rebuild);
+  watcher.on('all', function () {
+    console.log('\n[WATCH] Change detected, rebuilding...\n');
+    rebuild();
+  });
   process.on('SIGINT', () => { watcher.close(); process.exit(0); });
   process.on('SIGTERM', () => { watcher.close(); process.exit(0); });
   build();
@@ -2889,7 +2912,15 @@ function startServer() {
       res.end(maintPage);
       return;
     }
-    var urlPath = decodeURIComponent(req.url.split('?')[0]);
+    var rawPath = req.url.split('?')[0];
+    var urlPath;
+    try {
+      urlPath = decodeURIComponent(rawPath);
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Bad Request');
+      return;
+    }
     var redirects = REDIRECT_LIST;
     if (redirects.length) {
       for (var i = 0; i < redirects.length; i++) {

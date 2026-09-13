@@ -155,7 +155,7 @@
 
 <%# Share row — internal icons + copy link / wechat copy, zero external deps. Order is configurable via features.share.order. %>
 <% if(features.share&&features.share.enabled!==false){ var SHORDER=features.share.order||[]; var SHTML={weibo:'fill:currentColor:<path d="M10.1 21c-4.5 0-8.1-2.5-8.1-5.8 0-2.8 2.7-5.8 5.6-7 2.9-1.1 4.6-2.6 4.6-4.3 0-2.4-3-3.4-3-3.4s4.9 1 4.9 5.4c0 2-1.3 3.7-3.1 5.2 4.2.3 7.6 2.6 7.6 6.1 0 3.2-3.5 5.8-8.4 5.8z"/><circle cx="16" cy="11.5" r="1.2"/><circle cx="14.2" cy="13.8" r="1.2"/>',qq:'fill:currentColor:<path d="M12 2C8 2 5 5 5 9c0 2.5 1 4.6 2.5 6-.3 1-.9 2-1.5 2.6 1.7.4 3-.2 3.8-.8.7.2 1.4.3 2.2.3s1.5-.1 2.2-.3c.8.6 2.1 1.2 3.8.8-.6-.6-1.2-1.6-1.5-2.6C18 13.6 19 11.5 19 9c0-4-3-7-7-7z"/>',wechat:'fill:currentColor:<path d="M9.5 4C5.4 4 2 6.7 2 10c0 1.9 1 3.5 2.7 4.6l-.7 2.1 2.4-1.2c.9.3 2 .4 3.1.4.2-3.6 3.2-6.5 7-6.5.2 0 .4 0 .6.1C16.5 6.2 13.3 4 9.5 4z"/><path d="M22 14.5c0-2.8-2.7-5-6-5s-6 2.2-6 5 2.7 5 6 5c.6 0 1.2-.1 1.8-.2l1.9 1-.6-1.7c1.8-.9 2.9-2.4 2.9-4.1z"/>',x:'fill:currentColor:<path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.2l7.3-8.3L1 2h6.4l4.4 5.9L18.9 2zm-1.1 18h1.7L7.1 3.7H5.3L17.8 20z"/>',facebook:'fill:currentColor:<path d="M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.3-1.5 1.6-1.5h1.6V3.6c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.5-4 4.1v2.3H7.6V13h2.7v8h3.2z"/>',mail:'none:currentColor:<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/>',copy:'none:currentColor:<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'}; %>
-<div class="share-row" role="group" aria-label="<span data-i18n="post.shareThis">分享本文</span>">
+<div class="share-row" role="group" aria-label="<%= ui('post.shareThis', '分享本文') %>">
   <% if(features.share.showLabel){ %><span class="share-label"><%=features.share.label||'分享'%></span><% } %>
   <% SHORDER.forEach(function(k){ if(!SHTML[k])return; var seg=SHTML[k].split(':'); var fb=seg[0], fw=seg[1], inner=seg[2]; if(k==='copy'){ %><button class="share-btn" data-share="copy" type="button" aria-label="复制链接" title="复制链接"><svg width="15" height="15" viewBox="0 0 24 24" fill="<%=fb==='fill'?'currentColor':'none'%>"<%-fb==='none'?' stroke="' + fw + '" stroke-width="2"':''%>><%-inner%></svg></button><% } else { %><a class="share-btn" data-share="<%=k%>" href="#" aria-label="分享到<%=k==='x'?'X':k%>" title="分享到<%=k==='x'?'X':k%>"><svg width="15" height="15" viewBox="0 0 24 24" fill="<%=fb==='fill'?'currentColor':'none'%>"<%-fb==='none'?' stroke="' + fw + '" stroke-width="2"':''%>><%-inner%></svg></a><% } }) %>
 </div>
@@ -174,7 +174,7 @@
       <% rwEntries.forEach(function(e) { %>
       <div class="reward-entry">
         <div class="reward-entry-label"><%= e.label %></div>
-        <% if (e.image) { %><img src="<%= e.image %>" alt="<%- e.label %><span data-i18n="reward.qrCode">收款码</span>" class="reward-qr"><% } %>
+        <% if (e.image) { %><img src="<%= e.image %>" alt="<%= e.label %><%= ui('post.rewardQR', '收款码') %>" class="reward-qr"><% } %>
         <% if (e.url) { %><a href="<%= e.url %>" class="reward-link" target="_blank" rel="noopener noreferrer">前往<%= e.label %>支付页</a><% } %>
       </div>
       <% }) %>

@@ -50,7 +50,7 @@ try { generateWorkerSecurity = require('./generate-security-config').generateSec
 // Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
-const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks } = require('./lib/utils');
+const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks } = require('./lib/utils');
 const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
 const { DEFAULT_FEATURES, validateFeatures } = require('./lib/features-schema');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset } = require('./lib/theme-presets');
@@ -984,7 +984,14 @@ async function processArticles(config, mediaManifest) {
       const fm = frontMatter(fs.readFileSync(path.join(meta.dir, file), 'utf-8'));
       const attrs = fm.attributes || {};
       const t = attrs.title || '';
-      const s = attrs.slug || (t ? safeSlug(t) : path.basename(file, '.md').replace(/\.md$/i, ''));
+      let s = '';
+      if (attrs.slug != null) {
+        const slugCheck = validateSlug(attrs.slug);
+        if (!slugCheck.ok) continue;
+        s = slugCheck.slug;
+      } else {
+        s = t ? safeSlug(t) : path.basename(file, '.md').replace(/\.md$/i, '');
+      }
       const entry = { title: t || s, url: '/' + lang + '/' + s + '/' };
       wikiLookup.titles.set((t || s).toLowerCase(), entry);
       wikiLookup.slugs.set(s, entry);
@@ -1028,8 +1035,18 @@ async function processArticles(config, mediaManifest) {
         const firstH1 = content.match(/^#\s+(.+)/m);
         title = firstH1 ? firstH1[1].trim() : path.basename(file, '.md');
       }
-      // Slug priority: frontmatter.slug > safeSlug(title)
-      const slug = attrs.slug || safeSlug(title);
+      // Slug priority: frontmatter.slug (validated) > safeSlug(title)
+      let slug;
+      if (attrs.slug != null) {
+        const slugCheck = validateSlug(attrs.slug);
+        if (!slugCheck.ok) {
+          console.error(`  [ERROR] ${file}: frontmatter slug "${String(attrs.slug).slice(0, 80)}" is invalid (${slugCheck.reason}). Skipping.`);
+          continue;
+        }
+        slug = slugCheck.slug;
+      } else {
+        slug = safeSlug(title);
+      }
       if ((seenSlugs.get(lang) || new Set()).has(slug)) {
         console.error(`  [ERROR] ${file}: duplicate slug "${slug}" (already used by another article in ${lang}). Skipping.`);
         continue;
@@ -1500,7 +1517,11 @@ function processCustomPages(config) {
     const content = fm.body || '';
     const title = attrs.title || path.basename(file, '.md');
     const description = attrs.description || config.site.description || '';
-    const slug = slugOverride || attrs.slug || safeSlug(title);
+    const slugCheck = validateSlug(slugOverride || attrs.slug || safeSlug(title));
+    if (!slugCheck.ok) {
+      throw new Error(`invalid page slug "${String(slugOverride || attrs.slug || '').slice(0, 80)}" in ${file}: ${slugCheck.reason}`);
+    }
+    const slug = slugCheck.slug;
     let htmlContent = marked.parse(content);
     if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
     htmlContent = sanitizeHtml(htmlContent);
@@ -2031,8 +2052,8 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
       const outDir = path.dirname(entryPath);
       if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
       const writeOne = (item, prio) => {
-        let x = '<loc>' + url + item.loc + '</loc>';
-        if (item.lastmod) x += '<lastmod>' + item.lastmod + '</lastmod>';
+        let x = '<loc>' + escapeHtml(url + item.loc) + '</loc>';
+        if (item.lastmod) x += '<lastmod>' + escapeHtml(String(item.lastmod)) + '</lastmod>';
         x += '<changefreq>' + item.changefreq + '</changefreq><priority>' + item.priority + '</priority>';
         return x;
       };
@@ -2210,7 +2231,7 @@ function generateBuildReport(config, articles, tags, categories, customPages, el
     const policyCopied = (policyResult && policyResult.copied) || 0;
     const published = getPublished(articles);
     const totalSize = getDirSize(DIST_DIR);
-    const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>构建报告 - ${config.site.title}</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:2rem auto;padding:0 1rem;color:#333}h1{font-size:1.5rem}.stat{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #eee}.stat-label{color:#666}.stat-value{font-weight:600}.good{color:#16a34a}.warn{color:#d97706}</style></head><body><h1>构建报告</h1><p style="color:#666">${new Date().toISOString().replace('T',' ').slice(0,19)}</p>
+    const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="robots" content="noindex"><title>构建报告 - ${config.site.title}</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:2rem auto;padding:0 1rem;color:#333}h1{font-size:1.5rem}.stat{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #eee}.stat-label{color:#666}.stat-value{font-weight:600}.good{color:#16a34a}.warn{color:#d97706}</style></head><body><h1>构建报告</h1><p style="color:#666">${new Date().toISOString().replace('T',' ').slice(0,19)}</p>
     <div class="stat"><span class="stat-label">构建耗时</span><span class="stat-value">${elapsed}s</span></div>
     <div class="stat"><span class="stat-label">文章数</span><span class="stat-value">${published.length}</span></div>
     <div class="stat"><span class="stat-label">自定义页面</span><span class="stat-value">${(customPages||[]).length}</span></div>
@@ -2226,7 +2247,7 @@ function generateBuildReport(config, articles, tags, categories, customPages, el
     <div class="stat"><span class="stat-label">缓存清除</span><span class="stat-value ${config.site.build.enableCacheBusting?'good':'warn'}">${config.site.build.enableCacheBusting?'已启用':'未启用'}</span></div>
     <div class="stat"><span class="stat-label">CSP</span><span class="stat-value ${config.security.csp&&config.security.csp.enabled?'good':'warn'}">${config.security.csp&&config.security.csp.enabled?'已启用':'未启用'}</span></div>
     <div class="stat"><span class="stat-label">RSS</span><span class="stat-value ${config.site.rss&&config.site.rss.enabled?'good':'warn'}">${config.site.rss&&config.site.rss.enabled?'已启用':'未启用'}</span></div>
-    ${policyBlocked.length ? `<h2>被拦截文件（内容策略）</h2><ul>${policyBlocked.map(b => `<li><code>${b.path}</code> — ${b.reason}</li>`).join('')}</ul>` : ''}</body></html>`;
+    ${policyBlocked.length ? `<h2>被拦截文件（内容策略）</h2><ul>${policyBlocked.map(b => `<li><code>${escapeHtml(String(b.path || ''))}</code> — ${escapeHtml(String(b.reason || ''))}</li>`).join('')}</ul>` : ''}</body></html>`;
     fs.writeFileSync(path.join(DIST_DIR, 'build-report.html'), html, 'utf-8');
     console.log('  Created: build-report.html');
   } catch (err) {
@@ -2264,9 +2285,15 @@ function generateRedirects(config, customPages) {
       console.warn('  [WARN] Skipped invalid redirect entry (missing from/to): ' + JSON.stringify(r || null));
       continue;
     }
+    const from = String(r.from).replace(/[\s\u0000-\u001f\u007f]+/g, '');
+    const to = String(r.to).replace(/[\s\u0000-\u001f\u007f]+/g, '');
+    if (!from.startsWith('/') || !/^(?:\/|https?:\/\/)/i.test(to)) {
+      console.warn('  [WARN] Skipped invalid redirect entry (from must start with "/", to must be a path or http(s) URL): ' + JSON.stringify(r));
+      continue;
+    }
     const status = r.permanent === false ? 302 : 301;
-    valid.push({ from: r.from, to: r.to, status });
-    lines.push(`${r.from} ${r.to} ${status}`);
+    valid.push({ from, to, status });
+    lines.push(`${from} ${to} ${status}`);
   }
   if (langs.length > 0 && langs[0] !== 'en') {
     if (!lines.some(l => l.startsWith('/ '))) {

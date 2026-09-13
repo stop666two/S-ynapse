@@ -384,8 +384,8 @@ npx wrangler pages deploy dist --project-name=s-ynapse
 # 1. 构建静态资源
 npm run build
 
-# 2. 从项目根目录部署 Worker
-npx wrangler deploy --config workers/wrangler.toml
+# 2. 从项目根目录部署 Worker（生产环境；配置文件含安全层与静态资源绑定）
+npx wrangler deploy --config workers/wrangler.toml --env production
 ```
 
 > **Worker 安全配置自动同步**：`npm run build` 会从 `security.json5`（唯一配置源）生成
@@ -447,7 +447,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
 | `npx wrangler pages deploy dist --project-name=s-ynapse` | 部署到 Cloudflare Pages |
-| `npx wrangler deploy --config workers/wrangler.toml` | 部署 Worker 安全层 |
+| `npx wrangler deploy --config workers/wrangler.toml --env production` | 部署 Worker 安全层（含静态资源绑定） |
 
 ---
 

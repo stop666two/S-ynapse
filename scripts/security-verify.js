@@ -10,7 +10,9 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEMP_FILE = path.join(ROOT, 'articles', 'zh', '_sec-verify.md');
+const TEMP_SLUG_FILE = path.join(ROOT, 'articles', 'zh', '_sec-slug.md');
 const TEMP_SLUG = '_sec-verify';
+const ESCAPE_NAME = '_sec_escape_out';
 const DIST_INDEX = path.join(ROOT, 'dist', 'zh', TEMP_SLUG, 'index.html');
 const DIST_SEARCH = path.join(ROOT, 'dist', 'zh', 'search-index.json');
 
@@ -35,6 +37,21 @@ date: 2099-01-01 00:00
 <iframe src="https://evil.example.com"></iframe>
 
 <dl><dt>术语</dt><dd>说明</dd></dl>
+
+<a href="jav&#x61;script:alert(3)">实体编码链接</a>
+
+<a title="x>y" href="javascript:alert(4)">属性截断</a>
+
+<img srcset=a"onerror="alert(5)>
+`;
+
+const MALICIOUS_SLUG = `---
+title: 'Slug escape attempt'
+slug: ../../${ESCAPE_NAME}
+date: 2099-01-02 00:00
+---
+
+# slug escape
 `;
 
 function fail(msg) {
@@ -51,6 +68,7 @@ function build() {
 let failed = false;
 try {
   fs.writeFileSync(TEMP_FILE, MALICIOUS, 'utf-8');
+  fs.writeFileSync(TEMP_SLUG_FILE, MALICIOUS_SLUG, 'utf-8');
   build();
 
   if (!fs.existsSync(DIST_INDEX)) fail(`post page not generated: ${DIST_INDEX}`);
@@ -122,10 +140,17 @@ try {
   if (html.includes('<script>alert(1)')) fail('script tag survived sanitization in article body');
   if (html.includes('onerror="alert(99)"')) fail('event handler attribute survived in article body');
   if (html.includes('javascript:alert(2)')) fail('javascript: URI survived in article body');
+  if (html.includes('javascript:alert(3)')) fail('entity-encoded javascript: URI survived in article body');
+  if (html.includes('javascript:alert(4)')) fail('quoted-gt javascript: URI survived in article body');
+  if (html.includes('alert(3)') || html.includes('alert(4)')) fail('obfuscated javascript payload text reached article body');
+  if (/\sonerror\s*=\s*["']?alert\(5\)/i.test(html)) fail('srcset attribute escape created an executable onerror attribute');
   if (html.includes('<iframe')) fail('iframe survived sanitization in article body');
   if (!html.includes('<dl>') || !html.includes('<dt>术语') || !html.includes('说明')) {
     fail('whitelisted dl/dt/dd was stripped');
   }
+  if (fs.existsSync(path.join(ROOT, ESCAPE_NAME))) fail('invalid article slug escaped the project directory');
+  if (fs.existsSync(path.join(ROOT, 'dist', 'zh', ESCAPE_NAME))) fail('invalid article slug produced a page outside its language directory');
+  if (fs.existsSync(path.join(ROOT, 'dist', 'zh', '_sec-slug'))) fail('article with invalid slug was rendered instead of skipped');
   const searchJson = JSON.parse(searchRaw);
   if (!Array.isArray(searchJson)) fail('search index is not valid JSON array');
 
@@ -135,6 +160,7 @@ try {
   failed = true;
 } finally {
   try { fs.rmSync(TEMP_FILE, { force: true }); } catch {}
+  try { fs.rmSync(TEMP_SLUG_FILE, { force: true }); } catch {}
   try {
     build();
     console.log('[INFO] Rebuilt clean site after verification.');

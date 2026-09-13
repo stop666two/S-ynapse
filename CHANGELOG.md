@@ -32,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **canonical 全站指向根路径（SEO）**：`<link rel="canonical">` 此前对所有页面均输出站点根（模板引用了不存在的 `page.url`），现改用 `currentUrl`（文章/分页/归档/标签等各自 URL），并规整 `site.url` 尾部斜杠 — `templates/layout.ejs`
 - **Pagefind 索引生成失效修复**：门控误读不存在的 `features.search.provider` 导致函数恒不执行；改读 `navigation.search.provider === 'pagefind'`，并在压缩/哈希**之后**生成（不参与 cache-bust、写前清空旧索引、输出目录跟随 `features.pagefind.indexPath`）；`navigation.json5` 新增并注释 `search.provider` 键（`local`/`pagefind`），README/config-reference 同步 — `scripts/build.js` + `navigation.json5` + `README.md` + `docs/config-reference.md`
 - **空构建防护**：页面渲染整体失败（`dist/` 无任何 HTML）时立即中止构建并提示检查模板语法/变量，避免静默产出空站 — `scripts/build.js`
+- **HTML 消毒器安全加固**：旧正则实现存在三个已复现绕过（实体编码 scheme `jav&#x61;script:`、属性值内含 `>` 截断、未引号属性逃逸 `srcset=a"onerror=…`）；改用 `sanitize-html@2.17.7`（精确锁定）按标签/属性白名单解析式消毒，未知标签预转义保持原展示语义，媒体 `src/poster` 仍限站内；单元测试 +5（含三个绕过回归），集成安全回归新增三组载荷 — `scripts/lib/utils.js` + `scripts/build.test.js` + `scripts/security-verify.js` + `package.json`
+- **SVG 消毒实体绕过修复**：`sanitizeSvg` 检查前先做实体解码（数字/十六进制/常用命名实体）并剔除控制符，封堵 `&#106;avascript:`、`java\tscript:`、编码外部引用等绕过 — `scripts/lib/content-policy.js` + `scripts/build.test.js`
+- **front-matter `slug` 强校验**：显式 slug 此前绕过 `safeSlug`，可致路径遍历写出 `dist/` 之外、`"><script>` 注入 og:image 属性、污染 `_redirects`；现统一经 `validateSlug`（拒绝分隔符/`..`/HTML 与系统保留字符，超长拒绝），文章不合法即跳过并报错、自定义页不合法即中止；sitemap `<loc>` 统一 XML 转义、`_redirects` 条目清洗空白与控制符 — `scripts/build.js` + `scripts/lib/utils.js` + `templates/layout.ejs`
+- **构建报告与 og:image 转义**：被拦截文件名/原因经 HTML 转义、报告页加 `noindex`；og:image 属性值经 `escapeAttr` 单层转义 — `scripts/build.js` + `templates/layout.ejs`
+- **Worker 安全层部署配置修复**：`workers/wrangler.toml` 此前无 `main` 入口且用旧 Workers Sites 配置（`env.ASSETS` 实为不存在），实际不可部署；现补 `main = "security-worker.js"`、改为 `[assets]`（`binding = "ASSETS"`、`run_worker_first = true`），部署脚本加 `--env production`（ENVIRONMENT 生效），README 同步；`wrangler deploy --dry-run` 验证通过（bindings: ASSETS + ENVIRONMENT） — `workers/wrangler.toml` + `package.json` + `README.md`
 
 ### Added
 

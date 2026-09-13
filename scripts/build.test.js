@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
-const { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript } = require('./lib/utils');
+const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript } = require('./lib/utils');
 const { extractWorkerSecurity, renderWorkerConfig } = require('./generate-security-config');
 const { validateFeatures, DEFAULT_FEATURES, FEATURE_MODULES } = require('./lib/features-schema');
 const { formatConfigError } = require('./lib/config-error');
@@ -218,6 +218,21 @@ describe('sanitizeHtml', () => {
     assert.ok(!out.includes('<x-widget>'), 'must not keep raw unknown tag');
     assert.ok(out.includes('&lt;x-widget>t&lt;/x-widget>') || out.includes('&lt;x-widget&gt;'));
   });
+  it('drops entity-encoded javascript: URIs (parser-level decoding)', () => {
+    const out = sanitizeHtml('<a href="jav&#x61;script:alert(1)">x</a>');
+    assert.ok(!/javascript/i.test(out), 'entity-encoded scheme must not survive');
+    assert.ok(out.includes('<a>x</a>'));
+  });
+  it('drops javascript: href when a quoted ">" appears in another attribute', () => {
+    const out = sanitizeHtml('<a title="x>y" href="javascript:alert(1)">z</a>');
+    assert.ok(!/javascript/i.test(out));
+    assert.ok(out.includes('title="x&gt;y"'));
+  });
+  it('does not let an unquoted srcset escape create an onerror attribute', () => {
+    const out = sanitizeHtml('<img srcset=a"onerror="alert(1)>');
+    assert.ok(!/\sonerror\s*=/i.test(out), 'no executable event attribute may be formed');
+    assert.ok(!/["']\s*onerror\s*=/i.test(out), 'no raw attribute breakout syntax');
+  });
   it('return empty string for non-string input', () => {
     assert.strictEqual(sanitizeHtml(null), '');
   });
@@ -262,6 +277,30 @@ describe('sanitizeHtml media elements', () => {
   });
 });
 
+describe('validateSlug', () => {
+  it('accepts kebab-case, CJK, digits and underscores', () => {
+    for (const s of ['hello-world', 'series-3', '中文-slug', 'a_b-9']) {
+      assert.strictEqual(validateSlug(s).ok, true, s);
+    }
+  });
+  it('rejects path traversal and separators', () => {
+    assert.strictEqual(validateSlug('../../evil').ok, false);
+    assert.strictEqual(validateSlug('a/b').ok, false);
+    assert.strictEqual(validateSlug('a\\b').ok, false);
+  });
+  it('rejects HTML-breaking and OS-reserved characters', () => {
+    for (const s of ['x"><script>', "it's", 'a b', 'a:b', 'a|b', 'a?b', 'a*b', 'a#b', 'a%b', 'a.b']) {
+      assert.strictEqual(validateSlug(s).ok, false, s);
+    }
+  });
+  it('rejects empty and non-string input', () => {
+    assert.strictEqual(validateSlug('').ok, false);
+    assert.strictEqual(validateSlug('   ').ok, false);
+    assert.strictEqual(validateSlug(null).ok, false);
+    assert.strictEqual(validateSlug(123).ok, false);
+  });
+});
+
 describe('content-policy classifyFile', () => {
   const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
 
@@ -303,6 +342,14 @@ describe('sanitizeSvg', () => {
   });
   it('flags svg with external references', () => {
     assert.strictEqual(sanitizeSvg('<svg><image href="https://evil.com/x.png"/></svg>').safe, false);
+  });
+  it('flags entity-encoded javascript: and https references', () => {
+    assert.strictEqual(sanitizeSvg('<svg><a href="&#106;avascript:alert(1)"><rect/></a></svg>').safe, false);
+    assert.strictEqual(sanitizeSvg('<svg><a href="jav&#x61;script:alert(1)"><rect/></a></svg>').safe, false);
+    assert.strictEqual(sanitizeSvg('<svg><image href="&#104;ttps://evil.com/x.png"/></svg>').safe, false);
+  });
+  it('flags control characters injected into the scheme', () => {
+    assert.strictEqual(sanitizeSvg('<svg><a href="java\tscript:alert(1)"><rect/></a></svg>').safe, false);
   });
   it('passes clean inline svg', () => {
     const r = sanitizeSvg('<svg xmlns="http://www.w3.org/2000/svg" width="10"><rect width="10"/></svg>');

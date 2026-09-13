@@ -102,19 +102,46 @@ function classifyFile(relPath, srcCategory, rawPolicy) {
 
 // SVG 消毒: 移除 <script>/on* 事件/内部存在执行面/外部引用
 // 返回 { safe: boolean, content: string } — safe=false 表示含危险内容(调用方应拒绝复制)
+
+// 最小实体解码表(仅覆盖 scheme/事件属性混淆所需), 含常用命名实体与全部数字实体
+const SVG_NAMED_ENTITIES = {
+  colon: ':', tab: '\t', newline: '\n', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+  sol: '/', period: '.', num: '#', commat: '@', excl: '!', quest: '?', equals: '=',
+  semi: ';', dollar: '$', perc: '%', ast: '*', plus: '+', comma: ',', lpar: '(', rpar: ')'
+};
+
+function decodeSvgEntities(text) {
+  return String(text)
+    .replace(/&#x([0-9a-f]{1,6});/gi, (m, hex) => {
+      const code = parseInt(hex, 16);
+      return Number.isFinite(code) && code > 0 ? String.fromCodePoint(Math.min(code, 0x10ffff)) : m;
+    })
+    .replace(/&#(\d{1,7});/g, (m, dec) => {
+      const code = parseInt(dec, 10);
+      return Number.isFinite(code) && code > 0 ? String.fromCodePoint(Math.min(code, 0x10ffff)) : m;
+    })
+    .replace(/&([a-z][a-z0-9]*);/gi, (m, name) => Object.prototype.hasOwnProperty.call(SVG_NAMED_ENTITIES, name.toLowerCase()) ? SVG_NAMED_ENTITIES[name.toLowerCase()] : m);
+}
+
 function sanitizeSvg(svgText) {
   if (typeof svgText !== 'string') return { safe: false, content: '' };
-  const hasExecutable = /<script[\s>]/i.test(svgText) ||
-    /<foreignobject[\s>]/i.test(svgText) ||
-    /<\s*[a-z]+\s[^>]*(on\w+\s*=|xl-on\w+\s*=)/i.test(svgText) ||
-    /\s(onerror|onload|onclick|onmouseover)\s*=/i.test(svgText) ||
-    /(xlink:href|href|src)\s*=\s*["']\s*javascript:/i.test(svgText);
+  const decoded = decodeSvgEntities(svgText);
+  // 去除全部 ASCII 空白与控制符后再比对: 浏览器解析 URL 时会丢弃 \t\n\r 等,
+  // 因此 `java\tscript:` 与 javascript: 等效
+  const squeezed = decoded.replace(/[\u0000-\u0020\u007f]+/g, '');
+  const hasExecutable = /<script[\s>]/i.test(decoded) ||
+    /<foreignobject[\s>]/i.test(decoded) ||
+    /<\s*[a-z]+\s[^>]*(on\w+\s*=|xl-on\w+\s*=)/i.test(decoded) ||
+    /\s(onerror|onload|onclick|onmouseover)\s*=/i.test(decoded) ||
+    /(xlink:href|href|src)\s*=\s*["']?\s*(javascript|vbscript):/i.test(decoded) ||
+    /(xlink:href|href|src)=["']?(javascript|vbscript):/i.test(squeezed);
   if (hasExecutable) return { safe: false, content: '' };
   let content = svgText.replace(/<\s*script[\s\S]*?<\s*\/\s*script\s*>/gi, '');
   content = content.replace(/<\s*foreignobject[\s\S]*?<\s*\/\s*foreignobject\s*>/gi, '');
   content = content.replace(/(\s)(on\w+)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
   content = content.replace(/(xlink:href|href|src)\s*=\s*("|')?\s*(javascript|vbscript|data):[^"'>]*(("|')?)/gi, '');
-  const looksExternal = /(href|xlink:href|src)\s*=\s*["']\s*(https?:|\/\/)/i.test(content);
+  const looksExternal = /(href|xlink:href|src)\s*=\s*["']\s*(https?:|\/\/)/i.test(decoded) ||
+    /(href|xlink:href|src)=["']?(https?:|\/\/)/i.test(squeezed);
   if (looksExternal) return { safe: false, content: '' };
   return { safe: true, content };
 }

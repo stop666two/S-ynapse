@@ -15,7 +15,7 @@
   <meta property="og:description" content="<%= typeof description !== 'undefined' ? description : site.description %>">
   <meta property="og:type" content="<%= seo.ogType || 'website' %>">
   <meta property="og:url" content="<%= (site.url || '') + (typeof currentUrl !== 'undefined' && currentUrl ? currentUrl : '/') %>">
-  <%- (features.ogImage && features.ogImage.enabled!==false && typeof article!=='undefined' && article.slug) ? '<meta property="og:image" content="' + (site.url || '') + '/og/' + (typeof lang!=='undefined'&&lang?lang:'zh') + '/' + article.slug + '.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' : '' %>
+  <%- (features.ogImage && features.ogImage.enabled!==false && typeof article!=='undefined' && article.slug) ? '<meta property="og:image" content="' + escapeAttr((site.url || '') + '/og/' + (typeof lang!=='undefined'&&lang?lang:'zh') + '/' + article.slug + '.png') + '"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' : '' %>
   <meta property="og:site_name" content="<%= site.title %>">
   <meta property="og:locale" content="<%= (typeof lang!=='undefined'&&lang==='en') ? 'en-US' : (site.language || 'zh-CN') %>">
   <% if (features.ogImage && features.ogImage.enabled!==false && seo.ogImageAlt!==false && typeof article!=='undefined' && article && article.slug) { %><meta property="og:image:alt" content="<%= article.title %>"><% } %>

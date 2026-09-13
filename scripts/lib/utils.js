@@ -1,3 +1,5 @@
+const sanitizeHtmlLib = require('sanitize-html');
+
 // Format a date string according to a template pattern (YYYY-MM-DD HH:mm).
 // Automatically detects if the input includes time (non-midnight) and includes HH:mm in output.
 // Falls back to returning the raw string if parsing fails.
@@ -35,6 +37,21 @@ function safeSlug(text) {
   }
   if (!slug) slug = 'tag-' + Math.random().toString(36).slice(2, 6);
   return slug;
+}
+
+// Validate a hand-written front-matter slug before it is used as a URL path
+// segment and an output filename. Rejects path traversal, HTML-breaking and
+// OS-reserved characters. Returns { ok, slug } or { ok: false, reason }.
+function validateSlug(rawSlug) {
+  if (typeof rawSlug !== 'string' || !rawSlug.trim()) return { ok: false, reason: 'empty or not a string' };
+  const slug = rawSlug.trim();
+  if (slug.length > 120) return { ok: false, reason: 'longer than 120 characters' };
+  if (slug.includes('/') || slug.includes('\\')) return { ok: false, reason: 'contains a path separator (/ or \\)' };
+  if (slug.includes('..')) return { ok: false, reason: 'contains ".."' };
+  if (!/^[A-Za-z0-9_\u4e00-\u9fa5-]+$/.test(slug)) {
+    return { ok: false, reason: 'contains characters other than letters, digits, CJK, "_" and "-"' };
+  }
+  return { ok: true, slug };
 }
 
 // Escape a string for use in HTML attribute values. Handles &, ", ', <, >.
@@ -115,58 +132,67 @@ const SAFE_TAGS = new Set([
 // restricted to site-local media paths below).
 const DANGEROUS_TAGS = new Set([
   'script','style','iframe','object','embed','svg','math','template','form',
-  'noscript','textarea','select','button','link','meta','base','canvas',
+  'noscript','textarea','option','select','button','link','meta','base','canvas',
   'applet','frame','frameset'
 ]);
 
-// Attributes allowed on tags. on* and style are always dropped separately.
-const SAFE_ATTRS = new Set([
-  'class','id','href','src','srcset','sizes','loading','decoding','data-lqip','data-w','data-h','data-iw','alt','title','lang','type',
-  'checked','disabled','colspan','rowspan','width','height',
-  // media elements (video/audio/track)
-  'controls','preload','loop','muted','autoplay','playsinline','poster','kind','srclang','default'
-]);
+// Attributes allowed on tags, mapped per tag. on* and style are excluded by
+// construction (not listed). data-*/aria-* wildcards cover build-injected
+// attributes (data-lqip/data-w/data-h/data-iw) and a11y annotations.
+const ALLOWED_ATTRS = {
+  '*': ['class','id','title','lang','type','data-*','aria-*'],
+  a: ['href'],
+  img: ['src','srcset','sizes','loading','decoding','alt','width','height'],
+  source: ['src','srcset','sizes'],
+  video: ['src','poster','controls','preload','loop','muted','autoplay','playsinline','width','height'],
+  audio: ['src','controls','preload','loop','muted','autoplay','playsinline','width','height'],
+  track: ['src','kind','srclang','default'],
+  input: ['checked','disabled'],
+  td: ['colspan','rowspan'],
+  th: ['colspan','rowspan']
+};
+
+// Media elements may only load site-local sources: absolute/protocol-relative
+// URLs and backslash-prefixed paths are stripped from src/poster.
+function restrictMediaAttrs(tagName, attribs) {
+  const out = Object.assign({}, attribs);
+  for (const key of ['src', 'poster']) {
+    if (out[key] && /(?:^[a-z][a-z0-9+.-]*:|\/\/|\\)/i.test(out[key].trim())) delete out[key];
+  }
+  return { tagName, attribs: out };
+}
+
+const SANITIZE_OPTIONS = {
+  allowedTags: [...SAFE_TAGS],
+  nonTextTags: [...DANGEROUS_TAGS],
+  allowedAttributes: ALLOWED_ATTRS,
+  allowedSchemes: ['http', 'https', 'ftp', 'mailto', 'tel'],
+  allowProtocolRelative: true,
+  allowedSchemesAppliedToAttributes: ['href', 'src', 'poster', 'srcset'],
+  transformTags: {
+    video: restrictMediaAttrs,
+    audio: restrictMediaAttrs
+  }
+};
+
+// Escape tags that are neither explicitly allowed nor dangerous so they render
+// as literal text (parity with the previous whitelist sanitizer). Dangerous
+// tags stay raw for sanitize-html to drop together with their subtree.
+function escapeUnknownTags(html) {
+  return html.replace(/<(\/?)([a-zA-Z][a-zA-Z0-9-]*)([^>]*)>/g, function(match, slash, name, rest) {
+    const lower = name.toLowerCase();
+    if (SAFE_TAGS.has(lower) || DANGEROUS_TAGS.has(lower)) return match;
+    return '&lt;' + slash + name + rest + '&gt;';
+  });
+}
 
 // Remove executable/active HTML while keeping safe formatting tags.
-// Handles: dangerous full-subtree removal, unknown-tag escaping,
-// event-handler and style attribute stripping, javascript: URI filtering.
+// Backed by sanitize-html (WHATWG-style tokenization): entity-encoded schemes
+// (jav&#x61;script:), quoted ">" inside attribute values, and unquoted
+// attribute escapes are handled by the parser instead of regex heuristics.
 function sanitizeHtml(input) {
   if (typeof input !== 'string') return '';
-  let output = input;
-  const dangerPattern = [...DANGEROUS_TAGS].join('|');
-  const dangerRemover = new RegExp(`<\\s*(${dangerPattern})(\\s[^>]*)?>[\\s\\S]*?<\\s*/\\s*\\1\\s*>`, 'gi');
-  const dangerSelfCloser = new RegExp(`<\\s*(${dangerPattern})(\\s[^>]*)?/?>`, 'gi');
-  output = output.replace(dangerRemover, ' ');
-  output = output.replace(dangerSelfCloser, ' ');
-  output = output.replace(/<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^<>]*?)?)\s*(\/?)\s*>/gi, function(match, closing, tag, attrs, selfClose) {
-    const lower = tag.toLowerCase();
-    if (closing) {
-      return SAFE_TAGS.has(lower) ? match : '&lt;' + match.slice(1);
-    }
-    if (!SAFE_TAGS.has(lower)) return '&lt;' + match.slice(1);
-    let safeAttrs = '';
-    const attrRe = /([^\s=\/'"<>]+)(\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g;
-    let am;
-    while ((am = attrRe.exec(attrs)) !== null) {
-      const key = am[1];
-      const val = am[2] ? am[2].trim().replace(/^\s*=\s*/, '') : null;
-      const k = key.toLowerCase();
-      if (k === 'on' || k.startsWith('on')) continue;
-      if (k === 'style') continue;
-      if (k.startsWith('data-') || k.startsWith('aria-')) { safeAttrs += ' ' + key + (val ? '=' + val : ''); continue; }
-      if (!SAFE_ATTRS.has(k)) continue;
-      if (val && (k === 'href' || k === 'src' || k === 'poster')) {
-        const raw = val.replace(/^['"]|['"]$/g, '').trim();
-        if (/^(javascript|vbscript|data):/i.test(raw)) continue;
-        // Media elements may only load site-local sources: no absolute
-        // http(s)// schema, no protocol-relative //host URLs.
-        if ((lower === 'video' || lower === 'audio') && (k === 'src' || k === 'poster') && /^(?:[a-z][a-z0-9+.-]*:|\/\/|\\)/i.test(raw)) continue;
-      }
-      safeAttrs += ' ' + key + (val ? '=' + val : '');
-    }
-    return '<' + lower + safeAttrs + (selfClose ? ' />' : '>');
-  });
-  return output;
+  return sanitizeHtmlLib(escapeUnknownTags(input), SANITIZE_OPTIONS);
 }
 
 // Serialize a value for embedding inside an inline <script> block.
@@ -200,4 +226,4 @@ function resolveWikiLinks(content, lookup) {
   });
 }
 
-module.exports = { formatDate, safeSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks };
+module.exports = { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks };

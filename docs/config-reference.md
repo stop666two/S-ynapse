@@ -262,10 +262,10 @@
 `enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500` / `updateThrottleMs 30` / `ariaAnnounce true` / `topOffset 0` / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发)
 
 ### 3.3 backToTop — 返回顶部
-`enabled true` / `showAfterPx 400` / `rightOffset 2rem` / `bottomOffset 2rem` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''` / `htmlAnchorFallback false`
+`enabled true` / `showAfterPx 400` / `rightOffset 2rem` / `bottomOffset 2rem` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false`
 
 ### 3.4 search — 客户端搜索
-`enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true` / `showCount true` / `placeholder 搜索...` / `emptyHint 输入关键词开始搜索` / `noResultText 未找到匹配内容` / `excerptLength 120` / `includeContent true` / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `closeOnOverlay true` / `focusOnOpen true` / `openAnimation fade` / `pinyinFuzzy false`
+`enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true` / `showCount true` / `placeholder 搜索...` / `emptyHint 输入关键词开始搜索` / `noResultText 未找到匹配内容` / `excerptLength 120` / `includeContent true` / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `closeOnOverlay true` / `focusOnOpen true` / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效) / `pinyinFuzzy false`
 
 ### 3.5 imageLazy — 懒加载
 `enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
@@ -282,7 +282,7 @@
 `enabled true` / `defaultTheme system` / `rememberChoice true` / `animationMs 250` / `iconStyle sun-moon` / `transitionAll true` / `persistKey ss-theme`(主题选择的 localStorage 键) / `toggleIconSwap true`(切换时交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)
 
 ### 3.9 shortcuts — 快捷键
-`enabled true` / `openSearch /`(空=禁用,下同) / `toggleTheme d` / `prevPost k` / `nextPost j` / `help ?` / `close Escape` / `showHelpHint true` / `helpTitle 快捷键一览` / `showHelpTable true` / `ignoreInInputs true`
+`enabled true` / `openSearch /`(空=禁用,下同) / `toggleTheme d` / `prevPost k` / `nextPost j` / `help ?` / `close Escape` / `showHelpHint true` / `helpTitle 快捷键一览` / `showHelpTable true` / `ignoreInInputs true`(true=输入框内按键不触发快捷键;false=输入框内也触发)
 
 ### 3.10 toc — 目录(桌面侧)
 `enabled true` / `minLevel 2` / `maxLevel 4` / `collapsible true` / `defaultOpenLevel 2` / `highlightActive true` / `activeOffset 120` / `groupCollapse true`(二级项带折叠箭头,可收起其下三级项)
@@ -291,7 +291,7 @@
 `enabled true` / `borderRadius 1rem` / `maxHeightVh 70` / `autoClose true` / `overlayClose true` / `lockScroll true` / `position right` / `showCurrent true`(胶囊按钮显示当前章节名与进度百分比)。移动端目录抽屉;显示断点由 `mobile.tocBreakpoint` 控制。
 
 ### 3.12 readingPanel — 阅读设置面板
-`enabled true` / `fontSizeMin 15`/`fontSizeMax 26`/`fontSizeStep 1`/`fontSizeDefault 19` / `lineHeightMin 1.4`/`LineHeightMax 2.6`/`Step 0.1`/`Default 1.9` / `widthMin 560`/`widthMax 1200`/`Step 40`/`Default 800` / `remember true` / `storageKey readerPrefs` / `resetText 重置` / `position right`
+`enabled true` / `fontSizeMin 15`/`fontSizeMax 26`/`fontSizeStep 1`/`fontSizeDefault 19` / `lineHeightMin 1.4`/`LineHeightMax 2.6`/`Step 0.1`/`Default 1.9` / `widthMin 560`/`widthMax 1200`/`Step 40`/`Default 800` / `remember true` / `persistKey 'ss-reading'`(阅读设置 localStorage 键) / `resetText 重置` / `position right`
 
 ### 3.13 readMode — 阅读模式
 `enabled true` / `persist true` / `label 阅读模式` / `focusOnlyContent true` / `fontScale 1`
@@ -319,7 +319,7 @@
 - 单图覆盖：代码块语言标记后追加 `w=` / `h=`，如 ` ```mermaid w=900 h=520 `；不填项走全局，非法值忽略并回退默认 — `scripts/build.js`(解析) + `templates/layout.ejs`(应用)
 
 ### 3.19 series — 系列
-`enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8` / `prevLabel 上一篇` / `nextLabel 下一篇` / `progressLabel {index} / {total}`(进度模板) / `sidebarTitle 系列`(侧栏 widget 标题,sidebar.json5 w.title 为空时使用)
+`enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8`(侧栏系列 widget 最多展示条数,超出截断) / `prevLabel 上一篇` / `nextLabel 下一篇` / `progressLabel {index} / {total}`(进度模板) / `sidebarTitle 系列`(侧栏 widget 标题,sidebar.json5 w.title 为空时使用)
 
 ### 3.20 related — 相关推荐
 `enabled true` / `topN 4` / `sameCategoryWeight 2` / `sameTagWeight 3` / `minScore 2` / `excludeCurrent true` / `title 相关推荐` / `showExcerpt true`(卡片显示摘要) / `excerptLength 80`(摘要截断长度) / `showCount false`(显示共享标签数徽章)
@@ -432,10 +432,10 @@ sitemap: {
 `enabled true` / `ease cubic-bezier(.4,0,.2,1)` / `pageEnterDurationMs 240`(页面入场时长 ms) / `cardHoverScale 1.02`(卡片悬停缩放) / `linkUnderlineOffset 3px`(下划线偏移) / `cardHoverLift true` / `cardHoverLiftPx 4` / `linkUnderline true` / `linkUnderlineThickness 2px` / `buttonRipple true` / `rippleDurationMs 500` / `scrollReveal true` / `revealCards true` / `revealHeadings true` / `revealImages true` / `revealBlocks false` / `revealDurationMs 250` / `revealDelayMs 0` / `revealStaggerMax 80` / `revealOffset 10px` / `revealOnce true` / `revealThreshold 0.08` / `reducedMotion 'light'`(`light|off|full`,轻量版:更短/幅度更小)。滚动渐入/悬停上浮/涟漪/下划线动效总控。
 
 ### 3.48 dailyQuote — 每日一言
-`enabled true` / `widgetStyle 'sidebar'` / `label '每日一言'` / `source 'builtin'` / `count 7` / `quoteColor ''`。侧栏每日名言(内置 7 条,按日期轮换)。
+`enabled true` / `widgetStyle 'sidebar'` / `label '每日一言'` / `source 'builtin'`(内置 7 条;也支持相对项目根或绝对路径的 `.json`/`.json5`,格式 `["引语"]` 或 `[{text,author}]` 或 `{quotes:[...]}`;加载失败回退内置并告警) / `count 7` / `quoteColor ''`。侧栏每日名言(内置 7 条,按日期轮换)。
 
 ### 3.49 favorites — 收藏(纯前端)
-`enabled true` / `position 'toolbar'` / `storageKey 's-favorites'` / `label '收藏'` / `listIcon true` / `notText '收藏'` / `favedText '已收藏'`。文章收藏按钮+收藏页(仅 localStorage,无后端);按钮切换收藏/取消(状态+aria-pressed+统一 toast)、收藏页列表渲染与移除、空状态;en 页文案经 ui-strings 词典。
+`enabled true` / `position 'toolbar'`(`toolbar`=文章底部工具栏,默认/`meta`=标题下元信息行) / `storageKey 's-favorites'` / `label '收藏'` / `listIcon true` / `notText '收藏'` / `favedText '已收藏'`。文章收藏按钮+收藏页(仅 localStorage,无后端);按钮切换收藏/取消(状态+aria-pressed+统一 toast)、收藏页列表渲染与移除、空状态;en 页文案经 ui-strings 词典。
 
 ### 3.50 prismTheme — 代码高亮配色开关
 `enabled true`。总开关：关闭后代码块不着色（回退纯文本）；token 配色值定义在 `theme.json5` 的 `codeHighlight.palette`（浅色/暗色两套，随主题自动切换）。

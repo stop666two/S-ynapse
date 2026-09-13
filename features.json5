@@ -124,11 +124,7 @@
     // 进度条层叠顺序(z-index)。与其他浮层冲突时调大。
     zIndex: 1000,
     // 是否显示百分比提示气泡(跟随进度条的圆点下方)。
-    showTip: true,
-    // 进度条渐变结束色
-    // 类型: string(CSS 色值或变量名) | 推荐: 'var(--color-a)'
-    // 注意: 本键未接线,实际渐变请用 gradientStart/gradientEnd(上方两键);保留仅为兼容旧配置
-    progressColor: 'var(--color-a)'
+    showTip: true
   },
 
   // ---------------------------------------------------------------------------
@@ -149,9 +145,8 @@
     scrollDurationMs: 450,
     // 是否平滑滚动。
     smoothScroll: true,
-    // 键盘快捷键(预留,当前未接线)
-    // 设计意图: KeyboardEvent.key 值(如 'Home'/'page-up');空字符串 = 禁用
-    // 注意: 当前无消费方,填值不产生效果
+    // 键盘快捷键(KeyboardEvent.key 值,如 'Home');空字符串 = 禁用。
+    // 仅在非输入框且无 Ctrl/Cmd/Alt 修饰键时生效。
     hotkey: '',
     // 无 JS 时的 HTML 锚点按钮(向后兼容)。
     htmlAnchorFallback: false,
@@ -195,8 +190,8 @@
     closeOnOverlay: true,
     // 打开后是否自动聚焦输入框。
     focusOnOpen: true,
-    // 打开动画方式(预留,当前未接线: 弹层恒为淡入)
-    // 类型: string | 可填: 'fade'(默认)/'slide'(规划);填值不产生效果
+    // 打开动画方式。
+    // 类型: string | 可填: 'fade'(默认,弹层淡入)/'slide'(自下而上滑入)
     openAnimation: 'fade',
     // 是否支持拼音首字母匹配(实验)。
     pinyinFuzzy: false,
@@ -387,8 +382,8 @@
     helpTitle: '快捷键一览',
     // 帮助面板是否显示。
     showHelpTable: true,
-    // 预留(当前未接线): 设计意图为「输入框内按键是否触发快捷键」
-    // 注意: 当前实现恒为「输入框内不触发」,填 false 无效果
+    // 输入框(INPUT/TEXTAREA/SELECT/contenteditable)内按键是否忽略快捷键。
+    // true(默认)=忽略;false=输入框内也触发。
     ignoreInInputs: true
   },
 
@@ -778,9 +773,6 @@
     widthDefault: 800,
     // 是否记住阅读设置。
     remember: true,
-    // 已废弃(无消费方): 实际 localStorage 键为 persistKey
-    // 保留仅为兼容旧配置文件;修改本键不产生效果
-    storageKey: 'readerPrefs',
     // 阅读设置持久化键(字号/行高/宽度的 localStorage 键名)。
     persistKey: 'ss-reading',
     // 是否显示"重置"按钮(点击恢复默认值并清除本地存储)。
@@ -947,8 +939,8 @@
     panelTitle: '本系列共 {total} 篇',
     // 系列文章前缀(自动标注,如 '第 1/3 篇')。
     showPosition: true,
-    // 侧栏系列 widget 默认展示条数(预留,当前未接线)
-    // 设计意图: number(整数) | 可填: 1–20 | 推荐: 8;填值不产生效果
+    // 侧栏系列 widget 默认展示条数(超出截断)。
+    // 类型: number(整数) | 可填: 1–20 | 推荐: 8
     defaultWidgetCount: 8,
     // 系列导航上一页按钮文本。
     prevLabel: '上一篇',
@@ -1511,9 +1503,9 @@
     widgetStyle: 'sidebar',
     // 题目标签。
     label: '每日一言',
-    // 数据源
-    // 类型: string | 可填: 'builtin'(当前唯一有效值)
-    // 注意: 原注释所称「自定义 JSON」未实现;自定义引用需改代码内置数组(scripts/build.js BUILTIN_QUOTES)
+    // 数据源。
+    // 类型: string | 可填: 'builtin'(内置引语)/ 相对项目根或绝对路径的 .json/.json5 文件
+    // 文件格式: ["引语"] 或 [{ text, author }](也接受 { quotes: [...] });加载失败自动回退内置并警告
     source: 'builtin',
     // 引用数量(循环轮换)。
     count: 7,
@@ -1524,9 +1516,8 @@
   favorites: {
     // 开启收藏按钮(文章页) + /favorites 收藏页。
     enabled: true,
-    // 收藏按钮显示位置
-    // 类型: string | 可填: 'toolbar'(文章底部工具栏,当前唯一实现)/'meta'(预留)
-    // 注意: 填 'meta' 无效果;位置相关样式可用 tuning.contactPopup 等相邻分类微调
+    // 收藏按钮显示位置。
+    // 类型: string | 可填: 'toolbar'(文章底部工具栏,默认)/'meta'(文章标题下元信息行)
     position: 'toolbar',
     // 存储键。
     storageKey: 's-favorites',

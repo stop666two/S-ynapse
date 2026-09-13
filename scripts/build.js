@@ -1400,6 +1400,32 @@ function renderPage(templateName, data, layoutTemplate, cfg) {
     { text: '纸上得来终觉浅，绝知此事要躬行。', author: '陆游' },
     { text: 'Where there is a will, there is a way.', author: 'Thomas Edison' }
   ];
+function resolveDailyQuotes(config) {
+  const dq = (config.features && config.features.dailyQuote) || {};
+  const src = typeof dq.source === 'string' ? dq.source.trim() : '';
+  if (!src || src === 'builtin') return BUILTIN_QUOTES;
+  if (!/\.(json|json5)$/i.test(src)) {
+    console.warn('  [WARN] dailyQuote.source "' + src + '" 不是 .json/.json5 路径,已回退内置引语');
+    return BUILTIN_QUOTES;
+  }
+  const file = path.isAbsolute(src) ? src : path.join(ROOT, src);
+  try {
+    const raw = fs.readFileSync(file, 'utf-8');
+    const parsed = /\.json5$/i.test(file) && json5 ? json5.parse(raw) : JSON.parse(raw);
+    const list = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.quotes) ? parsed.quotes : []);
+    const quotes = list.map(function (q) {
+      if (typeof q === 'string') return { text: q, author: '' };
+      if (q && typeof q.text === 'string') return { text: q.text, author: typeof q.author === 'string' ? q.author : '' };
+      return null;
+    }).filter(Boolean);
+    if (!quotes.length) throw new Error('文件中没有可用引语');
+    console.log('  dailyQuote.source: ' + path.relative(ROOT, file) + ' (' + quotes.length + ' 条)');
+    return quotes;
+  } catch (err) {
+    console.warn('  [WARN] dailyQuote.source "' + src + '" 加载失败 (' + err.message + '),已回退内置引语');
+    return BUILTIN_QUOTES;
+  }
+}
 function buildPageData(config, articles, tags, categories) {
   const published = getPublished(articles);
   const friendsCfg = collectFriends(config);
@@ -1484,7 +1510,7 @@ function buildPageData(config, articles, tags, categories) {
     Math: Math,
     Date: Date,
     config,
-    dailyQuotes: BUILTIN_QUOTES
+    dailyQuotes: resolveDailyQuotes(config)
   };
 }
 

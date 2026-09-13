@@ -22,7 +22,7 @@ const DEFAULT_FEATURES = {
     dotSize: '10px', barHeight: '3px', useGradient: true,
     gradientStart: 'var(--color-s)', gradientEnd: 'var(--color-a)',
     tipDisplayMs: 500, updateThrottleMs: 30, ariaAnnounce: true, topOffset: '0',
-    zIndex: 1000, showTip: true, progressColor: 'var(--color-a)',
+    zIndex: 1000, showTip: true,
     rememberPosition: true, rememberPositionMaxAgeHours: 72
   },
   backToTop: {
@@ -265,7 +265,7 @@ const DEFAULT_FEATURES = {
     enabled: true, fontSizeMin: 15, fontSizeMax: 26, fontSizeStep: 1,
     fontSizeDefault: 19, lineHeightMin: 1.4, lineHeightMax: 2.6,
     lineHeightStep: 0.1, lineHeightDefault: 1.9, widthMin: 560, widthMax: 1200,
-    widthStep: 40, widthDefault: 800, remember: true, storageKey: 'readerPrefs',
+    widthStep: 40, widthDefault: 800, remember: true,
     resetText: '重置', position: 'right', persistKey: 'ss-reading', showReset: true
   },
   readMode: {

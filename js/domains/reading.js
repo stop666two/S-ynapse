@@ -49,6 +49,15 @@ export function init() {
     function upd() { if (window.scrollY > px) { b.classList.add('visible'); } else { b.classList.remove('visible'); } }
     window.addEventListener('scroll', upd, { passive: true });
     upd();
+    if (BT.hotkey) {
+      var hk = String(BT.hotkey);
+      document.addEventListener('keydown', function (e) {
+        var t = e.target;
+        var inField = !!(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
+        if (inField || e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.key.toLowerCase() === hk.toLowerCase()) { e.preventDefault(); window.scrollTo({ top: 0, behavior: BT.smoothScroll === false ? 'auto' : window.__SB() }); }
+      });
+    }
   })();
   (function () {
     var F = window.__FEATURES__ || {}, D = (F && F.readDock) || {};

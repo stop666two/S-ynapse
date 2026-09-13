@@ -9,7 +9,8 @@ export function init() {
     var kHelp = S.help ? String(S.help) : '';
     document.addEventListener('keydown', function (e) {
       var t = e.target;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      var inField = !!(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
+      if (inField && S.ignoreInInputs !== false) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       var k = e.key;
       if (k === kOpen && kOpen) { e.preventDefault(); window.openSearch(); }

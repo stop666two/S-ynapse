@@ -122,6 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **配置键接线与清理（审查遗留项闭环）**：`backToTop.hotkey`（非输入框且无修饰键时按键回顶）、`search.openAnimation`（`fade`/`slide` 弹层动画，尊重系统减少动效）、`favorites.position 'meta'`（收藏按钮渲染到标题下元信息行，新增 `.fav-btn-meta` 样式）、`series.defaultWidgetCount`（侧栏系列 widget 按数截断）、`shortcuts.ignoreInInputs false`（输入框内也触发快捷键）、`dailyQuote.source`（支持自定义 `.json`/`.json5`，加载失败回退内置并告警）；删除废弃重复键 `readingProgress.progressColor`、`readingPanel.storageKey`。开/关双态均通过构建断言与浏览器断言（收藏 meta 点击、热键回顶与输入框豁免、系列截断、自定义引语与回退） — `features.json5` + `scripts/lib/features-schema.js` + `templates/layout.ejs` + `templates/post.ejs` + `js/domains/reading.js` + `js/domains/shortcuts.js` + `scripts/build.js` + `docs/config-reference.md`
 - **reduce-motion 不再一刀切停播**：`motion` / `pageTransition` / `morphIcons` 统一新增 `reducedMotion: 'light'|'off'|'full'`（默认 `light`）——系统"减少动态效果"下改为播放更短、幅度更小的轻量版动画；`off`=旧行为（直接关闭/不拦截），`full`=始终完整播放；旧布尔字段 `respectReducedMotion` 自动兼容映射（true→light / false→full） — `js/domains/motion.js` + `js/domains/page-transition.js` + `js/domains/morphicons.js` + `templates/layout.ejs`
 - **文档全量刷新**:README 更新为当前实现（12 个配置文件 / 1600+ 配置项（实测 1625）/ features 77 模块 608 项 / tuning 25 分类 164 项 / 测试 68 项 17 组 / 本地 vendor 资产 / `js/` ESM 目录 / 移除 SRI 与代码主题切换器过期表述 / 修正 forceContentWidth 注释 / 技术栈补 Prism·字体·原生 ESM）；config-reference 模块数校正(38/54→77) — README.md + docs/config-reference.md
 - **演示内容清空**:删除全部 39 篇演示文章（zh 19 + en 20,git 历史可恢复）,仓库以空内容启动;空站构建验证通过（空状态首页/空 feed/无 sitemap 条目/0 搜索索引/无残留异常标记） — articles/

@@ -26,7 +26,7 @@
     <% for (var mo = 1; mo <= 12; mo++) { %>
     <% var cnt = 0; group.articles.forEach(function(a){ var mm=parseInt(a.month,10); if(mm===mo) cnt++; }); %>
     <% var lvl = cnt===0 ? 'l0' : (MAXC<=2 ? 'l'+Math.min(cnt+1,5) : 'l'+Math.max(1,Math.min(5,Math.ceil(cnt/MAXC*5)))); %>
-    <div class="cal-cell <%= lvl %>" title="<%= group.year %>-<%= mo %>: <%= cnt %> 篇"><%= mo %></div>
+    <div class="cal-cell <%= lvl %>" title="<%= group.year %>-<%= mo %>: <%= cnt %> <%= ui('archive.postUnit','篇') %>"><%= mo %></div>
     <% } %>
   </div>
   <div class="archive-month">
@@ -41,7 +41,7 @@
   </div>
 </div>
 <% }) %>
-<div class="cal-legend"><span><%= ui('archive.count','文章') %></span><i class="cal-cell l0" style="background:<%=(features.heatmap&&features.heatmap.emptyColor)||'var(--color-hover)'%>"></i><i class="cal-cell l1"></i><i class="cal-cell l2"></i><i class="cal-cell l4"></i><span>少 → 多</span></div>
+<div class="cal-legend"><span><%= ui('archive.count','文章') %></span><i class="cal-cell l0" style="background:<%=(features.heatmap&&features.heatmap.emptyColor)||'var(--color-hover)'%>"></i><i class="cal-cell l1"></i><i class="cal-cell l2"></i><i class="cal-cell l4"></i><span><%= ui('archive.legend','少 → 多') %></span></div>
 <% } else { %>
 <p style="color:var(--color-text-secondary)"><%= ui('archive.empty','暂无归档') %></p>
 <% } %>

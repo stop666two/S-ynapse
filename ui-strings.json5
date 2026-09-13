@@ -40,7 +40,7 @@
 
   // 导航
   nav: {
-    menu: '菜单', home: '首页', archive: '归档', tags: '标签',
+    menu: '菜单', home: '首页', archive: '归档', tags: '标签', breadcrumb: '面包屑',
     categories: '分类', about: '关于', friends: '友情链接',
     search: '搜索', project: '项目', close: '关闭',
   },
@@ -67,7 +67,7 @@
     tocTitle: '目录', readingMode: '阅读模式', ttsLabel: '朗读',
     share: '分享文章', copyLink: '复制链接', copyDone: '复制成功',
     shareTo: '分享到', reward: '打赏', rewardLabel: '打赏',
-    rewardClose: '关闭', rewardQR: '收款码', rewardPay: '前往支付页',
+    rewardClose: '关闭', rewardQR: '收款码', rewardPay: '前往{label}支付页', rewardWechat: '微信', rewardAlipay: '支付宝', rewardOther: '其他', shareLabel: '分享', commentsLoading: '评论加载中…',
     coverStyle: '封面样式', subscribe: '订阅',
     translationNotice: '本文也有 {lang} 版本',
     comments: '评论', commentsEnable: '请启用 JavaScript 以查看评论',
@@ -80,7 +80,7 @@
 
   // 顶栏/工具栏
   toolbar: {
-    backToTop: '返回顶部', openSearchLabel: '搜索',
+    backToTop: '返回顶部', openSearchLabel: '搜索', closeSearch: '关闭搜索', boostLabel: '页面加速设置', tocCollapse: '折叠目录', rotateL: '向左旋转', rotateR: '向右旋转', vtLabel: '页面过渡动画',
     darkLabel: '切换暗色模式', searchPlaceholder: '搜索文章…',
     readingProgress: '阅读进度', close: '关闭',
     tocToggle: '目录', backToToc: '回到目录',
@@ -102,7 +102,7 @@
 
   // 归档页
   archive: {
-    title: '归档', statPosts: '文章总数', statDays: '发文天数',
+    title: '归档', statPosts: '文章总数', statDays: '发文天数', postUnit: '篇', legend: '少 → 多',
     statWords: '总字数', statAvg: '日均篇数', statTags: '标签数',
     statCats: '分类数', heatmap: '年每月文章数热力图',
     empty: '暂无归档', count: '{count} 文章',
@@ -268,7 +268,7 @@
       article: 'Articles', tag: 'Tags', category: 'Categories',
     },
     nav: {
-      menu: 'Menu', home: 'Home', archive: 'Archive', tags: 'Tags',
+      menu: 'Menu', home: 'Home', archive: 'Archive', tags: 'Tags', breadcrumb: 'Breadcrumb',
       categories: 'Categories', about: 'About', friends: 'Links',
       search: 'Search', project: 'Project', close: 'Close',
     },
@@ -289,7 +289,7 @@
       tocTitle: 'Contents', readingMode: 'Reading', ttsLabel: 'Listen',
       share: 'Share', copyLink: 'Copy Link', copyDone: 'Copied',
       shareTo: 'Share to', reward: 'Reward', rewardLabel: 'Reward',
-      rewardClose: 'Close', rewardQR: 'Payment QR', rewardPay: 'Go to payment page',
+      rewardClose: 'Close', rewardQR: 'Payment QR', rewardPay: 'Go to {label} payment page', rewardWechat: 'WeChat', rewardAlipay: 'Alipay', rewardOther: 'Other', shareLabel: 'Share', commentsLoading: 'Loading comments…',
       coverStyle: 'Cover Style', subscribe: 'Subscribe',
       translationNotice: 'Also available in {lang}',
       comments: 'Comments', commentsEnable: 'Enable JavaScript to view comments',
@@ -300,7 +300,7 @@
     words: 'words', readMinutes: 'min read', readSettings: 'Reading settings', fontSize: 'Font size', lineHeight: 'Line height', width: 'Width', resetDefault: 'Reset to default', relatedTitle: 'Related articles', shareThis: 'Share this article', linkCopied: 'Link copied', disqusNoScript: 'Please enable JavaScript to view comments.', rewardQrCode: 'QR code',
     },
     toolbar: {
-      backToTop: 'Back to top', openSearchLabel: 'Search',
+      backToTop: 'Back to top', openSearchLabel: 'Search', closeSearch: 'Close search', boostLabel: 'Page boost settings', tocCollapse: 'Collapse contents', rotateL: 'Rotate left', rotateR: 'Rotate right', vtLabel: 'Page transition',
       darkLabel: 'Toggle dark mode', searchPlaceholder: 'Search posts...',
       readingProgress: 'Reading progress', close: 'Close',
       tocToggle: 'Contents', backToToc: 'Back to contents',
@@ -320,7 +320,7 @@
       okay: 'Got it', dragSort: 'Drag to reorder',
     },
     archive: {
-      title: 'Archive', statPosts: 'Posts', statDays: 'Days',
+      title: 'Archive', statPosts: 'Posts', statDays: 'Days', postUnit: 'posts', legend: 'Less → More',
       statWords: 'Words', statAvg: 'Avg/Day', statTags: 'Tags',
       statCats: 'Categories', heatmap: 'Monthly post heatmap',
       empty: 'No archives', count: '{count} posts',

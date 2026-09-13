@@ -125,7 +125,9 @@
     zIndex: 1000,
     // 是否显示百分比提示气泡(跟随进度条的圆点下方)。
     showTip: true,
-    // 进度条渐变结束色(CSS 色值或变量名)。
+    // 进度条渐变结束色
+    // 类型: string(CSS 色值或变量名) | 推荐: 'var(--color-a)'
+    // 注意: 本键未接线,实际渐变请用 gradientStart/gradientEnd(上方两键);保留仅为兼容旧配置
     progressColor: 'var(--color-a)'
   },
 
@@ -147,8 +149,10 @@
     scrollDurationMs: 450,
     // 是否平滑滚动。
     smoothScroll: true,
-    // 键盘快捷键(空字符串=禁用)。
-    hotkey: '' /* 例如 'page-up' */,
+    // 键盘快捷键(预留,当前未接线)
+    // 设计意图: KeyboardEvent.key 值(如 'Home'/'page-up');空字符串 = 禁用
+    // 注意: 当前无消费方,填值不产生效果
+    hotkey: '',
     // 无 JS 时的 HTML 锚点按钮(向后兼容)。
     htmlAnchorFallback: false,
     // 按钮层叠顺序(z-index)。与其他浮层冲突时调大。
@@ -191,7 +195,8 @@
     closeOnOverlay: true,
     // 打开后是否自动聚焦输入框。
     focusOnOpen: true,
-    // 打开动画方式。
+    // 打开动画方式(预留,当前未接线: 弹层恒为淡入)
+    // 类型: string | 可填: 'fade'(默认)/'slide'(规划);填值不产生效果
     openAnimation: 'fade',
     // 是否支持拼音首字母匹配(实验)。
     pinyinFuzzy: false,
@@ -274,7 +279,10 @@
   externalLink: {
     // 启用外部链接警告弹窗(与 site.json5 的 externalLinkWarning.enabled 同时为 true 才生效)。
     enabled: true,
-    // 白名单域名(精确匹配 hostname 或 hostname+pathname 前缀)。
+    // 白名单域名/IP 主机名(命中则直接放行,不弹窗)
+    // 类型: string[] | 可填: "github.com"(整域精确) / "*.github.com"(* 通配子域) / "example.com/path"(* 可出现在路径段)
+    // 不可填: 带协议(https://)或完整 URL;空数组 = 回退 site.json5→externalLinkWarning.whitelist
+    // 推荐: 仅放行完全信任的站点;黑名单优先级高于白名单,命中黑名单先拦截
     whitelist: [],
     // 黑名单域名(命中即直接拦截提示,不跳转)。
     blacklist: [],
@@ -361,7 +369,7 @@
   shortcuts: {
     // 启用全局快捷键。
     enabled: true,
-    // 打开搜索。
+    // 打开搜索(键值格式: 单字符或 KeyboardEvent.key 名;空字符串 = 禁用该键)。
     openSearch: '/',
     // 切换主题。
     toggleTheme: 'd',
@@ -379,7 +387,8 @@
     helpTitle: '快捷键一览',
     // 帮助面板是否显示。
     showHelpTable: true,
-    // 输入框内按键是否生效。
+    // 预留(当前未接线): 设计意图为「输入框内按键是否触发快捷键」
+    // 注意: 当前实现恒为「输入框内不触发」,填 false 无效果
     ignoreInInputs: true
   },
 
@@ -556,7 +565,9 @@
     useCover: true,
     // 无封面时用站点色渐变+标题文字合成。
     gradientForNoCover: true,
-    // 标题文字相对画布缩放。
+    // 标题文字相对画布缩放(生成 OG 图时)
+    // 类型: number(>0) | 可填: 0.5–1.2 | 推荐: 0.75
+    // 计算方式: 最终字号 = ogImageStyle.fontSizeBase × fontScale;非法值回退 1;超长标题仍按 maxLines 自动压缩
     fontScale: 0.75,
     // 生成缓存目录。
     cacheDir: '.og-cache'
@@ -767,7 +778,8 @@
     widthDefault: 800,
     // 是否记住阅读设置。
     remember: true,
-    // 存储键名。
+    // 已废弃(无消费方): 实际 localStorage 键为 persistKey
+    // 保留仅为兼容旧配置文件;修改本键不产生效果
     storageKey: 'readerPrefs',
     // 阅读设置持久化键(字号/行高/宽度的 localStorage 键名)。
     persistKey: 'ss-reading',
@@ -895,14 +907,22 @@
     copyAfterRender: false,
     // 渲染失败占位文本。
     errorText: '[图表渲染失败]',
-    // 图表尺寸(全局默认;单图可在代码块上覆盖,写法 ```mermaid w=900 h=520)。
+    // 图表尺寸(全局默认;单图可在代码块 info 覆盖,写法 ```mermaid w=900 h=520)
+    // 子键类型均为 string(CSS 长度)或 'none':
     size: {
+      // 固定宽度;空 = 自适应(推荐)
       width: '',
+      // 固定高度;空 = 自适应(推荐)
       height: '',
+      // 最小宽度(防止窄图塌陷) | 推荐: '320px'
       minWidth: '320px',
+      // 最大宽度 | 可填: 'none'(不限制,推荐)/CSS 长度
       maxWidth: 'none',
+      // 最小高度 | 推荐: '200px'
       minHeight: '200px',
+      // 最大高度 | 可填: 'none'(推荐)/CSS 长度
       maxHeight: 'none',
+      // 溢出策略 | 可填: 'scroll'(超高滚动,推荐)/'scale'(等比缩到容器)
       fit: 'scroll'
     }
   },
@@ -927,7 +947,8 @@
     panelTitle: '本系列共 {total} 篇',
     // 系列文章前缀(自动标注,如 '第 1/3 篇')。
     showPosition: true,
-    // 无另外参数
+    // 侧栏系列 widget 默认展示条数(预留,当前未接线)
+    // 设计意图: number(整数) | 可填: 1–20 | 推荐: 8;填值不产生效果
     defaultWidgetCount: 8,
     // 系列导航上一页按钮文本。
     prevLabel: '上一篇',
@@ -1232,7 +1253,9 @@
     enabled: true,
     // 脚本 CDN 地址。
     scriptSrc: 'https://static.cloudflareinsights.com/beacon.min.js',
-    // 输出位置:end-of-body/head。
+    // 输出位置
+    // 类型: string(枚举) | 可填: 'body'(</body> 前,推荐)/'head'
+    // 不可填: 'end-of-body' 等描述性写法(构建校验会拒绝)
     injectAt: 'body',
     // 是否输出 data-cf-beacon JSON。
     emitBeacon: true,
@@ -1262,7 +1285,9 @@
     enabled: false,
     // 维护提示消息。
     message: '站点维护中，请稍后再来。',
-    // 返回的 HTTP 状态。
+    // 返回的 HTTP 状态码
+    // 类型: number(枚举) | 可填: 503(维护标准,推荐)/502/500
+    // 不可填: 200/301 等成功或跳转状态
     status: 503,
     // 是否设置 Retry-After。
     setRetryAfter: true,
@@ -1486,7 +1511,9 @@
     widgetStyle: 'sidebar',
     // 题目标签。
     label: '每日一言',
-    // 数据源:内置 quotes.json5 或自定义 JSON。
+    // 数据源
+    // 类型: string | 可填: 'builtin'(当前唯一有效值)
+    // 注意: 原注释所称「自定义 JSON」未实现;自定义引用需改代码内置数组(scripts/build.js BUILTIN_QUOTES)
     source: 'builtin',
     // 引用数量(循环轮换)。
     count: 7,
@@ -1497,7 +1524,9 @@
   favorites: {
     // 开启收藏按钮(文章页) + /favorites 收藏页。
     enabled: true,
-    // 显示在 post 末尾(工具栏)还是 meta 行。
+    // 收藏按钮显示位置
+    // 类型: string | 可填: 'toolbar'(文章底部工具栏,当前唯一实现)/'meta'(预留)
+    // 注意: 填 'meta' 无效果;位置相关样式可用 tuning.contactPopup 等相邻分类微调
     position: 'toolbar',
     // 存储键。
     storageKey: 's-favorites',
@@ -1553,9 +1582,11 @@
   },
   // ---------------------------------------------------------------------------
   giscus: {
-    // 开启 Giscus 评论。
+    // 开启 Giscus 评论(仅本键生效: 作为文章页评论容器闸门)
     enabled: false,
-    // 建议关闭, 如需启用请配置 repo/repoId 等。
+    // 以下 repo/repoId/category/categoryId/mapping/theme/loading/crossorigin 无消费方
+    // 真实评论配置在 site.json5 → comments.giscus(与 site.comments.provider='giscus' 联动)
+    // 在此填写仓库 ID 不会生效
     repo: '',
     repoId: '',
     category: 'Announcements',
@@ -1663,7 +1694,18 @@
   // 45. PWA 运行时(SW 注册 / 更新提示 / 离线提示)
   // ---------------------------------------------------------------------------
   pwa: {
-    enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true, offlinePage: true, installPrompt: true
+    // 总开关: PWA 运行时功能(需 site.json5→pwa.enabled 同时开启才会生成 manifest/SW 资源)
+    enabled: true,
+    // 注册 Service Worker(获得离线缓存能力;由 js 端在支持时注册 /sw.js)
+    registerSW: true,
+    // SW 新版本就绪时弹 toast 提示刷新(避免用户停留在旧版本)
+    updatePrompt: true,
+    // 断网/恢复连接时弹 toast 提示(仅在 navigator.onLine 事件触发)
+    offlineNotice: true,
+    // 生成离线兜底页(断网访问未缓存页面时的 /offline 页面)
+    offlinePage: true,
+    // 显示「安装到桌面」按钮(仅浏览器触发 beforeinstallprompt 后出现)
+    installPrompt: true
   },
 
   // ---------------------------------------------------------------------------
@@ -1901,7 +1943,12 @@
   // 58. 氛围(全局颗粒纹理与主题光晕的页面级开关)
   // ---------------------------------------------------------------------------
   atmosphere: {
-    enabled: true, grain: true, glow: true
+    // 总开关(false = 关闭全部氛围层)
+    enabled: true,
+    // 全页颗粒噪点层(伪元素纹理;强度/密度在 tuning.json5→texture 分类调整)
+    grain: true,
+    // Hero 区主题色光晕(关闭可省一次全屏合成,低端设备建议 false)
+    glow: true
   },
 
   // ---------------------------------------------------------------------------
@@ -1977,17 +2024,28 @@
     enabled: true,
     // 一键档位：'off'=全关 | 'soft'=仅右键菜单+复制署名(推荐) | 'strict'=按 guard.json5 各 enabled
     preset: 'soft',
-    // 模块开关：preset='soft' 时仅以下两项默认生效；其余模块需在 guard.json5 显式 enabled:true
-    // 'strict' 档下所有模块以 guard.json5 各 enabled 为准；此处 false 强制关闭任何档位下的该模块
+    // 模块开关(类型均为 boolean)：preset='soft' 时仅 contextMenu/copyGuard 默认生效；
+    // 其余模块需在 guard.json5 显式 enabled:true 才会执行；'strict' 档下以 guard.json5 各 enabled 为准；
+    // 此处 false 强制关闭任何档位下的该模块。
+    // contextMenu: 自定义右键菜单(替换浏览器菜单)
     contextMenu: true,
+    // copyGuard: 复制拦截 + 追加署名
     copyGuard: true,
+    // selectionGuard: 禁止选中文本
     selectionGuard: true,
+    // hotkeyGuard: 拦截开发者工具等快捷键
     hotkeyGuard: true,
+    // watermark: 页面水印(样式/文案见 guard.json5→watermark)
     watermark: true,
+    // devtoolsDetect: 开发者工具开启检测(行为见 guard.json5)
     devtoolsDetect: true,
+    // consoleGuard: 控制台 banner/清屏/反制
     consoleGuard: true,
+    // privacyCurtain: 窗口失焦/截屏时的隐私帘
     privacyCurtain: true,
+    // tamperWatch: 注入与 DOM 篡改监视
     tamperWatch: true,
+    // accessGate: 路径口令访问门槛(密码/次数见 guard.json5→accessGate)
     accessGate: true
   },
 

@@ -97,7 +97,8 @@
     // 跨域资源策略
     // 可填: "same-origin"(推荐)/"same-site"/"cross-origin"
     "Cross-Origin-Resource-Policy": "same-origin",
-    // 跨域嵌入策略（COEP;开启 require-corp 需所有资源带 CORP 头）
+    // 跨域嵌入策略（COEP）
+    // 类型: string（枚举） | 可填: "unsafe-none"(默认,推荐)/"require-corp"(启用 SharedArrayBuffer 等需全部资源带 CORP 头)/"credentialless"(实验)
     "Cross-Origin-Embedder-Policy": "unsafe-none",
     // 跨域打开者策略（COOP;防跨窗口引用攻击）
     "Cross-Origin-Opener-Policy": "same-origin"

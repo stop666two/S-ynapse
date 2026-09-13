@@ -126,6 +126,15 @@
     // 注意: 需 features.search.enabled 同时为 true,否则入口无效
     "enabled": true,
 
+    // 搜索后端（构建期索引策略）
+    // 作用: 决定搜索索引的生成方式;'local' 生成全站 search-index.json 供前端即时检索（默认）;
+    //       'pagefind' 改为构建期生成 Pagefind 静态索引（压缩与哈希之后生成,不参与 cache-bust）
+    // 类型: string | 可填: "local" | "pagefind"
+    // 不可填: 其他值（按 local 处理,且不生成 Pagefind 索引）
+    // 推荐: "local"（小站点更快,零额外依赖）;文章量大或需要词干匹配时改 "pagefind"
+    // 注意: 选 pagefind 需安装 devDependency（npm install -D pagefind）,未安装时构建告警跳过
+    "provider": "local",
+
     // 搜索框占位文字（中文）
     // 作用: 导航搜索弹层的 placeholder;en 站点由 ui-strings.json5 覆盖
     // 类型: string | 推荐: "搜索文章..."

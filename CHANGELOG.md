@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - features 模块计数同步为 91; README/config-reference 计数修正(91 模块/723 项)（该计数已过时，当前为 95 模块，见 1.0.3 后续条目）
 
 - **canonical 全站指向根路径（SEO）**：`<link rel="canonical">` 此前对所有页面均输出站点根（模板引用了不存在的 `page.url`），现改用 `currentUrl`（文章/分页/归档/标签等各自 URL），并规整 `site.url` 尾部斜杠 — `templates/layout.ejs`
+- **Pagefind 索引生成失效修复**：门控误读不存在的 `features.search.provider` 导致函数恒不执行；改读 `navigation.search.provider === 'pagefind'`，并在压缩/哈希**之后**生成（不参与 cache-bust、写前清空旧索引、输出目录跟随 `features.pagefind.indexPath`）；`navigation.json5` 新增并注释 `search.provider` 键（`local`/`pagefind`），README/config-reference 同步 — `scripts/build.js` + `navigation.json5` + `README.md` + `docs/config-reference.md`
+- **空构建防护**：页面渲染整体失败（`dist/` 无任何 HTML）时立即中止构建并提示检查模板语法/变量，避免静默产出空站 — `scripts/build.js`
 
 ### Added
 

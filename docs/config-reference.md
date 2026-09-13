@@ -447,7 +447,7 @@ sitemap: {
 `enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true` / `translationNotice true`(文章页翻译互链提示:另一语言存在同 slug 文章时在标题下显示胶囊链接,文案 `post.translationNotice` 支持 `{lang}` 占位) — `features.i18n` 另见 §3.73。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/search-index),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段。
 
 ### 3.53 pagefind — Pagefind 全文搜索
-`enabled true` / `indexPath '/pagefind'` / `integrate true`。使用 Pagefind 的离线全文搜索(search.provider='pagefind' 时生效)。**构建管线不生成 Pagefind 索引:启用前需先安装并运行 Pagefind 生成索引(例如 `npx pagefind --site dist`),否则前端请求 `/pagefind/*` 会 404。**
+`enabled true` / `indexPath '/pagefind'` / `integrate true`。使用 Pagefind 的离线全文搜索(navigation.search.provider='pagefind' 且本模块 enabled 时生效)。**构建在压缩与哈希之后自动生成索引,输出到 `indexPath`(不参与 cache-bust;先清空旧索引再写入);未安装 pagefind 依赖时告警跳过(`npm install -D pagefind`);`--serve` 模式跳过生成。**
 
 ### 3.54 giscus — Giscus 评论
 `enabled false`(默认关) / `repo ''` / `repoId ''` / `category 'Announcements'` / `categoryId ''` / `mapping 'title'` / `theme 'preferred_color_scheme'` / `loading 'lazy'` / `crossorigin 'anonymous'`。与 site.comments(provider='giscus')联动——两者都必须配置才显示。
@@ -630,7 +630,8 @@ sitemap: {
 | `navbar.shadow` / `breakpoint` | `true`/`768px` | 底部阴影 / 汉堡菜单断点 |
 | `socialInNav.enabled` / `order[]` | `false`/`[]` | 导航社交图标（数据源 site.social.items） |
 | `search.enabled` | `false` | 搜索开关(需要 features.search.enabled) |
-| `search.placeholder` | `搜索...` | 占位文本（纯本地索引,无第三方 provider） |
+| `search.provider` | `local` | 搜索后端:`local`(默认,构建 `search-index.json` 本地检索)/`pagefind`(构建期生成 Pagefind 静态索引,需 `npm install -D pagefind`;压缩与哈希之后生成,不参与 cache-bust;`--serve` 模式跳过) |
+| `search.placeholder` | `搜索...` | 占位文本 |
 | `navbarOptions.height/glassBlur/glassAlpha` | `60px`/`12px`/`0.8` | 外观选项（优先于 navbar/theme.glass） |
 | `navbarOptions.navGap/navFontSize/iconSize/logoSize/shadowShow` | — | 菜单间距/字号/图标尺寸/Logo 字号/滚动阴影 |
 

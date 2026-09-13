@@ -2123,6 +2123,38 @@ function generateSearchIndex(config, articles) {
   }
 }
 
+async function generatePagefindIndex(config) {
+  const pf = (config.features && config.features.pagefind) || {};
+  const navSearch = (config.navigation && config.navigation.search) || {};
+  if (pf.enabled === false) return null;
+  if (navSearch.provider !== 'pagefind') return null;
+  const indexPath = String(pf.indexPath || '/pagefind').replace(/^\/+/, '') || 'pagefind';
+  const outDir = path.join(DIST_DIR, indexPath);
+  let mod;
+  try {
+    mod = await import('pagefind');
+  } catch (err) {
+    console.warn('  [WARN] navigation.search.provider=pagefind 但未安装 pagefind；跳过索引生成（npm install -D pagefind）');
+    return null;
+  }
+  try {
+    fs.rmSync(outDir, { recursive: true, force: true });
+    const created = await mod.createIndex();
+    if (!created || !created.index) {
+      throw new Error((created && created.errors && created.errors.join('; ')) || 'createIndex 未返回索引');
+    }
+    await created.index.addDirectory({ path: DIST_DIR });
+    await created.index.writeFiles({ outputPath: outDir });
+    console.log(`  Created: ${indexPath}/ (Pagefind 全文索引)`);
+    return outDir;
+  } catch (err) {
+    console.error(`  [ERROR] Pagefind 索引生成失败: ${err.message}`);
+    return null;
+  } finally {
+    try { await mod.close(); } catch (e) { /* 服务已退出 */ }
+  }
+}
+
 function collectBudgetStats() {
   const htmlFiles = [];
   (function walk(dir) {
@@ -2766,6 +2798,10 @@ async function build() {
     if (pagesContent) baseData.pagesContent = pagesContent;
     const customPages = processCustomPages(config, baseData);
     await generatePages(config, articles, baseData, customPages);
+    const generatedHtmlCount = getAllFiles(DIST_DIR).filter((f) => f.endsWith('.html')).length;
+    if (generatedHtmlCount === 0) {
+      throw new Error('页面生成结果为空：dist/ 下没有产出任何 HTML（模板渲染可能整体失败，请检查 templates/*.ejs 的语法与变量）');
+    }
     const zh404 = path.join(DIST_DIR, 'zh', '404.html');
     if (fs.existsSync(zh404)) {
       fs.copyFileSync(zh404, path.join(DIST_DIR, '404.html'));
@@ -2791,6 +2827,7 @@ async function build() {
     await generatePWA(config);
     await minifyAll(config);
     await cacheBust(config);
+    if (!SERVE_MODE) await generatePagefindIndex(config);
     if (hooks && hooks.postBuild) {
       await hooks.postBuild(config, {
         articles: articles.length,

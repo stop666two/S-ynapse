@@ -40,6 +40,7 @@
     //   titleEn  列标题（英文）
     //   links    链接列表（与 html 二选一）
     //   html     自定义 HTML 内容（与 links 二选一）
+    //   htmlEn   自定义 HTML 内容（英文版；空 = en 站回退 html）
     // 链接项字段: enabled / label(中文) / labelEn(英文) / url(站内路径或 https)
     // 不可填: links 与 html 同时存在（html 优先渲染）;不可信第三方脚本
     "items": [
@@ -65,7 +66,8 @@
         "enabled": true,
         "title": "联系",
         "titleEn": "Contact",
-        "html": "<p>邮箱: admin@example.com</p>"
+        "html": "<p>邮箱: admin@example.com</p>",
+        "htmlEn": "<p>Email: admin@example.com</p>"
       }
     ]
   },

@@ -17,6 +17,15 @@
     preset: '主题预设',
   },
 
+  // ------ 底部导航（移动端）------
+  bottomNav: {
+    home: '首页',
+    archive: '归档',
+    search: '搜索',
+    theme: '主题',
+    top: '顶部',
+  },
+
   // 搜索
   search: {
     placeholder: '搜索...',
@@ -256,6 +265,9 @@
 
     top: {
       language: 'Language', themePresets: 'Theme Presets', preset: 'Preset',
+    },
+    bottomNav: {
+      home: 'Home', archive: 'Archive', search: 'Search', theme: 'Theme', top: 'Top',
     },
     search: {
       placeholder: 'Search...', emptyHint: 'Type a keyword to search',

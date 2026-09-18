@@ -473,4 +473,4 @@
     @keyframes icon-draw{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
     .icon-draw [pathLength]{stroke-dasharray:100;stroke-dashoffset:0;animation:icon-draw .7s var(--te) forwards}
     @media(prefers-reduced-motion:reduce){.icon-draw [pathLength]{animation:none;stroke-dasharray:none;stroke-dashoffset:0}}
-    @media(max-width:<%=nav.navbar.breakpoint||'768px'%>){.nav-social,.nav-boost,[data-preset-wrap]{display:none}.hero::before{left:0;right:0}}
+    @media(max-width:<%=nav.navbar.breakpoint||'768px'%>){.nav-social,.nav-boost,[data-preset-wrap]{display:none}.hero::before{left:0;right:0}.post-content table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}

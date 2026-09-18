@@ -910,7 +910,13 @@
   // 可填: { "from": "/old/", "to": "/new/", "status": 301 }
   // 不可填: 与内置规则冲突的 from（内置规则优先,自定义追加在后）
   // 推荐: 默认空数组;文章迁移后用 301 保权重
-  "redirects": [],
+  "redirects": [
+    // 旧中文 slug 兼容（页 i18n 化后改名为 disclaimer）
+    { "from": "/zh/公告/", "to": "/zh/disclaimer/", "status": 301 },
+    { "from": "/zh/公告", "to": "/zh/disclaimer/", "status": 301 },
+    { "from": "/en/公告/", "to": "/en/disclaimer/", "status": 301 },
+    { "from": "/en/公告", "to": "/en/disclaimer/", "status": 301 }
+  ],
 
   // 自定义 <head> 注入
   // 作用: 原样插入每个页面 </head> 前（可用于第三方验证 meta 等）

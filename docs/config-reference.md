@@ -460,7 +460,7 @@ sitemap: {
 `enabled true` / `patterns[]` (gradient/stripes/dots/blob/mesh) / `defaultPattern 'gradient'` / `preview true` / `preferImage true`。文章封面样式库(渐变/条纹/圆点/气泡/网格),在线预览。
 
 ### 3.52 i18n — 内容级双语
-`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true` / `translationNotice true`(文章页翻译互链提示:另一语言存在同 slug 文章时在标题下显示胶囊链接,文案 `post.translationNotice` 支持 `{lang}` 占位) — `features.i18n` 另见 §3.73。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/search-index),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段。
+`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true` / `translationNotice true`(文章页翻译互链提示:另一语言存在同 slug 文章时在标题下显示胶囊链接,文案 `post.translationNotice` 支持 `{lang}` 占位) — `features.i18n` 另见 §3.73。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/search-index),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段（页脚自定义 HTML 另支持 `htmlEn`）。**运行时语言以 URL 前缀为准**（localStorage 仅作为无前缀路径的偏好记忆），语言切换保持当前子路径。
 
 ### 3.53 pagefind — Pagefind 全文搜索
 `enabled true` / `indexPath '/pagefind'` / `integrate true`。使用 Pagefind 的离线全文搜索(navigation.search.provider='pagefind' 且本模块 enabled 时生效)。**构建在压缩与哈希之后自动生成索引,输出到 `indexPath`(不参与 cache-bust;先清空旧索引再写入);未安装 pagefind 依赖时告警跳过(`npm install -D pagefind`);serve/watch 模式同样生成,保证本地预览与生产一致。**
@@ -684,7 +684,7 @@ sitemap: {
 |---|---|---|
 | `copyright` | `© 2026 …` | 版权文本（原样输出,不自动更新年份） |
 | `columns` | `3` | 链接区列数（1–4） |
-| `columnItems.enabled` / `items[]` | `true`/`[]` | 多列 `{enabled,title,titleEn,links[{enabled,label,labelEn,url}],html}` |
+| `columnItems.enabled` / `items[]` | `true`/`[]` | 多列 `{enabled,title,titleEn,links[{enabled,label,labelEn,url}],html,htmlEn}`（htmlEn 为英文版自定义 HTML，空则回退 html） |
 | `bottomLinks.enabled` / `items[]` | `true`/`[]` | 底栏链接（同上链接项结构） |
 | `social.enabled` | `false` | 页脚社交图标行（尺寸/间距见 options.socialIconSize/socialGap） |
 | `poweredBy.enabled` / `text` | `false`/`S-ynapse` | Powered by（repoUrl 有效时自动链接） |

@@ -47,7 +47,7 @@ const DEFAULT_FEATURES = {
   },
   codeBlock: {
     enabled: true, copyButtonVisibility: 'hover', copySuccessText: '已复制',
-    copyFailText: '复制失败', showLanguageTag: true, lineNumbers: true, windowBar: true,
+    copyFailText: '复制失败', blobRevokeDelayMs: 100, showLanguageTag: true, lineNumbers: true, windowBar: true,
     wrapLongLines: false, highlightBackground: 'var(--color-hover)',
     borderRadius: '0.375rem', maxHeight: '', copyAllButton: true, downloadButton: true,
     maxHeightVh: 'none', headerHeight: '36px', fontSize: '0.92em'
@@ -69,7 +69,7 @@ const DEFAULT_FEATURES = {
   },
   themeSchedule: {
     enabled: false, darkFrom: '22:00', lightFrom: '06:00',
-    respectManualOverride: true, applyInstantly: true, checkIntervalMs: 60000,
+    respectManualOverride: true, applyInstantly: true, checkIntervalMs: 60000, smoothTransitionMs: 350,
     smoothTransition: true
   },
   shortcuts: {
@@ -128,7 +128,7 @@ const DEFAULT_FEATURES = {
     enabled: true, behavior: 'smooth', anchorOffset: '18px', respectReducedMotion: true
   },
   toast: {
-    enabled: true, position: 'bottom-center', durationMs: 2500, maxVisible: 3
+    enabled: true, position: 'bottom-center', durationMs: 2500, maxVisible: 3, removeDelayMs: 300
   },
   breadcrumb: {
     enabled: true, separator: '›', showHome: true, showCurrent: true
@@ -138,10 +138,10 @@ const DEFAULT_FEATURES = {
     reducedMotion: 'light', excludeSelector: '[data-no-transition]'
   },
   pwa: {
-    enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true, offlinePage: true, installPrompt: true
+    enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true, offlinePage: true, installPrompt: true, installDismissKey: 's-a2hs-dismissed', updateToastMs: 6000
   },
   morphIcons: {
-    enabled: true, spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},
+    enabled: true, vendorPath: '/assets/vendor/morphicons', spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},
     icons: { theme: true, copy: true, favorite: true, tts: true, menu: true }
   },
   viewTransition: {
@@ -189,7 +189,7 @@ const DEFAULT_FEATURES = {
   },
   announcement: {
     enabled: true, text: '', textEn: '', url: '', items: [], rotateMs: 6000,
-    pauseOnHover: true, transition: 'fade', tone: 'accent', showProgress: false, showDot: true, newTab: true, dismissible: true
+    pauseOnHover: true, transition: 'fade', tone: 'accent', showProgress: false, showDot: true, newTab: true, dismissible: true, storageKey: 's-announce-dismissed', removeDelayMs: 340
   },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
@@ -402,7 +402,7 @@ const DEFAULT_FEATURES = {
   },
   motion: {
     enabled: true,
-    cardHoverScale: 1.02,
+    cardHoverScale: 1.02, revealCleanupMs: 1400,
     linkUnderlineOffset: '3px',
     cardHoverLift: true, cardHoverLiftPx: 4,
     linkUnderline: true, linkUnderlineThickness: '2px',

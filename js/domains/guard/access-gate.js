@@ -68,7 +68,7 @@ export function init(ctx) {
     }
     wrap.appendChild(card);
     document.body.appendChild(wrap);
-    if (!limitMode) setTimeout(function () { const i = wrap.querySelector('input'); if (i) i.focus(); }, 50);
+    if (!limitMode) setTimeout(function () { const i = wrap.querySelector('input'); if (i) i.focus(); }, +(((window.__GUARD__ || {}).accessGate || {}).focusDelayMs));
   }
 
   function countView() {

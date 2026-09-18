@@ -22,7 +22,7 @@ export function init(ctx) {
     const d = document.createElement('div');
     d.className = 'g-flash on';
     document.body.appendChild(d);
-    setTimeout(function () { d.remove(); }, 600);
+    setTimeout(function () { d.remove(); }, +(((window.__GUARD__ || {}).copyGuard || {}).flashRemoveMs));
   }
 
   function notifyBlocked() {

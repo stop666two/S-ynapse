@@ -241,6 +241,9 @@
     copySuccessText: '已复制',
     // 复制失败提示文本。
     copyFailText: '复制失败',
+    // 下载触发后释放 Blob URL 的延迟(ms)。过短可能导致部分浏览器下载中断。
+    // 类型: number(ms) | 推荐: 100
+    blobRevokeDelayMs: 100,
     // 是否显示语言标签。
     showLanguageTag: true,
     // 是否显示 macOS 三圆点窗口栏(代码块顶部装饰栏)。
@@ -354,6 +357,9 @@
     applyInstantly: true,
     // 检查周期(毫秒,默认 60000 = 每分钟)。
     checkIntervalMs: 60000,
+    // 自动切换主题时平滑过渡的启用时长(ms,与 CSS .theme-switching 过渡匹配)。
+    // 类型: number(ms) | 推荐: 350
+    smoothTransitionMs: 350,
     // 定时切换时给 html 加 theme-switching 类,300ms 过渡动画。
     smoothTransition: true
   },
@@ -1456,6 +1462,9 @@
     enabled: true,
     // 卡片悬停缩放倍数(1=不缩放)。
     cardHoverScale: 1.02,
+    // reveal 动画结束后清理 transitionDelay 的延迟(ms,需 ≥ 最大 stagger + 过渡时长)。
+    // 类型: number(ms) | 推荐: 1400
+    revealCleanupMs: 1400,
     // 链接下划线相对文字的偏移(px)。
     linkUnderlineOffset: '3px',
     // 卡片悬停上浮(首页/分类/标签的文章卡片)。
@@ -1646,7 +1655,10 @@
     // 自动消失时长(ms)。
     durationMs: 2500,
     // 同屏最多显示条数(超出时最早一条先消失)。
-    maxVisible: 3
+    maxVisible: 3,
+    // 淡出动画后移除节点的延迟(ms)。
+    // 类型: number(ms) | 推荐: 300
+    removeDelayMs: 300
   },
 
   // ---------------------------------------------------------------------------
@@ -1696,7 +1708,13 @@
     // 生成离线兜底页(断网访问未缓存页面时的 /offline 页面)
     offlinePage: true,
     // 显示「安装到桌面」按钮(仅浏览器触发 beforeinstallprompt 后出现)
-    installPrompt: true
+    installPrompt: true,
+    // 「安装到桌面」关闭状态的 localStorage 键(修改会使旧关闭记录失效)。
+    // 类型: string | 推荐: 's-a2hs-dismissed'
+    installDismissKey: 's-a2hs-dismissed',
+    // SW 更新就绪 toast 的显示时长(ms)。
+    // 类型: number(ms) | 推荐: 6000
+    updateToastMs: 6000
   },
 
   // ---------------------------------------------------------------------------
@@ -1705,6 +1723,9 @@
   morphIcons: {
     // 总开关(false = 全部图标恢复静态切换,不加载任何 vendor 代码)。
     enabled: true,
+    // vendor 图标资产目录(站内绝对路径;构建复制 assets/vendor 后由此加载)。
+    // 类型: string | 推荐: '/assets/vendor/morphicons'
+    vendorPath: '/assets/vendor/morphicons',
     // 弹簧预设: smooth(无回弹) / snappy(快速微回弹) / bouncy(弹跳感);
     // tuning.morphicons.stiffness/damping 同时设置时优先于预设。
     spring: 'snappy',
@@ -1949,6 +1970,14 @@
     // 总开关(false = 不渲染公告条,同时不注入头部防闪脚本)
     // 类型: boolean | 可填: true/false | 推荐: true
     enabled: true,
+
+    // 关闭记录的 localStorage 键(修改会使旧关闭记录失效)
+    // 类型: string | 推荐: 's-announce-dismissed'
+    storageKey: 's-announce-dismissed',
+
+    // 关闭动画后移除公告 DOM 的延迟(ms,需 ≥ 滑出动画时长)
+    // 类型: number(ms) | 推荐: 340
+    removeDelayMs: 340,
 
     // 单条公告文本(zh 站使用;items 非空时本字段被忽略)
     // 类型: string | 可填: 任意短文本(建议 ≤ 40 字,超长会省略号截断)

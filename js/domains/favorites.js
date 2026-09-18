@@ -2,7 +2,7 @@ export function init() {
   const F = window.__FEATURES__ || {};
   const FV = F.favorites || {};
   if (FV.enabled === false) return;
-  const KEY = FV.storageKey || 's-favorites';
+  const KEY = FV.storageKey;
   const T = (k, fb) => (window.__T ? window.__T(k, fb) : fb);
 
   function read() {

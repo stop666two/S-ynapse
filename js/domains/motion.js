@@ -79,7 +79,7 @@ export function init() {
             batch.forEach(function (el, idx) {
               if (stagger > 0) {
                 el.style.transitionDelay = (Math.min(idx, 8) * stagger) + 'ms';
-                setTimeout(function () { el.style.transitionDelay = ''; }, 1400);
+                setTimeout(function () { el.style.transitionDelay = ''; }, +M.revealCleanupMs);
               }
               el.classList.add('in');
             });

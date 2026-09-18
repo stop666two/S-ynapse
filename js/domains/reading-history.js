@@ -1,7 +1,7 @@
 export function init() {
   var F = (window.__FEATURES__ || {}).readingHistory || {};
   if (F.enabled === false) return;
-  var KEY = String(F.storageKey || 's-history');
+  var KEY = String(F.storageKey);
   var maxItems = Number(F.maxItems) > 0 ? Number(F.maxItems) : 5;
   var T = typeof window.__T === 'function' ? window.__T : function (k, d) { return d || k; };
   function load() {

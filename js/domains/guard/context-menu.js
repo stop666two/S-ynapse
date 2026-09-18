@@ -99,7 +99,9 @@ export function init(ctx) {
       }));
       if (builtin.translate !== false) list.push(item(t('translate', 'Translate selection'), 'translate', function () {
         const tl = (document.documentElement.lang || 'zh').startsWith('en') ? 'zh-CN' : 'en';
-        window.open('https://translate.google.com/translate?sl=auto&tl=' + tl + '&text=' + encodeURIComponent(sel), '_blank', 'noopener');
+        const tu = String((((window.__GUARD__ || {}).contextMenu || {}).translateUrl) || '').replace('{lang}', tl).replace('{text}', encodeURIComponent(sel));
+        if (!tu) return;
+        window.open(tu, '_blank', 'noopener');
       }));
     }
     if (codeWrap && showOn.code !== false) {
@@ -115,7 +117,7 @@ export function init(ctx) {
         a.href = URL.createObjectURL(blob);
         a.download = 'snippet.' + ext;
         a.click();
-        setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, +(((window.__GUARD__ || {}).contextMenu || {}).revokeDelayMs));
       }));
     }
     if (img && showOn.image !== false) {

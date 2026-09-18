@@ -7,20 +7,20 @@ const SP_SUPPORTED = (function () {
 
 function cfgVT() { return (window.__FEATURES__ && window.__FEATURES__.viewTransition) || {}; }
 function cfgSP() { return (window.__FEATURES__ && window.__FEATURES__.speculation) || {}; }
-function storeKey(cfg, fallback) {
-  return (cfg.toggle && cfg.toggle.storageKey) || fallback;
+function storeKey(cfg) {
+  return cfg.toggle && cfg.toggle.storageKey;
 }
-function getOn(cfg, fallbackKey) {
+function getOn(cfg) {
   const t = cfg.toggle || {};
   try {
-    const v = localStorage.getItem(storeKey(cfg, fallbackKey));
+    const v = localStorage.getItem(storeKey(cfg));
     if (v === '0') return false;
     if (v === '1') return true;
   } catch (e) { /* 隐私模式等场景下忽略 */ }
   return t.defaultOn !== false;
 }
-function setOn(cfg, fallbackKey, on) {
-  try { localStorage.setItem(storeKey(cfg, fallbackKey), on ? '1' : '0'); } catch (e) { /* 忽略 */ }
+function setOn(cfg, on) {
+  try { localStorage.setItem(storeKey(cfg), on ? '1' : '0'); } catch (e) { /* 忽略 */ }
 }
 function sysReduce() {
   try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
@@ -30,7 +30,7 @@ function vtActive() {
   if (c.enabled === false || !VT_SUPPORTED) return false;
   const rm = c.reducedMotion || 'light';
   if (rm === 'off' && sysReduce()) return false;
-  return getOn(c, 's-view-transition');
+  return getOn(c);
 }
 function spDelivery() {
   return cfgSP().delivery || 'inline';
@@ -39,7 +39,7 @@ function spActive() {
   const c = cfgSP();
   if (c.enabled === false || !SP_SUPPORTED) return false;
   if (spDelivery() === 'header') return false;
-  return getOn(c, 's-speculation');
+  return getOn(c);
 }
 window.__viewTransitionActive = vtActive;
 
@@ -118,11 +118,11 @@ function initUI() {
     }
   });
   if (vtBox) vtBox.addEventListener('change', function () {
-    setOn(cfgVT(), 's-view-transition', vtBox.checked);
+    setOn(cfgVT(), vtBox.checked);
     setVtOff(!vtActive());
   });
   if (spBox) spBox.addEventListener('change', function () {
-    setOn(cfgSP(), 's-speculation', spBox.checked);
+    setOn(cfgSP(), spBox.checked);
     setSpeculation(spActive());
   });
 }

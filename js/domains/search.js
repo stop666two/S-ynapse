@@ -62,7 +62,7 @@ export function init() {
   function ensurePagefind() {
     if (window.__pfReady__) { focusPagefind(); return; }
     if (window.__pfLoading__) { window.__pfLoading__.then(focusPagefind); return; }
-    var base = window.__SEARCH_PROVIDER_PATH__ || '/pagefind';
+    var base = window.__SEARCH_PROVIDER_PATH__;
     window.__pfLoading__ = new Promise(function (resolve) {
       var css = document.createElement('link');
       css.rel = 'stylesheet';
@@ -122,14 +122,14 @@ export function init() {
   });
   (function () {
     var F = window.__FEATURES__ || {}, PF = (F && F.pagefind) || {};
-    window.__SEARCH_PROVIDER_PATH__ = String(PF.indexPath || '/pagefind').replace(/\/$/, '');
+    window.__SEARCH_PROVIDER_PATH__ = String(PF.indexPath).replace(/\/$/, '');
   })();
-  var __HSK = 's-hotSearches';
-  var __HST = 5;
+  var __HSK = '';
+  var __HST = 0;
   function __hs() {
     var F = window.__FEATURES__ || {}, HS = (F && F.hotSearches) || {};
-    __HSK = HS.storageKey || 's-hotSearches';
-    __HST = isNaN(+TNS.hotCount) ? (isNaN(+HS.top) ? 5 : +HS.top) : +TNS.hotCount;
+    __HSK = HS.storageKey;
+    __HST = isNaN(+TNS.hotCount) ? +HS.top : +TNS.hotCount;
   }
   (function () {
     var F0 = window.__FEATURES__ || {}, SC0 = (F0 && F0.search) || {};

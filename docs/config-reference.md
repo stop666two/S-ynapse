@@ -281,7 +281,7 @@
 `enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
 
 ### 3.6 codeBlock — 代码块
-`enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `showLanguageTag true` / `lineNumbers true`(纯文本块也可用) / `wrapLongLines false`(true=软换行,行号仍按行高对齐) / `highlightBackground var(--color-hover)`(hover 混色基色,力度见 tuning.code.hoverBgMix) / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false`(true=首块上方一键复制全页) / `downloadButton true`
+`enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `showLanguageTag true` / `lineNumbers true`(纯文本块也可用) / `wrapLongLines false`(true=软换行,行号仍按行高对齐) / `highlightBackground var(--color-hover)`(hover 混色基色,力度见 tuning.code.hoverBgMix) / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false`(true=首块上方一键复制全页) / `downloadButton true` / `blobRevokeDelayMs 100`(下载后释放 Blob URL 延迟 ms)
 
 视觉细化项(tuning.json5)：`code`(lineNumberColor/lineNumberOpacity/hoverBorderMix/hoverShadowMix/hoverBgMix/inlineRadius/inlineHairlineMix/diffAddMix/diffDelMix) / `icons`(strokeWidth/hoverLift)；终端语言自动前缀(bash/sh/shell/zsh/fish→`$ lang`；powershell→`PS> powershell`；console→`> console`)；diff 增删行着色(.token.inserted/.deleted)；菜单图标见 navigation.json5 的 `icon`(内置 home/archive/tags/info/book/link/folder/search/rss/download)。
 
@@ -421,7 +421,7 @@ sitemap: {
 `enabled true` / `pickerVisible true` / `persistChoice true` / `showInNavbar true` / `previewOnHover true`。6 套调色盘(Classic Blue / Cyber Purple / Forest Green / Sakura Pink / Editorial Gray / Midnight Black),点击即切换 CSS 变量并 localStorage 持久化(`ss-preset`)。
 
 ### 3.41 themeSchedule — 深色定时切换
-`enabled false`(默认关) / `darkFrom '22:00'` / `lightFrom '06:00'` / `respectManualOverride true` / `applyInstantly true` / `checkIntervalMs 60000` / `smoothTransition true`。按固定每日时段自动切主题,检查周期以毫秒计(默认 60000 = 每分钟);smoothTransition 开启时切换瞬间给 html 加 `theme-switching` 类,300ms 过渡动画。
+`enabled false`(默认关) / `darkFrom '22:00'` / `lightFrom '06:00'` / `respectManualOverride true` / `applyInstantly true` / `checkIntervalMs 60000` / `smoothTransitionMs 350`(平滑过渡时长 ms) / `smoothTransition true`。按固定每日时段自动切主题,检查周期以毫秒计(默认 60000 = 每分钟);smoothTransition 开启时切换瞬间给 html 加 `theme-switching` 类,按 `smoothTransitionMs` 过渡。
 
 ### 3.42 readDock — 移动端阅读侧栏
 `enabled true` / `showProgressRing true` / `showTocButton true` / `showTopButton true` / `hideOnScrollDown true` / `position right`。移动端右下角的进度环 + 回目录 + 回顶按钮。
@@ -439,7 +439,7 @@ sitemap: {
 `enabled false` / `pattern 'none'` (particles/grid/dots/mesh) / `intensity 'medium'` / `reducedMotion false`。站点背景特效(粒子/网格/圆点/网格渐变)。
 
 ### 3.47 motion — 滚动动效
-`enabled true` / `ease cubic-bezier(.4,0,.2,1)` / `pageEnterDurationMs 240`(页面入场时长 ms) / `cardHoverScale 1.02`(卡片悬停缩放) / `linkUnderlineOffset 3px`(下划线偏移) / `cardHoverLift true` / `cardHoverLiftPx 4` / `linkUnderline true` / `linkUnderlineThickness 2px` / `buttonRipple true` / `rippleDurationMs 500` / `scrollReveal true` / `revealCards true` / `revealHeadings true` / `revealImages true` / `revealBlocks false` / `revealDurationMs 250` / `revealDelayMs 0` / `revealStaggerMax 80` / `revealOffset 10px` / `revealOnce true` / `revealThreshold 0.08` / `reducedMotion 'light'`(`light|off|full`,轻量版:更短/幅度更小)。滚动渐入/悬停上浮/涟漪/下划线动效总控。
+`enabled true` / `ease cubic-bezier(.4,0,.2,1)` / `pageEnterDurationMs 240`(页面入场时长 ms) / `cardHoverScale 1.02`(卡片悬停缩放) / `linkUnderlineOffset 3px`(下划线偏移) / `cardHoverLift true` / `cardHoverLiftPx 4` / `linkUnderline true` / `linkUnderlineThickness 2px` / `buttonRipple true` / `rippleDurationMs 500` / `scrollReveal true` / `revealCards true` / `revealHeadings true` / `revealImages true` / `revealBlocks false` / `revealDurationMs 250` / `revealDelayMs 0` / `revealStaggerMax 80` / `revealOffset 10px` / `revealOnce true` / `revealThreshold 0.08` / `revealCleanupMs 1400`(reveal 结束清理 transitionDelay 延迟 ms) / `reducedMotion 'light'`(`light|off|full`,轻量版:更短/幅度更小)。滚动渐入/悬停上浮/涟漪/下划线动效总控。
 
 ### 3.48 dailyQuote — 每日一言
 `enabled true` / `widgetStyle 'sidebar'` / `label '每日一言'` / `source 'builtin'`(内置 7 条;也支持相对项目根或绝对路径的 `.json`/`.json5`,格式 `["引语"]` 或 `[{text,author}]` 或 `{quotes:[...]}`;加载失败回退内置并告警) / `count 7` / `quoteColor ''`。侧栏每日名言(内置 7 条,按日期轮换)。
@@ -466,7 +466,7 @@ sitemap: {
 `enabled true` / `behavior 'smooth'`(`smooth|auto`) / `anchorOffset '18px'`(锚点额外偏移,最终 scroll-padding-top = calc(var(--hh) + 该值)) / `respectReducedMotion true`(reduced-motion 时降级 auto)。统一接管全站平滑滚动(CSS scroll-behavior + JS 滚动调用经 `__SB()`);原 theme.animation.scrollBehavior 已移除。
 
 ### 3.56 toast — 统一轻提示
-`enabled true` / `position 'bottom-center'`(`bottom-center|top-center|top-right|bottom-right|top-left|bottom-left`) / `durationMs 2500` / `maxVisible 3`。统一 `window.__toast(msg,{type,duration})` API;内置 info/success/warning/error 四类(无需配置);分享复制与联系复制已迁移到统一 toast(原内联提示元素移除)。
+`enabled true` / `position 'bottom-center'`(`bottom-center|top-center|top-right|bottom-right|top-left|bottom-left`) / `durationMs 2500` / `maxVisible 3` / `removeDelayMs 300`(淡出后移除节点延迟 ms)。统一 `window.__toast(msg,{type,duration})` API;内置 info/success/warning/error 四类(无需配置);分享复制与联系复制已迁移到统一 toast(原内联提示元素移除)。
 
 ### 3.57 breadcrumb — 面包屑导航
 `enabled true` / `separator '›'` / `showHome true` / `showCurrent true`。所有页面(首页与 404 除外)顶部显示;文章页层级:首页 › 分类 › 标题(与 JSON-LD 结构化数据一致);列表页:首页 › 归档/标签/分类/搜索/收藏/图库/友情链接;自定义页:首页 › 标题。
@@ -475,7 +475,7 @@ sitemap: {
 `enabled true` / `type 'slide'`(`slide|fade`) / `durationMs 180`(入场) / `outDurationMs 120`(离开淡出) / `reducedMotion 'light'`(`light|off|full`,轻量版:短纯淡出) / `excludeSelector '[data-no-transition]'`。内链点击淡出 → 导航 → 新页入场;外链/新窗口/hash/下载链接不拦截;原 `motion.pageEnterDurationMs` 与 `theme.animation.pageTransition` 已移除。
 
 ### 3.59 pwa — PWA 运行时
-`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `installPrompt true`。运行时总开关(需 `site.pwa.enabled` 同时开启);注册 `site.pwa.serviceWorker` 并监听更新(toast 提示)、监听离线/恢复(toast 提示);修复 `_redirects` 将根 `/manifest.json` 302 到不存在语言路径导致 SW 安装失败的问题。`offlinePage` 构建生成 `offline.html` 兜底页(断网访问未缓存页面时显示双语提示与重试按钮,SW 预缓存并在导航失败时回退);`installPrompt` 支持 beforeinstallprompt 的浏览器显示"安装到桌面"浮动按钮(可关闭,写入 `s-a2hs-dismissed` 记忆)。
+`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `installPrompt true` / `installDismissKey 's-a2hs-dismissed'`(安装按钮关闭记忆键) / `updateToastMs 6000`(更新提示时长 ms)。运行时总开关(需 `site.pwa.enabled` 同时开启);注册 `site.pwa.serviceWorker` 并监听更新(toast 提示)、监听离线/恢复(toast 提示);修复 `_redirects` 将根 `/manifest.json` 302 到不存在语言路径导致 SW 安装失败的问题。`offlinePage` 构建生成 `offline.html` 兜底页(断网访问未缓存页面时显示双语提示与重试按钮,SW 预缓存并在导航失败时回退);`installPrompt` 支持 beforeinstallprompt 的浏览器显示"安装到桌面"浮动按钮(可关闭,写入 `installDismissKey` 记忆)。
 
 ---
 
@@ -488,7 +488,7 @@ sitemap: {
 
 ### 3.61 morphIcons — 图标变形动画
 
-`enabled true` / `spring 'snappy'`(`smooth|snappy|bouncy`) / `reducedMotion 'light'`(`light|off|full`;light=系统 reduce-motion 下改用更快的轻量弹簧) / `preload 'interaction'`(`interaction|idle|immediate`) / `perIcon {}`(单图标弹簧覆盖,值=预设名或 `{stiffness,damping}`) / `icons { theme, copy, favorite, tts, menu }`(各图标独立开关)。基于 morphicons(本地 vendor,懒加载,~7.5KB gzip):状态切换类图标用弹簧物理做形状变形(主题 sun↔moon、复制 copy→check、收藏空心↔实心、朗读扬声器↔停止、移动端汉堡↔X);关闭任意开关均回退原有静态实现;弹簧参数见 `tuning.morphicons`(stiffness/damping 与轻量版 reducedStiffness/reducedDamping;同时设置时优先于 spring 预设)。
+`enabled true` / `vendorPath '/assets/vendor/morphicons'`(vendor 图标目录) / `spring 'snappy'`(`smooth|snappy|bouncy`) / `reducedMotion 'light'`(`light|off|full`;light=系统 reduce-motion 下改用更快的轻量弹簧) / `preload 'interaction'`(`interaction|idle|immediate`) / `perIcon {}`(单图标弹簧覆盖,值=预设名或 `{stiffness,damping}`) / `icons { theme, copy, favorite, tts, menu }`(各图标独立开关)。基于 morphicons(本地 vendor,懒加载,~7.5KB gzip):状态切换类图标用弹簧物理做形状变形(主题 sun↔moon、复制 copy→check、收藏空心↔实心、朗读扬声器↔停止、移动端汉堡↔X);关闭任意开关均回退原有静态实现;弹簧参数见 `tuning.morphicons`(stiffness/damping 与轻量版 reducedStiffness/reducedDamping;同时设置时优先于 spring 预设)。
 
 ### 3.62 viewTransition — 跨文档过渡动画
 
@@ -548,11 +548,11 @@ sitemap: {
 
 ### 3.76 announcement — 公告条
 
-`enabled true` / `text` / `textEn` / `url`(单条模式：中英文文案与可选链接) / `items []`(多条模式，每项 `{text,textEn,url,icon?}`，非空时优先；`icon` 为前缀徽标短文本如 `"NEW"`) / `rotateMs 6000`(多条轮播间隔毫秒，`0`=只显示第一条；`prefers-reduced-motion` 下瞬间切换) / `pauseOnHover true`(悬停/按住暂停轮播与进度条) / `transition 'fade'`(条目切换动画：`fade` 淡入淡出 / `slide` 上滑+淡入) / `tone 'accent'`(`accent` 主题色淡渐变 / `solid` 实心主题色 / `minimal` 素色+下边框 / `gradient` 主→辅强渐变白字) / `showProgress false`(轮播剩余时间进度条；仅多条+自动轮播时渲染) / `showDot true`(左侧装饰圆点) / `newTab true`(外链 `target=_blank rel=noopener`；`false` 则当前窗口) / `dismissible true`(关闭按钮)。固定于页面顶部（通过 `--annH` 变量将固定头部、移动菜单、粘性目录整体下移，内容偏移同步；**关闭后 `--annH` 收起为 0，头部自动上移**）；关闭按全部内容哈希记忆（`s-announce-dismissed`）不再出现。视觉细节（字号/字距）在 `tuning.json5` 的 `announcement` 分类调整。**防闪机制**：公告条默认隐藏，`<head>` 早检脚本在首帧前确认未被关闭后添加 `html.ann-on` 才显示；关闭记忆按内容哈希（`s-announce-dismissed`），关闭态刷新/导航零可见帧（禁用 JS 时公告不显示，属预期设计） — `templates/layout.ejs` + `js/domains/announcement.js`。
+`enabled true` / `text` / `textEn` / `url`(单条模式：中英文文案与可选链接) / `items []`(多条模式，每项 `{text,textEn,url,icon?}`，非空时优先；`icon` 为前缀徽标短文本如 `"NEW"`) / `rotateMs 6000`(多条轮播间隔毫秒，`0`=只显示第一条；`prefers-reduced-motion` 下瞬间切换) / `pauseOnHover true`(悬停/按住暂停轮播与进度条) / `transition 'fade'`(条目切换动画：`fade` 淡入淡出 / `slide` 上滑+淡入) / `tone 'accent'`(`accent` 主题色淡渐变 / `solid` 实心主题色 / `minimal` 素色+下边框 / `gradient` 主→辅强渐变白字) / `showProgress false`(轮播剩余时间进度条；仅多条+自动轮播时渲染) / `showDot true`(左侧装饰圆点) / `newTab true`(外链 `target=_blank rel=noopener`；`false` 则当前窗口) / `dismissible true`(关闭按钮) / `storageKey 's-announce-dismissed'`(关闭记忆键) / `removeDelayMs 340`(关闭动画后移除 DOM 延迟 ms)。固定于页面顶部（通过 `--annH` 变量将固定头部、移动菜单、粘性目录整体下移，内容偏移同步；**关闭后 `--annH` 收起为 0，头部自动上移**）；关闭按全部内容哈希记忆（`s-announce-dismissed`）不再出现。视觉细节（字号/字距）在 `tuning.json5` 的 `announcement` 分类调整。**防闪机制**：公告条默认隐藏，`<head>` 早检脚本在首帧前确认未被关闭后添加 `html.ann-on` 才显示；关闭记忆按内容哈希（`s-announce-dismissed`），关闭态刷新/导航零可见帧（禁用 JS 时公告不显示，属预期设计） — `templates/layout.ejs` + `js/domains/announcement.js`。
 
 ### 3.77 guards — 防护与交互控制总控
 
-`enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）。细节参数（菜单项、复制模式、选择/快捷键/水印/检测/控制台/隐私帘/篡改/门槛、绕过通道等 164 项）全部在 `guard.json5`（见第 11 章）；绕过通道优先级：`?guard=on|off` > `localStorage['s-guards-off']` > `guard.json5` `core.bypass.localhost`。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
+`enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）。细节参数（菜单项、复制模式、选择/快捷键/水印/检测/控制台/隐私帘/篡改/门槛、绕过通道等 168 项）全部在 `guard.json5`（见第 11 章）；绕过通道优先级：`?guard=on|off` > `localStorage['s-guards-off']` > `guard.json5` `core.bypass.localhost`。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
 
 ### 3.78 loading — 加载遮罩
 
@@ -758,12 +758,12 @@ sitemap: {
 
 ## 11. guard.json5 — 防护与交互控制域
 
-第 13 个配置文件（164 项标量字段，空数组不计；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
+第 13 个配置文件（168 项标量字段，空数组不计；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
 
 **结构**：
 - `core`（8 项）：`preset 'soft'` / `bypass.localhost false` / `bypass.queryParam 'guard'` / `bypass.storageFlag 's-guards-off'` / `logLevel 'off'` / `respectEditable true` / `i18nFallbackLang 'zh'` / `edgePadding '8px'`。绕过优先级：URL 参数 > localStorage 标志 > localhost（开启时）。
-- `contextMenu`（34 项）：`enabled` / `disableNative` / `trigger.longPress`+`longPressMs 550` / `behavior.closeOnEsc|closeOnScroll|closeOnOutside|closeOnBlur` / `style.width|radius|blur|animMs|shadowOpacity`（width/radius 留空=走 `tuning.json5` → `guard` 分类）/ `showOn.selection|link|image|code|blank` / `builtin.*`（copy/copyLink/openNewTab/searchSelected/translate/backToTop/toggleTheme/print/copyCode/copyRaw/download；`viewSource`/`inspect` 默认关）/ `items[]` 自定义项（`label`/`labelEn`/`icon`/`url`|`action`/`selector`；自定义动作派发 `guard:menu-action` 事件）/ `excludeSelectors[]` / `ariaLabel`。
-- `copyGuard`（18 项）：`mode 'attribution'`（`off` | `attribution` 追加出处 | `weakBlock` 首次拦截并提示、再次放行 | `block` 硬拦截）/ `attribution.text`+`textEn`（占位符 `{title}{url}{author}{site}`）/ `position after|before` / `separator` / `minChars 40`（短复制不打扰）/ `onlyArticles true` / `allow.codeBlocks true`+`allow.selectors[]`（代码块与可编辑区始终放行）/ `block.toast|toastText|flash`（复用统一 `__toast`）/ `extra.alsoCut|imageNotice|iOSOverride` / `noticeOncePerSession true` / `logCopyEvents false`（仅本地 console，无网络上报）。
+- `contextMenu`（36 项）：`enabled` / `revokeDelayMs 3000`(下载后释放 Blob URL 延迟 ms) / `translateUrl`(划词翻译模板，`{lang}`/`{text}`；空=隐藏翻译项) / `disableNative` / `trigger.longPress`+`longPressMs 550` / `behavior.closeOnEsc|closeOnScroll|closeOnOutside|closeOnBlur` / `style.width|radius|blur|animMs|shadowOpacity`（width/radius 留空=走 `tuning.json5` → `guard` 分类）/ `showOn.selection|link|image|code|blank` / `builtin.*`（copy/copyLink/openNewTab/searchSelected/translate/backToTop/toggleTheme/print/copyCode/copyRaw/download；`viewSource`/`inspect` 默认关）/ `items[]` 自定义项（`label`/`labelEn`/`icon`/`url`|`action`/`selector`；自定义动作派发 `guard:menu-action` 事件）/ `excludeSelectors[]` / `ariaLabel`。
+- `copyGuard`（19 项）：`mode 'attribution'`（`off` | `attribution` 追加出处 | `weakBlock` 首次拦截并提示、再次放行 | `block` 硬拦截）/ `attribution.text`+`textEn`（占位符 `{title}{url}{author}{site}`）/ `position after|before` / `separator` / `minChars 40`（短复制不打扰）/ `onlyArticles true` / `allow.codeBlocks true`+`allow.selectors[]`（代码块与可编辑区始终放行）/ `block.toast|toastText|flash`（复用统一 `__toast`）/ `extra.alsoCut|imageNotice|iOSOverride` / `noticeOncePerSession true` / `logCopyEvents false`（仅本地 console，无网络上报）/ `flashRemoveMs 600`(闪烁遮罩移除延迟 ms)。
 - `selectionGuard`（8 项，**默认关**）：`mode 'content'`（`allow` | `content` 正文禁选 | `strict` 全域）/ `allowSelectors[]`+`allowCode true`（代码白名单）/ `allowCtrlA|allowShiftArrows true`（保留键盘选择，无障碍优先）/ `noticeToast|noticeText`。实现：CSS `user-select:none`（正文/全域）+ `selectstart` 事件双保险，输入框与代码始终豁免。
 - `hotkeyGuard`（12 项，**默认关**）：`keys.f12|ctrlShiftI|ctrlShiftJ|ctrlShiftC|ctrlU|ctrlS|ctrlP`（macOS 自动等效 Cmd）/ `keys.printScreen false`（仅检测提示）/ `keys.custom[]`（`'ctrl+alt+x'` 语法）/ `noticeToast|noticeText|noticeOncePerSession`。仅拦键盘路径（浏览器菜单/独立窗口不可拦，威慑级），输入框豁免。
 - `watermark`（18 项，**默认关**）：`type 'diagonal'`（`fixed`|`tiled`|`diagonal`）/ `text|textEn`（`{site}{date}{time}{id}`）/ `identity 'none'`（`none`|`random`|`storage` 本地短哈希，无指纹）/ `opacity 0.06` / `fontSize` / `color`（空=主题次级色）/ `rotate -22` / `gapX|gapY` / `position`（fixed 专用）/ `zIndex 40` / `hideOnPrint true` / `showInLightbox false` / `mobileEnabled false` / `animate false`（缓慢漂移，尊重减少动效）。`pointer-events:none` + `aria-hidden`，不挡交互。
@@ -771,7 +771,7 @@ sitemap: {
 - `consoleGuard`（16 项，**默认关**）：`bannerEnabled|bannerText|bannerTextEn|bannerAscii`（控制台站方留言）/ `clearEnabled|clearIntervalMs|clearOnDetect`（周期清屏与检测联动）/ `muteEnabled|muteMethods[]|muteFreeze`（对页面脚本伪装 console 方法）/ `trapEnabled|trapAction|trapText`（console.log 访问陷阱）/ `hideSelfLogs` / `noticeOncePerSession`。无法拦截真实控制台求值，仅作用于页面上下文。
 - `privacyCurtain`（10 项，**默认关**）：`blurOnBlur`（窗口失焦）/ `blurOnVisibility`（切标签）/ `blurAmount '8px'` / `curtainText|curtainTextEn`（帘上文案）/ `revealDelayMs 200`（恢复去抖）/ `prtScNotice|prtScText|prtScOncePerSession`（PrintScreen 仅检测提示）。`backdrop-filter` 静态遮罩 + `pointer-events:none`，不挡交互。
 - `tamperWatch`（15 项，**默认关**）：`scripts.monitor|action`（动态 `<script>` 注入；action `toast`|`remove`|`report`）/ `attrs.monitor`（动态内联事件）/ `iframes.monitor|action` / `prototype.watch`（fetch/XHR/eval 原型替换，周期比较）/ `dom.monitor|targets[]`（关键节点缺失检测）/ `probeIntervalMs 2000` / `reportEndpoint ''`（默认不上报）+ `reportPrivacyMode true`（仅事件类型，不含 URL）/ `cspViolationToast` / `noticeOncePerSession` / `logDetect`。页面级监视可被先行关闭，属异常发现而非安全边界。
-- `accessGate`（14 项，**默认关**）：`password.enabled|hash|salt|rememberHours|title|placeholder|errorText`（SHA-256(salt+密码) 十六进制，`crypto.subtle` 校验）/ `paths[]`（路径前缀，空=全站）/ `viewsPerDay|viewsAction`（本地限次，`toast`|`lock`）/ `unlockCodes[]`（`?key=` 永久解锁本机）/ `logDetect`。诚实声明：静态站密码为软防护（哈希在前端源码中可离线分析），敏感内容请用 Cloudflare Access 等后端方案。
+- `accessGate`（15 项，**默认关**）：`password.enabled|hash|salt|rememberHours|title|placeholder|errorText`（SHA-256(salt+密码) 十六进制，`crypto.subtle` 校验）/ `focusDelayMs 50`(解锁后聚焦密码框延迟 ms)/ `paths[]`（路径前缀，空=全站）/ `viewsPerDay|viewsAction`（本地限次，`toast`|`lock`）/ `unlockCodes[]`（`?key=` 永久解锁本机）/ `logDetect`。诚实声明：静态站密码为软防护（哈希在前端源码中可离线分析），敏感内容请用 Cloudflare Access 等后端方案。
 
 **测试**：`.tmp-scripts/verify-guard-p1.js` 17 项 + `verify-guard-p2.js` 20 项 + `verify-guard-p3.js` 11 项 + `verify-guard-p4.js` 13 项断言（P1：原生菜单拦截、菜单项与上下文匹配、Esc/输入框豁免、复制署名改写、代码块放行、`?guard=off` 完全绕过、block 拦截+toast；P2：选择拦截/代码放行/可编辑豁免、F12 与 Ctrl+Shift+I 拦截+提示、Ctrl+A 保留、水印三模式与默认关反例；P3：检测提示/锁屏与关闭键、控制台静音（页面脚本无输出）、隐私帘显示/恢复与默认关反例；P4：门槛显示/错误提示/正确解锁与会话记忆/解锁码/限次锁定、脚本注入与关键节点缺失提示、默认关反例）；界面截图已目检（明暗菜单、拦截提示、对角/固定角水印、锁屏、隐私帘、访问门槛） — `js/domains/guard/{core,context-menu,copy-guard,selection-guard,hotkey-guard,watermark,devtools-detect,console-guard,privacy-curtain,tamper-watch,access-gate}.js`。
 

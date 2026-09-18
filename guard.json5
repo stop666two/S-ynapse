@@ -88,6 +88,15 @@
     // 类型：boolean；推荐：true
     enabled: true,
 
+    // 作用：复制代码片段/下载后释放 Blob URL 的延迟(ms)
+    // 类型：number(ms)；推荐：3000
+    revokeDelayMs: 3000,
+
+    // 作用：划词翻译跳转地址模板（{lang} 目标语言、{text} 编码后的选中文本）
+    // 类型：string；可填：任意 https 地址模板；空 = 隐藏翻译菜单项
+    // 推荐：'https://translate.google.com/translate?sl=auto&tl={lang}&text={text}'
+    translateUrl: 'https://translate.google.com/translate?sl=auto&tl={lang}&text={text}',
+
     // 作用：是否屏蔽浏览器原生右键菜单（屏蔽后才叫“自定义菜单”）
     // 类型：boolean；可填：true | false
     // 不可填：无；注意：false 时站内菜单与原生菜单同时在（通常很丑）
@@ -187,6 +196,10 @@
   copyGuard: {
     // 作用：模块开关；类型：boolean；推荐：true（attribution 模式）
     enabled: true,
+
+    // 作用：block.flash 闪烁遮罩的移除延迟(ms)
+    // 类型：number(ms)；推荐：600
+    flashRemoveMs: 600,
 
     // 作用：工作模式
     // 类型：string；可填：'off' | 'attribution' | 'weakBlock' | 'block'
@@ -593,6 +606,10 @@
   accessGate: {
     // 作用：模块开关；类型：boolean；推荐：false（soft 档需显式 true）
     enabled: false,
+
+    // 作用：门槛界面解锁后自动聚焦密码框的延迟(ms)
+    // 类型：number(ms)；推荐：50
+    focusDelayMs: 50,
 
     // 作用：密码门槛
     // hash：string；SHA-256(salt + 密码) 的十六进制（用任何在线/本地工具生成）

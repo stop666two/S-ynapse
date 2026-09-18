@@ -5,7 +5,8 @@ function run() {
   if (!bar) return;
   var items = [];
   try { items = JSON.parse(bar.getAttribute('data-items') || '[]'); } catch (e) { items = []; }
-  var key = 's-announce-dismissed';
+  var A = (window.__FEATURES__ || {}).announcement || {};
+  var key = A.storageKey;
   var h = hashStr(JSON.stringify(items));
   var dismissed = false;
   try { if (bar.getAttribute('data-dismiss-hash') && localStorage.getItem(key) === h) dismissed = true; } catch (e) {}
@@ -19,9 +20,8 @@ function run() {
     if (rotTimer) { clearInterval(rotTimer); rotTimer = null; }
     bar.classList.add('closing');
     collapseAnnH();
-    setTimeout(function () { bar.remove(); }, 340);
+    setTimeout(function () { bar.remove(); }, +A.removeDelayMs);
   });
-  var A = (window.__FEATURES__ || {}).announcement || {};
   var rot = parseInt(bar.getAttribute('data-rotate'), 10) || 0;
   var spans = Array.prototype.slice.call(bar.querySelectorAll('.announce-item'));
   var progI = bar.querySelector('.announce-progress i');

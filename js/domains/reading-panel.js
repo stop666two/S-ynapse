@@ -2,7 +2,7 @@ export function init() {
   (function () {
     var g = document.getElementById('readerGear'), p = document.getElementById('readerPanel');
     if (!g) return;
-    var F = window.__FEATURES__ || {}, RP = (F && F.readingPanel) || {}, PK = RP.persistKey || 'ss-reading';
+    var F = window.__FEATURES__ || {}, RP = (F && F.readingPanel) || {}, PK = RP.persistKey;
     var fs = document.getElementById('rFont'), lh = document.getElementById('rLine'), wd = document.getElementById('rWidth');
     var prefs = {};
     try { prefs = JSON.parse(localStorage.getItem(PK) || '{}'); } catch (e) {}

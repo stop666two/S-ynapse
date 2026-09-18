@@ -17,7 +17,7 @@ function bypassed() {
   if (v === 'off') return true;
   if (v === 'on') return false;
   try {
-    const flag = b.storageFlag || 's-guards-off';
+    const flag = b.storageFlag;
     if (flag && localStorage.getItem(flag) === '1') return true;
   } catch (e) { /* 隐私模式忽略 */ }
   if (b.localhost) {

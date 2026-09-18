@@ -38,7 +38,7 @@ var ts=now.getFullYear()+pad(now.getMonth()+1)+pad(now.getDate())+'-'+pad(now.ge
 var fn=((window.__SITE_TITLE__||'site')+'-'+(window.__ART_TITLE__||'code')+'-'+ts+'.'+ext).replace(/[\\/:*?"<>|]+/g,'-');
 var blob=new Blob([c.textContent],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');
 a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();
-setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},100)};
+setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},+((F.codeBlock||{}).blobRevokeDelayMs))};
 row.appendChild(db)}
 if(win&&p.classList.contains('code-window')){var wb=p.previousElementSibling;if(wb&&wb.classList.contains('code-windowbar'))wb.appendChild(row)}else if(hasBtns){p.appendChild(row)}
 if(th>0&&lines(p)>th){

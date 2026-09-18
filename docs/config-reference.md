@@ -626,7 +626,7 @@ sitemap: {
 
 ### 3.94 mobileBottomNav — 移动端底部导航
 
-`enabled true` / `items ['home','archive','search','theme']`（底部按钮项列表，按序展示）/ `onlyMobile true`（仅移动端断点内显示）/ `useSafeArea true`（适配 iOS 安全区 `env(safe-area-inset-bottom)`）。与 `features.mobile` 的抽屉菜单互补：底部导航负责高频入口 — `templates/layout.ejs` + `js/domains/navigation.js`。
+`enabled true` / `items ['home','archive','search','theme']`（底部按钮项列表，按序展示）/ `onlyMobile true`（仅移动端断点内显示）/ `useSafeArea true`（适配 iOS 安全区 `env(safe-area-inset-bottom)`）/ `labelHome ''` / `labelArchive ''` / `labelSearch ''` / `labelTheme ''` / `labelTop ''`（各按钮文案覆盖，空 = 使用 `ui-strings.json5` 的 `bottomNav.*` 词条，主题按钮文案随当前明暗状态动态切换）。与 `features.mobile` 的抽屉菜单互补：底部导航负责高频入口 — `templates/layout.ejs` + `js/domains/navigation.js`。
 
 ### 3.95 incrementalBuild — 增量构建
 

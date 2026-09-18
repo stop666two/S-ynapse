@@ -688,12 +688,23 @@
   mobileBottomNav: {
     // 移动端底部导航栏(仅小屏显示)。桌面不受影响。
     enabled: true,
-    // 按钮顺序:home/archive/search/theme。
+    // 按钮顺序:home/archive/search/theme（可加 top）。
     items: ['home', 'archive', 'search', 'theme'],
     // 是否仅移动端显示。
     onlyMobile: true,
     // 是否适配 iOS 安全区(safe-area-inset-bottom)。
-    useSafeArea: true
+    useSafeArea: true,
+    // 以下标签为空 = 走 ui-strings.json5 的 bottomNav.* 双语词典（推荐保持空）。
+    // 标签覆盖:首页。
+    labelHome: '',
+    // 标签覆盖:归档。
+    labelArchive: '',
+    // 标签覆盖:搜索。
+    labelSearch: '',
+    // 标签覆盖:主题。
+    labelTheme: '',
+    // 标签覆盖:顶部。
+    labelTop: ''
   },
 
   // ---------------------------------------------------------------------------

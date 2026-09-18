@@ -252,7 +252,8 @@ const DEFAULT_FEATURES = {
   },
   mobileBottomNav: {
     enabled: true, items: ['home', 'archive', 'search', 'theme'],
-    onlyMobile: true, useSafeArea: true
+    onlyMobile: true, useSafeArea: true,
+    labelHome: '', labelArchive: '', labelSearch: '', labelTheme: '', labelTop: ''
   },
   incrementalBuild: {
     enabled: true, cacheDir: '.build-cache', fullFlag: '--full',

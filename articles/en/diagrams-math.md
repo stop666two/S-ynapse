@@ -59,6 +59,8 @@ stateDiagram-v2
 gantt
     title Test article schedule
     dateFormat  YYYY-MM-DD
+    axisFormat  %m-%d
+    tickInterval 1week
     section Content
     Entrance & nav   :done,    a1, 2026-06-10, 5d
     Diagrams & math  :done,    a2, 2026-06-15, 4d

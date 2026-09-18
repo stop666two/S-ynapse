@@ -59,6 +59,8 @@ stateDiagram-v2
 gantt
     title 测试文章编写排期
     dateFormat  YYYY-MM-DD
+    axisFormat  %m-%d
+    tickInterval 1week
     section 内容
     入口与导航        :done,    a1, 2026-06-10, 5d
     图表与公式        :done,    a2, 2026-06-15, 4d

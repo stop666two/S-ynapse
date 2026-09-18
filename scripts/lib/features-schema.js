@@ -49,7 +49,7 @@ const DEFAULT_FEATURES = {
     enabled: true, copyButtonVisibility: 'hover', copySuccessText: '已复制',
     copyFailText: '复制失败', blobRevokeDelayMs: 100, showLanguageTag: true, lineNumbers: true, windowBar: true,
     wrapLongLines: false, highlightBackground: 'var(--color-hover)',
-    borderRadius: '0.375rem', maxHeight: '', copyAllButton: true, downloadButton: true,
+    borderRadius: '0.375rem', maxHeight: '', copyAllButton: false, downloadButton: true,
     maxHeightVh: 'none', headerHeight: '36px', fontSize: '0.92em'
   },
   externalLink: {
@@ -149,7 +149,7 @@ const DEFAULT_FEATURES = {
     toggle: { show: true, defaultOn: true, storageKey: 's-view-transition' }
   },
   speculation: {
-    enabled: true, mode: 'both', eagerness: 'moderate',
+    enabled: true, mode: 'both', delivery: 'inline', eagerness: 'moderate',
     excludeSelectors: ['[download]', '[rel~=nofollow]', '.no-speculate'],
     toggle: { show: true, defaultOn: true, storageKey: 's-speculation' }
   },
@@ -166,7 +166,7 @@ const DEFAULT_FEATURES = {
     enabled: true, height: '2px', gradient: true, respectReducedMotion: true
   },
   commandPalette: {
-    enabled: true, hotkey: 'k', includeNavigation: true, includeActions: true,
+    enabled: true, hotkey: 'p', includeNavigation: true, includeActions: true,
     includeSearch: true, maxResults: 10, autoFocus: true
   },
   subscribe: {
@@ -188,7 +188,7 @@ const DEFAULT_FEATURES = {
     enabled: true, grain: true, glow: true
   },
   announcement: {
-    enabled: true, text: '', textEn: '', url: '', items: [], rotateMs: 6000,
+    enabled: true, text: '欢迎来到 S-ynapse', textEn: 'Welcome to S-ynapse', url: '', items: [], rotateMs: 6000,
     pauseOnHover: true, transition: 'fade', tone: 'accent', showProgress: false, showDot: true, newTab: true, dismissible: true, storageKey: 's-announce-dismissed', removeDelayMs: 340
   },
   sidebarDrag: {
@@ -359,7 +359,7 @@ const DEFAULT_FEATURES = {
     enabled: true, showSearch: true, showCta: true, showTags: true,
     ctaLabel: '查看全部文章', ctaUrl: '#latest-post', tagCount: 8,
     searchPlaceholder: '搜索文章…', showDate: false,
-    ctaLabelEn: 'View all posts', heightVh: 60, backgroundImage: ''
+    ctaLabelEn: 'View all posts', heightVh: 61.8, backgroundImage: ''
   },
   feed: {
     rssEnabled: true, rssPath: '/feed.xml', rssFullContent: true, rssMaxItems: 50,
@@ -396,8 +396,8 @@ const DEFAULT_FEATURES = {
   debug: { verbose: false, listPages: false, dumpConfig: false },
   background: {
     particles: {
-      enabled: true, count: 55, speed: 0.5, linkDistance: 120,
-      opacity: 0.6, showLines: true, autoDisableMobile: false
+      enabled: true, count: 72, speed: 0.5, linkDistance: 120,
+      opacity: 0.7, showLines: true, autoDisableMobile: false
     }
   },
   motion: {

@@ -78,7 +78,16 @@
 ```powershell
 npm test
 npm run verify:security
+npm run verify:config      # T0 配置一致性监守（阻塞项）
 npm run audit:a11y          # 需先起 serve 3224
-node .tmp-scripts/run-build.js
-node scripts/build.js --serve --port 3224   # 后台启动，记录 PID 后再浏览器验证
+node .tmp-scripts/run-verify.js verify-announcement.js verify-search.js --timeout=90000   # 自启停服务 + 逐脚本超时 + 树杀（含孤儿 Chrome）
+node .tmp-scripts/run-verify.js --all --timeout=120000   # 全量回归（79 个脚本）
 ```
+
+## 9. 2026-09-18 会话增量（T1/T0/测试脚本优化）
+
+- **T1 硬编码参数迁移（第 1 批，commit `4185be4`）**：13 个运行时硬编码参数进配置并接线（announcement.storageKey/removeDelayMs、toast.removeDelayMs、pwa.installDismissKey/updateToastMs、morphIcons.vendorPath、codeBlock.blobRevokeDelayMs、themeSchedule.smoothTransitionMs、motion.revealCleanupMs、guard.contextMenu.revokeDelayMs/translateUrl、guard.copyGuard.flashRemoveMs、guard.accessGate.focusDelayMs）；12 个模块去代码兜底；计数 2482/features 794/guard 168。
+- **T1 剩余（第 2 批，未做）**：`scripts/build.js` 51 处兜底（rss/sitemap/jsonFeed 路径、twitterCard、日期格式、footer/theme 默认值等）；生成页硬编码（offline.html/维护页/build-report 的 lang/颜色/文案 → 应由 site/theme/ui-strings 派生）；`FAVICON_FALLBACK_SVG` 品牌色 → theme.colors.secondary；favicon `sizes` 与路径联动（建议读 PNG IHDR 或配置 sizes 字段）；CSS 输出路径/hash 算法（我新增的 `buildSiteCss`）→ site.build 配置；`generate-og.js` 10 处颜色 → theme。
+- **T2（已拍板豁免）**：结构/协议字面量（事件名/DOM 选择器/正则/schema.org/分享平台 API URL/matchMedia 查询串）与开发脚本本地默认值；T0（默认值注册表）保留但由 `verify:config` 监守。
+- **测试脚本优化（commit 待提交/本次）**：新增 `.tmp-scripts/_harness.js`（看门狗 120s 可调、异常/退出自动关浏览器杀进程、readMode 容错）与 `.tmp-scripts/run-verify.js`（自启停静态服务+健康检查、逐脚本超时、taskkill /T 清子树、汇总退出码）；68 个 puppeteer 脚本一行切换 harness；67 处 BASE 环境变量化；11 个 mode 文件读者容错；verify-search 适配异步索引；实测评：announcement 8/8、favorites 8/8、toc ok、search 7/7、故意挂起脚本看门狗 45s 终止且无孤儿 Chrome/端口。
+- **注意**：`.tmp-scripts/` 现有 92 个文件（含 harness/runner/serve-static 工具、scan-hardcode 报告等本会话产物）；如需回滚 T1 第 1 批：`git revert 4185be4`。

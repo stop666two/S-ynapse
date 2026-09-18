@@ -101,6 +101,16 @@
 | `sitemap.changefreq` | string | `weekly` | always/hourly/daily/weekly/monthly/yearly/never |
 | `sitemap.priority` | number | `0.8` | 0~1 优先级 |
 
+### site.favicon — 站点图标（浏览器标签/书签/主屏）
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `favicon.enabled` | bool | `true` | 注入图标 `<link>`；`false` 完全不输出（浏览器可能自行请求 `/favicon.ico`） |
+| `favicon.svg` | string | `/icons/favicon.svg` | SVG 图标（现代浏览器首选）；站内路径或完整 URL |
+| `favicon.png32` | string | `/icons/favicon-32x32.png` | 32×32 PNG 回退 |
+| `favicon.appleTouch` | string | `/icons/apple-touch-icon.png` | iOS 主屏图标（180×180 PNG） |
+
+构建时逐个检测站内路径的文件存在性：存在则注入（并参与 cache-bust 内容哈希重命名），缺失则跳过并输出 `[WARN]`；三项全部缺失时自动注入内置 data-URI SVG 兜底，不再出现 `/favicon` 404。默认三件套源文件位于 `static/icons/`，随构建拷贝到 `dist/icons/`。
+
 ### site.pwa / site.build — PWA 与构建开关
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|

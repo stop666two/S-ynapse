@@ -226,6 +226,7 @@ function loadConfig() {
       comments: { enabled: false, provider: 'giscus' },
       sitemap: { enabled: true, path: '/sitemap.xml', changefreq: 'weekly', priority: 0.8 },
       pwa: { enabled: false, manifest: {}, serviceWorker: '/sw.js' },
+      favicon: { enabled: true, svg: '/icons/favicon.svg', png32: '/icons/favicon-32x32.png', appleTouch: '/icons/apple-touch-icon.png' },
       build: {
         cleanDist: true, minifyHTML: false, minifyCSS: false, minifyJS: false,
         removeConsole: false,
@@ -1426,6 +1427,36 @@ function resolveDailyQuotes(config) {
     return BUILTIN_QUOTES;
   }
 }
+const FAVICON_FALLBACK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#2563eb"/><g stroke="#fff" stroke-width="4" stroke-linecap="round"><line x1="20" y1="22" x2="44" y2="21"/><line x1="20" y1="22" x2="32" y2="44"/><line x1="44" y1="21" x2="32" y2="44"/></g><g fill="#fff"><circle cx="20" cy="22" r="6.2"/><circle cx="44" cy="21" r="6.2"/><circle cx="32" cy="44" r="6.4"/></g></svg>';
+let _faviconHtmlCache = null;
+function resolveFaviconHtml(site) {
+  if (_faviconHtmlCache !== null) return _faviconHtmlCache;
+  const f = (site && site.favicon) || {};
+  if (f.enabled === false) { _faviconHtmlCache = ''; return _faviconHtmlCache; }
+  const isExternal = function (u) { return /^https?:\/\//i.test(u); };
+  const siteFileExists = function (u) {
+    if (typeof u !== 'string' || u.charAt(0) !== '/') return false;
+    const rel = u.replace(/^\/+/, '').split('?')[0].split('#')[0];
+    return fs.existsSync(path.join(STATIC_DIR, rel));
+  };
+  const pick = function (u, build) {
+    if (!u || typeof u !== 'string') return null;
+    if (isExternal(u)) return build(u);
+    if (siteFileExists(u)) return build(u);
+    console.warn('  [WARN] favicon 文件不存在: ' + u + '（已跳过）');
+    return null;
+  };
+  const parts = [
+    pick(f.svg, function (u) { return '<link rel="icon" type="image/svg+xml" href="' + escapeAttr(u) + '">'; }),
+    pick(f.png32, function (u) { return '<link rel="icon" type="image/png" sizes="32x32" href="' + escapeAttr(u) + '">'; }),
+    pick(f.appleTouch, function (u) { return '<link rel="apple-touch-icon" sizes="180x180" href="' + escapeAttr(u) + '">'; })
+  ].filter(Boolean);
+  if (!parts.length) {
+    parts.push('<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,' + encodeURIComponent(FAVICON_FALLBACK_SVG) + '">');
+  }
+  _faviconHtmlCache = parts.join('');
+  return _faviconHtmlCache;
+}
 function buildPageData(config, articles, tags, categories) {
   const published = getPublished(articles);
   const friendsCfg = collectFriends(config);
@@ -1510,7 +1541,8 @@ function buildPageData(config, articles, tags, categories) {
     Math: Math,
     Date: Date,
     config,
-    dailyQuotes: resolveDailyQuotes(config)
+    dailyQuotes: resolveDailyQuotes(config),
+    faviconHtml: resolveFaviconHtml(config.site || {})
   };
 }
 

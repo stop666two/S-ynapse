@@ -636,7 +636,32 @@
   },
 
   // ===================================================================
-  // 十、PWA（渐进式 Web 应用）
+  // 十、站点图标（favicon）与 PWA（渐进式 Web 应用）
+  // ===================================================================
+  // —— 站点图标（favicon）——
+  // 浏览器标签页 / 书签 / 移动端主屏所用图标；三件套可独立替换或省略，
+  // 构建时逐个检测文件存在性：存在则注入 <link>，缺失则跳过并输出告警；
+  // 全部缺失时注入内置 data-URI SVG 兜底（保证不再出现 /favicon 404）。
+  "favicon": {
+    // 是否注入图标 <link> 标签
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: false = 完全不输出；浏览器可能自行回退请求 /favicon.ico
+    "enabled": true,
+
+    // SVG 图标（现代浏览器首选，支持任意分辨率）
+    // 类型: string（站内绝对路径或完整 URL） | 推荐: "/icons/favicon.svg"
+    // 不可填: 不存在的站内路径（自动跳过并输出告警）
+    "svg": "/icons/favicon.svg",
+
+    // 32x32 PNG 回退（不支持 SVG 图标的旧浏览器）
+    // 类型: string | 推荐: "/icons/favicon-32x32.png"
+    "png32": "/icons/favicon-32x32.png",
+
+    // iOS 主屏图标（180x180 PNG；iOS 不支持 SVG 图标）
+    // 类型: string | 推荐: "/icons/apple-touch-icon.png"
+    "appleTouch": "/icons/apple-touch-icon.png"
+  },
+
   // ===================================================================
   // 双层开关: 本处 site.pwa.enabled 控制"生成 manifest/sw 等资源";
   //          features.pwa.enabled 控制"运行时注册 Service Worker"

@@ -1457,6 +1457,31 @@ function resolveFaviconHtml(site) {
   _faviconHtmlCache = parts.join('');
   return _faviconHtmlCache;
 }
+let SITE_CSS_HREF = '/assets/css/site.css';
+function buildSiteCss(config, baseData) {
+  const templateStr = getTemplate('site-css.ejs');
+  if (!templateStr) {
+    console.error('  [WARN] templates/site-css.ejs not found; layout will reference ' + SITE_CSS_HREF);
+    return SITE_CSS_HREF;
+  }
+  let css = ejs.render(templateStr, baseData, { filename: path.join(TEMPLATES_DIR, 'site-css.ejs') });
+  if (CleanCSS && config.site.build.minifyCSS !== false) {
+    try {
+      const min = new CleanCSS({ level: 1 }).minify(css);
+      if (!min.errors || !min.errors.length) css = min.styles;
+    } catch (e) {
+      console.warn('  [WARN] site CSS minify failed: ' + e.message);
+    }
+  }
+  const hash = crypto.createHash('md5').update(css).digest('hex').slice(0, 10);
+  const rel = 'assets/css/site.' + hash + '.css';
+  const file = path.join(DIST_DIR, rel);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, css, 'utf-8');
+  SITE_CSS_HREF = '/' + rel;
+  console.log('  Created: ' + rel + ' (' + Math.round(Buffer.byteLength(css) / 1024) + 'KB)');
+  return SITE_CSS_HREF;
+}
 function buildPageData(config, articles, tags, categories) {
   const published = getPublished(articles);
   const friendsCfg = collectFriends(config);
@@ -1542,7 +1567,8 @@ function buildPageData(config, articles, tags, categories) {
     Date: Date,
     config,
     dailyQuotes: resolveDailyQuotes(config),
-    faviconHtml: resolveFaviconHtml(config.site || {})
+    faviconHtml: resolveFaviconHtml(config.site || {}),
+    siteCssHref: SITE_CSS_HREF
   };
 }
 
@@ -2866,6 +2892,7 @@ async function build() {
     }
     const baseData = buildPageData(config, articles, tags, categories);
     if (pagesContent) baseData.pagesContent = pagesContent;
+    baseData.siteCssHref = buildSiteCss(config, baseData);
     const customPages = processCustomPages(config, baseData);
     await generatePages(config, articles, baseData, customPages);
     const generatedHtmlCount = getAllFiles(DIST_DIR).filter((f) => f.endsWith('.html')).length;

@@ -49,12 +49,12 @@
 
 ## 5. 遗留事项（如实交接）
 
-1. **技术债：内联 CSS 外链化**（`templates/layout.ejs` 每页约 121KB）— 需视觉回归专项，未实施。搜索语料已外链，HTML 仍 199KB。
+1. ~~技术债：内联 CSS 外链化~~ **已解决（2026-09-18 会话，commit `b9e49ee`）**：`templates/layout.ejs` 的 122KB 内联 `<style>` 抽为 `templates/site-css.ejs`，构建期渲染一次 + CleanCSS(level 1) + 内容哈希输出 `dist/assets/css/site.<hash>.css`，layout 改 `<link rel="stylesheet">`。AB 截图回归（reduced-motion 冻结动画，light/dark×4 页 + 移动 2 张，共 10 对）像素差 **0.000%**；文章页 HTML gzip 51.7KB→29.5KB（-43%），CSS 22.3KB gzip 独立缓存。
 2. ~~8 个未接线键~~ **已解决（2026-09-13 续会话，commit `0aec780`）**：接线 6 个（`search.openAnimation`、`favorites.position('meta')`、`series.defaultWidgetCount`、`backToTop.hotkey`、`shortcuts.ignoreInInputs`、`dailyQuote.source`），删除 2 个废弃键（`readingProgress.progressColor`、`readingPanel.storageKey`，同步 features-schema 与 config-reference）；开/关双态构建断言 + 浏览器断言全通过。
-3. **favicon 缺失**：`/favicon.ico` 404（无图标资产）；需用户提供 icon 后加 `<link rel="icon">`。同理 `giscus` 的 features 键位多为冗余（真实配置在 `site.json5→comments.giscus`）。
+3. ~~favicon 缺失~~ **已解决（2026-09-18 会话，commit `e2c168d`）**：新增 `site.favicon` 配置（enabled/svg/png32/appleTouch，默认 `/icons/` 三件套）+ 节点网络图形资产（SVG + sharp 生成 32/180 PNG）；构建时存在性检测、缺失告警跳过、全缺失时 data-URI 兜底（消除 404）；三态验证（默认/兜底/关闭）+ HTTP 断言。注：`giscus` 的 features 键位多为冗余（真实配置在 `site.json5→comments.giscus`）。
 4. **Pagefind 依赖**：provider=pagefind 时未安装 `pagefind` 会构建告警并跳过索引；前端已做降级，但建议部署前 `npm install -D pagefind` 并跑一次构建。
 5. **npm audit 本机不可用**：npmmirror 无 audit 接口；CI 使用官方 registry 已在 PR 阶段执行（`--audit-level=high`）。
-6. script/style 内联与 CSP `'unsafe-inline'` 的取舍未动（CSP 需要重设计才可去 unsafe-inline）。
+6. 主样式已外链（`b9e49ee`）；CSP `style-src 'unsafe-inline'` 仍因残留内联样式（`customCSS` 块/元素 style 属性）与内联脚本保留，去 unsafe-inline 需专项重设计。
 
 ## 6. 环境与踩坑（务必遵守）
 
@@ -64,13 +64,13 @@
 - 本机 `npm audit` 不可用（镜像）；`npm install` 会提示 esbuild/workerd 安装脚本被 allowScripts 拦截（wrangler dry-run 仍可用）。
 - PowerShell 内联 `node -e` 含引号/正则必炸 → 用 here-string 管道（`@'...'@ | node`）或写 `.tmp-scripts/*.js`（本次已全部清理）。
 - git 提示 `workers/lib/*.mjs` LF→CRLF（autocrlf 行为，仓库既有 JS 同样如此）。
-- 2026-09-13 续会话结束前：已停止 3224 serve（自建 PID）、已删除本会话自建临时脚本/探针/日志/测试产物（12 个）；`.tmp-scripts/` 仍有 **238 个历史会话文件**（含 config-reference §7 引用的 verify-guard-p*.js、§8 引用的 run-build.js），未动，待用户决策是否清理。
+- 2026-09-18 会话结束前：已停止 3224 serve（自建 PID）；`.tmp-scripts/` 按用户决策保守清理——删除 157 个历史截图/日志/一次性脚本，保留 81 个 `verify-*.js` 与助手（`run-build.js`/`with-serve.js`，文档引用保持有效）；本会话新增临时文件（含 shots/ 截图目录）均已删除，非白名单残留为 0。
 
 ## 7. 下一步建议
 
 1. ~~决策 §5 的 8 个未接线键~~ 已完成（接线 6 + 删除 2，见 §5.2）。
-2. 提供 favicon 资产后补 `<link rel="icon">`。
-3. 若需要内联 CSS 外链化：单独专项 + 逐页视觉对比（建议截图 diff）。
+2. ~~favicon 资产~~ 已完成（见 §5.3，`e2c168d`）。
+3. ~~内联 CSS 外链化~~ 已完成（见 §5.1，`b9e49ee`）；如需进一步压缩可评估关键 CSS 内联 + 其余延迟加载（收益边际，需重新基线）。
 4. 推送前询问用户备份（AGENTS 121/122）；不建 tag、不推远端除非用户明确要求。
 
 ## 8. 快速验证命令（新会话复制）

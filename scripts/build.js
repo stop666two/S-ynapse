@@ -213,7 +213,7 @@ function loadConfig() {
       paginationNext: '下一页',
       prevPostLabel: '上一篇',
       nextPostLabel: '下一篇',
-      rss: { enabled: false, path: '/feed.xml', fullContent: true, maxItems: 50 },
+      rss: { enabled: false, path: '/feed.xml', fullContent: true, maxItems: 50, jsonFeed: { enabled: false, path: '/feed.json', fullContent: false, maxItems: 20 } },
       seo: {
         metaKeywords: [], metaRobots: 'index, follow',
         ogImage: '', ogType: 'website',
@@ -276,7 +276,7 @@ function loadConfig() {
     footer: { copyright: '', layout: 'simple', columnItems: { enabled: true, items: [] }, bottomLinks: { enabled: true, items: [] }, social: { enabled: false, iconSize: '24px' }, poweredBy: { enabled: false, text: 'S-ynapse' }, beian: { enabled: false } },
     security: {
       headers: {}, csp: { enabled: false, directives: {}, reportOnly: false },
-      robots: { enabled: false, rules: [] },
+      robots: { enabled: false, rules: [], sitemap: '/sitemap.xml' },
       rateLimiting: { enabled: false, maxRequests: 100, windowMs: 60000 },
       pathRestrictions: [], forceHttps: false,
       customHeaders: {}
@@ -637,7 +637,7 @@ async function optimizeMedia(config) {
   }
   const manifest = {};
   const sizes = config.site.build.mediaResponsiveSizes || [640, 1024, 1920];
-  const quality = config.site.build.mediaQuality || 85;
+  const quality = config.site.build.mediaQuality;
   const avifCfg = config.site.build.avif || { enabled: true, quality: 50, effort: 5 };
   const formats = config.site.build.mediaFormats || ['webp', 'original'];
   const destDir = path.join(DIST_DIR, 'media');
@@ -1157,10 +1157,10 @@ function collectTopTags(articles, limit, lang) {
     (a.tags || []).forEach(function(t) { counts[t] = (counts[t] || 0) + 1; });
   });
   const prefix = lang ? '/' + lang : '';
-  return Object.keys(counts)
+  const list = Object.keys(counts)
     .sort(function(a, b) { return counts[b] - counts[a] || a.localeCompare(b); })
-    .slice(0, limit || 8)
     .map(function(t) { return { name: t, count: counts[t], url: prefix + '/tags/' + safeSlug(t) + '/' }; });
+  return limit == null ? list : list.slice(0, limit);
 }
 
 function collectTags(articles) {
@@ -1532,7 +1532,6 @@ function buildPageData(config, articles, tags, categories) {
     galleryItems: collectGalleryImages(articles),
     siteStats: collectSiteStats(articles, tags, categories),
     listCoverEnabled: !!(config.features && config.features.listCover && config.features.listCover.enabled !== false),
-    topTags: collectTopTags(published, 8),
     searchProvider: (config.navigation && config.navigation.search && config.navigation.search.provider) || 'local',
     currentUrl: '/',
     currentPage: 'index',
@@ -1744,7 +1743,6 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
       },
       articles: langArticles,
       allArticles: langPublished,
-      topTags: langTopTags,
       tags: langTags,
       allTags: langTags,
       categories: langCategories,
@@ -1777,12 +1775,12 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
             showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
             showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
             showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
-            ctaLabel: lang === 'en' ? (config.site.hero.ctaLabelEn || f.hero.ctaLabelEn || 'View all posts') : (config.site.hero.ctaLabel || '查看全部文章'),
-            ctaUrl: config.site.hero.ctaUrl || '#latest-post',
+            ctaLabel: lang === 'en' ? (config.site.hero.ctaLabelEn || f.hero.ctaLabelEn) : (config.site.hero.ctaLabel || f.hero.ctaLabel),
+            ctaUrl: config.site.hero.ctaUrl || f.hero.ctaUrl,
             showDate: f.hero.showDate === true,
             date: (langPublished[0] && langPublished[0].formattedDate) || '',
-            tagCount: config.site.hero.tagCount || f.hero.tagCount || 8,
-            tags: langTopTags.slice(0, config.site.hero.tagCount || f.hero.tagCount || 8)
+            tagCount: config.site.hero.tagCount || f.hero.tagCount,
+            tags: langTopTags.slice(0, config.site.hero.tagCount || f.hero.tagCount)
           } : null,
           pagination: {
             current: page,
@@ -1923,19 +1921,18 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
       langPrefix: pf,
       articles: rootArticles,
       allArticles: rp,
-      topTags: rt,
       heroData: heroEnabled ? {
         title: config.site.hero.title || config.site.title,
         subtitle: config.site.hero.subtitle || config.site.subtitle || config.site.description,
         showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
         showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
         showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
-        ctaLabel: config.site.hero.ctaLabel || '查看全部文章',
-        ctaUrl: config.site.hero.ctaUrl || '#latest-post',
+        ctaLabel: config.site.hero.ctaLabel || f.hero.ctaLabel,
+        ctaUrl: config.site.hero.ctaUrl || f.hero.ctaUrl,
         showDate: f.hero.showDate === true,
         date: (rp[0] && rp[0].formattedDate) || '',
-        tagCount: config.site.hero.tagCount || f.hero.tagCount || 8,
-        tags: rt.slice(0, config.site.hero.tagCount || f.hero.tagCount || 8)
+        tagCount: config.site.hero.tagCount || f.hero.tagCount,
+        tags: rt.slice(0, config.site.hero.tagCount || f.hero.tagCount)
       } : null,
       pagination: {
         current: 1, total: totalPages,
@@ -1979,7 +1976,7 @@ async function generateRSS(config, articles) {
         language: rssLang === 'en' ? 'en-US' : (config.site.language || 'zh-CN'),
         copyright: config.site.copyright || '',
         updated: rssPublished.length > 0 && rssPublished[0].date ? new Date(rssPublished[0].date) : new Date(),
-        generator: 'S-ynapse'
+        generator: config.site.title
       });
       if (config.site.author) feed.author = { name: config.site.author, email: config.site.email || '' };
       const maxItems = config.site.rss.maxItems || 50;
@@ -1997,7 +1994,7 @@ async function generateRSS(config, articles) {
           author: config.site.author ? [{ name: config.site.author }] : undefined
         });
       }
-      const rssPath = (config.site.rss.path || '/feed.xml').replace(/^\//, '');
+      const rssPath = config.site.rss.path.replace(/^\//, '');
       const outputPath = path.join(DIST_DIR, rssLang, rssPath);
       const outDir = path.dirname(outputPath);
       if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
@@ -2052,7 +2049,7 @@ async function generateJSONFeed(config, articles) {
           author: config.site.author ? [{ name: config.site.author }] : undefined
         });
       }
-      const jfPath = (rss.jsonFeed.path || '/feed.json').replace(/^\//, '');
+      const jfPath = rss.jsonFeed.path.replace(/^\//, '');
       const outputPath = path.join(DIST_DIR, lang, jfPath);
       const outDir = path.dirname(outputPath);
       if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
@@ -2120,7 +2117,7 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
         if (p.draft || !p.slug) continue;
         urls.push({ loc: pf + p.slug + '/', changefreq: pageFreq, priority: String(pagePr) });
       }
-      const sitemapPath = (config.site.sitemap.path || '/sitemap.xml').replace(/^\//, '');
+      const sitemapPath = config.site.sitemap.path.replace(/^\//, '');
       const entryPath = path.join(DIST_DIR, lang, sitemapPath);
       const outDir = path.dirname(entryPath);
       if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
@@ -2169,7 +2166,7 @@ async function pingSearchEngines(config) {
   if (ping.onlyProduction && process.env.NODE_ENV !== 'production' && !process.env.CI) return;
   const base = (config.site.url || '').replace(/\/+$/, '');
   if (!base) { console.log('  [SKIP] Sitemap ping: site.url not configured'); return; }
-  const sitemapPath = (config.security && config.security.robots && config.security.robots.sitemap) || '/sitemap.xml';
+  const sitemapPath = config.security.robots.sitemap;
   const sitemapUrl = encodeURIComponent(base + sitemapPath);
   const engines = Array.isArray(ping.engines) ? ping.engines : ['google'];
   const endpoints = {
@@ -2222,7 +2219,7 @@ async function generatePagefindIndex(config) {
   const navSearch = (config.navigation && config.navigation.search) || {};
   if (pf.enabled === false) return null;
   if (navSearch.provider !== 'pagefind') return null;
-  const indexPath = String(pf.indexPath || '/pagefind').replace(/^\/+/, '') || 'pagefind';
+  const indexPath = String(pf.indexPath).replace(/^\/+/, '') || 'pagefind';
   const outDir = path.join(DIST_DIR, indexPath);
   let mod;
   try {
@@ -2767,7 +2764,7 @@ async function generatePWA(config) {
     fs.writeFileSync(manifestPath, JSON.stringify(manifest), 'utf-8');
     console.log('  Created: manifest.json');
   }
-  const swUrl = config.site.pwa.serviceWorker || '/sw.js';
+  const swUrl = config.site.pwa.serviceWorker;
   const featPwa = (config.features && config.features.pwa) || {};
   const pwaOffline = featPwa.offlinePage !== false;
   if (pwaOffline) {

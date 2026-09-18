@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **灯箱（lightbox）按钮无法点击与交互逻辑修复（用户报告）**：全屏 `.lb-stage` 在 DOM 中位于 `lbClose`/`lbPrev` 之后且无 z-index，将其覆盖导致真实鼠标点击无效（`elementFromPoint` 命中 stage）；修复：交互控件统一 `z-index:6`，说明条/计数 `pointer-events:none`（说明条上滚轮也可缩放）；重写双击/滚轮「指向光标缩放」平移公式（原公式 3 倍偏移）并在旋转态跳过重定心；背景关闭改为「图片区域外且非拖拽（位移≤6px）才关闭」，拖拽导航不再误触关闭；打开时焦点移至关闭按钮、补齐空节点防御。新增回归 `verify-lightbox-ui.js` 14/14（真实鼠标点全按钮） + 既有 `verify-lightbox3` 9/9、`verify-lightbox-gestures` 5/5 — `js/domains/lightbox.js` + `templates/site-css.ejs`
 - **Mermaid 多图并发渲染串位（严重）**：一次文章含多张图表时，并发调用 `mermaid.run()` 导致渲染结果相互污染——状态图样式元素缺失 viewBox 而空白/坍塌遮挡正文，甘特图被饼图覆盖而不显示（用户报告）；改为 `__mmSeq` 串行逐个渲染（首次渲染与主题切换两条路径均修复），并同步将演示文章甘特图加 `axisFormat %m-%d` + `tickInterval 1week` 消除日刻度标签重叠 — `templates/layout.ejs` + `articles/zh/diagrams-math.md` + `articles/en/diagrams-math.md`（回归脚本 `.tmp-scripts/verify-mermaid-render.js`：首屏+主题切换各 10 项断言 20/20）
 - 图库页说明文案 `{count}` 占位符未替换且句子重复（模板误用 `gallery.desc` 两次）：改为「共 N 张图片 · 站内图片集，点击查看大图。」单句组合 — `templates/gallery.ejs`
 - 公告条「关闭后刷新/切页仍闪现」根因修复：`data-items` 属性双重转义（`escapeAttr` 与 EJS `<%=` 叠加）导致浏览器 `JSON.parse` 失败、关闭哈希与内容哈希错位、`<head>` 首帧早检脚本永不命中；现改为单层转义，并**反转为「默认隐藏，`<head>` 早检确认未关闭后才显示」**（关闭态刷新/导航实测零可见帧；禁用 JS 时公告不显示，属预期设计） — `templates/layout.ejs` + `js/domains/announcement.js`

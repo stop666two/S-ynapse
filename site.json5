@@ -716,7 +716,13 @@
     // Service Worker 输出路径
     // 类型: string（站内绝对路径） | 推荐: "/sw.js"
     // 注意: SW 作用域为该路径所在目录（/sw.js → 全站）
-    "serviceWorker": "/sw.js"
+    "serviceWorker": "/sw.js",
+
+    // Service Worker 缓存名（改版后递增可强制废弃旧缓存）
+    // 类型: string | 推荐: 站点短名 + 版本号（如 's-ynapse-v1'）
+    // 不可填: 空字符串（SW 将以空名建缓存）
+    // 注意: 修改即触发所有客户端重新预缓存
+    "cacheName": "s-ynapse-v1"
   },
 
   // ===================================================================
@@ -847,6 +853,23 @@
     // 不可填: 无效正则（构建会报错）
     // 推荐: ".*\\.(css|js|png|jpg|svg)$"
     "cacheBustingPattern": ".*\\.(css|js|png|jpg|svg)$",
+
+    // 站点主样式输出目录（相对于 dist/）
+    // 类型: string（站内相对路径） | 推荐: "assets/css"
+    // 不可填: 绝对路径/带 .. 的路径
+    "cssOutDir": "assets/css",
+
+    // 站点主样式文件名前缀（最终为 {前缀}.{内容哈希}.css）
+    // 类型: string | 推荐: "site"
+    "cssFileBase": "site",
+
+    // 内容哈希截取长度（文件名中的哈希位数）
+    // 类型: number(整数) | 可填: 6–16 | 推荐: 10
+    "hashLength": 10,
+
+    // 内容哈希算法（Node crypto 支持的名称）
+    // 类型: string | 推荐: "md5"（非安全用途，仅缓存键）
+    "hashAlgorithm": "md5",
 
     // 外链 target
     // 作用: 正文外链自动添加的 target 值

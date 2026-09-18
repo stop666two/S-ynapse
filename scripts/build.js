@@ -225,7 +225,7 @@ function loadConfig() {
       social: { enabled: false, items: {} },
       comments: { enabled: false, provider: 'giscus' },
       sitemap: { enabled: true, path: '/sitemap.xml', changefreq: 'weekly', priority: 0.8 },
-      pwa: { enabled: false, manifest: {}, serviceWorker: '/sw.js' },
+      pwa: { enabled: false, manifest: {}, serviceWorker: '/sw.js', cacheName: 's-ynapse-v1' },
       favicon: { enabled: true, svg: '/icons/favicon.svg', png32: '/icons/favicon-32x32.png', appleTouch: '/icons/apple-touch-icon.png' },
       build: {
         cleanDist: true, minifyHTML: false, minifyCSS: false, minifyJS: false,
@@ -237,7 +237,8 @@ function loadConfig() {
         usePictureTag: true,
         relatedArticles: true, cjkSpacing: true, buildReport: true, forceContentWidth: true,
         enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
-        externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer'
+        externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer',
+        cssOutDir: 'assets/css', cssFileBase: 'site', hashLength: 10, hashAlgorithm: 'md5'
       },
       externalLinkWarning: { enabled: false, whitelist: [], blacklist: [] },
       showRepoLink: true, repoUrl: ''
@@ -1427,38 +1428,56 @@ function resolveDailyQuotes(config) {
     return BUILTIN_QUOTES;
   }
 }
-const FAVICON_FALLBACK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#2563eb"/><g stroke="#fff" stroke-width="4" stroke-linecap="round"><line x1="20" y1="22" x2="44" y2="21"/><line x1="20" y1="22" x2="32" y2="44"/><line x1="44" y1="21" x2="32" y2="44"/></g><g fill="#fff"><circle cx="20" cy="22" r="6.2"/><circle cx="44" cy="21" r="6.2"/><circle cx="32" cy="44" r="6.4"/></g></svg>';
+function faviconFallbackSvg(color) {
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="' + color + '"/><g stroke="#fff" stroke-width="4" stroke-linecap="round"><line x1="20" y1="22" x2="44" y2="21"/><line x1="20" y1="22" x2="32" y2="44"/><line x1="44" y1="21" x2="32" y2="44"/></g><g fill="#fff"><circle cx="20" cy="22" r="6.2"/><circle cx="44" cy="21" r="6.2"/><circle cx="32" cy="44" r="6.4"/></g></svg>';
+}
+function readPngSize(absPath) {
+  try {
+    const fd = fs.openSync(absPath, 'r');
+    const buf = Buffer.alloc(24);
+    fs.readSync(fd, buf, 0, 24, 0);
+    fs.closeSync(fd);
+    if (buf.readUInt32BE(12) === 0x49484452) return buf.readUInt32BE(16) + 'x' + buf.readUInt32BE(20);
+  } catch (e) { /* 尺寸不可读时省略 sizes 属性 */ }
+  return '';
+}
 let _faviconHtmlCache = null;
-function resolveFaviconHtml(site) {
+function resolveFaviconHtml(site, themeColor) {
   if (_faviconHtmlCache !== null) return _faviconHtmlCache;
   const f = (site && site.favicon) || {};
   if (f.enabled === false) { _faviconHtmlCache = ''; return _faviconHtmlCache; }
   const isExternal = function (u) { return /^https?:\/\//i.test(u); };
-  const siteFileExists = function (u) {
-    if (typeof u !== 'string' || u.charAt(0) !== '/') return false;
+  const localAbs = function (u) {
+    if (typeof u !== 'string' || u.charAt(0) !== '/') return '';
     const rel = u.replace(/^\/+/, '').split('?')[0].split('#')[0];
-    return fs.existsSync(path.join(STATIC_DIR, rel));
+    return path.join(STATIC_DIR, rel);
   };
   const pick = function (u, build) {
     if (!u || typeof u !== 'string') return null;
-    if (isExternal(u)) return build(u);
-    if (siteFileExists(u)) return build(u);
+    if (isExternal(u)) return build(u, '');
+    const abs = localAbs(u);
+    if (abs && fs.existsSync(abs)) return build(u, abs);
     console.warn('  [WARN] favicon 文件不存在: ' + u + '（已跳过）');
     return null;
   };
+  const link = function (rel, type, sizes, href) {
+    return '<link rel="' + rel + '" type="' + type + '"' + (sizes ? ' sizes="' + sizes + '"' : '') + ' href="' + escapeAttr(href) + '">';
+  };
   const parts = [
-    pick(f.svg, function (u) { return '<link rel="icon" type="image/svg+xml" href="' + escapeAttr(u) + '">'; }),
-    pick(f.png32, function (u) { return '<link rel="icon" type="image/png" sizes="32x32" href="' + escapeAttr(u) + '">'; }),
-    pick(f.appleTouch, function (u) { return '<link rel="apple-touch-icon" sizes="180x180" href="' + escapeAttr(u) + '">'; })
+    pick(f.svg, function (u) { return link('icon', 'image/svg+xml', '', u); }),
+    pick(f.png32, function (u, abs) { return link('icon', 'image/png', abs ? readPngSize(abs) : '', u); }),
+    pick(f.appleTouch, function (u, abs) { return link('apple-touch-icon', 'image/png', abs ? readPngSize(abs) : '', u); })
   ].filter(Boolean);
   if (!parts.length) {
-    parts.push('<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,' + encodeURIComponent(FAVICON_FALLBACK_SVG) + '">');
+    parts.push('<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,' + encodeURIComponent(faviconFallbackSvg(themeColor)) + '">');
   }
   _faviconHtmlCache = parts.join('');
   return _faviconHtmlCache;
 }
-let SITE_CSS_HREF = '/assets/css/site.css';
+let SITE_CSS_HREF = '';
 function buildSiteCss(config, baseData) {
+  const b = config.site.build;
+  SITE_CSS_HREF = '/' + b.cssOutDir + '/' + b.cssFileBase + '.css';
   const templateStr = getTemplate('site-css.ejs');
   if (!templateStr) {
     console.error('  [WARN] templates/site-css.ejs not found; layout will reference ' + SITE_CSS_HREF);
@@ -1473,8 +1492,8 @@ function buildSiteCss(config, baseData) {
       console.warn('  [WARN] site CSS minify failed: ' + e.message);
     }
   }
-  const hash = crypto.createHash('md5').update(css).digest('hex').slice(0, 10);
-  const rel = 'assets/css/site.' + hash + '.css';
+  const hash = crypto.createHash(b.hashAlgorithm).update(css).digest('hex').slice(0, b.hashLength);
+  const rel = b.cssOutDir + '/' + b.cssFileBase + '.' + hash + '.css';
   const file = path.join(DIST_DIR, rel);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, css, 'utf-8');
@@ -1566,7 +1585,7 @@ function buildPageData(config, articles, tags, categories) {
     Date: Date,
     config,
     dailyQuotes: resolveDailyQuotes(config),
-    faviconHtml: resolveFaviconHtml(config.site || {}),
+    faviconHtml: resolveFaviconHtml(config.site || {}, config.theme && config.theme.colors && config.theme.colors.secondary),
     siteCssHref: SITE_CSS_HREF
   };
 }
@@ -2303,8 +2322,9 @@ function generateBuildReport(config, articles, tags, categories, customPages, el
     const policyBlocked = (policyResult && policyResult.blocked) || [];
     const policyCopied = (policyResult && policyResult.copied) || 0;
     const published = getPublished(articles);
+    const tc = config.theme.colors;
     const totalSize = getDirSize(DIST_DIR);
-    const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="robots" content="noindex"><title>构建报告 - ${config.site.title}</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:2rem auto;padding:0 1rem;color:#333}h1{font-size:1.5rem}.stat{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #eee}.stat-label{color:#666}.stat-value{font-weight:600}.good{color:#16a34a}.warn{color:#d97706}</style></head><body><h1>构建报告</h1><p style="color:#666">${new Date().toISOString().replace('T',' ').slice(0,19)}</p>
+    const html = `<!DOCTYPE html><html lang="${config.site.language}"><head><meta charset="UTF-8"><meta name="robots" content="noindex"><title>构建报告 - ${config.site.title}</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:2rem auto;padding:0 1rem;color:${tc.text}}h1{font-size:1.5rem}.stat{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid ${tc.border}}.stat-label{color:${tc.textSecondary}}.stat-value{font-weight:600}.good{color:#16a34a}.warn{color:#d97706}</style></head><body><h1>构建报告</h1><p style="color:${tc.textSecondary}">${new Date().toISOString().replace('T',' ').slice(0,19)}</p>
     <div class="stat"><span class="stat-label">构建耗时</span><span class="stat-value">${elapsed}s</span></div>
     <div class="stat"><span class="stat-label">文章数</span><span class="stat-value">${published.length}</span></div>
     <div class="stat"><span class="stat-label">自定义页面</span><span class="stat-value">${(customPages||[]).length}</span></div>
@@ -2775,11 +2795,13 @@ async function generatePWA(config) {
       ? { t: en.offlineTitle || 'You are offline', d: en.offlineDesc || 'Network connection lost. Check and retry.', r: en.retry || 'Retry', h: 'Back to home' }
       : { t: zh.offlineTitle || '当前处于离线状态', d: zh.offlineDesc || '网络已断开，请检查连接后重试。', r: zh.retry || '重试', h: '返回首页' };
     const home = isEn ? '/en/' : '/zh/';
-    const offlineHtml = '<!DOCTYPE html><html lang="' + (isEn ? 'en' : 'zh') + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' + S.t + ' · ' + config.site.title + '</title><style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f7fafc;color:#1a2430;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:26rem;padding:2.5rem;text-align:center}h1{font-size:1rem;opacity:.6;margin:0 0 1.25rem}.t{font-size:1.35rem;font-weight:700;margin:0 0 .5rem}.d{opacity:.7;line-height:1.7;margin:0 0 1.75rem}button,a{font:inherit}button{cursor:pointer;padding:.6rem 1.4rem;border-radius:999px;border:0;background:#3b6ea5;color:#fff}button:hover{filter:brightness(1.08)}a{color:inherit;margin-left:1rem;text-decoration:underline;text-underline-offset:3px}@media(prefers-color-scheme:dark){body{background:#0e141b;color:#e6edf3}button{background:#5b8fc9}}</style></head><body><main><h1>' + config.site.title + '</h1><p class="t">' + S.t + '</p><p class="d">' + S.d + '</p><p><button onclick="location.reload()">' + S.r + '</button><a href="' + home + '">' + S.h + '</a></p></main></body></html>';
+    const lt = config.theme.colors;
+    const dk = (config.theme.darkMode && config.theme.darkMode.colors) || {};
+    const offlineHtml = '<!DOCTYPE html><html lang="' + (isEn ? 'en' : 'zh') + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' + S.t + ' · ' + config.site.title + '</title><style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:' + lt.background + ';color:' + lt.text + ';font-family:system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:26rem;padding:2.5rem;text-align:center}h1{font-size:1rem;opacity:.6;margin:0 0 1.25rem}.t{font-size:1.35rem;font-weight:700;margin:0 0 .5rem}.d{opacity:.7;line-height:1.7;margin:0 0 1.75rem}button,a{font:inherit}button{cursor:pointer;padding:.6rem 1.4rem;border-radius:999px;border:0;background:' + lt.secondary + ';color:' + lt.surface + '}button:hover{filter:brightness(1.08)}a{color:inherit;margin-left:1rem;text-decoration:underline;text-underline-offset:3px}@media(prefers-color-scheme:dark){body{background:' + (dk.background || lt.background) + ';color:' + (dk.text || lt.text) + '}button{background:' + (dk.secondary || lt.secondary) + '}}</style></head><body><main><h1>' + config.site.title + '</h1><p class="t">' + S.t + '</p><p class="d">' + S.d + '</p><p><button onclick="location.reload()">' + S.r + '</button><a href="' + home + '">' + S.h + '</a></p></main></body></html>';
     fs.writeFileSync(path.join(DIST_DIR, 'offline.html'), offlineHtml, 'utf-8');
     console.log('  Created: offline.html');
   }
-  const swContent = `const CACHE = 's-ynapse-v1';
+  const swContent = `const CACHE = ${JSON.stringify(config.site.pwa.cacheName)};
 const ASSETS = [
   '/',
   '/manifest.json'${pwaOffline ? ",\n  '/offline.html'" : ''}
@@ -2938,6 +2960,7 @@ async function build() {
     console.log(`========================================`);
     if (config.site.build.buildReport !== false) generateBuildReport(config, articles, tags, categories, customPages, elapsed, policyResult);
     checkPerfBudget(config);
+    return config;
   } catch (err) {
     console.error(`\n[FATAL] Build failed: ${err.message}`);
     if (!err.isBuildAbort) console.error(err.stack);
@@ -2988,8 +3011,8 @@ if (WATCH_MODE) {
   process.on('SIGTERM', () => { watcher.close(); process.exit(0); });
   build();
 } else {
-  build().then(function() {
-    if (SERVE_MODE) startServer();
+  build().then(function (config) {
+    if (SERVE_MODE) startServer(config);
   });
 }
 
@@ -2997,12 +3020,12 @@ if (WATCH_MODE) {
 // Serves files from dist/ with basic MIME type detection.
 // Supports clean URLs (auto-appends index.html for directories, .html for missing files).
 // Falls back to 404.html when no match is found.
-function startServer() {
+function startServer(config) {
   var http = require('http');
   var PORT = parseInt(process.argv[process.argv.indexOf('--port') + 1]) || 3000;
   var MAINTENANCE = process.argv.indexOf('--maintenance') !== -1 || process.env.MAINTENANCE === '1';
   var MAINT_MSG = process.env.MAINTENANCE_MESSAGE || '本站正在维护中，请稍后再来。';
-  var maintPage = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ' + MAINT_MSG + '</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f7fafc;color:#1a202c}p{color:#4a5568}</style></head><body><main><h1>维护中</h1><p>' + MAINT_MSG + '</p></main></body></html>';
+  var maintPage = '<!DOCTYPE html><html lang="' + config.site.language + '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ' + MAINT_MSG + '</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:' + config.theme.colors.background + ';color:' + config.theme.colors.text + '}p{color:' + config.theme.colors.textSecondary + '}</style></head><body><main><h1>维护中</h1><p>' + MAINT_MSG + '</p></main></body></html>';
   var REDIRECT_LIST = [];
   try {
     var rc = fs.readFileSync(path.join(DIST_DIR, '_redirects'), 'utf-8');

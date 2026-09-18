@@ -109,7 +109,7 @@
 | `favicon.png32` | string | `/icons/favicon-32x32.png` | 32×32 PNG 回退 |
 | `favicon.appleTouch` | string | `/icons/apple-touch-icon.png` | iOS 主屏图标（180×180 PNG） |
 
-构建时逐个检测站内路径的文件存在性：存在则注入（并参与 cache-bust 内容哈希重命名），缺失则跳过并输出 `[WARN]`；三项全部缺失时自动注入内置 data-URI SVG 兜底，不再出现 `/favicon` 404。默认三件套源文件位于 `static/icons/`，随构建拷贝到 `dist/icons/`。
+构建时逐个检测站内路径的文件存在性：存在则注入（并参与 cache-bust 内容哈希重命名），缺失则跳过并输出 `[WARN]`；PNG 的 `sizes` 属性取自文件 IHDR 实际像素尺寸（32×32 / 180×180 自动派生，不写死）；三项全部缺失时自动注入内置 data-URI SVG 兜底（颜色取主题色），不再出现 `/favicon` 404。默认三件套源文件位于 `static/icons/`，随构建拷贝到 `dist/icons/`。
 
 ### site.pwa / site.build — PWA 与构建开关
 | 字段 | 类型 | 默认 | 说明 |
@@ -117,6 +117,7 @@
 | `pwa.enabled` | bool | `false` | 生成 manifest/sw.js |
 | `pwa.manifest` | object | `{}` | manifest 字段 |
 | `pwa.serviceWorker` | string | `/sw.js` | SW 路径 |
+| `pwa.cacheName` | string | `s-ynapse-v1` | SW 缓存名（改版递增可强制废弃旧缓存） |
 | `build.cleanDist` | bool | `true` | 构建前清空 dist |
 | `build.minifyHTML/CSS/JS` | bool | `true` | 压缩开关：HTML（含残留内联脚本/样式）压缩去注释；站点主样式（外链 `dist/assets/css/site.<hash>.css`）与残留内联 `<style>`（customCSS 等）均经 CleanCSS(level 1) 压缩；JS 压缩范围 = `dist/assets/js`（vendor 上游已压缩、自动跳过）；JSON 输出（search-index/manifest/speculation-rules 等）始终紧凑 |
 | `build.removeConsole` | bool | `false` | 剥离 console.*（仅作用于 `dist/assets/js`） |
@@ -129,7 +130,7 @@
 | `build.mediaFormats` | array | `['webp','original']` | 输出格式(可含 avif) |
 | `build.avif.enabled` | bool | `true` | AVIF 输出（图多省流量；构建时间敏感可关） |
 | `build.avif.quality` | number | `50` | AVIF 质量 |
-| `build.avif.effort` | number | `6` | AVIF 编码努力(0-10) |
+| `build.avif.effort` | number | `5` | AVIF 编码努力(0-10) |
 | `build.lazyLoadImages` | bool | `true` | loading=lazy |
 | `build.useSrcset` / `usePictureTag` | bool | `true` | 响应式标签 |
 | `build.searchFullContent` | bool | `true` | 搜索索引含正文 |
@@ -140,6 +141,10 @@
 | `build.forceContentWidth` | bool | `true` | 主内容强制宽高布局 |
 | `build.enableCacheBusting` | bool | `false` | MD5 缓存戳 |
 | `build.cacheBustingPattern` | string | `.*\.(css\|js\|png\|jpg\|svg)$` | 戳名模式 |
+| `build.cssOutDir` | string | `assets/css` | 站点主样式输出目录（相对 dist/） |
+| `build.cssFileBase` | string | `site` | 主样式文件名前缀（最终 `{前缀}.{哈希}.css`） |
+| `build.hashLength` | number | `10` | 内容哈希截取长度（6–16） |
+| `build.hashAlgorithm` | string | `md5` | 内容哈希算法（Node crypto 名称；仅作缓存键） |
 | `build.externalLinksTarget` / `externalLinksRel` | string | `_blank` / `noopener noreferrer` | 外链属性 |
 
 ### site.performance — 性能优化

@@ -196,95 +196,10 @@ function loadConfig() {
   // is enabled and the preset activates a module).
   const guard = loadOptionalConfigFile('guard.json5') || {};
 
-  const defaults = {
-    site: {
-      title: 'My Blog',
-      subtitle: '',
-      description: '',
-      author: '',
-      email: '',
-      url: 'http://localhost',
-      language: 'en',
-      timezone: 'UTC',
-      dateFormat: 'YYYY-MM-DD',
-      copyright: '',
-      postsPerPage: 10,
-      paginationPrev: '上一页',
-      paginationNext: '下一页',
-      prevPostLabel: '上一篇',
-      nextPostLabel: '下一篇',
-      rss: { enabled: false, path: '/feed.xml', fullContent: true, maxItems: 50, jsonFeed: { enabled: false, path: '/feed.json', fullContent: false, maxItems: 20 } },
-      seo: {
-        metaKeywords: [], metaRobots: 'index, follow',
-        ogImage: '', ogType: 'website',
-        twitterCard: 'summary_large_image', twitterSite: '',
-        canonicalURL: false,
-        ogImageAlt: true, articleTimes: true, twitterLabels: true,
-        structuredData: { enabled: false, type: 'BlogPosting' }
-      },
-      social: { enabled: false, items: {} },
-      comments: { enabled: false, provider: 'giscus' },
-      sitemap: { enabled: true, path: '/sitemap.xml', changefreq: 'weekly', priority: 0.8 },
-      pwa: { enabled: false, manifest: {}, serviceWorker: '/sw.js', cacheName: 's-ynapse-v1' },
-      favicon: { enabled: true, svg: '/icons/favicon.svg', png32: '/icons/favicon-32x32.png', appleTouch: '/icons/apple-touch-icon.png' },
-      build: {
-        cleanDist: true, minifyHTML: false, minifyCSS: false, minifyJS: false,
-        removeConsole: false,
-        generateIndex: true, generateArchive: true, generateTags: true, generateCategories: true,
-        generateGallery: true,
-        copyStatic: true, optimizeMedia: false, mediaQuality: 85,
-        mediaResponsiveSizes: [640, 1024, 1920], mediaFormats: ['webp', 'original'],
-        usePictureTag: true,
-        relatedArticles: true, cjkSpacing: true, buildReport: true, forceContentWidth: true,
-        enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
-        externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer',
-        cssOutDir: 'assets/css', cssFileBase: 'site', hashLength: 10, hashAlgorithm: 'md5'
-      },
-      externalLinkWarning: { enabled: false, whitelist: [], blacklist: [] },
-      showRepoLink: true, repoUrl: ''
-    },
-    // Content policy defaults are minimal here — content-policy.json5 (optional)
-    // supplies the real lists; classifyFile() in lib/content-policy.js falls
-    // back to its own built-in default policy when keys are absent.
-    contentPolicy: { enabled: true },
-    tagAliases: { enabled: true, aliases: {} },
-    friends: { enabled: false, title: '友情链接', description: '', applyNote: '', friends: [] },
-    // Features domain defaults mirror features.json5 (single source of truth in
-    // lib/features-schema.js). User overrides come from features.json5.
-    features: DEFAULT_FEATURES,
-    theme: {
-      colors: { primary: '#2d3748', secondary: '#2563eb', accent: '#c53030', background: '#f7fafc', surface: '#ffffff', text: '#1a202c', textSecondary: '#4a5568', textLight: '#64748b', border: '#e2e8f0', shadow: 'rgba(0,0,0,0.1)', hover: '#edf2f7', codeBackground: '#2d3748', codeText: '#f7fafc' },
-      darkMode: { enabled: false, toggle: true, default: 'system', colors: {} },
-      preset: null, presetOverrides: {},
-      fontSystem: { stack: 'inter', customStack: '', scale: 1, bodyWeight: 400, headingStack: 'inherit', numbersMono: true },
-      rounding: 'md', shadowLevel: 'soft', borderStyle: 'subtle',
-      avatar: { shape: 'round', ring: false, ringColor: '', badge: true },
-      fontFamily: 'sans-serif',
-      fontFamilyMono: 'monospace',
-      fontSizeBase: '16px', lineHeight: 1.8,
-      headingFontWeight: 700, letterSpacing: '0.02em',
-      spacing: { containerWidth: '960px', gap: '1.618rem', padding: '2.618rem', radius: '0.618rem', radiusLarge: '1.618rem' },
-      shadow: { card: '0 4px 6px rgba(0,0,0,0.1)', dropdown: '0 10px 15px -3px rgba(0,0,0,0.1)', fixed: '0 2px 4px rgba(0,0,0,0.08)' },
-      layout: { headerStyle: 'fixed', headerHeight: '60px', footerStyle: 'simple', sidebarPosition: 'right', contentWidth: 'main', postLayout: 'standard', archiveLayout: 'list' },
-      animation: { enable: true, transitionDuration: '0.3s', transitionTiming: 'ease-in-out' },
-      card: { showDate: true, showTags: true, showCategories: true, showExcerpt: true, excerptLength: 150, showReadTime: true, readTimeSpeed: 265, showWordCount: true },
-      button: { radius: '0.25rem', padding: '0.5rem 1.5rem', primaryBackground: '#4a90d9', primaryText: '#ffffff', hoverScale: 1.02 },
-      externalAssets: { styles: [], scripts: [] },
-      contentOffset: 0, headerContentGap: 0, tocWidth: '200px', sidebarWidth: '280px', tocMinLeft: '10px', sidebarMinRight: '10px'
-    },
-    navigation: { menu: [], navbar: { fixed: true, showLogo: true, logoText: '' }, socialInNav: { enabled: false, order: [] }, search: { enabled: false, placeholder: '搜索...', provider: 'local' }, userMenu: { enabled: false } },
-    sidebar: { enabled: false, position: 'right', width: '280px', sticky: true, widgets: [], mobile: { enabled: true, collapsed: true, toggleButton: true, overlay: true } },
-    footer: { copyright: '', layout: 'simple', columnItems: { enabled: true, items: [] }, bottomLinks: { enabled: true, items: [] }, social: { enabled: false, iconSize: '24px' }, poweredBy: { enabled: false, text: 'S-ynapse' }, beian: { enabled: false } },
-    security: {
-      headers: {}, csp: { enabled: false, directives: {}, reportOnly: false },
-      robots: { enabled: false, rules: [], sitemap: '/sitemap.xml' },
-      rateLimiting: { enabled: false, maxRequests: 100, windowMs: 60000 },
-      pathRestrictions: [], forceHttps: false,
-      customHeaders: {}
-    }
-  };
+  const { DEFAULT_CONFIG } = require('./lib/site-defaults.js');
+  const defaults = DEFAULT_CONFIG;
 
-  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy, features, uiStrings, tuning, guard }, { tagAliases: tagAliasData, friends: friendsData }]);
+  const config = deepmerge.all([defaults, { site, theme, navigation, sidebar, footer, security, contentPolicy, features, uiStrings, tuning, guard }, { tagAliases: tagAliasData, friends: friendsData }], { arrayMerge: (target, source) => source });
   // Features arrays must replace, not concatenate (e.g. share.order must drop
   // platforms the user removed). Deepmerge's default arrayMerge concatenates,
   // so features gets its own merge pass with a replace strategy.
@@ -637,10 +552,10 @@ async function optimizeMedia(config) {
     return null;
   }
   const manifest = {};
-  const sizes = config.site.build.mediaResponsiveSizes || [640, 1024, 1920];
+  const sizes = config.site.build.mediaResponsiveSizes;
   const quality = config.site.build.mediaQuality;
-  const avifCfg = config.site.build.avif || { enabled: true, quality: 50, effort: 5 };
-  const formats = config.site.build.mediaFormats || ['webp', 'original'];
+  const avifCfg = config.site.build.avif;
+  const formats = config.site.build.mediaFormats;
   const destDir = path.join(DIST_DIR, 'media');
   if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
   const images = getAllFiles(MEDIA_DIR).filter(f => /\.(jpg|jpeg|png|gif|tiff|webp)$/i.test(f));
@@ -675,7 +590,7 @@ async function optimizeMedia(config) {
           if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
           let pipeline = sharp(imgPath).resize(size, null, { withoutEnlargement: true });
           if (fmt === 'webp') pipeline = pipeline.webp({ quality });
-          else if (fmt === 'avif') pipeline = pipeline.avif({ quality: avifCfg.quality || 50, effort: avifCfg.effort || 6 });
+          else if (fmt === 'avif') pipeline = pipeline.avif({ quality: avifCfg.quality, effort: avifCfg.effort });
           else if (ext === '.png') pipeline = pipeline.png({ quality });
           else pipeline = pipeline.jpeg({ quality });
           await pipeline.toFile(outPath);
@@ -2368,7 +2283,7 @@ function getDirSize(dir) {
 // Each entry: {from, to, permanent} — permanent=true → 301, false → 302.
 // Supports wildcard syntax (e.g. "/old/* /new/:splat 301") via CF Pages native matching.
 function generateRedirects(config, customPages) {
-  const list = Array.isArray(config.site.redirects) ? config.site.redirects : [];
+  const list = config.site.redirects;
   const lines = [];
   const valid = [];
 

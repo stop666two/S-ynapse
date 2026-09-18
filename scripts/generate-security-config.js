@@ -10,7 +10,6 @@ const path = require('path');
 // 静态层（_headers）与边缘层（Worker）永远一致，消除"需人工双改"导致的漂移。
 
 const OUT_FILE = path.join(__dirname, '..', 'workers', 'security-config.js');
-const DEFAULT_SKIP_PATHS = ['/assets/', '/media/', '/og/', '/icons/', '/pagefind/'];
 
 /** 基本校验单个 IP / CIDR 条目（IPv4 点分或 IPv6 冒号形式；供构建期告警用）。 */
 function isValidIpEntry(entry) {
@@ -76,7 +75,8 @@ function applyHeaderHardening(security) {
 /**
  * 从已解析的 security 配置中提取 Worker 需要的字段。
  * 缺失字段自动用安全兜底值（禁执行、不限制、严格头），保证任何手写损坏
- * 的 JSON 不会让 Worker 变为无保护状态。
+ * 的 JSON 不会让 Worker 变为无保护状态。skipPaths 是仅有的例外：缺失即为空
+ * 数组（不跳过任何路径，严格计数），避免代码内置隐式策略。
  */
 function extractWorkerSecurity(security) {
   const s = security && typeof security === 'object' ? security : {};
@@ -107,9 +107,9 @@ function extractWorkerSecurity(security) {
       blockDuration: Number.isFinite(rl.blockDuration) ? rl.blockDuration : 300000,
       whitelist: filterIpEntries(rl.whitelist, 'rateLimiting.whitelist'),
       blacklist: filterIpEntries(rl.blacklist, 'rateLimiting.blacklist'),
-      skipPaths: Array.isArray(rl.skipPaths) && rl.skipPaths.length
+      skipPaths: Array.isArray(rl.skipPaths)
         ? rl.skipPaths.filter((x) => typeof x === 'string' && x.startsWith('/'))
-        : DEFAULT_SKIP_PATHS
+        : []
     },
     csp: {
       directives,
@@ -142,7 +142,7 @@ function generateSecurityConfig(securityConfig, outFile) {
   return file;
 }
 
-module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, applyHeaderHardening, isValidIpEntry, DEFAULT_SKIP_PATHS, OUT_FILE };
+module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, applyHeaderHardening, isValidIpEntry, OUT_FILE };
 
 if (require.main === module) {
   const ROOT = path.join(__dirname, '..');

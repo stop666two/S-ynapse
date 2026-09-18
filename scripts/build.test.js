@@ -374,7 +374,7 @@ describe('generate-security-config', () => {
     assert.deepStrictEqual(out.rateLimiting.whitelist, []);
     assert.strictEqual(out.csp.reportOnly, false);
     assert.deepStrictEqual(out.pathRestrictions, [{ path: '/admin/*' }]);
-    assert.deepStrictEqual(out.rateLimiting.skipPaths, ['/assets/', '/media/', '/og/', '/icons/', '/pagefind/']);
+    assert.deepStrictEqual(out.rateLimiting.skipPaths, []);
   });
   it('normalizes path restrictions (keeps requireAuth/allowedIPs) and drops malformed entries', () => {
     const out = extractWorkerSecurity({ pathRestrictions: [{ path: '/admin/*', requireAuth: true, allowedIPs: ['10.0.0.0/8'] }, { path: '/x' }, { noPath: true }, null] });

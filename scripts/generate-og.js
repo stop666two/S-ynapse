@@ -11,8 +11,6 @@ const OUT_DIR = path.join(ROOT, 'dist', 'og');
 let WIDTH = 1200;
 let HEIGHT = 630;
 const FONT = 'Microsoft YaHei, system-ui, sans-serif';
-const DEFAULT_FROM = '#1a2b4a';
-const DEFAULT_TO = '#2d4a7a';
 
 function stripBom(text) {
   return text.includes('\uFEFF') ? text.replace(/^\uFEFF/, '') : text;
@@ -204,8 +202,9 @@ function renderCover(o) {
   const style = o.style || {};
   const t = o.template || 'aurora';
   const from = o.from, to = o.to;
+  const pal = o.palette || {};
   const grad = angleXY(style.gradientAngle);
-  const text = textLayer(o.siteTitle, o.siteUrl, o.lines, o.size, o.lineHeight, style.align, style, t === 'paper' ? '#23262d' : '#ffffff', t !== 'paper');
+  const text = textLayer(o.siteTitle, o.siteUrl, o.lines, o.size, o.lineHeight, style.align, style, t === 'paper' ? pal.paperText : pal.darkText, t !== 'paper');
   const chip = chipLayer(o.category, style, from);
   if (t === 'mesh') {
     const a = hsl(hashHue(o.category || o.siteTitle) + 40, 62, 55);
@@ -215,7 +214,7 @@ function renderCover(o) {
     <radialGradient id="m2" cx="82%" cy="30%" r="65%"><stop offset="0%" stop-color="${to}" stop-opacity="0.9"/><stop offset="100%" stop-color="${to}" stop-opacity="0"/></radialGradient>
     <radialGradient id="m3" cx="55%" cy="95%" r="70%"><stop offset="0%" stop-color="${a}" stop-opacity="0.55"/><stop offset="100%" stop-color="${a}" stop-opacity="0"/></radialGradient>
   </defs>
-  <rect width="${WIDTH}" height="${HEIGHT}" fill="#0a0e1a"/>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="${pal.darkBg}"/>
   <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#m1)"/>
   <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#m2)"/>
   <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#m3)"/>
@@ -225,7 +224,7 @@ function renderCover(o) {
   }
   if (t === 'grid') {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
-  <defs><pattern id="gp" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="1"/></pattern>
+  <defs><pattern id="gp" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="${pal.darkText}" stroke-opacity="0.07" stroke-width="1"/></pattern>
   <linearGradient id="gb" x1="${grad.x1}" y1="${grad.y1}" x2="${grad.x2}" y2="${grad.y2}"><stop offset="0%" stop-color="${from}"/><stop offset="100%" stop-color="${to}"/></linearGradient></defs>
   <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#gb)"/>
   <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#gp)"/>
@@ -237,7 +236,7 @@ function renderCover(o) {
   if (t === 'paper') {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
   <defs><filter id="nz"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter></defs>
-  <rect width="${WIDTH}" height="${HEIGHT}" fill="#f6f1e7"/>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="${pal.paperBg}"/>
   <rect width="${WIDTH}" height="${HEIGHT}" filter="url(#nz)" opacity="0.05"/>
   <rect x="90" y="${Math.round(HEIGHT * 0.74)}" width="160" height="8" rx="4" fill="${from}"/>
   ${chip}
@@ -267,8 +266,18 @@ async function main() {
   const siteTitle = (siteConfig.title || 'S-ynapse').toString();
   const siteUrl = String(siteConfig.domain || siteConfig.url || '');
   const themeColors = themeConfig.colors || themeConfig;
-  const fromColor = parseColor(themeColors.primary || themeConfig.colorPrimary, DEFAULT_FROM);
-  const toColor = parseColor(themeColors.secondary || themeConfig.colorSecondary, DEFAULT_TO);
+  const darkColors = (themeConfig.darkMode && themeConfig.darkMode.colors) || {};
+  const fromColor = parseColor(themeColors.primary || themeConfig.colorPrimary);
+  const toColor = parseColor(themeColors.secondary || themeConfig.colorSecondary);
+  const darkBg = parseColor(darkColors.background, parseColor(themeColors.text));
+  const darkText = parseColor(darkColors.text, parseColor(themeColors.background));
+  const paperBg = parseColor(themeColors.background);
+  const paperText = parseColor(themeColors.text);
+  if (!fromColor || !toColor || !darkBg || !darkText || !paperBg || !paperText) {
+    console.error('[FATAL] generate-og: theme.json5 必须提供 colors.primary/secondary/background/text 与 darkMode.colors.background/text（不允许代码内置配色兜底）');
+    process.exit(1);
+  }
+  const palette = { darkBg, darkText, paperBg, paperText };
   const featuresConfig = readConfigFile('features.json5') || {};
   const ogCfg = featuresConfig.ogImage || {};
   const styleCfg = featuresConfig.ogImageStyle || {};
@@ -358,7 +367,7 @@ async function main() {
         const maxLines = Math.min(4, Math.max(1, +styleCfg.maxLines || 2));
         const size = Math.round((+styleCfg.fontSizeBase || 64) * ((+ogCfg.fontScale > 0) ? +ogCfg.fontScale : 1));
         const lh = Math.round(size * 1.2);
-        const svg = Buffer.from(renderCover({ template: styleCfg.template || 'aurora', siteTitle, siteUrl, lines: fitLines(wrapTitle(title, chars), maxLines), size, lineHeight: lh, from: palFrom, to: palTo, style: styleCfg, category: catOf(catRaw) }));
+        const svg = Buffer.from(renderCover({ template: styleCfg.template || 'aurora', siteTitle, siteUrl, lines: fitLines(wrapTitle(title, chars), maxLines), size, lineHeight: lh, from: palFrom, to: palTo, style: styleCfg, category: catOf(catRaw), palette }));
         await sharp(svg).png().toFile(outPath);
       }
       madeSlugs.set(slug, path.basename(outPath));

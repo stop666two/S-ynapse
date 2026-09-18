@@ -22,13 +22,13 @@
   // 注意: 值的大小写即最终展示效果（"C++" 不会被改写）;
   //       未出现在映射中的标签名保持不变
   aliases: {
-    js: "JavaScript",
-    javascript: "JavaScript",
-    ts: "TypeScript",
-    typescript: "TypeScript",
-    cpp: "C++",
-    golang: "Go",
-    react: "React",
+    js: "JavaScript", // 别名 → 标准名
+    javascript: "JavaScript", // 别名 → 标准名
+    ts: "TypeScript", // 别名 → 标准名
+    typescript: "TypeScript", // 别名 → 标准名
+    cpp: "C++", // 别名 → 标准名
+    golang: "Go", // 别名 → 标准名
+    react: "React", // 别名 → 标准名
     // 示例：cn: "Chinese",
   },
 }

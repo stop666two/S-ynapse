@@ -41,6 +41,7 @@
     // 推荐：false（本地预览所见即所得；需要安静时用 ?guard=off）
     // 注意：true 时你本机看到的界面与线上不一致，排查问题前先关掉它
     bypass: {
+      // 作用：本地地址(host 为 localhost/127.0.0.1)时自动关闭全部防护；boolean；推荐 false
       localhost: false,
 
       // 作用：URL 参数名，?guard=off / ?guard=on 强制开关（覆盖一切其它设置）
@@ -107,6 +108,7 @@
     // 类型：boolean；推荐：true
     // 注意：部分 iOS 版本会同时弹出系统选择菜单，两者叠加时以系统为准
     trigger: {
+      // 作用：触屏长按弹出菜单(右键替代手势)；boolean；推荐 true
       longPress: true,
       // 作用：长按触发时长；类型：number(ms)；可填 300–1200；推荐：550
       // 不可填：<300（误触率极高）或 >1500（用户以为没反应）
@@ -142,10 +144,15 @@
     // 作用：在哪些场景显示菜单（精准控制，避免打扰）
     // 类型：boolean；推荐如上（代码/空白/图片/链接/文字选择全开）
     showOn: {
+      // 选中文字时显示。
       selection: true,
+      // 悬浮链接时显示。
       link: true,
+      // 悬浮图片时显示。
       image: true,
+      // 代码块内显示。
       code: true,
+      // 页面空白处显示。
       blank: true
     },
 
@@ -316,12 +323,19 @@
     // 注意：ctrlP（打印）与 features.printStyle 功能重叠——打印样式只改样式、
     //   本项拦按键；两者可共存，也可只留其一
     keys: {
+      // 拦截 F12(开发者工具)。
       f12: true,
+      // 拦截 Ctrl+Shift+I(开发者工具)。
       ctrlShiftI: true,
+      // 拦截 Ctrl+Shift+J(控制台)。
       ctrlShiftJ: true,
+      // 拦截 Ctrl+Shift+C(元素选择器)。
       ctrlShiftC: true,
+      // 拦截 Ctrl+U(查看源码)。
       ctrlU: true,
+      // 拦截 Ctrl+S(保存页面)。
       ctrlS: true,
+      // 拦截 Ctrl+P(打印,与 features.printStyle 可共存)。
       ctrlP: true,
       // 作用：PrintScreen 仅检测并提示（无法阻止系统截图）；推荐：false
       printScreen: false,
@@ -378,6 +392,7 @@
     rotate: -22,
     // gapX/gapY：平铺间距；string；推荐 '180px'/'140px'
     gapX: '180px',
+    // gapY：平铺纵向间距；string；推荐 '140px'
     gapY: '140px',
     // position：单角位置（仅 fixed）；string；可填 'top-left|top-right|bottom-left|bottom-right'；推荐 'bottom-right'
     position: 'bottom-right',
@@ -411,7 +426,9 @@
     // timingDebugger：以 debugger 语句前后耗时判定（开发者工具打开时会被暂停）
     // 类型：boolean；推荐：sizeDiff true + timingDebugger false（后者有性能波动）
     methods: {
+      // 停靠式 DevTools 尺寸差检测(主方法)。
       sizeDiff: true,
+      // debugger 语句前后耗时检测(有性能波动,默认关)。
       timingDebugger: false
     },
 
@@ -438,6 +455,7 @@
     blurAmount: '6px',
     // 作用：'lockOverlay' 的标题与正文；类型：string；推荐见右
     lockTitle: '开发者工具已打开',
+    // lockText：'lockOverlay' 的正文。
     lockText: '请关闭开发者工具后继续浏览',
     // 作用：'reload' 延迟（给提示留时间）；类型：number(ms)；可填 0–3000；推荐：800
     reloadDelayMs: 800,
@@ -464,8 +482,11 @@
     // bannerText/bannerTextEn：string；不可填：无；推荐见右
     // bannerAscii：boolean；true 时以大字 ASCII 艺术输出；推荐 false
     bannerEnabled: false,
+    // bannerText：欢迎语正文(中文)。
     bannerText: '本站为静态博客，请勿粘贴执行陌生代码',
+    // bannerTextEn：欢迎语正文(英文)。
     bannerTextEn: 'This is a static blog. Never paste unknown code here.',
+    // bannerAscii：true 时以大字 ASCII 艺术输出；推荐 false。
     bannerAscii: false,
 
     // 作用：周期性清空控制台（对抗脚本刷屏）
@@ -474,7 +495,9 @@
     // clearOnDetect：boolean；检测（devtoolsDetect）命中时清空一次；推荐 true
     // 注意：清空属于与用户“抢控制台”，调试时会互相干扰
     clearEnabled: false,
+    // clearIntervalMs：周期清空间隔(ms)；可填 2000–60000；推荐 2000。
     clearIntervalMs: 2000,
+    // clearOnDetect：检测命中时清空一次；boolean；推荐 true。
     clearOnDetect: true,
 
     // 作用：对页面脚本伪装 console（把指定方法替换为 no-op；仅影响页面自己的输出）
@@ -482,7 +505,9 @@
     // muteMethods：array<string>；可填 'log','info','warn','error','debug','table' 子集
     // muteFreeze：boolean；冻结 console 对象防页面改回；推荐 false（可能破坏第三方脚本）
     muteEnabled: false,
+    // muteMethods：被替换为 no-op 的方法名子集；array<string>。
     muteMethods: ['log', 'info', 'debug'],
+    // muteFreeze：冻结 console 对象防页面改回；推荐 false。
     muteFreeze: false,
 
     // 作用：console.log 访问陷阱（页面脚本一碰 console.log 即触发动作）
@@ -490,7 +515,9 @@
     // trapAction：string；可填 'notice' | 'none'；推荐 'notice'
     // trapText：string；空 = ui-strings 默认；推荐 ''
     trapEnabled: false,
+    // trapAction：命中后动作；可填 'notice' | 'none'；推荐 'notice'。
     trapAction: 'notice',
+    // trapText：提示文本；空 = ui-strings 默认；推荐 ''。
     trapText: '',
 
     // 作用：隐藏 guard 自身全部控制台输出（覆盖 core.logLevel）；类型：boolean；推荐：false
@@ -517,6 +544,7 @@
     blurAmount: '8px',
     // 作用：帘上文案（中/英）；类型：string；推荐：'已暂停显示' / 'Paused'
     curtainText: '已暂停显示',
+    // curtainTextEn：帘上文案(英文)；类型 string。
     curtainTextEn: 'Paused',
     // 作用：恢复显示的去抖延迟（快速切回不闪）；类型：number(ms)；可填 0–1000；推荐：200
     revealDelayMs: 200,
@@ -526,7 +554,9 @@
     // prtScText：string；空 = ui-strings 默认；推荐 ''
     // prtScOncePerSession：boolean；推荐 true
     prtScNotice: false,
+    // prtScText：提示文案；空 = ui-strings 默认；推荐 ''。
     prtScText: '',
+    // prtScOncePerSession：提示每会话只一次；推荐 true。
     prtScOncePerSession: true
   },
 
@@ -547,13 +577,16 @@
     // scripts.action：string；可填 'toast'（提示）| 'remove'（移除脚本）| 'report'（仅上报）
     // 注意：内联脚本插入即执行，remove 只能事后处理；对扩展注入可能误报
     scripts: {
+      // scripts.monitor：监视动态 <script> 注入；推荐 true。
       monitor: true,
+      // scripts.action：命中后动作；'toast' | 'remove' | 'report'。
       action: 'toast'
     },
 
     // 作用：动态内联事件属性（onclick= 等）监视；类型：boolean；推荐 false
     // 注意：attributes 全子树观察开销较大，仅在确有需要时开启
     attrs: {
+      // attrs.monitor：监视动态内联事件属性；推荐 false。
       monitor: false
     },
 
@@ -561,13 +594,16 @@
     // iframes.monitor：boolean；推荐 true（模块开启时）
     // iframes.action：string；可填 'toast' | 'remove' | 'report'；推荐 'toast'
     iframes: {
+      // iframes.monitor：监视动态 <iframe> 注入；推荐 true。
       monitor: true,
+      // iframes.action：命中后动作；'toast' | 'remove' | 'report'。
       action: 'toast'
     },
 
     // 作用：关键原型替换监视（fetch / XHR.open / eval / Function）
     // prototype.watch：boolean；推荐 false（周期性比较，有轻微开销）
     prototype: {
+      // prototype.watch：监视 fetch/XHR/eval/Function 原型替换；推荐 false。
       watch: false
     },
 
@@ -575,7 +611,9 @@
     // dom.monitor：boolean；推荐 false
     // dom.targets：array<string>（CSS 选择器）；推荐 ['.site-header', '.post-content']
     dom: {
+      // dom.monitor：监视关键 DOM 节点消失/替换；推荐 false。
       monitor: false,
+      // dom.targets：被监视节点选择器列表。
       targets: ['.site-header', '.post-content']
     },
 
@@ -617,12 +655,19 @@
     // rememberHours：number(h)；可填 0–720；推荐 72（0 = 关闭浏览器即失效）
     // title/placeholder/errorText：界面文案（空 = ui-strings 默认）
     password: {
+      // enabled：启用密码门槛；需 accessGate.enabled=true。
       enabled: false,
+      // hash：SHA-256(salt + 密码) 的十六进制。
       hash: '',
+      // salt：自定义盐(建议 8 位以上随机串)。
       salt: '',
+      // rememberHours：解锁记忆时长(h)；可填 0–720；推荐 72。
       rememberHours: 72,
+      // title：门槛标题；空 = ui-strings 默认。
       title: '',
+      // placeholder：密码框占位文字；空 = ui-strings 默认。
       placeholder: '',
+      // errorText：密码错误提示；空 = ui-strings 默认。
       errorText: ''
     },
 
@@ -635,6 +680,7 @@
     // viewsPerDay：number；0 = 不限制；可填 0–1000；推荐 0
     // viewsAction：string；可填 'toast' | 'lock'；推荐 'toast'
     viewsPerDay: 0,
+    // viewsAction：达到上限后的动作；可填 'toast' | 'lock'；推荐 'toast'。
     viewsAction: 'toast',
 
     // 作用：解锁码（URL ?key=CODE 访问即永久解锁本机）；类型：array<string>；推荐 []

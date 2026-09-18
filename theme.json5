@@ -37,9 +37,9 @@
   // 推荐: 默认空;需要品牌化时只改少数键
   // 注意: 键名与 colors 段完全一致（primary/secondary/accent/...共 13 色）
   "presetOverrides": {
-    "colors": {},
-    "darkMode": {
-      "colors": {}
+    "colors": {}, // 覆盖明亮模式单色（如 {"secondary": "#b91c1c"}）
+    "darkMode": { // 暗色覆盖组
+      "colors": {} // 覆盖暗色模式单色
     }
   },
 
@@ -127,51 +127,51 @@
     // 类型: 每档 {radius,radiusLarge,button} 均为 CSS 长度
     // 推荐: 保持 md 与黄金分割体系一致（0.618rem 系）
     "rounding": {
-      "sharp": { "radius": "2px", "radiusLarge": "8px", "button": "2px" },
-      "sm": { "radius": "4px", "radiusLarge": "10px", "button": "3px" },
-      "md": { "radius": "0.618rem", "radiusLarge": "1.618rem", "button": "0.382rem" },
-      "lg": { "radius": "0.75rem", "radiusLarge": "1.25rem", "button": "0.5rem" }
+      "sharp": { "radius": "2px", "radiusLarge": "8px", "button": "2px" }, // 锐利档（小圆角）
+      "sm": { "radius": "4px", "radiusLarge": "10px", "button": "3px" }, // 小圆角档
+      "md": { "radius": "0.618rem", "radiusLarge": "1.618rem", "button": "0.382rem" }, // 默认黄金分割档
+      "lg": { "radius": "0.75rem", "radiusLarge": "1.25rem", "button": "0.5rem" } // 大圆角档
     },
     // 阴影数值
     // card 卡片 / dropdown 浮层 / fixed 吸顶元素;dark 为暗色模式同款（更深）
     // 类型: 每档为 CSS box-shadow 值 | 可填: 任意合法阴影组合 | 推荐: 保持多层低透明度
     // 不可填: inset 用于卡片外阴影（会破坏层次）
     "shadow": {
-      "flat": { "card": "none", "dropdown": "none", "fixed": "none", "dark": { "card": "none", "dropdown": "none", "fixed": "none" } },
-      "soft": {
-        "card": "0 1px 2px rgba(16,24,40,.04),0 8px 24px -12px rgba(16,24,40,.12)",
-        "dropdown": "0 4px 12px rgba(16,24,40,.06),0 20px 48px -20px rgba(16,24,40,.20)",
-        "fixed": "0 1px 2px rgba(16,24,40,.05),0 6px 16px -10px rgba(16,24,40,.10)",
-        "dark": { "card": "0 1px 2px rgba(0,0,0,.35),0 8px 24px -12px rgba(0,0,0,.55)", "dropdown": "0 4px 12px rgba(0,0,0,.4),0 20px 48px -20px rgba(0,0,0,.6)", "fixed": "0 1px 2px rgba(0,0,0,.35),0 6px 16px -10px rgba(0,0,0,.5)" }
+      "flat": { "card": "none", "dropdown": "none", "fixed": "none", "dark": { "card": "none", "dropdown": "none", "fixed": "none" } }, // 无阴影档
+      "soft": { // 柔和档（默认）
+        "card": "0 1px 2px rgba(16,24,40,.04),0 8px 24px -12px rgba(16,24,40,.12)", // 卡片阴影
+        "dropdown": "0 4px 12px rgba(16,24,40,.06),0 20px 48px -20px rgba(16,24,40,.20)", // 浮层阴影
+        "fixed": "0 1px 2px rgba(16,24,40,.05),0 6px 16px -10px rgba(16,24,40,.10)", // 吸顶阴影
+        "dark": { "card": "0 1px 2px rgba(0,0,0,.35),0 8px 24px -12px rgba(0,0,0,.55)", "dropdown": "0 4px 12px rgba(0,0,0,.4),0 20px 48px -20px rgba(0,0,0,.6)", "fixed": "0 1px 2px rgba(0,0,0,.35),0 6px 16px -10px rgba(0,0,0,.5)" } // 暗色同款
       },
-      "medium": {
-        "card": "0 1px 3px rgba(16,24,40,.05),0 12px 32px -14px rgba(16,24,40,.16)",
-        "dropdown": "0 6px 16px rgba(16,24,40,.08),0 24px 56px -22px rgba(16,24,40,.24)",
-        "fixed": "0 2px 4px rgba(16,24,40,.06),0 8px 20px -12px rgba(16,24,40,.12)",
-        "dark": { "card": "0 1px 3px rgba(0,0,0,.4),0 12px 32px -14px rgba(0,0,0,.6)", "dropdown": "0 6px 16px rgba(0,0,0,.45),0 24px 56px -22px rgba(0,0,0,.65)", "fixed": "0 2px 4px rgba(0,0,0,.4),0 8px 20px -12px rgba(0,0,0,.55)" }
+      "medium": { // 中等档
+        "card": "0 1px 3px rgba(16,24,40,.05),0 12px 32px -14px rgba(16,24,40,.16)", // 卡片阴影
+        "dropdown": "0 6px 16px rgba(16,24,40,.08),0 24px 56px -22px rgba(16,24,40,.24)", // 浮层阴影
+        "fixed": "0 2px 4px rgba(16,24,40,.06),0 8px 20px -12px rgba(16,24,40,.12)", // 吸顶阴影
+        "dark": { "card": "0 1px 3px rgba(0,0,0,.4),0 12px 32px -14px rgba(0,0,0,.6)", "dropdown": "0 6px 16px rgba(0,0,0,.45),0 24px 56px -22px rgba(0,0,0,.65)", "fixed": "0 2px 4px rgba(0,0,0,.4),0 8px 20px -12px rgba(0,0,0,.55)" } // 暗色同款
       },
-      "strong": {
-        "card": "0 2px 6px rgba(16,24,40,.06),0 18px 44px -16px rgba(16,24,40,.22)",
-        "dropdown": "0 8px 20px rgba(16,24,40,.1),0 32px 72px -26px rgba(16,24,40,.3)",
-        "fixed": "0 2px 6px rgba(16,24,40,.08),0 10px 26px -14px rgba(16,24,40,.16)",
-        "dark": { "card": "0 2px 6px rgba(0,0,0,.45),0 18px 44px -16px rgba(0,0,0,.65)", "dropdown": "0 8px 20px rgba(0,0,0,.5),0 32px 72px -26px rgba(0,0,0,.7)", "fixed": "0 2px 6px rgba(0,0,0,.45),0 10px 26px -14px rgba(0,0,0,.6)" }
+      "strong": { // 强阴影档
+        "card": "0 2px 6px rgba(16,24,40,.06),0 18px 44px -16px rgba(16,24,40,.22)", // 卡片阴影
+        "dropdown": "0 8px 20px rgba(16,24,40,.1),0 32px 72px -26px rgba(16,24,40,.3)", // 浮层阴影
+        "fixed": "0 2px 6px rgba(16,24,40,.08),0 10px 26px -14px rgba(16,24,40,.16)", // 吸顶阴影
+        "dark": { "card": "0 2px 6px rgba(0,0,0,.45),0 18px 44px -16px rgba(0,0,0,.65)", "dropdown": "0 8px 20px rgba(0,0,0,.5),0 32px 72px -26px rgba(0,0,0,.7)", "fixed": "0 2px 6px rgba(0,0,0,.45),0 10px 26px -14px rgba(0,0,0,.6)" } // 暗色同款
       }
     },
     // 边框颜色数值
     // light 明亮模式边框色 / dark 暗色模式边框色
     // 类型: CSS 颜色 | 推荐: 低对比度灰蓝系 | 注意: "#00000000" 表示透明（视觉关闭）
     "border": {
-      "none": { "light": "#00000000", "dark": "#00000000" },
-      "subtle": { "light": "#e2e8f0", "dark": "#334155" },
-      "visible": { "light": "#cbd5e1", "dark": "#475569" }
+      "none": { "light": "#00000000", "dark": "#00000000" }, // 无边框档（透明）
+      "subtle": { "light": "#e2e8f0", "dark": "#334155" }, // 细边框档（默认）
+      "visible": { "light": "#cbd5e1", "dark": "#475569" } // 可见边框档
     },
     // 布局密度数值
     // containerWidth 内容最大宽 / gap 主间距 / sidebarWidth 侧栏宽 / columns 卡片列数
     // 类型: {长度,长度,长度,整数} | columns 可填: 1–4 | 推荐: 保持 balanced 与黄金分割一致
     "density": {
-      "compact": { "containerWidth": "1000px", "gap": "1.25rem", "sidebarWidth": "240px", "columns": 2 },
-      "balanced": { "containerWidth": "1250px", "gap": "1.618rem", "sidebarWidth": "318px", "columns": 2 },
-      "airy": { "containerWidth": "1400px", "gap": "2.5rem", "sidebarWidth": "320px", "columns": 3 }
+      "compact": { "containerWidth": "1000px", "gap": "1.25rem", "sidebarWidth": "240px", "columns": 2 }, // 紧凑布局档
+      "balanced": { "containerWidth": "1250px", "gap": "1.618rem", "sidebarWidth": "318px", "columns": 2 }, // 均衡布局档（默认）
+      "airy": { "containerWidth": "1400px", "gap": "2.5rem", "sidebarWidth": "320px", "columns": 3 } // 宽松布局档
     }
   },
 
@@ -311,19 +311,19 @@
   // 推荐: 明亮模式保持正文与背景对比 ≥ 4.5:1（WCAG AA）
 
   "colors": {
-    "primary": "#2d3748",
-    "secondary": "#2563eb",
-    "accent": "#c53030",
-    "background": "#f7fafc",
-    "surface": "#ffffff",
-    "text": "#1a202c",
-    "textSecondary": "#4a5568",
-    "textLight": "#64748b",
-    "border": "#e2e8f0",
-    "shadow": "rgba(0,0,0,0.1)",
-    "hover": "#edf2f7",
-    "codeBackground": "#e9eef4",
-    "codeText": "#1f2328"
+    "primary": "#2d3748", // 主色（标题）
+    "secondary": "#2563eb", // 辅色（链接/按钮）
+    "accent": "#c53030", // 强调色（标记）
+    "background": "#f7fafc", // 页面底色
+    "surface": "#ffffff", // 卡面
+    "text": "#1a202c", // 正文
+    "textSecondary": "#4a5568", // 次要文字
+    "textLight": "#64748b", // 弱化文字（日期/页脚）
+    "border": "#e2e8f0", // 边框
+    "shadow": "rgba(0,0,0,0.1)", // 阴影色
+    "hover": "#edf2f7", // 悬停底色
+    "codeBackground": "#e9eef4", // 代码底色
+    "codeText": "#1f2328" // 代码文字
   },
 
   // ===================================================================
@@ -351,18 +351,18 @@
     // 类型: 同 colors | 推荐: 保持对比 ≥ 4.5:1（链接/强调色需提亮）
     // 不可填: 未定义的键名（静默忽略）
     "colors": {
-      "background": "#0f172a",
-      "surface": "#1e293b",
-      "text": "#f1f5f9",
-      "textSecondary": "#a3b2c4",
-      "textLight": "#9aa8ba",
-      "border": "#334155",
-      "shadow": "rgba(0,0,0,0.3)",
-      "hover": "#334155",
-      "secondary": "#7caeff",
-      "accent": "#fca5a5",
-      "codeBackground": "#0a1120",
-      "codeText": "#e6edf3"
+      "background": "#0f172a", // 页面底色
+      "surface": "#1e293b", // 卡面
+      "text": "#f1f5f9", // 正文
+      "textSecondary": "#a3b2c4", // 次要文字
+      "textLight": "#9aa8ba", // 弱化文字
+      "border": "#334155", // 边框
+      "shadow": "rgba(0,0,0,0.3)", // 阴影色
+      "hover": "#334155", // 悬停底色
+      "secondary": "#7caeff", // 辅色（暗底提亮）
+      "accent": "#fca5a5", // 强调色（暗底提亮）
+      "codeBackground": "#0a1120", // 代码底色
+      "codeText": "#e6edf3" // 代码文字
     }
   },
 
@@ -493,17 +493,18 @@
   //            fn 函数类名 / attr 属性选择器 / punct 标点运算符
 
   "codeHighlight": {
+    // 高亮色表对象；light/dark 两组均按 token 语义拆键。
     "palette": {
       // 明亮模式（GitHub Light 调校）
       // 类型: 每 token 一个 CSS 颜色 | 不可填: 渐变 | 推荐: 保持对比 ≥ 4.5:1
-      "light": {
-        "comment": "#6a737d", "keyword": "#cf222e", "string": "#0a3069",
-        "number": "#0550ae", "fn": "#8250df", "attr": "#116329", "punct": "#6e7781"
+      "light": { // 明亮模式色表
+        "comment": "#6a737d", "keyword": "#cf222e", "string": "#0a3069", // 注释 / 关键字 / 字符串
+        "number": "#0550ae", "fn": "#8250df", "attr": "#116329", "punct": "#6e7781" // 数字 / 函数 / 属性 / 标点
       },
       // 暗色模式（One Dark 调校,暗底更高亮度）
-      "dark": {
-        "comment": "#8b949e", "keyword": "#ff7b72", "string": "#a5d6ff",
-        "number": "#79c0ff", "fn": "#d2a8ff", "attr": "#7ee787", "punct": "#c9d1d9"
+      "dark": { // 暗色模式色表
+        "comment": "#8b949e", "keyword": "#ff7b72", "string": "#a5d6ff", // 注释 / 关键字 / 字符串
+        "number": "#79c0ff", "fn": "#d2a8ff", "attr": "#7ee787", "punct": "#c9d1d9" // 数字 / 函数 / 属性 / 标点
       }
     }
   },
@@ -515,13 +516,13 @@
   "card": {
     // 卡片元信息开关（均 boolean,推荐 true）
     "showDate": true,
-    "showTags": true,
-    "showCategories": true,
-    "showExcerpt": true,
+    "showTags": true, // 显示标签
+    "showCategories": true, // 显示分类
+    "showExcerpt": true, // 显示摘要
     // 摘要最大字符数
     // 类型: number（整数） | 可填: 60–300 | 推荐: 150 | 不可填: 负数/0（空摘要）
     "excerptLength": 150,
-    "showReadTime": true,
+    "showReadTime": true, // 显示阅读时长
     // 阅读速度（字/分钟;用于估算阅读时间）
     // 类型: number | 可填: 200–400 | 推荐: 265（中文含停顿的平均值）
     "readTimeSpeed": 265,
@@ -627,10 +628,10 @@
     "borderWidth": "1px",
     // 上下留空 | 类型: string（CSS 长度） | 推荐: "1.25rem"
     "paddingTop": "1.25rem",
-    "paddingBottom": "1.25rem",
+    "paddingBottom": "1.25rem", // 下内边距
     // 左右留空 | 类型: string（CSS 长度） | 推荐: "1.5rem"
     "paddingLeft": "1.5rem",
-    "paddingRight": "1.5rem",
+    "paddingRight": "1.5rem", // 右内边距
     // 圆角 | 类型: string（CSS 长度） | 推荐: "0.5rem"
     "borderRadius": "0.5rem"
   },

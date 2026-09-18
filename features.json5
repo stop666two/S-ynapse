@@ -182,9 +182,11 @@
     matchTags: true,
     // 是否匹配分类。
     matchCategories: true,
-    // 匹配得分权重(标题/摘要/正文)。
+    // 标题匹配权重(正整数;越大越优先)。
     weightTitle: 5,
+    // 摘要匹配权重。
     weightExcerpt: 2,
+    // 正文匹配权重。
     weightContent: 1,
     // 关闭方式:点击遮罩。
     closeOnOverlay: true,
@@ -399,8 +401,9 @@
   toc: {
     // 启用目录。
     enabled: true,
-    // 目录级别范围(最小/最大标题层级)。
+    // 目录最小标题层级(2=h2)。
     minLevel: 2,
+    // 目录最大标题层级(≤6;小于 minLevel 时目录不可用)。
     maxLevel: 4,
     // 是否折叠子级。
     collapsible: true,
@@ -559,8 +562,9 @@
   ogImage: {
     // 构建时根据封面/文章标题生成 1200x630 OG 图。
     enabled: true,
-    // 生成尺寸。
+    // 生成宽度(px;社交平台推荐 1200)。
     width: 1200,
+    // 生成高度(px;社交平台推荐 630,宽高比 1.91:1)。
     height: 630,
     // 优先复用文章封面图/首图为基准。
     useCover: true,
@@ -598,8 +602,9 @@
     wordsPerMinuteLatin: 200,
     // 是否在文章元信息栏显示。
     showInMeta: true,
-    // 文案前缀/后缀。
+    // 数值前缀文案(显示在数字前)。
     labelBefore: '',
+    // 数值后缀文案(显示在数字后,如"阅读约需")。
     labelAfter: '阅读约需'
   },
 
@@ -759,23 +764,33 @@
   // ---------------------------------------------------------------------------
   // 12. 阅读设置面板(字号/行高/宽度)
   // ---------------------------------------------------------------------------
-  readingPanel: {    // 启用阅读设置齿轮。
+  // 阅读设置面板:字号/行高/内容宽度三组范围的步进与默认值。
+  readingPanel: {
+    // 启用阅读设置齿轮。
     enabled: true,
-    // 字号范围(最小/最大 px)。
+    // 字号下限(px)。
     fontSizeMin: 15,
+    // 字号上限(px)。
     fontSizeMax: 26,
+    // 字号步进(px)。
     fontSizeStep: 1,
-    // 默认字号(px)。
+    // 默认字号(px,须在 min–max 内)。
     fontSizeDefault: 19,
-    // 行高范围(最小/最大 倍)。
+    // 行高下限(倍)。
     lineHeightMin: 1.4,
+    // 行高上限(倍)。
     lineHeightMax: 2.6,
+    // 行高步进(倍)。
     lineHeightStep: 0.1,
+    // 默认行高(倍,须在 min–max 内)。
     lineHeightDefault: 1.9,
-    // 最大内容宽度范围(px)。
+    // 内容宽度下限(px)。
     widthMin: 560,
+    // 内容宽度上限(px)。
     widthMax: 1200,
+    // 内容宽度步进(px)。
     widthStep: 40,
+    // 默认内容宽度(px,须在 min–max 内)。
     widthDefault: 800,
     // 是否记住阅读设置。
     remember: true,
@@ -1030,8 +1045,9 @@
     order: ['weibo', 'qq', 'wechat', 'x', 'facebook', 'mail', 'copy'],
     // 坐标位置:toolbar(文章尾部)/floating(悬浮)。
     position: 'toolbar',
-    // 弹窗宽/高(px)。
+    // 弹窗宽度(px)。
     popupWidth: 640,
+    // 弹窗高度(px)。
     popupHeight: 520,
     // 微信复制文案模板:{title}/{url}。
     wechatText: '{title} 分享自 {url}',
@@ -1061,9 +1077,11 @@
     note: '感谢支持',
     // 弹窗标题。
     popupTitle: '打赏支持',
-    // 弹窗关闭方式:按钮/遮罩/esc。
+    // 弹窗关闭方式:按钮。
     closeByBtn: true,
+    // 弹窗关闭方式:点击遮罩。
     closeByOverlay: true,
+    // 弹窗关闭方式:Esc 键。
     closeByEsc: true,
     // 二维码尺寸(px)。
     qrSize: '180px',
@@ -1156,8 +1174,9 @@
     palette: [],
     // 是否显示图例(少→多)。
     showLegend: true,
-    // 图例文字。
+    // 图例低值文字。
     legendLow: '少',
+    // 图例高值文字。
     legendHigh: '多',
     // 悬停提示模板:{year}-{month}: {count} 篇。
     tooltipFormat: '{year}-{month}: {count} 篇',
@@ -1183,12 +1202,17 @@
     showArchiveCards: true,
     // 统计标签文案(顺序:文章/天数/字数/日均/标签/分类)。
     labelPosts: '文章总数',
+    // 发文天数标签。
     labelDays: '发文天数',
+    // 总字数标签。
     labelWords: '总字数',
+    // 日均篇数标签。
     labelAvg: '日均篇数',
     // 归档页日均标签(archive 统计卡专用)。
     labelAvgPerDay: '日均',
+    // 标签数标签。
     labelTags: '标签数',
+    // 分类数标签。
     labelCategories: '分类数',
     // 统计卡网格列模式(auto-fit 自适应列数;也可填固定列数如 3)。
     cardColumns: 'auto-fit',
@@ -1208,6 +1232,7 @@
     showLabels: true,
     // 标签模板:
     prevLabel: '上一篇',
+    // 下一页标签文本(同上,配套使用)。
     nextLabel: '下一篇',
     // 无邻篇时是否隐藏整块。
     hideWhenMissing: false,
@@ -1435,6 +1460,7 @@
   // 与 theme.json5 → background.mode = "particles" 配合;mode 非 particles 时
   // 本模块不生效(即使 enabled=true)。颜色自动跟随主题辅助色(--color-s)。
   background: {
+    // 粒子参数组(数量/速度/连线/不透明度等)。
     particles: {
       // 是否启用粒子动画(仅 background.mode=particles 时生效)。
       enabled: true,
@@ -1588,12 +1614,19 @@
     // 真实评论配置在 site.json5 → comments.giscus(与 site.comments.provider='giscus' 联动)
     // 在此填写仓库 ID 不会生效
     repo: '',
+    // 占位:无消费方,不生效。
     repoId: '',
+    // 占位:无消费方,不生效。
     category: 'Announcements',
+    // 占位:无消费方,不生效。
     categoryId: '',
+    // 占位:无消费方,不生效。
     mapping: 'title',
+    // 占位:无消费方,不生效。
     theme: 'preferred_color_scheme',
+    // 占位:无消费方,不生效。
     loading: 'lazy',
+    // 占位:无消费方,不生效。
     crossorigin: 'anonymous'
   },
   // ---------------------------------------------------------------------------

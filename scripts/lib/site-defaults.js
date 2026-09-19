@@ -18,6 +18,7 @@ const DEFAULT_CONFIG = {
       subtitle: '',
       subtitleEn: '',
       description: '',
+      descriptionEn: '',
       author: '',
       email: '',
       url: 'http://localhost',
@@ -123,7 +124,7 @@ const DEFAULT_CONFIG = {
     },
     navigation: {
       menu: [],
-      navbar: { fixed: true, showLogo: true, logoText: '', logoImage: '', logoWidth: '40px', shadow: true, breakpoint: '768px' },
+      navbar: { fixed: true, showLogo: true, logoText: '', logoTextEn: '', logoImage: '', logoWidth: '40px', shadow: true, breakpoint: '768px' },
       navbarOptions: {
         height: '60px', glassBlur: '', glassAlpha: 0, navGap: '.25rem',
         logoSize: '1.272em', navFontSize: '.9375rem', iconSize: '18px', shadowShow: true

@@ -1903,14 +1903,14 @@ async function generateRSS(config, articles) {
     const rssPublished = getPublished(rssArticles);
     try {
       const feed = new Feed({
-        title: config.site.title || 'Blog',
-        description: config.site.description || '',
+        title: (rssLang === 'en' && config.site.titleEn) ? config.site.titleEn : (config.site.title || 'Blog'),
+        description: (rssLang === 'en' && config.site.descriptionEn) ? config.site.descriptionEn : (config.site.description || ''),
         id: baseUrl + '/' + rssLang,
         link: baseUrl + '/' + rssLang + '/',
         language: rssLang === 'en' ? 'en-US' : (config.site.language || 'zh-CN'),
         copyright: config.site.copyright || '',
         updated: rssPublished.length > 0 && rssPublished[0].date ? new Date(rssPublished[0].date) : new Date(),
-        generator: config.site.title
+        generator: (rssLang === 'en' && config.site.titleEn) ? config.site.titleEn : (config.site.title || 'Blog')
       });
       if (config.site.author) feed.author = { name: config.site.author, email: config.site.email || '' };
       const maxItems = config.site.rss.maxItems || 50;
@@ -1958,8 +1958,8 @@ async function generateJSONFeed(config, articles) {
     for (const lang of siteLangsJF) {
       const langArticles = articles.filter(a => a.lang === lang);
       const feed = new Feed({
-        title: config.site.title || 'Blog',
-        description: config.site.description || '',
+        title: (lang === 'en' && config.site.titleEn) ? config.site.titleEn : (config.site.title || 'Blog'),
+        description: (lang === 'en' && config.site.descriptionEn) ? config.site.descriptionEn : (config.site.description || ''),
         id: baseUrl + '/' + lang,
         link: baseUrl + '/' + lang + '/',
         language: lang === 'en' ? 'en-US' : (config.site.language || 'zh-CN'),

@@ -33,6 +33,7 @@
 | `subtitleEn` | string | `''` | 英文副标题(en 语言页 Logo 旁小字;空则回退 `subtitle`) |
 | `languages` | string[] | `['zh','en']` | 站点支持语言列表(每语言生成完整站点:首页/文章/归档/标签/分类/搜索/RSS/sitemap;对应 `articles/{lang}/` 目录) |
 | `description` | string | `''` | 站点描述(meta/OG/RSS) |
+| `descriptionEn` | string | `''` | 英文站描述(en 页 meta/OG/RSS/JSON Feed;空则回退 `description`) |
 | `author` | string | `''` | 作者名 |
 | `email` | string | `''` | 作者邮箱 |
 | `url` | string | `http://localhost` | `必填` 站点根 URL(必须以 http:// 或 https:// 开头) |
@@ -642,6 +643,7 @@ sitemap: {
 | `navbar.fixed` | `true` | 吸顶（与 theme.layout.headerStyle 任一 true 即吸顶） |
 | `navbar.showLogo` | `true` | 显示 Logo |
 | `navbar.logoText` | `S-ynapse` | Logo 文字（空回退 site.title） |
+| `navbar.logoTextEn` | `''` | 英文站 Logo 文字（空回退 logoText → site.title） |
 | `navbar.logoImage` / `logoWidth` | `''`/`40px` | 图片 Logo（优先于文字）与显示宽度 |
 | `navbar.shadow` / `breakpoint` | `true`/`768px` | 底部阴影 / 汉堡菜单断点 |
 | `socialInNav.enabled` / `order[]` | `false`/`[]` | 导航社交图标（数据源 site.social.items） |
@@ -663,7 +665,7 @@ sitemap: {
 | `widgets[]` | `[]` | 组件列表（数组顺序即显示顺序;位置由 theme.layout.sidebarPosition 控制;每个部件可选 `icon` 字段,内置: clock/folder/tags/archive/collection/chart/quote/image/link/info/book/search/rss/download/home） |
 
 组件类型(`type` 字段):
-- `author` `{title,avatar,bio}`
+- `author` `{title,titleEn,avatar,bio,bioEn}`
 - `recent` `{title,count,showDate}`
 - `tags` `{title,limit,showCount,sortBy,minCount}`
 - `categories` `{title,showCount}`

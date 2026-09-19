@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.3]
 
+### Added
+
+- **MIT 许可证**：新增根目录 `LICENSE` 文件（Copyright © 2026 stop666two，与 README 既有声明一致）与 `package.json` `license: "MIT"` 字段（GitHub 此前无法识别仓库许可证）；README 许可章节补充指向 `LICENSE` — `LICENSE` + `package.json` + `README.md`
+
 ### Fixed
 
 - **移动端底栏链接缺语言前缀 + 按钮全量审计（用户报告）**：底部导航 `href` 原为无前缀硬编码（`/`、`/archive/`、`/search/`），在 `/en/` 页点击会跳回中文站；改为按 `langPrefix` 生成（`/en/archive/`、`/en/search/` 等），主题按钮 `window.toggleDark()` 正常。同时修复浮动控件层级：`read-dock` 与移动端 TOC 按钮重叠、`.back-to-top` 钻入底栏——移动端重排 `bottom`（4 / 7.4 / 10.8 / 14.2rem）并给 `body` 预留底栏高度；`.dock-ring` 加 `pointer-events:none`（原覆盖进度按钮）。小型文字链接（面包屑/卡片元信息/标签/页脚）增加 4×6px 隐形点按扩展（WCAG 2.5.8），`mobileBottomNav` 新增 `labelHome`/`labelArchive`/`labelSearch`/`labelTheme`/`labelTop` 配置键（空=走 ui-strings `bottomNav.*`）。新增 `verify-buttons.js`：10 页交互元素命中/尺寸/链接可达 + 底栏中英功能 + 头部控件断言 44/44，移动端 46/46、灯箱 14/14 — `templates/layout.ejs` + `templates/site-css.ejs` + `features.json5` + `scripts/lib/features-schema.js` + `docs/config-reference.md`：① `i18n.js` 运行时改为 **URL 前缀优先**（此前 localStorage 旧偏好会覆盖页面语言，导致 /zh/ 被刷成英文文案等混排）；② 语言切换路径拼接修复（原 `/en/x/` 切中文得到 `/zhx/`，现正确 `/zh/x/`）；③ `pages/disclaimer` 补英文 slug（原中文标题直接当 slug，中英共用），旧 `/zh|en/公告/` 加 301 重定向；④ 新增 `pages/en/{about,privacy,terms,disclaimer}.md` 英文页；⑤ 页脚列渲染从未读取配置的 `titleEn`/`labelEn`，且 html 无英文位——补 `htmlEn` 字段与英文文案；⑥ 移动端底栏标签改走 ui-strings（新增 `bottomNav` 中英词条，并补 `toolbar.mobileNav` aria），EN 页头/底栏/页脚中文混杂清零；⑦ 移动端表格改为可横向滚动（EN 文章表格溢出 437→390）。回归：`verify-mobile` 46/46（含 EN 页无中文混杂、语言切换往返路径保持子路径）、灯箱 14/14。另：跨文档 View-Transition 在快速连续导航/视口变化时 Chrome 抛 `InvalidStateError` 属浏览器噪声，测试已过滤 — `js/domains/i18n.js` + `templates/layout.ejs` + `templates/site-css.ejs` + `ui-strings.json5` + `footer.json5` + `pages/*` + `site.json5` + `README.md` + `docs/config-reference.md`

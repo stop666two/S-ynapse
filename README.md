@@ -505,4 +505,6 @@ npm run verify:security   # 集成安全回归
 
 ## License
 
-MIT
+MIT — 详见 [LICENSE](LICENSE)。
+
+Copyright (c) 2026 stop666two

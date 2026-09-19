@@ -42,3 +42,6 @@ test-out.txt
 
 lang-verify.js
 lang-diag.js
+
+# 真实数据副本（GitHub 克隆，严禁上传）
+/real-site/

@@ -78,7 +78,7 @@
 <div class="site-wrapper">
 <header class="site-header">
   <div class="header-inner">
-    <a href="<%= (typeof langPrefix!=='undefined' ? langPrefix : '/zh/') %>" class="site-logo"><% if(nav.navbar.logoImage){ %><img src="<%= nav.navbar.logoImage %>" alt="<%= site.title %>" style="width:<%= nav.navbar.logoWidth||'40px' %>;height:auto;border-radius:4px"><% }else{ %><span style="font-size:1em;font-weight:var(--fw-heading)"><%= nav.navbar.logoText||site.title %></span><% } %><% if(site.subtitle||site.subtitleEn){ %><span style="font-size:.55em;font-weight:400;color:var(--color-tl)"><%= (typeof lang!=='undefined'&&lang==='en'&&site.subtitleEn)?site.subtitleEn:site.subtitle %></span><% } %></a>
+    <a href="<%= (typeof langPrefix!=='undefined' ? langPrefix : '/zh/') %>" class="site-logo"><% if(nav.navbar.logoImage){ %><img src="<%= nav.navbar.logoImage %>" alt="<%= site.title %>" style="width:<%= nav.navbar.logoWidth||'40px' %>;height:auto;border-radius:4px"><% }else{ %><span style="font-size:1em;font-weight:var(--fw-heading)"><%= nav.navbar.logoText||site.title %></span><% } %><% if(site.subtitle||site.subtitleEn){ %><span class="site-logo-sub" style="font-size:.55em;font-weight:400;color:var(--color-tl)"><%= (typeof lang!=='undefined'&&lang==='en'&&site.subtitleEn)?site.subtitleEn:site.subtitle %></span><% } %></a>
     <div class="nav-actions">
       <nav class="main-nav" id="mainNav">
 <% var NAV_ICONS = {

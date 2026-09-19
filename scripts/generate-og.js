@@ -4,6 +4,7 @@ const path = require('path');
 const http = require('http');
 const https = require('https');
 const sharp = require('sharp');
+const { safeSlug, validateSlug } = require('./lib/utils');
 
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
@@ -188,7 +189,7 @@ function textLayer(siteTitle, siteUrl, lines, size, lineHeight, align, style, fi
   const total = (lines.length - 1) * lineHeight;
   const startY = Math.round(HEIGHT / 2 - total / 2 + size * 0.36);
   parts.push(shadowTextLines(x, startY, size, lines, lineHeight, anchor, fill, shadow, style.letterSpacing || ''));
-  if (siteUrl) parts.push(`<text x="${WIDTH - 80}" y="${HEIGHT - 42}" text-anchor="end" font-family="${FONT}" font-size="24" fill="${fill}" opacity="0.6">${esc(siteUrl)}</text>`);
+  if (siteUrl && style.showUrl !== false) parts.push(`<text x="${WIDTH - 80}" y="${HEIGHT - 42}" text-anchor="end" font-family="${FONT}" font-size="24" fill="${fill}" opacity="0.6">${esc(siteUrl)}</text>`);
   return parts.join('\n  ');
 }
 function chipLayer(category, style, from) {
@@ -319,17 +320,36 @@ async function main() {
       langDir = relParts.length > 1 ? relParts[0] : 'zh';
       const nameOnly = relParts.length > 1 ? relParts.slice(1).join('--') : relParts[0];
       slugBase = nameOnly;
-      slug = nameOnly;
+      fileTitle = path.basename(rel);
+      // 标题解析与 build.js 保持一致: frontmatter.title > 正文首个 h1 > 文件名
+      title = (attrs.title || '').toString().trim();
+      if (!title) {
+        const fmSplit = raw.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?([\s\S]*)$/);
+        const body = fmSplit ? fmSplit[1] : raw;
+        const h1m = body.match(/^#\s+(.+)/m);
+        title = h1m ? h1m[1].trim() : fileTitle;
+      }
+      // slug 解析与 build.js 保持一致: frontmatter.slug（校验后）> safeSlug(title)
+      if (attrs.slug != null) {
+        const slugCheck = validateSlug(attrs.slug);
+        if (!slugCheck.ok) {
+          failed++;
+          console.error(`  [ERROR] ${path.relative(ARTICLES_DIR, file)}: invalid frontmatter slug (${slugCheck.reason})`);
+          continue;
+        }
+        slug = slugCheck.slug;
+      } else {
+        slug = safeSlug(title);
+      }
       if (!usedSlugs.has(langDir)) usedSlugs.set(langDir, new Set());
       const langUsed = usedSlugs.get(langDir);
       let n = 2;
+      const slugBaseForDedup = slug;
       while (langUsed.has(slug)) {
-        slug = nameOnly + '-' + n;
+        slug = slugBaseForDedup + '-' + n;
         n++;
       }
       langUsed.add(slug);
-      fileTitle = path.basename(rel);
-      title = (attrs.title || '').trim() || fileTitle;
       cover = (attrs.cover || attrs.featuredImage || '').trim();
       catRaw = (attrs.categories || '').toString();
     } catch (err) {

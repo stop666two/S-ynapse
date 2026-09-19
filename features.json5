@@ -1159,6 +1159,9 @@
     align: 'center',
     // 是否在封面底部显示站点名。
     showSite: true,
+    // 是否在封面右下角显示站点 URL（false = 不显示，保持画面简洁）
+    // 类型: boolean | 可填: true/false | 推荐: 长域名站点可设 false
+    showUrl: true,
     // 是否使用彩色渐变背景(否则纯色)。
     useGradient: true,
     // 渐变角度(deg 字符串,CSS 语法)。

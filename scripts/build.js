@@ -422,7 +422,7 @@ function validateConfig(config) {
 
 // Generate an SVG Open Graph image for social sharing (1200×630).
 // Uses theme colors for background gradient, auto-splits long titles onto two lines.
-// Output is written to dist/media/og/{slug}.svg during article processing.
+// Output is written to dist/og/{lang}/{slug}.png during article processing (scripts/generate-og.js).
 
 // Create the output directory structure under dist/.
 // If cleanDist is enabled, removes the entire dist/ first.
@@ -2535,7 +2535,7 @@ async function cacheBust(config) {
   console.log('[12/14] Cache busting...');
   const bustPattern = config.site.build.cacheBustingPattern || '.*\\.(css|js|png|jpg|svg)$';
   const bustRegex = new RegExp(bustPattern, 'i');
-  const files = getAllFiles(DIST_DIR).filter(f => bustRegex.test(f) && !f.includes('node_modules') && !f.includes('media' + path.sep + 'og') && !f.includes(path.sep + 'assets' + path.sep) && path.basename(f) !== 'sw.js');
+  const files = getAllFiles(DIST_DIR).filter(f => bustRegex.test(f) && !f.includes('node_modules') && !f.includes(path.sep + 'og' + path.sep) && !f.includes(path.sep + 'assets' + path.sep) && path.basename(f) !== 'sw.js');
   const mapping = {};
   for (const file of files) {
     try {

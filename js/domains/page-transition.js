@@ -12,6 +12,10 @@ export function init() {
     var OUT = isNaN(+PT.outDurationMs) ? 120 : +PT.outDurationMs;
     if (_eff === 'light') { document.documentElement.classList.add('pt-light'); OUT = Math.min(OUT, 70); }
     var EX = PT.excludeSelector || '[data-no-transition]';
+    // 统一清理离开态：bfcache 返回（pageshow，含首次加载）时若仍带 page-leaving，
+    // 页面会停留在淡出/遮罩状态——此处无条件移除，保证返回后立即可交互。
+    function clearLeaving() { document.documentElement.classList.remove('page-leaving'); }
+    window.addEventListener('pageshow', clearLeaving);
     document.addEventListener('click', function (e) {
       if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
       var a = e.target.closest('a');
@@ -26,6 +30,10 @@ export function init() {
       e.preventDefault();
       document.documentElement.classList.add('page-leaving');
       setTimeout(function () { location.href = u.href; }, OUT);
+      // 兜底：导航失败/被取消（页面仍可见）时移除离开态，避免卡在淡出。
+      setTimeout(function () {
+        if (document.visibilityState !== 'hidden') clearLeaving();
+      }, OUT + 2500);
     });
   })();
 }

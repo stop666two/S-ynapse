@@ -462,7 +462,7 @@ async function main() {
       success++;
       console.log(`generated: ${slug} (${path.basename(outPath)})`);
     } catch (err) {
-      if (pendingTmp) { discardAtomicTemp(pendingTmp); pendingTmp = null; }
+      if (pendingTmp) { discardAtomicTemp(pendingTmp); }
       failed++;
       console.error(`  [ERROR] ${slug}: ${err.message}`);
     }

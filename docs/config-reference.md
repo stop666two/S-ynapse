@@ -806,5 +806,6 @@ sitemap: {
 | `CF_WEB_ANALYTICS_TOKEN` | 未在 site.json5 填写 token 时读取;缺失则跳过注入并警告 |
 | `MAINTENANCE` | 生产 Worker / 本地 serve 维护模式(`1` 生效) |
 | `MAINTENANCE_MESSAGE` | 维护页自定义文案（Worker 运行时变量，HTML 转义后输出） |
+| `LOG_LEVEL` | Worker 结构化日志级别：`off`/`error`/`warn`/`info`/`debug`（默认 `info`）；日志为 JSON Lines（含 `requestId`/`level`/`event`），响应头 `X-Request-Id` 可对同请求溯源；不落 IP 明文（短哈希关联） |
 
 > 构建/部署变量的模板见根目录 `.env.example`；Worker 运行时变量（`MAINTENANCE` 系列）在 Cloudflare Dashboard → Workers 环境变量中配置。

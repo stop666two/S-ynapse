@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Worker 结构化日志与请求 ID**：Worker 输出 JSON Lines 日志（`ts`/`level`（RFC 5424 严重度映射）/`module`/`requestId`/`event`），`LOG_LEVEL`（`off`/`error`/`warn`/`info`/`debug`，默认 `info`）控制级别；每请求复用 `CF-Ray` 或生成 UUID 作为 `requestId`，并以 `X-Request-Id` 响应头回传；IP 以 SHA-256 短哈希关联（不落明文）；维护/限流/黑名单/路径拦截/CSP 报告/502 等路径全部接入 — `workers/security-worker.js` + `scripts/security-worker.test.js` + `README.md` + `docs/config-reference.md` + `.env.example`
 - **externalAssets 支持 SRI 透传**：`theme.json5` 的 `externalAssets.styles/scripts` 元素新增对象形态 `{ href/src, integrity?, crossorigin? }`（字符串形态不变），构建按需输出 `integrity`/`crossorigin` 属性；CSP 域名裁剪同步支持对象形态（`scripts/lib/csp.js`）；文档同步 `docs/config-reference.md` — `templates/layout.ejs` + `theme.json5` + `scripts/lib/csp.js` + `scripts/csp.test.js`
 - **OG 图输出格式可选 JPEG**：`features.ogImage.format`（`png` 默认 / `jpeg`，`jpg` 同义）+ `jpegQuality`（默认 82，越界回退），`og:image`/`twitter:image`/JSON-LD image 与产物扩展名、旧格式清理均随格式联动；新增纯函数与 7 项单测 — `scripts/lib/og-format.js` + `scripts/og-format.test.js` + `scripts/generate-og.js` + `templates/layout.ejs` + `features.json5` + `scripts/lib/features-schema.js`
 - **构建产物原子写**：新增 `scripts/lib/atomic-write.js`（临时文件 + rename；Windows EPERM/EBUSY 退避重试一次；失败清理临时文件且不产生半截文件）；`scripts/build.js` 全部 27 处产物写入与 OG 图生成（临时文件 + commit）接入；新增 8 项单测 — `scripts/lib/atomic-write.js` + `scripts/atomic-write.test.js` + `scripts/build.js` + `scripts/generate-og.js`

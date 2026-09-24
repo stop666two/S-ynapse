@@ -231,4 +231,38 @@ describe('security-worker integration (fixture config)', () => {
     assert.strictEqual(res.status, 502);
     assert.strictEqual(res.headers.get('X-Frame-Options'), 'DENY');
   });
+
+  it('returns X-Request-Id (CF-Ray passthrough or generated UUID) on every response path', async () => {
+    const viaRay = await worker.fetch(req('https://example.com/zh/', { headers: { 'CF-Ray': 'ray-probe-1' } }, '203.0.113.101'), makeEnv());
+    assert.strictEqual(viaRay.headers.get('X-Request-Id'), 'ray-probe-1');
+    const generated = await worker.fetch(req('https://example.com/zh/', {}, '203.0.113.102'), makeEnv());
+    assert.match(String(generated.headers.get('X-Request-Id')), /^[0-9a-f-]{36}$/);
+    const blocked = await worker.fetch(req('https://example.com/admin/panel', {}, '203.0.113.103'), makeEnv());
+    assert.strictEqual(blocked.status, 403);
+    assert.ok(blocked.headers.get('X-Request-Id'), '403 也应携带 X-Request-Id');
+    const maint = await worker.fetch(req('https://example.com/zh/', {}, '203.0.113.104'), makeEnv({ MAINTENANCE: '1' }));
+    assert.strictEqual(maint.status, 503);
+    assert.ok(maint.headers.get('X-Request-Id'), '维护模式也应携带 X-Request-Id');
+  });
+
+  it('emits structured JSON logs with requestId and hashed ip (never raw ip)', async () => {
+    const origWarn = console.warn;
+    const lines = [];
+    console.warn = (s) => { lines.push(String(s)); };
+    try {
+      for (let i = 0; i < 4; i++) {
+        await worker.fetch(req('https://example.com/zh/', {}, '198.51.100.77'), makeEnv());
+      }
+    } finally {
+      console.warn = origWarn;
+    }
+    const parsed = lines.map((l) => { try { return JSON.parse(l); } catch (e) { return null; } });
+    const evt = parsed.find((o) => o && o.event === 'rate_limited');
+    assert.ok(evt, '应输出 rate_limited 结构化日志');
+    assert.strictEqual(evt.level, 'warn');
+    assert.strictEqual(evt.module, 'security-worker');
+    assert.ok(evt.requestId, '日志应含 requestId');
+    assert.strictEqual(evt.ipHash.length, 12, 'IP 应为 12 位短哈希');
+    assert.ok(!lines.some((l) => l.includes('198.51.100.77')), '不得出现明文 IP');
+  });
 });

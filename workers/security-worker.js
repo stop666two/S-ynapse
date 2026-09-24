@@ -70,6 +70,51 @@ const blockedRules = Array.isArray(CONFIG.pathRestrictions) && CONFIG.pathRestri
   : FALLBACK.pathRestrictions;
 const skipPaths = Array.isArray(rl.skipPaths) && rl.skipPaths.length > 0 ? rl.skipPaths : DEFAULT_SKIP_PATHS;
 
+// —— 结构化日志（RFC 5424 严重度映射；JSON Lines 单行输出）——
+// 级别：off(0) < error(1) < warn(2) < info(3) < debug(4)；环境变量 LOG_LEVEL 控制（默认 info）。
+// 字段：ts(UTC ISO)/level/module/requestId/event + 事件附加字段；字符串字段去除换行并限长，
+// 不落 IP/UA 明文（需要关联时用 ipHash：SHA-256(ip|固定盐) 前 12 位十六进制，固定盐非机密，
+// 仅用于同 IP 的日志归并，不可逆推原始地址）。
+const LOG_LEVELS = { off: 0, error: 1, warn: 2, info: 3, debug: 4 };
+
+function makeLog(env, requestId) {
+  const raw = env && env.LOG_LEVEL ? String(env.LOG_LEVEL).toLowerCase() : "info";
+  const level = Object.prototype.hasOwnProperty.call(LOG_LEVELS, raw) ? LOG_LEVELS[raw] : LOG_LEVELS.info;
+  function emit(lv, event, fields) {
+    if (LOG_LEVELS[lv] > level) return;
+    const line = { ts: new Date().toISOString(), level: lv, module: "security-worker", requestId: requestId, event: event };
+    if (fields && typeof fields === "object") {
+      for (const k of Object.keys(fields)) {
+        const v = fields[k];
+        if (v === undefined || v === null || v === "") continue;
+        line[k] = typeof v === "string" ? v.replace(/[\r\n]+/g, " ").slice(0, 512) : v;
+      }
+    }
+    const out = JSON.stringify(line);
+    if (lv === "error") console.error(out);
+    else if (lv === "warn") console.warn(out);
+    else console.log(out);
+  }
+  return {
+    error: (event, fields) => emit("error", event, fields),
+    warn: (event, fields) => emit("warn", event, fields),
+    info: (event, fields) => emit("info", event, fields),
+    debug: (event, fields) => emit("debug", event, fields)
+  };
+}
+
+/** 返回 IP 的短哈希（日志关联用，不可逆；仅当 crypto.subtle 可用时）。 */
+async function hashIp(ip) {
+  if (!ip) return undefined;
+  try {
+    const data = new TextEncoder().encode(ip + "|s-ynapse-log");
+    const buf = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
+  } catch (e) {
+    return undefined;
+  }
+}
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;",
@@ -108,45 +153,54 @@ function baseHeaders(extra) {
   return headers;
 }
 
-function edgeResponse(body, status, extra) {
-  return new Response(body, { status, headers: baseHeaders(extra) });
+function edgeResponse(body, status, extra, requestId) {
+  const headers = baseHeaders(extra);
+  if (requestId) headers.set("X-Request-Id", requestId);
+  return new Response(body, { status, headers });
 }
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
   const clientIP = request.headers.get("CF-Connecting-IP");
+  // 请求关联 ID：优先复用 Cloudflare 的 CF-Ray，缺失时生成 UUID；随响应头 X-Request-Id 回传，
+  // 日志与响应可对同一请求串联排查（W3C Trace Context 思路，边缘侧自生成即不依赖上游）。
+  const requestId = request.headers.get("CF-Ray") || crypto.randomUUID();
+  const log = makeLog(env, requestId);
 
   // Maintenance mode — enabled by setting env var MAINTENANCE=1 (e.g. via wrangler deploy).
   // Optional env var MAINTENANCE_MESSAGE customizes the notice (HTML-escaped).
   if (env && env.MAINTENANCE === "1") {
+    log.info("maintenance_served", { path: url.pathname });
     const message = escapeHtml(env.MAINTENANCE_MESSAGE || "本站正在维护中，请稍后再来。");
     const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ${message}</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f7fafc;color:#1a202c}h1{font-weight:700}p{color:#4a5568}</style></head><body><main><h1>维护中</h1><p>${message}</p></main></body></html>`;
     return edgeResponse(html, 503, {
       "Content-Type": "text/html; charset=utf-8",
       "Retry-After": "3600",
       "Cache-Control": "no-store"
-    });
+    }, requestId);
   }
 
   // HTTP→HTTPS redirect in production only (local dev uses HTTP)
   if (CONFIG.forceHttps && url.protocol !== "https:" && env && env.ENVIRONMENT === "production") {
     url.protocol = "https:";
-    return edgeResponse(null, 301, { Location: url.toString() });
+    log.debug("https_redirect", { path: url.pathname });
+    return edgeResponse(null, 301, { Location: url.toString() }, requestId);
   }
 
   if (rl.enabled && clientIP) {
     // Blacklist entries (IP or CIDR) are always blocked — checked before the sliding window.
     if (ipMatchesAny(clientIP, rl.blacklist)) {
-      return edgeResponse("Forbidden", 403);
+      log.warn("ip_blacklisted", { ipHash: await hashIp(clientIP), path: url.pathname });
+      return edgeResponse("Forbidden", 403, undefined, requestId);
     }
     const whitelisted = ipMatchesAny(clientIP, rl.whitelist);
     const assetRequest = (request.method === "GET" || request.method === "HEAD") && isStaticAsset(url.pathname, skipPaths);
     if (!whitelisted && !assetRequest) {
       const verdict = limiter.check(clientIP, rl);
       if (verdict === "blocked" || verdict === "limited") {
-        return edgeResponse("Too Many Requests", 429, {
-          "Retry-After": String(Math.ceil((Number(rl.blockDuration) || 300000) / 1000))
-        });
+        const retryAfter = String(Math.ceil((Number(rl.blockDuration) || 300000) / 1000));
+        log.warn("rate_limited", { ipHash: await hashIp(clientIP), path: url.pathname, verdict: verdict, retryAfter: retryAfter });
+        return edgeResponse("Too Many Requests", 429, { "Retry-After": retryAfter }, requestId);
       }
     }
   }
@@ -159,10 +213,12 @@ async function handleRequest(request, env) {
     try {
       text = await request.text();
     } catch (e) {
-      return edgeResponse("Bad Request", 400);
+      log.warn("csp_report_read_failed");
+      return edgeResponse("Bad Request", 400, undefined, requestId);
     }
     if (text.length > CSP_REPORT_MAX_BYTES) {
-      return edgeResponse("Payload Too Large", 413);
+      log.warn("csp_report_too_large", { bytes: text.length });
+      return edgeResponse("Payload Too Large", 413, undefined, requestId);
     }
     try {
       const parsed = JSON.parse(text);
@@ -174,10 +230,11 @@ async function handleRequest(request, env) {
         blockedUri: String(body["blocked-uri"] || body.blockedURL || "").slice(0, 512)
       } : {};
       console.log("CSP Violation:", JSON.stringify(fields).replace(/[\r\n]+/g, " "));
+      log.info("csp_violation", fields);
     } catch (e) {
-      console.warn("CSP report parse failed");
+      log.warn("csp_report_parse_failed");
     }
-    return edgeResponse("ok", 200, { "Cache-Control": "no-store" });
+    return edgeResponse("ok", 200, { "Cache-Control": "no-store" }, requestId);
   }
 
   // Block restricted paths at the edge before they reach static assets.
@@ -187,9 +244,10 @@ async function handleRequest(request, env) {
     const allowed = Array.isArray(rule.allowedIPs) && ipMatchesAny(clientIP, rule.allowedIPs);
     if (!allowed) {
       if (rule.requireAuth === true) {
-        console.warn("[security-worker] requireAuth rule hit without an auth provider configured — failing closed:", rule.path);
+        log.warn("path_blocked_require_auth", { rule: rule.path });
       }
-      return edgeResponse("Forbidden", 403);
+      log.warn("path_blocked", { rule: rule.path, ipHash: await hashIp(clientIP) });
+      return edgeResponse("Forbidden", 403, undefined, requestId);
     }
   }
 
@@ -198,8 +256,8 @@ async function handleRequest(request, env) {
   try {
     response = await env.ASSETS.fetch(request);
   } catch (err) {
-    console.error("[security-worker] ASSETS fetch failed:", err && err.message);
-    return edgeResponse("Bad Gateway", 502);
+    log.error("assets_fetch_failed", { error: err && err.message });
+    return edgeResponse("Bad Gateway", 502, undefined, requestId);
   }
 
   // Attach security headers + CSP (same directives as _headers, from security.json5)
@@ -209,6 +267,7 @@ async function handleRequest(request, env) {
   }
   const csp = buildCsp();
   if (csp) headers.set(csp.name, csp.value);
+  headers.set("X-Request-Id", requestId);
 
   return new Response(response.body, {
     status: response.status,

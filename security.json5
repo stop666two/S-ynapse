@@ -79,7 +79,18 @@
     // 作用: 追加 report-uri 指令,浏览器将违规上报到该路径
     // 类型: string（站内路径或 https URL）
     // 推荐: "/csp-report"（需 Worker/服务端配合接收;静态托管无接收端时仅记录于浏览器）
-    "reportUri": "/csp-report"
+    "reportUri": "/csp-report",
+
+    // <head> 中的 meta CSP 兜底
+    // 作用: 在内联 <meta http-equiv="Content-Security-Policy"> 里重复一份 CSP 策略
+    // 何时开: 目标托管环境无法设置响应头时——直接用 file:// 打开、
+    //   第三方静态托管不读 _headers、CDN 剥离响应头等,需要 meta 作为唯一 CSP 来源
+    // 何时关: 默认关闭——Cloudflare Pages 的 _headers 或 Worker 已下发响应头 CSP,
+    //   再放一份 meta 只会重复传输（约 0.5–1KB/页）并与响应头策略取交集,
+    //   排查 CSP 拦截时也难以分辨来源
+    // 类型: boolean | 可填: true(无响应头兜底场景)/false(推荐,响应头为权威)
+    // 注意: meta 只能表达强制策略,reportOnly 模式无法通过 meta 生效
+    "metaEnabled": false
   },
 
   // ===================================================================
@@ -104,8 +115,11 @@
     // 可填: "max-age=秒数; includeSubDomains; preload"
     // 注意: 部署必须已全站 HTTPS;被 hardening.hstsMaxAge 覆盖重建
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-    // 旧浏览器 XSS 过滤器（现代浏览器已废弃该头,仅向后兼容）
-    "X-XSS-Protection": "1; mode=block",
+    // 旧浏览器 XSS 过滤器（该头已被现代浏览器废弃/移除,OWASP 建议不再启用）
+    // 作用: 早期 IE/Chrome 的反射型 XSS 审计器;审计器本身曾暴露绕过与信息泄露问题
+    // 可填: "0"(推荐,显式关闭)/"1; mode=block"(仅极旧客户端兼容场景)
+    // 注意: 现代浏览器均忽略本头;保留 "0" 是为了向旧客户端明确表达“已关闭”
+    "X-XSS-Protection": "0",
     // 跨域资源策略
     // 可填: "same-origin"(推荐)/"same-site"/"cross-origin"
     "Cross-Origin-Resource-Policy": "same-origin",
@@ -251,7 +265,7 @@
     "corsAllowedOrigins": [],
 
     // X-XSS-Protection 覆盖值
-    // 类型: string | 推荐: "1; mode=block"（旧浏览器兼容;现代浏览器忽略）
-    "xssProtection": "1; mode=block"
+    // 类型: string | 推荐: "0"（显式关闭,理由见 headers 段同名项注释）
+    "xssProtection": "0"
   }
 }

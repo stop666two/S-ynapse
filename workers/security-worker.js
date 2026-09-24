@@ -51,7 +51,7 @@ const FALLBACK = {
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-    "X-XSS-Protection": "1; mode=block"
+    "X-XSS-Protection": "0"
   }
 };
 

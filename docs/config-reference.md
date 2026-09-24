@@ -709,6 +709,7 @@ sitemap: {
 |---|---|---|
 | `headers` | `{}` | 自定义响应头 |
 | `csp.enabled` / `directives` / `reportOnly` / `reportUri` | `false`/`{}`/`false`/`/csp-report` | Content-Security-Policy |
+| `csp.autoTrim` / `csp.metaEnabled` | `true`/`false` | 构建期按功能裁剪未用域名；`metaEnabled` 开启时额外输出 `<head>` meta CSP（仅无响应头环境需要，默认关） |
 | `robots.enabled` / `rules[]` | `false`/`[]` | robots 规则 |
 | `rateLimiting.enabled` | `false` | Worker 限流(100 req/60s) |
 | `rateLimiting.maxRequests/windowMs/blockDuration` | `100`/`60000`/`300000` | 参数（封禁时长毫秒） |
@@ -716,11 +717,11 @@ sitemap: {
 | `rateLimiting.skipPaths[]` | `/assets/ /media/ /og/ /icons/ /pagefind/` | 不计限流的静态资源前缀（空数组 = 内置默认）；避免单页上百子资源误触 429 |
 | `pathRestrictions[]` | `[{path}]` | 元素 `{path, requireAuth?, allowedIPs?}`：路径支持 `/*` 后缀、匹配时解码百分号编码并忽略大小写；`allowedIPs` 为 CIDR 时命中者放行；`requireAuth` 无鉴权提供方时保持拦截（fail-closed） |
 | `hardening.hstsMaxAge/hstsIncludeSubDomains/hstsPreload` | `31536000`/`true`/`true` | 覆盖 HSTS（优先级高于 headers 段）；preload 默认保留 headers 段声明 |
-| `hardening.referrerPolicy/permissionsPolicy/xssProtection` | — | 覆盖 headers 段同名头 |
+| `hardening.referrerPolicy/permissionsPolicy/xssProtection` | — | 覆盖 headers 段同名头（`xssProtection` 默认 `"0"`：该头已被现代浏览器废弃，显式关闭） |
 | `hardening.corsAllowedOrigins` | `[]` | 非空时输出 Access-Control-Allow-Origin（多来源逗号拼接） |
 | `customHeaders` | `{}` | 追加响应头（同步进 Worker） |
 
-> 注意:`workers/security-config.js` 由构建从本文件自动生成,不要手改(生成器:scripts/generate-security-config.js)。Worker 与静态层 `_headers` 共用同一 hardening 合并逻辑（`applyHeaderHardening`），两层头部完全一致；Worker 侧 `_headers` 的路径限制与限流逻辑见 `workers/security-worker.js` 与 `workers/lib/*.mjs`（CIDR/限流均有单元测试）。`/csp-report` 端点受限流保护、载荷上限 16KB、日志只记录关键字段。
+> 注意:`workers/security-config.js` 由构建从本文件自动生成,不要手改(生成器:scripts/generate-security-config.js)。Worker 与静态层 `_headers` 共用同一 hardening 合并逻辑（`applyHeaderHardening`），两层头部完全一致；Worker 侧 `_headers` 的路径限制与限流逻辑见 `workers/security-worker.js` 与 `workers/lib/*.mjs`（CIDR/限流均有单元测试）。`/csp-report` 端点受限流保护、载荷上限 16KB、日志只记录关键字段。CSP 默认仅通过响应头下发（`_headers` 或 Worker）；仅在托管环境无法设置响应头时才开启 `csp.metaEnabled` 兜底（meta 无法表达 report-only）。
 
 ---
 

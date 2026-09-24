@@ -395,12 +395,12 @@ describe('generate-security-config', () => {
   it('applies hardening + custom headers to worker headers (parity with _headers)', () => {
     const out = extractWorkerSecurity({
       headers: { 'Strict-Transport-Security': 'max-age=100; includeSubDomains; preload', 'Referrer-Policy': 'no-referrer' },
-      hardening: { hstsMaxAge: 31536000, hstsIncludeSubDomains: true, referrerPolicy: 'strict-origin-when-cross-origin', xssProtection: '1; mode=block' },
+      hardening: { hstsMaxAge: 31536000, hstsIncludeSubDomains: true, referrerPolicy: 'strict-origin-when-cross-origin', xssProtection: '0' },
       customHeaders: { 'X-Custom': 'v1' }
     });
     assert.strictEqual(out.headers['Strict-Transport-Security'], 'max-age=31536000; includeSubDomains; preload');
     assert.strictEqual(out.headers['Referrer-Policy'], 'strict-origin-when-cross-origin');
-    assert.strictEqual(out.headers['X-XSS-Protection'], '1; mode=block');
+    assert.strictEqual(out.headers['X-XSS-Protection'], '0');
     assert.strictEqual(out.headers['X-Custom'], 'v1');
   });
   it('allows disabling preload via hardening.hstsPreload=false', () => {

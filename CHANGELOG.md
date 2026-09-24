@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **首次全项目只读审计修复批次（P1–P33）**：针对审计发现的构建/安全/防护/前端问题逐项修复，每条独立提交并逐项验证（构建、单测、浏览器探针、无障碍审计）。分类明细见下方 Added/Changed/Fixed/Removed。
+- **依赖安全升级（dev 链）**：`puppeteer-core` 24.16.0 → 25.12.0，消除经 `@puppeteer/browsers` 传递的 `extract-zip` 高危通告（符号链接路径穿越 / 任意文件写入）；仅影响本地无障碍审计工具链，生产构建不依赖该包；修复后 CI `npm audit --audit-level=high` 门禁可正常通过 — `package.json`针对审计发现的构建/安全/防护/前端问题逐项修复，每条独立提交并逐项验证（构建、单测、浏览器探针、无障碍审计）。分类明细见下方 Added/Changed/Fixed/Removed。
 - **guard 安全默认调整**：`hotkeyGuard` 的 `ctrlU/ctrlS/ctrlP` 改为按需开启（默认放行）；`devtoolsDetect` 的 `reload` 增加每会话熔断（避免尺寸误报导致无限刷新）；`tamperWatch` 上报增加超时/节流/去除查询串 — `guard.json5` + `js/domains/guard/*`
 
 - 保持全部既有安全修复。

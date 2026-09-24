@@ -285,7 +285,9 @@
 `enabled true` / `showAfterPx 400` / `rightOffset 2rem` / `bottomOffset 2rem` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false`
 
 ### 3.4 search — 客户端搜索
-`enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true` / `showCount true` / `placeholder 搜索...` / `emptyHint 输入关键词开始搜索` / `noResultText 未找到匹配内容` / `excerptLength 120` / `includeContent true` / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `closeOnOverlay true` / `focusOnOpen true` / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效) / `pinyinFuzzy false`
+`enabled true` / `minChars 1` / `maxResults 30` / `noResultText 未找到匹配内容` / `excerptLength 120` / `includeContent true`(构建期生效:是否将正文写入 search-index.json) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效)
+
+> 未接线预留键（当前修改不生效）: `highlightMatches`(由 3.35 searchHighlight 控制) / `showCount` / `placeholder`(实际使用 navigation.json5 search.placeholder) / `emptyHint` / `matchTags` / `matchCategories` / `weightTitle` / `weightExcerpt` / `weightContent`(前端无加权排序) / `closeOnOverlay`(点击遮罩关闭固定生效) / `focusOnOpen`(打开后恒自动聚焦) / `pinyinFuzzy`(拼音首字母匹配未实现)。
 
 ### 3.5 imageLazy — 懒加载
 `enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)

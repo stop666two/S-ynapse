@@ -165,32 +165,44 @@
     // 搜索结果数量上限。
     maxResults: 30,
     // 是否高亮命中词。
+    // 预留: 当前命中高亮由 features.searchHighlight.enabled / maxMatches 控制，本键未接线。
     highlightMatches: true,
     // 是否显示文章总数提示。
+    // 预留: 当前搜索结果数恒显示，未按下述开关门控，本键未接线。
     showCount: true,
     // 搜索框占位文本。
+    // 预留: 当前使用 navigation.json5 search.placeholder（en 站点由 ui-strings 覆盖），本键未接线。
     placeholder: '搜索...',
     // 无输入时的提示文本。
+    // 预留: 当前空态文案由 tuning/i18n 内置文案提供，本键未接线。
     emptyHint: '输入关键词开始搜索',
     // 无结果时提示文本。
     noResultText: '未找到匹配内容',
     // 结果命中截断长度(字符)。
     excerptLength: 120,
     // 是否包含正文全文(否则仅标题/摘要/标签)。
+    // 说明: 由构建期消费——运行时生成 search-index.json（local 模式）时决定 content 字段是否写入正文。
     includeContent: true,
     // 是否匹配标签。
+    // 预留: 当前前端检索仅匹配标题/摘要/正文，本键未接线。
     matchTags: true,
     // 是否匹配分类。
+    // 预留: 当前前端检索仅匹配标题/摘要/正文，本键未接线。
     matchCategories: true,
     // 标题匹配权重(正整数;越大越优先)。
+    // 预留: 当前前端无加权排序算法，本键未接线。
     weightTitle: 5,
     // 摘要匹配权重。
+    // 预留: 当前前端无加权排序算法，本键未接线。
     weightExcerpt: 2,
     // 正文匹配权重。
+    // 预留: 当前前端无加权排序算法，本键未接线。
     weightContent: 1,
     // 关闭方式:点击遮罩。
+    // 预留: 当前“点击遮罩关闭”固定生效，未受本键控制，本键未接线。
     closeOnOverlay: true,
     // 打开后是否自动聚焦输入框。
+    // 预留: 当前打开后恒自动聚焦，本键未接线。
     focusOnOpen: true,
     // 打开动画方式。
     // 类型: string | 可填: 'fade'(默认,弹层淡入)/'slide'(自下而上滑入)

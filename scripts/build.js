@@ -2134,7 +2134,7 @@ function generateSearchIndex(config, articles) {
     return;
   }
   console.log('[9/14] Generating search index...');
-  const fullContent = !!(config.features && config.features.search && config.features.search.fullContent !== false);
+  const fullContent = !!(config.features && config.features.search && config.features.search.includeContent !== false);
   const siteLangsSI = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
   for (const lang of siteLangsSI) {
     const langArticles = articles.filter(a => a.lang === lang);

@@ -91,7 +91,7 @@ npm run serve
 ```
 
 > [!NOTE]
-> **Node 版本要求**：本项目要求 Node.js ≥ 20.9.0（`sharp` 0.35 硬性要求），CI 使用 Node 24 LTS。
+> **Node 版本要求**：本项目要求 Node.js `^20.19.0 || ^22.13.0 || >=24`（`eslint` 10 与 `typescript` 的引擎下限，同时满足 `sharp` 0.35），CI 使用 Node 24 LTS。
 >
 > **npm 12（及以上）本机部署注意**：npm 12 默认禁止依赖的 `postinstall` 脚本（如 `esbuild`、`workerd` 的二进制下载），会导致本机 `npx wrangler deploy` 失败或部分依赖不完整。受影响的本机操作：
 > - 解决方案一（推荐）：经 `npm install --ignore-scripts` 后，再用 `npm rebuild --foreground-scripts esbuild workerd` 手动触发二进制下载；
@@ -183,7 +183,8 @@ S-ynapse/
 ├── friends.json5       # 友情链接数据（可选）
 ├── .env.example       # 环境变量模板（CF_API_TOKEN / NODE_ENV / SITE_URL / CF_WEB_ANALYTICS_TOKEN）
 ├── .gitattributes     # Git 属性配置
-├── eslint.config.js   # ESLint 9 扁平配置（js/scripts/workers 三层）
+├── eslint.config.js   # ESLint 10 扁平配置（js/scripts/workers 三层）
+├── tsconfig.json      # TypeScript checkJs 配置（scripts/lib 渐进类型检查）
 ├── build.bat          # Windows 一键构建
 ├── serve.bat          # Windows 一键启动服务器
 ├── wrangler.toml      # Cloudflare Pages 部署配置
@@ -411,7 +412,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 
 ### 方式三：GitHub Actions（CI/CD 自动部署）
 
-项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署（Node 24 + `npm audit --audit-level=high` + `npm test` + `npm run lint` + `verify:config` + `verify:security` 门禁），并在部署前检查 AGENTS.md 是否被误提交。
+项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署（Node 24 + `npm audit --audit-level=high` + `npm test` + `npm run lint` + `npm run typecheck` + `verify:config` + `verify:security` 门禁），并在部署前检查 AGENTS.md 是否被误提交。
 
 **配置步骤**：
 1. 在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加 `CF_API_TOKEN`（如需部署）
@@ -458,6 +459,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm start` | 同 `npm run serve` |
 | `npm test` | 运行单元测试（126 项 / 28 组） |
 | `npm run lint` | ESLint 静态检查（js/scripts/workers；CI 门禁） |
+| `npm run typecheck` | TypeScript checkJs 类型检查（scripts/lib；CI 门禁） |
 | `npm run verify:security` | 集成安全回归（注入恶意文章 → 真实构建 → 语义断言） |
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
@@ -471,6 +473,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ```bash
 npm test            # 126 项 / 28 组，全部通过
 npm run lint        # ESLint 静态检查（js / scripts / workers）
+npm run typecheck   # TypeScript checkJs（scripts/lib，渐进引入）
 npm run audit:a11y  # WCAG 2.x 无障碍审计（需先在另一终端 `npm run serve -- --port 3224`；也可用 `node scripts/a11y-audit.js <baseUrl>` 或 A11Y_BASE 环境变量指定地址；0 critical/serious 门禁）
 npm run verify:security   # 集成安全回归
 ```
@@ -531,7 +534,8 @@ npm run verify:security   # 集成安全回归
 | 部署 | Cloudflare Pages / Workers |
 | CI/CD | GitHub Actions |
 | 测试 | Node.js built-in test runner |
-| 静态检查 | ESLint 9（js / scripts / workers 三层） |
+| 静态检查 | ESLint 10（js / scripts / workers 三层） |
+| 类型检查 | TypeScript 5.9 checkJs（scripts/lib，渐进引入） |
 
 ---
 

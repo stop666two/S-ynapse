@@ -21,6 +21,7 @@ function formatConfigError(filename, err, opts) {
   }
   const causeMatch = /(JSON5:?|Expecting|missing|unexpected|invalid|leftover|Unexpected end|unterminated)[^\n]*/i.exec(rawMessage);
   const cause = causeMatch ? causeMatch[0] : rawMessage;
+  /** @type {Array<[RegExp, string]>} */
   const hintMap = [
     [/missing comma|Expecting .*after|invalid character/i, '常见原因：对象/数组元素之间少了逗号，或引号未闭合（JSON5 字符串建议使用双引号）。'],
     [/unterminated string|Unexpected end/i, '常见原因：字符串引号未闭合（双引号被误写或缺失）或 JSON5 注释未闭合。'],

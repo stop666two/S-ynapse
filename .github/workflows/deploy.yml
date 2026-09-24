@@ -46,6 +46,8 @@ jobs:
         run: npm audit --audit-level=high
       - name: Lint (ESLint)
         run: npm run lint
+      - name: Type check (tsc checkJs, scripts/lib)
+        run: npm run typecheck
       - run: npm test
       - name: Config consistency (code defaults vs config files)
         run: npm run verify:config

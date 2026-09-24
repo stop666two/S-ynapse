@@ -155,7 +155,7 @@ async function handleRequest(request, env) {
   // Runs after rate limiting so anonymous floods cannot bypass the limit.
   const reportUri = cspConfig.reportUri || "/csp-report";
   if (url.pathname === reportUri && request.method === "POST") {
-    let text = "";
+    let text;
     try {
       text = await request.text();
     } catch (e) {

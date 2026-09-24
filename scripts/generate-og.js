@@ -352,10 +352,10 @@ async function main() {
     let title;
     let cover;
     let fileTitle;
-    let catRaw = '';
-    let isDraft = false;
+    let catRaw;
+    let isDraft;
     let slugBase;
-    let langDir = 'zh';
+    let langDir;
     try {
       const raw = fs.readFileSync(file, 'utf-8');
       const attrs = parseFrontMatter(raw);

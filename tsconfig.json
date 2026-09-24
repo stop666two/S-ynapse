@@ -1,0 +1,34 @@
+// TypeScript 配置（仅用于 JS 类型检查，不产出编译产物）
+// 用途：在 npm run typecheck / CI 中对 scripts/lib 纯函数层做 checkJs 静态检查；
+//      这是「渐进式类型化」的第一步，后续批次再逐目录扩大 include 范围。
+// 运行：npm run typecheck（等价 tsc -p tsconfig.json）
+{
+  // 检查范围（渐进式）：先覆盖 scripts/lib 下全部 .js（纯函数、无 DOM 依赖）；
+  // workers/ 与 scripts/ 其余文件在后续批次中加入。
+  "include": ["scripts/lib/**/*.js"],
+  // 排除依赖目录、构建产物与本地临时脚本目录
+  "exclude": ["node_modules", "dist", ".tmp-scripts"],
+  "compilerOptions": {
+    // 允许对 .js 文件做类型推断，无需迁移到 .ts
+    "allowJs": true,
+    // 开启 JS 文件内的类型检查（本次接入的核心开关）
+    "checkJs": true,
+    // 只检查类型，不产生任何输出文件
+    "noEmit": true,
+    // 目标语法版本：与 Node 20+ 运行时对齐
+    "target": "ES2022",
+    // 模块形态：scripts/ 使用 CommonJS（require/module.exports）
+    "module": "commonjs",
+    "moduleResolution": "node",
+    // 严格度：第一阶段宽松（strict / noImplicitAny 关闭），按文件逐步收紧；
+    // 收紧进度记录在 CHANGELOG「遗留（技术债）」段
+    "strict": false,
+    "noImplicitAny": false,
+    // 跳过第三方库内部类型检查，避免 node_modules 噪声
+    "skipLibCheck": true,
+    // 仅引入 Node 全局类型（process/require/Buffer 等）
+    "types": ["node"],
+    // 文件/导入大小写敏感，保证跨平台（Windows/Linux CI）行为一致
+    "forceConsistentCasingInFileNames": true
+  }
+}

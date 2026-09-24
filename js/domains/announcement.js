@@ -3,7 +3,7 @@ function collapseAnnH() { try { document.documentElement.setAttribute('data-ann-
 function run() {
   var bar = document.getElementById('announceBar');
   if (!bar) return;
-  var items = [];
+  var items;
   try { items = JSON.parse(bar.getAttribute('data-items') || '[]'); } catch (e) { items = []; }
   var A = (window.__FEATURES__ || {}).announcement || {};
   var key = A.storageKey;

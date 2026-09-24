@@ -6,7 +6,7 @@ const { createHash } = require('node:crypto');
 // Falls back to returning the raw string if parsing fails.
 function formatDate(dateStr, fmt) {
   if (!dateStr) return '';
-  let d, hasTime = false;
+  let d, hasTime;
   if (typeof dateStr === 'object' && dateStr instanceof Date && !isNaN(dateStr.getTime())) {
     d = dateStr;
     hasTime = d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;

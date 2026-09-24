@@ -56,6 +56,7 @@ try {
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
 const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks } = require('./lib/utils');
+const { writeFileAtomicSync } = require('./lib/atomic-write');
 const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
 const { DEFAULT_FEATURES, validateFeatures } = require('./lib/features-schema');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset } = require('./lib/theme-presets');
@@ -531,7 +532,7 @@ function copyProtectedAssets(config) {
           blocked.push({ path: `media/${rel.replace(/\\/g, '/')}`, reason: 'svg-unsafe' });
           continue;
         }
-        fs.writeFileSync(destPath, svg.content, 'utf-8');
+        writeFileAtomicSync(destPath, svg.content, 'utf-8');
       } else {
         fs.copyFileSync(srcPath, destPath);
       }
@@ -621,7 +622,7 @@ async function optimizeMedia(config) {
   };
   await Promise.all(images.map(p => processImage(p)));
   const manifestPath = path.join(DIST_DIR, 'media-manifest.json');
-  fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+  writeFileAtomicSync(manifestPath, JSON.stringify(manifest));
   console.log(`  Optimized ${count} images`);
   return manifest;
 }
@@ -1421,7 +1422,7 @@ function buildSiteCss(config, baseData) {
   const rel = b.cssOutDir + '/' + b.cssFileBase + '.' + hash + '.css';
   const file = path.join(DIST_DIR, rel);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, css, 'utf-8');
+  writeFileAtomicSync(file, css, 'utf-8');
   SITE_CSS_HREF = '/' + rel;
   console.log('  Created: ' + rel + ' (' + Math.round(Buffer.byteLength(css) / 1024) + 'KB)');
   return SITE_CSS_HREF;
@@ -1658,7 +1659,7 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
     const fullPath = path.join(DIST_DIR, relPath);
     const dir = path.dirname(fullPath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(fullPath, content, 'utf-8');
+    writeFileAtomicSync(fullPath, content, 'utf-8');
     console.log(`  Created: ${relPath}`);
   }
 
@@ -1941,7 +1942,7 @@ async function generateRSS(config, articles) {
       const outputPath = path.join(DIST_DIR, rssLang, rssPath);
       const outDir = path.dirname(outputPath);
       if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-      fs.writeFileSync(outputPath, feed.rss2(), 'utf-8');
+      writeFileAtomicSync(outputPath, feed.rss2(), 'utf-8');
       console.log(`  Created: /${rssLang}/${rssPath}`);
     } catch (err) {
       console.error(`  [ERROR] RSS generation failed: ${err.message}`);
@@ -1996,7 +1997,7 @@ async function generateJSONFeed(config, articles) {
       const outputPath = path.join(DIST_DIR, lang, jfPath);
       const outDir = path.dirname(outputPath);
       if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-      fs.writeFileSync(outputPath, feed.json1(), 'utf-8');
+      writeFileAtomicSync(outputPath, feed.json1(), 'utf-8');
       console.log(`  Created: /${lang}/${jfPath}`);
     }
   } catch (err) {
@@ -2073,7 +2074,7 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
         let xml = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
         for (const item of urls) xml += '<url>' + writeOne(item) + '</url>';
         xml += '</urlset>';
-        fs.writeFileSync(entryPath, xml, 'utf-8');
+        writeFileAtomicSync(entryPath, xml, 'utf-8');
         console.log(`  Created: /${lang}/${sitemapPath} (${urls.length} urls)`);
         return;
       }
@@ -2086,12 +2087,12 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
         let part = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
         for (const item of parts[i]) part += '<url>' + writeOne(item) + '</url>';
         part += '</urlset>';
-        fs.writeFileSync(path.join(outDir, partName), part, 'utf-8');
+        writeFileAtomicSync(path.join(outDir, partName), part, 'utf-8');
       }
       let index = '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
       for (const item of idxUrls) index += '<sitemap>' + url + item.loc + '</sitemap>';
       index += '</sitemapindex>';
-      fs.writeFileSync(entryPath, index, 'utf-8');
+      writeFileAtomicSync(entryPath, index, 'utf-8');
       console.log(`  Created: /${lang}/${sitemapPath} (index ${parts.length} parts, ${urls.length} urls)`);
     }
 
@@ -2161,7 +2162,7 @@ function generateSearchIndex(config, articles) {
     const outputPath = path.join(DIST_DIR, lang, 'search-index.json');
     const outDir = path.dirname(outputPath);
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(outputPath, JSON.stringify(index), 'utf-8');
+    writeFileAtomicSync(outputPath, JSON.stringify(index), 'utf-8');
     console.log(`  Created: /${lang}/search-index.json (${index.length} entries)`);
   }
 }
@@ -2274,7 +2275,7 @@ function generateBuildReport(config, articles, tags, categories, customPages, el
     <div class="stat"><span class="stat-label">CSP</span><span class="stat-value ${config.security.csp&&config.security.csp.enabled?'good':'warn'}">${config.security.csp&&config.security.csp.enabled?'已启用':'未启用'}</span></div>
     <div class="stat"><span class="stat-label">RSS</span><span class="stat-value ${config.site.rss&&config.site.rss.enabled?'good':'warn'}">${config.site.rss&&config.site.rss.enabled?'已启用':'未启用'}</span></div>
     ${policyBlocked.length ? `<h2>被拦截文件（内容策略）</h2><ul>${policyBlocked.map(b => `<li><code>${escapeHtml(String(b.path || ''))}</code> — ${escapeHtml(String(b.reason || ''))}</li>`).join('')}</ul>` : ''}</body></html>`;
-    fs.writeFileSync(path.join(DIST_DIR, 'build-report.html'), html, 'utf-8');
+    writeFileAtomicSync(path.join(DIST_DIR, 'build-report.html'), html, 'utf-8');
     console.log('  Created: build-report.html');
   } catch (err) {
     console.error(`  [ERROR] Build report failed: ${err.message}`);
@@ -2350,7 +2351,7 @@ function generateRedirects(config, customPages) {
   }
   if (lines.length === 0) { return; }
   fs.mkdirSync(DIST_DIR, { recursive: true });
-  fs.writeFileSync(path.join(DIST_DIR, '_redirects'), lines.join('\n') + '\n', 'utf-8');
+  writeFileAtomicSync(path.join(DIST_DIR, '_redirects'), lines.join('\n') + '\n', 'utf-8');
   console.log('  Created: /_redirects (' + valid.length + ' custom + ' + (lines.length - valid.length) + ' language rules)');
   return valid;
 }
@@ -2415,7 +2416,7 @@ function generateSecurityHeaders(config) {
     const mode = spec.mode || 'both';
     if (mode === 'prefetch' || mode === 'both') rulesJson.prefetch = [rule];
     if (mode === 'prerender' || mode === 'both') rulesJson.prerender = [rule];
-      fs.writeFileSync(path.join(DIST_DIR, 'speculation-rules.json'), JSON.stringify(rulesJson), 'utf-8');
+      writeFileAtomicSync(path.join(DIST_DIR, 'speculation-rules.json'), JSON.stringify(rulesJson), 'utf-8');
     console.log('  Created: speculation-rules.json');
     lines.push('  Speculation-Rules: /speculation-rules.json');
     extraSections.push('/speculation-rules.json\n  Content-Type: application/speculationrules+json\n  Access-Control-Allow-Origin: *');
@@ -2424,7 +2425,7 @@ function generateSecurityHeaders(config) {
   if (lines.length > 0) {
     let headerContent = '/*\n' + lines.join('\n') + '\n';
     if (extraSections.length) headerContent += '\n' + extraSections.join('\n\n') + '\n';
-    fs.writeFileSync(path.join(DIST_DIR, '_headers'), headerContent, 'utf-8');
+    writeFileAtomicSync(path.join(DIST_DIR, '_headers'), headerContent, 'utf-8');
     console.log('  Created: _headers');
   }
 
@@ -2448,7 +2449,7 @@ function generateSecurityHeaders(config) {
       if (!sitemapUrls.length) console.warn('  [WARN] robots.txt: site.url 未配置，已跳过 Sitemap 行');
       for (const smUrl of sitemapUrls) robotLines.push(`Sitemap: ${smUrl}`);
     }
-    fs.writeFileSync(path.join(DIST_DIR, 'robots.txt'), robotLines.join('\n'), 'utf-8');
+    writeFileAtomicSync(path.join(DIST_DIR, 'robots.txt'), robotLines.join('\n'), 'utf-8');
     console.log('  Created: robots.txt');
   }
 }
@@ -2473,7 +2474,7 @@ async function minifyHTMLInDir(dir, config) {
         preserve_brace_template_syntax: true
       }).toString('utf-8');
       if (minified.length < content.length) {
-        fs.writeFileSync(file, minified, 'utf-8');
+        writeFileAtomicSync(file, minified, 'utf-8');
       }
     } catch (err) {
       console.error(`  [ERROR] Failed to minify HTML ${file}: ${err.message}`);
@@ -2492,7 +2493,7 @@ async function minifyCSSInDir(dir, config) {
       const content = fs.readFileSync(file, 'utf-8');
       const result = minifier.minify(content);
       if (!result.errors.length && result.styles.length < content.length) {
-        fs.writeFileSync(file, result.styles, 'utf-8');
+        writeFileAtomicSync(file, result.styles, 'utf-8');
       }
       for (const err of result.errors) console.error(`  [ERROR] CSS minify error: ${err}`);
     } catch (err) {
@@ -2517,7 +2518,7 @@ async function minifyJSInDir(dir, config) {
         output: { comments: false }
       });
       if (result.code && result.code.length < content.length) {
-        fs.writeFileSync(file, result.code, 'utf-8');
+        writeFileAtomicSync(file, result.code, 'utf-8');
       }
       if (result.error) console.error(`  [ERROR] JS minify error: ${result.error}`);
     } catch (err) {
@@ -2547,7 +2548,7 @@ async function minifyInlineStylesInDir(dir, config) {
         }
         return all;
       });
-      if (changed) fs.writeFileSync(file, html, 'utf-8');
+      if (changed) writeFileAtomicSync(file, html, 'utf-8');
     } catch (err) {
       console.error(`  [ERROR] Inline CSS minify ${file}: ${err.message}`);
     }
@@ -2618,12 +2619,12 @@ async function cacheBust(config) {
             changed = true;
           }
         }
-        if (changed) fs.writeFileSync(htmlFile, content, 'utf-8');
+        if (changed) writeFileAtomicSync(htmlFile, content, 'utf-8');
       } catch (err) {
         console.error(`  [ERROR] Update refs in ${htmlFile}: ${err.message}`);
       }
     }
-    fs.writeFileSync(CACHE_BUST_MANIFEST_PATH, JSON.stringify(mapping), 'utf-8');
+    writeFileAtomicSync(CACHE_BUST_MANIFEST_PATH, JSON.stringify(mapping), 'utf-8');
     console.log(`  Renamed ${Object.keys(mapping).length} files, updated HTML refs`);
     // Search indexes reference media paths (featuredImage) generated before hashing;
     // rewrite them with the same mapping so lazy-loaded search results never 404.
@@ -2638,7 +2639,7 @@ async function cacheBust(config) {
             jsonChanged = true;
           }
         }
-        if (jsonChanged) fs.writeFileSync(jf, jsonText, 'utf-8');
+        if (jsonChanged) writeFileAtomicSync(jf, jsonText, 'utf-8');
       } catch (err) {
         console.error(`  [ERROR] Cache bust ${jf}: ${err.message}`);
       }
@@ -2694,7 +2695,7 @@ function copyVendorAssets(config) {
   });
   const prismLn = path.join(NODE_MODULES, 'prismjs', 'plugins', 'line-numbers', 'prism-line-numbers.min.js');
   if (fs.existsSync(prismLn)) prism += '\n' + fs.readFileSync(prismLn, 'utf-8');
-  fs.writeFileSync(path.join(VENDOR, 'prism.js'), prism);
+  writeFileAtomicSync(path.join(VENDOR, 'prism.js'), prism);
   // Mermaid：单文件压缩版（仅图表文章按需加载）
   fs.copyFileSync(path.join(NODE_MODULES, 'mermaid', 'dist', 'mermaid.min.js'), path.join(VENDOR, 'mermaid.min.js'));
   // morphicons：图标变形动画（懒加载；仅复制 JS 入口与共享 chunk，types 不落地）
@@ -2734,7 +2735,7 @@ function copyVendorAssets(config) {
     } else {
       console.warn('  [WARN] variable font file missing: ' + cfg.pkg + '/files/' + cfg.file);
     }
-    fs.writeFileSync(path.join(FONTS, name + '.css'), css);
+    writeFileAtomicSync(path.join(FONTS, name + '.css'), css);
   });
   console.log('  Copied vendor assets to /assets/vendor/ (prism/mermaid/katex/fonts)');
 }
@@ -2748,7 +2749,7 @@ async function generatePWA(config) {
   const manifest = config.site.pwa.manifest || {};
   if (Object.keys(manifest).length > 0) {
     const manifestPath = path.join(DIST_DIR, 'manifest.json');
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest), 'utf-8');
+    writeFileAtomicSync(manifestPath, JSON.stringify(manifest), 'utf-8');
     console.log('  Created: manifest.json');
   }
   const swUrl = config.site.pwa.serviceWorker;
@@ -2765,7 +2766,7 @@ async function generatePWA(config) {
     const lt = config.theme.colors;
     const dk = (config.theme.darkMode && config.theme.darkMode.colors) || {};
     const offlineHtml = '<!DOCTYPE html><html lang="' + (isEn ? 'en' : 'zh') + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' + S.t + ' · ' + config.site.title + '</title><style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:' + lt.background + ';color:' + lt.text + ';font-family:system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:26rem;padding:2.5rem;text-align:center}h1{font-size:1rem;opacity:.6;margin:0 0 1.25rem}.t{font-size:1.35rem;font-weight:700;margin:0 0 .5rem}.d{opacity:.7;line-height:1.7;margin:0 0 1.75rem}button,a{font:inherit}button{cursor:pointer;padding:.6rem 1.4rem;border-radius:999px;border:0;background:' + lt.secondary + ';color:' + lt.surface + '}button:hover{filter:brightness(1.08)}a{color:inherit;margin-left:1rem;text-decoration:underline;text-underline-offset:3px}@media(prefers-color-scheme:dark){body{background:' + (dk.background || lt.background) + ';color:' + (dk.text || lt.text) + '}button{background:' + (dk.secondary || lt.secondary) + '}}</style></head><body><main><h1>' + config.site.title + '</h1><p class="t">' + S.t + '</p><p class="d">' + S.d + '</p><p><button onclick="location.reload()">' + S.r + '</button><a href="' + home + '">' + S.h + '</a></p></main></body></html>';
-    fs.writeFileSync(path.join(DIST_DIR, 'offline.html'), offlineHtml, 'utf-8');
+    writeFileAtomicSync(path.join(DIST_DIR, 'offline.html'), offlineHtml, 'utf-8');
     console.log('  Created: offline.html');
   }
   const swContent = `const CACHE = ${JSON.stringify(config.site.pwa.cacheName)};
@@ -2813,7 +2814,7 @@ self.addEventListener('fetch', (event) => {
   const swPath = path.join(DIST_DIR, swUrl.replace(/^\//, ''));
   const swDir = path.dirname(swPath);
   if (!fs.existsSync(swDir)) fs.mkdirSync(swDir, { recursive: true });
-  fs.writeFileSync(swPath, swContent, 'utf-8');
+  writeFileAtomicSync(swPath, swContent, 'utf-8');
   console.log(`  Created: ${swUrl.replace(/^\//, '')}`);
 }
 

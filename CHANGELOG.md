@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **OG 图输出格式可选 JPEG**：`features.ogImage.format`（`png` 默认 / `jpeg`，`jpg` 同义）+ `jpegQuality`（默认 82，越界回退），`og:image`/`twitter:image`/JSON-LD image 与产物扩展名、旧格式清理均随格式联动；新增纯函数与 7 项单测 — `scripts/lib/og-format.js` + `scripts/og-format.test.js` + `scripts/generate-og.js` + `templates/layout.ejs` + `features.json5` + `scripts/lib/features-schema.js`
+- **构建产物原子写**：新增 `scripts/lib/atomic-write.js`（临时文件 + rename；Windows EPERM/EBUSY 退避重试一次；失败清理临时文件且不产生半截文件）；`scripts/build.js` 全部 27 处产物写入与 OG 图生成（临时文件 + commit）接入；新增 8 项单测 — `scripts/lib/atomic-write.js` + `scripts/atomic-write.test.js` + `scripts/build.js` + `scripts/generate-og.js`
 
 ### Security
 

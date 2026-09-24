@@ -6,6 +6,7 @@ const https = require('https');
 const sharp = require('sharp');
 const { safeSlug, validateSlug } = require('./lib/utils');
 const { resolveOgFormat } = require('./lib/og-format');
+const { atomicTempPath, commitAtomicTemp, discardAtomicTemp } = require('./lib/atomic-write');
 
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
@@ -418,6 +419,7 @@ async function main() {
     const langOut = path.join(OUT_DIR, langDir);
     fs.mkdirSync(langOut, { recursive: true });
     const outPath = path.join(langOut, slug + '.' + ogFmt.ext);
+    let pendingTmp = null;
     try {
       let img;
       if (cover) {
@@ -426,11 +428,15 @@ async function main() {
           if (coverBuf) {
             const overlay = Buffer.from(coverOverlay(siteTitle, fitLines(wrapTitle(title, 20))));
             const coverPipe = sharp(coverBuf).resize(WIDTH, HEIGHT, { fit: 'cover' }).composite([{ input: overlay }]);
+            pendingTmp = atomicTempPath(outPath);
             img = await (ogFmt.format === 'jpeg'
               ? coverPipe.jpeg({ quality: ogFmt.quality, mozjpeg: true })
-              : coverPipe.png()).toFile(outPath);
+              : coverPipe.png()).toFile(pendingTmp);
+            commitAtomicTemp(pendingTmp, outPath);
+            pendingTmp = null;
           }
         } catch (coverErr) {
+      if (pendingTmp) { discardAtomicTemp(pendingTmp); }
           img = null;
         }
       }
@@ -443,9 +449,12 @@ async function main() {
         const lh = Math.round(size * 1.2);
         const svg = Buffer.from(renderCover({ template: styleCfg.template || 'aurora', siteTitle, siteUrl, lines: fitLines(wrapTitle(title, chars), maxLines), size, lineHeight: lh, from: palFrom, to: palTo, style: styleCfg, category: catOf(catRaw), palette }));
         const svgPipe = sharp(svg);
+        pendingTmp = atomicTempPath(outPath);
         await (ogFmt.format === 'jpeg'
           ? svgPipe.jpeg({ quality: ogFmt.quality, mozjpeg: true })
-          : svgPipe.png()).toFile(outPath);
+          : svgPipe.png()).toFile(pendingTmp);
+        commitAtomicTemp(pendingTmp, outPath);
+        pendingTmp = null;
       }
       madeSlugs.set(slug, path.basename(outPath));
       if (!madeByLang.has(langDir)) madeByLang.set(langDir, new Set());
@@ -453,6 +462,7 @@ async function main() {
       success++;
       console.log(`generated: ${slug} (${path.basename(outPath)})`);
     } catch (err) {
+      if (pendingTmp) { discardAtomicTemp(pendingTmp); pendingTmp = null; }
       failed++;
       console.error(`  [ERROR] ${slug}: ${err.message}`);
     }

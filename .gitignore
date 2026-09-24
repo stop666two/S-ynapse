@@ -1,47 +1,80 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
-*.log
-.DS_Store
-Thumbs.db
+
+# Runtime data (created by the app at startup)
+*.db
+*.db-wal
+*.db-shm
+
+# IDE
+.vscode/
+.idea/
 *.swp
 *.swo
-*~
 
-# 构建产物
-media-manifest.json
-cache-bust-manifest.json
-build-report.html
+# OS
+.DS_Store
+Thumbs.db
 
-# 测试文件
-test-*.js
+# Logs
+logs/
+*.log
 
-# AI 规则文件 - 禁止提交版本控制
+# Temp
+*.tmp
+*.bak
+.tmp-scripts/
+test-out.txt
+
+# Environment (keep .env.example as the only committed template)
+.env*
+!.env.example
+
+# Archives and backups (large binaries must not be committed)
+*.bundle
+*.zip
+*.7z
+
+# AI / Agent config files (sensitive development rules)
 AGENTS.md
 AGENTS.txt
 AGENT.md
 AGENT.txt
 agent-readme.md
 RULES.md
+.agents/
+.reasonix/
 
-# 环境变量
-.env
-.env.local
-.env.*.local
-
-# mcp产生的文件
-database.db
-database.db-shm
-database.db-wal
+# Audit / Diagnosis / Review reports
+*审计报告*.md
+*审计报告*.txt
+DIAGNOSIS*.md
+DIAGNOSIS*.txt
+*audit*.md
+*audit*.txt
+*review-report*.md
 
 # 浏览器测试产物
 .playwright-mcp/
-# Workers security config (auto-generated from security.json during build)
-workers/security-config.js
-.tmp-scripts/
-test-out.txt
 
+# Nested cloned third-party repository
+system_prompts_leaks/
+
+# 项目特有（同步时保留）
+*~
+media-manifest.json
+cache-bust-manifest.json
+build-report.html
+test-*.js
+.env
+.env.local
+.env.*.local
+database.db
+database.db-shm
+database.db-wal
+workers/security-config.js
 lang-verify.js
 lang-diag.js
-
-# 真实数据副本（GitHub 克隆，严禁上传）
-/real-site/

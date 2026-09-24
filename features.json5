@@ -486,7 +486,7 @@
     enabled: true,
     // 是否将 media/assets/videos 媒体目录一并打包。
     includeMedia: true,
-    // 是否将 11 个配置文件一并打包。
+    // 是否将 13 个配置文件一并打包。
     includeConfig: true,
     // 导出目录(项目根下)。
     outputDir: 'exports',

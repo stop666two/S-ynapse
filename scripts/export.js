@@ -17,7 +17,9 @@ const CONFIG_FILES = [
   'ui-strings.json5',
   'content-policy.json5',
   'tag-aliases.json5',
-  'friends.json5'
+  'friends.json5',
+  'tuning.json5',
+  'guard.json5'
 ];
 const MEDIA_DIRS = ['media', 'assets', 'videos'];
 const DEFAULT_OUTPUT_DIR = 'exports';

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.3]
+## [Unreleased]
 
 ### Added
 
@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 代码窗口栏按钮与语言标签重叠：`.code-actions` 恢复文档流（`position:static`）且语言标签 `margin-right:auto` — `templates/layout.ejs`
 - 长行代码横向滚动条过淡难看：正文 `pre` 定制滚动条（thumb 文字色 38%→悬停 62%、9px、圆角、Firefox `scrollbar-color`） — `templates/layout.ejs`
 - 共享元素封面过渡卡顿: 文章封面统一 `aspect-ratio: card.imageAspect`(16/10) 消除形变; 首页 Bento 大卡(21/10)不参与封面形变(标题仍共享) — `templates/layout.ejs` + `templates/index.ejs`
-- features 模块计数同步为 91; README/config-reference 计数修正(91 模块/723 项)（该计数已过时，当前为 95 模块，见 1.0.3 后续条目）
+- features 模块计数同步为 91; README/config-reference 计数修正(91 模块/723 项)（该计数已过时，当前计数见本节后续条目）
 
 - **canonical 全站指向根路径（SEO）**：`<link rel="canonical">` 此前对所有页面均输出站点根（模板引用了不存在的 `page.url`），现改用 `currentUrl`（文章/分页/归档/标签等各自 URL），并规整 `site.url` 尾部斜杠 — `templates/layout.ejs`
 - **Pagefind 索引生成失效修复**：门控误读不存在的 `features.search.provider` 导致函数恒不执行；改读 `navigation.search.provider === 'pagefind'`，并在压缩/哈希**之后**生成（不参与 cache-bust、写前清空旧索引、输出目录跟随 `features.pagefind.indexPath`）；`navigation.json5` 新增并注释 `search.provider` 键（`local`/`pagefind`），README/config-reference 同步 — `scripts/build.js` + `navigation.json5` + `README.md` + `docs/config-reference.md`
@@ -128,6 +128,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **首页粒子增强**:`features.background.particles` count 55→72 / opacity 0.6→0.7 — `features.json5`
 - **前端资产本地化（去 CDN 依赖）**:Prism（多语言拼接）/Mermaid/KaTeX（含字体）/Inter·Sora·Manrope（latin 子集）全部由构建从 `node_modules` 复制到 `assets/vendor/` 同源加载;修复 `externalAssets.styles` 从未渲染为样式表导致字体从未真正加载的潜伏缺陷;新增依赖 `prismjs`/`mermaid`/`katex`/`@fontsource/*`（锁定版本,npmmirror 安装) — `scripts/build.js` + `templates/layout.ejs` + `theme.json` + `package.json`
 - **首页视觉强化（Hero/Bento/色彩）**:Hero 标题渐变装饰条、CTA 主色→强调色渐变按钮、标签悬停提亮;首篇文章 Bento 大卡（1.618fr 图文分栏,移动端回退单列) — `templates/index.ejs` + `templates/layout.ejs` + `tuning.json5`
+- **中英区分扩展（文案与元数据全链路）**：新增 `logoTextEn`/`bioEn` 与组件标题、搜索占位的英文取值，`site.descriptionEn` 站点描述，head 元数据与 Feed 标题按页面语言输出（英文页不再混排中文） — `site.json5` + `templates/layout.ejs` + `scripts/build.js` + `scripts/lib/site-defaults.js` + `docs/config-reference.md`
+- **OG 图 `showUrl` 开关**：可关闭 OG 图右下角的站点 URL（`features.ogImageStyle.showUrl`） — `features.json5` + `scripts/generate-og.js` + `scripts/lib/features-schema.js` + `docs/config-reference.md`
 
 ### Changed
 
@@ -160,6 +162,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **prismTheme 模块精简**:移除未实现的主题切换器子键(themes/defaultTheme/remember/storageKey/windowBar),仅保留 `enabled` 作为代码高亮配色总开关(配色见 `codeHighlight.palette`),消除多开关 — `features.json5` + `scripts/lib/features-schema.js`
 - **theme.json 清理**:移除被 `tiers.shadow` 取代的 `shadow` 段与死键 `codeHighlight.theme/highlightLines` — `theme.json`
 - **tuning 收尾（单一入口 + 保留项接线）**:删除与 features/site/theme 重复的 57 个键（toast/gallery/heatmap/footer/sidebar/archive/lightbox 整组 + 分散键），消除多开关；接线 18 项保留项（typography quote/caption/meta/small/tiny、hero.ctaRadius、radius.image/badge、search.inputHeight、stats.hoverLiftPx、pagination.activeScale、breadcrumb.currentWeight、tags.hoverScale、share.iconSize、prevNext.titleLines、contactPopup.iconSize/valueFontSize、comments.marginTop）；10 项无实现目标的键在注释标注「待实现」 — `tuning.json5` + `templates/layout.ejs`
+- `package-lock.json` 同步 `package.json` 的 `license: "MIT"` 元数据 — `package-lock.json`
 
 ### Fixed
 
@@ -189,6 +192,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PWA SW 安装失败(manifest 被重定向)**:`_redirects` 将根 `/manifest.json` 302 到不存在的 `/zh/manifest.json`,导致 `cache.addAll` 失败、service worker 安装失败;PWA 开启时不再生成该重定向 — `scripts/build.js`
 - **收藏功能半成品补全**:`favBtn` 无任何 JS 逻辑(点击无反应、favToast 从未调用);现实现收藏/取消(按钮状态 + aria-pressed + 统一 toast)、localStorage 持久化、收藏页列表渲染与移除、空状态;en 页按钮文案经 `ui()` 词典 — `templates/layout.ejs` + `templates/post.ejs`
 - **客户端 `__T` 语言回退**:i18n 运行时模块关闭时 `data-lang` 未设置,导致 en 页客户端文案回退中文;现回退服务端渲染的 `<html lang>` — `templates/layout.ejs`
+- **OG 生成对齐构建与头部防挤压**：OG 文件 slug 与构建产物对齐、`dist/og` 免 cache-bust、固定头部防挤压与副标题截断、404 页配置修正 — `scripts/generate-og.js` + `scripts/build.js` + `templates/layout.ejs` + `templates/site-css.ejs` + `features.json5`
+- **侧栏作者字母徽章水平居中**：`.widget-author-badge` 补充自动外边距 — `templates/site-css.ejs`
+- **忽略规则整理**：本地数据副本与构建/环境产物排除规则调整（后续收敛为仅本地生效的排除文件，避免仓库暴露部署细节） — `.gitignore`
+- **PWA 关闭时残留死重定向**：`/manifest.json`、`/site.webmanifest` 两类别名此前在 PWA 关闭时仍 302 到不存在的文件；现两类别名彻底不再生成（PWA 开启时 manifest 为根目录实文件，无需别名） — `scripts/build.js`
 
 ### Security
 

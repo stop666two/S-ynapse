@@ -527,7 +527,7 @@ sitemap: {
 
 ### 3.69 commandPalette — 命令面板
 
-`enabled true` / `hotkey 'k'`(Ctrl/Cmd+组合键,单个小写字母) / `includeNavigation true`(页面导航项) / `includeActions true`(切换主题/回到顶部/打开搜索/我的收藏) / `includeSearch true`(首次打开时懒加载 search-index.json) / `maxResults 10`(结果上限) / `autoFocus true`。快捷键呼出居中面板,支持键盘上下选择、Enter 执行、Esc 关闭,中文输入法(IME)组合期不误触;样式由 `tuning.commandPalette`(`width`/`topOffset`/`backdropMix`)微调 — `js/domains/command-palette.js`。
+`enabled true` / `hotkey 'ctrl+shift+p'`(组合键,支持 `ctrl`/`cmd`/`meta`/`shift`/`alt` 修饰键;不含 `+` 的旧写法如 `'k'` 等价于主修饰键 Ctrl/Cmd+该键;置空 = 不监听;默认避开浏览器打印 Ctrl+P 与全站搜索 Ctrl+K) / `includeNavigation true`(页面导航项) / `includeActions true`(切换主题/回到顶部/打开搜索/我的收藏) / `includeSearch true`(首次打开时懒加载 search-index.json) / `maxResults 10`(结果上限) / `autoFocus true`。快捷键呼出居中面板,支持键盘上下选择、Enter 执行、Esc 关闭,中文输入法(IME)组合期不误触;样式由 `tuning.commandPalette`(`width`/`topOffset`/`backdropMix`)微调 — `js/domains/command-palette.js`。
 
 ### 3.70 subscribe — 订阅组件
 

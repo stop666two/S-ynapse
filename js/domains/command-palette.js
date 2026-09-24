@@ -1,7 +1,27 @@
 export function init() {
   var F = (window.__FEATURES__ || {}).commandPalette || {};
   if (F.enabled === false) return;
-  var hotkey = String(F.hotkey || 'k').toLowerCase();
+  // 解析组合键配置（如 'ctrl+shift+p' / 'alt+k' / 'meta+p'）。
+  // 兼容旧写法：不含 '+' 的单个键（如 'k'）= 主修饰键（Ctrl 或 Cmd）+ 该键，且无 Shift/Alt。
+  // 返回 null 表示未配置热键（不监听）。
+  function parseHotkey(raw) {
+    var s = String(raw || '').trim().toLowerCase();
+    if (!s) return null;
+    var parts = s.split('+').map(function (p) { return p.trim(); }).filter(Boolean);
+    var key = parts.length ? parts[parts.length - 1] : '';
+    if (!key) return null;
+    var mods = parts.slice(0, -1);
+    if (!mods.length) return { key: key, ctrl: false, meta: false, shift: false, alt: false, primaryOnly: true };
+    return {
+      key: key,
+      ctrl: mods.indexOf('ctrl') !== -1 || mods.indexOf('control') !== -1,
+      meta: mods.indexOf('meta') !== -1 || mods.indexOf('cmd') !== -1 || mods.indexOf('command') !== -1,
+      shift: mods.indexOf('shift') !== -1,
+      alt: mods.indexOf('alt') !== -1,
+      primaryOnly: false
+    };
+  }
+  var hotkey = parseHotkey(F.hotkey || 'k');
   var maxResults = Number(F.maxResults) > 0 ? Number(F.maxResults) : 8;
   var T = typeof window.__T === 'function' ? window.__T : function (k, d) { return d || k; };
   var dlg = null, input = null, listEl = null;
@@ -159,10 +179,18 @@ export function init() {
     open();
   }
   document.addEventListener('keydown', function (e) {
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === hotkey) {
-      if (hotkey === 'k' && document.getElementById('searchOverlay')) return;
-      e.preventDefault();
-      toggle();
+    if (!hotkey || e.repeat) return;
+    if (e.key.toLowerCase() !== hotkey.key) return;
+    if (e.altKey !== hotkey.alt || e.shiftKey !== hotkey.shift) return;
+    if (hotkey.primaryOnly) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+    } else {
+      if (e.ctrlKey !== hotkey.ctrl || e.metaKey !== hotkey.meta) return;
+      // 显式组合键必须至少含一个非 Shift 修饰键，避免裸键/仅 Shift 劫持常规输入。
+      if (!hotkey.ctrl && !hotkey.meta && !hotkey.alt) return;
     }
+    if (hotkey.key === 'k' && document.getElementById('searchOverlay')) return;
+    e.preventDefault();
+    toggle();
   });
 }

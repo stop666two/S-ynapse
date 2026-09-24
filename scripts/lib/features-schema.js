@@ -166,7 +166,7 @@ const DEFAULT_FEATURES = {
     enabled: true, height: '2px', gradient: true, respectReducedMotion: true
   },
   commandPalette: {
-    enabled: true, hotkey: 'p', includeNavigation: true, includeActions: true,
+    enabled: true, hotkey: 'ctrl+shift+p', includeNavigation: true, includeActions: true,
     includeSearch: true, maxResults: 10, autoFocus: true
   },
   subscribe: {

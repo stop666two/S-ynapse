@@ -61,6 +61,7 @@ const { DEFAULT_FEATURES, validateFeatures } = require('./lib/features-schema');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset } = require('./lib/theme-presets');
 const { formatConfigError } = require('./lib/config-error');
 const { evaluatePerfBudget, gzipSize, formatPerfBudget } = require('./lib/perf-budget');
+const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('./lib/robots');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -2040,8 +2041,6 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
       if (config.site.build.generateTags !== false) {
         urls.push({ loc: pf + 'tags/', changefreq: tagFreq, priority: String(tagPr) });
         for (const tag of langTags) urls.push({ loc: pf + 'tags/' + tag.slug + '/', changefreq: tagFreq, priority: String(tagPr) });
-        const topTagT = collectTopTags(langArticles, null, lang);
-        for (const tt of topTagT) urls.push({ loc: pf + 'tags/' + safeSlug(tt.name) + '/', changefreq: tagFreq, priority: String(tagPr) });
       }
       if (config.site.build.generateCategories !== false) {
         urls.push({ loc: pf + 'categories/', changefreq: tagFreq, priority: String(tagPr) });
@@ -2056,8 +2055,9 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
       const outDir = path.dirname(entryPath);
       if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
       const writeOne = (item, prio) => {
-        let x = '<loc>' + escapeHtml(url + item.loc) + '</loc>';
-        if (item.lastmod) x += '<lastmod>' + escapeHtml(String(item.lastmod)) + '</lastmod>';
+        let x = '<loc>' + escapeHtml(encodeLoc(url + item.loc)) + '</loc>';
+        const lastmod = toSitemapLastmod(item.lastmod);
+        if (lastmod) x += '<lastmod>' + lastmod + '</lastmod>';
         x += '<changefreq>' + item.changefreq + '</changefreq><priority>' + item.priority + '</priority>';
         return x;
       };
@@ -2093,6 +2093,10 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
   }
 }
 
+// 构建后向搜索引擎提交 sitemap（可选功能，仅生产构建执行）。
+// 注意：Google 自 2023 年起停用 sitemap ping（该端点会返回 404），此功能保留给
+// 仍支持该协议且配置启用的引擎（如 Bing）；失败仅告警，不阻断构建。
+// 多语言站点逐语言逐条提交（URL 列表与 robots.txt 的 Sitemap 行同源）。
 async function pingSearchEngines(config) {
   const ping = (config.features && config.features.searchEnginePing) || {};
   if (!ping.enabled) return;
@@ -2100,8 +2104,12 @@ async function pingSearchEngines(config) {
   if (ping.onlyProduction && process.env.NODE_ENV !== 'production' && !process.env.CI) return;
   const base = (config.site.url || '').replace(/\/+$/, '');
   if (!base) { console.log('  [SKIP] Sitemap ping: site.url not configured'); return; }
-  const sitemapPath = config.security.robots.sitemap;
-  const sitemapUrl = encodeURIComponent(base + sitemapPath);
+  const sitemapUrls = buildSitemapUrls({
+    baseUrl: base,
+    sitemapPath: config.security.robots.sitemap,
+    languages: (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en'])
+  });
+  if (!sitemapUrls.length) { console.log('  [SKIP] Sitemap ping: no sitemap URL resolved'); return; }
   const engines = Array.isArray(ping.engines) ? ping.engines : ['google'];
   const endpoints = {
     google: 'https://www.google.com/ping?sitemap=',
@@ -2110,12 +2118,14 @@ async function pingSearchEngines(config) {
   for (const name of engines) {
     const ep = endpoints[name];
     if (!ep) { console.warn('  [WARN] Unknown ping engine: ' + name); continue; }
-    try {
-      const res = await fetch(ep + sitemapUrl, { method: 'GET', signal: AbortSignal.timeout(ping.timeoutMs || 5000) });
-      console.log(`  Pinged ${name}: HTTP ${res.status}`);
-      if (!res.ok) console.warn('  [WARN] ' + name + ' ping rejected (HTTP ' + res.status + '); usually fine locally');
-    } catch (err) {
-      console.warn(`  [WARN] ${name} ping failed: ${err.message}`);
+    for (const smUrl of sitemapUrls) {
+      try {
+        const res = await fetch(ep + encodeURIComponent(smUrl), { method: 'GET', signal: AbortSignal.timeout(ping.timeoutMs || 5000) });
+        console.log(`  Pinged ${name}: HTTP ${res.status} (${smUrl})`);
+        if (!res.ok) console.warn('  [WARN] ' + name + ' ping rejected (HTTP ' + res.status + '); usually fine locally');
+      } catch (err) {
+        console.warn(`  [WARN] ${name} ping failed: ${err.message}`);
+      }
     }
   }
 }
@@ -2398,8 +2408,13 @@ function generateSecurityHeaders(config) {
       robotLines.push('');
     }
     if (config.security.robots.sitemap) {
-      const sitemapUrl = `${config.site.url.replace(/\/+$/, '')}${config.security.robots.sitemap}`;
-      robotLines.push(`Sitemap: ${sitemapUrl}`);
+      const sitemapUrls = buildSitemapUrls({
+        baseUrl: config.site.url,
+        sitemapPath: config.security.robots.sitemap,
+        languages: (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en'])
+      });
+      if (!sitemapUrls.length) console.warn('  [WARN] robots.txt: site.url 未配置，已跳过 Sitemap 行');
+      for (const smUrl of sitemapUrls) robotLines.push(`Sitemap: ${smUrl}`);
     }
     fs.writeFileSync(path.join(DIST_DIR, 'robots.txt'), robotLines.join('\n'), 'utf-8');
     console.log('  Created: robots.txt');

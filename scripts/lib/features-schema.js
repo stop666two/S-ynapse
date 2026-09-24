@@ -414,7 +414,7 @@ const DEFAULT_FEATURES = {
     revealOnce: true, revealThreshold: 0.08, reducedMotion: 'light'
   },
   ogImageStyle: {
-    enabled: true, align: 'center', showSite: true, useGradient: true,
+    enabled: true, align: 'center', showSite: true, showUrl: true, useGradient: true,
     gradientAngle: '135deg', fontSizeBase: 64, maxLines: 4,
     letterSpacing: '0.02em', template: 'aurora', palette: 'theme', showCategory: true
   },

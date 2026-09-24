@@ -2318,12 +2318,11 @@ function generateRedirects(config, customPages) {
       lines.unshift(`/ /${langs[0]}/ 302`);
     }
   }
-  const pwaOn = !!(config.site.pwa && config.site.pwa.enabled);
   for (const l of langs) {
     const pf = '/' + l;
-    const rootAliases = ['/search-index.json', '/feed.xml', '/manifest.json', '/404.html', '/site.webmanifest'];
+    // manifest 由 PWA 步骤直接产出在根目录（关闭时不产出），不设语言别名，避免 302 到不存在的文件
+    const rootAliases = ['/search-index.json', '/feed.xml', '/404.html'];
     for (const alias of rootAliases) {
-      if (pwaOn && alias === '/manifest.json') continue;
       if (!lines.some(x => x.startsWith(alias + ' '))) {
         lines.push(`${alias} ${pf}${alias} 302`);
       }

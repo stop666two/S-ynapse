@@ -1,43 +1,45 @@
-# 会话交接：首次全项目只读审计 + 全量修复批次（2026-09-24）
+# 会话交接：首次全项目只读审计 + 两批修复 + 推送与 CI（2026-09-24）
 
 ## 原始请求（用户）
-- 首条指令：首次会话强制「全项目只读审计」（性能/动画/功能/安全静态/开销/流畅性/安全动态/其他 8 大项），先出报告、不改代码；违反即违规。
-- 后续决策（grilling 拍板）：**AAC**（① 本地派生目录用 `.git/info/exclude` 承接 + 清理 `.gitignore`；② wrangler 差异视为部署级并记录；③ 全部一次修完）；P9 热键 Ctrl+Shift+P；P11 ESLint+渐进 checkJs；P18/19/20 保守熔断+安全默认；P21 构建期 CSP 裁剪；P10/P23 升级与瘦身；P24 SITE_URL 覆盖；P25 补记+Unreleased；P28 meta CSP 加开关默认关；P32 clipboard 优先+降级；P17 完整注册表；P29 按项目原脚本口径计数。
-- 过程要求：全程中文；每修复一 commit；**先不要推送**；UI 类修复逐次运行时验证 + a11y。
+- 首条指令：首次会话强制「全项目只读审计」（性能/动画/功能/安全静态/开销/流畅性/安全动态/其他 8 大项），先出报告、不改代码。
+- 第一批 grilling 决策（AAC）：本地派生目录迁移 `.git/info/exclude` + 清理 `.gitignore`；wrangler 差异按部署级记录；P1–P33 全量修复；每修复一提交、不推送；UI 修复逐次运行时验证 + a11y。
+- 第二批（审计跟进 2–16 项 + 推送最后）grilling 决策：ESLint 10 + engines 提升 + checkJs（scripts/lib）；OG 支持 jpeg（默认 png）；dist 全面原子写；externalAssets SRI 透传；Worker 结构化日志 + X-Request-Id；性能实测（S2+ 当批修）；reduced-motion 双态；PWA/guard 临时开启验证后回退；历史 verify 脚本分诊；清理 3 个一次性脚本；`npm run audit` 脚本；备份 bundle 后推送并盯 CI。
+- 会话中新规则：CMD/PowerShell 脚本除注释外禁止中文；全部完成后执行一次性休眠脚本（`%TEMP%\opencode\hibernate-after-work.ps1`，AI 不得读取当前时间）。
 
-## 当前状态
-- **29 个提交已完成**（固定点 `04d2411` → HEAD `e86e50a`），**未推送**；工作区干净（本地非入库物：`docs/superpowers/plans/2026-09-24-audit-fix-batch.md`、`.tmp-scripts/`）。
-- 全部质量门禁绿：`npm test` **126/126**、`npm run lint` **0**、`npm run verify:config` PASS、`npm run verify:security` PASS、`npm run build` OK、`npm run audit:a11y` **8 页 0 violations**（critical/serious=0）。
-- 依赖迁移已完成（用户执行 `npm install`）：mermaid 11.17.2 / prismjs 1.30.0 / wrangler 4.138.0、pagefind 移除、eslint 9.39.5 + @eslint/js + globals 引入。
-- 运行时抽查：长文页（mermaid 渲染/KaTeX/复制按钮）、搜索浮层+历史、灯箱、主题预设、命令面板 Ctrl+Shift+P、PWA 安装按钮（临时开启探针）、accessGate（临时开启探针）全部实测通过。
+## 当前状态（最终）
+- **全部完成并已推送**：`04d2411..01f57fb`（第一批 29 提交 + 第二批 14 提交，共 43 提交）；`origin/main` 已同步。
+- **CI 全绿**（run 36020206663，Build）：check-agents / npm ci / Dependency security audit / ESLint / Type check / tests / verify:config / verify:security / build / **Deploy to Cloudflare Pages: success**（生产站点已发布本批次）。
+- 推送前已按流程备份：`D:\administrator\Documents\project\S-ynapse-2026-09-24.bundle`（`git bundle verify` = okay）。
+- 质量基线：`npm test` **144/144**、`npm run lint` 0、`npm run typecheck` 0、`npm run verify:config` PASS、`npm run verify:security` PASS、`npm run build` OK、`npm run audit:a11y` 8 页 0 violations、`npm run audit`（官方源）**0 vulnerabilities**。
+- 性能（Slow 4G + 4x CPU）：首页 LCP **868ms**（多尺寸 srcset）、长文页主题切换 INP **88ms**（Mermaid 空闲调度）、字体 CSS 已合并。
+- 头部窄窗口缺陷已修（769–1200px 分级响应，10 档宽度 + 中英双语 + 移动端回归零溢出）。
+- 最终 HEAD 位于休眠脚本执行前的最后提交：`01f57fb`（其后无未推送内容；`.tmp-scripts/` 与本地计划文件不入库）。
 
-## 交付物索引
-- 修复计划（P1–P33 逐项规格）：`docs/superpowers/plans/2026-09-24-audit-fix-batch.md`（本地，不入库——文件名命中 `*audit*.md` 忽略规则）
-- 变更记录：`CHANGELOG.md` → `[Unreleased]`（本批安全/新增/变更/修复/移除 + 双轴审查修复 + 遗留债务）
-- 文档同步：`README.md`、`docs/config-reference.md`（计数口径 features 800 / guard 171 / 13 文件 2522 / 测试 126）
-- 提交清单：`git log 04d2411..HEAD --oneline`（29 条，自 `6bcf7df` 起）
+## 两批关键实现索引
+- 第一批：robots/sitemap 逐语言与 ISO/RFC 合规、OG 草稿与路径穿越、命令面板 Ctrl+Shift+P、guard 熔断与安全默认、tamper-watch 超时/节流/白名单、CSP autoTrim、X-XSS=0、meta CSP 开关、SITE_URL、KaTeX 瘦身、前端健壮性 6 项、ESLint 引入（后升级 10）。
+- 第二批：`scripts/lib/og-format.js`、`scripts/lib/atomic-write.js`、`scripts/audit.js`、Worker 结构化日志 + X-Request-Id、SRI 透传、PWA 图标生成与 cache-bust 豁免、卡片图 srcset、字体 CSS 合并、Mermaid 空闲重渲染、窄桌面头部分级响应、puppeteer-core 25.12.0（清 3 个 high）。
+- 计划文件（本地、不入库）：`docs/superpowers/plans/2026-09-24-audit-fix-batch.md` 与 `docs/superpowers/plans/2026-09-24-audit-followups.md`。
 
-## 待办 / 遗留（按优先级）
-1. **推送前**：按既定流程先 `git bundle create <仓库外路径> --all` + `git bundle verify` 备份，再经用户确认推送（当前明确不推送）。
-2. 技术债（已记入 CHANGELOG「遗留」）：checkJs 渐进类型检查、OG PNG→JPEG、dist 写入非原子、externalAssets SRI、计划 T23 步 3（日志请求头透传）未实施。
-3. 未覆盖验证：真实低端设备/移动网络下 reduced-motion 双态与 LCP 实测；建议用 `web-perf`/`webapp-testing` 补。
-4. ESLint 9 已被 npm 标记 deprecated（EOL）；升级 10 需同步评估 `engines`（^20.19 || ^22.13 || >=24）与 README 的 Node ≥20.9 声明。
-5. 环境注意：本机 registry=npmmirror，`npm audit` 需加 `--registry=https://registry.npmjs.org`；`core.autocrlf=true` 但 `.gitattributes` 已统一 LF。
-6. 本地派生目录：`.git/info/exclude:11` 承担排除；仓库内零字样（历史提交 `0f03f1b` 文案残留已接受）；wrangler `name` 差异属部署级（记录在本机 memory）。
+## 遗留与技术债（已记入 CHANGELOG「遗留」）
+1. OG PNG→JPEG 之外的图片格式债务已清；剩余：externalAssets 自动哈希（当前为手工 integrity）、dist 页级增量写、checkJs 覆盖范围扩大（当前仅 scripts/lib）。
+2. 首屏偶发 CLS≈0.14（未复现，观察项）；本地 dev server TTFB 方差大，指标以多次取样为准。
+3. 真机（物理低端设备/真实 OS reduced-motion）验证未做，仅有 CDP 模拟证据。
+4. 历史 `verify-*.js` 中已标注过时的脚本（如 `verify-cmdpalette.js`、`verify-custom-http.js` 的 `/zh/公告/` 断言）仅为本地脚本，未随仓库发布，不影响产品。
 
-## 验证配方（复现）
-- 基础：`npm test` / `npm run lint` / `npm run verify:config` / `npm run verify:security` / `npm run build`
-- a11y：先后台 `npm run serve -- --port 3224`（PID 写 `%TEMP%\synapse-serve.pid`），再 `npm run audit:a11y`，完事 `Stop-Process` 并确认端口释放。
-- 浏览器探针经验（chrome-devtools MCP）：Ctrl+K 会被浏览器抢占 → 用 `window.openSearch()`；命令面板 `dialog.cmdp` 懒创建需实时 `querySelector`；临时启用的探针配置必须锚定文本回退（多命中替换会误伤）。
+## 环境注意
+- 本机 npm 镜像（npmmirror）会阻断 audit → 统一用 `npm run audit`（Node 转发 + 官方 registry）；npm 12 禁止 `npm run` 内嵌套 npm 命令。
+- `git push` 若遇 schannel 握手失败 → `git -c http.sslBackend=openssl push origin main` 可绕过（本次实证）。
+- 本地派生目录：`.git/info/exclude:11` 承担排除；仓库内零字样（历史提交文案残留为已知例外）。
+- PowerShell 写文件会引入 BOM/CRLF，改源码统一用编辑工具；预览 temp 截图需先 `Copy-Item` 到 `.tmp-scripts/`。
 
 ## 建议 skills
 - 继续排查缺陷：`diagnosing-bugs` / `systematic-debugging`
-- 新增功能/大改：`writing-plans` → `implement`/`tdd` → `review`
-- 性能专项：`web-perf` / `webapp-testing`
-- 部署（需用户显式确认）：`cloudflare` / `wrangler`
+- 新功能/大改：`writing-plans` → `implement`/`tdd` → `review`
+- 性能/浏览器：`web-perf` / `webapp-testing`
+- 部署（推送会自动触发 Pages 部署，需用户确认）：`cloudflare` / `wrangler`
 - 会话收尾：`handoff`
 
 ## 风险与注意
-- 本批修复覆盖 60+ 文件（diff 1761+/279-，不含后续审查批），改动面大；若要回滚，建议以提交为单位（每修复一提交，粒度清晰）。
-- guard 模块（含 tamperWatch/accessGate 等）仍全部默认关（设计如此）；meta CSP 开关默认关（`security.json5` 注释含开启/关闭场景）。
-- 已知有意偏差：PWA 开启时也不再生成根 `manifest.json` 别名（CHANGELOG 已说明理由）。
+- guard 模块与 meta CSP 均保持默认关（设计）；PWA 默认关（临时验证已完成并回退）。
+- 推送 main 会自动部署生产 Pages；后续推送前请确认部署节奏。
+- 回滚建议按提交粒度（每修复一提交）；完整历史另有 bundle 备份（见上）。

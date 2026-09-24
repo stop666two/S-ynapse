@@ -319,9 +319,10 @@
     enabled: false,
 
     // 作用：各快捷键拦截开关（Windows/Linux 用 Ctrl、macOS 自动等效 Cmd）
-    // 类型：boolean；推荐：true（在已决定开启本模块的前提下）
-    // 注意：ctrlP（打印）与 features.printStyle 功能重叠——打印样式只改样式、
-    //   本项拦按键；两者可共存，也可只留其一
+    // 类型：boolean；推荐：开发者工具类键 f12/ctrlShiftI/ctrlShiftJ/ctrlShiftC 为 true；
+    //   ctrlU/ctrlS/ctrlP 为 false（opt-in，避免影响查看源码/保存/打印等正常操作）
+    // 注意：F12/Ctrl+Shift+* 仅拦“键盘路径”，浏览器菜单与独立窗口仍可打开开发者工具；
+    //   ctrlP 与 features.printStyle 功能重叠——不要同时开启，二选一即可
     keys: {
       // 拦截 F12(开发者工具)。
       f12: true,
@@ -331,12 +332,12 @@
       ctrlShiftJ: true,
       // 拦截 Ctrl+Shift+C(元素选择器)。
       ctrlShiftC: true,
-      // 拦截 Ctrl+U(查看源码)。
-      ctrlU: true,
-      // 拦截 Ctrl+S(保存页面)。
-      ctrlS: true,
-      // 拦截 Ctrl+P(打印,与 features.printStyle 可共存)。
-      ctrlP: true,
+      // 是否拦截 Ctrl+U(查看源码)；类型：boolean；推荐：false（显式 true 才生效）
+      ctrlU: false,
+      // 是否拦截 Ctrl+S(保存页面)；类型：boolean；推荐：false（避免影响正常保存）
+      ctrlS: false,
+      // 是否拦截 Ctrl+P(打印)；类型：boolean；推荐：false（与 features.printStyle 勿叠加）
+      ctrlP: false,
       // 作用：PrintScreen 仅检测并提示（无法阻止系统截图）；推荐：false
       printScreen: false,
       // 作用：自定义组合键；类型：array<string>；语法 'ctrl+alt+x'、'f5'、'ctrl+shift+k'
@@ -444,7 +445,8 @@
     // 类型：string；可填：'none'（仅记录）| 'notice'（轻提示，推荐）|
     //                  'blurPage'（页面加模糊）| 'lockOverlay'（全屏遮罩）| 'reload'（刷新页面）
     // 不可填：其它字符串（回退 'none'）；推荐：'notice'
-    // 注意：'lockOverlay' 会挡操作，遮罩自带关闭按钮可退出
+    // 注意：'lockOverlay' 会挡操作，遮罩自带关闭按钮可退出；
+    //   'reload' 已内置熔断——每会话最多自动刷新一次，防检测命中形成刷新死循环
     action: 'notice',
     // 作用：提示文案（空 = ui-strings 默认）；类型：string；推荐：''
     noticeText: '',

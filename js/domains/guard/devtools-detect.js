@@ -9,6 +9,7 @@ export function init(ctx) {
   const once = cfg.noticeOncePerSession !== false;
   let fired = false;
   let lock = null;
+  const RELOAD_KEY = 's-dt-reload';
 
   function detectSize() {
     return (window.outerWidth - window.innerWidth) > sizeThreshold ||
@@ -55,6 +56,12 @@ export function init(ctx) {
       return;
     }
     if (action === 'reload') {
+      // 熔断：每会话最多自动刷新一次，避免检测持续命中形成刷新死循环；
+      // sessionStorage 不可用（隐私模式等）时放弃刷新——宁可少刷新，也不进入循环。
+      try {
+        if (sessionStorage.getItem(RELOAD_KEY)) return;
+        sessionStorage.setItem(RELOAD_KEY, '1');
+      } catch (e) { return; }
       setTimeout(function () { location.reload(); }, Math.max(0, parseInt(cfg.reloadDelayMs, 10) || 800));
     }
   }

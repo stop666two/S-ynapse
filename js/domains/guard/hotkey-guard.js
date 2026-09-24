@@ -20,9 +20,11 @@ export function init(ctx) {
   if (keys.ctrlShiftI !== false) blocked['ctrl+shift+i'] = true;
   if (keys.ctrlShiftJ !== false) blocked['ctrl+shift+j'] = true;
   if (keys.ctrlShiftC !== false) blocked['ctrl+shift+c'] = true;
-  if (keys.ctrlU !== false) blocked['ctrl+u'] = true;
-  if (keys.ctrlS !== false) blocked['ctrl+s'] = true;
-  if (keys.ctrlP !== false) blocked['ctrl+p'] = true;
+  // 以下三项默认不拦截（opt-in）：Ctrl+U/S/P 是查看源码/保存/打印等正常操作，
+  // 拦截会显著影响可用性（与 features.printStyle 等叠加时尤甚）；确需威慑时在配置中显式 true。
+  if (keys.ctrlU === true) blocked['ctrl+u'] = true;
+  if (keys.ctrlS === true) blocked['ctrl+s'] = true;
+  if (keys.ctrlP === true) blocked['ctrl+p'] = true;
   (Array.isArray(keys.custom) ? keys.custom : []).forEach(function (s) {
     blocked[String(s).toLowerCase().replace(/\s+/g, '')] = true;
   });

@@ -28,14 +28,34 @@ export function init(ctx) {
     return Array.prototype.map.call(new Uint8Array(buf), function (b) { return b.toString(16).padStart(2, '0'); }).join('');
   }
 
+  // 遮罩展示期间将背景内容设为 inert（不可聚焦/不可点击/读屏跳过），
+  // 避免键盘与读屏用户仍能操作被遮挡的内容；解锁或移除遮罩时恢复。
+  let inerted = [];
+  function setBackgroundInert(wrap, on) {
+    if (on) {
+      Array.prototype.forEach.call(document.body.children, function (el) {
+        if (el === wrap || !('inert' in el) || el.inert) return;
+        el.inert = true;
+        inerted.push(el);
+      });
+    } else {
+      inerted.forEach(function (el) { el.inert = false; });
+      inerted = [];
+    }
+  }
+
   function renderGate(limitMode) {
     if (document.querySelector('.g-gate')) return;
     const wrap = document.createElement('div');
     wrap.className = 'g-gate';
     wrap.setAttribute('role', 'dialog');
+    wrap.setAttribute('aria-modal', 'true');
+    wrap.setAttribute('tabindex', '-1');
     const card = document.createElement('div');
     card.className = 'g-gate-card';
     const h = document.createElement('h3');
+    h.id = 'g-gate-title';
+    wrap.setAttribute('aria-labelledby', 'g-gate-title');
     h.textContent = limitMode ? ctx.t('gateLimit', '今日访问次数已达上限') : (pw.title || ctx.t('gateTitle', '此内容受保护'));
     card.appendChild(h);
     if (!limitMode) {
@@ -52,6 +72,7 @@ export function init(ctx) {
         sha256hex((pw.salt || '') + (input.value || '')).then(function (hex) {
           if (pw.hash && hex === pw.hash) {
             storeUnlock();
+            setBackgroundInert(wrap, false);
             wrap.remove();
             if (cfg.logDetect) ctx.log('gate unlocked');
           } else {
@@ -68,7 +89,12 @@ export function init(ctx) {
     }
     wrap.appendChild(card);
     document.body.appendChild(wrap);
-    if (!limitMode) setTimeout(function () { const i = wrap.querySelector('input'); if (i) i.focus(); }, +(((window.__GUARD__ || {}).accessGate || {}).focusDelayMs));
+    setBackgroundInert(wrap, true);
+    if (limitMode) {
+      wrap.focus();
+    } else {
+      setTimeout(function () { const i = wrap.querySelector('input'); if (i) i.focus(); }, +(cfg.focusDelayMs));
+    }
   }
 
   function countView() {

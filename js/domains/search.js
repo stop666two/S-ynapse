@@ -269,7 +269,8 @@ export function init() {
     if (!h.length) { hist.hidden = true; return; }
     var html = '<div class="search-history-title">' + __T('search.recent', '最近搜索') + '</div>';
     h.forEach(function (x) {
-      html += '<button type="button" class="search-history-item" data-word="' + x.replace(/"/g, '&quot;') + '">' + String(x).replace(/</g, '&lt;') + '</button>';
+      var _hw = String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      html += '<button type="button" class="search-history-item" data-word="' + _hw + '">' + _hw + '</button>';
     });
     hist.innerHTML = html;
     hist.hidden = false;

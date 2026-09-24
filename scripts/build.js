@@ -1362,7 +1362,8 @@ function readPngSize(absPath) {
 }
 let _faviconHtmlCache = null;
 function resolveFaviconHtml(site, themeColor) {
-  if (_faviconHtmlCache !== null) return _faviconHtmlCache;
+  // --watch 模式下 favicon 文件可能被增删，缓存必须失效重查（普通构建复用缓存）
+  if (_faviconHtmlCache !== null && !WATCH_MODE) return _faviconHtmlCache;
   const f = (site && site.favicon) || {};
   if (f.enabled === false) { _faviconHtmlCache = ''; return _faviconHtmlCache; }
   const isExternal = function (u) { return /^https?:\/\//i.test(u); };

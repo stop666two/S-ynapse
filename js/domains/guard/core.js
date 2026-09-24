@@ -7,7 +7,8 @@ const CORE = G.core || {};
 
 function queryValue(name) {
   const m = new RegExp('[?&]' + name + '=([^&]+)').exec(location.search);
-  return m ? decodeURIComponent(m[1]) : '';
+  if (!m) return '';
+  try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
 }
 
 function bypassed() {

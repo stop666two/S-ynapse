@@ -282,11 +282,12 @@ const FONT_STACKS = {
   system: "-apple-system,BlinkMacSystemFont,'Segoe UI'," + CJK_FALLBACK
 };
 // FONT_LINKS — 字体样式入口：inter/sora/manrope 使用本地 vendor 版本（离线可用）；
+// 本地字体合并为单一 fonts.css（只 1 个阻塞请求；内部含三个 @font-face，未用到的字面体开销极小）；
 // noto 系列为 CJK 网络字体（体积过大）保留外部 CDN，加载失败时自动回退系统字体链。
 const FONT_LINKS = {
-  inter: '/assets/vendor/fonts/inter.css',
-  sora: '/assets/vendor/fonts/sora.css',
-  manrope: '/assets/vendor/fonts/manrope.css',
+  inter: '/assets/vendor/fonts/fonts.css',
+  sora: '/assets/vendor/fonts/fonts.css',
+  manrope: '/assets/vendor/fonts/fonts.css',
   'noto-sans': 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap',
   'noto-serif': 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap',
   system: null,
@@ -308,7 +309,7 @@ function resolveFontSystem(theme) {
   theme.fontFamilyDisplay = FONT_STACKS[ds] || theme.fontFamilyHeading;
   theme.fontScale = (typeof fs.scale === 'number' && fs.scale > 0 && fs.scale <= 2) ? fs.scale : 1;
   theme.fontNumbersMono = fs.numbersMono !== false;
-  const links = [FONT_LINKS[stack], FONT_LINKS[hs], FONT_LINKS[ds]].filter(Boolean);
+  const links = Array.from(new Set([FONT_LINKS[stack], FONT_LINKS[hs], FONT_LINKS[ds]].filter(Boolean)));
   const fontPreloads = [];
   [stack, hs, ds].forEach(function (n) { if (n && VENDOR_FONTS[n]) fontPreloads.push('/assets/vendor/fonts/' + VENDOR_FONTS[n].file); });
   theme.externalAssets = theme.externalAssets || { styles: [], scripts: [] };
@@ -1401,6 +1402,31 @@ function resolveFaviconHtml(site, themeColor) {
   return _faviconHtmlCache;
 }
 let SITE_CSS_HREF = '';
+// 卡片（首页/标签列表）图片属性构造：从媒体 manifest 读取原格式多尺寸变体生成 srcset，
+// 使首屏卡片不再下载 1600px 原图（LCP 优化）。仅用 original 格式变体（不引入 <picture>，不改现有 CSS 选择器结构）。
+// manifest 不可用时回退为纯 src 属性；URL 会在 cache-bust 阶段被重写为带哈希路径。
+let MEDIA_MANIFEST = null;
+function buildCardImgAttrs(src) {
+  const raw = String(src || '');
+  const fallback = `src="${escapeAttr(raw)}"`;
+  if (!raw || !MEDIA_MANIFEST) return fallback;
+  const entry = MEDIA_MANIFEST[raw.replace(/^\//, '')];
+  if (!entry || !entry.variants) return fallback;
+  const items = [];
+  for (const [key, val] of Object.entries(entry.variants)) {
+    if (key.split('-').pop() !== 'original') continue;
+    const w = parseInt(key.split('-')[0], 10);
+    if (w) items.push([w, val]);
+  }
+  if (!items.length) return fallback;
+  items.sort((a, b) => a[0] - b[0]);
+  const srcFinal = entry.original || raw;
+  const naturalW = parseInt(entry.width, 10);
+  if (naturalW && !items.some((it) => it[0] === naturalW)) items.push([naturalW, srcFinal]);
+  const srcset = items.map((it) => `${escapeAttr(it[1])} ${it[0]}w`).join(', ');
+  return `src="${escapeAttr(srcFinal)}" srcset="${srcset}" sizes="(max-width: 768px) 100vw, 640px"`;
+}
+
 function buildSiteCss(config, baseData) {
   const b = config.site.build;
   SITE_CSS_HREF = '/' + b.cssOutDir + '/' + b.cssFileBase + '.css';
@@ -1508,6 +1534,7 @@ function buildPageData(config, articles, tags, categories) {
     Array: Array,
     Math: Math,
     Date: Date,
+    cardImgAttrs: buildCardImgAttrs,
     config,
     dailyQuotes: resolveDailyQuotes(config),
     faviconHtml: resolveFaviconHtml(config.site || {}, config.theme && config.theme.colors && config.theme.colors.secondary),
@@ -2725,6 +2752,7 @@ function copyVendorAssets(config) {
   const FONT_DISPLAY_ALLOWED = ['auto', 'block', 'swap', 'fallback', 'optional'];
   const _fd = config && config.site && config.site.performance && config.site.performance.fontDisplay;
   const fontDisplay = FONT_DISPLAY_ALLOWED.indexOf(_fd) >= 0 ? _fd : 'swap';
+  let fontsCss = '';
   Object.keys(VENDOR_FONTS).forEach(function (name) {
     const cfg = VENDOR_FONTS[name];
     let css = '';
@@ -2736,7 +2764,9 @@ function copyVendorAssets(config) {
       console.warn('  [WARN] variable font file missing: ' + cfg.pkg + '/files/' + cfg.file);
     }
     writeFileAtomicSync(path.join(FONTS, name + '.css'), css);
+    fontsCss += css;
   });
+  writeFileAtomicSync(path.join(FONTS, 'fonts.css'), fontsCss);
   console.log('  Copied vendor assets to /assets/vendor/ (prism/mermaid/katex/fonts)');
 }
 
@@ -2866,6 +2896,7 @@ async function build() {
     copyStatic(config);
     const policyResult = copyProtectedAssets(config);
     const mediaManifest = await optimizeMedia(config);
+    MEDIA_MANIFEST = mediaManifest;
     const articles = await processArticles(config, mediaManifest);
     if (articles.length === 0) console.log('  [WARN] No articles found');
     const tags = collectTags(articles);

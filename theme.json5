@@ -592,12 +592,16 @@
   "externalAssets": {
     // 外部 CSS 列表
     // 作用: 额外样式表链接（字体样式由 fontSystem 自动追加,Prism 等由构建本地注入）
-    // 类型: string[]（URL 列表） | 可填: 同源路径或 https（受 security.json5 CSP 约束）
+    // 类型: (string | { href, integrity?, crossorigin? })[] | 可填: 同源路径或 https（受 security.json5 CSP 约束）
     // 推荐: 默认空;第三方 CDN 样式须先放行 CSP
+    // SRI: 第三方 CDN 建议提供 integrity（"sha384-…"/"sha256-…"）；跨域资源须同时填 crossorigin
+    //   （SRI 校验要求 CORS，一般填 'anonymous'；use-credentials 需服务端允许凭证）。
+    //   同源/本地 vendor 无需填写（构建本地注入的资源不经过此字段）
     "styles": [],
     // 外部 JS 列表
     // 作用: 额外脚本引入（本地化后 Prism 路径固定如下）
-    // 类型: string[]（URL 列表） | 推荐: 保持 "/assets/vendor/prism.js"
+    // 类型: (string | { src, integrity?, crossorigin? })[] | 推荐: 保持 "/assets/vendor/prism.js"
+    // SRI: 规则同 styles（第三方 CDN 建议 integrity + crossorigin）
     "scripts": [
       "/assets/vendor/prism.js"
     ]

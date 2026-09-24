@@ -25,12 +25,18 @@ const GSTATIC = 'https://fonts.gstatic.com';
 const INSIGHTS_STATIC = 'https://static.cloudflareinsights.com';
 const INSIGHTS_REPORT = 'https://cloudflareinsights.com';
 
-/** 外部资源引用串（styles/scripts/fontPreloads 拼接，用于子串匹配域名）。 */
+/** 外部资源引用串（styles/scripts/fontPreloads 拼接，用于子串匹配域名）。
+ *  支持两种元素形态：字符串 URL；或对象 { href | src, integrity?, crossorigin? }。 */
 function externalBlob(externalAssets) {
   const a = externalAssets || {};
+  function ref(v) {
+    if (typeof v === 'string') return v;
+    if (v && typeof v === 'object') return String(v.href || v.src || '');
+    return '';
+  }
   return []
     .concat(Array.isArray(a.styles) ? a.styles : [], Array.isArray(a.scripts) ? a.scripts : [], Array.isArray(a.fontPreloads) ? a.fontPreloads : [])
-    .filter(function (v) { return typeof v === 'string'; })
+    .map(ref)
     .join(' ');
 }
 

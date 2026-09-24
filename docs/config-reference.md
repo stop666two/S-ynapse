@@ -235,7 +235,7 @@
 | `card.showWordCount` | bool | `true` | 字数 |
 | `button.radius/padding/primaryBackground/primaryText/hoverScale` | — | — | 按钮 |
 | ~~`customCSS`~~ | — | — | 已迁移至 features.customCSS（本文件不再读取该键） |
-| `externalAssets.styles/scripts` | array | `[]` | 额外 CSS/JS（Prism 高亮脚本由构建本地注入；字体样式由 fontSystem 自动追加） |
+| `externalAssets.styles/scripts` | array | `[]` | 额外 CSS/JS；元素可为字符串 URL 或对象 `{ href/src, integrity?, crossorigin? }`（第三方 CDN 建议配 SRI：`integrity` 校验要求 CORS，跨域一般同时填 `crossorigin: 'anonymous'`；同源/本地无需填）。Prism 高亮脚本由构建本地注入；字体样式由 fontSystem 自动追加 |
 | `contentOffset` | number | `0` | 内容偏移 |
 | `headerContentGap` | number | `0` | 头内容间隙 |
 | `tocWidth` | string | `200px` | 目录宽 |

@@ -71,6 +71,17 @@ test('externalAssets.scripts 引用 jsdelivr 时保留 jsdelivr（含子路径�
   assert.ok(out['font-src'].includes(JSDELIVR));
 });
 
+test('externalAssets 对象形式（SRI）同样参与域名保留判定', () => {
+  const ctx = { giscusNeeded: false, externalAssets: {
+    styles: [{ href: 'https://cdn.jsdelivr.net/npm/x.css', integrity: 'sha384-x', crossorigin: 'anonymous' }],
+    scripts: [{ src: 'https://fonts.googleapis.com/x.js' }]
+  } };
+  const out = trimCspDirectives(baseDirectives(), ctx);
+  assert.ok(out['style-src'].includes(JSDELIVR), '对象形式 styles 应保留 jsdelivr');
+  assert.ok(out['style-src'].includes(GFONTS), '对象形式 scripts 应保留 googleapis');
+  assert.ok(out['font-src'].includes(GSTATIC), 'googleapis 隐含保留 gstatic');
+});
+
 test('不修改传入的原始对象（纯函数）', () => {
   const input = baseDirectives();
   const snapshot = JSON.stringify(input);

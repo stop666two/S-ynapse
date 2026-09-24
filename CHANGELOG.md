@@ -151,6 +151,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **窄桌面窗口头部布局修复**：769–1200px 窗口宽度下站点标题/副标题换行、副标题竖排、导航溢出遮挡、语言按钮越界——品牌区改单行省略号收缩（标题/副标题 `white-space:nowrap` + `text-overflow:ellipsis`）、`.header-inner` 增加 `gap`/`min-width`；分级响应：≤1200px 隐藏导航社交图标、≤1100px 收紧导航内边距、≤960px 隐藏加速/预设入口并缩小品牌字号；768px 及以下移动端行为不变（多宽度断言：1280/1200/1100/1024/960/900/860/820/800/769 零溢出、标题副标题单行、语言按钮在容器内，中英双语均验证） — `templates/site-css.ejs`
+- **`npm run audit` 快捷脚本**：固定 `--registry=https://registry.npmjs.org`（本机 npm 镜像会阻断 audit 接口） — `package.json` + `README.md`
 - **PWA manifest 图标 404**：启用 PWA 时构建会从 `site.favicon.svg` 自动生成 `icons/icon-192.png` 与 `icon-512.png`，并逐条校验 manifest 图标存在性（缺失自动剔除并告警），修复启用后 manifest 引用不存在文件导致的 404 与安装能力降级 — `scripts/build.js` + `site.json5` + `docs/config-reference.md`
 - **sitemap 时间格式/编码/去重**：`lastmod` 由 `Date.toString()` 改 ISO 8601；中文标签路径经 RFC 3986 编码；标签 URL 重复去重 — `scripts/lib/robots.js` + `scripts/build.js`
 - **OG 图安全与清理**：草稿文章不再生成/保留（自动清理陈旧产物）；封面路径穿越防护；serve/watch 与生产行为一致 — `scripts/generate-og.js` + `scripts/build.js`

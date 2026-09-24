@@ -5,6 +5,8 @@ export function init(ctx) {
   const cfg = (ctx.G.tamperWatch) || {};
   if (cfg.enabled === false) return;
   let fired = false;
+  const REPORT_TIMEOUT_FALLBACK_MS = 5000;
+  const REPORT_THROTTLE_FALLBACK_MS = 10000;
 
   function notify(text) {
     if (cfg.noticeOncePerSession !== false && fired) return;
@@ -18,11 +20,11 @@ export function init(ctx) {
     const endpoint = cfg.reportEndpoint;
     if (!endpoint || !/^https?:/.test(endpoint)) return;
     const rawThrottle = parseInt(cfg.reportThrottleMs, 10);
-    const throttleMs = Number.isFinite(rawThrottle) ? Math.max(0, Math.min(60000, rawThrottle)) : 10000;
+    const throttleMs = Number.isFinite(rawThrottle) ? Math.max(0, Math.min(60000, rawThrottle)) : REPORT_THROTTLE_FALLBACK_MS;
     if (throttleMs > 0 && Date.now() - lastReportAt < throttleMs) return;
     lastReportAt = Date.now();
     const rawTimeout = parseInt(cfg.reportTimeoutMs, 10);
-    const timeoutMs = Number.isFinite(rawTimeout) ? Math.max(1000, Math.min(30000, rawTimeout)) : 5000;
+    const timeoutMs = Number.isFinite(rawTimeout) ? Math.max(1000, Math.min(30000, rawTimeout)) : REPORT_TIMEOUT_FALLBACK_MS;
     const body = cfg.reportPrivacyMode !== false
       ? { kind: kind }
       : { kind: kind, url: location.origin + location.pathname };

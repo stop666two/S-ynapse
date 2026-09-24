@@ -13,17 +13,22 @@ export function init() {
     }
     if (kind === 'copy' || kind === 'wechat') {
       var txt = (kind === 'wechat' ? title + '\n' : '') + url;
-      if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(showCopied); }
-      else if (SH.copyFallback !== false) {
+      var legacyCopy = function () {
         var ta = document.createElement('textarea');
         ta.value = txt;
         ta.style.position = 'fixed';
         ta.style.opacity = '0';
         document.body.appendChild(ta);
         ta.select();
-        try { document.execCommand('copy'); } catch (err) { /* 忽略：旧接口复制失败且无进一步回退 */ }
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (err) { /* 忽略：旧接口失败由 ok 标志回退提示 */ }
         document.body.removeChild(ta);
-        showCopied();
+        if (ok) showCopied();
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(showCopied).catch(function () { if (SH.copyFallback !== false) legacyCopy(); });
+      } else if (SH.copyFallback !== false) {
+        legacyCopy();
       }
       return;
     }

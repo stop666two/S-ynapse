@@ -36,16 +36,18 @@ export function init(ctx) {
       Array.prototype.forEach.call(document.body.children, function (el) {
         if (el === wrap || !('inert' in el) || el.inert) return;
         el.inert = true;
+        el.setAttribute('aria-hidden', 'true');
         inerted.push(el);
       });
     } else {
-      inerted.forEach(function (el) { el.inert = false; });
+      inerted.forEach(function (el) { el.inert = false; el.removeAttribute('aria-hidden'); });
       inerted = [];
     }
   }
 
   function renderGate(limitMode) {
     if (document.querySelector('.g-gate')) return;
+    const prevFocus = document.activeElement;
     const wrap = document.createElement('div');
     wrap.className = 'g-gate';
     wrap.setAttribute('role', 'dialog');
@@ -74,6 +76,8 @@ export function init(ctx) {
             storeUnlock();
             setBackgroundInert(wrap, false);
             wrap.remove();
+            // 解锁后把焦点还给遮罩出现前的元素（读屏/键盘用户不迷失焦点）
+            if (prevFocus && typeof prevFocus.focus === 'function') { try { prevFocus.focus(); } catch (e) { /* 忽略：原焦点元素已不可聚焦 */ } }
             if (cfg.logDetect) ctx.log('gate unlocked');
           } else {
             err.textContent = pw.errorText || ctx.t('gateError', '密码错误，请重试');

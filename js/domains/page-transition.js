@@ -10,6 +10,8 @@ export function init() {
     var _eff = _sysR ? RM : 'full';
     if (_eff === 'off') return;
     var OUT = isNaN(+PT.outDurationMs) ? 120 : +PT.outDurationMs;
+    // 导航失败兜底观察窗口（OUT 之后仍可见即视为导航未发生，移除离开态）
+    var LEAVE_GUARD_MS = 2500;
     if (_eff === 'light') { document.documentElement.classList.add('pt-light'); OUT = Math.min(OUT, 70); }
     var EX = PT.excludeSelector || '[data-no-transition]';
     // 统一清理离开态：bfcache 返回（pageshow，含首次加载）时若仍带 page-leaving，
@@ -33,7 +35,7 @@ export function init() {
       // 兜底：导航失败/被取消（页面仍可见）时移除离开态，避免卡在淡出。
       setTimeout(function () {
         if (document.visibilityState !== 'hidden') clearLeaving();
-      }, OUT + 2500);
+      }, OUT + LEAVE_GUARD_MS);
     });
   })();
 }

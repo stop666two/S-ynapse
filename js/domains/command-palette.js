@@ -21,7 +21,8 @@ export function init() {
       primaryOnly: false
     };
   }
-  var hotkey = parseHotkey(F.hotkey || 'k');
+  // 热键语义：undefined/null 回退默认 'k'；空字符串=显式关闭监听（与 features.json5 注释一致）
+  var hotkey = parseHotkey(F.hotkey === undefined || F.hotkey === null ? 'k' : F.hotkey);
   var maxResults = Number(F.maxResults) > 0 ? Number(F.maxResults) : 8;
   var T = typeof window.__T === 'function' ? window.__T : function (k, d) { return d || k; };
   var dlg = null, input = null, listEl = null;

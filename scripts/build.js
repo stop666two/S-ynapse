@@ -217,6 +217,9 @@ function loadConfig() {
       wa.enabled = false;
     }
   }
+  // SITE_URL 环境变量（CI / 预览部署）：显式覆盖配置中的站点地址，
+  // 便于同一份配置部署到不同域名（留空则完全使用 site.json5 的 site.url）。
+  if (process.env.SITE_URL) config.site.url = process.env.SITE_URL;
   // Theme preset resolution: built-in preset → presetOverrides. When a preset
   // is active it takes over colors/dark colors; manual colors field is only
   // honored when preset is null (see theme.json5 header notes).

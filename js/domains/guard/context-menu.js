@@ -65,14 +65,17 @@ export function init(ctx) {
   }
 
   function copyText(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () { ctx.toast(t('copied', 'Copied')); }).catch(function () {});
-    } else {
+    const fallback = function () {
       const ta = document.createElement('textarea');
       ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.select();
       try { document.execCommand('copy'); ctx.toast(t('copied', 'Copied')); } catch (e) { /* 忽略 */ }
       ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { ctx.toast(t('copied', 'Copied')); }).catch(fallback);
+    } else {
+      fallback();
     }
   }
 
@@ -125,7 +128,7 @@ export function init(ctx) {
       list.push(item(t('openNewTab', 'Open in new tab'), 'external', function () { window.open(img.currentSrc || img.src, '_blank', 'noopener'); }));
     }
     if (!list.length && showOn.blank !== false) {
-      if (builtin.backToTop !== false) list.push(item(t('backToTop', 'Back to top'), 'top', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); }));
+      if (builtin.backToTop !== false) list.push(item(t('backToTop', 'Back to top'), 'top', function () { window.scrollTo({ top: 0, behavior: window.__SB() }); }));
       if (builtin.toggleTheme !== false) list.push(item(t('toggleTheme', 'Toggle theme'), 'theme', function () {
         const btn = document.querySelector('.dark-toggle');
         if (btn) btn.click();

@@ -55,7 +55,7 @@ export function init() {
     if (document.querySelector('.dark-toggle')) {
       actItems.push({ type: 'action', label: T('commandPalette.actTheme', '切换主题'), run: function () { if (typeof window.toggleDark === 'function') window.toggleDark(); } });
     }
-    actItems.push({ type: 'action', label: T('commandPalette.actTop', '回到顶部'), run: function () { window.scrollTo({ top: 0, behavior: 'smooth' }); } });
+    actItems.push({ type: 'action', label: T('commandPalette.actTop', '回到顶部'), run: function () { window.scrollTo({ top: 0, behavior: window.__SB() }); } });
     if (document.querySelector('.search-toggle, #searchBtn')) {
       actItems.push({ type: 'action', label: T('commandPalette.actSearch', '打开搜索'), run: function () { if (typeof window.openSearch === 'function') window.openSearch(); } });
     }

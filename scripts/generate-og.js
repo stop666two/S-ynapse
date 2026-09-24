@@ -81,17 +81,31 @@ function fetchUrl(url, redirects) {
   });
 }
 
+// 读取封面本地文件（frontmatter 的 cover/featuredImage 可能是相对路径）。
+// 安全约束：解析后的绝对路径必须位于项目根内；越界路径（如 ../../etc/hosts 或
+// C:/Windows/...）一律拒绝并告警，防止被篡改的 frontmatter 读取仓库外文件。
+// 返回：Buffer（找到且合法）或 null（不存在/越界）；网络 URL 走 fetchUrl。
 async function loadCoverBuffer(cover) {
   if (/^https?:\/\//i.test(cover)) return fetchUrl(cover, 0);
   const rel = cover.replace(/\\/g, '/').replace(/^\/+/, '');
+  const rootResolved = path.resolve(ROOT) + path.sep;
   const candidates = [
     path.join(ROOT, rel),
     path.join(ROOT, 'media', rel),
     path.join(ROOT, 'static', rel),
     path.join(ROOT, 'assets', rel)
   ];
+  let warned = false;
   for (const c of candidates) {
-    if (fs.existsSync(c)) return fs.readFileSync(c);
+    const abs = path.resolve(c);
+    if (!abs.startsWith(rootResolved)) {
+      if (!warned) {
+        console.warn('  [WARN] generate-og: 封面路径越界已拒绝: ' + String(cover).slice(0, 120));
+        warned = true;
+      }
+      continue;
+    }
+    if (fs.existsSync(abs)) return fs.readFileSync(abs);
   }
   return null;
 }
@@ -261,6 +275,31 @@ function renderCover(o) {
 </svg>`;
 }
 
+// 清理陈旧 OG 产物：删除 dist/og/{lang}/ 下本次未生成的 PNG（历史草稿、改名/删除文章遗留）。
+// 仅在未指定 --only 时调用（--only 是定向补图，不代表完整集合，不能作为删除依据）。
+// 只删 *.png；目录结构保留。返回删除数量。
+function pruneStaleOg(madeByLang) {
+  if (!fs.existsSync(OUT_DIR)) return 0;
+  let removed = 0;
+  for (const lang of fs.readdirSync(OUT_DIR)) {
+    const dir = path.join(OUT_DIR, lang);
+    if (!fs.statSync(dir).isDirectory()) continue;
+    const keep = madeByLang.get(lang) || new Set();
+    for (const name of fs.readdirSync(dir)) {
+      if (!/\.png$/i.test(name) || keep.has(name)) continue;
+      try {
+        fs.unlinkSync(path.join(dir, name));
+        removed++;
+        console.log(`pruned: ${lang}/${name}`);
+      } catch (err) {
+        console.warn(`  [WARN] 无法删除陈旧 OG 图 ${lang}/${name}: ${err.message}`);
+      }
+    }
+  }
+  if (removed) console.log(`OG cleanup: ${removed} stale image(s) removed`);
+  return removed;
+}
+
 async function main() {
   const siteConfig = readConfigFile('site.json5') || {};
   const themeConfig = readConfigFile('theme.json5') || {};
@@ -291,6 +330,8 @@ async function main() {
   if (args[0] === '--only' && args[1]) {
     only = new Set(args[1].split(',').map(s => s.trim()).filter(Boolean));
   }
+  // --drafts：与 `npm run dev`（build.js --watch --drafts）一致，生成草稿 OG 以便本地预览。
+  const showDrafts = args.includes('--drafts');
 
   const files = walkArticles(ARTICLES_DIR, []);
   if (!files.length) {
@@ -301,7 +342,9 @@ async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
   const usedSlugs = new Map();
   const madeSlugs = new Map();
+  const madeByLang = new Map();
   let success = 0;
+  let skipped = 0;
   let failed = 0;
 
   for (const file of files) {
@@ -310,6 +353,7 @@ async function main() {
     let cover;
     let fileTitle;
     let catRaw = '';
+    let isDraft = false;
     let slugBase;
     let langDir = 'zh';
     try {
@@ -352,6 +396,8 @@ async function main() {
       langUsed.add(slug);
       cover = (attrs.cover || attrs.featuredImage || '').trim();
       catRaw = (attrs.categories || '').toString();
+      // 与 build.js:1000 的草稿判定保持一致（frontmatter 值为字符串 'true' 或布尔 true）。
+      isDraft = attrs.draft === true || attrs.draft === 'true';
     } catch (err) {
       failed++;
       console.error(`  [ERROR] ${path.relative(ARTICLES_DIR, file)}: ${err.message}`);
@@ -359,6 +405,12 @@ async function main() {
     }
 
     if (only && !(only.has(slug) || only.has(slugBase) || only.has(path.basename(file, '.md')))) continue;
+    // 草稿默认跳过：不落盘、不进入 cache-bust 清单（旧产物由 pruneStaleOg 清理）。
+    if (isDraft && !showDrafts) {
+      skipped++;
+      console.log(`skipped (draft): ${slug}`);
+      continue;
+    }
 
     const langOut = path.join(OUT_DIR, langDir);
     fs.mkdirSync(langOut, { recursive: true });
@@ -391,6 +443,8 @@ async function main() {
         await sharp(svg).png().toFile(outPath);
       }
       madeSlugs.set(slug, path.basename(outPath));
+      if (!madeByLang.has(langDir)) madeByLang.set(langDir, new Set());
+      madeByLang.get(langDir).add(path.basename(outPath));
       success++;
       console.log(`generated: ${slug} (${path.basename(outPath)})`);
     } catch (err) {
@@ -399,7 +453,8 @@ async function main() {
     }
   }
 
-  console.log(`\nOG images: ${success} generated, ${failed} failed`);
+  if (!only) pruneStaleOg(madeByLang);
+  console.log(`\nOG images: ${success} generated, ${skipped} skipped (draft), ${failed} failed`);
   if (failed > 0) process.exitCode = 1;
 }
 

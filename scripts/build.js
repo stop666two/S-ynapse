@@ -2856,7 +2856,9 @@ async function build() {
     await generateJSONFeed(config, articles);
     await generateSitemap(config, articles, tags, categories, customPages);
     if (!SERVE_MODE && config.features && config.features.ogImage && config.features.ogImage.enabled !== false && articles.length > 0) {
-      const ogRes = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'generate-og.js')], { stdio: 'inherit' });
+      const ogArgs = [path.join(ROOT, 'scripts', 'generate-og.js')];
+      if (SHOW_DRAFTS) ogArgs.push('--drafts');
+      const ogRes = spawnSync(process.execPath, ogArgs, { stdio: 'inherit' });
       if (ogRes.status !== 0) {
         console.warn('  [WARN] OG image generation reported errors (see above); continuing build.');
       }

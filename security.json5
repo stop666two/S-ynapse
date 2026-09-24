@@ -40,7 +40,8 @@
       "default-src": ["'self'"],
       // 脚本来源
       // 可填: 同源 + 必要的内联（本项目模板内联脚本需要 'unsafe-inline'）
-      //       统计（static.cloudflareinsights.com）/ 评论（giscus.app）
+      //       统计（static.cloudflareinsights.com，仅 webAnalytics 配置 token 时由 autoTrim 保留）
+      //       评论（giscus.app）
       // 不可填: 未使用的第三方 CDN（攻击面扩大）
       // 注意: cdn.jsdelivr.net 与 giscus.app 在未启用对应能力时由 autoTrim 自动移除
       "script-src": ["'self'", "'unsafe-inline'", "'inline-speculation-rules'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com", "https://giscus.app"],
@@ -51,7 +52,7 @@
       "img-src": ["'self'", "data:", "https:"],
       // 字体来源（Google Fonts 字体文件 / jsdelivr 兜底;本地 vendor 字体为同源）
       "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
-      // 网络请求来源（fetch/XHR/beacon;CF 统计上报）
+      // 网络请求来源（fetch/XHR/beacon；CF 统计上报域名仅 webAnalytics 配置 token 时由 autoTrim 保留）
       "connect-src": ["'self'", "https://cloudflareinsights.com"],
       // 音视频来源 | 推荐: ["'self'"]（媒体文件均本地化）
       "media-src": ["'self'"],

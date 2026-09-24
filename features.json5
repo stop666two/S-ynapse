@@ -592,7 +592,10 @@
 
   // ---------------------------------------------------------------------------
   hotSearches: {
-    // 本地记录搜索词,搜索框下拉显示热门。
+    // 本地记录搜索词,搜索框下拉显示（当前生效键仅 enabled 与 storageKey：
+    // 下拉实际展示「最近搜索」，由 renderHistory 渲染；
+    // top/showInDropdown/showClear 为预留键，暂无消费方——热门词列表 UI 尚未实现，
+    // 文档同步标注见 docs/config-reference.md §3.4「未接线预留键」）
     enabled: true,
     // 显示条数。
     top: 5,

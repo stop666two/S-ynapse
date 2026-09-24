@@ -287,7 +287,7 @@
 ### 3.4 search — 客户端搜索
 `enabled true` / `minChars 1` / `maxResults 30` / `noResultText 未找到匹配内容` / `excerptLength 120` / `includeContent true`(构建期生效:是否将正文写入 search-index.json) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效)
 
-> 未接线预留键（当前修改不生效）: `highlightMatches`(由 3.35 searchHighlight 控制) / `showCount` / `placeholder`(实际使用 navigation.json5 search.placeholder) / `emptyHint` / `matchTags` / `matchCategories` / `weightTitle` / `weightExcerpt` / `weightContent`(前端无加权排序) / `closeOnOverlay`(点击遮罩关闭固定生效) / `focusOnOpen`(打开后恒自动聚焦) / `pinyinFuzzy`(拼音首字母匹配未实现)。
+> 未接线预留键（当前修改不生效）: `highlightMatches`(由 3.35 searchHighlight 控制) / `showCount` / `placeholder`(实际使用 navigation.json5 search.placeholder) / `emptyHint` / `matchTags` / `matchCategories` / `weightTitle` / `weightExcerpt` / `weightContent`(前端无加权排序) / `closeOnOverlay`(点击遮罩关闭固定生效) / `focusOnOpen`(打开后恒自动聚焦) / `pinyinFuzzy`(拼音首字母匹配未实现) / `hotSearches.top`·`showInDropdown`·`showClear`（热门词列表 UI 未实现；下拉当前展示「最近搜索」，由 `hotSearches.enabled`+`storageKey` 驱动；`tuning.hotCount` 同属预留）。
 
 ### 3.5 imageLazy — 懒加载
 `enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
@@ -709,7 +709,7 @@ sitemap: {
 |---|---|---|
 | `headers` | `{}` | 自定义响应头 |
 | `csp.enabled` / `directives` / `reportOnly` / `reportUri` | `false`/`{}`/`false`/`/csp-report` | Content-Security-Policy |
-| `csp.autoTrim` / `csp.metaEnabled` | `true`/`false` | 构建期按功能裁剪未用域名；`metaEnabled` 开启时额外输出 `<head>` meta CSP（仅无响应头环境需要，默认关） |
+| `csp.autoTrim` / `csp.metaEnabled` | `true`/`false` | 构建期按功能裁剪未用域名（giscus / jsdelivr / Google Fonts / Cloudflare 统计——统计域名仅在 site.webAnalytics 配置 token 时保留；在 Cloudflare 面板另开统计而未配 token 时请设 `false`）；`metaEnabled` 开启时额外输出 `<head>` meta CSP（与响应头使用同一裁剪结果，仅无响应头环境需要，默认关） |
 | `robots.enabled` / `rules[]` | `false`/`[]` | robots 规则 |
 | `rateLimiting.enabled` | `false` | Worker 限流(100 req/60s) |
 | `rateLimiting.maxRequests/windowMs/blockDuration` | `100`/`60000`/`300000` | 参数（封禁时长毫秒） |

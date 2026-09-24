@@ -219,7 +219,7 @@ function loadConfig() {
   }
   // SITE_URL 环境变量（CI / 预览部署）：显式覆盖配置中的站点地址，
   // 便于同一份配置部署到不同域名（留空则完全使用 site.json5 的 site.url）。
-  if (process.env.SITE_URL) config.site.url = process.env.SITE_URL;
+  if (process.env.SITE_URL) config.site.url = String(process.env.SITE_URL).replace(/\/+$/, '');
   // Theme preset resolution: built-in preset → presetOverrides. When a preset
   // is active it takes over colors/dark colors; manual colors field is only
   // honored when preset is null (see theme.json5 header notes).
@@ -242,6 +242,11 @@ function loadConfig() {
   // Font system resolves stack → family + Google Fonts link; custom stack keeps
   // the hand-written theme.fontFamily with priority.
   resolveFontSystem(config.theme);
+  // meta CSP（默认关）与 _headers/Worker 共用同一裁剪结果：开启时先就地裁剪，
+  // 避免 meta 与响应头策略不一致；autoTrim=false 时保持原始超集（手动接管域名清单）。
+  if (config.security && config.security.csp && config.security.csp.metaEnabled === true && config.security.csp.autoTrim !== false) {
+    config.security.csp.directives = trimCspDirectives(config.security.csp.directives, buildCspTrimContext(config));
+  }
   return config;
 }
 
@@ -2350,7 +2355,7 @@ function generateRedirects(config, customPages) {
   return valid;
 }
 
-/** CSP 裁剪上下文：giscus 是否真正启用 + 外链资源引用（决定保留哪些可选域名）。 */
+/** CSP 裁剪上下文：giscus 是否真正启用、统计 token 是否配置、外链资源引用（决定保留哪些可选域名）。 */
 function buildCspTrimContext(config) {
   const site = config.site || {};
   const features = config.features || {};
@@ -2358,8 +2363,10 @@ function buildCspTrimContext(config) {
   const comments = site.comments || {};
   const fComments = features.comments || {};
   const fGiscus = features.giscus || {};
+  const wa = site.webAnalytics || {};
   return {
     giscusNeeded: !!(comments.enabled === true && comments.provider === 'giscus' && fComments.enabled !== false && fGiscus.enabled !== false),
+    analyticsNeeded: !!(wa.enabled !== false && wa.token),
     externalAssets: theme.externalAssets || {}
   };
 }

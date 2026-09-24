@@ -10,8 +10,10 @@
 //   · https://cdn.jsdelivr.net    → 仅当 theme.externalAssets 中确有引用该域的资源
 //   · https://fonts.googleapis.com→ 仅当 externalAssets.styles 引用 Google Fonts
 //   · https://fonts.gstatic.com   → 同上，或 externalAssets.fontPreloads 引用 gstatic
-// （https://static.cloudflareinsights.com 与 https://cloudflareinsights.com 不裁剪：
-//   Pages 平台可能自动注入统计信标，域名不可由站点代码单方面判定为未使用。）
+//   · https://static.cloudflareinsights.com / https://cloudflareinsights.com
+//     → 仅当 site.webAnalytics.enabled 且已配置 token（context.analyticsNeeded）时保留；
+//       若在 Cloudflare 面板另开 Web Analytics 而不在 site.json5 配置 token，
+//       请设 security.csp.autoTrim=false（或手动补回域名），以免统计 beacon 被 CSP 拦截。
 //
 // 契约：纯函数。不修改入参；返回新对象；被裁空的指令整条删除（CSP 允许省略）。
 'use strict';
@@ -20,6 +22,8 @@ const GISCUS = 'https://giscus.app';
 const JSDELIVR = 'https://cdn.jsdelivr.net';
 const GFONTS = 'https://fonts.googleapis.com';
 const GSTATIC = 'https://fonts.gstatic.com';
+const INSIGHTS_STATIC = 'https://static.cloudflareinsights.com';
+const INSIGHTS_REPORT = 'https://cloudflareinsights.com';
 
 /** 外部资源引用串（styles/scripts/fontPreloads 拼接，用于子串匹配域名）。 */
 function externalBlob(externalAssets) {
@@ -33,7 +37,7 @@ function externalBlob(externalAssets) {
 /**
  * 裁剪 CSP 指令。
  * @param {Object} directives 原始指令对象（key → string[]）
- * @param {{giscusNeeded?: boolean, externalAssets?: Object}} [context] 功能开关上下文；
+ * @param {{giscusNeeded?: boolean, analyticsNeeded?: boolean, externalAssets?: Object}} [context] 功能开关上下文；
  *   缺省视为全部可选域名不使用（最严格）。
  * @returns {Object} 新指令对象（已裁剪；空指令被移除）
  */
@@ -45,7 +49,9 @@ function trimCspDirectives(directives, context) {
     [GISCUS]: ctx.giscusNeeded === true,
     [JSDELIVR]: blob.indexOf(JSDELIVR) > -1,
     [GFONTS]: blob.indexOf(GFONTS) > -1,
-    [GSTATIC]: blob.indexOf(GSTATIC) > -1 || blob.indexOf(GFONTS) > -1
+    [GSTATIC]: blob.indexOf(GSTATIC) > -1 || blob.indexOf(GFONTS) > -1,
+    [INSIGHTS_STATIC]: ctx.analyticsNeeded === true,
+    [INSIGHTS_REPORT]: ctx.analyticsNeeded === true
   };
   const out = {};
   Object.keys(src).forEach(function (key) {

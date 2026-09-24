@@ -70,7 +70,7 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html` 含详细统计（含内容策略拦截清单）
-- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（125 项 / 28 组）；`npm run lint` 提供 ESLint 静态检查
+- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（126 项 / 28 组）；`npm run lint` 提供 ESLint 静态检查
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -456,7 +456,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（125 项 / 28 组） |
+| `npm test` | 运行单元测试（126 项 / 28 组） |
 | `npm run lint` | ESLint 静态检查（js/scripts/workers；CI 门禁） |
 | `npm run verify:security` | 集成安全回归（注入恶意文章 → 真实构建 → 语义断言） |
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
@@ -469,7 +469,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 125 项 / 28 组，全部通过
+npm test            # 126 项 / 28 组，全部通过
 npm run lint        # ESLint 静态检查（js / scripts / workers）
 npm run audit:a11y  # WCAG 2.x 无障碍审计（需先在另一终端 `npm run serve -- --port 3224`；也可用 `node scripts/a11y-audit.js <baseUrl>` 或 A11Y_BASE 环境变量指定地址；0 critical/serious 门禁）
 npm run verify:security   # 集成安全回归
@@ -502,12 +502,12 @@ npm run verify:security   # 集成安全回归
 | buildSitemapUrls | 6 | robots 逐语言 Sitemap 列表 |
 | encodeLoc | 3 | sitemap URL RFC 3986 编码 |
 | toSitemapLastmod | 3 | lastmod ISO 8601 归一/非法省略 |
-| CSP trimCspDirectives（无 describe，顶层用例） | 7 | CSP 指令按功能开关裁剪 |
+| CSP trimCspDirectives（无 describe，顶层用例） | 8 | CSP 指令按功能开关裁剪 |
 | workers/lib ip-utils | 4 | IPv4/IPv6 CIDR 解析与匹配 |
 | workers/lib rate-limit | 2 | 限流封禁与清理 |
 | security-worker integration | 12 | Worker 集成（安全头/维护模式/静态资源/错误兜底） |
 
-> `npm test` 共 **125 项 / 28 组**（Node 内置 test runner；CSP 裁剪为 7 项顶层用例，不单独占用套件数）。
+> `npm test` 共 **126 项 / 28 组**（Node 内置 test runner；CSP 裁剪为 8 项顶层用例，不单独占用套件数）。
 
 ---
 

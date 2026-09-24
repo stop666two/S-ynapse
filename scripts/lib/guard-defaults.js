@@ -110,9 +110,9 @@ const DEFAULT_GUARD = {
       "ctrlShiftI": true,
       "ctrlShiftJ": true,
       "ctrlShiftC": true,
-      "ctrlU": true,
-      "ctrlS": true,
-      "ctrlP": true,
+      "ctrlU": false,
+      "ctrlS": false,
+      "ctrlP": false,
       "printScreen": false,
       "custom": []
     },

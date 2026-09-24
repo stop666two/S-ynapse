@@ -453,7 +453,9 @@ async function main() {
     }
   }
 
-  if (!only) pruneStaleOg(madeByLang);
+  // 有生成失败时保留旧文件（避免因个别失败产生缺口或误删仍被引用的图片）
+  if (!only && failed === 0) pruneStaleOg(madeByLang);
+  else if (!only) console.warn('  [WARN] OG cleanup skipped: ' + failed + ' image(s) failed to generate');
   console.log(`\nOG images: ${success} generated, ${skipped} skipped (draft), ${failed} failed`);
   if (failed > 0) process.exitCode = 1;
 }

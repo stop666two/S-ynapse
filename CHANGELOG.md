@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **首次全项目只读审计修复批次（P1–P33）**：针对审计发现的构建/安全/防护/前端问题逐项修复，每条独立提交并逐项验证（构建、单测、浏览器探针、无障碍审计）。分类明细见下方 Added/Changed/Fixed/Removed。
 - **guard 安全默认调整**：`hotkeyGuard` 的 `ctrlU/ctrlS/ctrlP` 改为按需开启（默认放行）；`devtoolsDetect` 的 `reload` 增加每会话熔断（避免尺寸误报导致无限刷新）；`tamperWatch` 上报增加超时/节流/去除查询串 — `guard.json5` + `js/domains/guard/*`
 
+- 保持全部既有安全修复。
+
 ### Added
 
 - **ESLint 静态检查门禁**：新增 `eslint.config.js`（ESLint 9 flat config；js/scripts/workers 三层各自声明浏览器/Node/Worker 全局）与 `npm run lint`，CI `build` job 增加 Lint 步骤（devDependencies 增补 `eslint`/`@eslint/js`/`globals`，精确锁定） — `eslint.config.js` + `package.json` + `.github/workflows/deploy.yml`
@@ -20,83 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **robots 逐语言 Sitemap**：多语言站点按 `site.languages` 输出多个 `Sitemap:` 行（修复根 sitemap 404）；`lastmod` 改 ISO 8601（非法省略）、`loc` 经 RFC 3986 编码、标签 URL 去重；新增 12 项单测 — `scripts/lib/robots.js` + `scripts/robots.test.js` + `scripts/build.js`
 - **SITE_URL 环境变量**：构建读取 `SITE_URL` 覆盖 `site.url`（CI 预览/多域名部署） — `scripts/build.js` + `.env.example`
 
-### Changed
-
-- **命令面板默认热键 `Ctrl+P` → `Ctrl+Shift+P`**（归还打印快捷键；支持 `ctrl+shift+x` 组合语法与旧单键写法） — `features.json5` + `js/domains/command-palette.js` + `scripts/lib/features-schema.js` + `docs/config-reference.md`
-- **依赖升级（精确锁定）**：`mermaid` 11.4.1→11.17.2、`prismjs` 1.29.0→1.30.0、`wrangler` 4.129.0→4.138.0；`pagefind` 移出 devDependencies（按需安装） — `package.json`
-- **KaTeX 字体瘦身**：仅拷贝 woff2/woff 并清理历史 ttf（构建体积约 -390KB） — `scripts/build.js`
-- **`X-XSS-Protection` 改为 `0`**（OWASP 已弃用该头） — `security.json5` + `workers/security-worker.js`
-- **JSON Feed 选项归位**：`site.rss.jsonFeed.fullContent/maxItems/path` 优先消费（修复死键；feed.json 恢复摘要模式） — `scripts/lib/feed-options.js` + `scripts/build.js` + `templates/layout.ejs`
-- **关联推荐与阅读时长接线**：`features.related.*`（topN/同标签/同分类权重/最低分）与 `features.readingTime.wordsPerMinuteCJK/Latin` 真实生效 — `scripts/lib/related.js` + `scripts/lib/utils.js` + `scripts/build.js`
-- **PWA 关闭时不再生成根 `manifest.json`/`site.webmanifest` 别名**（消除死重定向） — `scripts/build.js`
-- **文档计数口径统一**：features 800 项 / guard 171 项（对象逐层展开、数组元素逐项计入）/ 13 个配置文件 2522 项 / 测试 125 项 28 组 / tuning 32 分类 — `README.md` + `docs/config-reference.md`
-- **构建日志补全 `[14/14]`** — `scripts/build.js`
-
-### Fixed
-
-- **sitemap 时间格式/编码/去重**：`lastmod` 由 `Date.toString()` 改 ISO 8601；中文标签路径经 RFC 3986 编码；标签 URL 重复去重 — `scripts/lib/robots.js` + `scripts/build.js`
-- **OG 图安全与清理**：草稿文章不再生成/保留（自动清理陈旧产物）；封面路径穿越防护；serve/watch 与生产行为一致 — `scripts/generate-og.js` + `scripts/build.js`
-- **前端健壮性 6 项**：畸形外链 URL、sidebar 选择器注入、guard `decodeURIComponent`、theme-presets 存储被禁、搜索历史转义、favicon 缓存失效 — `js/domains/*` + `scripts/build.js`
-- **无障碍 3 项**：回顶滚动尊重 reduced-motion（`__SB()`）、PWA 安装按钮键盘可达、内联脚本移至 `<meta charset>` 之后 — `js/domains/*` + `templates/layout.ejs`
-- **页面过渡**：bfcache 返回/导航中止时清理 `page-leaving`（含兜底计时器） — `js/domains/page-transition.js`
-- **safeSlug** 兜底改内容哈希（消除 `Math.random` 非确定性） — `scripts/lib/utils.js`
-- **搜索索引** `features.search.includeContent` 键修复（原读不存在的 `fullContent`） — `scripts/build.js`
-
-### Removed
-
-- **`pagefind` 依赖**（约 55MB，本地搜索默认 `local`）；按需恢复：`npm install -D --save-exact pagefind` — `package.json`
-
-### Added
-
 - **MIT 许可证**：新增根目录 `LICENSE` 文件（Copyright © 2026 stop666two，与 README 既有声明一致）与 `package.json` `license: "MIT"` 字段（GitHub 此前无法识别仓库许可证）；README 许可章节补充指向 `LICENSE` — `LICENSE` + `package.json` + `README.md`
-
-### Fixed
-
-- **移动端底栏链接缺语言前缀 + 按钮全量审计（用户报告）**：底部导航 `href` 原为无前缀硬编码（`/`、`/archive/`、`/search/`），在 `/en/` 页点击会跳回中文站；改为按 `langPrefix` 生成（`/en/archive/`、`/en/search/` 等），主题按钮 `window.toggleDark()` 正常。同时修复浮动控件层级：`read-dock` 与移动端 TOC 按钮重叠、`.back-to-top` 钻入底栏——移动端重排 `bottom`（4 / 7.4 / 10.8 / 14.2rem）并给 `body` 预留底栏高度；`.dock-ring` 加 `pointer-events:none`（原覆盖进度按钮）。小型文字链接（面包屑/卡片元信息/标签/页脚）增加 4×6px 隐形点按扩展（WCAG 2.5.8），`mobileBottomNav` 新增 `labelHome`/`labelArchive`/`labelSearch`/`labelTheme`/`labelTop` 配置键（空=走 ui-strings `bottomNav.*`）。新增 `verify-buttons.js`：10 页交互元素命中/尺寸/链接可达 + 底栏中英功能 + 头部控件断言 44/44，移动端 46/46、灯箱 14/14 — `templates/layout.ejs` + `templates/site-css.ejs` + `features.json5` + `scripts/lib/features-schema.js` + `docs/config-reference.md`：① `i18n.js` 运行时改为 **URL 前缀优先**（此前 localStorage 旧偏好会覆盖页面语言，导致 /zh/ 被刷成英文文案等混排）；② 语言切换路径拼接修复（原 `/en/x/` 切中文得到 `/zhx/`，现正确 `/zh/x/`）；③ `pages/disclaimer` 补英文 slug（原中文标题直接当 slug，中英共用），旧 `/zh|en/公告/` 加 301 重定向；④ 新增 `pages/en/{about,privacy,terms,disclaimer}.md` 英文页；⑤ 页脚列渲染从未读取配置的 `titleEn`/`labelEn`，且 html 无英文位——补 `htmlEn` 字段与英文文案；⑥ 移动端底栏标签改走 ui-strings（新增 `bottomNav` 中英词条，并补 `toolbar.mobileNav` aria），EN 页头/底栏/页脚中文混杂清零；⑦ 移动端表格改为可横向滚动（EN 文章表格溢出 437→390）。回归：`verify-mobile` 46/46（含 EN 页无中文混杂、语言切换往返路径保持子路径）、灯箱 14/14。另：跨文档 View-Transition 在快速连续导航/视口变化时 Chrome 抛 `InvalidStateError` 属浏览器噪声，测试已过滤 — `js/domains/i18n.js` + `templates/layout.ejs` + `templates/site-css.ejs` + `ui-strings.json5` + `footer.json5` + `pages/*` + `site.json5` + `README.md` + `docs/config-reference.md`
-- **移动端首页整页缩小/横向滚动与触控尺寸（用户报告）**：hero 辉光伪元素 `.hero::before` 的 `left/right:-15%` 在 390px 下把内容宽度撑到 436px，Chrome 据此缩小布局视口（innerWidth 436、innerHeight 944），首页出现横向滚动且所有 UI 被整体缩小；修复：移动端 `.hero::before{left:0;right:0}` 收进容器；同时 ≤768px 隐藏头部社交/加速/预设按钮（此前隐藏规则因级联顺序被后面的基础规则覆盖、从未生效）、导航间距收紧、语言按钮 ≥36px、公告关闭按钮触控面 40×33；新增 `verify-mobile.js` 22 项回归（4 页无横向溢出/汉堡菜单开合/移动端点图开灯箱与关闭/桌面端不回归）。字体 preload 警告经项目自带服务器实测 0 复现（属外部静态服务器 MIME/缓存/节流环境差异；正确 MIME 为 `font/woff2`） — `templates/site-css.ejs`
-- **灯箱（lightbox）按钮无法点击与交互逻辑修复（用户报告）**：全屏 `.lb-stage` 在 DOM 中位于 `lbClose`/`lbPrev` 之后且无 z-index，将其覆盖导致真实鼠标点击无效（`elementFromPoint` 命中 stage）；修复：交互控件统一 `z-index:6`，说明条/计数 `pointer-events:none`（说明条上滚轮也可缩放）；重写双击/滚轮「指向光标缩放」平移公式（原公式 3 倍偏移）并在旋转态跳过重定心；背景关闭改为「图片区域外且非拖拽（位移≤6px）才关闭」，拖拽导航不再误触关闭；打开时焦点移至关闭按钮、补齐空节点防御。新增回归 `verify-lightbox-ui.js` 14/14（真实鼠标点全按钮） + 既有 `verify-lightbox3` 9/9、`verify-lightbox-gestures` 5/5 — `js/domains/lightbox.js` + `templates/site-css.ejs`
-- **Mermaid 多图并发渲染串位（严重）**：一次文章含多张图表时，并发调用 `mermaid.run()` 导致渲染结果相互污染——状态图样式元素缺失 viewBox 而空白/坍塌遮挡正文，甘特图被饼图覆盖而不显示（用户报告）；改为 `__mmSeq` 串行逐个渲染（首次渲染与主题切换两条路径均修复），并同步将演示文章甘特图加 `axisFormat %m-%d` + `tickInterval 1week` 消除日刻度标签重叠 — `templates/layout.ejs` + `articles/zh/diagrams-math.md` + `articles/en/diagrams-math.md`（回归脚本 `.tmp-scripts/verify-mermaid-render.js`：首屏+主题切换各 10 项断言 20/20）
-- 图库页说明文案 `{count}` 占位符未替换且句子重复（模板误用 `gallery.desc` 两次）：改为「共 N 张图片 · 站内图片集，点击查看大图。」单句组合 — `templates/gallery.ejs`
-- 公告条「关闭后刷新/切页仍闪现」根因修复：`data-items` 属性双重转义（`escapeAttr` 与 EJS `<%=` 叠加）导致浏览器 `JSON.parse` 失败、关闭哈希与内容哈希错位、`<head>` 首帧早检脚本永不命中；现改为单层转义，并**反转为「默认隐藏，`<head>` 早检确认未关闭后才显示」**（关闭态刷新/导航实测零可见帧；禁用 JS 时公告不显示，属预期设计） — `templates/layout.ejs` + `js/domains/announcement.js`
-- 联系弹窗（导航/页脚）与 `data-site-title`/`data-article-title` 属性双重转义：`escapeAttr` 与 EJS 转义叠加导致属性值失真（呈现 `&amp;quot;` 形态），统一为单层 EJS 转义 — `templates/layout.ejs`
-- 构建压缩管线顺序错误：`minifyAll` 原先跑在资源拷贝**之前**，导致 `dist/assets/js` 从未被 Terser 压缩（注释/空白原样上线）；已重排为「拷贝 → PWA → 压缩 → cache-bust」，并让 cache-bust 排除 `assets/` 与 `sw.js`（避免破坏 ESM 相对导入与 Service Worker 固定路径） — `scripts/build.js`
-- 内联 CSS 注释/空白残留（minify-html 对超大 `<style>` 静默跳过）：新增 CleanCSS(level 1) 内联样式专用压缩 pass（保留 `@property`/`:has`/`color-mix` 等现代语法） — `scripts/build.js`
-- 公告条在渐进渲染下仍可能闪现一帧：新增 `<head>` 早检脚本（构建期预计算内容哈希），首帧前即置 `data-ann-dismissed` 并由 CSS 隐藏（`html[data-ann-dismissed] .announcement-bar{display:none}`） — `templates/layout.ejs`
-- Mermaid 图表标签使用内置 trebuchet 字体并带半透明白色底（文字挤压/白边/排版异常）：`initialize` 注入站点字体、`edgeLabelBackground` 透明、flowchart/class/state 关闭 htmlLabels，渲染移至 `document.fonts.ready` 之后；CSS 兜底标签背景透明 + 宽图表横向滚动 — `templates/layout.ejs`
-- 数学公式发虚：reveal 动画残留 `will-change` 致文本长期驻留合成层，`.motion-reveal.in` 改 `will-change:auto` — `templates/layout.ejs`
-- 灯箱计数器与图片说明重叠：计数器移至顶部居中；旋转拆分为左转/右转两个按钮；重置按钮原用 × 图标与关闭混淆，改为“适配视图”图标；工具/导航/关闭按钮统一为 `--lightbox-btnSize`（44px，移动端 38px） — `templates/layout.ejs` + `js/domains/lightbox.js`
-- 公告条关闭无动画：增加滑出动画（`@property --annH` 注册属性过渡，固定头部/内容偏移同步上移；`prefers-reduced-motion` 直接收起） — `templates/layout.ejs` + `js/domains/announcement.js`
-- 公告条已关闭状态在刷新/跳页时短暂闪现：EJS 预计算内容哈希 + 条后内联脚本在解析期即移除并置 `data-ann-dismissed` 属性（首帧无过渡、头部零抖动） — `templates/layout.ejs`
-- 标题锚点 `#` 与 H2 主色竖线重叠：锚点改为右对齐定宽框（`left:-1.8em;width:1.65em;text-align:right`），与竖线保持 6px 间隙 — `templates/layout.ejs`
-- 公告条关闭后头部无法上移：关闭（及加载时已记忆关闭）时将 `--annH` 收起为 `0px`，固定头部/移动菜单/粘性目录即刻回位 — `js/domains/announcement.js`
-- 标题字体 Sora 全站失效：`:root` 中 `--ff-mono` 用转义输出（`<%=`）导致字体栈里的单引号被 HTML 实体化为 `&#39;`，其携带的分号截断 CSS 声明链并连带吞掉 `--ff-d`（Sora 栈）；改为原始输出（`<%-`）后 `--ff-mono`/`--ff-d` 均正确生成，h1 计算字体恢复 Sora、等宽字体恢复 Fira Code — `templates/layout.ejs`
-- 公告条文本不可见（绝对定位导致视口零宽裁切）：改为 `display:grid` 叠层，宽度随内容自适应 — `templates/layout.ejs`
-- 代码窗口栏按钮与语言标签重叠：`.code-actions` 恢复文档流（`position:static`）且语言标签 `margin-right:auto` — `templates/layout.ejs`
-- 长行代码横向滚动条过淡难看：正文 `pre` 定制滚动条（thumb 文字色 38%→悬停 62%、9px、圆角、Firefox `scrollbar-color`） — `templates/layout.ejs`
-- 共享元素封面过渡卡顿: 文章封面统一 `aspect-ratio: card.imageAspect`(16/10) 消除形变; 首页 Bento 大卡(21/10)不参与封面形变(标题仍共享) — `templates/layout.ejs` + `templates/index.ejs`
-- features 模块计数同步为 91; README/config-reference 计数修正(91 模块/723 项)（该计数已过时，当前计数见本节后续条目）
-
-- **canonical 全站指向根路径（SEO）**：`<link rel="canonical">` 此前对所有页面均输出站点根（模板引用了不存在的 `page.url`），现改用 `currentUrl`（文章/分页/归档/标签等各自 URL），并规整 `site.url` 尾部斜杠 — `templates/layout.ejs`
-- **Pagefind 索引生成失效修复**：门控误读不存在的 `features.search.provider` 导致函数恒不执行；改读 `navigation.search.provider === 'pagefind'`，并在压缩/哈希**之后**生成（不参与 cache-bust、写前清空旧索引、输出目录跟随 `features.pagefind.indexPath`）；`navigation.json5` 新增并注释 `search.provider` 键（`local`/`pagefind`），README/config-reference 同步 — `scripts/build.js` + `navigation.json5` + `README.md` + `docs/config-reference.md`
-- **空构建防护**：页面渲染整体失败（`dist/` 无任何 HTML）时立即中止构建并提示检查模板语法/变量，避免静默产出空站 — `scripts/build.js`
-- **HTML 消毒器安全加固**：旧正则实现存在三个已复现绕过（实体编码 scheme `jav&#x61;script:`、属性值内含 `>` 截断、未引号属性逃逸 `srcset=a"onerror=…`）；改用 `sanitize-html@2.17.7`（精确锁定）按标签/属性白名单解析式消毒，未知标签预转义保持原展示语义，媒体 `src/poster` 仍限站内；单元测试 +5（含三个绕过回归），集成安全回归新增三组载荷 — `scripts/lib/utils.js` + `scripts/build.test.js` + `scripts/security-verify.js` + `package.json`
-- **SVG 消毒实体绕过修复**：`sanitizeSvg` 检查前先做实体解码（数字/十六进制/常用命名实体）并剔除控制符，封堵 `&#106;avascript:`、`java\tscript:`、编码外部引用等绕过 — `scripts/lib/content-policy.js` + `scripts/build.test.js`
-- **front-matter `slug` 强校验**：显式 slug 此前绕过 `safeSlug`，可致路径遍历写出 `dist/` 之外、`"><script>` 注入 og:image 属性、污染 `_redirects`；现统一经 `validateSlug`（拒绝分隔符/`..`/HTML 与系统保留字符，超长拒绝），文章不合法即跳过并报错、自定义页不合法即中止；sitemap `<loc>` 统一 XML 转义、`_redirects` 条目清洗空白与控制符 — `scripts/build.js` + `scripts/lib/utils.js` + `templates/layout.ejs`
-- **构建报告与 og:image 转义**：被拦截文件名/原因经 HTML 转义、报告页加 `noindex`；og:image 属性值经 `escapeAttr` 单层转义 — `scripts/build.js` + `templates/layout.ejs`
-- **Worker 安全层部署配置修复**：`workers/wrangler.toml` 此前无 `main` 入口且用旧 Workers Sites 配置（`env.ASSETS` 实为不存在），实际不可部署；现补 `main = "security-worker.js"`、改为 `[assets]`（`binding = "ASSETS"`、`run_worker_first = true`），部署脚本加 `--env production`（ENVIRONMENT 生效），README 同步；`wrangler deploy --dry-run` 验证通过（bindings: ASSETS + ENVIRONMENT） — `workers/wrangler.toml` + `package.json` + `README.md`
-- **前端 12 项缺陷修复**：搜索特殊字符 `[`/`\` 致 RegExp 崩溃与空态重复渲染（转义修正 + 单空态）；Ctrl+K 搜索与命令面板双开（面板默认热键改 Ctrl+P，保留「搜索启用时让位」兜底）；PagefindUI 死代码聚焦即 404（改 provider='pagefind' 时正确挂载 `#pfWrap` 并隐藏本地输入）；toc 滚动改 rAF 节流 + 读写分离；搜索小写语料预计算；reading-history/access-gate 增加预渲染守卫；5 处 localStorage 未防护（含内联主题脚本两处，存储被禁用时页面可完整启动）；boot 失败无条件 console.error；代码块「复制全部」在 `copyAllButton=true` 时的 ReferenceError 与无回退（execCommand 回退 + toast）；公告条关闭未清理 setInterval；lightbox 双 wheel 监听致 Ctrl+滚轮双倍缩放（合并单监听）+ 死代码清理；morphicons 加载失败重试风暴 — `js/core/boot.js` + `js/domains/*` + `templates/layout.ejs`
-- **Pagefind 索引 0 页根因修复**：minify-html 省略 `</head>` 虽合法，但 Pagefind 1.5.2 解析器会丢弃此类页面（已用 API/CLI/极简页二分复现）；现 minify 保留闭合标签（每页约 +20B），索引恢复 84 页 / zh-cn + en-us — `scripts/build.js`
-- **Pagefind 生成不再跳过 serve/watch**：serve 启动会清空 dist 且跳过生成导致预览必 404；现所有模式一致生成 — `scripts/build.js` + `README.md` + `docs/config-reference.md`
-- **命令面板默认热键 k → p**：Ctrl+K 固定保留给全站搜索；若手动改回 k 且搜索启用，面板自动让位 — `features.json5` + `js/domains/command-palette.js`
-- **Worker 边缘安全层加固**：IP 黑白名单与路径 `allowedIPs` 支持 IPv4/IPv6 CIDR（含 `::ffff:` 映射、`%xx` 解码与大小写归一）；修复限流「封禁条目在清理时被提前删除导致提前解封」；静态资源前缀默认免限流（避免正常浏览误触 429）；`/csp-report` 移至限流之后并加 16KB 载荷上限、日志只记关键字段；维护页消息 HTML 转义；ASSETS 获取失败返回 502 且所有早期响应（403/429/503/502）补齐安全头；Worker CSP 补 `report-uri` — `workers/security-worker.js` + `workers/lib/ip-utils.mjs` + `workers/lib/rate-limit.mjs` + `workers/package.json`
-- **Worker 与 `_headers` 头部统一**：新增共享 `applyHeaderHardening`（构建期生成 `_headers` 与 Worker 配置同源调用），修复 hardening 覆盖 HSTS 时丢失 `preload` 的问题；新增 `hardening.hstsPreload`；`rateLimiting.skipPaths` 与 `pathRestrictions.requireAuth/allowedIPs` 全量透传 Worker — `scripts/generate-security-config.js` + `scripts/build.js` + `security.json5` + `docs/config-reference.md`
-- **CI 门禁修复**：AGENTS.md 检查因 `fetch-depth:1` 导致 diff 恒空而失效（现 `fetch-depth: 0` + 按事件计算范围：PR base...head / push before..sha / 首次推送空树回退）；`npm audit` 与 `verify:security` 纳入所有 PR 构建；补 `permissions: contents: read` — `.github/workflows/deploy.yml`
-- **Worker/CIDR 测试补充**：新增 18 项单元 + 集成测试（IP/CIDR 解析、限流封禁持久、静态资源跳过、路径归一、报告上限、维护转义、错误兜底、头部一致性） — `scripts/security-worker.test.js`
-- **性能优化（本地 trace 实测）**：搜索语料由每页内联改为按需 fetch `/…/search-index.json`（浮层搜索与独立搜索页共用缓存与就绪标记，首开无感预取）；首页首卡与文章封面输出 `fetchpriority="high"`（首卡 `loading="eager"`）；cache-bust 同步重写 search-index.json 内媒体路径（修复搜索结果缩略图 404）。首页 LCP 795→348ms、HTML 236→199KB（-16%）；文章页 HTML 242→205KB、CLS 0 — `templates/layout.ejs` + `templates/index.ejs` + `templates/post.ejs` + `templates/search.ejs` + `js/domains/search.js` + `scripts/build.js`
-- **终审（review 双轴）修复批次**：预渲染守卫补 `prerenderingchange` 联动（阅读历史/访问门槛不再因 speculation 预渲染漏记或漏计）；Pagefind 加载失败/禁用时浮层回退本地输入、独立搜索页接入 pagefind 并双层降级；Worker 静态资源免限流仅限 GET/HEAD；路径匹配解码后折叠重复斜杠（封 `%2F` 绕过）；slug 非法改为中止构建（不再静默丢弃文章）；CIDR 无效条目构建期告警并剔除；Ctrl+K 与命令面板双向互斥；search-index 媒体路径重写纳入安全回归断言 — `js/domains/search.js` + `js/domains/guard/access-gate.js` + `js/domains/reading-history.js` + `js/domains/command-palette.js` + `templates/search.ejs` + `workers/**` + `scripts/build.js` + `scripts/generate-security-config.js` + `scripts/security-verify.js`
-- **遗留（技术债，未在本轮实施）**：`templates/layout.ejs` 每页内联约 121KB CSS 的外链化——需配合视觉回归专项评估，见交接文档
-
-### Added
 
 - **站点图标（favicon）**：新增 `site.favicon` 配置（`enabled`/`svg`/`png32`/`appleTouch`，默认 `/icons/` 三件套）；构建时逐个检测文件存在性——存在则注入 `<link>`（并参与 cache-bust 内容哈希），缺失则告警跳过，三项全缺失时注入内置 data-URI SVG 兜底（消除 `/favicon` 404）；随附节点网络图形资产（SVG + sharp 生成 32/180 PNG，预设蓝 #2563eb）；三态验证（默认/缺失兜底/关闭）+ HTTP 断言 — `site.json5` + `scripts/build.js` + `templates/layout.ejs` + `static/icons/` + `docs/config-reference.md`
 - **公告条增强**：`items[]` 逐条支持 `icon` 前缀徽标与独立跳转；`pauseOnHover`（悬停/按住同时暂停轮播与进度条）；`transition 'fade'|'slide'` 切换动画；`tone` 新增 `'gradient'` 强渐变；`showProgress` 轮播剩余时间进度条（仅多条轮播渲染，切换时重启，reduced-motion 隐藏）；`showDot` 圆点开关；`newTab` 外链打开方式（站内始终当前窗口）；全部键位带完整注释并同步 features-schema 默认值与枚举；双态浏览器验证 6 项（多条/渐变/slide/图标/进度/轮播/暂停/关闭） — `features.json5` + `templates/layout.ejs` + `js/domains/announcement.js` + `scripts/lib/features-schema.js` + `docs/config-reference.md`- **图片适配四域（`features.imageFit`）**：`content`（不放大/放大上限/铺满 + vh 限高 + 对齐）· `cover`（cover/contain/fill + 九宫格或百分比焦点）· `gallery`（默认不拉伸小图，修复旧版变形）· `lightbox`（contain/actual）；运行时零 JS：构建期注入 `data-iw` + cap 模式宽度规则 + `--if-*` 变量；13 项浏览器断言双模式验证（默认/tuned 翻转） + 截图目检 — `features.json5` + `scripts/build.js` + `templates/layout.ejs` + `scripts/lib/utils.js`
@@ -172,6 +98,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **命令面板默认热键 `Ctrl+P` → `Ctrl+Shift+P`**（归还打印快捷键；支持 `ctrl+shift+x` 组合语法与旧单键写法） — `features.json5` + `js/domains/command-palette.js` + `scripts/lib/features-schema.js` + `docs/config-reference.md`
+- **依赖升级（精确锁定）**：`mermaid` 11.4.1→11.17.2、`prismjs` 1.29.0→1.30.0、`wrangler` 4.129.0→4.138.0；`pagefind` 移出 devDependencies（按需安装） — `package.json`
+- **KaTeX 字体瘦身**：仅拷贝 woff2/woff 并清理历史 ttf（构建体积约 -390KB） — `scripts/build.js`
+- **`X-XSS-Protection` 改为 `0`**（OWASP 已弃用该头） — `security.json5` + `workers/security-worker.js`
+- **JSON Feed 选项归位**：`site.rss.jsonFeed.fullContent/maxItems/path` 优先消费（修复死键；feed.json 恢复摘要模式） — `scripts/lib/feed-options.js` + `scripts/build.js` + `templates/layout.ejs`
+- **关联推荐与阅读时长接线**：`features.related.*`（topN/同标签/同分类权重/最低分）与 `features.readingTime.wordsPerMinuteCJK/Latin` 真实生效 — `scripts/lib/related.js` + `scripts/lib/utils.js` + `scripts/build.js`
+- **PWA 关闭时不再生成根 `manifest.json`/`site.webmanifest` 别名**（消除死重定向） — `scripts/build.js`
+- **文档计数口径统一**：features 800 项 / guard 171 项（对象逐层展开、数组元素逐项计入）/ 13 个配置文件 2522 项 / 测试 126 项 28 组 / tuning 32 分类 — `README.md` + `docs/config-reference.md`
+- **构建日志补全 `[14/14]`** — `scripts/build.js`
+
 - **配置一致性 CI 监守（T0）**：新增 `npm run verify:config`（`scripts/check-config-consistency.js`）并接入 CI 阻塞步骤：逐项比对 features.json5 ↔ features-schema 默认值（配置文件为唯一事实来源，schema 额外键允许、空数组视为内容占位豁免）；首次运行修复 9 处历史不一致（copyAllButton、speculation.delivery、hero.heightVh、background.particles.count/opacity、commandPalette.hotkey、announcement.text/textEn 等） — `scripts/check-config-consistency.js` + `package.json` + `.github/workflows/deploy.yml` + `scripts/lib/features-schema.js`
 - **硬编码参数去除（T1 迁移，第 1 批）**：13 处运行时硬编码参数迁入配置并全部接线——`announcement.storageKey`/`removeDelayMs`、`toast.removeDelayMs`、`pwa.installDismissKey`/`updateToastMs`、`morphIcons.vendorPath`、`codeBlock.blobRevokeDelayMs`、`themeSchedule.smoothTransitionMs`、`motion.revealCleanupMs`、`guard.contextMenu.revokeDelayMs`/`translateUrl`、`guard.copyGuard.flashRemoveMs`、`guard.accessGate.focusDelayMs`；移除 12 个运行时模块的代码侧字面量兜底（存储键/路径/时长改读配置，默认值单一来源为 schema/配置文件）；README 计数 2469→2482（features 785→794）；单测 100 通过，既有浏览器验证脚本全绿（announcement 8/8、favorites 8/8、search 7/7、theme 5/5） — `js/domains/`(12 文件) + `templates/layout.ejs` + `features.json5` + `scripts/lib/features-schema.js` + `guard.json5` + `README.md` + `docs/config-reference.md`
 - **文档计数刷新**：README 配置项计数校正（13 文件总项 2455→2469；features 785 项；tuning 32/204、guard 164 不变）——按既有叶子键递归口径重算，含本会话新增 favicon 4 键与公告增强 5 键、删除 2 个废弃键 — `README.md`
@@ -205,6 +141,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **sitemap 时间格式/编码/去重**：`lastmod` 由 `Date.toString()` 改 ISO 8601；中文标签路径经 RFC 3986 编码；标签 URL 重复去重 — `scripts/lib/robots.js` + `scripts/build.js`
+- **OG 图安全与清理**：草稿文章不再生成/保留（自动清理陈旧产物）；封面路径穿越防护；serve/watch 与生产行为一致 — `scripts/generate-og.js` + `scripts/build.js`
+- **前端健壮性 6 项**：畸形外链 URL、sidebar 选择器注入、guard `decodeURIComponent`、theme-presets 存储被禁、搜索历史转义、favicon 缓存失效 — `js/domains/*` + `scripts/build.js`
+- **无障碍 3 项**：回顶滚动尊重 reduced-motion（`__SB()`）、PWA 安装按钮键盘可达、内联脚本移至 `<meta charset>` 之后 — `js/domains/*` + `templates/layout.ejs`
+- **页面过渡**：bfcache 返回/导航中止时清理 `page-leaving`（含兜底计时器） — `js/domains/page-transition.js`
+- **safeSlug** 兜底改内容哈希（消除 `Math.random` 非确定性） — `scripts/lib/utils.js`
+- **搜索索引** `features.search.includeContent` 键修复（原读不存在的 `fullContent`） — `scripts/build.js`
+- **双轴审查回归修复**：命令面板 `hotkey:''` 真正关闭监听；CSP 统计域名按 webAnalytics token 条件裁剪（+1 项单测）；meta CSP 与响应头共用裁剪结果；`SITE_URL` 去尾斜杠；CI Lint 步骤前移；OG 清理在生成失败时跳过；分享复制 clipboard 失败降级到 execCommand；访问门槛遮罩补 `aria-hidden` 并在解锁后归还焦点；PWA 安装按钮关闭控件改兄弟节点（消除嵌套交互控件，WCAG 2.2 AA）；`guard-defaults` 热键默认值与 `guard.json5` 同步；`hotSearches.top/showInDropdown/showClear` 标注为预留未接线 — 多文件
+- **遗留（技术债，未在本轮实施）**：`tsc --checkJs` 渐进类型检查（Node 20.19+ 场景评估后接入）；OG 图 PNG→JPEG 体积优化（涉及社交卡片格式兼容评估）
+
+- **移动端底栏链接缺语言前缀 + 按钮全量审计（用户报告）**：底部导航 `href` 原为无前缀硬编码（`/`、`/archive/`、`/search/`），在 `/en/` 页点击会跳回中文站；改为按 `langPrefix` 生成（`/en/archive/`、`/en/search/` 等），主题按钮 `window.toggleDark()` 正常。同时修复浮动控件层级：`read-dock` 与移动端 TOC 按钮重叠、`.back-to-top` 钻入底栏——移动端重排 `bottom`（4 / 7.4 / 10.8 / 14.2rem）并给 `body` 预留底栏高度；`.dock-ring` 加 `pointer-events:none`（原覆盖进度按钮）。小型文字链接（面包屑/卡片元信息/标签/页脚）增加 4×6px 隐形点按扩展（WCAG 2.5.8），`mobileBottomNav` 新增 `labelHome`/`labelArchive`/`labelSearch`/`labelTheme`/`labelTop` 配置键（空=走 ui-strings `bottomNav.*`）。新增 `verify-buttons.js`：10 页交互元素命中/尺寸/链接可达 + 底栏中英功能 + 头部控件断言 44/44，移动端 46/46、灯箱 14/14 — `templates/layout.ejs` + `templates/site-css.ejs` + `features.json5` + `scripts/lib/features-schema.js` + `docs/config-reference.md`：① `i18n.js` 运行时改为 **URL 前缀优先**（此前 localStorage 旧偏好会覆盖页面语言，导致 /zh/ 被刷成英文文案等混排）；② 语言切换路径拼接修复（原 `/en/x/` 切中文得到 `/zhx/`，现正确 `/zh/x/`）；③ `pages/disclaimer` 补英文 slug（原中文标题直接当 slug，中英共用），旧 `/zh|en/公告/` 加 301 重定向；④ 新增 `pages/en/{about,privacy,terms,disclaimer}.md` 英文页；⑤ 页脚列渲染从未读取配置的 `titleEn`/`labelEn`，且 html 无英文位——补 `htmlEn` 字段与英文文案；⑥ 移动端底栏标签改走 ui-strings（新增 `bottomNav` 中英词条，并补 `toolbar.mobileNav` aria），EN 页头/底栏/页脚中文混杂清零；⑦ 移动端表格改为可横向滚动（EN 文章表格溢出 437→390）。回归：`verify-mobile` 46/46（含 EN 页无中文混杂、语言切换往返路径保持子路径）、灯箱 14/14。另：跨文档 View-Transition 在快速连续导航/视口变化时 Chrome 抛 `InvalidStateError` 属浏览器噪声，测试已过滤 — `js/domains/i18n.js` + `templates/layout.ejs` + `templates/site-css.ejs` + `ui-strings.json5` + `footer.json5` + `pages/*` + `site.json5` + `README.md` + `docs/config-reference.md`
+- **移动端首页整页缩小/横向滚动与触控尺寸（用户报告）**：hero 辉光伪元素 `.hero::before` 的 `left/right:-15%` 在 390px 下把内容宽度撑到 436px，Chrome 据此缩小布局视口（innerWidth 436、innerHeight 944），首页出现横向滚动且所有 UI 被整体缩小；修复：移动端 `.hero::before{left:0;right:0}` 收进容器；同时 ≤768px 隐藏头部社交/加速/预设按钮（此前隐藏规则因级联顺序被后面的基础规则覆盖、从未生效）、导航间距收紧、语言按钮 ≥36px、公告关闭按钮触控面 40×33；新增 `verify-mobile.js` 22 项回归（4 页无横向溢出/汉堡菜单开合/移动端点图开灯箱与关闭/桌面端不回归）。字体 preload 警告经项目自带服务器实测 0 复现（属外部静态服务器 MIME/缓存/节流环境差异；正确 MIME 为 `font/woff2`） — `templates/site-css.ejs`
+- **灯箱（lightbox）按钮无法点击与交互逻辑修复（用户报告）**：全屏 `.lb-stage` 在 DOM 中位于 `lbClose`/`lbPrev` 之后且无 z-index，将其覆盖导致真实鼠标点击无效（`elementFromPoint` 命中 stage）；修复：交互控件统一 `z-index:6`，说明条/计数 `pointer-events:none`（说明条上滚轮也可缩放）；重写双击/滚轮「指向光标缩放」平移公式（原公式 3 倍偏移）并在旋转态跳过重定心；背景关闭改为「图片区域外且非拖拽（位移≤6px）才关闭」，拖拽导航不再误触关闭；打开时焦点移至关闭按钮、补齐空节点防御。新增回归 `verify-lightbox-ui.js` 14/14（真实鼠标点全按钮） + 既有 `verify-lightbox3` 9/9、`verify-lightbox-gestures` 5/5 — `js/domains/lightbox.js` + `templates/site-css.ejs`
+- **Mermaid 多图并发渲染串位（严重）**：一次文章含多张图表时，并发调用 `mermaid.run()` 导致渲染结果相互污染——状态图样式元素缺失 viewBox 而空白/坍塌遮挡正文，甘特图被饼图覆盖而不显示（用户报告）；改为 `__mmSeq` 串行逐个渲染（首次渲染与主题切换两条路径均修复），并同步将演示文章甘特图加 `axisFormat %m-%d` + `tickInterval 1week` 消除日刻度标签重叠 — `templates/layout.ejs` + `articles/zh/diagrams-math.md` + `articles/en/diagrams-math.md`（回归脚本 `.tmp-scripts/verify-mermaid-render.js`：首屏+主题切换各 10 项断言 20/20）
+- 图库页说明文案 `{count}` 占位符未替换且句子重复（模板误用 `gallery.desc` 两次）：改为「共 N 张图片 · 站内图片集，点击查看大图。」单句组合 — `templates/gallery.ejs`
+- 公告条「关闭后刷新/切页仍闪现」根因修复：`data-items` 属性双重转义（`escapeAttr` 与 EJS `<%=` 叠加）导致浏览器 `JSON.parse` 失败、关闭哈希与内容哈希错位、`<head>` 首帧早检脚本永不命中；现改为单层转义，并**反转为「默认隐藏，`<head>` 早检确认未关闭后才显示」**（关闭态刷新/导航实测零可见帧；禁用 JS 时公告不显示，属预期设计） — `templates/layout.ejs` + `js/domains/announcement.js`
+- 联系弹窗（导航/页脚）与 `data-site-title`/`data-article-title` 属性双重转义：`escapeAttr` 与 EJS 转义叠加导致属性值失真（呈现 `&amp;quot;` 形态），统一为单层 EJS 转义 — `templates/layout.ejs`
+- 构建压缩管线顺序错误：`minifyAll` 原先跑在资源拷贝**之前**，导致 `dist/assets/js` 从未被 Terser 压缩（注释/空白原样上线）；已重排为「拷贝 → PWA → 压缩 → cache-bust」，并让 cache-bust 排除 `assets/` 与 `sw.js`（避免破坏 ESM 相对导入与 Service Worker 固定路径） — `scripts/build.js`
+- 内联 CSS 注释/空白残留（minify-html 对超大 `<style>` 静默跳过）：新增 CleanCSS(level 1) 内联样式专用压缩 pass（保留 `@property`/`:has`/`color-mix` 等现代语法） — `scripts/build.js`
+- 公告条在渐进渲染下仍可能闪现一帧：新增 `<head>` 早检脚本（构建期预计算内容哈希），首帧前即置 `data-ann-dismissed` 并由 CSS 隐藏（`html[data-ann-dismissed] .announcement-bar{display:none}`） — `templates/layout.ejs`
+- Mermaid 图表标签使用内置 trebuchet 字体并带半透明白色底（文字挤压/白边/排版异常）：`initialize` 注入站点字体、`edgeLabelBackground` 透明、flowchart/class/state 关闭 htmlLabels，渲染移至 `document.fonts.ready` 之后；CSS 兜底标签背景透明 + 宽图表横向滚动 — `templates/layout.ejs`
+- 数学公式发虚：reveal 动画残留 `will-change` 致文本长期驻留合成层，`.motion-reveal.in` 改 `will-change:auto` — `templates/layout.ejs`
+- 灯箱计数器与图片说明重叠：计数器移至顶部居中；旋转拆分为左转/右转两个按钮；重置按钮原用 × 图标与关闭混淆，改为“适配视图”图标；工具/导航/关闭按钮统一为 `--lightbox-btnSize`（44px，移动端 38px） — `templates/layout.ejs` + `js/domains/lightbox.js`
+- 公告条关闭无动画：增加滑出动画（`@property --annH` 注册属性过渡，固定头部/内容偏移同步上移；`prefers-reduced-motion` 直接收起） — `templates/layout.ejs` + `js/domains/announcement.js`
+- 公告条已关闭状态在刷新/跳页时短暂闪现：EJS 预计算内容哈希 + 条后内联脚本在解析期即移除并置 `data-ann-dismissed` 属性（首帧无过渡、头部零抖动） — `templates/layout.ejs`
+- 标题锚点 `#` 与 H2 主色竖线重叠：锚点改为右对齐定宽框（`left:-1.8em;width:1.65em;text-align:right`），与竖线保持 6px 间隙 — `templates/layout.ejs`
+- 公告条关闭后头部无法上移：关闭（及加载时已记忆关闭）时将 `--annH` 收起为 `0px`，固定头部/移动菜单/粘性目录即刻回位 — `js/domains/announcement.js`
+- 标题字体 Sora 全站失效：`:root` 中 `--ff-mono` 用转义输出（`<%=`）导致字体栈里的单引号被 HTML 实体化为 `&#39;`，其携带的分号截断 CSS 声明链并连带吞掉 `--ff-d`（Sora 栈）；改为原始输出（`<%-`）后 `--ff-mono`/`--ff-d` 均正确生成，h1 计算字体恢复 Sora、等宽字体恢复 Fira Code — `templates/layout.ejs`
+- 公告条文本不可见（绝对定位导致视口零宽裁切）：改为 `display:grid` 叠层，宽度随内容自适应 — `templates/layout.ejs`
+- 代码窗口栏按钮与语言标签重叠：`.code-actions` 恢复文档流（`position:static`）且语言标签 `margin-right:auto` — `templates/layout.ejs`
+- 长行代码横向滚动条过淡难看：正文 `pre` 定制滚动条（thumb 文字色 38%→悬停 62%、9px、圆角、Firefox `scrollbar-color`） — `templates/layout.ejs`
+- 共享元素封面过渡卡顿: 文章封面统一 `aspect-ratio: card.imageAspect`(16/10) 消除形变; 首页 Bento 大卡(21/10)不参与封面形变(标题仍共享) — `templates/layout.ejs` + `templates/index.ejs`
+- features 模块计数同步为 91; README/config-reference 计数修正(91 模块/723 项)（该计数已过时，当前计数见本节后续条目）
+
+- **canonical 全站指向根路径（SEO）**：`<link rel="canonical">` 此前对所有页面均输出站点根（模板引用了不存在的 `page.url`），现改用 `currentUrl`（文章/分页/归档/标签等各自 URL），并规整 `site.url` 尾部斜杠 — `templates/layout.ejs`
+- **Pagefind 索引生成失效修复**：门控误读不存在的 `features.search.provider` 导致函数恒不执行；改读 `navigation.search.provider === 'pagefind'`，并在压缩/哈希**之后**生成（不参与 cache-bust、写前清空旧索引、输出目录跟随 `features.pagefind.indexPath`）；`navigation.json5` 新增并注释 `search.provider` 键（`local`/`pagefind`），README/config-reference 同步 — `scripts/build.js` + `navigation.json5` + `README.md` + `docs/config-reference.md`
+- **空构建防护**：页面渲染整体失败（`dist/` 无任何 HTML）时立即中止构建并提示检查模板语法/变量，避免静默产出空站 — `scripts/build.js`
+- **HTML 消毒器安全加固**：旧正则实现存在三个已复现绕过（实体编码 scheme `jav&#x61;script:`、属性值内含 `>` 截断、未引号属性逃逸 `srcset=a"onerror=…`）；改用 `sanitize-html@2.17.7`（精确锁定）按标签/属性白名单解析式消毒，未知标签预转义保持原展示语义，媒体 `src/poster` 仍限站内；单元测试 +5（含三个绕过回归），集成安全回归新增三组载荷 — `scripts/lib/utils.js` + `scripts/build.test.js` + `scripts/security-verify.js` + `package.json`
+- **SVG 消毒实体绕过修复**：`sanitizeSvg` 检查前先做实体解码（数字/十六进制/常用命名实体）并剔除控制符，封堵 `&#106;avascript:`、`java\tscript:`、编码外部引用等绕过 — `scripts/lib/content-policy.js` + `scripts/build.test.js`
+- **front-matter `slug` 强校验**：显式 slug 此前绕过 `safeSlug`，可致路径遍历写出 `dist/` 之外、`"><script>` 注入 og:image 属性、污染 `_redirects`；现统一经 `validateSlug`（拒绝分隔符/`..`/HTML 与系统保留字符，超长拒绝），文章不合法即跳过并报错、自定义页不合法即中止；sitemap `<loc>` 统一 XML 转义、`_redirects` 条目清洗空白与控制符 — `scripts/build.js` + `scripts/lib/utils.js` + `templates/layout.ejs`
+- **构建报告与 og:image 转义**：被拦截文件名/原因经 HTML 转义、报告页加 `noindex`；og:image 属性值经 `escapeAttr` 单层转义 — `scripts/build.js` + `templates/layout.ejs`
+- **Worker 安全层部署配置修复**：`workers/wrangler.toml` 此前无 `main` 入口且用旧 Workers Sites 配置（`env.ASSETS` 实为不存在），实际不可部署；现补 `main = "security-worker.js"`、改为 `[assets]`（`binding = "ASSETS"`、`run_worker_first = true`），部署脚本加 `--env production`（ENVIRONMENT 生效），README 同步；`wrangler deploy --dry-run` 验证通过（bindings: ASSETS + ENVIRONMENT） — `workers/wrangler.toml` + `package.json` + `README.md`
+- **前端 12 项缺陷修复**：搜索特殊字符 `[`/`\` 致 RegExp 崩溃与空态重复渲染（转义修正 + 单空态）；Ctrl+K 搜索与命令面板双开（面板默认热键改 Ctrl+P，保留「搜索启用时让位」兜底）；PagefindUI 死代码聚焦即 404（改 provider='pagefind' 时正确挂载 `#pfWrap` 并隐藏本地输入）；toc 滚动改 rAF 节流 + 读写分离；搜索小写语料预计算；reading-history/access-gate 增加预渲染守卫；5 处 localStorage 未防护（含内联主题脚本两处，存储被禁用时页面可完整启动）；boot 失败无条件 console.error；代码块「复制全部」在 `copyAllButton=true` 时的 ReferenceError 与无回退（execCommand 回退 + toast）；公告条关闭未清理 setInterval；lightbox 双 wheel 监听致 Ctrl+滚轮双倍缩放（合并单监听）+ 死代码清理；morphicons 加载失败重试风暴 — `js/core/boot.js` + `js/domains/*` + `templates/layout.ejs`
+- **Pagefind 索引 0 页根因修复**：minify-html 省略 `</head>` 虽合法，但 Pagefind 1.5.2 解析器会丢弃此类页面（已用 API/CLI/极简页二分复现）；现 minify 保留闭合标签（每页约 +20B），索引恢复 84 页 / zh-cn + en-us — `scripts/build.js`
+- **Pagefind 生成不再跳过 serve/watch**：serve 启动会清空 dist 且跳过生成导致预览必 404；现所有模式一致生成 — `scripts/build.js` + `README.md` + `docs/config-reference.md`
+- **命令面板默认热键 k → p**：Ctrl+K 固定保留给全站搜索；若手动改回 k 且搜索启用，面板自动让位 — `features.json5` + `js/domains/command-palette.js`
+- **Worker 边缘安全层加固**：IP 黑白名单与路径 `allowedIPs` 支持 IPv4/IPv6 CIDR（含 `::ffff:` 映射、`%xx` 解码与大小写归一）；修复限流「封禁条目在清理时被提前删除导致提前解封」；静态资源前缀默认免限流（避免正常浏览误触 429）；`/csp-report` 移至限流之后并加 16KB 载荷上限、日志只记关键字段；维护页消息 HTML 转义；ASSETS 获取失败返回 502 且所有早期响应（403/429/503/502）补齐安全头；Worker CSP 补 `report-uri` — `workers/security-worker.js` + `workers/lib/ip-utils.mjs` + `workers/lib/rate-limit.mjs` + `workers/package.json`
+- **Worker 与 `_headers` 头部统一**：新增共享 `applyHeaderHardening`（构建期生成 `_headers` 与 Worker 配置同源调用），修复 hardening 覆盖 HSTS 时丢失 `preload` 的问题；新增 `hardening.hstsPreload`；`rateLimiting.skipPaths` 与 `pathRestrictions.requireAuth/allowedIPs` 全量透传 Worker — `scripts/generate-security-config.js` + `scripts/build.js` + `security.json5` + `docs/config-reference.md`
+- **CI 门禁修复**：AGENTS.md 检查因 `fetch-depth:1` 导致 diff 恒空而失效（现 `fetch-depth: 0` + 按事件计算范围：PR base...head / push before..sha / 首次推送空树回退）；`npm audit` 与 `verify:security` 纳入所有 PR 构建；补 `permissions: contents: read` — `.github/workflows/deploy.yml`
+- **Worker/CIDR 测试补充**：新增 18 项单元 + 集成测试（IP/CIDR 解析、限流封禁持久、静态资源跳过、路径归一、报告上限、维护转义、错误兜底、头部一致性） — `scripts/security-worker.test.js`
+- **性能优化（本地 trace 实测）**：搜索语料由每页内联改为按需 fetch `/…/search-index.json`（浮层搜索与独立搜索页共用缓存与就绪标记，首开无感预取）；首页首卡与文章封面输出 `fetchpriority="high"`（首卡 `loading="eager"`）；cache-bust 同步重写 search-index.json 内媒体路径（修复搜索结果缩略图 404）。首页 LCP 795→348ms、HTML 236→199KB（-16%）；文章页 HTML 242→205KB、CLS 0 — `templates/layout.ejs` + `templates/index.ejs` + `templates/post.ejs` + `templates/search.ejs` + `js/domains/search.js` + `scripts/build.js`
+- **终审（review 双轴）修复批次**：预渲染守卫补 `prerenderingchange` 联动（阅读历史/访问门槛不再因 speculation 预渲染漏记或漏计）；Pagefind 加载失败/禁用时浮层回退本地输入、独立搜索页接入 pagefind 并双层降级；Worker 静态资源免限流仅限 GET/HEAD；路径匹配解码后折叠重复斜杠（封 `%2F` 绕过）；slug 非法改为中止构建（不再静默丢弃文章）；CIDR 无效条目构建期告警并剔除；Ctrl+K 与命令面板双向互斥；search-index 媒体路径重写纳入安全回归断言 — `js/domains/search.js` + `js/domains/guard/access-gate.js` + `js/domains/reading-history.js` + `js/domains/command-palette.js` + `templates/search.ejs` + `workers/**` + `scripts/build.js` + `scripts/generate-security-config.js` + `scripts/security-verify.js`
+- **遗留（技术债，未在本轮实施）**：`templates/layout.ejs` 每页内联约 121KB CSS 的外链化——需配合视觉回归专项评估，见交接文档
+
 - **自动摘要混入源码**：摘要从正文 HTML 提取时未剔除代码块/mermaid 图表源/LaTeX，卡片、meta、RSS 与搜索摘要出现"莫名其妙代码"；现先剥离 `<pre>` 块、标题锚点 `#`、实体化标签与公式再截断 — `scripts/build.js`
 - **侧栏与聚合数据未按语言/草稿过滤**：`recentPosts`/归档/`seriesList`/图库/`siteStats` 在语言域重算；标签与分类聚合、系列、相关文章剔除草稿并限定同语言，修复中文页侧栏混入英文文章与草稿分类泄露 — `scripts/build.js`
 - **`sanitizeHtml` 剥离 `decoding` 属性**:性能配置注入的 `img decoding=async` 被净化白名单丢弃;白名单补 `decoding` 并附回归测试 — `scripts/lib/utils.js` + `scripts/build.test.js`
@@ -236,9 +226,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **忽略规则整理**：本地数据副本与构建/环境产物排除规则调整（后续收敛为仅本地生效的排除文件，避免仓库暴露部署细节） — `.gitignore`
 - **PWA 关闭时残留死重定向**：`/manifest.json`、`/site.webmanifest` 两类别名此前在 PWA 关闭时仍 302 到不存在的文件；现两类别名彻底不再生成（PWA 开启时 manifest 为根目录实文件，无需别名） — `scripts/build.js`
 
-### Security
+### Removed
 
-- 保持全部既有安全修复。
+- **`pagefind` 依赖**（约 55MB，本地搜索默认 `local`）；按需恢复：`npm install -D --save-exact pagefind` — `package.json`
 
 ## [1.0.2]
 

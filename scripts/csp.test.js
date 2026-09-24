@@ -1,5 +1,5 @@
 // csp.test.js —— CSP 指令构建期裁剪单元测试（TDD：先红后绿）
-// 覆盖：按 giscus 开关与 externalAssets 引用关系自动移除未使用域名、空指令剔除、不修改原对象。
+// 覆盖：按 giscus/Web Analytics 开关与 externalAssets 引用关系自动移除未使用域名、空指令剔除、不修改原对象。
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { trimCspDirectives } = require('./lib/csp');
@@ -32,7 +32,8 @@ test('关闭 giscus 且无外链资源时移除全部可选域名并删除空指
   assert.ok(!all.includes(GFONTS), 'googleapis 应被移除');
   assert.ok(!all.includes(GSTATIC), 'gstatic 应被移除');
   assert.ok(!('frame-src' in out), '空的 frame-src 应整条删除');
-  assert.ok(out['connect-src'].includes('https://cloudflareinsights.com'), 'Cloudflare 统计域名应保留');
+  assert.ok(!all.includes('cloudflareinsights'), 'Cloudflare 统计域名默认应被移除（未启用/未配置 token）');
+  assert.deepStrictEqual(out['connect-src'], ["'self'"], 'connect-src 移除统计域名后仅余自身');
   assert.deepStrictEqual(out['default-src'], ["'self'"], '基础指令不受影响');
 });
 
@@ -40,6 +41,12 @@ test('启用 giscus 时保留 giscus.app（script-src 与 frame-src）', () => {
   const out = trimCspDirectives(baseDirectives(), { giscusNeeded: true, externalAssets: {} });
   assert.ok(out['script-src'].includes(GISCUS));
   assert.deepStrictEqual(out['frame-src'], [GISCUS]);
+});
+
+test('启用 Web Analytics（analyticsNeeded）时保留 Cloudflare 统计域名', () => {
+  const out = trimCspDirectives(baseDirectives(), { giscusNeeded: false, externalAssets: {}, analyticsNeeded: true });
+  assert.ok(out['script-src'].includes('https://static.cloudflareinsights.com'), 'script-src 保留静态统计域名');
+  assert.ok(out['connect-src'].includes('https://cloudflareinsights.com'), 'connect-src 保留上报域名');
 });
 
 test('externalAssets.styles 引用 Google Fonts 时保留两个字体域名', () => {

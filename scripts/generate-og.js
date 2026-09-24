@@ -5,6 +5,7 @@ const http = require('http');
 const https = require('https');
 const sharp = require('sharp');
 const { safeSlug, validateSlug } = require('./lib/utils');
+const { resolveOgFormat } = require('./lib/og-format');
 
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
@@ -277,7 +278,7 @@ function renderCover(o) {
 
 // 清理陈旧 OG 产物：删除 dist/og/{lang}/ 下本次未生成的 PNG（历史草稿、改名/删除文章遗留）。
 // 仅在未指定 --only 时调用（--only 是定向补图，不代表完整集合，不能作为删除依据）。
-// 只删 *.png；目录结构保留。返回删除数量。
+// 只删 png/jpg；目录结构保留。返回删除数量。
 function pruneStaleOg(madeByLang) {
   if (!fs.existsSync(OUT_DIR)) return 0;
   let removed = 0;
@@ -286,7 +287,7 @@ function pruneStaleOg(madeByLang) {
     if (!fs.statSync(dir).isDirectory()) continue;
     const keep = madeByLang.get(lang) || new Set();
     for (const name of fs.readdirSync(dir)) {
-      if (!/\.png$/i.test(name) || keep.has(name)) continue;
+      if (!/\.(png|jpg)$/i.test(name) || keep.has(name)) continue;
       try {
         fs.unlinkSync(path.join(dir, name));
         removed++;
@@ -320,7 +321,9 @@ async function main() {
   const palette = { darkBg, darkText, paperBg, paperText };
   const featuresConfig = readConfigFile('features.json5') || {};
   const ogCfg = featuresConfig.ogImage || {};
+  const ogFmt = resolveOgFormat(ogCfg);
   const styleCfg = featuresConfig.ogImageStyle || {};
+  if (ogFmt.format === 'jpeg') console.log(`  OG format: jpeg (quality ${ogFmt.quality})`);
   const paletteMode = styleCfg.palette || 'theme';
   if (+ogCfg.width > 0) WIDTH = +ogCfg.width;
   if (+ogCfg.height > 0) HEIGHT = +ogCfg.height;
@@ -414,7 +417,7 @@ async function main() {
 
     const langOut = path.join(OUT_DIR, langDir);
     fs.mkdirSync(langOut, { recursive: true });
-    const outPath = path.join(langOut, slug + '.png');
+    const outPath = path.join(langOut, slug + '.' + ogFmt.ext);
     try {
       let img;
       if (cover) {
@@ -422,11 +425,10 @@ async function main() {
           const coverBuf = await loadCoverBuffer(cover);
           if (coverBuf) {
             const overlay = Buffer.from(coverOverlay(siteTitle, fitLines(wrapTitle(title, 20))));
-            img = await sharp(coverBuf)
-              .resize(WIDTH, HEIGHT, { fit: 'cover' })
-              .composite([{ input: overlay }])
-              .png()
-              .toFile(outPath);
+            const coverPipe = sharp(coverBuf).resize(WIDTH, HEIGHT, { fit: 'cover' }).composite([{ input: overlay }]);
+            img = await (ogFmt.format === 'jpeg'
+              ? coverPipe.jpeg({ quality: ogFmt.quality, mozjpeg: true })
+              : coverPipe.png()).toFile(outPath);
           }
         } catch (coverErr) {
           img = null;
@@ -440,7 +442,10 @@ async function main() {
         const size = Math.round((+styleCfg.fontSizeBase || 64) * ((+ogCfg.fontScale > 0) ? +ogCfg.fontScale : 1));
         const lh = Math.round(size * 1.2);
         const svg = Buffer.from(renderCover({ template: styleCfg.template || 'aurora', siteTitle, siteUrl, lines: fitLines(wrapTitle(title, chars), maxLines), size, lineHeight: lh, from: palFrom, to: palTo, style: styleCfg, category: catOf(catRaw), palette }));
-        await sharp(svg).png().toFile(outPath);
+        const svgPipe = sharp(svg);
+        await (ogFmt.format === 'jpeg'
+          ? svgPipe.jpeg({ quality: ogFmt.quality, mozjpeg: true })
+          : svgPipe.png()).toFile(outPath);
       }
       madeSlugs.set(slug, path.basename(outPath));
       if (!madeByLang.has(langDir)) madeByLang.set(langDir, new Set());

@@ -219,7 +219,8 @@ const DEFAULT_FEATURES = {
   },
   ogImage: {
     enabled: true, width: 1200, height: 630, useCover: true,
-    gradientForNoCover: true, fontScale: 0.75, cacheDir: '.og-cache'
+    gradientForNoCover: true, fontScale: 0.75, cacheDir: '.og-cache',
+    format: 'png', jpegQuality: 82
   },
   hotSearches: {
     enabled: true, top: 5, storageKey: 's-hotSearches', showInDropdown: true,
@@ -452,6 +453,7 @@ const ENUM_FIELDS = {
   morphIcons: { spring: ['smooth', 'snappy', 'bouncy'], reducedMotion: ['light', 'off', 'full'], preload: ['interaction', 'idle', 'immediate'] },
   viewTransition: { type: ['fade', 'slide'], reducedMotion: ['light', 'off', 'full'] },
   speculation: { mode: ['prefetch', 'prerender', 'both'], eagerness: ['moderate', 'eager', 'conservative'], delivery: ['inline', 'header', 'both'] },
+  ogImage: { format: ['png', 'jpeg'] },
   ogImageStyle: { template: ['aurora', 'mesh', 'grid', 'paper', 'duotone'], palette: ['theme', 'hash'] },
   announcement: { tone: ['accent', 'solid', 'minimal', 'gradient'], transition: ['fade', 'slide'] },
   guards: { preset: ['off', 'soft', 'strict'] },

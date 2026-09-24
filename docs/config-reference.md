@@ -598,7 +598,7 @@ sitemap: {
 
 ### 3.85 ogImage — 自动 OG 图
 
-`enabled true` / `width 1200` / `height 630`（输出尺寸）/ `useCover true`（有封面时以封面为底图）/ `gradientForNoCover true`（无封面时生成渐变底）/ `fontScale 0.75`（标题字号相对缩放）/ `cacheDir '.og-cache'`（生成结果缓存目录，命中即复用）。`serve` 模式跳过生成 — `scripts/generate-og.js` + `templates/layout.ejs`。
+`enabled true` / `width 1200` / `height 630`（输出尺寸）/ `format 'png'`（输出格式：`png` 默认无损 / `jpeg` 有损体积更小，`jpg` 视为同义；切换后旧格式文件下次构建自动清理）/ `jpegQuality 82`（`format='jpeg'` 时生效，1–100，越界回退 82）/ `useCover true`（有封面时以封面为底图）/ `gradientForNoCover true`（无封面时生成渐变底）/ `fontScale 0.75`（标题字号相对缩放）/ `cacheDir '.og-cache'`（生成结果缓存目录，命中即复用）。OG 图 URL、`og:image`/`twitter:image`/JSON-LD image 与输出扩展名由 `format` 统一决定。`serve` 模式跳过生成 — `scripts/generate-og.js` + `scripts/lib/og-format.js` + `templates/layout.ejs`。
 
 ### 3.86 hotSearches — 热门搜索
 

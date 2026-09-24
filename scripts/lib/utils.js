@@ -1,4 +1,5 @@
 const sanitizeHtmlLib = require('sanitize-html');
+const { createHash } = require('node:crypto');
 
 // Format a date string according to a template pattern (YYYY-MM-DD HH:mm).
 // Automatically detects if the input includes time (non-midnight) and includes HH:mm in output.
@@ -28,14 +29,16 @@ function formatDate(dateStr, fmt) {
 
 // Convert text to a URL-safe slug. Preserves Chinese characters.
 // Two-pass fallback: first tries simple slugification, then URI-encoding for edge cases.
-// Last resort: random 4-char fallback (rare — only for non-alphanumeric non-CJK input).
+// Last resort: deterministic SHA-1 suffix (same input always yields the same slug,
+// so repeated builds and same-build collisions resolve identically; only used for
+// non-alphanumeric non-CJK input such as emoji-only titles).
 function safeSlug(text) {
   if (!text) return '';
   let slug = text.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '');
   if (!slug || /^[-\s]*$/.test(slug)) {
     slug = encodeURIComponent(text).toLowerCase().replace(/%[0-9a-f]{2}/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   }
-  if (!slug) slug = 'tag-' + Math.random().toString(36).slice(2, 6);
+  if (!slug) slug = 'tag-' + createHash('sha1').update(String(text)).digest('hex').slice(0, 6);
   return slug;
 }
 

@@ -89,6 +89,13 @@ describe('safeSlug', () => {
   it('returns empty string for empty input', () => {
     assert.strictEqual(safeSlug(''), '');
   });
+  it('returns a deterministic hash slug when input has no slugifiable characters', () => {
+    const a = safeSlug('🎉🎉');
+    const b = safeSlug('🎉🎉');
+    assert.strictEqual(a, b);
+    assert.match(a, /^tag-[0-9a-f]{6}$/);
+    assert.notStrictEqual(safeSlug('🎉🎉'), safeSlug('🚀🚀'));
+  });
 });
 
 describe('escapeAttr', () => {

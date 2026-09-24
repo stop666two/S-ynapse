@@ -45,6 +45,8 @@ jobs:
       - name: Dependency security audit
         run: npm audit --audit-level=high
       - run: npm test
+      - name: Lint (ESLint)
+        run: npm run lint
       - name: Config consistency (code defaults vs config files)
         run: npm run verify:config
       - name: Security verification (malicious-content build regression)

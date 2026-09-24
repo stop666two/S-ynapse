@@ -19,8 +19,8 @@
 ## 特性
 
 **全配置驱动**
-- 13 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2492 项，按叶子键递归统计：对象逐层展开、数组元素逐项计入），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
-- `features.json5` 功能总控域：**95 个模块、799 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（32 分类 / 204 项）
+- 13 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2522 项，按叶子键递归统计：对象逐层展开、数组元素逐项计入），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- `features.json5` 功能总控域：**95 个模块、800 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（32 分类 / 204 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
 - 详细参考文档：`docs/config-reference.md`（11 章，逐字段权威参考）
@@ -52,7 +52,7 @@
 - **每日一言**（侧栏，内置 7 条按日期轮换）、**收藏**（纯前端 localStorage，`/favorites/`）
 - RSS + JSON Feed、**sitemap 按类型拆分**（URL 超阈值自动分文件）、搜索索引、PWA、构建报告
 - **侧栏拖拽重排**（桌面拖拽 + 移动端长按，localStorage 持久化）、**404 页美化**（插图 + 搜索 + 热门文章）
-- **Pagefind 全文搜索**（`navigation.search.provider='pagefind'` 且 `features.pagefind.enabled` 时生效，离线索引；**构建在压缩与哈希之后自动生成索引到 `features.pagefind.indexPath`（默认 `/pagefind`，不参与 cache-bust）；未安装 `pagefind` 依赖时告警跳过（`npm install -D pagefind`）；serve/watch 模式同样生成，保证预览与生产一致**）
+- **Pagefind 全文搜索**（`navigation.search.provider='pagefind'` 且 `features.pagefind.enabled` 时生效，离线索引；**构建在压缩与哈希之后自动生成索引到 `features.pagefind.indexPath`（默认 `/pagefind`，不参与 cache-bust）；未安装 `pagefind` 依赖时告警跳过（按需安装：`npm install -D --save-exact pagefind`）；serve/watch 模式同样生成，保证预览与生产一致**）
 
 **安全加固**
 - Markdown 内嵌 HTML 白名单消毒（XSS 防护，含 SVG 消毒）
@@ -70,7 +70,7 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html` 含详细统计（含内容策略拦截清单）
-- 单元测试：`npm test` 覆盖核心纯函数（70 项 / 18 组）
+- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（125 项 / 28 组）；`npm run lint` 提供 ESLint 静态检查
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -120,6 +120,7 @@ S-ynapse/
 ├── js/                # 前端 ESM 源码（core/ 入口与运行时 + domains/ 领域模块；构建复制到 dist/assets/js/）
 ├── templates/         # EJS 模板
 │   ├── layout.ejs     # 基础布局（CSS变量 + 暗黑模式 + 搜索 + 链接警告 + 灯箱）
+│   ├── site-css.ejs   # 全站样式表（构建期注入 layout，压缩后随页面内联）
 │   ├── index.ejs      # 首页（分页）
 │   ├── post.ejs       # 文章页（TOC + 系列 + 分享 + 打赏 + 关联推荐 + 评论）
 │   ├── archive.ejs    # 归档页（统计卡 + 热力图）
@@ -131,11 +132,17 @@ S-ynapse/
 │   ├── links.ejs      # 友情链接页
 │   ├── page.ejs       # 自定义页面
 │   ├── search.ejs     # 搜索页
+│   ├── favorites.ejs  # 收藏页（纯前端 localStorage）
 │   └── 404.ejs        # 404 页
 ├── scripts/
 │   ├── build.js       # 构建脚本（14 步管线）
-│   ├── build.test.js  # 单元测试（70 项 / 18 组）
+│   ├── build.test.js  # 单元测试（主套件）
+│   ├── robots.test.js # robots/sitemap 工具单测
+│   ├── csp.test.js    # CSP 裁剪规则单测
+│   ├── security-worker.test.js  # Worker 安全层单测 + 集成
 │   ├── security-verify.js  # 安全集成验证（注入恶意文章→构建→语义断言）
+│   ├── check-config-consistency.js # 配置一致性监守（默认值 vs 配置文件）
+│   ├── a11y-audit.js  # WCAG 无障碍审计（axe-core + Chrome）
 │   ├── import.js      # 内容导入 CLI（hexo/hugo/wordpress）
 │   ├── export.js      # 备份导出 CLI（配置 + 文章 + 媒体打包）
 │   ├── audit-media.js # 媒体审计（--json / --duplicates）
@@ -148,17 +155,25 @@ S-ynapse/
 │       ├── content-policy.js  # 三目录内容策略判定（白名单/黑名单/SVG 消毒）
 │       ├── features-schema.js # features 默认 schema 单一真源 + 校验
 │       ├── theme-presets.js   # 9 套主题预设定义与校验
-│       └── config-error.js    # JSON5 错误格式化（文件/行列/上下文/提示）
+│       ├── config-error.js    # JSON5 错误格式化（文件/行列/上下文/提示）
+│       ├── robots.js          # robots 逐语言 Sitemap/lastmod/编码纯函数
+│       ├── csp.js             # CSP 指令按功能开关裁剪纯函数
+│       ├── related.js         # 关联文章评分（同标签/同分类权重）
+│       ├── feed-options.js    # JSON Feed 选项归一（jsonFeed.* 优先）
+│       ├── perf-budget.js     # 页面体积/请求数预算检查
+│       ├── site-defaults.js   # 站点/主题等默认值注册表（配置监守用）
+│       ├── tuning-defaults.js # tuning 默认值注册表（配置监守用）
+│       └── guard-defaults.js  # guard 默认值注册表（配置监守用）
 ├── workers/           # Cloudflare Worker 安全层
 ├── .github/workflows/ # CI/CD 自动部署（含 AGENTS.md 检测 + npm audit 门禁）
 ├── .githooks/         # Git hooks（pre-commit 保护 AGENTS.md）
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
 ├── site.json5          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
 ├── theme.json5         # 主题配置（颜色/字体/布局/文章页脚）
-├── features.json5     # 功能总控（95 模块/799 项，可开关/微调，可选文件）
+├── features.json5     # 功能总控（95 模块/800 项，可开关/微调，可选文件）
 ├── ui-strings.json5   # 界面文案词典（zh/en 双语词典，服务端 ui() + 运行时 __T()，可选）
 ├── tuning.json5       # UI 微调参数层（32 分类/204 项，注入 CSS 变量；行为参数运行时读取，可选）
-├── guard.json5        # 防护与交互控制域（11 个模块/164 项：右键/复制/选择/快捷键/水印/检测/控制台/隐私帘/篡改监视/访问门槛，逐项注释，可选）
+├── guard.json5        # 防护与交互控制域（11 个模块/171 项：右键/复制/选择/快捷键/水印/检测/控制台/隐私帘/篡改监视/访问门槛，逐项注释，可选）
 ├── navigation.json5    # 导航配置
 ├── sidebar.json5       # 侧边栏配置（含 series/friends/stats/quote 组件）
 ├── footer.json5        # 页脚配置
@@ -166,8 +181,9 @@ S-ynapse/
 ├── content-policy.json5 # 内容策略（media/videos/assets 白黑名单，可选）
 ├── tag-aliases.json5   # 标签别名映射（可选）
 ├── friends.json5       # 友情链接数据（可选）
-├── .env.example       # 环境变量模板（CF_WEB_ANALYTICS_TOKEN / MAINTENANCE）
+├── .env.example       # 环境变量模板（CF_API_TOKEN / NODE_ENV / SITE_URL / CF_WEB_ANALYTICS_TOKEN）
 ├── .gitattributes     # Git 属性配置
+├── eslint.config.js   # ESLint 9 扁平配置（js/scripts/workers 三层）
 ├── build.bat          # Windows 一键构建
 ├── serve.bat          # Windows 一键启动服务器
 ├── wrangler.toml      # Cloudflare Pages 部署配置
@@ -187,7 +203,7 @@ S-ynapse/
 | `features.json5` | 95 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、评论…） | 可选（缺失回退默认，功能保持） |
 | `ui-strings.json5` | 界面文案词典（zh/en 双语，i18n 切换的文案来源） | 可选（缺失回退内置文案） |
 | `tuning.json5` | UI 微调参数层（32 分类 / 204 项：排版/间距/圆角/动效/组件细节，注入 CSS 变量） | 可选 |
-| `guard.json5` | 防护与交互控制域（11 个模块 / 164 项：自定义右键菜单、复制控制/署名、选择控制、快捷键拦截、水印、检测与控制台反制、窗口隐私帘、篡改监视、访问门槛、绕过通道等） | 可选（缺失时防护功能关闭） |
+| `guard.json5` | 防护与交互控制域（11 个模块 / 171 项（口径：对象逐层展开、数组元素逐项计入）：自定义右键菜单、复制控制/署名、选择控制、快捷键拦截、水印、检测与控制台反制、窗口隐私帘、篡改监视、访问门槛、绕过通道等） | 可选（缺失时防护功能关闭） |
 | `navigation.json5` | 菜单、导航栏、社交顺序、搜索 | ✅ |
 | `sidebar.json5` | 侧栏组件序列（author/recent/tags/categories/archive/series/friends/stats/quote…） | ✅ |
 | `footer.json5` | 页脚列、版权、备案、社交、Powered-by | ✅ |
@@ -346,21 +362,20 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 |------|------|------|
 | 1 | 加载配置 | 13 个 JSON5 配置（含 tuning.json5 与 guard.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 95 模块结构校验 |
 | 2 | 设置输出目录 | 清空 `dist/` 并创建子目录 |
-| 3 | 复制静态文件 | `static/` → `dist/` |
-| 3ᵇ | 内容策略 | 按 content-policy.json5 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
+| 3 | 复制静态文件 | `static/` → `dist/`；按 content-policy.json5 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
 | 4 | 媒体优化 | sharp 生成 WebP/AVIF + 多尺寸响应式图片（输出 manifest） |
-| 5 | 处理文章 | Frontmatter 校验（slug 唯一/date 合法）→ 上标/公式守护 → Markdown → Wiki 双链 → CJK 空格 → 提取 TOC → 自动 OG 图 |
+| 5 | 处理文章 | Frontmatter 校验（slug 唯一/date 合法）→ 上标/公式守护 → Markdown → Wiki 双链 → CJK 空格 → 提取 TOC |
 | 6 | 生成页面 | 首页分页、文章（系列/分享/打赏/关联/评论）、归档（统计+热力图）、标签、分类、图库、友链、搜索、404 |
-| 7ᵇ | JSON Feed | feed.json（与 RSS 同源同裁剪） |
-| 7 | RSS 生成 | feed.xml（全文/摘要，上限 maxItems） |
-| 8 | Sitemap | sitemap.xml（含自定义页面 + 图库；超过阈值自动按类型拆分为 sitemap-{n}.xml + 索引） |
-| 9 | 搜索索引 | search-index.json（局部模糊匹配，含正文/标签/分类） |
-| 10 | 安全文件 | `_headers`（CSP + HSTS + 安全头）、`robots.txt`、`_redirects`（配置重定向）、Worker 配置生成 |
-| 11 | 压缩 | 压缩 HTML（@minify-html）、CSS（CleanCSS）、JS（Terser） |
+| 7 | RSS 与 JSON Feed | feed.xml（全文/摘要，上限 maxItems）+ feed.json（`site.rss.jsonFeed.*` 选项优先，回退 `site.rss.*`） |
+| 8 | Sitemap | sitemap.xml（含自定义页面 + 图库；超过阈值自动按类型拆分为 sitemap-{n}.xml + 索引）；其后执行自动 OG 图生成与 sitemap ping（可选） |
+| 9 | 搜索索引 | search-index.json（局部模糊匹配；`features.search.includeContent` 控制是否含正文） |
+| 10 | 安全文件 | `_headers`（CSP + HSTS + 安全头，按功能开关自动裁剪）、`robots.txt`（逐语言 Sitemap 行）、`_redirects`（配置重定向）、Worker 配置生成 |
+| 11 | 压缩 | 压缩 HTML（@minify-html）、CSS（CleanCSS）、JS（Terser）；此前先完成前端资产拷贝（js/ ESM → `dist/assets/js/`，vendor 与 KaTeX 字体 → `dist/assets/vendor/`） |
 | 12 | 缓存破坏 | MD5 内容哈希重命名文件，更新 HTML 引用 |
-| 12ᵇ | 前端资产 | `js/` ESM 模块 → `dist/assets/js/`；vendor（Prism/Mermaid/KaTeX/字体）→ `dist/assets/vendor/` |
-| 13 | PWA | manifest.json + Service Worker（启用时） |
+| 13 | PWA | manifest.json + Service Worker（启用时；执行顺序在压缩之前） |
 | 14 | 构建报告 | build-report.html（耗时/文章数/体积/功能状态/内容策略拦截清单） |
+
+> **执行顺序说明**：日志编号按功能命名输出；实际调用顺序中 13（PWA）先于 11（压缩）执行；Pagefind 索引（可选）在缓存破坏之后生成且不占独立编号。
 
 **自定义页面**：`pages/` 目录下的 .md 文件在步骤 5 与 6 之间处理（`processCustomPages`），同目录内容也通过 `processPagesContent` 加载供模板嵌入（如文章底部公告栏）。**多语言**：`pages/{lang}/{file}.md` 覆盖默认文件（如 `pages/en/about.md` 提供英文标题与正文，slug 可显式声明；缺省时按标题生成，建议显式写英文 slug 避免中英路径混用）。
 ```
@@ -396,7 +411,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 
 ### 方式三：GitHub Actions（CI/CD 自动部署）
 
-项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署（Node 24 + `npm audit --audit-level=high` 门禁 + `npm test`），并在部署前检查 AGENTS.md 是否被误提交。
+项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署（Node 24 + `npm audit --audit-level=high` + `npm test` + `npm run lint` + `verify:config` + `verify:security` 门禁），并在部署前检查 AGENTS.md 是否被误提交。
 
 **配置步骤**：
 1. 在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加 `CF_API_TOKEN`（如需部署）
@@ -441,7 +456,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（70 项 / 18 组） |
+| `npm test` | 运行单元测试（125 项 / 28 组） |
+| `npm run lint` | ESLint 静态检查（js/scripts/workers；CI 门禁） |
 | `npm run verify:security` | 集成安全回归（注入恶意文章 → 真实构建 → 语义断言） |
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
@@ -453,30 +469,45 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 70 项 / 18 组，全部通过
-npm run audit:a11y  # WCAG 2.x 无障碍审计（需先 npm run serve；0 critical/serious 门禁）
+npm test            # 125 项 / 28 组，全部通过
+npm run lint        # ESLint 静态检查（js / scripts / workers）
+npm run audit:a11y  # WCAG 2.x 无障碍审计（需先在另一终端 `npm run serve -- --port 3224`；也可用 `node scripts/a11y-audit.js <baseUrl>` 或 A11Y_BASE 环境变量指定地址；0 critical/serious 门禁）
 npm run verify:security   # 集成安全回归
 ```
 
 | 测试套件 | 测试数 | 覆盖函数 |
 |----------|--------|----------|
 | formatDate | 5 | 日期格式化（含时间检测） |
-| safeSlug | 4 | URL Slug 生成（含中文/混合/空值） |
+| safeSlug | 5 | URL Slug 生成（含中文/混合/空值/确定性哈希兜底） |
+| validateSlug | 4 | front-matter slug 强校验（分隔符/遍历/保留字符） |
 | escapeAttr | 2 | HTML 属性转义（含非字符串输入） |
 | escapeHtml | 2 | HTML 转义（含 null 输入） |
 | stripHtml | 3 | HTML 标签剥离（含实体解码、非字符串） |
 | insertCjkSpacing | 4 | 中英文自动加空格（含纯中文/纯英文边界） |
 | applyCjkSpacingToHtml | 1 | HTML 安全的 CJK 空格 |
+| countWordsDetail | 1 | CJK/拉丁分词计数（阅读时长用） |
 | extractToc | 2 | 文章目录提取（含无标题页） |
-| sanitizeHtml | 10 | 白名单消毒（含 decoding 保留/危险标签/事件属性/危险协议） |
+| sanitizeHtml | 13 | 白名单消毒（含 decoding 保留/危险标签/事件属性/危险协议/绕过回归） |
 | sanitizeHtml 媒体元素 | 4 | video/audio 保留与站内 src 限制 |
-| content-policy classifyFile | 5 | 三目录白名单/黑名单判定 |
-| sanitizeSvg | 3 | SVG 危险内容检测 |
+| sanitizeSvg | 5 | SVG 危险内容检测（含实体解码绕过） |
 | escapeJsonForScript | 2 | 搜索索引嵌入 script 的安全序列化 |
 | features-schema validateFeatures | 7 | features 默认/校验/枚举/数组字段 |
-| theme-presets | 9 | 9 套主题预设校验（名称/形状/覆盖结构） |
+| theme-presets | 6 | 主题预设校验（名称/形状/覆盖结构） |
 | formatConfigError | 2 | JSON5 错误格式化 |
-| generate-security-config | 6 | security.json5 → Worker 配置提取/渲染 |
+| generate-security-config | 9 | security.json5 → Worker 配置提取/渲染 |
+| content-policy classifyFile | 5 | 三目录白名单/黑名单判定 |
+| perf-budget | 2 | 页面体积/请求数预算判定 |
+| computeRelatedArticles | 3 | 关联文章评分与截取 |
+| resolveJsonFeedOptions | 1 | JSON Feed 选项归一与回退 |
+| buildSitemapUrls | 6 | robots 逐语言 Sitemap 列表 |
+| encodeLoc | 3 | sitemap URL RFC 3986 编码 |
+| toSitemapLastmod | 3 | lastmod ISO 8601 归一/非法省略 |
+| CSP trimCspDirectives（无 describe，顶层用例） | 7 | CSP 指令按功能开关裁剪 |
+| workers/lib ip-utils | 4 | IPv4/IPv6 CIDR 解析与匹配 |
+| workers/lib rate-limit | 2 | 限流封禁与清理 |
+| security-worker integration | 12 | Worker 集成（安全头/维护模式/静态资源/错误兜底） |
+
+> `npm test` 共 **125 项 / 28 组**（Node 内置 test runner；CSP 裁剪为 7 项顶层用例，不单独占用套件数）。
 
 ---
 
@@ -493,13 +524,14 @@ npm run verify:security   # 集成安全回归
 | CSS 压缩 | clean-css 5 |
 | JS 压缩 | terser 5 |
 | RSS/JSON Feed | feed 4 |
-| 代码高亮 | Prism 1.29（本地 vendor，多语言按需拼接） |
+| 代码高亮 | Prism 1.30（本地 vendor，多语言按需拼接） |
 | 字体 | Inter / Sora / Manrope（@fontsource latin woff2，本地 vendor） |
 | 前端模块 | 原生 ESM（js/core + js/domains，无打包器） |
 | 分析 | Cloudflare Web Analytics |
 | 部署 | Cloudflare Pages / Workers |
 | CI/CD | GitHub Actions |
 | 测试 | Node.js built-in test runner |
+| 静态检查 | ESLint 9（js / scripts / workers 三层） |
 
 ---
 

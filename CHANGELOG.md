@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **首次全项目只读审计修复批次（P1–P33）**：针对审计发现的构建/安全/防护/前端问题逐项修复，每条独立提交并逐项验证（构建、单测、浏览器探针、无障碍审计）。分类明细见下方 Added/Changed/Fixed/Removed。
+- **guard 安全默认调整**：`hotkeyGuard` 的 `ctrlU/ctrlS/ctrlP` 改为按需开启（默认放行）；`devtoolsDetect` 的 `reload` 增加每会话熔断（避免尺寸误报导致无限刷新）；`tamperWatch` 上报增加超时/节流/去除查询串 — `guard.json5` + `js/domains/guard/*`
+
+### Added
+
+- **ESLint 静态检查门禁**：新增 `eslint.config.js`（ESLint 9 flat config；js/scripts/workers 三层各自声明浏览器/Node/Worker 全局）与 `npm run lint`，CI `build` job 增加 Lint 步骤（devDependencies 增补 `eslint`/`@eslint/js`/`globals`，精确锁定） — `eslint.config.js` + `package.json` + `.github/workflows/deploy.yml`
+- **meta CSP 开关**：`security.csp.metaEnabled`（默认 `false`；开启场景=无响应头环境如 `file://`、不读 `_headers` 的托管、CDN 剥离响应头；默认关闭原因=Pages `_headers`/Worker 已下发 CSP，避免重复传输与策略交集） — `security.json5` + `templates/layout.ejs` + `docs/config-reference.md`
+- **CSP 自动裁剪**：`security.csp.autoTrim`（默认 `true`）按功能开关裁剪 giscus/jsdelivr/Google Fonts 域名，未启用功能的域名不再预置；新增纯函数与 7 项单测 — `scripts/lib/csp.js` + `scripts/csp.test.js` + `scripts/build.js` + `scripts/generate-security-config.js` + `security.json5`
+- **robots 逐语言 Sitemap**：多语言站点按 `site.languages` 输出多个 `Sitemap:` 行（修复根 sitemap 404）；`lastmod` 改 ISO 8601（非法省略）、`loc` 经 RFC 3986 编码、标签 URL 去重；新增 12 项单测 — `scripts/lib/robots.js` + `scripts/robots.test.js` + `scripts/build.js`
+- **SITE_URL 环境变量**：构建读取 `SITE_URL` 覆盖 `site.url`（CI 预览/多域名部署） — `scripts/build.js` + `.env.example`
+
+### Changed
+
+- **命令面板默认热键 `Ctrl+P` → `Ctrl+Shift+P`**（归还打印快捷键；支持 `ctrl+shift+x` 组合语法与旧单键写法） — `features.json5` + `js/domains/command-palette.js` + `scripts/lib/features-schema.js` + `docs/config-reference.md`
+- **依赖升级（精确锁定）**：`mermaid` 11.4.1→11.17.2、`prismjs` 1.29.0→1.30.0、`wrangler` 4.129.0→4.138.0；`pagefind` 移出 devDependencies（按需安装） — `package.json`
+- **KaTeX 字体瘦身**：仅拷贝 woff2/woff 并清理历史 ttf（构建体积约 -390KB） — `scripts/build.js`
+- **`X-XSS-Protection` 改为 `0`**（OWASP 已弃用该头） — `security.json5` + `workers/security-worker.js`
+- **JSON Feed 选项归位**：`site.rss.jsonFeed.fullContent/maxItems/path` 优先消费（修复死键；feed.json 恢复摘要模式） — `scripts/lib/feed-options.js` + `scripts/build.js` + `templates/layout.ejs`
+- **关联推荐与阅读时长接线**：`features.related.*`（topN/同标签/同分类权重/最低分）与 `features.readingTime.wordsPerMinuteCJK/Latin` 真实生效 — `scripts/lib/related.js` + `scripts/lib/utils.js` + `scripts/build.js`
+- **PWA 关闭时不再生成根 `manifest.json`/`site.webmanifest` 别名**（消除死重定向） — `scripts/build.js`
+- **文档计数口径统一**：features 800 项 / guard 171 项（对象逐层展开、数组元素逐项计入）/ 13 个配置文件 2522 项 / 测试 125 项 28 组 / tuning 32 分类 — `README.md` + `docs/config-reference.md`
+- **构建日志补全 `[14/14]`** — `scripts/build.js`
+
+### Fixed
+
+- **sitemap 时间格式/编码/去重**：`lastmod` 由 `Date.toString()` 改 ISO 8601；中文标签路径经 RFC 3986 编码；标签 URL 重复去重 — `scripts/lib/robots.js` + `scripts/build.js`
+- **OG 图安全与清理**：草稿文章不再生成/保留（自动清理陈旧产物）；封面路径穿越防护；serve/watch 与生产行为一致 — `scripts/generate-og.js` + `scripts/build.js`
+- **前端健壮性 6 项**：畸形外链 URL、sidebar 选择器注入、guard `decodeURIComponent`、theme-presets 存储被禁、搜索历史转义、favicon 缓存失效 — `js/domains/*` + `scripts/build.js`
+- **无障碍 3 项**：回顶滚动尊重 reduced-motion（`__SB()`）、PWA 安装按钮键盘可达、内联脚本移至 `<meta charset>` 之后 — `js/domains/*` + `templates/layout.ejs`
+- **页面过渡**：bfcache 返回/导航中止时清理 `page-leaving`（含兜底计时器） — `js/domains/page-transition.js`
+- **safeSlug** 兜底改内容哈希（消除 `Math.random` 非确定性） — `scripts/lib/utils.js`
+- **搜索索引** `features.search.includeContent` 键修复（原读不存在的 `fullContent`） — `scripts/build.js`
+
+### Removed
+
+- **`pagefind` 依赖**（约 55MB，本地搜索默认 `local`）；按需恢复：`npm install -D --save-exact pagefind` — `package.json`
+
 ### Added
 
 - **MIT 许可证**：新增根目录 `LICENSE` 文件（Copyright © 2026 stop666two，与 README 既有声明一致）与 `package.json` `license: "MIT"` 字段（GitHub 此前无法识别仓库许可证）；README 许可章节补充指向 `LICENSE` — `LICENSE` + `package.json` + `README.md`

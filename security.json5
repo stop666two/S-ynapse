@@ -22,6 +22,15 @@
     // 注意: 关闭后站点失去 CSP 防护,仅调试第三方资源时临时关闭
     "enabled": true,
 
+    // 构建期自动裁剪未使用域名
+    // 作用: 生成 _headers 与 Worker 配置时，按实际启用的功能移除 directives 中
+    //   未使用的可选域名（giscus.app / cdn.jsdelivr.net / fonts.googleapis.com / fonts.gstatic.com）
+    // 何时开: 默认开启（最小权限，未启用的能力不应留在 CSP 白名单里）
+    // 何时关: 需要完全手动接管域名清单（自定义第三方资源未写进 theme.externalAssets 时），
+    //   或排查第三方资源被裁剪问题时临时设为 false 对照
+    // 类型: boolean | 可填: true(推荐)/false | 裁剪只涉及上述四个已知域名，自加域名永远保留
+    "autoTrim": true,
+
     // 指令列表（均为 string[];空数组的指令会被跳过）
     // 类型: { [指令名]: string[] }
     // 不可填: 未列入计划的资源域名（会被浏览器拦截）
@@ -33,8 +42,10 @@
       // 可填: 同源 + 必要的内联（本项目模板内联脚本需要 'unsafe-inline'）
       //       统计（static.cloudflareinsights.com）/ 评论（giscus.app）
       // 不可填: 未使用的第三方 CDN（攻击面扩大）
+      // 注意: cdn.jsdelivr.net 与 giscus.app 在未启用对应能力时由 autoTrim 自动移除
       "script-src": ["'self'", "'unsafe-inline'", "'inline-speculation-rules'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com", "https://giscus.app"],
       // 样式来源（Google Fonts 样式表 / jsdelivr 兜底）
+      // 注意: googleapis/jsdelivr 无 externalAssets 引用时由 autoTrim 自动移除
       "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
       // 图片来源（data: 用于内联占位图;https: 整域放行便于外链封面）
       "img-src": ["'self'", "data:", "https:"],
@@ -47,6 +58,7 @@
       // 插件对象来源（<object>/<embed>） | 推荐: ["'none'"]（彻底禁用,防老式 XSS）
       "object-src": ["'none'"],
       // iframe 嵌入来源（giscus 评论为 iframe） | 推荐: ["https://giscus.app"]
+      // 注意: 评论未启用时本指令被 autoTrim 裁空后整条移除
       "frame-src": ["https://giscus.app"],
       // Web Worker 来源 | 推荐: ["'self'"]
       "worker-src": ["'self'"],

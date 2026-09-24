@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { trimCspDirectives } = require('./lib/csp');
 
 // ==================== 双配置漂移消除 ====================
 // security.json5 是唯一配置源。本模块在每次构建时从 security.json5 提取
@@ -77,13 +78,19 @@ function applyHeaderHardening(security) {
  * 缺失字段自动用安全兜底值（禁执行、不限制、严格头），保证任何手写损坏
  * 的 JSON 不会让 Worker 变为无保护状态。skipPaths 是仅有的例外：缺失即为空
  * 数组（不跳过任何路径，严格计数），避免代码内置隐式策略。
+ * @param {Object} security security.json5 解析结果
+ * @param {{giscusNeeded?: boolean, externalAssets?: Object}} [cspContext] CSP 裁剪上下文；
+ *   传入时按实际启用功能裁剪可选域名（与 _headers 层保持一致）；不传则原样输出。
  */
-function extractWorkerSecurity(security) {
+function extractWorkerSecurity(security, cspContext) {
   const s = security && typeof security === 'object' ? security : {};
   const rl = s.rateLimiting && typeof s.rateLimiting === 'object' ? s.rateLimiting : {};
   const csp = s.csp && typeof s.csp === 'object' ? s.csp : {};
-  const directives =
+  let directives =
     csp.directives && typeof csp.directives === 'object' ? csp.directives : {};
+  if (cspContext && csp.autoTrim !== false) {
+    directives = trimCspDirectives(directives, cspContext);
+  }
   const paths = Array.isArray(s.pathRestrictions)
     ? s.pathRestrictions
         .map((p) => (typeof p === 'string' ? { path: p } : p))
@@ -133,9 +140,9 @@ function renderWorkerConfig(extracted) {
 }
 
 /** 读 security.json5 → 写 workers/security-config.js。返回生成的文件路径。 */
-function generateSecurityConfig(securityConfig, outFile) {
+function generateSecurityConfig(securityConfig, outFile, cspContext) {
   const file = outFile || OUT_FILE;
-  const extracted = extractWorkerSecurity(securityConfig);
+  const extracted = extractWorkerSecurity(securityConfig, cspContext);
   const rendered = renderWorkerConfig(extracted);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, rendered, 'utf-8');

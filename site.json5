@@ -1126,11 +1126,10 @@
     // 作用: 输出 <link rel="preconnect">,提前完成 DNS+TLS 握手
     // 类型: string[]（域名数组）
     // 可填: 站点实际使用的外部域名;不可填: 不使用的域名（浪费连接）
-    // 推荐: 保留字体 CDN;本地化字体后可精简
-    "preconnect": [
-      "https://fonts.googleapis.com",
-      "https://fonts.gstatic.com"
-    ],
+    // 现状: 字体已全部本地化（theme.externalAssets.styles 为空），故留空数组;
+    //   若日后启用 Google Fonts（在 externalAssets.styles 加入 fonts.googleapis.com），
+    //   可同步在此加回 "https://fonts.googleapis.com" 与 "https://fonts.gstatic.com"
+    "preconnect": [],
 
     // 预取下一页
     // 作用: 空闲时 <link rel="prefetch"> 下一篇/下一页,提升连续阅读速度

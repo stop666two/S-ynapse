@@ -64,6 +64,7 @@ const { evaluatePerfBudget, gzipSize, formatPerfBudget } = require('./lib/perf-b
 const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('./lib/robots');
 const { resolveJsonFeedOptions } = require('./lib/feed-options');
 const { computeRelatedArticles } = require('./lib/related');
+const { trimCspDirectives } = require('./lib/csp');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -2344,6 +2345,20 @@ function generateRedirects(config, customPages) {
   return valid;
 }
 
+/** CSP 裁剪上下文：giscus 是否真正启用 + 外链资源引用（决定保留哪些可选域名）。 */
+function buildCspTrimContext(config) {
+  const site = config.site || {};
+  const features = config.features || {};
+  const theme = config.theme || {};
+  const comments = site.comments || {};
+  const fComments = features.comments || {};
+  const fGiscus = features.giscus || {};
+  return {
+    giscusNeeded: !!(comments.enabled === true && comments.provider === 'giscus' && fComments.enabled !== false && fGiscus.enabled !== false),
+    externalAssets: theme.externalAssets || {}
+  };
+}
+
 function generateSecurityHeaders(config) {
   console.log('[10/14] Generating security files...');
   const lines = [];
@@ -2351,8 +2366,14 @@ function generateSecurityHeaders(config) {
 
   if (config.security.csp && config.security.csp.enabled) {
     const cspName = config.security.csp.reportOnly ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
+    // 构建期裁剪：按 giscus 开关与 externalAssets 引用移除未使用的可选域名（最小权限）；
+    // security.csp.autoTrim=false 时完全按配置原样输出。
+    const rawDirectives = config.security.csp.directives || {};
+    const directivesObj = config.security.csp.autoTrim === false
+      ? rawDirectives
+      : trimCspDirectives(rawDirectives, buildCspTrimContext(config));
     const directives = [];
-    for (const [key, vals] of Object.entries(config.security.csp.directives || {})) {
+    for (const [key, vals] of Object.entries(directivesObj)) {
       if (Array.isArray(vals) && vals.length > 0) {
         directives.push(`${key} ${vals.join(' ')}`);
       }
@@ -2867,7 +2888,7 @@ async function build() {
     generateSecurityHeaders(config);
     generateRedirects(config, customPages);
     if (generateWorkerSecurity) {
-      generateWorkerSecurity(config.security, path.join(ROOT, 'workers', 'security-config.js'));
+      generateWorkerSecurity(config.security, path.join(ROOT, 'workers', 'security-config.js'), buildCspTrimContext(config));
     }
     copyJsAssets();
     copyVendorAssets(config);

@@ -489,7 +489,7 @@ sitemap: {
 `enabled true` / `type 'slide'`(`slide|fade`) / `durationMs 180`(入场) / `outDurationMs 120`(离开淡出) / `reducedMotion 'light'`(`light|off|full`,轻量版:短纯淡出) / `excludeSelector '[data-no-transition]'`。内链点击淡出 → 导航 → 新页入场;外链/新窗口/hash/下载链接不拦截;原 `motion.pageEnterDurationMs` 与 `theme.animation.pageTransition` 已移除。
 
 ### 3.59 pwa — PWA 运行时
-`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `installPrompt true` / `installDismissKey 's-a2hs-dismissed'`(安装按钮关闭记忆键) / `updateToastMs 6000`(更新提示时长 ms)。运行时总开关(需 `site.pwa.enabled` 同时开启);注册 `site.pwa.serviceWorker` 并监听更新(toast 提示)、监听离线/恢复(toast 提示);PWA 关闭时不再生成根 `/manifest.json`/`/site.webmanifest` 重定向别名(`_redirects` 仅保留 `/search-index.json`、`/feed.xml`、`/404.html` 根别名)。`offlinePage` 构建生成 `offline.html` 兜底页(断网访问未缓存页面时显示双语提示与重试按钮,SW 预缓存并在导航失败时回退);`installPrompt` 支持 beforeinstallprompt 的浏览器显示"安装到桌面"浮动按钮(可关闭,写入 `installDismissKey` 记忆)。
+`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `installPrompt true` / `installDismissKey 's-a2hs-dismissed'`(安装按钮关闭记忆键) / `updateToastMs 6000`(更新提示时长 ms)。运行时总开关(需 `site.pwa.enabled` 同时开启);注册 `site.pwa.serviceWorker` 并监听更新(toast 提示)、监听离线/恢复(toast 提示);PWA 关闭时不再生成根 `/manifest.json`/`/site.webmanifest` 重定向别名(`_redirects` 仅保留 `/search-index.json`、`/feed.xml`、`/404.html` 根别名)。启用时若 manifest 图标指向的文件不存在，构建会从 `site.favicon.svg` 自动生成 192/512 PNG 并剔除缺失项。`offlinePage` 构建生成 `offline.html` 兜底页(断网访问未缓存页面时显示双语提示与重试按钮,SW 预缓存并在导航失败时回退);`installPrompt` 支持 beforeinstallprompt 的浏览器显示"安装到桌面"浮动按钮(可关闭,写入 `installDismissKey` 记忆)。
 
 ---
 

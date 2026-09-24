@@ -150,6 +150,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **PWA manifest 图标 404**：启用 PWA 时构建会从 `site.favicon.svg` 自动生成 `icons/icon-192.png` 与 `icon-512.png`，并逐条校验 manifest 图标存在性（缺失自动剔除并告警），修复启用后 manifest 引用不存在文件导致的 404 与安装能力降级 — `scripts/build.js` + `site.json5` + `docs/config-reference.md`
 - **sitemap 时间格式/编码/去重**：`lastmod` 由 `Date.toString()` 改 ISO 8601；中文标签路径经 RFC 3986 编码；标签 URL 重复去重 — `scripts/lib/robots.js` + `scripts/build.js`
 - **OG 图安全与清理**：草稿文章不再生成/保留（自动清理陈旧产物）；封面路径穿越防护；serve/watch 与生产行为一致 — `scripts/generate-og.js` + `scripts/build.js`
 - **前端健壮性 6 项**：畸形外链 URL、sidebar 选择器注入、guard `decodeURIComponent`、theme-presets 存储被禁、搜索历史转义、favicon 缓存失效 — `js/domains/*` + `scripts/build.js`

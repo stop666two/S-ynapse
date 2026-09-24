@@ -2610,7 +2610,9 @@ async function cacheBust(config) {
   console.log('[12/14] Cache busting...');
   const bustPattern = config.site.build.cacheBustingPattern || '.*\\.(css|js|png|jpg|svg)$';
   const bustRegex = new RegExp(bustPattern, 'i');
-  const files = getAllFiles(DIST_DIR).filter(f => bustRegex.test(f) && !f.includes('node_modules') && !f.includes(path.sep + 'og' + path.sep) && !f.includes(path.sep + 'assets' + path.sep) && path.basename(f) !== 'sw.js');
+  // 跳过：node_modules、og 目录、assets 目录、sw.js（固定路径）；以及 PWA manifest 引用的固定文件名图标
+  // （manifest.json 不参与路径重写，若对 icon-192/512.png 做哈希重命名会导致 manifest 引用 404）
+  const files = getAllFiles(DIST_DIR).filter(f => bustRegex.test(f) && !f.includes('node_modules') && !f.includes(path.sep + 'og' + path.sep) && !f.includes(path.sep + 'assets' + path.sep) && path.basename(f) !== 'sw.js' && !/^icon-(192|512)\.png$/.test(path.basename(f)));
   const mapping = {};
   for (const file of files) {
     try {
@@ -2777,6 +2779,35 @@ async function generatePWA(config) {
   }
   console.log('[13/14] Generating PWA assets...');
   const manifest = config.site.pwa.manifest || {};
+  // PWA 图标：优先按 site.favicon.svg 自动生成 192/512 PNG（模板默认配置引用这两个路径），
+  // 避免 manifest 引用不存在的文件导致 404 与安装能力降级；随后逐条校验 icons 存在性并剔除缺失项。
+  if (Array.isArray(manifest.icons) && manifest.icons.length) {
+    const f = config.site.favicon || {};
+    const svgRel = (typeof f.svg === 'string' && f.svg.charAt(0) === '/') ? f.svg.replace(/^\/+/, '').split('?')[0].split('#')[0] : '';
+    const svgAbs = svgRel ? path.join(STATIC_DIR, svgRel) : '';
+    if (svgAbs && fs.existsSync(svgAbs)) {
+      try {
+        const sharpPwa = require('sharp');
+        fs.mkdirSync(path.join(DIST_DIR, 'icons'), { recursive: true });
+        for (const size of [192, 512]) {
+          await sharpPwa(svgAbs).resize(size, size, { fit: 'contain' }).png().toFile(path.join(DIST_DIR, 'icons', 'icon-' + size + '.png'));
+        }
+        console.log('  Generated: icons/icon-192.png, icons/icon-512.png');
+      } catch (e) {
+        console.warn('  [WARN] PWA 图标生成失败（将按存在性剔除）: ' + e.message);
+      }
+    } else {
+      console.warn('  [WARN] 未配置可用的 site.favicon.svg，PWA 图标不会自动生成');
+    }
+    const kept = [];
+    for (const ic of manifest.icons) {
+      const src = ic && typeof ic.src === 'string' ? ic.src : '';
+      const rel = src.charAt(0) === '/' ? src.replace(/^\/+/, '').split('?')[0] : '';
+      if (rel && fs.existsSync(path.join(DIST_DIR, rel))) { kept.push(ic); continue; }
+      console.warn('  [WARN] manifest 图标不存在，已从 manifest 剔除: ' + (src || JSON.stringify(ic)));
+    }
+    manifest.icons = kept;
+  }
   if (Object.keys(manifest).length > 0) {
     const manifestPath = path.join(DIST_DIR, 'manifest.json');
     writeFileAtomicSync(manifestPath, JSON.stringify(manifest), 'utf-8');

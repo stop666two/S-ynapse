@@ -1,5 +1,7 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Auto detect text files and normalize to LF in the working tree
+# 说明: 仓库层统一 LF（规则要求）;Windows 下检出也为 LF,避免 CRLF 混入 diff。
+# 例外: *.bat/*.cmd 保持 CRLF（见下）
+* text=auto eol=lf
 
 # Batch files - keep CRLF for Windows compatibility
 *.bat text eol=crlf
@@ -16,9 +18,9 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 *.ejs text eol=lf
-*.css text auto
-*.html text auto
-*.svg text auto
+*.css text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
 
 # Lock file - binary diff
 package-lock.json -diff

@@ -1259,26 +1259,28 @@
   },
 
   // ---------------------------------------------------------------------------
-  // 28. 订阅(RSS + JSON Feed)
+  // 28. 订阅(RSS + JSON Feed) — 预留区
+  // 说明: 当前构建完全以 site.json5 的 rss 段与 features.json5 的 subscribe 段为准；
+  //       本段各键尚未接线(未消费)，仅作为未来统一入口预留。请勿在此修改生效行为。
   // ---------------------------------------------------------------------------
   feed: {
-    // 启用 RSS(总开关,与 site.json5 rss.enabled 等价)。
+    // 预留: RSS 总开关。当前以 site.json5 rss.enabled 为准，本键暂未被消费。
     rssEnabled: true,
-    // RSS 输出路径。
+    // 预留: RSS 输出路径。当前以 site.json5 rss.path 为准，本键暂未被消费。
     rssPath: '/feed.xml',
-    // RSS 是否输出全文。
+    // 预留: RSS 是否输出全文。当前以 site.json5 rss.fullContent 为准，本键暂未被消费。
     rssFullContent: true,
-    // RSS 条目上限。
+    // 预留: RSS 条目上限。当前以 site.json5 rss.maxItems 为准，本键暂未被消费。
     rssMaxItems: 50,
-    // JSON Feed 输出路径。
+    // 预留: JSON Feed 输出路径。当前以 site.json5 rss.jsonFeed.path 为准，本键暂未被消费。
     jsonFeedPath: '/feed.json',
-    // JSON Feed 是否输出全文。
+    // 预留: JSON Feed 是否输出全文。当前以 site.json5 rss.jsonFeed.fullContent 为准，本键暂未被消费。
     jsonFeedFullContent: false,
-    // JSON Feed 条目上限。
+    // 预留: JSON Feed 条目上限。当前以 site.json5 rss.jsonFeed.maxItems 为准，本键暂未被消费。
     jsonFeedMaxItems: 20,
-    // 是否在 <head> 输出 RSS 链接。
+    // 预留: <head> 订阅链接开关。当前 head 链接恒随 site.rss 配置输出，本键暂未被消费。
     injectHeadLinks: true,
-    // 是否在页脚输出订阅链接(需 footer.json5 调整)。
+    // 预留: 页脚订阅链接开关。当前由 features.subscribe / footer.json5 控制，本键暂未被消费。
     injectFooterLink: false
   },
 

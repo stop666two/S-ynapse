@@ -7,6 +7,7 @@ const { formatConfigError } = require('./lib/config-error');
 const { evaluatePerfBudget } = require('./lib/perf-budget');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset, contrastRatio } = require('./lib/theme-presets');
 const { computeRelatedArticles } = require('./lib/related');
+const { resolveJsonFeedOptions } = require('./lib/feed-options');
 
 describe('formatConfigError', () => {
   it('reports filename, line, column and caret context', () => {
@@ -543,5 +544,23 @@ describe('computeRelatedArticles', () => {
     const c = makeArticle('c', 'zh', ['t1'], []);
     computeRelatedArticles([a, b, c], {});
     assert.deepStrictEqual(a.relatedArticles.map(r => r.slug), ['c']);
+  });
+});
+
+describe('resolveJsonFeedOptions', () => {
+  it('prefers rss.jsonFeed values over rss-level fallbacks', () => {
+    assert.deepStrictEqual(
+      resolveJsonFeedOptions({ fullContent: true, maxItems: 50, jsonFeed: { fullContent: false, maxItems: 20 } }),
+      { fullContent: false, maxItems: 20 }
+    );
+    assert.deepStrictEqual(
+      resolveJsonFeedOptions({ fullContent: true, maxItems: 50, jsonFeed: {} }),
+      { fullContent: true, maxItems: 50 }
+    );
+    assert.deepStrictEqual(resolveJsonFeedOptions({}), { fullContent: false, maxItems: 50 });
+    assert.deepStrictEqual(
+      resolveJsonFeedOptions({ jsonFeed: { maxItems: 0, fullContent: 'yes' } }),
+      { fullContent: false, maxItems: 50 }
+    );
   });
 });

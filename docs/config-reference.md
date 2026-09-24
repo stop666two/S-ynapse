@@ -55,6 +55,9 @@
 | `rss.fullContent` | bool | `true` | RSS 条目含全文(否则摘要) |
 | `rss.maxItems` | number | `50` | RSS 条目数上限 |
 | `rss.jsonFeed.enabled` | bool | `true` | 是否生成 /feed.json(JSON Feed) |
+| `rss.jsonFeed.path` | string | `/feed.json` | JSON Feed 输出路径(按语言自动加前缀) |
+| `rss.jsonFeed.fullContent` | bool | `false` | JSON Feed 条目含全文(否则摘要);非布尔值忽略并回退 `rss.fullContent` |
+| `rss.jsonFeed.maxItems` | number | `20` | JSON Feed 条目数上限;非正数/非数字忽略并回退 `rss.maxItems` |
 
 ### site.seo — SEO
 | 字段 | 类型 | 默认 | 说明 |
@@ -365,8 +368,10 @@
 ### 3.28 prevNext
 `enabled true` / `showLabels true` / `prevLabel 上一篇` / `nextLabel 下一篇` / `hideWhenMissing false` / `showThumbnail false`(导航卡缩略图) / `labelPosition left`(`left|center|right`) / `scrollToTopOnClick true`(点击导航后滚回顶部)
 
-### 3.29 feed — 订阅
+### 3.29 feed — 订阅【预留区，未接线】
 `rssEnabled true` / `rssPath /feed.xml` / `rssFullContent true` / `rssMaxItems 50` / `jsonFeedPath /feed.json` / `jsonFeedFullContent false` / `jsonFeedMaxItems 20` / `injectHeadLinks true` / `injectFooterLink false`
+
+> 注意: 本段各键当前未接入构建链路（修改不生效，仅作未来统一入口预留）。实际生效的订阅配置请改 `site.rss`（见 2.4 site.rss）与 `subscribe` 段；head 订阅链接恒随 `site.rss` 配置输出。
 
 ### 3.30 analytics
 `enabled true` / `scriptSrc https://static.cloudflareinsights.com/beacon.min.js` / `injectAt body` / `emitBeacon true` / `siteTag ''`

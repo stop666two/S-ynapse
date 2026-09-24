@@ -276,7 +276,25 @@
       // 是否生成 JSON Feed（/feed.json）
       // 作用: 供 JSON Feed 协议阅读器使用（与 RSS 并存）
       // 类型: boolean | 可填: true/false | 推荐: true
-      "enabled": true
+      "enabled": true,
+
+      // JSON Feed 输出路径
+      // 作用: feed 文件在站点中的路径（按语言自动加前缀）
+      // 类型: string（以 / 开头） | 可填: "/feed.json" 或自定义 | 推荐: "/feed.json"
+      "path": "/feed.json",
+
+      // 是否输出全文
+      // 作用: true=JSON Feed 含文章全文 HTML;false=仅摘要（excerpt）
+      // 类型: boolean | 可填: true/false
+      // 不可填: 非布尔值（将被忽略并回退到 rss.fullContent）
+      // 推荐: false（JSON 全文体积增长明显;阅读器可打开链接阅读全文）
+      "fullContent": false,
+
+      // feed 最大条目数
+      // 作用: 后向截断,最多包含多少篇最新文章
+      // 类型: number（整数） | 可填: 1–200 | 不可填: 0/负数（将被忽略并回退到 rss.maxItems）
+      // 推荐: 20
+      "maxItems": 20
     }
   },
 

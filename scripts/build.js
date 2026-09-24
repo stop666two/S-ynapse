@@ -62,6 +62,7 @@ const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset
 const { formatConfigError } = require('./lib/config-error');
 const { evaluatePerfBudget, gzipSize, formatPerfBudget } = require('./lib/perf-budget');
 const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('./lib/robots');
+const { resolveJsonFeedOptions } = require('./lib/feed-options');
 const { computeRelatedArticles } = require('./lib/related');
 
 // Project directory structure — all paths relative to project root
@@ -1967,8 +1968,8 @@ async function generateJSONFeed(config, articles) {
         generator: 'S-ynapse'
       });
       if (config.site.author) feed.author = { name: config.site.author, email: config.site.email || '' };
-      const maxItems = rss.maxItems || 50;
-      const items = getPublished(langArticles).slice(0, maxItems);
+      const jfOptions = resolveJsonFeedOptions(rss);
+      const items = getPublished(langArticles).slice(0, jfOptions.maxItems);
       for (const article of items) {
         const link = baseUrl + article.url;
         feed.addItem({
@@ -1976,7 +1977,7 @@ async function generateJSONFeed(config, articles) {
           id: link,
           link,
           description: article.excerpt || '',
-          content: rss.fullContent ? article.content : (article.excerpt || ''),
+          content: jfOptions.fullContent ? article.content : (article.excerpt || ''),
           date: article.date ? new Date(article.date) : new Date(),
           category: article.tags.map(t => ({ name: t })),
           author: config.site.author ? [{ name: config.site.author }] : undefined

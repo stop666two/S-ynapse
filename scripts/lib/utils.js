@@ -77,12 +77,19 @@ function stripHtml(str) {
 }
 
 const CJK_RX = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]/g;
-// Count words: CJK chars count as one word each, Latin/CJK-mixed text splits on whitespace.
-function countWords(text) {
-  if (typeof text !== 'string') return 0;
+// Count words split by script: CJK chars count as one word each, Latin/CJK-mixed
+// text splits on whitespace. Used for per-script reading-speed calculation
+// (features.readingTime.wordsPerMinuteCJK / wordsPerMinuteLatin).
+function countWordsDetail(text) {
+  if (typeof text !== 'string') return { cjk: 0, latin: 0, total: 0 };
   const cjk = (text.match(CJK_RX) || []).length;
   const latin = text.replace(CJK_RX, ' ').split(/\s+/).filter(Boolean).length;
-  return cjk + latin;
+  return { cjk, latin, total: cjk + latin };
+}
+
+// Count words: total of CJK characters and whitespace-separated Latin tokens.
+function countWords(text) {
+  return countWordsDetail(text).total;
 }
 
 // Insert thin spaces (\u2009) at CJK/Latin boundaries for proper typographic spacing.
@@ -229,4 +236,4 @@ function resolveWikiLinks(content, lookup) {
   });
 }
 
-module.exports = { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks };
+module.exports = { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks };

@@ -1,11 +1,12 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
-const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript } = require('./lib/utils');
+const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWordsDetail } = require('./lib/utils');
 const { extractWorkerSecurity, renderWorkerConfig } = require('./generate-security-config');
 const { validateFeatures, DEFAULT_FEATURES, FEATURE_MODULES } = require('./lib/features-schema');
 const { formatConfigError } = require('./lib/config-error');
 const { evaluatePerfBudget } = require('./lib/perf-budget');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset, contrastRatio } = require('./lib/theme-presets');
+const { computeRelatedArticles } = require('./lib/related');
 
 describe('formatConfigError', () => {
   it('reports filename, line, column and caret context', () => {
@@ -497,5 +498,50 @@ describe('perf-budget', () => {
     const report = evaluatePerfBudget({ htmlKb: 20, jsKb: 50, requests: 10 }, { htmlKb: 30, jsKb: 90, requests: 18 });
     assert.strictEqual(report.ok, true);
     assert.strictEqual(report.items.length, 3);
+  });
+});
+
+describe('countWordsDetail', () => {
+  it('splits CJK characters and Latin words', () => {
+    assert.deepStrictEqual(countWordsDetail('你好 world foo'), { cjk: 2, latin: 2, total: 4 });
+    assert.deepStrictEqual(countWordsDetail(''), { cjk: 0, latin: 0, total: 0 });
+    assert.deepStrictEqual(countWordsDetail(null), { cjk: 0, latin: 0, total: 0 });
+  });
+});
+
+describe('computeRelatedArticles', () => {
+  function makeArticle(slug, lang, tags, categories) {
+    return { slug, lang, tags: tags || [], categories: categories || [], title: 'T-' + slug, url: '/' + lang + '/' + slug + '/', excerpt: 'E-' + slug };
+  }
+  it('applies default weights, topN and minScore', () => {
+    const a = makeArticle('a', 'zh', ['t1'], ['c1']);
+    const b = makeArticle('b', 'zh', ['t1'], ['c1']);
+    const c = makeArticle('c', 'zh', ['t2'], ['c2']);
+    const d = makeArticle('d', 'zh', [], ['c1']);
+    const e = makeArticle('e', 'zh', ['t1'], []);
+    const f = makeArticle('f', 'zh', ['t1', 't2'], []);
+    computeRelatedArticles([a, b, c, d, e, f], {});
+    assert.deepStrictEqual(a.relatedArticles.map(r => r.slug), ['b', 'e', 'f', 'd']);
+    assert.strictEqual(a.relatedArticles[0].score, 5);
+    assert.deepStrictEqual(a.relatedArticles[0].tags, ['t1']);
+  });
+  it('respects topN, minScore and weight overrides', () => {
+    const a = makeArticle('a', 'zh', ['t1'], ['c1']);
+    const b = makeArticle('b', 'zh', ['t1'], ['c1']);
+    const d = makeArticle('d', 'zh', [], ['c1']);
+    const e = makeArticle('e', 'zh', ['t1'], []);
+    computeRelatedArticles([a, b, d, e], { topN: 1 });
+    assert.deepStrictEqual(a.relatedArticles.map(r => r.slug), ['b']);
+    computeRelatedArticles([a, b, d, e], { minScore: 6 });
+    assert.deepStrictEqual(a.relatedArticles, []);
+    computeRelatedArticles([a, b, d, e], { sameTagWeight: 1, sameCategoryWeight: 10 });
+    assert.deepStrictEqual(a.relatedArticles.map(r => r.slug), ['b', 'd']);
+  });
+  it('keeps languages separate and never includes the current article', () => {
+    const a = makeArticle('a', 'zh', ['t1'], []);
+    const b = makeArticle('b', 'en', ['t1'], []);
+    const c = makeArticle('c', 'zh', ['t1'], []);
+    computeRelatedArticles([a, b, c], {});
+    assert.deepStrictEqual(a.relatedArticles.map(r => r.slug), ['c']);
   });
 });

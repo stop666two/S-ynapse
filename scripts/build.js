@@ -55,13 +55,14 @@ try {
 // Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
-const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, resolveWikiLinks } = require('./lib/utils');
+const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks } = require('./lib/utils');
 const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
 const { DEFAULT_FEATURES, validateFeatures } = require('./lib/features-schema');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset } = require('./lib/theme-presets');
 const { formatConfigError } = require('./lib/config-error');
 const { evaluatePerfBudget, gzipSize, formatPerfBudget } = require('./lib/perf-budget');
 const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('./lib/robots');
+const { computeRelatedArticles } = require('./lib/related');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -1027,10 +1028,26 @@ async function processArticles(config, mediaManifest) {
         const excerptLen = as.maxLength || config.site.build.excerptLength || config.theme.card?.excerptLength || 150;
         excerptText = textOnly.length > excerptLen ? textOnly.slice(0, excerptLen) + (as.ellipsis || '...') : textOnly;
       }
-      // Read time: word count (CJK-aware) / reading speed (default 265 wpm), minimum 1 minute
+      // Read time: prefers the per-script speeds from features.readingTime
+      // (wordsPerMinuteCJK / wordsPerMinuteLatin); falls back to the legacy
+      // features.wordCount.wpm → theme.card.readTimeSpeed → 265 chain.
+      // features.readingTime.enabled === false disables the value entirely,
+      // which in turn hides every read-time badge in the templates.
       const wordCount = countWords(content);
-      const readSpeed = (config.features && config.features.wordCount && config.features.wordCount.wpm) || config.theme.card?.readTimeSpeed || 265;
-      const readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
+      const readingTimeCfg = (config.features && config.features.readingTime) || {};
+      const wordCountCfg = (config.features && config.features.wordCount) || {};
+      let readTime = null;
+      if (readingTimeCfg.enabled !== false) {
+        const cjkSpeed = Number(readingTimeCfg.wordsPerMinuteCJK);
+        const latinSpeed = Number(readingTimeCfg.wordsPerMinuteLatin);
+        if (cjkSpeed > 0 && latinSpeed > 0) {
+          const detail = countWordsDetail(content);
+          readTime = Math.max(1, Math.ceil(detail.cjk / cjkSpeed + detail.latin / latinSpeed));
+        } else {
+          const readSpeed = wordCountCfg.wpm || config.theme.card?.readTimeSpeed || 265;
+          readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
+        }
+      }
       const toc = extractToc(htmlContent);
       // Auto OG image handled by scripts/generate-og.js (per-language PNG pipeline).
 
@@ -1100,28 +1117,9 @@ function collectTags(articles) {
 }
 
 // Compute related articles using a tag/category scoring algorithm.
-// Each shared tag = 3 points, each shared category = 2 points.
-// Top N results are stored in-memory on each article object (article.relatedArticles).
-// Called before page generation so templates can access relatedArticles directly.
-function computeRelatedArticles(articles, maxCount) {
-  maxCount = maxCount || 4;
-  const published = getPublished(articles);
-  for (const article of published) {
-    const peers = published.filter(o => o.lang === article.lang);
-    const scored = [];
-    for (const other of peers) {
-      if (other.slug === article.slug) continue;
-      let score = 0;
-      const sharedTags = article.tags.filter(t => other.tags.includes(t));
-      score += sharedTags.length * 3;
-      const sharedCategories = article.categories.filter(c => other.categories.includes(c));
-      score += sharedCategories.length * 2;
-      if (score > 0) scored.push({ slug: other.slug, title: other.title, url: other.url, score, tags: sharedTags, excerpt: other.excerpt || '' });
-    }
-    scored.sort((a, b) => b.score - a.score);
-    article.relatedArticles = scored.slice(0, maxCount);
-  }
-}
+// Implementation lives in lib/related.js so the scoring (weights, topN,
+// minScore) is unit-testable; this wrapper feeds it the published articles
+// and the features.related config block.
 
 // Group articles into series (front-matter `series`). Each series lists its
 // articles in chronological order (oldest first) and annotates each article
@@ -2832,7 +2830,7 @@ async function build() {
     if (articles.length === 0) console.log('  [WARN] No articles found');
     const tags = collectTags(articles);
     const categories = collectCategories(articles);
-    if (config.site.build.relatedArticles !== false) computeRelatedArticles(articles);
+    if (config.site.build.relatedArticles !== false) computeRelatedArticles(getPublished(articles), (config.features && config.features.related) || {});
     const pagesContent = processPagesContent(config);
     if (config.theme.articleFooter && config.theme.articleFooter.enabled && config.theme.articleFooter.source) {
       if (!pagesContent || !pagesContent[config.theme.articleFooter.source]) {

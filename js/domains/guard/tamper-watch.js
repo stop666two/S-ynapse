@@ -1,4 +1,6 @@
 // Guard tamper watch —— 注入与篡改监视（脚本/内联属性/框架/原型/DOM/CSP）
+// 说明：脚本监视默认放行同源 /pagefind/ 前缀（站点搜索的动态注入属预期行为）；
+//   可选上报带节流与超时，隐私模式下不含 URL（仅 origin+pathname）。
 export function init(ctx) {
   const cfg = (ctx.G.tamperWatch) || {};
   if (cfg.enabled === false) return;
@@ -11,18 +13,47 @@ export function init(ctx) {
     if (cfg.logDetect) ctx.log('tamper', text);
   }
 
+  let lastReportAt = 0;
   function report(kind) {
     const endpoint = cfg.reportEndpoint;
     if (!endpoint || !/^https?:/.test(endpoint)) return;
+    const rawThrottle = parseInt(cfg.reportThrottleMs, 10);
+    const throttleMs = Number.isFinite(rawThrottle) ? Math.max(0, Math.min(60000, rawThrottle)) : 10000;
+    if (throttleMs > 0 && Date.now() - lastReportAt < throttleMs) return;
+    lastReportAt = Date.now();
+    const rawTimeout = parseInt(cfg.reportTimeoutMs, 10);
+    const timeoutMs = Number.isFinite(rawTimeout) ? Math.max(1000, Math.min(30000, rawTimeout)) : 5000;
+    const body = cfg.reportPrivacyMode !== false
+      ? { kind: kind }
+      : { kind: kind, url: location.origin + location.pathname };
+    const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(function () { ctrl.abort(); }, timeoutMs) : null;
     try {
-      const body = cfg.reportPrivacyMode !== false ? { kind: kind } : { kind: kind, url: location.href };
-      fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(function () {});
-    } catch (e) { /* 忽略 */ }
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: ctrl ? ctrl.signal : undefined
+      }).catch(function () {}).then(function () { if (timer) clearTimeout(timer); });
+    } catch (e) { if (timer) clearTimeout(timer); }
   }
 
   const scripts = cfg.scripts || {};
   const iframes = cfg.iframes || {};
   const attrs = cfg.attrs || {};
+
+  // 同源白名单：站点自身功能（如本地搜索注入的 /pagefind/ 脚本）不应被当成注入移除；
+  // 未配 allowPathPrefixes 时使用默认 ['/pagefind/']；配 [] 则关闭白名单。
+  function isAllowedScript(node) {
+    const src = node.getAttribute && node.getAttribute('src');
+    if (!src) return false;
+    try {
+      const u = new URL(src, location.href);
+      if (u.origin !== location.origin) return false;
+      const allow = Array.isArray(scripts.allowPathPrefixes) ? scripts.allowPathPrefixes : ['/pagefind/'];
+      return allow.some(function (p) { return typeof p === 'string' && p && u.pathname.indexOf(p) === 0; });
+    } catch (e) { return false; }
+  }
 
   if (scripts.monitor !== false || iframes.monitor !== false || attrs.monitor) {
     new MutationObserver(function (muts) {
@@ -36,6 +67,7 @@ export function init(ctx) {
           Array.prototype.forEach.call(m.addedNodes, function (n) {
             if (!n || !n.tagName) return;
             if (n.tagName === 'SCRIPT' && scripts.monitor !== false) {
+              if (isAllowedScript(n)) return;
               const action = scripts.action || 'toast';
               if (action === 'remove') n.remove();
               notify(action === 'remove' ? '已移除注入脚本' : '检测到脚本注入');

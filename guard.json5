@@ -563,7 +563,7 @@
   },
 
   // ==========================================================================
-  // 【tamperWatch】注入与篡改监视（15 项）——默认关闭（保留但默认关）
+  // 【tamperWatch】注入与篡改监视（18 项）——默认关闭（保留但默认关）
   // --------------------------------------------------------------------------
   // 监视：动态 <script>/<iframe> 注入、内联事件属性、fetch/eval 原型替换、
   //   关键 DOM 节点消失、CSP 违规事件；可选手动上报端点（默认关闭，不上报）。
@@ -582,7 +582,11 @@
       // scripts.monitor：监视动态 <script> 注入；推荐 true。
       monitor: true,
       // scripts.action：命中后动作；'toast' | 'remove' | 'report'。
-      action: 'toast'
+      action: 'toast',
+      // scripts.allowPathPrefixes：同源脚本白名单（路径前缀数组）；命中的动态脚本视为站点自身功能
+      // 类型：array<string>；推荐 ['/pagefind/']（本地搜索按需注入的脚本）；配 [] = 关闭白名单
+      // 不可填：非字符串元素（忽略）；注意：仅同源脚本参与匹配，跨域脚本一律不豁免
+      allowPathPrefixes: ['/pagefind/']
     },
 
     // 作用：动态内联事件属性（onclick= 等）监视；类型：boolean；推荐 false
@@ -624,9 +628,16 @@
 
     // 作用：手动上报端点（POST JSON）；类型：string；空 = 不上报（默认，隐私优先）
     // 不可填：非 http(s) 地址；注意：数据默认仅含事件类型（见 reportPrivacyMode）
+    // 重要：跨域端点需同时加入 security.json5 的 CSP connect-src，否则请求会被浏览器
+    //   静默拦截（仅控制台可见 CSP 违规）；同源端点无需额外配置
     reportEndpoint: '',
-    // 作用：隐私模式（仅上报事件类型，不含 URL/UA 等）；类型：boolean；推荐：true
+    // 作用：隐私模式（仅上报事件类型；关闭后附带 origin+pathname，绝不含查询串/哈希）；
+    // 类型：boolean；推荐：true
     reportPrivacyMode: true,
+    // 作用：上报超时（超时即中断，防悬挂请求）；类型：number(ms)；可填 1000–30000；推荐：5000
+    reportTimeoutMs: 5000,
+    // 作用：上报节流（两次上报最短间隔；0 = 不节流）；类型：number(ms)；可填 0–60000；推荐：10000
+    reportThrottleMs: 10000,
 
     // 作用：CSP 违规事件（securitypolicyviolation）弹出提示；类型：boolean；推荐：true
     cspViolationToast: true,

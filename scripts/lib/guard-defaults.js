@@ -197,7 +197,10 @@ const DEFAULT_GUARD = {
     "enabled": false,
     "scripts": {
       "monitor": true,
-      "action": "toast"
+      "action": "toast",
+      "allowPathPrefixes": [
+        "/pagefind/"
+      ]
     },
     "attrs": {
       "monitor": false
@@ -219,6 +222,8 @@ const DEFAULT_GUARD = {
     "probeIntervalMs": 2000,
     "reportEndpoint": "",
     "reportPrivacyMode": true,
+    "reportTimeoutMs": 5000,
+    "reportThrottleMs": 10000,
     "cspViolationToast": true,
     "noticeOncePerSession": true,
     "logDetect": false

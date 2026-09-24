@@ -1,5 +1,5 @@
 function hashStr(s) { var h = 0; for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; } return String(h); }
-function collapseAnnH() { try { document.documentElement.setAttribute('data-ann-dismissed', '1'); } catch (e) {} }
+function collapseAnnH() { try { document.documentElement.setAttribute('data-ann-dismissed', '1'); } catch (e) { /* 忽略：属性写入失败不影响公告展示 */ } }
 function run() {
   var bar = document.getElementById('announceBar');
   if (!bar) return;
@@ -9,14 +9,14 @@ function run() {
   var key = A.storageKey;
   var h = hashStr(JSON.stringify(items));
   var dismissed = false;
-  try { if (bar.getAttribute('data-dismiss-hash') && localStorage.getItem(key) === h) dismissed = true; } catch (e) {}
+  try { if (bar.getAttribute('data-dismiss-hash') && localStorage.getItem(key) === h) dismissed = true; } catch (e) { /* 忽略：存储不可用时视为未关闭 */ }
   if (dismissed) { bar.remove(); collapseAnnH(); return; }
-  try { document.documentElement.classList.add('ann-on'); } catch (e) {}
-  try { document.documentElement.classList.add('ann-anim'); } catch (e) {}
+  try { document.documentElement.classList.add('ann-on'); } catch (e) { /* 忽略：classList 为同步操作，防御性保护 */ }
+  try { document.documentElement.classList.add('ann-anim'); } catch (e) { /* 忽略：classList 为同步操作，防御性保护 */ }
   var close = document.getElementById('announceClose');
   if (close) close.addEventListener('click', function () {
-    try { localStorage.setItem(key, h); } catch (e) {}
-    try { document.documentElement.classList.remove('ann-on'); } catch (e) {}
+    try { localStorage.setItem(key, h); } catch (e) { /* 忽略：存储不可用时关闭状态仅在当次会话有效 */ }
+    try { document.documentElement.classList.remove('ann-on'); } catch (e) { /* 忽略：classList 为同步操作，防御性保护 */ }
     if (rotTimer) { clearInterval(rotTimer); rotTimer = null; }
     bar.classList.add('closing');
     collapseAnnH();

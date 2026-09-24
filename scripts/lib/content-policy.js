@@ -128,6 +128,7 @@ function sanitizeSvg(svgText) {
   const decoded = decodeSvgEntities(svgText);
   // 去除全部 ASCII 空白与控制符后再比对: 浏览器解析 URL 时会丢弃 \t\n\r 等,
   // 因此 `java\tscript:` 与 javascript: 等效
+  // eslint-disable-next-line no-control-regex -- 有意匹配控制字符：`java\tscript:` 等伪装需先剔除控制符再比对
   const squeezed = decoded.replace(/[\u0000-\u0020\u007f]+/g, '');
   const hasExecutable = /<script[\s>]/i.test(decoded) ||
     /<foreignobject[\s>]/i.test(decoded) ||

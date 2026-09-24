@@ -21,7 +21,7 @@ export function init() {
         ta.style.opacity = '0';
         document.body.appendChild(ta);
         ta.select();
-        try { document.execCommand('copy'); } catch (err) {}
+        try { document.execCommand('copy'); } catch (err) { /* 忽略：旧接口复制失败且无进一步回退 */ }
         document.body.removeChild(ta);
         showCopied();
       }

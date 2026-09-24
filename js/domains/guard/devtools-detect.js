@@ -18,6 +18,8 @@ export function init(ctx) {
 
   function detectTiming() {
     const t0 = performance.now();
+    // 此处的 debugger 是 timingDebugger 检定的一部分（依赖断点暂停造成耗时差），非调试残留，故意保留
+    // eslint-disable-next-line no-debugger
     debugger;
     return (performance.now() - t0) > timingThreshold;
   }

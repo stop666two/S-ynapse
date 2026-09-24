@@ -7,8 +7,6 @@ const path = require('node:path');
 
 const WORKERS_DIR = path.join(__dirname, '..', 'workers');
 const CONFIG_PATH = path.join(WORKERS_DIR, 'security-config.js');
-const WORKER_PATH = path.join(WORKERS_DIR, 'security-worker.js');
-
 const FIXTURE = {
   rateLimiting: {
     enabled: true,

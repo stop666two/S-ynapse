@@ -15,7 +15,7 @@ export function init() {
     try {
       var c = getComputedStyle(document.body).getPropertyValue('--color-s').trim();
       if (c && c[0] === '#') { dotrgb = parseInt(c.slice(1, 3), 16) + ',' + parseInt(c.slice(3, 5), 16) + ',' + parseInt(c.slice(5, 7), 16); }
-    } catch (e) {}
+    } catch (e) { /* 忽略：可选背景特性失败不阻塞页面 */ }
     var dots = [];
     function rs() {
       cv.width = window.innerWidth; cv.height = window.innerHeight; dots = [];

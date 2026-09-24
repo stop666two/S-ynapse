@@ -125,11 +125,9 @@ export function init() {
     window.__SEARCH_PROVIDER_PATH__ = String(PF.indexPath).replace(/\/$/, '');
   })();
   var __HSK = '';
-  var __HST = 0;
   function __hs() {
     var F = window.__FEATURES__ || {}, HS = (F && F.hotSearches) || {};
     __HSK = HS.storageKey;
-    __HST = isNaN(+TNS.hotCount) ? +HS.top : +TNS.hotCount;
   }
   (function () {
     var F0 = window.__FEATURES__ || {}, SC0 = (F0 && F0.search) || {};
@@ -260,7 +258,7 @@ export function init() {
     h = h.filter(function (x) { return x !== q; });
     h.unshift(q);
     h = h.slice(0, mx);
-    try { localStorage.setItem(__HSK, JSON.stringify(h)); } catch (e) {}
+    try { localStorage.setItem(__HSK, JSON.stringify(h)); } catch (e) { /* 忽略：存储不可用时历史仅当次会话有效 */ }
   }
   function renderHistory() {
     var hist = document.getElementById('searchHistory');

@@ -25,7 +25,6 @@ export function init(ctx) {
 
   let menu = null;
   let opened = false;
-  let lastX = 0, lastY = 0;
   let pressTimer = null, pressX = 0, pressY = 0;
 
   const t = ctx.t;

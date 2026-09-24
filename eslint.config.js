@@ -19,13 +19,24 @@ module.exports = [
   },
   // 基础规则：@eslint/js core recommended（所有可检文件默认套用）
   js.configs.recommended,
+  // 规则细化：
+  //   no-unused-vars —— ESLint 9 默认将 catch 参数视为必须使用（caughtErrors: 'all'），
+  //   本项目既有风格为 `catch (e) {}` 形式的“有意忽略错误”场景（如 localStorage 不可用、
+  //   可选功能失败不阻塞主流程），因此恢复 caughtErrors: 'none'：只校验真正的变量/参数遗留，
+  //   不强制使用 catch 捕获对象本身（其余规则仍按 recommended 严格）。
+  {
+    rules: {
+      'no-unused-vars': ['error', { caughtErrors: 'none' }]
+    }
+  },
   // 浏览器端模块（js/**/*.js）：ESM 语法 + 浏览器全局（window/document/localStorage/fetch 等）
+  //   __T：运行时界面文案函数（js/core 注入的全局助手，各领域模块直接调用）
   {
     files: ['js/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      globals: Object.assign({}, globals.browser)
+      globals: Object.assign({}, globals.browser, { __T: 'readonly' })
     }
   },
   // 构建与验证脚本（scripts/**/*.js）：CommonJS 语法 + Node 全局（require/module/process/__dirname 等）
@@ -35,6 +46,14 @@ module.exports = [
       ecmaVersion: 2022,
       sourceType: 'commonjs',
       globals: Object.assign({}, globals.node)
+    }
+  },
+  // 例外：无障碍审计脚本通过 page.evaluate(() => ...) 在浏览器上下文中执行回调，
+  // 回调体内使用的 document/window 属浏览器全局，需为该文件补声明。
+  {
+    files: ['scripts/a11y-audit.js'],
+    languageOptions: {
+      globals: Object.assign({}, globals.node, globals.browser)
     }
   },
   // Cloudflare Worker（workers/**/*.js 与 *.mjs）：ESM 语法，同时使用平台与浏览器风格全局（fetch/crypto/URL 等）

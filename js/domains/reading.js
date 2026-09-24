@@ -1,8 +1,8 @@
 export function toggleReadingMode() {
   var d = document.documentElement;
   var a = d.getAttribute('data-reading');
-  if (a === 'true') { d.removeAttribute('data-reading'); try { localStorage.setItem('readingMode', 'false'); } catch (e) {} }
-  else { d.setAttribute('data-reading', 'true'); try { localStorage.setItem('readingMode', 'true'); } catch (e) {} }
+  if (a === 'true') { d.removeAttribute('data-reading'); try { localStorage.setItem('readingMode', 'false'); } catch (e) { /* 忽略：存储不可用时阅读模式仅当次会话有效 */ } }
+  else { d.setAttribute('data-reading', 'true'); try { localStorage.setItem('readingMode', 'true'); } catch (e) { /* 忽略：存储不可用时阅读模式仅当次会话有效 */ } }
 }
 
 export function init() {

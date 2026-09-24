@@ -758,7 +758,7 @@ function setupMarkedRenderer(config, mediaManifest) {
             const origSources = [];
             const sizesAttr = (_perf.imageSizes && _perf.imageSizes !== 'auto') ? _perf.imageSizes : '(max-width: 768px) 100vw, 768px';
             for (const [key, val] of Object.entries(entry.variants)) {
-              const [size, fmt] = key.split('-');
+              const fmt = key.split('-').pop();
               const escaped = escapeAttr(val);
               if (fmt === 'webp') webpSources.push(`  <source srcset="${escaped}" sizes="${sizesAttr}" type="image/webp">`);
               else if (fmt === 'avif') avifSources.push(`  <source srcset="${escaped}" sizes="${sizesAttr}" type="image/avif">`);
@@ -843,7 +843,7 @@ function setupMarkedRenderer(config, mediaManifest) {
 // without being rendered as a standalone HTML page. Also consumed by processCustomPages
 // which renders the same files as full standalone pages.
 // Key = filename without .md extension.
-function processPagesContent(config) {
+function processPagesContent() {
   const result = {};
   if (!fs.existsSync(PAGES_DIR)) {
     console.warn('  [WARN] pages/ directory not found, pages content will not be available');
@@ -1289,7 +1289,7 @@ function renderPage(templateName, data, layoutTemplate, cfg) {
   }
   try {
     const rawTitle = (typeof data.title !== 'undefined' && data.title) ? data.title : null;
-    const pageTitleFinal = applyTitleTemplate(cfg || config, data.currentPage || 'index', rawTitle, data.lang);
+    const pageTitleFinal = applyTitleTemplate(cfg, data.currentPage || 'index', rawTitle, data.lang);
     const bodyContent = ejs.render(templateStr, data, { filename: path.join(TEMPLATES_DIR, templateName) });
     let result;
     if (layoutTemplate) {
@@ -1497,7 +1497,6 @@ function buildPageData(config, articles, tags, categories) {
       }
       return (o === undefined || o === null) ? fallback : o;
     },
-    i18nDict: (typeof uiStrings !== 'undefined' ? uiStrings : {}),
     escapeJsonForScript: escapeJsonForScript,
     JSON: JSON,
     Array: Array,
@@ -2058,7 +2057,7 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
       const entryPath = path.join(DIST_DIR, lang, sitemapPath);
       const outDir = path.dirname(entryPath);
       if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-      const writeOne = (item, prio) => {
+      const writeOne = (item) => {
         let x = '<loc>' + escapeHtml(encodeLoc(url + item.loc)) + '</loc>';
         const lastmod = toSitemapLastmod(item.lastmod);
         if (lastmod) x += '<lastmod>' + lastmod + '</lastmod>';
@@ -2307,7 +2306,10 @@ function generateRedirects(config, customPages) {
       console.warn('  [WARN] Skipped invalid redirect entry (missing from/to): ' + JSON.stringify(r || null));
       continue;
     }
+    // 清洗重定向规则：控制字符（\x00-\x1f 与 \x7f）混入 from/to 会造成规则解析歧义，必须剔除
+    // eslint-disable-next-line no-control-regex
     const from = String(r.from).replace(/[\s\u0000-\u001f\u007f]+/g, '');
+    // eslint-disable-next-line no-control-regex
     const to = String(r.to).replace(/[\s\u0000-\u001f\u007f]+/g, '');
     if (!from.startsWith('/') || !/^(?:\/|https?:\/\/)/i.test(to)) {
       console.warn('  [WARN] Skipped invalid redirect entry (from must start with "/", to must be a path or http(s) URL): ' + JSON.stringify(r));
@@ -2861,7 +2863,7 @@ async function build() {
     const tags = collectTags(articles);
     const categories = collectCategories(articles);
     if (config.site.build.relatedArticles !== false) computeRelatedArticles(getPublished(articles), (config.features && config.features.related) || {});
-    const pagesContent = processPagesContent(config);
+    const pagesContent = processPagesContent();
     if (config.theme.articleFooter && config.theme.articleFooter.enabled && config.theme.articleFooter.source) {
       if (!pagesContent || !pagesContent[config.theme.articleFooter.source]) {
         console.warn(`  [WARN] articleFooter.source "${config.theme.articleFooter.source}" not found in pages/ directory`);
@@ -2997,7 +2999,7 @@ function startServer(config) {
       var parts = line.trim().split(/\s+/);
       if (parts.length >= 3) REDIRECT_LIST.push({ from: parts[0], to: parts[1], status: parts[2] === '302' ? 302 : 301 });
     });
-  } catch (e) {}
+  } catch (e) { /* 忽略：serve 模式下 _redirects 不存在时按空规则处理 */ }
   var mime = { '.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.xml':'application/xml','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.gif':'image/gif','.ico':'image/x-icon','.txt':'text/plain','.mp4':'video/mp4','.webm':'video/webm','.avi':'video/x-msvideo','.mov':'video/quicktime','.mkv':'video/x-matroska','.mp3':'audio/mpeg','.wav':'audio/wav','.m4a':'audio/mp4','.ogg':'audio/ogg','.flac':'audio/flac','.pdf':'application/pdf','.csv':'text/csv','.zip':'application/zip','.7z':'application/x-7z-compressed','.rar':'application/x-rar-compressed','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf','.otf':'font/otf','.eot':'application/vnd.ms-fontobject' };
   http.createServer(function(req, res) {
     if (MAINTENANCE) {
@@ -3035,7 +3037,7 @@ function startServer(config) {
     if (!filePath.startsWith(path.resolve(DIST_DIR) + path.sep) && !filePath.startsWith(path.resolve(DIST_DIR) + '/')) {
       filePath = path.join(DIST_DIR, '404.html');
     }
-    try { if (fs.statSync(filePath).isDirectory()) filePath = path.join(filePath, 'index.html'); } catch(e) {}
+    try { if (fs.statSync(filePath).isDirectory()) filePath = path.join(filePath, 'index.html'); } catch(e) { /* 忽略：路径不存在/非目录时按原路径处理 */ }
     var isNotFound = false;
     if (!fs.existsSync(filePath)) {
       var alt = filePath + '.html';

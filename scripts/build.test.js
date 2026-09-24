@@ -311,7 +311,7 @@ describe('validateSlug', () => {
 });
 
 describe('content-policy classifyFile', () => {
-  const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
+  const { classifyFile } = require('./lib/content-policy');
 
   it('rejects executables in every directory', () => {
     assert.strictEqual(classifyFile('evil.exe', 'videos', null).reason, 'blocked-executable');

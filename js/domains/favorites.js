@@ -12,7 +12,7 @@ export function init() {
     } catch (e) { return []; }
   }
   function save(a) {
-    try { localStorage.setItem(KEY, JSON.stringify(a)); } catch (e) {}
+    try { localStorage.setItem(KEY, JSON.stringify(a)); } catch (e) { /* 忽略：存储不可用时收藏仅当次会话有效 */ }
   }
   function has(url) {
     return read().some(x => x.url === url);

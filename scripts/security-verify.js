@@ -175,8 +175,8 @@ try {
   console.error('[FAIL] Security verification threw:', err.message);
   failed = true;
 } finally {
-  try { fs.rmSync(TEMP_FILE, { force: true }); } catch {}
-  try { fs.rmSync(TEMP_SLUG_FILE, { force: true }); } catch {}
+  try { fs.rmSync(TEMP_FILE, { force: true }); } catch { /* 忽略：临时文件清理失败不影响验证结论 */ }
+  try { fs.rmSync(TEMP_SLUG_FILE, { force: true }); } catch { /* 忽略：临时文件清理失败不影响验证结论 */ }
   try {
     build();
     console.log('[INFO] Rebuilt clean site after verification.');

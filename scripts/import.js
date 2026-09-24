@@ -46,7 +46,7 @@ function yamlValue(v) {
   return `"${frontmatterEscape(v)}"`;
 }
 
-function buildFrontmatter(post, index) {
+function buildFrontmatter(post) {
   const lines = ['---'];
   lines.push(`title: ${yamlValue(post.title)}`);
   if (post.date) lines.push(`date: ${post.date}`);
@@ -188,7 +188,7 @@ function writePost(post, index, args) {
   const safeName = post.slug || post.title || `post-${index}`;
   const slug = safeName.replace(/[^\w\u4e00-\u9fff-]+/g, '-').replace(/^-+|-+$/g, '') || `post-${index}`;
   const filename = `${args.prefix}${String(index + 1).padStart(2, '0')}-${slug}.md`;
-  const content = buildFrontmatter(post, index) + post.body.replace(/^\s*\n/, '') + (post.body.trim() ? '\n' : '');
+  const content = buildFrontmatter(post) + post.body.replace(/^\s*\n/, '') + (post.body.trim() ? '\n' : '');
   const outPath = path.join(args.out, filename);
   fs.writeFileSync(outPath, content, 'utf-8');
   return outPath;
@@ -214,7 +214,7 @@ function main() {
   }
   console.log(`[import] Found ${posts.length} ${args.from} posts`);
   if (args.dryRun) {
-    posts.forEach((p, i) => console.log(`  would import: ${p.title || p.slug}${p.draft ? ' (draft)' : ''}`));
+    posts.forEach((p) => console.log(`  would import: ${p.title || p.slug}${p.draft ? ' (draft)' : ''}`));
     return;
   }
   fs.mkdirSync(args.out, { recursive: true });

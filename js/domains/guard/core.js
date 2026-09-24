@@ -49,7 +49,7 @@ function toast(msg) {
   if (typeof window.__toast === 'function') window.__toast(msg, { type: 'info' });
 }
 
-function markReady() { try { window.__GUARD_READY__ = true; } catch (e) {} }
+function markReady() { try { window.__GUARD_READY__ = true; } catch (e) { /* 忽略：就绪标记写入失败不影响防护初始化 */ } }
 
 export function init() {
   if (!Object.keys(G).length) { markReady(); return; }

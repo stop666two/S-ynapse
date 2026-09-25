@@ -18,6 +18,7 @@
     "verify:security": "node scripts/security-verify.js",
     "verify:config": "node scripts/check-config-consistency.js",
     "audit:a11y": "node scripts/a11y-audit.js",
+    "perf:audit": "node scripts/perf-audit.js",
     "import": "node scripts/import.js",
     "build": "node scripts/build.js",
     "dev": "node scripts/build.js --watch --drafts",

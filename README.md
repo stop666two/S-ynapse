@@ -473,6 +473,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run audit` | 依赖漏洞扫描（固定官方 registry：本机 npm 镜像会阻断 audit 接口） |
 | `npm run typecheck` | TypeScript checkJs 类型检查（scripts/lib；CI 门禁） |
 | `npm run verify:security` | 集成安全回归（注入恶意文章 → 真实构建 → 语义断言） |
+| `npm run perf:audit -- --url <URL>` | 可复现性能基线（Slow 4G + CPU 4x 节流 + 禁用缓存；`--runs`/`--out`/`--json`/`--chrome` 可选，Chrome 路径默认系统安装位置、`CHROME_PATH` 可覆盖） |
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
 | `npx wrangler pages deploy dist --project-name=s-ynapse` | 部署到 Cloudflare Pages |

@@ -136,9 +136,14 @@
     "provider": "local",
 
     // 搜索框占位文字（中文）
-    // 作用: 导航搜索弹层的 placeholder;en 站点由 ui-strings.json5 覆盖
+    // 作用: 导航搜索弹层的 placeholder;en 站点优先使用 placeholderEn,留空再由 ui-strings.json5 覆盖
     // 类型: string | 推荐: "搜索文章..."
-    "placeholder": "搜索文章..."
+    "placeholder": "搜索文章...",
+
+    // 搜索框占位文字（英文）
+    // 作用: en 站点导航搜索弹层的 placeholder
+    // 类型: string | 可填: 英文短句 | 空 = en 站回退 placeholder
+    "placeholderEn": "Search posts..."
   },
 
   // ===================================================================

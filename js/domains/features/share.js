@@ -6,7 +6,8 @@ export function init() {
     var kind = b.getAttribute('data-share');
     var url = window.location.href, title = document.title || '';
     var SH = window.__FEATURES__ && window.__FEATURES__.share || {};
-    var showCopied = function () { if (window.__toast) window.__toast(SH.copiedText || __T('post.linkCopied', '链接已复制'), { type: 'success' }); };
+    var __en = (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
+    var showCopied = function () { if (window.__toast) window.__toast(__en ? (SH.copiedTextEn || SH.copiedText || __T('post.linkCopied', '链接已复制')) : (SH.copiedText || __T('post.linkCopied', '链接已复制')), { type: 'success' }); };
     if (SH.useNativeShare && navigator.share && kind !== 'copy' && kind !== 'wechat') {
       navigator.share({ title: title, url: url }).catch(function () {});
       return;

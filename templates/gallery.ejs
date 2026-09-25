@@ -5,9 +5,10 @@
   Clicking an image opens the shared lightbox (collects .gallery img).
 %>
 <div class="post-article">
-<h1><%= ui('gallery.title','图库') %></h1>
+<% var _gen=(typeof lang!=='undefined'&&lang==='en'); var _g=features.gallery||{}; %>
+<h1><%= (_gen&&_g.titleEn)?_g.titleEn:(_g.title||ui('gallery.title','图库')) %></h1>
 <% if (typeof galleryItems !== 'undefined' && galleryItems && galleryItems.length) { %>
-<p class="gallery-desc"><%= ui('gallery.count','共 {count} 张图片').replace('{count}', galleryItems.length) %> · <%= ui('gallery.desc','站内图片集，点击查看大图。') %></p>
+<p class="gallery-desc"><%= ui('gallery.count','共 {count} 张图片').replace('{count}', galleryItems.length) %> · <%= (_gen&&_g.descriptionEn)?_g.descriptionEn:(_g.description||ui('gallery.desc','站内图片集，点击查看大图。')) %></p>
 <div class="gallery-grid" id="galleryGrid">
   <% galleryItems.forEach(function(g) { %>
   <figure class="gallery-item">
@@ -21,6 +22,6 @@
   <% }) %>
 </div>
 <% } else { %>
-<p class="gallery-empty"><%= ui('gallery.empty','暂无图片') %>。</p>
+<p class="gallery-empty"><%= (_gen&&_g.emptyTextEn)?_g.emptyTextEn:(_g.emptyText||ui('gallery.empty','暂无图片')) %>。</p>
 <% } %>
 </div>

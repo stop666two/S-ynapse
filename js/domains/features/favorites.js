@@ -3,6 +3,7 @@ export function init() {
   const FV = F.favorites || {};
   if (FV.enabled === false) return;
   const KEY = FV.storageKey;
+  const EN = (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
   const T = (k, fb) => (window.__T ? window.__T(k, fb) : fb);
 
   function read() {
@@ -29,7 +30,7 @@ export function init() {
       const on = has(url);
       btn.classList.toggle('faved', on);
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-      if (sp) sp.textContent = on ? T('favorites.faved', FV.favedText || '已收藏') : T('favorites.not', FV.notText || '收藏');
+      if (sp) sp.textContent = on ? T('favorites.faved', (EN && FV.favedTextEn) ? FV.favedTextEn : (FV.favedText || '已收藏')) : T('favorites.not', (EN && FV.notTextEn) ? FV.notTextEn : (FV.notText || '收藏'));
     };
     paint();
     btn.addEventListener('click', () => {
@@ -39,7 +40,7 @@ export function init() {
       else list.unshift({ url, title, time: Date.now() });
       save(list);
       paint();
-      if (window.__toast) window.__toast(on ? T('favorites.removed', '已取消收藏') : T('favorites.faved', FV.favedText || '已收藏'), { type: on ? 'info' : 'success' });
+      if (window.__toast) window.__toast(on ? T('favorites.removed', '已取消收藏') : T('favorites.faved', (EN && FV.favedTextEn) ? FV.favedTextEn : (FV.favedText || '已收藏')), { type: on ? 'info' : 'success' });
     });
   }
 

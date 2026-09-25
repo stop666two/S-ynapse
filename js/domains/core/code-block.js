@@ -6,6 +6,7 @@ function checkIco(){return'<svg class="icon-draw" width="14" height="14" viewBox
 function copyIco(){return'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'}
 function boot(){
 var F=window.__FEATURES__||{};
+var __en=(document.documentElement.getAttribute('data-lang')||((document.documentElement.getAttribute('lang')||'').toLowerCase().indexOf('en')===0?'en':'zh'))==='en';
 var CB0=(F&&F.codeBlock)||{};var win=CB0.windowBar!==false;var vis=CB0.copyButtonVisibility||'hover';var th=CB0.maxHeightVh?parseInt(CB0.maxHeightVh)||0:0;
 var IC={dl:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path pathLength="100" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline pathLength="100" points="7,10 12,15 17,10"/><line pathLength="100" x1="12" y1="15" x2="12" y2="3"/></svg>',exp:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6,9 12,15 18,9"/></svg>',col:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="18,15 12,9 6,15"/></svg>'};
 var blocks=[];
@@ -14,7 +15,7 @@ if(p.getAttribute('data-cbBound')==='1')return;
 p.setAttribute('data-cbBound','1');
 if(p.getAttribute('data-language')==='mermaid'||p.querySelector('div.mermaid')||p.querySelector('code.language-mermaid'))return;
 var code0=p.querySelector('code');
-var CB=(F&&F.codeCopy)||{};var COPYT=CB.buttonText||__T('toolbar.copyCode','复制代码'),COPIED=CB.copiedText||__T('toolbar.copied','已复制'),COPYTIMEOUT=isNaN(+CB.buttonTimeout)?1500:+CB.buttonTimeout;
+var CB=(F&&F.codeCopy)||{};var COPYT=(__en&&CB.buttonTextEn)?CB.buttonTextEn:(CB.buttonText||__T('toolbar.copyCode','复制代码')),COPIED=(__en&&CB.copiedTextEn)?CB.copiedTextEn:(CB.copiedText||__T('toolbar.copied','已复制')),COPYTIMEOUT=isNaN(+CB.buttonTimeout)?1500:+CB.buttonTimeout;
 if(code0&&code0.classList.contains('language-mermaid'))return;
 var lang=p.getAttribute('data-language');
 if(!lang&&code0){var m=code0.className.match(/language-([\w-]+)/);lang=m?m[1]:''}
@@ -52,7 +53,7 @@ if(CB0.copyAllButton!==false&&blocks.length){
 var all=blocks.map(function(p){var c=p.querySelector('code')||p;return(c.textContent||'')}).join('\n\n');
 var row2=document.createElement('div');row2.className='code-copy-all-row';
 var ab=document.createElement('button');ab.className='code-copy-all-btn';ab.type='button';ab.innerHTML=copyIco()+'<span>'+__T('toolbar.copyAllCode','复制全部代码')+'</span>';
-var ALLCOPYT=(F&&F.codeCopy&&F.codeCopy.copiedText)||__T('toolbar.copied','已复制');
+var ALLCOPYT=(__en&&F.codeCopy&&F.codeCopy.copiedTextEn)||(F&&F.codeCopy&&F.codeCopy.copiedText)||__T('toolbar.copied','已复制');
 var doneAll=function(){drawIco(ab.querySelector('svg'));var sp=ab.querySelector('span');if(sp)sp.textContent=ALLCOPYT;setTimeout(function(){var sp2=ab.querySelector('span');if(sp2)sp2.textContent=__T('toolbar.copyAllCode','复制全部代码')},1500);if(window.__toast)window.__toast(ALLCOPYT,{type:'success'})};
 var fbAll=function(){var ta=document.createElement('textarea');ta.value=all;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(err){/* 忽略：旧接口失败由 ok 标志回退提示 */}document.body.removeChild(ta);if(ok)doneAll();else if(window.__toast)window.__toast(__T('toolbar.copyFailed','复制失败'),{type:'error'})};
 ab.onclick=function(){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(all).then(doneAll).catch(fbAll)}else{fbAll()}};

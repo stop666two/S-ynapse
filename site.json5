@@ -426,7 +426,9 @@
   //   url:     type=link 时的跳转地址（支持 https:// 与 mailto:）
   //   value:   type=popup 时的内部值（用于复制/记录,不直接展示）
   //   popupTitle: type=popup 时的弹层标题
+  //   popupTitleEn: 弹层标题英文版（en 站使用;空 = 回退 popupTitle）
   //   popupContent: type=popup 时的弹层正文（展示给用户,建议含 value）
+  //   popupContentEn: 弹层正文英文版（en 站使用;空 = 回退 popupContent）
   // 不可填: 不存在的平台键名（新增平台需同步 templates 与图标映射）
   "social": {
     // 社交区总开关
@@ -484,7 +486,9 @@
         "type": "popup", // 弹层型（用 value/popup*）
         "value": "123456789", // 弹层内主体值
         "popupTitle": "QQ", // 弹层标题
-        "popupContent": "QQ 号：123456789" // 弹层正文
+        "popupTitleEn": "QQ", // 弹层标题（英文）
+        "popupContent": "QQ 号：123456789", // 弹层正文
+        "popupContentEn": "QQ: 123456789" // 弹层正文（英文）
       },
       // QQ 群（弹层展示群号）
       "qqgroup": {
@@ -492,7 +496,9 @@
         "type": "popup", // 弹层型（用 value/popup*）
         "value": "987654321", // 弹层内主体值
         "popupTitle": "QQ 群", // 弹层标题
-        "popupContent": "QQ 群号：987654321" // 弹层正文
+        "popupTitleEn": "QQ Group", // 弹层标题（英文）
+        "popupContent": "QQ 群号：987654321", // 弹层正文
+        "popupContentEn": "QQ group: 987654321" // 弹层正文（英文）
       },
       // 微信（弹层展示微信号）
       "wechat": {
@@ -500,7 +506,9 @@
         "type": "popup", // 弹层型（用 value/popup*）
         "value": "MyWeChatID", // 弹层内主体值
         "popupTitle": "微信", // 弹层标题
-        "popupContent": "微信号：MyWeChatID" // 弹层正文
+        "popupTitleEn": "WeChat", // 弹层标题（英文）
+        "popupContent": "微信号：MyWeChatID", // 弹层正文
+        "popupContentEn": "WeChat ID: MyWeChatID" // 弹层正文（英文）
       },
       // 电话（弹层展示号码）
       "phone": {
@@ -508,7 +516,9 @@
         "type": "popup", // 弹层型（用 value/popup*）
         "value": "13800138000", // 弹层内主体值
         "popupTitle": "电话", // 弹层标题
-        "popupContent": "电话：13800138000" // 弹层正文
+        "popupTitleEn": "Phone", // 弹层标题（英文）
+        "popupContent": "电话：13800138000", // 弹层正文
+        "popupContentEn": "Phone: 13800138000" // 弹层正文（英文）
       }
     }
   },
@@ -1043,11 +1053,17 @@
     // 类型: string（一句话） | 推荐: 真诚简短的感谢语
     "note": "如果这篇文章对你有帮助，欢迎打赏支持；谢谢！",
 
+    // 打赏引导语英文版（en 站使用）
+    // 类型: string（一句话） | 空 = en 站回退 note（再由 features.reward.note 兜底）
+    "noteEn": "If this article helped you, a small tip is appreciated. Thank you!",
+
     // 微信收款方式
     // image: 收款码图片路径（站内）;url: 收款链接（与 image 二选一）
+    // labelEn: 方式名称英文版（en 站使用;空 = 回退 label）
     // 不可填: 同时为空（会显示空卡片）
     "wechat": {
       "label": "微信", // 方式名称
+      "labelEn": "WeChat", // 方式名称（英文）
       "image": "", // 收款码图片(站内路径)
       "url": "" // 收款链接(image 与 url 二选一)
     },
@@ -1055,12 +1071,13 @@
     // 支付宝收款方式（字段同上）
     "alipay": {
       "label": "支付宝", // 方式名称
+      "labelEn": "Alipay", // 方式名称（英文）
       "image": "", // 收款码图片(站内路径)
       "url": "" // 收款链接(image 与 url 二选一)
     },
 
     // 自定义打赏方式
-    // 类型: 数组[{label,image?,url?}] | 推荐: 默认空
+    // 类型: 数组[{label,labelEn?,image?,url?}] | 推荐: 默认空
     "custom": []
   },
 

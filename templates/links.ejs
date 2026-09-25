@@ -1,16 +1,17 @@
 <div class="post-article">
 <h1><%= (typeof title!=='undefined'&&title) || friends.title || ui('links.title','友情链接') %></h1>
 
-<% if (friends.description) { %><p class="links-description"><%= friends.description %></p><% } %>
+<% var _len=(typeof lang!=='undefined'&&lang==='en'); %>
+<% if (friends.description) { %><p class="links-description"><%= (_len&&friends.descriptionEn)?friends.descriptionEn:friends.description %></p><% } %>
 
 <% if (friends.friends && friends.friends.length) { %>
 <div class="links-grid">
-  <% friends.friends.forEach(function(f) { %>
+  <% friends.friends.forEach(function(f) { var _fn=(_len&&f.nameEn)?f.nameEn:f.name; var _fd=(_len&&f.descEn)?f.descEn:f.desc; %>
   <a href="<%= f.url %>" class="links-card" target="_blank" rel="noopener noreferrer">
-    <% if (f.logo) { %><img src="<%= f.logo %>" alt="<%= f.name %>" class="links-card-logo" loading="lazy"><% } else { %><span class="links-card-logo links-card-logo-placeholder" aria-hidden="true"><%= f.name.charAt(0) %></span><% } %>
+    <% if (f.logo) { %><img src="<%= f.logo %>" alt="<%= _fn %>" class="links-card-logo" loading="lazy"><% } else { %><span class="links-card-logo links-card-logo-placeholder" aria-hidden="true"><%= _fn.charAt(0) %></span><% } %>
     <div class="links-card-body">
-      <div class="links-card-name"><%= f.name %></div>
-      <% if (f.desc) { %><div class="links-card-desc"><%= f.desc %></div><% } %>
+      <div class="links-card-name"><%= _fn %></div>
+      <% if (_fd) { %><div class="links-card-desc"><%= _fd %></div><% } %>
     </div>
   </a>
   <% }) %>
@@ -22,7 +23,7 @@
 <% if (friends.applyNote) { %>
 <div class="links-apply">
   <h3><%= ui('links.apply','友链申请') %></h3>
-  <p><%= friends.applyNote %></p>
+  <p><%= (_len&&friends.applyNoteEn)?friends.applyNoteEn:friends.applyNote %></p>
 </div>
 <% } %>
 </div>

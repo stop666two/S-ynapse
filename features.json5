@@ -10,6 +10,8 @@
 // 数组语义 : 数组合并为"替换"而非追加(如 share.order 删一项即彻底移除)。
 // 编写规范 : 布尔值开启/关闭;数字为具体数值;字符串为 CSS 值或文本。
 //            每个字段均有真实效果,无摆设项;修改后需重新构建。
+// 双语约定 : 任一文案字段均可追加同名 En 后缀(如 buttonTextEn)提供英文站文案;
+//            类型与中文值一致;空字符串 = en 站回退中文值(英文页兜底不空白)。
 // 边界提示 : 视觉数值微调 → tuning.json5;站点级开关 → site.json5;
 //            主题色/字体 → theme.json5;界面文案 → ui-strings.json5。
 // =============================================================================
@@ -173,11 +175,17 @@
     // 搜索框占位文本。
     // 预留: 当前使用 navigation.json5 search.placeholder（en 站点由 ui-strings 覆盖），本键未接线。
     placeholder: '搜索...',
+    // 搜索框占位文本（en 站；空 = 回退中文；该键为预留，当前未接线）。
+    placeholderEn: 'Search...',
     // 无输入时的提示文本。
     // 预留: 当前空态文案由 tuning/i18n 内置文案提供，本键未接线。
     emptyHint: '输入关键词开始搜索',
+    // 无输入提示（en 站；空 = 回退中文；该键为预留，当前未接线）。
+    emptyHintEn: 'Type a keyword to search',
     // 无结果时提示文本。
     noResultText: '未找到匹配内容',
+    // 无结果提示（en 站；空 = 回退中文）。
+    noResultTextEn: 'No matching content',
     // 结果命中截断长度(字符)。
     excerptLength: 120,
     // 是否包含正文全文(否则仅标题/摘要/标签)。
@@ -253,8 +261,12 @@
     copyButtonVisibility: 'hover',
     // 复制成功提示文本。
     copySuccessText: '已复制',
+    // 复制成功提示（en 站；空 = 回退中文）。
+    copySuccessTextEn: 'Copied',
     // 复制失败提示文本。
     copyFailText: '复制失败',
+    // 复制失败提示（en 站；空 = 回退中文）。
+    copyFailTextEn: 'Copy failed',
     // 下载触发后释放 Blob URL 的延迟(ms)。100ms 在慢盘/大文件下可能先于浏览器读取完成即被撤销,导致下载中断。
     // 类型: number(ms) | 推荐: 1000
     blobRevokeDelayMs: 1000,
@@ -302,10 +314,16 @@
     mode: 'warn',
     // 弹窗内显示的提示文本。
     message: '即将离开本站,前往外部链接：',
+    // 外链弹窗提示文本（en 站；空 = 回退中文）。
+    messageEn: 'You are leaving this site. External link:',
     // 确认按钮文本。
     confirmText: '继续访问',
+    // 确认按钮文本（en 站；空 = 回退中文）。
+    confirmTextEn: 'Continue',
     // 取消按钮文本。
     cancelText: '返回',
+    // 取消按钮文本（en 站；空 = 回退中文）。
+    cancelTextEn: 'Back',
     // 是否显示完整 URL。
     showFullUrl: true,
     // 是否默认 target=_blank。
@@ -313,7 +331,9 @@
     // 白名单链接是否也加 target。
     whitelistNewTab: false,
     // 联系/社交弹窗复制按钮文本。
-    copyButtonText: '复制'
+    copyButtonText: '复制',
+    // 复制按钮文本（en 站；空 = 回退中文）。
+    copyButtonTextEn: 'Copy'
   },
 
   // ---------------------------------------------------------------------------
@@ -400,6 +420,8 @@
     showHelpHint: true,
     // 帮助面板标题。
     helpTitle: '快捷键一览',
+    // 帮助面板标题（en 站；空 = 回退中文）。
+    helpTitleEn: 'Keyboard Shortcuts',
     // 帮助面板是否显示。
     showHelpTable: true,
     // 输入框(INPUT/TEXTAREA/SELECT/contenteditable)内按键是否忽略快捷键。
@@ -625,7 +647,9 @@
     // 数值前缀文案(显示在数字前)。
     labelBefore: '',
     // 数值后缀文案(显示在数字后,如"阅读约需")。
-    labelAfter: '阅读约需'
+    labelAfter: '阅读约需',
+    // 阅读时长后缀文案（en 站；空 = 回退中文）。
+    labelAfterEn: ' min read'
   },
 
   // ---------------------------------------------------------------------------
@@ -634,8 +658,12 @@
     enabled: true,
     // 按钮文案。
     buttonText: '复制',
+    // 复制按钮文案（en 站；空 = 回退中文）。
+    buttonTextEn: 'Copy',
     // 复制成功提示文案。
     copiedText: '已复制',
+    // 复制成功提示文案（en 站；空 = 回退中文）。
+    copiedTextEn: 'Copied',
     // 复制成功后按钮恢复时间(ms)。
     buttonTimeout: 1500,
     // 是否显示行号。
@@ -784,6 +812,8 @@
     persist: true,
     // 按钮文本。
     label: '阅读模式',
+    // 按钮文本（en 站；空 = 回退中文）。
+    labelEn: 'Reading Mode',
     // 进入阅读模式后隐藏侧栏/目录(仅保留正文)。
     focusOnlyContent: true,
     // 字号倍率(1=正常)。
@@ -829,6 +859,8 @@
     showReset: true,
     // 重置按钮文本。
     resetText: '重置',
+    // 重置按钮文本（en 站；空 = 回退中文）。
+    resetTextEn: 'Reset',
     // 面板开关按钮位置:bottom-right/bottom-left。
     position: 'right'
   },
@@ -949,6 +981,8 @@
     copyAfterRender: false,
     // 渲染失败占位文本。
     errorText: '[图表渲染失败]',
+    // 渲染失败占位文本（en 站；空 = 回退中文）。
+    errorTextEn: '[Diagram failed to render]',
     // 图表尺寸(全局默认;单图可在代码块 info 覆盖,写法 ```mermaid w=900 h=520)
     // 子键类型均为 string(CSS 长度)或 'none':
     size: {
@@ -979,6 +1013,8 @@
     showBadge: true,
     // 徽标文本模板:{name} 系列名。
     badgeFormat: '系列 · {name}',
+    // 徽标文本模板（en 站；空 = 回退中文）。
+    badgeFormatEn: 'Series · {name}',
     // 文章底部显示系列导航面板。
     showNavPanel: true,
     // 侧栏系列 widget(与 sidebar.json5 widgets 联动)。
@@ -987,6 +1023,8 @@
     order: 'asc',
     // 导航面板标题模板。
     panelTitle: '本系列共 {total} 篇',
+    // 导航面板标题模板（en 站；空 = 回退中文）。
+    panelTitleEn: '{total} posts in this series',
     // 系列文章前缀(自动标注,如 '第 1/3 篇')。
     showPosition: true,
     // 侧栏系列 widget 默认展示条数(超出截断)。
@@ -994,12 +1032,18 @@
     defaultWidgetCount: 8,
     // 系列导航上一页按钮文本。
     prevLabel: '上一篇',
+    // 上一页按钮文本（en 站；空 = 回退中文）。
+    prevLabelEn: 'Previous',
     // 系列导航下一页按钮文本。
     nextLabel: '下一篇',
+    // 下一页按钮文本（en 站；空 = 回退中文）。
+    nextLabelEn: 'Next',
     // 进度文本模板:{index} 当前篇数,{total} 总篇数。
     progressLabel: '{index} / {total}',
     // 侧栏系列 widget 标题(sidebar.json5 中 w.title 为空时使用)。
-    sidebarTitle: '系列'
+    sidebarTitle: '系列',
+    // 侧栏系列 widget 标题（en 站；空 = 回退中文）。
+    sidebarTitleEn: 'Series'
   },
 
   // ---------------------------------------------------------------------------
@@ -1020,6 +1064,8 @@
     excludeCurrent: true,
     // 推荐区标题。
     title: '相关推荐',
+    // 推荐区标题（en 站；空 = 回退中文）。
+    titleEn: 'Related Posts',
     // 相关文章卡片是否显示摘要。
     showExcerpt: true,
     // 摘要截断长度(字符)。
@@ -1036,6 +1082,8 @@
     enabled: true,
     // 置顶徽标文本。
     badgeText: '置顶',
+    // 置顶徽标文本（en 站；空 = 回退中文）。
+    badgeTextEn: 'Pinned',
     // 置顶徽标样式:pill/corner/none。
     badgeStyle: 'pill',
     // 置顶排序规则:pinned-first(置顶前)/normal(仅标记不重排)。
@@ -1054,8 +1102,12 @@
     inArticle: true,
     // 文本模板:{count} 字数。
     textFormat: '{count} 字',
+    // 字数模板（en 站；空 = 回退中文）。
+    textFormatEn: '{count} words',
     // 阅读时长文本:{minutes} 分钟。
     readTimeFormat: '{minutes} 分钟阅读',
+    // 阅读时长模板（en 站；空 = 回退中文）。
+    readTimeFormatEn: '{minutes} min read',
     // 每分钟阅读字数(中文字数计算基准)。
     wpm: 265,
     // 中文英文字数合并统计视读方式。
@@ -1080,14 +1132,20 @@
     popupHeight: 520,
     // 微信复制文案模板:{title}/{url}。
     wechatText: '{title} 分享自 {url}',
+    // 微信复制文案模板（en 站；空 = 回退中文）。
+    wechatTextEn: '{title} via {url}',
     // 复制成功提示文本。
     copiedText: '链接已复制',
+    // 复制成功提示（en 站；空 = 回退中文）。
+    copiedTextEn: 'Link copied',
     // 提示显示时长(ms)。
     copiedShowMs: 2500,
     // 是否显示分享标题。
     showLabel: false,
     // 工具条标题。
     label: '分享文章',
+    // 工具条标题（en 站；空 = 回退中文）。
+    labelEn: 'Share this post',
     // 浏览器支持 navigator.share 时优先使用系统原生分享面板。
     useNativeShare: false,
     // 剪贴板 API 不可用时用 textarea 回退复制。
@@ -1102,10 +1160,16 @@
     enabled: false,
     // 打赏按钮文本。
     buttonText: '打赏',
+    // 打赏按钮文本（en 站；空 = 回退中文）。
+    buttonTextEn: 'Reward',
     // 打赏提示文本(图片下方)。
     note: '感谢支持',
+    // 打赏提示文本（en 站；空 = 回退中文）。
+    noteEn: 'Thank you for your support',
     // 弹窗标题。
     popupTitle: '打赏支持',
+    // 弹窗标题（en 站；空 = 回退中文）。
+    popupTitleEn: 'Support this site',
     // 弹窗关闭方式:按钮。
     closeByBtn: true,
     // 弹窗关闭方式:点击遮罩。
@@ -1122,6 +1186,8 @@
     qrMaxWidth: '180px',
     // 弹窗关闭按钮文本。
     closeText: '关闭',
+    // 关闭按钮文本（en 站；空 = 回退中文）。
+    closeTextEn: 'Close',
     // 赞助平台链接(显示于打赏弹窗底部;如 GitHub Sponsors / Ko-fi / 爱发电)。
     // 每项格式: { label: '显示名', url: 'https://...' }; label 可省略(用 url 代替)。
     links: []
@@ -1135,10 +1201,16 @@
     enabled: true,
     // 页面标题。
     title: '图库',
+    // 页面标题（en 站；空 = 回退中文）。
+    titleEn: 'Gallery',
     // 描述文本。
     description: '站内图片集，点击查看大图。',
+    // 描述文本（en 站；空 = 回退中文）。
+    descriptionEn: 'In-site image gallery. Click to view full size.',
     // 空图库提示。
     emptyText: '暂无图片',
+    // 空图库提示（en 站；空 = 回退中文）。
+    emptyTextEn: 'No images',
     // 瀑布流列数。
     columns: 4,
     // 列最小宽度(minmax 下界)。
@@ -1208,10 +1280,16 @@
     showLegend: true,
     // 图例低值文字。
     legendLow: '少',
+    // 图例低值文字（en 站；空 = 回退中文）。
+    legendLowEn: 'Less',
     // 图例高值文字。
     legendHigh: '多',
+    // 图例高值文字（en 站；空 = 回退中文）。
+    legendHighEn: 'More',
     // 悬停提示模板:{year}-{month}: {count} 篇。
     tooltipFormat: '{year}-{month}: {count} 篇',
+    // 悬停提示模板（en 站；空 = 回退中文）。
+    tooltipFormatEn: '{year}-{month}: {count} posts',
     // 是否显示每月数字。
     showMonthNumbers: true,
     // 单元格间距(px,热力图 12 列之间的 gap)。
@@ -1234,18 +1312,32 @@
     showArchiveCards: true,
     // 统计标签文案(顺序:文章/天数/字数/日均/标签/分类)。
     labelPosts: '文章总数',
+    // 文章总数标签（en 站；空 = 回退中文）。
+    labelPostsEn: 'Posts',
     // 发文天数标签。
     labelDays: '发文天数',
+    // 发文天数标签（en 站；空 = 回退中文）。
+    labelDaysEn: 'Days',
     // 总字数标签。
     labelWords: '总字数',
+    // 总字数标签（en 站；空 = 回退中文）。
+    labelWordsEn: 'Words',
     // 日均篇数标签。
     labelAvg: '日均篇数',
+    // 日均篇数标签（en 站；空 = 回退中文）。
+    labelAvgEn: 'Avg/Day',
     // 归档页日均标签(archive 统计卡专用)。
     labelAvgPerDay: '日均',
+    // 归档页日均标签（en 站；空 = 回退中文）。
+    labelAvgPerDayEn: 'Avg/Day',
     // 标签数标签。
     labelTags: '标签数',
+    // 标签数标签（en 站；空 = 回退中文）。
+    labelTagsEn: 'Tags',
     // 分类数标签。
     labelCategories: '分类数',
+    // 分类数标签（en 站；空 = 回退中文）。
+    labelCategoriesEn: 'Categories',
     // 统计卡网格列模式(auto-fit 自适应列数;也可填固定列数如 3)。
     cardColumns: 'auto-fit',
     // 侧栏统计 widget 总开关(sidebar.json5 需含 type=stats 的 widget)。
@@ -1264,8 +1356,12 @@
     showLabels: true,
     // 标签模板:
     prevLabel: '上一篇',
+    // 上一页标签文本（en 站；空 = 回退中文）。
+    prevLabelEn: 'Previous',
     // 下一页标签文本(同上,配套使用)。
     nextLabel: '下一篇',
+    // 下一页标签文本（en 站；空 = 回退中文）。
+    nextLabelEn: 'Next',
     // 无邻篇时是否隐藏整块。
     hideWhenMissing: false,
     // 导航卡是否显示缩略图(需文章 featuredImage)。
@@ -1342,6 +1438,8 @@
     enabled: false,
     // 维护提示消息。
     message: '站点维护中，请稍后再来。',
+    // 维护提示消息（en 站；空 = 回退中文）。
+    messageEn: 'The site is under maintenance. Please try again later.',
     // 返回的 HTTP 状态码
     // 类型: number(枚举) | 可填: 503(维护标准,推荐)/502/500
     // 不可填: 200/301 等成功或跳转状态
@@ -1386,12 +1484,18 @@
     renderPlaceholder: true,
     // 占位加载文本。
     placeholderText: '评论加载中…',
+    // 占位加载文本（en 站；空 = 回退中文）。
+    placeholderTextEn: 'Loading comments…',
     // 占位显示时长(ms,过后若无评论组件则显示 emptyText)。
     loadDelayMs: 300,
     // 无评论提示(延迟结束后仍未加载出组件时显示)。
     emptyText: '暂无评论',
+    // 无评论提示（en 站；空 = 回退中文）。
+    emptyTextEn: 'No comments yet',
     // 评论容器标题。
-    title: '评论'
+    title: '评论',
+    // 评论容器标题（en 站；空 = 回退中文）。
+    titleEn: 'Comments'
   },
 
   // ---------------------------------------------------------------------------
@@ -1402,10 +1506,16 @@
     enabled: true,
     // 弹窗标题。
     title: '联系方式',
+    // 弹窗标题（en 站；空 = 回退中文）。
+    titleEn: 'Contact',
     // 复制按钮文本。
     copyText: '复制',
+    // 复制按钮文本（en 站；空 = 回退中文）。
+    copyTextEn: 'Copy',
     // 复制成功提示(留空则用内置双语文案 toolbar.copyDoneToast)。
     copySuccessText: '',
+    // 复制成功提示英文（en 站；空 = 回退内置双语 toast）。
+    copySuccessTextEn: '',
     // 弹窗宽度(px)。
     popupWidth: '360px',
     // 显示社交项(CG 配置社交链接中带弹窗样式)。
@@ -1478,6 +1588,8 @@
     tagCount: 8,
     // 搜索按钮占位文字。
     searchPlaceholder: '搜索文章…',
+    // 搜索按钮占位文字（en 站；空 = 回退中文）。
+    searchPlaceholderEn: 'Search posts…',
     // Hero 是否显示日期(最新文章日期)。
     showDate: false,
     // en 语言 CTA 按钮文字。
@@ -1572,6 +1684,8 @@
     widgetStyle: 'sidebar',
     // 题目标签。
     label: '每日一言',
+    // 题目标签（en 站；空 = 回退中文）。
+    labelEn: 'Daily Quote',
     // 数据源。
     // 类型: string | 可填: 'builtin'(内置引语)/ 相对项目根或绝对路径的 .json/.json5 文件
     // 文件格式: ["引语"] 或 [{ text, author }](也接受 { quotes: [...] });加载失败自动回退内置并警告
@@ -1592,12 +1706,18 @@
     storageKey: 's-favorites',
     // 按钮标签。
     label: '收藏',
+    // 按钮标签（en 站；空 = 回退中文）。
+    labelEn: 'Favorite',
     // 文章列表是否显示右侧收藏 icon。
     listIcon: true,
     // 未收藏状态文案。
     notText: '收藏',
+    // 未收藏状态文案（en 站；空 = 回退中文）。
+    notTextEn: 'Favorite',
     // 已收藏状态文案。
-    favedText: '已收藏'
+    favedText: '已收藏',
+    // 已收藏状态文案（en 站；空 = 回退中文）。
+    favedTextEn: 'Favorited'
   },
   // ---------------------------------------------------------------------------
   prismTheme: {
@@ -1970,6 +2090,8 @@
     newsletterUrl: '',
     // 邮件订阅按钮文案(空 = 用界面文案表 subscribe.mail)。
     newsletterLabel: '',
+    // 邮件订阅按钮文案英文（en 站；空 = 回退界面文案表 subscribe.mail）。
+    newsletterLabelEn: '',
     // 外链是否新窗口打开(false = 当前窗口)。
     newTab: true
   },

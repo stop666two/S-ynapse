@@ -215,8 +215,10 @@
     "excerptLength": "120",
     // 结果最大条数
     "resultLimit": "30",
-    // 空结果文案
+    // 空结果文案（中文）
     "emptyText": "未找到匹配内容",
+    // 空结果文案（英文;en 站使用,空 = 回退中文）
+    "emptyTextEn": "No matching content",
   },
 
   // ---------- 阅读体验（12 项） ----------

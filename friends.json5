@@ -27,30 +27,44 @@
   // 类型: string | 推荐: 说明友链性质与氛围
   description: "在这里展示与我互访的好友站点。交换友链请按下方说明联系我。",
 
+  // 页面简介英文版（en 站使用）
+  // 类型: string | 可填: 英文短句 | 空 = en 站回退 description
+  descriptionEn: "Friendly sites I visit and exchange links with. See below to swap links.",
+
   // 申请说明（页面底部;留空不显示）
   // 作用: 告知访客如何交换友链、格式要求与准入条件
   // 类型: string（可多行） | 不可填: HTML 标签（按纯文本渲染）
   applyNote: "想交换友链？请在留言区告诉我你的站点名称、网址与一句话简介。要求：内容合规、能正常访问、最好有原创内容。",
 
+  // 申请说明英文版（en 站使用）
+  // 类型: string（可多行） | 可填: 英文文本 | 空 = en 站回退 applyNote
+  applyNoteEn: "Want to swap links? Tell me your site name, URL and a one-line intro in the comments. Requirements: legal content, reachable, original content preferred.",
+
   // 友链列表（卡片按数组顺序两列/一列自适应渲染）
   // 每项字段:
-  //   name 站点名称（必填,也用于 logo 缺省时的首字母占位）
-  //   url  站点地址（必填,以 https:// 开头）
-  //   desc 一句话简介（必填,展示在名称下方）
-  //   logo 站点图标（可留空:留空时显示站点首字母占位块）
+  //   name   站点名称（必填,也用于 logo 缺省时的首字母占位）
+  //   nameEn 站点名称英文版（en 站使用;空 = 回退 name）
+  //   url    站点地址（必填,以 https:// 开头）
+  //   desc   一句话简介（必填,展示在名称下方）
+  //   descEn 简介英文版（en 站使用;空 = 回退 desc）
+  //   logo   站点图标（可留空:留空时显示站点首字母占位块）
   // 不可填: 无法访问的地址/空名称;涉及违规内容的站点
   // 推荐: 定期检查链接可用性,失效站点及时移除
   friends: [
     {
       name: "示例站点 A",
+      nameEn: "Example Site A",
       url: "https://example.com",
       desc: "这里是一句站点简介，一两句话描述对方站点内容。",
+      descEn: "A one-line introduction of the other site, kept to a sentence or two.",
       logo: "",
     },
     {
       name: "示例站点 B",
+      nameEn: "Example Site B",
       url: "https://example.org",
       desc: "另一位朋友的站点，介绍示例。",
+      descEn: "Another friend's site, shown as an example.",
       logo: "",
     },
   ],

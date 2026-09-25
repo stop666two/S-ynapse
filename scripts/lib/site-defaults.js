@@ -76,9 +76,9 @@ const DEFAULT_CONFIG = {
         ctaLabel: '', ctaLabelEn: '', ctaUrl: '', tagCount: 8
       },
       reward: {
-        enabled: false, note: '', custom: [],
-        wechat: { label: '微信', image: '', url: '' },
-        alipay: { label: '支付宝', image: '', url: '' }
+        enabled: false, note: '', noteEn: '', custom: [],
+        wechat: { label: '微信', labelEn: '', image: '', url: '' },
+        alipay: { label: '支付宝', labelEn: '', image: '', url: '' }
       },
       languages: ['zh', 'en'],
       performance: {
@@ -98,7 +98,7 @@ const DEFAULT_CONFIG = {
       documentRenderedTypes: [], blockedFilenames: [], svgSanitize: true
     },
     tagAliases: { enabled: true, aliases: {} },
-    friends: { enabled: false, title: '友情链接', labels: {}, description: '', applyNote: '', friends: [] },
+    friends: { enabled: false, title: '友情链接', labels: {}, description: '', descriptionEn: '', applyNote: '', applyNoteEn: '', friends: [] },
     // Features domain defaults mirror features.json5 (single source of truth in
     // lib/features-schema.js). User overrides come from features.json5.
     features: DEFAULT_FEATURES,
@@ -130,7 +130,7 @@ const DEFAULT_CONFIG = {
         logoSize: '1.272em', navFontSize: '.9375rem', iconSize: '18px', shadowShow: true
       },
       socialInNav: { enabled: false, order: [] },
-      search: { enabled: false, placeholder: '搜索...', provider: 'local' },
+      search: { enabled: false, placeholder: '搜索...', placeholderEn: 'Search...', provider: 'local' },
       userMenu: { enabled: false }
     },
     sidebar: {

@@ -87,7 +87,9 @@
 | `social.items.<key>.url` | string | `''` | link 型 URL |
 | `social.items.<key>.value` | string | `''` | popup 型值(微信号/QQ 号…) |
 | `social.items.<key>.popupTitle` | string | 键名 | 弹窗标题 |
+| `social.items.<key>.popupTitleEn` | string | `''` | 弹窗标题英文（en 站;空则回退 `popupTitle`） |
 | `social.items.<key>.popupContent` | string | 值 | 弹窗说明文案 |
+| `social.items.<key>.popupContentEn` | string | `''` | 弹窗说明英文（en 站;空则回退 `popupContent`） |
 
 ### site.comments — 评论
 | 字段 | 类型 | 默认 | 说明 |
@@ -191,9 +193,10 @@
 |---|---|---|---|
 | `reward.enabled` | bool | `false` | 打赏(需 features.reward.enabled) |
 | `reward.note` | string | `''` | 打赏提示 |
-| `reward.wechat.image/url/label` | — | — | 微信收款二维码/链接 |
-| `reward.alipay.*` | — | — | 支付宝 |
-| `reward.custom[]` | — | `[]` | 自定义(`{label,image,url}`) |
+| `reward.noteEn` | string | `''` | 打赏提示英文（en 站;空则回退 `note`，再由 `features.reward.noteEn` 兜底） |
+| `reward.wechat.image/url/label` | — | — | 微信收款二维码/链接（`labelEn` 为英文方式名，空回退 `label`） |
+| `reward.alipay.*` | — | — | 支付宝（同上，`labelEn` 可选） |
+| `reward.custom[]` | — | `[]` | 自定义(`{label,labelEn,image,url}`) |
 | `webAnalytics.enabled` | bool | `true` | CF Web Analytics |
 | `webAnalytics.token` | string | `''` | 令牌(或环境变量 CF_WEB_ANALYTICS_TOKEN) |
 | `showRepoLink` | bool | `true` | 显示仓库链接 |
@@ -257,6 +260,7 @@
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
 **校验**:每个模块必须是对象;enabled 必须是布尔;枚举字段(如 heatmap.scaling)非法值直接报错终止构建。
+**双语约定（*En 字段）**:所有文案型字段均可追加同名 `En` 后缀（如 `reward.buttonTextEn`）提供英文站文案；类型与中文值一致，**空字符串 = en 站回退中文值**。共覆盖 60 键：search / codeBlock / externalLink / shortcuts / readingTime / codeCopy / readMode / readingPanel / mermaid / series / related / pinned / wordCount / share / reward / gallery / heatmap / stats / prevNext / maintenance / comments / contactPopup / hero / dailyQuote / favorites / subscribe。构建期模板按页面语言渲染 `*En`；运行时模块（`search.js`/`share.js`/`code-block.js`/`comments.js`/`contact-popup.js`/`favorites.js`）按当前页面语言（`data-lang`）取 `*En`。
 
 ### 3.1 lightbox — 图片灯箱
 | 字段 | 默认 | 说明 |
@@ -286,9 +290,9 @@
 `enabled true` / `showAfterPx 400` / `rightOffset 2rem` / `bottomOffset 2rem` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false`
 
 ### 3.4 search — 客户端搜索
-`enabled true` / `minChars 1` / `maxResults 30` / `noResultText 未找到匹配内容` / `excerptLength 120` / `includeContent true`(构建期生效:是否将正文写入 search-index.json) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效)
+`enabled true` / `minChars 1` / `maxResults 30` / `noResultText 未找到匹配内容`（`noResultTextEn` 为 en 站文案，空回退中文；`tuning.search.emptyTextEn` 优先于它） / `excerptLength 120` / `includeContent true`(构建期生效:是否将正文写入 search-index.json) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效)
 
-> 未接线预留键（当前修改不生效）: `highlightMatches`(由 3.35 searchHighlight 控制) / `showCount` / `placeholder`(实际使用 navigation.json5 search.placeholder) / `emptyHint` / `matchTags` / `matchCategories` / `weightTitle` / `weightExcerpt` / `weightContent`(前端无加权排序) / `closeOnOverlay`(点击遮罩关闭固定生效) / `focusOnOpen`(打开后恒自动聚焦) / `pinyinFuzzy`(拼音首字母匹配未实现) / `hotSearches.top`·`showInDropdown`·`showClear`（热门词列表 UI 未实现；下拉当前展示「最近搜索」，由 `hotSearches.enabled`+`storageKey` 驱动；`tuning.hotCount` 同属预留）。
+> 未接线预留键（当前修改不生效）: `highlightMatches`(由 3.35 searchHighlight 控制) / `showCount` / `placeholder`（实际使用 navigation.json5 search.placeholder / search.placeholderEn） / `emptyHint`（`emptyHintEn` 同步预留） / `matchTags` / `matchCategories` / `weightTitle` / `weightExcerpt` / `weightContent`(前端无加权排序) / `closeOnOverlay`(点击遮罩关闭固定生效) / `focusOnOpen`(打开后恒自动聚焦) / `pinyinFuzzy`(拼音首字母匹配未实现) / `hotSearches.top`·`showInDropdown`·`showClear`（热门词列表 UI 未实现；下拉当前展示「最近搜索」，由 `hotSearches.enabled`+`storageKey` 驱动；`tuning.hotCount` 同属预留）。
 
 ### 3.5 imageLazy — 懒加载
 `enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
@@ -299,7 +303,7 @@
 视觉细化项(tuning.json5)：`code`(lineNumberColor/lineNumberOpacity/hoverBorderMix/hoverShadowMix/hoverBgMix/inlineRadius/inlineHairlineMix/diffAddMix/diffDelMix) / `icons`(strokeWidth/hoverLift)；终端语言自动前缀(bash/sh/shell/zsh/fish→`$ lang`；powershell→`PS> powershell`；console→`> console`)；diff 增删行着色(.token.inserted/.deleted)；菜单图标见 navigation.json5 的 `icon`(内置 home/archive/tags/info/book/link/folder/search/rss/download)。
 
 ### 3.7 externalLink — 外链拦截
-`enabled true`(需 site.externalLinkWarning.enabled 同真) / `whitelist []` / `blacklist []` / `mode warn`(`warn|prohibit|hint`) / `message 即将离开本站,前往外部链接：` / `confirmText 继续访问` / `cancelText 返回` / `showFullUrl true` / `openInNewTab true` / `whitelistNewTab false` / `copyButtonText 复制`
+`enabled true`(需 site.externalLinkWarning.enabled 同真) / `whitelist []` / `blacklist []` / `mode warn`(`warn|prohibit|hint`) / `message 即将离开本站,前往外部链接：` / `messageEn ''`(en 站提示文案,空回退中文) / `confirmText 继续访问` / `confirmTextEn ''` / `cancelText 返回` / `cancelTextEn ''` / `copyButtonText 复制` / `copyButtonTextEn ''` / `showFullUrl true` / `openInNewTab true` / `whitelistNewTab false`
 
 ### 3.8 themeToggle
 `enabled true` / `defaultTheme system` / `rememberChoice true` / `animationMs 250` / `iconStyle sun-moon` / `transitionAll true` / `persistKey ss-theme`(主题选择的 localStorage 键) / `toggleIconSwap true`(切换时交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)
@@ -314,10 +318,10 @@
 `enabled true` / `borderRadius 1rem` / `maxHeightVh 70` / `autoClose true` / `overlayClose true` / `lockScroll true` / `position right` / `showCurrent true`(胶囊按钮显示当前章节名与进度百分比)。移动端目录抽屉;显示断点由 `mobile.tocBreakpoint` 控制。
 
 ### 3.12 readingPanel — 阅读设置面板
-`enabled true` / `fontSizeMin 15`/`fontSizeMax 26`/`fontSizeStep 1`/`fontSizeDefault 19` / `lineHeightMin 1.4`/`LineHeightMax 2.6`/`Step 0.1`/`Default 1.9` / `widthMin 560`/`widthMax 1200`/`Step 40`/`Default 800` / `remember true` / `persistKey 'ss-reading'`(阅读设置 localStorage 键) / `resetText 重置` / `position right`
+`enabled true` / `fontSizeMin 15`/`fontSizeMax 26`/`fontSizeStep 1`/`fontSizeDefault 19` / `lineHeightMin 1.4`/`LineHeightMax 2.6`/`Step 0.1`/`Default 1.9` / `widthMin 560`/`widthMax 1200`/`Step 40`/`Default 800` / `remember true` / `persistKey 'ss-reading'`(阅读设置 localStorage 键) / `resetText 重置`（`resetTextEn` 为 en 站文案，空回退中文） / `position right`
 
 ### 3.13 readMode — 阅读模式
-`enabled true` / `persist true` / `label 阅读模式` / `focusOnlyContent true` / `fontScale 1`
+`enabled true` / `persist true` / `label 阅读模式`（`labelEn` 为 en 站文案，空回退中文） / `focusOnlyContent true` / `fontScale 1`
 
 ### 3.14 tts — 朗读
 `enabled true` / `rate 0.5`(0.1~10) / `pitch 1` / `volume 1` / `preferDefaultVoice true` / `voiceBy lang` / `readSelector .post-content` / `icon speaker` / `highlightParagraph false` / `position toolbar`
@@ -332,7 +336,7 @@
 `enabled true` / `autoDetect true` / `version 0.16.22` / `inlineDelimiters ['$']` / `blockDelimiters ['$$']` / `throwOnError false` / `strict false` / `renderRoundParens true` / `renderSquareBrackets true` / `selector .post-content` / `mathml true`
 
 ### 3.18 mermaid
-`enabled true` / `autoDetect true` / `version 11.4.1` / `followTheme true` / `lightTheme default` / `darkTheme dark` / `securityLevel strict` / `copyAfterRender false` / `errorText [图表渲染失败]`
+`enabled true` / `autoDetect true` / `version 11.4.1` / `followTheme true` / `lightTheme default` / `darkTheme dark` / `securityLevel strict` / `copyAfterRender false` / `errorText [图表渲染失败]`（`errorTextEn` 为 en 站文案，空回退中文）
 
 `size` 子块 — 图表尺寸（全局默认，单图可覆盖）：
 - `width ''` / `height ''`(全局默认宽高，空=自然尺寸；单位白名单 px/%/vw/vh/rem，纯数字按 px)
@@ -342,34 +346,34 @@
 - 单图覆盖：代码块语言标记后追加 `w=` / `h=`，如 ` ```mermaid w=900 h=520 `；不填项走全局，非法值忽略并回退默认 — `scripts/build.js`(解析) + `templates/layout.ejs`(应用)
 
 ### 3.19 series — 系列
-`enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8`(侧栏系列 widget 最多展示条数,超出截断) / `prevLabel 上一篇` / `nextLabel 下一篇` / `progressLabel {index} / {total}`(进度模板) / `sidebarTitle 系列`(侧栏 widget 标题,sidebar.json5 w.title 为空时使用)
+`enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8`(侧栏系列 widget 最多展示条数,超出截断) / `prevLabel 上一篇` / `nextLabel 下一篇` / `progressLabel {index} / {total}`(进度模板) / `sidebarTitle 系列`(侧栏 widget 标题,sidebar.json5 w.title 为空时使用)。以上文案键均有同名 `*En`（`badgeFormatEn`/`panelTitleEn`/`prevLabelEn`/`nextLabelEn`/`sidebarTitleEn`），空回退中文
 
 ### 3.20 related — 相关推荐
-`enabled true` / `topN 4` / `sameCategoryWeight 2` / `sameTagWeight 3` / `minScore 2` / `excludeCurrent true` / `title 相关推荐` / `showExcerpt true`(卡片显示摘要) / `excerptLength 80`(摘要截断长度) / `showCount false`(显示共享标签数徽章)
+`enabled true` / `topN 4` / `sameCategoryWeight 2` / `sameTagWeight 3` / `minScore 2` / `excludeCurrent true` / `title 相关推荐`（`titleEn` en 站文案，空回退中文） / `showExcerpt true`(卡片显示摘要) / `excerptLength 80`(摘要截断长度) / `showCount false`(显示共享标签数徽章)
 
 ### 3.21 pinned — 置顶
-`enabled true` / `badgeText 置顶` / `badgeStyle pill`(`pill|corner|none`) / `sortRule pinned-first`(`pinned-first|normal`)
+`enabled true` / `badgeText 置顶`（`badgeTextEn` en 站文案，空回退中文） / `badgeStyle pill`(`pill|corner|none`) / `sortRule pinned-first`(`pinned-first|normal`)
 
 ### 3.22 wordCount — 字数
-`enabled true` / `onCards true` / `inArticle true` / `textFormat {count} 字` / `readTimeFormat {minutes} 分钟阅读` / `wpm 265` / `countCjkChars true` / `countDigits false`
+`enabled true` / `onCards true` / `inArticle true` / `textFormat {count} 字` / `readTimeFormat {minutes} 分钟阅读`（`textFormatEn`/`readTimeFormatEn` en 站模板，空回退中文） / `wpm 265` / `countCjkChars true` / `countDigits false`
 
 ### 3.23 share — 分享
-`enabled true` / `order ['weibo','qq','wechat','x','facebook','mail','copy']`(顺序即显示顺序) / `position toolbar` / `popupWidth 640` / `popupHeight 520` / `wechatText {title} 分享自 {url}` / `copiedText 链接已复制` / `copiedShowMs 2500` / `showLabel false` / `label 分享文章` / `useNativeShare false`(支持 navigator.share 时优先原生分享) / `copyFallback true`(剪贴板 API 不可用时 textarea 回退)
+`enabled true` / `order ['weibo','qq','wechat','x','facebook','mail','copy']`(顺序即显示顺序) / `position toolbar` / `popupWidth 640` / `popupHeight 520` / `wechatText {title} 分享自 {url}` / `wechatTextEn ''`(en 站模板,空回退中文) / `copiedText 链接已复制` / `copiedTextEn ''` / `copiedShowMs 2500` / `showLabel false` / `label 分享文章` / `labelEn ''` / `useNativeShare false`(支持 navigator.share 时优先原生分享) / `copyFallback true`(剪贴板 API 不可用时 textarea 回退)。运行时复制成功提示按页面语言取 `copiedTextEn` — `js/domains/features/share.js`
 
 ### 3.24 reward — 打赏前端
-`enabled false`(需 site.reward.enabled) / `buttonText 打赏` / `note 感谢支持` / `popupTitle 打赏支持` / `closeByBtn true` / `closeByOverlay true` / `closeByEsc true` / `qrSize 180px` / `maxWidth 560px` / `showNote true`(显示打赏说明文字) / `qrMaxWidth 180px`(二维码最大宽度 CSS) / `closeText 关闭`(关闭按钮文本) / `links []`(赞助平台链接数组,弹窗底部显示胶囊按钮,每项 `{label,url}`,新窗口 `noopener`;如 GitHub Sponsors / Ko-fi / 爱发电)
+`enabled false`(需 site.reward.enabled) / `buttonText 打赏` / `note 感谢支持` / `popupTitle 打赏支持` / `closeByBtn true` / `closeByOverlay true` / `closeByEsc true` / `qrSize 180px` / `maxWidth 560px` / `showNote true`(显示打赏说明文字) / `qrMaxWidth 180px`(二维码最大宽度 CSS) / `closeText 关闭`(关闭按钮文本) / `links []`(赞助平台链接数组,弹窗底部显示胶囊按钮,每项 `{label,url}`,新窗口 `noopener`;如 GitHub Sponsors / Ko-fi / 爱发电)。文案键均有同名 `*En`（`buttonTextEn`/`noteEn`/`popupTitleEn`/`closeTextEn`），空回退中文；弹窗内方式名称与说明优先取 `site.reward.*En`（见 §1）
 
 ### 3.25 gallery — 图库页
-`enabled true` / `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片` / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `order newest` / `incrementalByDefault true` / `maxItems 0`(0=不限) / `gap 12px`(瀑布流列间距 CSS) / `showCaption true`(图片下方显示来源说明) / `borderRadius 8px`(卡片圆角 CSS)
+`enabled true` / `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片`（`titleEn`/`descriptionEn`/`emptyTextEn` en 站文案，空回退中文） / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `order newest` / `incrementalByDefault true` / `maxItems 0`(0=不限) / `gap 12px`(瀑布流列间距 CSS) / `showCaption true`(图片下方显示来源说明) / `borderRadius 8px`(卡片圆角 CSS)
 
 ### 3.26 heatmap — 归档热力图
-`enabled true` / `levels 5`(2~7) / `scaling auto`(`auto|fixed`) / `palette []`(fixed 时色表) / `showLegend true` / `legendLow 少` / `legendHigh 多` / `tooltipFormat {year}-{month}: {count} 篇` / `showMonthNumbers true` / `gap 3px`(单元格间距) / `borderRadius 3px`(单元格圆角) / `cellSize 13px`(单元格尺寸,置空则撑满容器) / `emptyColor var(--color-border)`(空月份颜色)
+`enabled true` / `levels 5`(2~7) / `scaling auto`(`auto|fixed`) / `palette []`(fixed 时色表) / `showLegend true` / `legendLow 少` / `legendHigh 多` / `tooltipFormat {year}-{month}: {count} 篇`（`legendLowEn`/`legendHighEn`/`tooltipFormatEn` en 站文案，空回退中文） / `showMonthNumbers true` / `gap 3px`(单元格间距) / `borderRadius 3px`(单元格圆角) / `cellSize 13px`(单元格尺寸,置空则撑满容器) / `emptyColor var(--color-border)`(空月份颜色)
 
 ### 3.27 stats — 站点统计
-`enabled true` / `showArchiveCards true` / `labelPosts 文章总数` / `labelDays 发文天数` / `labelWords 总字数` / `labelAvg 日均篇数` / `labelAvgPerDay 日均`(归档页日均标签) / `labelTags 标签数` / `labelCategories 分类数` / `cardColumns auto-fit`(统计卡列模式,也可固定列数) / `showSidebar true`(侧栏统计 widget 开关,sidebar.json5 需含 type=stats) / `linkArchive /archive/`
+`enabled true` / `showArchiveCards true` / `labelPosts 文章总数` / `labelDays 发文天数` / `labelWords 总字数` / `labelAvg 日均篇数` / `labelAvgPerDay 日均`(归档页日均标签,运行时实际消费) / `labelTags 标签数` / `labelCategories 分类数`（以上标签均有同名 `*En`，空回退中文） / `cardColumns auto-fit`(统计卡列模式,也可固定列数) / `showSidebar true`(侧栏统计 widget 开关,sidebar.json5 需含 type=stats) / `linkArchive /archive/`
 
 ### 3.28 prevNext
-`enabled true` / `showLabels true` / `prevLabel 上一篇` / `nextLabel 下一篇` / `hideWhenMissing false` / `showThumbnail false`(导航卡缩略图) / `labelPosition left`(`left|center|right`) / `scrollToTopOnClick true`(点击导航后滚回顶部)
+`enabled true` / `showLabels true` / `prevLabel 上一篇` / `nextLabel 下一篇`（`prevLabelEn`/`nextLabelEn` en 站文案，空回退中文；`site.prevPostLabel`/`nextPostLabel` 为中文次回退） / `hideWhenMissing false` / `showThumbnail false`(导航卡缩略图) / `labelPosition left`(`left|center|right`) / `scrollToTopOnClick true`(点击导航后滚回顶部)
 
 ### 3.29 feed — 订阅【预留区，未接线】
 `rssEnabled true` / `rssPath /feed.xml` / `rssFullContent true` / `rssMaxItems 50` / `jsonFeedPath /feed.json` / `jsonFeedFullContent false` / `jsonFeedMaxItems 20` / `injectHeadLinks true` / `injectFooterLink false`
@@ -383,16 +387,16 @@
 `enabled false`(规则在 site.json5 redirects) / `generatePagesFile true` / `applyInServe true` / `invalidRule abort`(`warn-only|abort`)
 
 ### 3.32 maintenance
-`enabled false` / `message 站点维护中，请稍后再来。` / `status 503` / `setRetryAfter true` / `retryAfter 3600`
+`enabled false` / `message 站点维护中，请稍后再来。`（`messageEn` en 站文案，空回退中文） / `status 503` / `setRetryAfter true` / `retryAfter 3600`
 
 ### 3.33 mobile
 `enabled true` / `searchFullscreen true` / `buttonStackGap 4rem` / `touchFallback true` / `codeScrollHint true` / `tocBreakpoint 768`(移动端 TOC 按钮断点 px) / `safeAreaBottom true`(底部安全区留白) / `tapHighlight false`(取消点击高亮)
 
 ### 3.34 comments 前端
-`enabled true` / `loadContainer true` / `renderPlaceholder true` / `placeholderText 评论加载中…`(占位文案) / `loadDelayMs 300`(占位显示时长 ms,过后无组件则显示 emptyText) / `emptyText 暂无评论`(无评论提示) / `title 评论`
+`enabled true` / `loadContainer true` / `renderPlaceholder true` / `placeholderText 评论加载中…`(占位文案;`placeholderTextEn` en 站) / `loadDelayMs 300`(占位显示时长 ms,过后无组件则显示 emptyText) / `emptyText 暂无评论`(无评论提示;`emptyTextEn` en 站，运行时按语言取) / `title 评论`（`titleEn` en 站；均空回退中文）
 
 ### 3.35 contactPopup
-`enabled true` / `title 联系方式` / `copyText 复制` / `copySuccessText ''`(复制成功提示,留空用内置双语文案) / `popupWidth 360px` / `showAllItems true` / `showIcon true`(弹窗顶部图标) / `maxItems 4`(最多联系方式条目数,多行值按行截断)
+`enabled true` / `title 联系方式` / `copyText 复制` / `copySuccessText ''`(复制成功提示,留空用内置双语文案)（`titleEn`/`copyTextEn`/`copySuccessTextEn` 为 en 站文案，空回退中文） / `popupWidth 360px` / `showAllItems true` / `showIcon true`(弹窗顶部图标) / `maxItems 4`(最多联系方式条目数,多行值按行截断)。弹窗实际标题/正文来自 `site.social.items[].popupTitle/popupContent`（en 站优先 `popupTitleEn`/`popupContentEn`，见 §1 site.social）
 
 ### 3.36 linkBehavior
 `matchMode hostname` / `skipInternal true` / `mailtoMode leave` / `lateTargeted false`
@@ -448,7 +452,7 @@ sitemap: {
 `enabled true` / `template 'aurora'`(`aurora|mesh|grid|paper|duotone`;无封面文章的 OG 底图模板) / `palette 'theme'`(`theme|hash`;hash=按首个分类名哈希取色,同分类同色) / `showCategory true`(封面角标) / `align 'center'`(`center|left`) / `showSite true`(站点名) / `showUrl true`(右下角站点 URL;false=保持画面简洁) / `useGradient true` / `gradientAngle '135deg'` / `fontSizeBase 64` / `maxLines 4` / `letterSpacing '0.02em'`。构建期为无封面文章生成模板化 OG 图(1200×630;尺寸与字号缩放经 `site.seo.ogImage` 的 width/height/fontScale 控制);有封面文章走"封面+底部渐变条"合成 — `scripts/generate-og.js`。
 
 ### 3.45 hero — 首页 Hero
-`enabled true` / `showSearch true` / `showTags true` / `tagCount 5` / `showDate false`(显示最新文章日期) / `ctaLabelEn View all posts`(en CTA 文案) / `heightVh 60`(Hero 最小高度 vh) / `backgroundImage ''`(背景图 URL,空则纯色/渐变)。首页顶部横幅,显示标题简介+搜索+热门标签。
+`enabled true` / `showSearch true` / `showTags true` / `tagCount 5` / `showDate false`(显示最新文章日期) / `ctaLabelEn View all posts`(en CTA 文案;`ctaLabel` 中文,空回退) / `searchPlaceholder 搜索文章…`（`searchPlaceholderEn` en 站文案，空回退中文） / `heightVh 60`(Hero 最小高度 vh) / `backgroundImage ''`(背景图 URL,空则纯色/渐变)。首页顶部横幅,显示标题简介+搜索+热门标签。
 
 ### 3.46 background — 背景特效
 `enabled false` / `pattern 'none'` (particles/grid/dots/mesh) / `intensity 'medium'` / `reducedMotion false`。站点背景特效(粒子/网格/圆点/网格渐变)。
@@ -457,10 +461,10 @@ sitemap: {
 `enabled true` / `ease cubic-bezier(.4,0,.2,1)` / `pageEnterDurationMs 240`(页面入场时长 ms) / `cardHoverScale 1.02`(卡片悬停缩放) / `linkUnderlineOffset 3px`(下划线偏移) / `cardHoverLift true` / `cardHoverLiftPx 4` / `linkUnderline true` / `linkUnderlineThickness 2px` / `buttonRipple true` / `rippleDurationMs 500` / `scrollReveal true` / `revealCards true` / `revealHeadings true` / `revealImages true` / `revealBlocks false` / `revealDurationMs 250` / `revealDelayMs 0` / `revealStaggerMax 80` / `revealOffset 10px` / `revealOnce true` / `revealThreshold 0.08` / `revealCleanupMs 1400`(reveal 结束清理 transitionDelay 延迟 ms) / `reducedMotion 'light'`(`light|off|full`,轻量版:更短/幅度更小)。滚动渐入/悬停上浮/涟漪/下划线动效总控。
 
 ### 3.48 dailyQuote — 每日一言
-`enabled true` / `widgetStyle 'sidebar'` / `label '每日一言'` / `source 'builtin'`(内置 7 条;也支持相对项目根或绝对路径的 `.json`/`.json5`,格式 `["引语"]` 或 `[{text,author}]` 或 `{quotes:[...]}`;加载失败回退内置并告警) / `count 7` / `quoteColor ''`。侧栏每日名言(内置 7 条,按日期轮换)。
+`enabled true` / `widgetStyle 'sidebar'` / `label '每日一言'`（`labelEn` en 站文案，空回退中文） / `source 'builtin'`(内置 7 条;也支持相对项目根或绝对路径的 `.json`/`.json5`,格式 `["引语"]` 或 `[{text,author}]` 或 `{quotes:[...]}`;加载失败回退内置并告警) / `count 7` / `quoteColor ''`。侧栏每日名言(内置 7 条,按日期轮换)。
 
 ### 3.49 favorites — 收藏(纯前端)
-`enabled true` / `position 'toolbar'`(`toolbar`=文章底部工具栏,默认/`meta`=标题下元信息行) / `storageKey 's-favorites'` / `label '收藏'` / `listIcon true` / `notText '收藏'` / `favedText '已收藏'`。文章收藏按钮+收藏页(仅 localStorage,无后端);按钮切换收藏/取消(状态+aria-pressed+统一 toast)、收藏页列表渲染与移除、空状态;en 页文案经 ui-strings 词典。
+`enabled true` / `position 'toolbar'`(`toolbar`=文章底部工具栏,默认/`meta`=标题下元信息行) / `storageKey 's-favorites'` / `label '收藏'` / `listIcon true` / `notText '收藏'` / `favedText '已收藏'`（`labelEn`/`notTextEn`/`favedTextEn` 为 en 站兜底文案，空回退中文；en 站优先取 ui-strings `favorites.*`）。文章收藏按钮+收藏页(仅 localStorage,无后端);按钮切换收藏/取消(状态+aria-pressed+统一 toast)、收藏页列表渲染与移除、空状态。
 
 ### 3.50 prismTheme — 代码高亮配色开关
 `enabled true`。总开关：关闭后代码块不着色（回退纯文本）；token 配色值定义在 `theme.json5` 的 `codeHighlight.palette`（浅色/暗色两套，随主题自动切换）。
@@ -539,7 +543,7 @@ sitemap: {
 
 ### 3.70 subscribe — 订阅组件
 
-`enabled true` / `rss true`(页脚订阅条显示 RSS 链接,指向 `{lang}/feed.xml`) / `jsonFeed true`(显示 JSON Feed,仍受 `site.rss.jsonFeed.enabled` 总控) / `newsletterUrl ''`(外部邮件订阅表单地址,如 Buttondown/Substack;空 = 隐藏按钮) / `newsletterLabel ''`(按钮文案,空 = 界面文案表 `subscribe.mail`) / `newTab true`。页脚自动渲染「订阅与更新」条;顺带修复 `<head>` 中 RSS alternate 链接双斜杠问题(`/zh//feed.xml`→`/zh/feed.xml`) — `templates/layout.ejs`。
+`enabled true` / `rss true`(页脚订阅条显示 RSS 链接,指向 `{lang}/feed.xml`) / `jsonFeed true`(显示 JSON Feed,仍受 `site.rss.jsonFeed.enabled` 总控) / `newsletterUrl ''`(外部邮件订阅表单地址,如 Buttondown/Substack;空 = 隐藏按钮) / `newsletterLabel ''`(按钮文案,空 = 界面文案表 `subscribe.mail`) / `newsletterLabelEn ''`(en 站按钮文案,空 = `subscribe.mail` 英文词条) / `newTab true`。页脚自动渲染「订阅与更新」条;顺带修复 `<head>` 中 RSS alternate 链接双斜杠问题(`/zh//feed.xml`→`/zh/feed.xml`) — `templates/layout.ejs`。
 
 ### 3.71 authorCard — 作者卡(关于页)
 
@@ -607,11 +611,11 @@ sitemap: {
 
 ### 3.87 readingTime — 阅读时长
 
-`enabled true` / `wordsPerMinuteCJK 250`（中文每分钟字数）/ `wordsPerMinuteLatin 200`（拉丁文每分钟词数）/ `showInMeta true`（文章元信息区展示）/ `labelBefore ''` / `labelAfter '阅读约需'`（前/后缀文案，空则回退 `ui-strings` 词典）。CJK 与拉丁字符分别按各自速率估算后相加 — `templates/post.ejs`。
+`enabled true` / `wordsPerMinuteCJK 250`（中文每分钟字数）/ `wordsPerMinuteLatin 200`（拉丁文每分钟词数）/ `showInMeta true`（文章元信息区展示）/ `labelBefore ''` / `labelAfter '阅读约需'`（`labelAfterEn` 为 en 站后缀「 min read」，空回退中文；前/后缀空则回退 `ui-strings` 词典）。CJK 与拉丁字符分别按各自速率估算后相加 — `templates/post.ejs`。
 
 ### 3.88 codeCopy — 代码块复制按钮
 
-`enabled true` / `buttonText '复制'` / `copiedText '已复制'`（成功态文案）/ `buttonTimeout 1500`（成功态停留毫秒）/ `showLineNumbers false`（行号列）/ `includeWindowBar true`（Mac 窗栏样条）。文案留空时回退 `ui-strings` 词典 — `js/domains/core/code-block.js`。
+`enabled true` / `buttonText '复制'` / `copiedText '已复制'`（成功态文案）/ `buttonTextEn ''` / `copiedTextEn ''`（en 站文案，空回退中文/词典）/ `buttonTimeout 1500`（成功态停留毫秒）/ `showLineNumbers false`（行号列）/ `includeWindowBar true`（Mac 窗栏样条）。文案留空时回退 `ui-strings` 词典；运行时按页面语言取 `*En` — `js/domains/core/code-block.js`。
 
 ### 3.89 tocScrollSpy — 目录滚动高亮
 
@@ -657,7 +661,8 @@ sitemap: {
 | `socialInNav.enabled` / `order[]` | `false`/`[]` | 导航社交图标（数据源 site.social.items） |
 | `search.enabled` | `false` | 搜索开关(需要 features.search.enabled) |
 | `search.provider` | `local` | 搜索后端:`local`(默认,构建 `search-index.json` 本地检索)/`pagefind`(构建期生成 Pagefind 静态索引,需 `npm install -D pagefind`;压缩与哈希之后生成,不参与 cache-bust;serve/watch 同样生成;浮层与独立搜索页均接入;索引生成失败时前端回退本地输入框) |
-| `search.placeholder` | `搜索...` | 占位文本 |
+| `search.placeholder` | `搜索...` | 占位文本（中文） |
+| `search.placeholderEn` | `Search...` | 占位文本（英文;en 站优先，空回退 `placeholder` → ui-strings） |
 | `navbarOptions.height/glassBlur/glassAlpha` | `60px`/`12px`/`0.8` | 外观选项（优先于 navbar/theme.glass） |
 | `navbarOptions.navGap/navFontSize/iconSize/logoSize/shadowShow` | — | 菜单间距/字号/图标尺寸/Logo 字号/滚动阴影 |
 
@@ -678,13 +683,13 @@ sitemap: {
 - `tags` `{title,limit,showCount,sortBy,minCount}`
 - `categories` `{title,showCount}`
 - `archive` `{title,showCount}`
-- `search` `{title,placeholder}`
+- `search` `{title,placeholder,placeholderEn}`
 - `toc` `{title}`(仅文章页)
 - `stats` `{title}`(需 features.stats.enabled)
 - `series` `{title}`(需 features.series.enabled)
-- `friends` `{title}`(需 friends.json5)
-- `newsletter` `{title,provider,mailchimpAction,buttonText,placeholder}`(mailchimp 表单)
-- `custom` `{title,html}`(原始 HTML)
+- `friends` `{title}`(需 friends.json5；项目名 en 站取 `nameEn`)
+- `newsletter` `{title,provider,mailchimpAction,buttonText,buttonTextEn,placeholder,placeholderEn}`(mailchimp 表单)
+- `custom` `{title,html,htmlEn}`(原始 HTML)
 
 ---
 
@@ -698,7 +703,7 @@ sitemap: {
 | `bottomLinks.enabled` / `items[]` | `true`/`[]` | 底栏链接（同上链接项结构） |
 | `social.enabled` | `false` | 页脚社交图标行（尺寸/间距见 options.socialIconSize/socialGap） |
 | `poweredBy.enabled` / `text` | `false`/`S-ynapse` | Powered by（repoUrl 有效时自动链接） |
-| `beian.enabled` / `icp` / `gongan` | `false`/… | 备案号（gongan 空则不显示） |
+| `beian.enabled` / `icp` / `gongan` | `false`/… | 备案号（gongan 空则不显示）。备案号为法定中文标识，**不提供 En 变体**（中英文站均原样展示） |
 | `customHtml` | `''` | 原始 HTML（插入页脚顶部） |
 | `options.paddingV/gap/linkSize/copyrightSize/icpSize/socialIconSize/socialGap/linkHoverUnderline` | — | 外观选项 |
 
@@ -753,9 +758,9 @@ sitemap: {
 
 **friends.json5**: 友链。
 ```json
-{ "enabled": false, "title": "友情链接", "labels": { "zh": "友情链接", "en": "Friends" }, "description": "", "applyNote": "", "friends": [ { "name": "示例", "url": "https://example.com", "desc": "一句话简介", "logo": "" } ] }
+{ "enabled": false, "title": "友情链接", "labels": { "zh": "友情链接", "en": "Friends" }, "description": "", "descriptionEn": "", "applyNote": "", "applyNoteEn": "", "friends": [ { "name": "示例", "nameEn": "", "url": "https://example.com", "desc": "一句话简介", "descEn": "", "logo": "" } ] }
 ```
-影响:自动注入导航「友链」、/links/ 页、侧栏 friends widget。 友链项字段为 `{name,url,desc,logo}`（desc 不是 description）;labels 为多语言标题覆盖。
+影响:自动注入导航「友链」、/links/ 页、侧栏 friends widget。 友链项字段为 `{name,nameEn,url,desc,descEn,logo}`（desc 不是 description）;labels 为多语言标题覆盖（`labels.en` 优先于 `title`，故不再单设 `titleEn`）;`descriptionEn`/`applyNoteEn`/`nameEn`/`descEn` 为 en 站文案，**空 = 回退对应中文值**。
 
 ---
 
@@ -767,7 +772,7 @@ sitemap: {
 
 **分类(32)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / icons / morphicons / magazine / commandPalette / announcement / guard / loading。
 
-**已绑定示例(118 项 CSS + 19 项行为)**:`--hero-maxWidth`、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`、`--header-scrolledHeight/hairlineStrength`、`--code-borderWidth/borderMix`、`--texture-noiseOpacity`、`--glow-heroStrength`、`--card-imageHoverScale/excerptLines/gridGap`、`--motion-transitionTiming/buttonPressScale`、`--reading-quoteTint/imageHoverScale/h2AccentWidth/Height`;行为侧:search 历史/热词/去抖/结果上限/空文案、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进、morphicons 弹簧刚度/阻尼/轻量版弹簧。
+**已绑定示例(118 项 CSS + 19 项行为)**:`--hero-maxWidth`、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`、`--header-scrolledHeight/hairlineStrength`、`--code-borderWidth/borderMix`、`--texture-noiseOpacity`、`--glow-heroStrength`、`--card-imageHoverScale/excerptLines/gridGap`、`--motion-transitionTiming/buttonPressScale`、`--reading-quoteTint/imageHoverScale/h2AccentWidth/Height`;行为侧:search 历史/热词/去抖/结果上限/空文案(`search.emptyTextEn` 为 en 站空结果文案,空回退 `emptyText`)、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进、morphicons 弹簧刚度/阻尼/轻量版弹簧。
 
 **注意**:绑定值均已对齐现有视觉(如 toast.radius=999px 对应胶囊形),修改前建议先在浏览器 DevTools 中试值。
 

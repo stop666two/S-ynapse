@@ -40,6 +40,10 @@
     foundCount: '找到 {count} 个结果',
     foundText: '个结果',
     recent: '最近搜索',
+    notFound: '未找到相关文章',
+    loadError: '搜索索引加载失败，请检查网络后重试',
+    retry: '重试',
+    unavailable: '搜索暂不可用',
   },
 
   // 搜索结果分组
@@ -54,6 +58,7 @@
     menu: '菜单', home: '首页', archive: '归档', tags: '标签', breadcrumb: '面包屑',
     categories: '分类', about: '关于', friends: '友情链接',
     search: '搜索', project: '项目', close: '关闭',
+    favorites: '收藏', gallery: '图库',
   },
 
   // 侧边栏
@@ -103,6 +108,7 @@
     shortcutImage: '图片查看器切图', shortcutClose: '关闭弹层',
     shortcutHelp: '开关本帮助', mobileNav: '移动端底部导航',
     copyCode: '复制代码', copied: '已复制', downloadCode: '下载代码文件',
+    copyAllCode: '复制全部代码', copyFailed: '复制失败',
     expandAll: '展开全文', collapseAll: '收起',
     copyDoneToast: '已复制到剪贴板',
     linkBlocked: '该链接被站点屏蔽',
@@ -145,6 +151,7 @@
     hint: '点击文章标题访问', remove: '从收藏中移除',
     storedLocally: '存储于本地浏览器',
     not: '收藏', faved: '已收藏', removed: '已取消收藏',
+    line: '点击文章标题访问，点击 × 从收藏中移除。存储于本地浏览器。',
   },
 
   // 404
@@ -278,6 +285,10 @@
       widgetPlaceholder: 'Type a keyword…',
       foundCount: '{count} results found', foundText: 'results',
       recent: 'Recent searches',
+      notFound: 'No matching articles',
+      loadError: 'Failed to load the search index. Check your network and retry.',
+      retry: 'Retry',
+      unavailable: 'Search is unavailable',
     },
     group: {
       article: 'Articles', tag: 'Tags', category: 'Categories',
@@ -286,6 +297,7 @@
       menu: 'Menu', home: 'Home', archive: 'Archive', tags: 'Tags', breadcrumb: 'Breadcrumb',
       categories: 'Categories', about: 'About', friends: 'Links',
       search: 'Search', project: 'Project', close: 'Close',
+      favorites: 'Favorites', gallery: 'Gallery',
     },
     sidebar: {
       aboutMe: 'About Me', latest: 'Recent Posts', tagCloud: 'Tags',
@@ -309,6 +321,7 @@
       translationNotice: 'Also available in {lang}',
       comments: 'Comments', commentsEnable: 'Enable JavaScript to view comments',
       seriesNav: 'Series Navigation', seriesLabel: 'Series',
+      series: 'Series',
       seriesPrev: 'Previous', seriesNext: 'Next',
       prevPost: 'Previous', nextPost: 'Next',
       readTimeLabel: '{minutes} min read',
@@ -328,6 +341,7 @@
       shortcutImage: 'Image viewer next', shortcutClose: 'Close overlay',
       shortcutHelp: 'Toggle this help', mobileNav: 'Mobile bottom nav',
       copyCode: 'Copy code', copied: 'Copied!',
+      copyAllCode: 'Copy all code', copyFailed: 'Copy failed',
       downloadCode: 'Download code', expandAll: 'Expand all', collapseAll: 'Collapse',
       copyDoneToast: 'Copied to clipboard',
       linkBlocked: 'Link blocked',
@@ -361,6 +375,7 @@
       hint: 'Click a title to open', remove: 'Remove from favorites',
       storedLocally: 'Stored in local browser',
       not: 'Favorite', faved: 'Favorited', removed: 'Removed from favorites',
+      line: 'Click a title to open. Click × to remove it from your favorites. Stored in the local browser.',
     },
     notFound: {
       title: 'Lost in space', desc: 'The page you requested does not exist or has been moved.',

@@ -106,7 +106,8 @@ const DEFAULT_TUNING = {
     "minQueryLength": "1",
     "excerptLength": "120",
     "resultLimit": "30",
-    "emptyText": "未找到匹配内容"
+    "emptyText": "未找到匹配内容",
+    "emptyTextEn": "No matching content"
   },
   "reading": {
     "progressHeight": "3px",

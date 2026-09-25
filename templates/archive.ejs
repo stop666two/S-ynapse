@@ -11,7 +11,7 @@
   <div class="stats-card"><div class="stats-value"><%= siteStats.posts %></div><div class="stats-label"><%= ui('archive.statPosts','文章总数') %></div></div>
   <div class="stats-card"><div class="stats-value"><%= siteStats.days %></div><div class="stats-label"><%= ui('archive.statDays','发文天数') %></div></div>
   <div class="stats-card"><div class="stats-value"><%= siteStats.words.toLocaleString() %></div><div class="stats-label"><%= ui('archive.statWords','总字数') %></div></div>
-  <div class="stats-card"><div class="stats-value"><%= siteStats.avgPerDay %></div><div class="stats-label"><%= (features.stats&&features.stats.labelAvgPerDay)||ui('archive.statAvg','日均篇数') %></div></div>
+  <div class="stats-card"><div class="stats-value"><%= siteStats.avgPerDay %></div><div class="stats-label"><%= (typeof lang!=='undefined'&&lang==='en'&&features.stats&&features.stats.labelAvgPerDayEn)?features.stats.labelAvgPerDayEn:((features.stats&&features.stats.labelAvgPerDay)||ui('archive.statAvg','日均篇数')) %></div></div>
   <div class="stats-card"><div class="stats-value"><%= siteStats.tags %></div><div class="stats-label"><%= ui('archive.statTags','标签数') %></div></div>
   <div class="stats-card"><div class="stats-value"><%= siteStats.categories %></div><div class="stats-label"><%= ui('archive.statCats','分类数') %></div></div>
 </div>

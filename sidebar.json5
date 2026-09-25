@@ -69,12 +69,15 @@
   //   enabled 该项开关
   //   title   组件标题（中文）;缺省时使用各类型内置默认文案
   //   titleEn 组件标题（英文）
+  //   —— 文本类字段统一遵循「*En 后缀」约定:en 站优先取 *En,空 = 回退中文值 ——
+  //   bioEn / placeholderEn / buttonTextEn / htmlEn 分别对应 bio / placeholder / buttonText / html
 
   // 每个部件可选 "icon" 字段（内置图标: clock 时钟/folder 文件夹/tags 标签/archive 归档/collection 合集/chart 图表/quote 引号/image 图片/link 链接/info 信息/book 书本/search 搜索/rss 订阅/download 下载/home 首页）。
   "widgets": [
     // 作者卡片（类型: author）
     // 字段: avatar 头像图片路径（空则按 theme.avatar.badge 生成首字母徽章）
     //       bio    个人简介（一句话,空则不显示）
+    //       bioEn  简介英文版（en 站使用;空 = 回退 bio）
     {
       "type": "author",
       "icon": "info",
@@ -82,7 +85,8 @@
       "title": "关于我",
       "titleEn": "About Me",
       "avatar": "/media/avatar.svg",
-      "bio": "全栈开发者，热爱开源"
+      "bio": "全栈开发者，热爱开源",
+      "bioEn": "Full-stack developer and open-source enthusiast"
     },
     // 最新文章（类型: recent）
     // 字段: count    显示条数（1–20）
@@ -144,13 +148,15 @@
     },
     // 搜索框（类型: search;点击/回车打开全站搜索弹层）
     // 字段: placeholder 输入框占位文字
+    //       placeholderEn 占位文字英文版（en 站使用;空 = 回退 placeholder / ui-strings）
     {
       "type": "search",
       "icon": "search",
       "enabled": true,
       "title": "搜索",
       "titleEn": "Search",
-      "placeholder": "输入关键词..."
+      "placeholder": "输入关键词...",
+      "placeholderEn": "Type a keyword..."
     },
     // 站点统计（类型: stats;默认关闭）
     // 字段: 无（数据自动计算:文章数/总字数/标签数/分类数）
@@ -164,19 +170,21 @@
     },
     // 自定义 HTML（类型: custom;直接注入原始 HTML 片段）
     // 字段: html 任意 HTML（构建时按原文输出）
+    //       htmlEn 自定义 HTML 英文版（en 站使用;空 = 回退 html）
     // 不可填: 不受信任的第三方脚本（受 security.json5 CSP 限制且存在安全风险）
     {
       "type": "custom",
       "enabled": false,
       "title": "自定义位",
       "titleEn": "Custom",
-      "html": "<div>自定义内容</div>"
+      "html": "<div>自定义内容</div>",
+      "htmlEn": "<div>Custom content</div>"
     },
     // 邮件订阅（类型: newsletter）
     // 字段: provider        订阅服务商（当前支持 mailchimp）
     //       mailchimpAction Mailchimp 表单 action URL（以 https:// 开头的托管表单地址）
-    //       buttonText      订阅按钮文字
-    //       placeholder     邮箱输入框占位文字
+    //       buttonText      订阅按钮文字（buttonTextEn 为英文版;空 = 回退按钮中文值/内置文案）
+    //       placeholder     邮箱输入框占位文字（placeholderEn 为英文版;空 = 回退中文值）
     // 不可填: 空 action（表单无法提交;将保持占位 "#"）
     // 注意: 表单以新窗口提交到服务商页面,本站不处理订阅数据
     {
@@ -187,7 +195,9 @@
       "provider": "mailchimp",
       "mailchimpAction": "",
       "buttonText": "订阅",
-      "placeholder": "输入邮箱"
+      "buttonTextEn": "Subscribe",
+      "placeholder": "输入邮箱",
+      "placeholderEn": "Email address"
     },
     // 每日一言（类型: quote;文案与刷新频率见 features.dailyQuote）
     // 字段: 无（标题缺省使用 features.dailyQuote.label）

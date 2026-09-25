@@ -26,7 +26,8 @@ function bind() {
   }
   timer = setTimeout(function () {
     if (!done && !settle()) {
-      ph.textContent = CM.emptyText || '暂无评论';
+      var __en = (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
+      ph.textContent = (__en && CM.emptyTextEn) ? CM.emptyTextEn : (CM.emptyText || '暂无评论');
       ph.classList.add('placeholder-done');
     }
   }, dl);

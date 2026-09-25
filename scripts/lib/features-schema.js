@@ -32,8 +32,8 @@ const DEFAULT_FEATURES = {
   },
   search: {
     enabled: true, minChars: 1, maxResults: 30, highlightMatches: true,
-    showCount: true, placeholder: '搜索...', emptyHint: '输入关键词开始搜索',
-    noResultText: '未找到匹配内容', excerptLength: 120, includeContent: true,
+    showCount: true, placeholder: '搜索...', placeholderEn: 'Search...', emptyHint: '输入关键词开始搜索', emptyHintEn: 'Type a keyword to search',
+    noResultText: '未找到匹配内容', noResultTextEn: 'No matching content', excerptLength: 120, includeContent: true,
     matchTags: true, matchCategories: true, weightTitle: 5, weightExcerpt: 2,
     weightContent: 1, closeOnOverlay: true, focusOnOpen: true,
     openAnimation: 'fade', pinyinFuzzy: false,
@@ -46,17 +46,17 @@ const DEFAULT_FEATURES = {
     lqip: true, lqipWidth: 24
   },
   codeBlock: {
-    enabled: true, copyButtonVisibility: 'hover', copySuccessText: '已复制',
-    copyFailText: '复制失败', blobRevokeDelayMs: 1000, showLanguageTag: true, lineNumbers: true, windowBar: true,
+    enabled: true, copyButtonVisibility: 'hover', copySuccessText: '已复制', copySuccessTextEn: 'Copied',
+    copyFailText: '复制失败', copyFailTextEn: 'Copy failed', blobRevokeDelayMs: 1000, showLanguageTag: true, lineNumbers: true, windowBar: true,
     wrapLongLines: false, highlightBackground: 'var(--color-hover)',
     borderRadius: '0.375rem', maxHeight: '', copyAllButton: false, downloadButton: true,
     maxHeightVh: 'none', headerHeight: '36px', fontSize: '0.92em'
   },
   externalLink: {
     enabled: true, whitelist: [], blacklist: [], mode: 'warn',
-    message: '即将离开本站,前往外部链接：', confirmText: '继续访问',
-    cancelText: '返回', showFullUrl: true, openInNewTab: true,
-    whitelistNewTab: false, copyButtonText: '复制'
+    message: '即将离开本站,前往外部链接：', messageEn: 'You are leaving this site. External link:', confirmText: '继续访问', confirmTextEn: 'Continue',
+    cancelText: '返回', cancelTextEn: 'Back', showFullUrl: true, openInNewTab: true,
+    whitelistNewTab: false, copyButtonText: '复制', copyButtonTextEn: 'Copy'
   },
   themeToggle: {
     enabled: true, defaultTheme: 'system', rememberChoice: true,
@@ -75,7 +75,7 @@ const DEFAULT_FEATURES = {
   shortcuts: {
     enabled: true, openSearch: '/', toggleTheme: 'd', prevPost: 'k',
     nextPost: 'j', help: '?', close: 'Escape', showHelpHint: true,
-    helpTitle: '快捷键一览', showHelpTable: true, ignoreInInputs: true
+    helpTitle: '快捷键一览', helpTitleEn: 'Keyboard Shortcuts', showHelpTable: true, ignoreInInputs: true
   },
   toc: {
     enabled: true, minLevel: 2, maxLevel: 4, collapsible: true,
@@ -94,12 +94,12 @@ const DEFAULT_FEATURES = {
     showTopButton: true, hideOnScrollDown: true, position: 'right'
   },
   dailyQuote: {
-    enabled: true, widgetStyle: 'sidebar', label: '每日一言',
+    enabled: true, widgetStyle: 'sidebar', label: '每日一言', labelEn: 'Daily Quote',
     source: 'builtin', count: 7, quoteColor: ''
   },
   favorites: {
     enabled: true, position: 'toolbar', storageKey: 's-favorites',
-    label: '收藏', listIcon: true, notText: '收藏', favedText: '已收藏'
+    label: '收藏', labelEn: 'Favorite', listIcon: true, notText: '收藏', notTextEn: 'Favorite', favedText: '已收藏', favedTextEn: 'Favorited'
   },
   prismTheme: {
     enabled: true
@@ -177,7 +177,7 @@ const DEFAULT_FEATURES = {
   },
   subscribe: {
     enabled: true, rss: true, jsonFeed: true, newsletterUrl: '',
-    newsletterLabel: '', newTab: true
+    newsletterLabel: '', newsletterLabelEn: '', newTab: true
   },
   authorCard: {
     enabled: true, pageSlug: 'about', showSocial: true, showSkills: true,
@@ -244,10 +244,10 @@ const DEFAULT_FEATURES = {
   },
   readingTime: {
     enabled: true, wordsPerMinuteCJK: 250, wordsPerMinuteLatin: 200,
-    showInMeta: true, labelBefore: '', labelAfter: '阅读约需'
+    showInMeta: true, labelBefore: '', labelAfter: '阅读约需', labelAfterEn: ' min read'
   },
   codeCopy: {
-    enabled: true, buttonText: '复制', copiedText: '已复制', buttonTimeout: 1500,
+    enabled: true, buttonText: '复制', buttonTextEn: 'Copy', copiedText: '已复制', copiedTextEn: 'Copied', buttonTimeout: 1500,
     showLineNumbers: false, includeWindowBar: true
   },
   tocScrollSpy: {
@@ -265,7 +265,7 @@ const DEFAULT_FEATURES = {
     aspectRatio: '21/9', lazy: true
   },
   imageFallback: {
-    enabled: true, fallbackImage: '', altText: '图片不可用', showAlt: true
+    enabled: true, fallbackImage: '', altText: '图片不可用', altTextEn: 'Image unavailable', showAlt: true
   },
   mobileBottomNav: {
     enabled: true, items: ['home', 'archive', 'search', 'theme'],
@@ -284,10 +284,10 @@ const DEFAULT_FEATURES = {
     fontSizeDefault: 19, lineHeightMin: 1.4, lineHeightMax: 2.6,
     lineHeightStep: 0.1, lineHeightDefault: 1.9, widthMin: 560, widthMax: 1200,
     widthStep: 40, widthDefault: 800, remember: true,
-    resetText: '重置', position: 'right', persistKey: 'ss-reading', showReset: true
+    resetText: '重置', resetTextEn: 'Reset', position: 'right', persistKey: 'ss-reading', showReset: true
   },
   readMode: {
-    enabled: true, persist: true, label: '阅读模式', focusOnlyContent: true,
+    enabled: true, persist: true, label: '阅读模式', labelEn: 'Reading Mode', focusOnlyContent: true,
     fontScale: 1
   },
   tts: {
@@ -314,69 +314,69 @@ const DEFAULT_FEATURES = {
   mermaid: {
     enabled: true, autoDetect: true, version: '11.4.1', followTheme: true,
     lightTheme: 'default', darkTheme: 'dark', securityLevel: 'strict',
-    copyAfterRender: false, errorText: '[图表渲染失败]',
+    copyAfterRender: false, errorText: '[图表渲染失败]', errorTextEn: '[Diagram failed to render]',
     size: { width: '', height: '', minWidth: '320px', maxWidth: 'none', minHeight: '200px', maxHeight: 'none', fit: 'scroll' }
   },
   series: {
-    enabled: true, showBadge: true, badgeFormat: '系列 · {name}',
+    enabled: true, showBadge: true, badgeFormat: '系列 · {name}', badgeFormatEn: 'Series · {name}',
     showNavPanel: true, sidebarWidget: true, order: 'asc',
-    panelTitle: '本系列共 {total} 篇', showPosition: true, defaultWidgetCount: 8,
-    prevLabel: '上一篇', nextLabel: '下一篇',
-    progressLabel: '{index} / {total}', sidebarTitle: '系列'
+    panelTitle: '本系列共 {total} 篇', panelTitleEn: '{total} posts in this series', showPosition: true, defaultWidgetCount: 8,
+    prevLabel: '上一篇', prevLabelEn: 'Previous', nextLabel: '下一篇', nextLabelEn: 'Next',
+    progressLabel: '{index} / {total}', sidebarTitle: '系列', sidebarTitleEn: 'Series'
   },
   related: {
     enabled: true, topN: 4, sameCategoryWeight: 2, sameTagWeight: 3,
-    minScore: 2, excludeCurrent: true, title: '相关推荐',
+    minScore: 2, excludeCurrent: true, title: '相关推荐', titleEn: 'Related Posts',
     showExcerpt: true, excerptLength: 80, showCount: false
   },
   pinned: {
-    enabled: true, badgeText: '置顶', badgeStyle: 'pill', sortRule: 'pinned-first'
+    enabled: true, badgeText: '置顶', badgeTextEn: 'Pinned', badgeStyle: 'pill', sortRule: 'pinned-first'
   },
   wordCount: {
-    enabled: true, onCards: true, inArticle: true, textFormat: '{count} 字',
-    readTimeFormat: '{minutes} 分钟阅读', wpm: 265, countCjkChars: true, countDigits: false
+    enabled: true, onCards: true, inArticle: true, textFormat: '{count} 字', textFormatEn: '{count} words',
+    readTimeFormat: '{minutes} 分钟阅读', readTimeFormatEn: '{minutes} min read', wpm: 265, countCjkChars: true, countDigits: false
   },
   share: {
     enabled: true, order: ['weibo', 'qq', 'wechat', 'x', 'facebook', 'mail', 'copy'],
     position: 'toolbar', popupWidth: 640, popupHeight: 520,
-    wechatText: '{title} 分享自 {url}', copiedText: '链接已复制',
-    copiedShowMs: 2500, showLabel: false, label: '分享文章',
+    wechatText: '{title} 分享自 {url}', wechatTextEn: '{title} via {url}', copiedText: '链接已复制', copiedTextEn: 'Link copied',
+    copiedShowMs: 2500, showLabel: false, label: '分享文章', labelEn: 'Share this post',
     useNativeShare: false, copyFallback: true
   },
   reward: {
-    enabled: false, buttonText: '打赏', note: '感谢支持', popupTitle: '打赏支持',
+    enabled: false, buttonText: '打赏', buttonTextEn: 'Reward', note: '感谢支持', noteEn: 'Thank you for your support', popupTitle: '打赏支持', popupTitleEn: 'Support this site',
     closeByBtn: true, closeByOverlay: true, closeByEsc: true,
     qrSize: '180px', maxWidth: '560px', showNote: true,
-    qrMaxWidth: '180px', closeText: '关闭', links: []
+    qrMaxWidth: '180px', closeText: '关闭', closeTextEn: 'Close', links: []
   },
   gallery: {
-    enabled: true, title: '图库', description: '站内图片集，点击查看大图。',
-    emptyText: '暂无图片', columns: 4, columnMin: '220px', showSource: true,
+    enabled: true, title: '图库', titleEn: 'Gallery', description: '站内图片集，点击查看大图。', descriptionEn: 'In-site image gallery. Click to view full size.',
+    emptyText: '暂无图片', emptyTextEn: 'No images', columns: 4, columnMin: '220px', showSource: true,
     collectFeatured: true, order: 'newest', incrementalByDefault: true, maxItems: 0,
     gap: '12px', showCaption: true, borderRadius: '8px'
   },
   heatmap: {
     enabled: true, levels: 5, scaling: 'auto', palette: [], showLegend: true,
-    legendLow: '少', legendHigh: '多', tooltipFormat: '{year}-{month}: {count} 篇',
+    legendLow: '少', legendLowEn: 'Less', legendHigh: '多', legendHighEn: 'More', tooltipFormat: '{year}-{month}: {count} 篇', tooltipFormatEn: '{year}-{month}: {count} posts',
     showMonthNumbers: true, gap: '3px', borderRadius: '3px', cellSize: '13px',
     emptyColor: 'var(--color-border)'
   },
   stats: {
     enabled: true, showArchiveCards: true,
-    labelPosts: '文章总数', labelDays: '发文天数', labelWords: '总字数',
-    labelAvg: '日均篇数', labelTags: '标签数', labelCategories: '分类数',
+    labelPosts: '文章总数', labelPostsEn: 'Posts', labelDays: '发文天数', labelDaysEn: 'Days', labelWords: '总字数', labelWordsEn: 'Words',
+    labelAvg: '日均篇数', labelAvgEn: 'Avg/Day', labelTags: '标签数', labelTagsEn: 'Tags', labelCategories: '分类数', labelCategoriesEn: 'Categories',
     linkArchive: '/archive/', cardColumns: 'auto-fit', showSidebar: true,
-    labelAvgPerDay: '日均'
+    labelAvgPerDay: '日均', labelAvgPerDayEn: 'Avg/Day'
   },
   prevNext: {
-    enabled: true, showLabels: true, prevLabel: '上一篇', nextLabel: '下一篇',
+    enabled: true, showLabels: true, prevLabel: '上一篇', prevLabelEn: 'Previous', nextLabel: '下一篇', nextLabelEn: 'Next',
     hideWhenMissing: false,
     showThumbnail: false, labelPosition: 'left', scrollToTopOnClick: true
   },
   hero: {
     enabled: true, showSearch: true, showCta: true, showTags: true,
     ctaLabel: '查看全部文章', ctaUrl: '#latest-post', tagCount: 8,
-    searchPlaceholder: '搜索文章…', showDate: false,
+    searchPlaceholder: '搜索文章…', searchPlaceholderEn: 'Search posts…', showDate: false,
     ctaLabelEn: 'View all posts', heightVh: 61.8, backgroundImage: ''
   },
   feed: {
@@ -390,7 +390,7 @@ const DEFAULT_FEATURES = {
   },
   redirects: { enabled: false, generatePagesFile: true, applyInServe: true, invalidRule: 'abort' },
   maintenance: {
-    enabled: false, message: '站点维护中，请稍后再来。', status: 503,
+    enabled: false, message: '站点维护中，请稍后再来。', messageEn: 'The site is under maintenance. Please try again later.', status: 503,
     setRetryAfter: true, retryAfter: 3600
   },
   mobile: {
@@ -399,13 +399,13 @@ const DEFAULT_FEATURES = {
     tocBreakpoint: 900, safeAreaBottom: true, tapHighlight: false
   },
   comments: {
-    enabled: true, loadContainer: true, renderPlaceholder: true, title: '评论',
-    placeholderText: '评论加载中…', loadDelayMs: 300, emptyText: '暂无评论'
+    enabled: true, loadContainer: true, renderPlaceholder: true, title: '评论', titleEn: 'Comments',
+    placeholderText: '评论加载中…', placeholderTextEn: 'Loading comments…', loadDelayMs: 300, emptyText: '暂无评论', emptyTextEn: 'No comments yet'
   },
   contactPopup: {
-    enabled: true, title: '联系方式', copyText: '复制',
+    enabled: true, title: '联系方式', titleEn: 'Contact', copyText: '复制', copyTextEn: 'Copy',
     popupWidth: '360px', showAllItems: true,
-    showIcon: true, copySuccessText: '', maxItems: 4
+    showIcon: true, copySuccessText: '', copySuccessTextEn: '', maxItems: 4
   },
   linkBehavior: {
     matchMode: 'hostname', skipInternal: true, mailtoMode: 'leave', lateTargeted: false

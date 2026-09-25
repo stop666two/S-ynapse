@@ -256,7 +256,8 @@ export function init() {
       d.innerHTML = '';
       var empty = document.createElement('div');
       empty.className = 'search-result-empty';
-      empty.textContent = TNS.emptyText || SC.noResultText || __T('search.noResult', '未找到相关内容');
+      var __en = (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
+      empty.textContent = __en ? (TNS.emptyTextEn || SC.noResultTextEn || __T('search.noResult', '未找到相关内容')) : (TNS.emptyText || SC.noResultText || __T('search.noResult', '未找到相关内容'));
       d.appendChild(empty);
       if (cnt) cnt.textContent = '';
     }

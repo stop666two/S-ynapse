@@ -14,15 +14,28 @@ export function init() {
       var m = location.pathname.match(/^\/([a-z]{2})(\/|$)/);
       url = '/' + (m ? m[1] : 'zh') + '/search-index.json';
     }
-    dataPromise = fetch(url, { credentials: 'same-origin' }).then(function (r) {
-      return r.ok ? r.json() : [];
-    }).then(function (d) {
+    var timeoutMs = +(TNS.indexTimeoutMs || 5000);
+    function fetchOnce(attempt) {
+      var opts = { credentials: 'same-origin' };
+      if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) opts.signal = AbortSignal.timeout(timeoutMs);
+      return fetch(url, opts).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      }).catch(function (err) {
+        if (attempt < 1) return fetchOnce(attempt + 1);
+        throw err;
+      });
+    }
+    window.__SEARCH_ERROR__ = false;
+    dataPromise = fetchOnce(0).then(function (d) {
       window.__SEARCH_DATA__ = Array.isArray(d) ? d : [];
       window.__SEARCH_DATA_READY__ = true;
       return window.__SEARCH_DATA__;
     }).catch(function () {
       window.__SEARCH_DATA__ = [];
-      window.__SEARCH_DATA_READY__ = true;
+      window.__SEARCH_DATA_READY__ = false;
+      window.__SEARCH_ERROR__ = true;
+      dataPromise = null;
       return [];
     });
     return dataPromise;
@@ -170,8 +183,10 @@ export function init() {
     var w = window.__SEARCH_DATA__ || [];
     if (!w.length && !window.__SEARCH_DATA_READY__) {
       ensureData().then(function () {
-        if ((window.__SEARCH_DATA__ || []).length) doSearchNow(q);
+        if ((window.__SEARCH_DATA__ || []).length) { doSearchNow(q); return; }
+        if (window.__SEARCH_ERROR__) renderSearchError(d, q);
       });
+      return;
     }
     var r = [], lq = q.toLowerCase();
     var mrst = isNaN(+TNS.resultLimit) ? (isNaN(+SC.maxResults) ? 30 : +SC.maxResults) : +TNS.resultLimit;
@@ -245,6 +260,24 @@ export function init() {
       d.appendChild(empty);
       if (cnt) cnt.textContent = '';
     }
+  }
+  function renderSearchError(d, q) {
+    d.classList.remove('has-results');
+    d.innerHTML = '';
+    var box = document.createElement('div');
+    box.className = 'search-result-empty search-result-error';
+    var msg = document.createElement('div');
+    msg.textContent = TNS.errorText || __T('search.loadError', '搜索索引加载失败，请检查网络后重试');
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'search-retry-btn';
+    btn.textContent = __T('search.retry', '重试');
+    btn.addEventListener('click', function () { doSearchNow(q); });
+    box.appendChild(msg);
+    box.appendChild(btn);
+    d.appendChild(box);
+    var cnt = document.getElementById('searchCount');
+    if (cnt) cnt.textContent = '';
   }
   function getHistory() {
     __hs();

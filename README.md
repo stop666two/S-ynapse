@@ -475,7 +475,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 npm test            # 180 项 / 38 组，全部通过
 npm run lint        # ESLint 静态检查（js / scripts / workers）
 npm run typecheck   # TypeScript checkJs（scripts/lib，渐进引入）
-npm run audit:a11y  # WCAG 2.x 无障碍审计（需先在另一终端 `npm run serve -- --port 3224`；也可用 `node scripts/a11y-audit.js <baseUrl>` 或 A11Y_BASE 环境变量指定地址；0 critical/serious 门禁）
+npm run audit:a11y  # WCAG 2.x 无障碍审计（需先在另一终端 `npm run serve -- --port 3224`；页面列表自动从 dist 派生；也可用 `node scripts/a11y-audit.js <baseUrl>` 或 A11Y_BASE 环境变量指定地址；Chrome 路径用 CHROME_PATH 覆盖；0 critical/serious/HTTP 失败门禁）
 npm run verify:security   # 集成安全回归
 ```
 

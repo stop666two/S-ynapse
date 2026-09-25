@@ -622,6 +622,7 @@ async function optimizeMedia(config) {
       count++;
     } catch (err) {
       console.error(`  [ERROR] Failed to optimize ${relPath}: ${err.message}`);
+      recordBuildFailure('media', `Failed to optimize ${relPath}: ${err.message}`);
     }
   };
   await Promise.all(images.map(p => processImage(p)));
@@ -873,6 +874,7 @@ function processPagesContent() {
       };
     } catch (err) {
       console.error(`  [ERROR] Failed to process page content ${file}: ${err.message}`);
+      recordBuildFailure('page', `Failed to process page content ${file}: ${err.message}`);
     }
   }
   if (!Object.keys(result).length) {
@@ -1017,6 +1019,7 @@ async function processArticles(config, mediaManifest, buildErrors) {
       }
       if ((seenSlugs.get(lang) || new Set()).has(slug)) {
         console.error(`  [ERROR] ${file}: duplicate slug "${slug}" (already used by another article in ${lang}). Skipping.`);
+        recordBuildFailure('slug', `${file}: duplicate slug "${slug}" (already used by another article in ${lang})`);
         continue;
       }
       if (!seenSlugs.has(lang)) seenSlugs.set(lang, new Set());
@@ -1026,6 +1029,7 @@ async function processArticles(config, mediaManifest, buildErrors) {
       const date = attrs.date || null;
       if (date && isNaN(new Date(date).getTime())) {
         console.error(`  [ERROR] ${file}: frontmatter "date: ${date}" is not a valid date. Expected YYYY-MM-DD or ISO 8601. Skipping.`);
+        recordBuildFailure('date', `${file}: frontmatter "date: ${date}" is not a valid date`);
         continue;
       }
       if (!date) {
@@ -1324,6 +1328,7 @@ function renderPage(templateName, data, layoutTemplate, cfg) {
   const templateStr = getTemplate(templateName);
   if (!templateStr) {
     console.error(`  [ERROR] Template not found: ${templateName}`);
+    recordBuildFailure('render', `Template not found: ${templateName}`);
     return null;
   }
   try {
@@ -1342,6 +1347,7 @@ function renderPage(templateName, data, layoutTemplate, cfg) {
     return result;
   } catch (err) {
     console.error(`  [ERROR] Failed to render template ${templateName}: ${err.message}`);
+    recordBuildFailure('render', `Failed to render template ${templateName}: ${err.message}`);
     return null;
   }
 }
@@ -1438,6 +1444,12 @@ let SITE_CSS_HREF = '';
 // 使首屏卡片不再下载 1600px 原图（LCP 优化）。仅用 original 格式变体（不引入 <picture>，不改现有 CSS 选择器结构）。
 // manifest 不可用时回退为纯 src 属性；URL 会在 cache-bust 阶段被重写为带哈希路径。
 let MEDIA_MANIFEST = null;
+
+// Collects runtime failures so the build can exit non-zero instead of silently ignoring them.
+let BUILD_ERRORS = null;
+function recordBuildFailure(stage, message) {
+  if (BUILD_ERRORS) BUILD_ERRORS.add(stage, message);
+}
 function buildCardImgAttrs(src) {
   const raw = String(src || '');
   const fallback = `src="${escapeAttr(raw)}"`;
@@ -1625,6 +1637,7 @@ function processCustomPages(config) {
         customPages.push(page);
       } catch (err) {
         console.error('  [ERROR] Failed to process custom page ' + file + ': ' + err.message);
+        recordBuildFailure('page', 'Failed to process custom page ' + file + ': ' + err.message);
       }
     }
   }
@@ -1707,7 +1720,7 @@ function buildPaginationItems(totalPages, current, maxVisibleRaw, urlFor) {
 async function generatePages(config, articles, preBuiltBaseData, customPages) {
   console.log('[6/14] Generating pages...');
   const layoutTemplate = getTemplate('layout.ejs');
-  if (!layoutTemplate) { console.error('  [FATAL] layout.ejs not found in templates/'); return; }
+  if (!layoutTemplate) { console.error('  [FATAL] layout.ejs not found in templates/'); recordBuildFailure('render', 'layout.ejs not found in templates/'); return; }
   const baseData = preBuiltBaseData || buildPageData(config, articles, collectTags(articles), collectCategories(articles));
   if (customPages && customPages.length) baseData.customPages = customPages;
 
@@ -2005,6 +2018,7 @@ async function generateRSS(config, articles) {
       console.log(`  Created: /${rssLang}/${rssPath}`);
     } catch (err) {
       console.error(`  [ERROR] RSS generation failed: ${err.message}`);
+      recordBuildFailure('feed', `RSS generation failed: ${err.message}`);
     }
   }
 }
@@ -2061,6 +2075,7 @@ async function generateJSONFeed(config, articles) {
     }
   } catch (err) {
     console.error('  [ERROR] JSON Feed generation failed: ' + err.message);
+    recordBuildFailure('feed', 'JSON Feed generation failed: ' + err.message);
   }
 }
 // Generate a standard XML sitemap (per-language).
@@ -2158,6 +2173,7 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
     for (const lang of siteLangsSM) await writeSitemapFor(lang);
   } catch (err) {
     console.error('  [ERROR] Sitemap generation failed: ' + err.message);
+    recordBuildFailure('sitemap', 'Sitemap generation failed: ' + err.message);
   }
 }
 
@@ -2255,6 +2271,7 @@ async function generatePagefindIndex(config) {
     return outDir;
   } catch (err) {
     console.error(`  [ERROR] Pagefind 索引生成失败: ${err.message}`);
+    recordBuildFailure('search', `Pagefind 索引生成失败: ${err.message}`);
     return null;
   } finally {
     try { await mod.close(); } catch (e) { /* 服务已退出 */ }
@@ -2338,6 +2355,7 @@ function generateBuildReport(config, articles, tags, categories, customPages, el
     console.log('  Created: build-report.html');
   } catch (err) {
     console.error(`  [ERROR] Build report failed: ${err.message}`);
+    recordBuildFailure('report', `Build report failed: ${err.message}`);
   }
 }
 
@@ -2537,6 +2555,7 @@ async function minifyHTMLInDir(dir, config) {
       }
     } catch (err) {
       console.error(`  [ERROR] Failed to minify HTML ${file}: ${err.message}`);
+      recordBuildFailure('minify', `HTML ${file}: ${err.message}`);
     }
   }
 }
@@ -2554,9 +2573,10 @@ async function minifyCSSInDir(dir, config) {
       if (!result.errors.length && result.styles.length < content.length) {
         writeFileAtomicSync(file, result.styles, 'utf-8');
       }
-      for (const err of result.errors) console.error(`  [ERROR] CSS minify error: ${err}`);
+      for (const err of result.errors) { console.error(`  [ERROR] CSS minify error: ${err}`); recordBuildFailure('minify', 'CSS: ' + err); }
     } catch (err) {
       console.error(`  [ERROR] Failed to minify CSS ${file}: ${err.message}`);
+      recordBuildFailure('minify', `CSS ${file}: ${err.message}`);
     }
   }
 }
@@ -2579,9 +2599,10 @@ async function minifyJSInDir(dir, config) {
       if (result.code && result.code.length < content.length) {
         writeFileAtomicSync(file, result.code, 'utf-8');
       }
-      if (result.error) console.error(`  [ERROR] JS minify error: ${result.error}`);
+      if (result.error) { console.error(`  [ERROR] JS minify error: ${result.error}`); recordBuildFailure('minify', 'JS: ' + result.error); }
     } catch (err) {
       console.error(`  [ERROR] Failed to minify JS ${file}: ${err.message}`);
+      recordBuildFailure('minify', `JS ${file}: ${err.message}`);
     }
   }
 }
@@ -2610,6 +2631,7 @@ async function minifyInlineStylesInDir(dir, config) {
       if (changed) writeFileAtomicSync(file, html, 'utf-8');
     } catch (err) {
       console.error(`  [ERROR] Inline CSS minify ${file}: ${err.message}`);
+      recordBuildFailure('minify', `inline CSS ${file}: ${err.message}`);
     }
   }
 }
@@ -2664,6 +2686,7 @@ async function cacheBust(config) {
       }
     } catch (err) {
       console.error(`  [ERROR] Cache bust ${file}: ${err.message}`);
+      recordBuildFailure('cachebust', `Cache bust ${file}: ${err.message}`);
     }
   }
   if (Object.keys(mapping).length > 0) {
@@ -2683,6 +2706,7 @@ async function cacheBust(config) {
         if (changed) writeFileAtomicSync(htmlFile, content, 'utf-8');
       } catch (err) {
         console.error(`  [ERROR] Update refs in ${htmlFile}: ${err.message}`);
+        recordBuildFailure('cachebust', `Update refs in ${htmlFile}: ${err.message}`);
       }
     }
     writeFileAtomicSync(CACHE_BUST_MANIFEST_PATH, JSON.stringify(mapping), 'utf-8');
@@ -2703,6 +2727,7 @@ async function cacheBust(config) {
         if (jsonChanged) writeFileAtomicSync(jf, jsonText, 'utf-8');
       } catch (err) {
         console.error(`  [ERROR] Cache bust ${jf}: ${err.message}`);
+        recordBuildFailure('cachebust', `Cache bust ${jf}: ${err.message}`);
       }
     }
   } else {
@@ -2947,6 +2972,7 @@ async function build() {
   console.log('========================================\n');
   const startTime = Date.now();
   const buildErrors = createBuildErrorCollector();
+  BUILD_ERRORS = buildErrors;
   if (!validateJsonSyntax()) {
     abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
   }
@@ -3004,6 +3030,7 @@ async function build() {
       const ogRes = spawnSync(process.execPath, ogArgs, { stdio: 'inherit' });
       if (ogRes.status !== 0) {
         console.warn('  [WARN] OG image generation reported errors (see above); continuing build.');
+        recordBuildFailure('og', 'generate-og.js exited with status ' + ogRes.status);
       }
     }
     await pingSearchEngines(config);

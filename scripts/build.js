@@ -5,296 +5,53 @@
 
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
-
-// 构建期 CSP nonce（每次构建进程生成一次）：同一值写入最终 HTML 的 <script nonce="...">
-// 与 CSP 的 script-src 'nonce-...'（_headers / Worker / meta 三处同源），两者必须同步，
-// 否则内联脚本会被浏览器按 CSP 拦截。
-const CSP_NONCE = crypto.randomBytes(16).toString('base64');
-
-// Optional dependency loading — each fails gracefully to null/fallback
-// This allows the build to run with missing packages (features degrade instead of crashing)
-let json5, deepmerge, Feed, sharp, minifyHtmlNode, CleanCSS, terser, chokidar;
 const { spawnSync } = require('child_process');
-try { json5 = require('json5'); } catch (e) {
-  console.warn('[WARN] json5 package not found, config files with comments will fail to parse. Run: npm install json5');
-  json5 = { parse: JSON.parse };
-}
-// deepmerge fallback: recursive object merge (supports indefinite nesting)
-try { deepmerge = require('deepmerge'); } catch (e) {
-  deepmerge = function deepMerge(...objs) {
-    const result = {};
-    for (const obj of objs) {
-      if (!obj || typeof obj !== 'object') continue;
-      for (const key of Object.keys(obj)) {
-        if (Array.isArray(obj[key])) {
-          result[key] = obj[key].slice();
-        } else if (obj[key] && typeof obj[key] === 'object') {
-          result[key] = deepMerge(result[key] || {}, obj[key]);
-        } else {
-          result[key] = obj[key];
-        }
-      }
-    }
-    return result;
-  };
-}
-try { const feedMod = require('feed'); Feed = feedMod.Feed || feedMod; } catch (e) { Feed = null; }
-try { sharp = require('sharp'); } catch (e) { sharp = null; }
-try { minifyHtmlNode = require('@minify-html/node'); } catch (e) { minifyHtmlNode = null; }
-try { CleanCSS = require('clean-css'); } catch (e) { CleanCSS = null; }
-try { terser = require('terser'); } catch (e) { terser = null; }
-try { chokidar = require('chokidar'); } catch (e) { chokidar = null; }
-let generateWorkerSecurity;
-let applyHeaderHardening = function (security) { return (security && security.headers) || {}; };
-try {
-  const secConfig = require('./generate-security-config');
-  generateWorkerSecurity = secConfig.generateSecurityConfig;
-  applyHeaderHardening = secConfig.applyHeaderHardening;
-} catch (e) { generateWorkerSecurity = null; }
-
-// Optional local hooks script (scripts/hooks.js) — allows external plugins to hook into build lifecycle
-// Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
-let hooks;
-try { hooks = require('./hooks'); } catch (e) { hooks = null; }
-const { buildSitemapUrls } = require('./lib/robots');
-const { computeRelatedArticles } = require('./lib/related');
 const { createBuildErrorCollector, resolveExitCode, formatFailures } = require('./lib/build-errors');
 const { isScheduled } = require('./lib/publish-window');
-const { bundleEnabled, esbuildAvailable, buildBundles } = require('./lib/bundle');
-const { createMinifyModule } = require('./build/minify');
-const { createMediaModule } = require('./build/media');
-const { createFeedsModule } = require('./build/feeds');
-const { createReportModule } = require('./build/report');
-const { createRenderModule } = require('./build/render');
+const { buildBundles } = require('./lib/bundle');
+const { computeRelatedArticles } = require('./lib/related');
 const { getAllFiles } = require('./build/fs-utils');
-const { createAssetsModule } = require('./build/assets');
-const { createSecurityFilesModule } = require('./build/security-files');
-const { createConfigModule } = require('./build/config');
-const { createMarkdownModule } = require('./build/markdown');
-const { createArticlesModule } = require('./build/articles');
-const { createCollectorsModule } = require('./build/collectors');
-const { createHelpersModule } = require('./build/helpers');
-const { createPagesModule } = require('./build/pages');
-const { createServeModule } = require('./build/serve');
-const { createCacheModule } = require('./build/cache');
+const { createBuildContext } = require('./build/context');
 
-// Project directory structure — all paths relative to project root
-const ROOT = path.resolve(__dirname, '..');
-const ARTICLES_DIR = path.join(ROOT, 'articles');          // Markdown article source files
+// 编排器活值（build() 函数体直接读写；经 getter/setter 注入构建上下文，保持活值语义）：
+//   BUILD_ERRORS   构建错误收集器（build() 赋值；helpers 记录构建失败时读取）
+//   MEDIA_MANIFEST 媒体 manifest（build() 赋值；pages 生成卡片 srcset 时读取）
+//   inlineConfigKb 内联配置体积（KB；pages 写入，report 性能预算读取）
+let BUILD_ERRORS = null;
+let MEDIA_MANIFEST = null;
+let inlineConfigKb = 0;
 
-const STATIC_DIR = path.join(ROOT, 'static');               // Unprocessed static assets (copied verbatim)
-const MEDIA_DIR = path.join(ROOT, 'media');                 // Source images (processed by sharp)
-const VIDEOS_DIR = path.join(ROOT, 'videos');               // Source videos (copied with policy filter)
-const ASSETS_DIR = path.join(ROOT, 'assets');               // Source downloadable files (copied with policy filter)
-const TEMPLATES_DIR = path.join(ROOT, 'templates');         // EJS template files
-const PAGES_DIR = path.join(ROOT, 'pages');                 // Standalone page Markdown files (about, privacy, etc.)
-
-// Build output directory: `--out <dir>` > SYNAPSE_OUT_DIR > default dist/.
-// Relative values resolve against ROOT. 集成测试/预览构建可用 --out 写入临时目录；
-// 媒体与 OG 缓存（.build-cache.json / .cache/*）始终留在 ROOT，不随输出目录迁移。
-function resolveOutputDir(argv) {
-  const idx = argv.indexOf('--out');
-  let value = (idx !== -1 && argv[idx + 1] && argv[idx + 1].charAt(0) !== '-') ? argv[idx + 1] : '';
-  if (!value && process.env.SYNAPSE_OUT_DIR) value = process.env.SYNAPSE_OUT_DIR;
-  if (!value) return { dir: path.join(ROOT, 'dist'), custom: false };
-  return { dir: path.isAbsolute(value) ? path.resolve(value) : path.resolve(ROOT, value), custom: true };
-}
-const OUTPUT_DIR_RESOLVED = resolveOutputDir(process.argv);
-const DIST_DIR = OUTPUT_DIR_RESOLVED.dir;                   // Build output directory
-
-// CLI flags parsed from process.argv
-const WATCH_MODE = process.argv.includes('--watch');        // Rebuild on file changes
-const SERVE_MODE = process.argv.includes('--serve');        // Start dev HTTP server after build
-const SHOW_DRAFTS = process.argv.includes('--drafts') || WATCH_MODE;  // Include draft articles
-const ALLOW_DEGRADED = process.argv.includes('--allow-degraded');    // Local preview: continue past content failures (exit code stays 0)
-const BUNDLE_ACTIVE = bundleEnabled(process.argv, esbuildAvailable());   // esbuild 两段 chunk；--no-bundle 回退原生 ESM
-
-const CACHE_BUST_MANIFEST_PATH = path.join(DIST_DIR, 'cache-bust-manifest.json');
-const BUILD_CACHE_PATH = path.join(ROOT, '.build-cache.json');
-const MEDIA_CACHE_DIR = path.join(ROOT, '.cache', 'media');
-
-// 构建缓存模块（scripts/build/cache.js）：注入缓存文件路径；函数体原样搬移（以 dist 哈希等价门禁验证）。
-const { loadBuildCache, saveBuildCache } = createCacheModule({
-  buildCachePath: BUILD_CACHE_PATH
+// 构建上下文（scripts/build/context.js）：可选依赖加载、路径/标志计算与全部模块接线在工厂内完成，
+// 本文件只保留编排逻辑（validateJsonSyntax + build() + watch/serve 入口）。
+const ctx = createBuildContext({
+  rootDir: path.resolve(__dirname, '..'),
+  argv: process.argv,
+  getBuildErrors: () => BUILD_ERRORS,
+  getMediaManifest: () => MEDIA_MANIFEST,
+  getInlineConfigKb: () => inlineConfigKb,
+  setInlineConfigKb: (kb) => { inlineConfigKb = kb; }
 });
 
-const PKG_VERSION = (() => {
-  try {
-    return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8')).version || '0.0.0';
-  } catch (err) {
-    return '0.0.0';
-  }
-})();
-
-// 辅助函数模块（scripts/build/helpers.js）：注入项目根、favicon 静态目录、草稿开关、监视模式、
-// JSON5 实现与构建错误收集器读取器（活值 getter）；函数体原样搬移（以 dist 哈希等价门禁验证）。
-const { getPublished, resolveDailyQuotes, resolveFaviconHtml, recordBuildFailure } = createHelpersModule({
-  rootDir: ROOT,
-  staticDir: STATIC_DIR,
-  watchMode: WATCH_MODE,
-  showDrafts: SHOW_DRAFTS,
-  getJson5: () => json5,
-  getBuildErrors: () => BUILD_ERRORS
-});
-
-// 配置族模块（scripts/build/config.js）：注入项目根目录、监视模式、JSON5/深合并实现（活值 getter）
-// 与后置模块提供的 CSP 裁剪上下文、字体清单；机械拆分 —— 函数体原样搬移（以 dist 哈希等价门禁验证）。
-const { categoryHue, abortBuild, loadConfig, validateConfig } = createConfigModule({
-  rootDir: ROOT,
-  watchMode: WATCH_MODE,
-  getJson5: () => json5,
-  getDeepmerge: () => deepmerge,
-  getVendorFonts: () => VENDOR_FONTS,
-  buildCspTrimContext: (cfg) => buildCspTrimContext(cfg)
-});
-
-// Generate an SVG Open Graph image for social sharing (1200×630).
-// Uses theme colors for background gradient, auto-splits long titles onto two lines.
-// Output is written to dist/og/{lang}/{slug}.png during article processing (scripts/generate-og.js).
-
-// 媒体与静态资产模块（scripts/build/media.js）：路径、缓存加载器与错误收集器通过 ctx 注入。
-// 机械拆分 2/N —— 函数体原样搬移；getAllFiles 移至 scripts/build/fs-utils.js 供跨模块复用。
-const { setupDist, copyStatic, copyProtectedAssets, optimizeMedia } = createMediaModule({
-  distDir: DIST_DIR,
-  staticDir: STATIC_DIR,
-  mediaDir: MEDIA_DIR,
-  videosDir: VIDEOS_DIR,
-  assetsDir: ASSETS_DIR,
-  mediaCacheDir: MEDIA_CACHE_DIR,
-  sharp,
-  loadBuildCache,
-  saveBuildCache,
-  recordBuildFailure
-});
-
-// Markdown 渲染模块（scripts/build/markdown.js）：marked 单例与 lib/utils 直连 require，无注入项。
-// 机械拆分 —— 函数体原样搬移（以 dist 哈希等价门禁验证）。
-const { setupMarkedRenderer } = createMarkdownModule();
-
-// 文章内容管线模块（scripts/build/articles.js）：注入文章/页面/媒体目录、标记渲染器、hooks
-// 与构建失败记录器；函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
-const { processPagesContent, preflightContent, processArticles } = createArticlesModule({
-  rootDir: ROOT,
-  articlesDir: ARTICLES_DIR,
-  pagesDir: PAGES_DIR,
-  mediaDir: MEDIA_DIR,
-  setupMarkedRenderer,
-  getHooks: () => hooks,
-  recordBuildFailure
-});
-
-// 数据收集器模块（scripts/build/collectors.js）：注入发布过滤器 getPublished（含草稿与定时发布语义）。
-// 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
-const { collectTopTags, collectTags, collectSeries, collectFriends, collectGalleryImages, collectSiteStats, collectCategories, groupByYearMonth } = createCollectorsModule({
-  getPublished
-});
-
-// Compute related articles using a tag/category scoring algorithm.
-// Implementation lives in lib/related.js so the scoring (weights, topN,
-// minScore) is unit-testable; this wrapper feeds it the published articles
-// and the features.related config block.
-
-// EJS 模板渲染模块（scripts/build/render.js）：注入模板目录、构建期 nonce、hooks 与构建错误收集器。
-// 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
-const { getTemplate, renderPage } = createRenderModule({
-  templatesDir: TEMPLATES_DIR,
-  cspNonce: CSP_NONCE,
-  hooks,
-  recordBuildFailure
-});
+const {
+  json5, chokidar, hooks, generateWorkerSecurity,
+  rootDir: ROOT, distDir: DIST_DIR, watchMode: WATCH_MODE, serveMode: SERVE_MODE,
+  showDrafts: SHOW_DRAFTS, allowDegraded: ALLOW_DEGRADED, bundleActive: BUNDLE_ACTIVE,
+  outputDirResolved: OUTPUT_DIR_RESOLVED, pkgVersion: PKG_VERSION,
+  abortBuild, loadConfig, validateConfig, applyCspNonce,
+  getPublished, resolveDailyQuotes, recordBuildFailure,
+  setupDist, copyStatic, copyProtectedAssets, optimizeMedia,
+  processPagesContent, preflightContent, processArticles,
+  collectTags, collectCategories,
+  buildSiteCss, writeRuntimeConfig, buildPageData, processCustomPages, generatePages,
+  generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, generateSearchIndex, generatePagefindIndex,
+  checkPerfBudget, generateBuildReport, generateRedirects, buildCspTrimContext, generateSecurityHeaders,
+  minifyAll, cacheBust, copyJsAssets, copyRuntimeBootstrap, copyVendorAssets, generatePWA,
+  startServer
+} = ctx;
 
 let SITE_APP_JS_HREF = '/assets/js/core/main.js';
 let SITE_DEFERRED_URL = '';
 let SITE_RUNTIME_JS_HREF = '/assets/js/core/runtime.js';
-let MEDIA_MANIFEST = null;
-
-let BUILD_ERRORS = null;
-
-// 页面生成模块（scripts/build/pages.js）：注入产物/页面/模板目录、CSP nonce、模板渲染器、
-// 发布过滤器、收集器、页面状态读取器（媒体 manifest getter、内联配置体积 setter）与共享依赖。
-// 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
-const { buildSiteCss, writeRuntimeConfig, buildPageData, processCustomPages, generatePages } = createPagesModule({
-  distDir: DIST_DIR,
-  pagesDir: PAGES_DIR,
-  templatesDir: TEMPLATES_DIR,
-  cspNonce: CSP_NONCE,
-  getTemplate,
-  renderPage,
-  getPublished,
-  recordBuildFailure,
-  collectFriends,
-  collectSeries,
-  collectGalleryImages,
-  collectSiteStats,
-  collectTags,
-  collectCategories,
-  collectTopTags,
-  groupByYearMonth,
-  categoryHue,
-  resolveDailyQuotes,
-  resolveFaviconHtml,
-  CleanCSS,
-  getMediaManifest: () => MEDIA_MANIFEST,
-  setInlineConfigKb: (kb) => { inlineConfigKb = kb; }
-});
-
-// 订阅源/站点地图/搜索索引模块（scripts/build/feeds.js）：依赖通过 ctx 注入，函数体原样搬移。
-const { generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, generateSearchIndex, generatePagefindIndex } = createFeedsModule({
-  distDir: DIST_DIR,
-  serveMode: SERVE_MODE,
-  watchMode: WATCH_MODE,
-  getFeed: () => Feed,
-  getPublished,
-  collectTags,
-  collectCategories,
-  recordBuildFailure
-});
-
-let inlineConfigKb = 0;
-
-// 构建报告与性能预算模块（scripts/build/report.js）：注入产物目录、发布过滤器、内联配置体积读取器与构建错误收集器。
-// 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
-const { checkPerfBudget, generateBuildReport } = createReportModule({
-  distDir: DIST_DIR,
-  getPublished,
-  getInlineConfigKb: () => inlineConfigKb,
-  recordBuildFailure
-});
-
-// Generate Cloudflare-compatible _headers file and robots.txt.
-// 安全文件模块（scripts/build/security-files.js）：注入路径、nonce 与共享依赖。
-// 机械拆分 4/N —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
-const { generateRedirects, buildCspTrimContext, applyCspNonce, generateSecurityHeaders } = createSecurityFilesModule({
-  distDir: DIST_DIR,
-  cspNonce: CSP_NONCE,
-  bundleActive: BUNDLE_ACTIVE,
-  applyHeaderHardening: (sec) => applyHeaderHardening(sec),
-  buildSitemapUrls
-});
-
-
-// 压缩与缓存指纹模块（scripts/build/minify.js）：注入路径、开关与共享依赖。
-// 机械拆分 1/N —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
-const { minifyAll, cacheBust } = createMinifyModule({
-  distDir: DIST_DIR,
-  cacheBustManifestPath: CACHE_BUST_MANIFEST_PATH,
-  bundleActive: BUNDLE_ACTIVE,
-  getAllFiles,
-  recordBuildFailure,
-  minifyHtmlNode,
-  CleanCSS,
-  terser
-});
-
-// 静态资产与 PWA 模块（scripts/build/assets.js）：注入根路径与产物目录。
-// 机械拆分 5/N —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
-const { copyJsAssets, copyRuntimeBootstrap, copyVendorAssets, generatePWA, VENDOR_FONTS } = createAssetsModule({
-  root: ROOT,
-  distDir: DIST_DIR,
-  staticDir: STATIC_DIR,
-  cspNonce: CSP_NONCE
-});
 
 // Pre-flight syntax check for all 6 JSON5 config files.
 // Runs before loadConfig() to catch syntax errors early.
@@ -506,8 +263,3 @@ if (WATCH_MODE) {
     if (SERVE_MODE) startServer(config);
   });
 }
-
-// 开发预览服务器模块（scripts/build/serve.js）：注入产物目录；函数体原样搬移（以 dist 哈希等价门禁验证）。
-const { startServer } = createServeModule({
-  distDir: DIST_DIR
-});

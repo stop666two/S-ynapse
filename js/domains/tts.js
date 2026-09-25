@@ -36,7 +36,7 @@ export function init() {
       }
     }
     function set(on) { b.classList.toggle('speaking', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
-    var hb = null;
+    var hb = null, resumeTries = 0;
     function stopHB() { if (hb) { clearInterval(hb); hb = null; } }
     function finish() { stopHB(); clearHL(); set(false); }
     b.onclick = function () {
@@ -44,6 +44,7 @@ export function init() {
       var t = text();
       if (!t) return;
       u = new SpeechSynthesisUtterance(t);
+      resumeTries = 0;
       u.lang = document.documentElement.lang || 'zh-CN';
       var TNR = (window.__TUNING__ || {}).reading || {};
       u.rate = isNaN(+TNR.ttsRate) ? (parseFloat(b.getAttribute('data-rate')) || 1) : +TNR.ttsRate;
@@ -54,6 +55,7 @@ export function init() {
         if (hb || !speechSynthesis.paused) return;
         hb = setInterval(function () {
           if (!speechSynthesis.paused) { stopHB(); return; }
+          if (++resumeTries > 3) { finish(); speechSynthesis.cancel(); u = null; return; }
           speechSynthesis.resume();
         }, 500);
       };

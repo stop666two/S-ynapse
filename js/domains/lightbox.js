@@ -16,17 +16,19 @@ export function init() {
     if (!showBtns || !zoomE) { if (zIn) zIn.style.display = 'none'; if (zOut) zOut.style.display = 'none'; }
     if (!rotE && !zoomE) { if (rst) rst.style.display = 'none'; }
     if (!rotE) { if (rotL) rotL.style.display = 'none'; if (rotR) rotR.style.display = 'none'; }
+    if (L.closeButton === false && close) close.style.display = 'none';
     var list = [], idx = 0, tx0 = null, ty0 = null, mdx = null, sc = 1, rot = 0, px = 0, py = 0, panning = false, sx = 0, sy = 0;
+    var RKEY = 's-lb-pos:' + location.pathname, remember = L.rememberPosition === true;
     function apply() { var tr = 'translate(' + px + 'px,' + py + 'px) rotate(' + rot + 'deg)'; if (sc > 1) tr += ' scale(' + sc + ')'; img.style.transform = tr; img.style.cursor = (sc > 1 && panE) ? 'grab' : 'default'; }
     function reset() { sc = 1; rot = 0; px = 0; py = 0; apply(); }
     function zoomTo(z, cx, cy) { if (!zoomE || !img) return; var old = sc; sc = Math.min(zmax, Math.max(zmin, z)); if (sc <= 1) { px = 0; py = 0; } else if (cx !== undefined && rot === 0) { px += (old - sc) * (cx - .5) * img.offsetWidth; py += (old - sc) * (cy - .5) * img.offsetHeight; } apply(); }
     var ms = +L.minSize || 0;
     function collect() { list = []; document.querySelectorAll(sel).forEach(function (im) { if (im.closest('a')) return; if (ms > 0 && (im.offsetWidth < ms || im.offsetHeight < ms)) return; list.push(im); }); }
-    function preload() { for (var i = 1; i <= 1; i++) { var a = (idx + i) % list.length, b = (idx - i + list.length) % list.length; if (list[a]) { var im = new Image(); im.src = list[a].currentSrc || list[a].src; } if (list[b]) { var im2 = new Image(); im2.src = list[b].currentSrc || list[b].src; } } }
+    function preload() { if (L.preloadAdjacent === false) return; for (var i = 1; i <= 1; i++) { var a = (idx + i) % list.length, b = (idx - i + list.length) % list.length; if (list[a]) { var im = new Image(); im.src = list[a].currentSrc || list[a].src; } if (list[b]) { var im2 = new Image(); im2.src = list[b].currentSrc || list[b].src; } } }
     function load() { img.classList.add('lb-moving'); img.onload = function () { img.classList.remove('lb-moving'); }; img.src = list[idx].currentSrc || list[idx].src; img.alt = list[idx].alt || ''; var cap = document.getElementById('lbCaption'); if (cap) cap.textContent = (L.showCaption === false) ? '' : (list[idx].alt || ''); }
-    function show(i) { if (!list.length) return; idx = (i + list.length) % list.length; reset(); load(); if (cnt) { var cf = typeof L.counterFormat === 'string' ? L.counterFormat : ''; cnt.textContent = cf ? cf.replace(/\{current\}/g, String(idx + 1)).replace(/\{total\}/g, String(list.length)) : (idx + 1) + ' / ' + list.length; } lb.classList.add('open'); document.body.style.overflow = 'hidden'; preload(); if (close) { try { close.focus({ preventScroll: true }); } catch (e) { try { close.focus(); } catch (e2) { /* 忽略：二次聚焦兜底失败（元素已被移除） */ } } } }
+    function show(i) { if (!list.length) return; idx = (i + list.length) % list.length; if (remember) { try { sessionStorage.setItem(RKEY, String(idx)); } catch (e) { /* 忽略：存储不可用（隐私模式） */ } } reset(); load(); if (cnt) { var cf = typeof L.counterFormat === 'string' ? L.counterFormat : ''; cnt.textContent = cf ? cf.replace(/\{current\}/g, String(idx + 1)).replace(/\{total\}/g, String(list.length)) : (idx + 1) + ' / ' + list.length; } lb.classList.add('open'); document.body.style.overflow = 'hidden'; preload(); if (close) { try { close.focus({ preventScroll: true }); } catch (e) { try { close.focus(); } catch (e2) { /* 忽略：二次聚焦兜底失败（元素已被移除） */ } } } }
     function hide() { lb.classList.remove('open'); document.body.style.overflow = ''; reset(); }
-    document.addEventListener('click', function (e) { var im = e.target.closest(sel); if (!im || im.closest('a')) return; collect(); var j = list.indexOf(im); if (j > -1) { e.preventDefault(); show(j); } });
+    document.addEventListener('click', function (e) { var im = e.target.closest(sel); if (!im || im.closest('a')) return; collect(); var j = list.indexOf(im); if (j > -1 && remember) { var saved = NaN; try { saved = parseInt(sessionStorage.getItem(RKEY), 10); } catch (e2) { /* 忽略：存储不可用 */ } if (saved >= 0 && saved < list.length) j = saved; } if (j > -1) { e.preventDefault(); show(j); } });
     if (canNav && prev && next) { prev.onclick = function () { show(idx - 1); }; next.onclick = function () { show(idx + 1); }; }
     if (close) close.onclick = hide;
     var downX = null, downY = null;

@@ -90,7 +90,7 @@ function hasEmptyEntry(list) {
  * 不做任何写入，供构建在清理 dist 之前调用。
  * @param {Array<{file: string, lang: string, attrs: Object, body: string}>} items
  * @param {{mediaExists: (ref: string) => boolean}} options
- * @returns {{errors: Array<{stage: string, file: string, message: string}>, warnings: Array}>}
+ * @returns {{errors: Object[], warnings: Object[]}}
  */
 function preflightArticles(items, options) {
   const list = Array.isArray(items) ? items : [];

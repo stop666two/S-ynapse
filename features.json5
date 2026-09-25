@@ -2044,7 +2044,7 @@
     // 类型: boolean | 可填: true/false | 推荐: true
     enabled: true,
 
-    // 关闭记录的 localStorage 键(修改会使旧关闭记录失效)
+    // 关闭记录的 localStorage 键(按语言分别记忆，存储 {"zh":hash,"en":hash}；修改会使旧关闭记录失效，旧版单值会自动迁移)
     // 类型: string | 推荐: 's-announce-dismissed'
     storageKey: 's-announce-dismissed',
 

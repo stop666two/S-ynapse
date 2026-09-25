@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **公告条关闭记忆按语言独立（用户反馈）**：`announcement.storageKey` 升级为按语言区分的 JSON 对象存储（`{"zh":hash,"en":hash}`，旧版单值访问时自动迁移），修复「关闭英文公告后中文公告复现、中文公告不显示」的跨语言互相覆盖问题 — `templates/layout.ejs` + `js/domains/announcement.js`
+
 - **配置注册补齐与文档同步**：`site.build.cacheControl` 纳入 `scripts/lib/site-defaults.js` 注册表与 `site.json5`（含完整注释）——此前该键会被 `verify:config` 判为死键；`features.ogImage.cacheDir` / `features.incrementalBuild.cacheDir` 注释标注为预留未接线（实际为 `.cache/og` / `.build-cache.json`）；`docs/config-reference.md` 修正 `blobRevokeDelayMs` 默认值为 1000，README 补充 `verify:config` 值覆盖语义。
 
 - **speculationrules 动态脚本携带 nonce**：`seamless-nav.js` 动态创建的推测规则脚本继承页面 CSP nonce，修复 nonce 化后 Chrome 报 `'inline-speculation-rules'` CSP 违规（推测规则被拦截）的问题 — `js/domains/seamless-nav.js`

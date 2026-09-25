@@ -62,6 +62,8 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       assert.ok(fs.existsSync(file), 'missing artifact: ' + path.relative(tmpDir, file));
     }
     const headers = fs.readFileSync(path.join(tmpDir, '_headers'), 'utf-8');
+    const jsRule = headers.split('\n\n').find((section) => section.startsWith('/assets/js/*'));
+    assert.ok(jsRule && jsRule.includes('max-age=31536000'), 'hashed JS bundle path must be immutable in bundle mode (single merged Cache-Control)');
     const cspLine = headers.split('\n').find((line) => line.includes('Content-Security-Policy')) || '';
     const scriptSrc = cspLine.split(';').map((part) => part.trim()).find((part) => part.startsWith('script-src')) || '';
     assert.ok(scriptSrc.includes('nonce-'), 'script-src must carry the build-time nonce');

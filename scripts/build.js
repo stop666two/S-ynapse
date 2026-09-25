@@ -2001,6 +2001,7 @@ function getDirSize(dir) {
 const { generateRedirects, buildCspTrimContext, applyCspNonce, generateSecurityHeaders } = createSecurityFilesModule({
   distDir: DIST_DIR,
   cspNonce: CSP_NONCE,
+  bundleActive: BUNDLE_ACTIVE,
   applyHeaderHardening: (sec) => applyHeaderHardening(sec),
   buildSitemapUrls
 });

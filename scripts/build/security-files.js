@@ -9,7 +9,7 @@ const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { trimCspDirectives } = require('../lib/csp');
 
 function createSecurityFilesModule(ctx) {
-  const { distDir, cspNonce, applyHeaderHardening, buildSitemapUrls } = ctx;
+  const { distDir, cspNonce, applyHeaderHardening, buildSitemapUrls, bundleActive } = ctx;
 
 // The _headers file sets CSP directives, HTTP security headers, and custom headers
 // from the security.json5 configuration. Applied to all paths (/*).
@@ -150,20 +150,19 @@ function generateSecurityHeaders(config) {
     extraSections.push('/speculation-rules.json\n  Content-Type: application/speculationrules+json\n  Access-Control-Allow-Origin: *');
   }
 
-  // Browser cache policy (audit P-5). Only assets/css/* is content-fingerprinted
-  // today (site.<hash>.css); /assets/js and /assets/vendor keep stable names, so
-  // they must NOT be immutable or upgrades would serve stale files for a year.
+  // Browser cache policy (audit P-5)。注意：Cloudflare 会把所有匹配规则的 Cache-Control
+  // 合并为一个逗号连接的头，不存在“后置规则覆盖”——同名目录的规则必须互不重叠。
+  // 打包模式下 /assets/js 仅含内容哈希产物（app/deferred/runtime.<hash>.js），整目录可
+  // immutable；--no-bundle 回退模式含稳定路径（core/*.js），仍用 1h+SWR。
   // Media/OG names may be reused when content changes → 7d + revalidate.
   // Disable via site.build.cacheControl === false.
   if (config.site.build.cacheControl !== false) {
     // 运行时配置为内容寻址文件名（config.<sha1前10>.json），内容变即换名，可 immutable。
     extraSections.push('/assets/config.*.json\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/css/*\n  Cache-Control: public, max-age=31536000, immutable');
-    extraSections.push('/assets/js/*\n  Cache-Control: public, max-age=3600, stale-while-revalidate=86400');
-    // 打包产物为内容哈希（app/deferred/runtime.<hash>.js），可 immutable；后置规则覆盖上条兜底
-    extraSections.push('/assets/js/app.*.js\n  Cache-Control: public, max-age=31536000, immutable');
-    extraSections.push('/assets/js/deferred.*.js\n  Cache-Control: public, max-age=31536000, immutable');
-    extraSections.push('/assets/js/runtime.*.js\n  Cache-Control: public, max-age=31536000, immutable');
+    extraSections.push('/assets/js/*\n  Cache-Control: ' + (bundleActive
+      ? 'public, max-age=31536000, immutable'
+      : 'public, max-age=3600, stale-while-revalidate=86400'));
     extraSections.push('/assets/vendor/*\n  Cache-Control: public, max-age=3600, stale-while-revalidate=86400');
     extraSections.push('/media/*\n  Cache-Control: public, max-age=604800, stale-while-revalidate=86400');
     extraSections.push('/og/*\n  Cache-Control: public, max-age=604800, stale-while-revalidate=86400');

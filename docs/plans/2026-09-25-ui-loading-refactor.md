@@ -158,6 +158,15 @@
 
 ## 4. Phase 3：界面优化
 
+> **Phase 3 执行记录（2026-09-25）**
+> - ✅ 3.1 方向稿：`direction-a/b/c.html` 三个静态预览（`.tmp-scripts/ui-previews/`，未入库）→ 用户选定 **A · 编辑部头版**；选定与令牌记录 `docs/plans/2026-09-25-ui-direction.md`
+> - ✅ 3.2 实施 `72d4595`（令牌与字体）+ `d2b4648`（遗留）+ 暗色 CTA 对比度修复：
+>   - `scripts/build.js` 新增 `serif` 字体预设（系统衬线，无网络请求）；`theme.json5` displayStack/headingStack=serif、rounding=sharp、shadowLevel=flat、background=plain；`features.json5` atmosphere.glow=false + cardFx 悬浮特效全关
+>   - `templates/site-css.ejs` 末尾新增方向 A 收束样式（报头实线、左对齐 Hero、扁平卡片、衬线标题、实体线 meta 区、红边引用等）
+>   - 遗留接线：lightbox `closeButton/preloadAdjacent/rememberPosition`；sidebar-drag `persistOrder/touchLongPress`（含自定义长按延时）；TTS 自动恢复限次（≤3 后停止，避免与系统抢占）；`.rh-time/.rh-clear` 对比度修复
+> - ✅ 3.3 验收：`npm run test:build` 2/2（含 `--ff-d` 衬线断言）；`npm run audit:a11y` 0 violations（14 页）；本地 perf 3 次中位 LCP 2624ms、CLS 0、请求 14（不劣于 Phase 1 基线）；截图人工核对（1280 浅色/暗色文章、360 移动、768 归档）——见 `.tmp-scripts/shots/`（未入库）
+> - **偏差**：未逐区块拆分提交（令牌/样式/遗留/对比度修复共 2 个提交）；移动端仅 360 截图抽检，未逐一核对全部断点
+
 ### Task 3.1：方向稿（等待用户选定）
 - [ ] 出 2–3 个方向稿（首页/文章页/移动端各 3 屏，静态 HTML 可点预览，不进入生产构建）
 - [ ] 用户选定 1 个 → 记录到 `docs/plans/2026-09-25-ui-direction.md`

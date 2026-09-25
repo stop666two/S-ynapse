@@ -55,3 +55,14 @@
 - 性能基线：`docs/perf-baseline.md`（生产）、`docs/perf-baseline-local.md`（本地）
 - 可复用工具（未入库）：`.tmp-scripts/{run-probe,run-perf-local,run-a11y,shots,live-check,list-resources,measure-dist,build-inventory}.js`
 - 备份：`D:\administrator\Documents\project\S-ynapse-realsite-backup-2026-09-25-ui`（同步前 real-site 代码快照）；主仓库 bundle 见部署批次记录。
+
+## 6. 用户反馈批次（2026-09-25 晚，已部署）
+
+- 修复：公告条关闭记忆按语言独立（`b2ad93e`）——此前单键存储导致「关英文后中文复现 / 中文公告不显示」。
+- 新增：弹窗公告 `features.popupNotice`（`4be0e04`）；软导航 `features.softNavigation`（`3f3a021`，含页内开关与自动回退）。
+- 卡顿归因：4× CPU 探针证实主源为文档级导航冻结（336–410ms），非滚动/目录模块；软导航从链路消除。
+- 验收：本地 `.tmp-scripts/run-softnav.js` 13/13 PASS；生产 `.tmp-scripts/verify-live-softnav.js`（blog.stop666.dpdns.org）全部 PASS——无整页刷新、正文/TOC/进度条正确更新、0 控制台错误。
+- 生产版本：`cd4a01dd-330c-4279-a583-c306e7daed2c`；上一版本 `e563e260-430f-478e-abf6-7c8466de0bf0` 可作回滚点（`npx wrangler rollback`）。
+- real-site 同步已执行（代码 + features.json5 合入 popupNotice/softNavigation；真实数据保持本地、严禁入库）；真实站门禁全绿（lint / tsc / 244 测试 / verify:config / build / verify:security）。
+- 软导航已知残余（低风险）：motion 入场动画、图片 LQIP 淡入、侧栏拖拽排序、复制按钮 morph 在软导航后不重绑；CF Web Analytics 不计数软导航（config-reference 已注明）。
+- 推送 / tag 仍未执行；`.refactor-baseline.json` 已删除并加入 `.gitignore`（`92c9fcb`）。

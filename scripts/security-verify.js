@@ -30,7 +30,7 @@ date: 2020-01-01 00:00
 
 <script>alert(1)</script>
 
-<img src="/media/test-photo-1.jpg" onerror="alert(99)">
+<img src="/assets/sec-verify-placeholder.png" onerror="alert(99)">
 
 <a href="javascript:alert(2)">危险链接</a>
 

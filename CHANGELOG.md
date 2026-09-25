@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **安全验证夹具去演示依赖（真实站点适配）**：`security-verify.js` 夹具 `<img>` 改用 `/assets/sec-verify-placeholder.png`，不再引用可能被清理的演示媒体，避免无演示媒体的真实站点下 `verify:security` 被内容预校验误报中断 — `scripts/security-verify.js`
+
 - **配置一致性检查允许值覆盖（真实站点适配）**：`verify:config` 的 features 比对改为结构/死键/类型判定，值级自定义（公告文案、OG 封面开关等）列为信息项不再误判 FAIL；新增 `scripts/lib/config-consistency.js` + 单测 7 项 — `scripts/check-config-consistency.js` + `scripts/config-consistency.test.js`
 
 - **Worker 路径归一化加固（审计 SEC-2）**：解码循环 + 点段折叠，阻断 `%2e%2e`/双重编码绕过 — `workers/lib/ip-utils.mjs` + 单测

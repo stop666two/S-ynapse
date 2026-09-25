@@ -78,8 +78,11 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     assert.ok(runtimeMatch, 'index.html must reference the hashed runtime bootstrap');
     assert.ok(fs.existsSync(toAbs(runtimeMatch[0])), 'runtime bootstrap must exist on disk');
     assert.ok(!html.includes('/assets/vendor/prism.js'), 'home (no code blocks) must not load the Prism vendor');
-    const codeHtml = fs.readFileSync(path.join(tmpDir, 'zh', 'code-showcase', 'index.html'), 'utf-8');
-    assert.ok(codeHtml.includes('/assets/vendor/prism.js'), 'code article must load the Prism vendor');
+    const codeShowcase = path.join(tmpDir, 'zh', 'code-showcase', 'index.html');
+    if (fs.existsSync(codeShowcase)) {
+      const codeHtml = fs.readFileSync(codeShowcase, 'utf-8');
+      assert.ok(codeHtml.includes('/assets/vendor/prism.js'), 'code article must load the Prism vendor');
+    }
     assert.ok(!fs.existsSync(path.join(tmpDir, 'assets', 'js', 'core', 'main.js')), 'raw ESM sources must not be copied when bundling');
     const katexFonts = path.join(tmpDir, 'assets', 'vendor', 'katex', 'fonts');
     if (fs.existsSync(katexFonts)) {

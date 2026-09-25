@@ -60,13 +60,12 @@ try {
 // Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
-const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode } = require('./lib/utils');
+const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('./lib/utils');
 const { writeFileAtomicSync } = require('./lib/atomic-write');
 const { PRESETS: THEME_PRESETS } = require('./lib/theme-presets');
 const { buildSitemapUrls } = require('./lib/robots');
 const { computeRelatedArticles } = require('./lib/related');
 const { createBuildErrorCollector, resolveExitCode, formatFailures } = require('./lib/build-errors');
-const { preflightArticles, createMediaResolver } = require('./lib/content-validate');
 const { isScheduled } = require('./lib/publish-window');
 const { buildRuntimeConfig, configUrlName } = require('./lib/config-split');
 const { bundleEnabled, esbuildAvailable, buildBundles } = require('./lib/bundle');
@@ -80,6 +79,8 @@ const { createAssetsModule } = require('./build/assets');
 const { createSecurityFilesModule } = require('./build/security-files');
 const { createConfigModule } = require('./build/config');
 const { createMarkdownModule } = require('./build/markdown');
+const { createArticlesModule } = require('./build/articles');
+const { createCollectorsModule } = require('./build/collectors');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -187,454 +188,28 @@ const { setupDist, copyStatic, copyProtectedAssets, optimizeMedia } = createMedi
 // 机械拆分 —— 函数体原样搬移（以 dist 哈希等价门禁验证）。
 const { setupMarkedRenderer } = createMarkdownModule();
 
-// Load Markdown content from pages/ as key-value map (filename → {title, content, body}).
-// Used by templates (e.g. article footer) for content that needs to be embedded into pages
-// without being rendered as a standalone HTML page. Also consumed by processCustomPages
-// which renders the same files as full standalone pages.
-// Key = filename without .md extension.
-function processPagesContent() {
-  const result = {};
-  if (!fs.existsSync(PAGES_DIR)) {
-    console.warn('  [WARN] pages/ directory not found, pages content will not be available');
-    return null;
-  }
-  const files = fs.readdirSync(PAGES_DIR).filter(f => /\.md$/i.test(f));
-  for (const file of files) {
-    try {
-      const raw = fs.readFileSync(path.join(PAGES_DIR, file), 'utf-8');
-      const fm = frontMatter(raw);
-      const body = fm.body || '';
-      const name = path.basename(file, '.md');
-      result[name] = {
-        title: (fm.attributes && fm.attributes.title) || name,
-        content: applyCjkSpacingToHtml ? sanitizeHtml(applyCjkSpacingToHtml(marked.parse(body))) : sanitizeHtml(marked.parse(body)),
-        body: body
-      };
-    } catch (err) {
-      console.error(`  [ERROR] Failed to process page content ${file}: ${err.message}`);
-      recordBuildFailure('page', `Failed to process page content ${file}: ${err.message}`);
-    }
-  }
-  if (!Object.keys(result).length) {
-    console.warn('  [WARN] pages/ directory is empty, pages content will not be available');
-    return null;
-  }
-  return result;
-}
+// 文章内容管线模块（scripts/build/articles.js）：注入文章/页面/媒体目录、标记渲染器、hooks
+// 与构建失败记录器；函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
+const { processPagesContent, preflightContent, processArticles } = createArticlesModule({
+  rootDir: ROOT,
+  articlesDir: ARTICLES_DIR,
+  pagesDir: PAGES_DIR,
+  mediaDir: MEDIA_DIR,
+  setupMarkedRenderer,
+  getHooks: () => hooks,
+  recordBuildFailure
+});
 
-// Read-only content preflight. Runs BEFORE dist/ is cleaned so content errors
-// never leave a half-written output directory. Checks duplicate slugs, invalid
-// dates, empty taxonomy entries and missing /media references.
-function preflightContent() {
-  console.log('[preflight] Validating article content...');
-  const errors = [];
-  const items = [];
-  const LANGS = ['zh', 'en'];
-  const rel = (p) => path.relative(ROOT, p).split(path.sep).join('/');
-  for (const lang of LANGS) {
-    const langDir = path.join(ARTICLES_DIR, lang);
-    if (!fs.existsSync(langDir)) continue;
-    for (const name of fs.readdirSync(langDir).filter((f) => /\.md$/i.test(f))) {
-      const full = path.join(langDir, name);
-      try {
-        const fm = frontMatter(fs.readFileSync(full, 'utf-8'));
-        items.push({ file: rel(full), lang: lang, attrs: fm.attributes || {}, body: fm.body || '' });
-      } catch (err) {
-        errors.push({ stage: 'article', file: rel(full), message: rel(full) + ': unreadable (' + err.message + ')' });
-      }
-    }
-  }
-  const sources = getAllFiles(MEDIA_DIR).map((f) => path.relative(MEDIA_DIR, f).split(path.sep).join('/'));
-  const result = preflightArticles(items, { mediaExists: createMediaResolver(sources) });
-  return { errors: errors.concat(result.errors), warnings: result.warnings };
-}
-
-// Parse all Markdown articles from articles/ into structured article objects.
-// For each article:
-//   1. Extract frontmatter (title, slug, date, tags, categories, draft, excerpt)
-//   2. Validate: max 1 h1 per article, reject articles with >1 h1
-//   3. Render Markdown → HTML using marked with the custom renderer
-//   4. Auto-generate excerpt from content if not in frontmatter
-//   5. Calculate read time based on word count
-//   6. Extract table of contents from headings
-//   7. Auto-generate OG image if no featuredImage in frontmatter
-//   8. If hooks.transformMarkdown exists, run content through it first
-// Returns array sorted by date descending.
-// Articles with multiple h1 tags are skipped with error.
-async function processArticles(config, mediaManifest, buildErrors) {
-  console.log('[5/14] Processing articles...');
-  setupMarkedRenderer(config, mediaManifest);
-  const articles = [];
-  if (!fs.existsSync(ARTICLES_DIR)) {
-    console.log('  articles/ directory not found');
-    return articles;
-  }
-  const LANGS = ['zh', 'en'];
-  const files = [];
-  for (const lang of LANGS) {
-    const langDir = path.join(ARTICLES_DIR, lang);
-    if (fs.existsSync(langDir)) {
-      for (const f of fs.readdirSync(langDir).filter(ff => /\.md$/i.test(ff))) {
-        files.push({ file: f, lang, dir: langDir });
-      }
-    }
-  }
-  // Pre-scan pass: build a title/slug lookup so [[wiki links]] resolve across articles.
-  const wikiLookup = { titles: new Map(), slugs: new Map() };
-  const tagAliasesCfg = config.tagAliases || {};
-  const aliasEnabled = tagAliasesCfg.enabled !== false;
-  const tagAliases = tagAliasesCfg.aliases && typeof tagAliasesCfg.aliases === 'object' ? tagAliasesCfg.aliases : {};
-  for (const meta of files) {
-    const { file, lang } = meta;
-    try {
-      const fm = frontMatter(fs.readFileSync(path.join(meta.dir, file), 'utf-8'));
-      const attrs = fm.attributes || {};
-      const t = attrs.title || '';
-      let s = '';
-      if (attrs.slug != null) {
-        const slugCheck = validateSlug(attrs.slug);
-        if (!slugCheck.ok) continue;
-        s = slugCheck.slug;
-      } else {
-        s = t ? safeSlug(t) : path.basename(file, '.md').replace(/\.md$/i, '');
-      }
-      const entry = { title: t || s, url: '/' + lang + '/' + s + '/' };
-      wikiLookup.titles.set((t || s).toLowerCase(), entry);
-      wikiLookup.slugs.set(s, entry);
-    } catch (e) { /* skip unreadable files in lookup */ }
-  }
-  function applyTagAliases(tags) {
-    if (!aliasEnabled || !Object.keys(tagAliases).length) return tags;
-    return tags.map(function(tag) {
-      const k = (tag || '').trim();
-      const direct = tagAliases[k];
-      if (direct) return String(direct);
-      const lowHit = tagAliases[k.toLowerCase()];
-      if (lowHit) return String(lowHit);
-      return tag;
-    });
-  }
-  const MATH_RX = /(\$\$[\s\S]+?\$\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/;
-  const MERMAID_RX = /```[ \t]*mermaid\b/i;
-  const seenSlugs = new Map();
-  for (const meta of files) {
-    const { file, lang } = meta;
-    const filePath = path.join(meta.dir, file);
-    try {
-      const raw = fs.readFileSync(filePath, 'utf-8');
-      const fm = frontMatter(raw);
-      const attrs = fm.attributes || {};
-      let content = fm.body || '';
-      if (hooks && hooks.transformMarkdown) {
-        content = hooks.transformMarkdown(content, attrs) || content;
-      }
-      const noCodeContent = content.replace(/```[\s\S]*?```/g, '').replace(/`[^`]*`/g, '');
-      const h1Matches = noCodeContent.match(/^#\s+/gm);
-      const h1Count = h1Matches ? h1Matches.length : 0;
-      if (h1Count > 1) {
-        console.error(`  [ERROR] ${file}: ${h1Count} h1 headings found (max 1). Skipping.`);
-        if (buildErrors) buildErrors.add('article', `${file}: ${h1Count} h1 headings found (max 1). Skipping.`);
-        continue;
-      }
-      // Title resolution priority: frontmatter.title > first markdown h1 > filename
-      let title = attrs.title || '';
-      if (!title) {
-        const firstH1 = content.match(/^#\s+(.+)/m);
-        title = firstH1 ? firstH1[1].trim() : path.basename(file, '.md');
-      }
-      // Slug priority: frontmatter.slug (validated) > safeSlug(title)
-      let slug;
-      if (attrs.slug != null) {
-        const slugCheck = validateSlug(attrs.slug);
-        if (!slugCheck.ok) {
-          const abortErr = new Error(`${file}: frontmatter slug "${String(attrs.slug).slice(0, 80)}" is invalid (${slugCheck.reason}). Aborting build.`);
-          abortErr.isBuildAbort = true;
-          throw abortErr;
-        }
-        slug = slugCheck.slug;
-      } else {
-        slug = safeSlug(title);
-      }
-      if ((seenSlugs.get(lang) || new Set()).has(slug)) {
-        console.error(`  [ERROR] ${file}: duplicate slug "${slug}" (already used by another article in ${lang}). Skipping.`);
-        recordBuildFailure('slug', `${file}: duplicate slug "${slug}" (already used by another article in ${lang})`);
-        continue;
-      }
-      if (!seenSlugs.has(lang)) seenSlugs.set(lang, new Set());
-      seenSlugs.get(lang).add(slug);
-      const url = `/${lang}/${slug}/`;
-      const excerpt = attrs.excerpt || '';
-      const date = attrs.date || null;
-      if (date && isNaN(new Date(date).getTime())) {
-        console.error(`  [ERROR] ${file}: frontmatter "date: ${date}" is not a valid date. Expected YYYY-MM-DD or ISO 8601. Skipping.`);
-        recordBuildFailure('date', `${file}: frontmatter "date: ${date}" is not a valid date`);
-        continue;
-      }
-      if (!date) {
-        console.warn(`  [WARN] ${file}: no frontmatter date; article is sorted before dated posts (use "date: YYYY-MM-DD" to control order).`);
-      }
-      if (attrs.tags !== undefined && !Array.isArray(attrs.tags)) {
-        console.warn(`  [WARN] ${file}: frontmatter "tags" must be an array like ["a","b"]; auto-splitting "${attrs.tags}" on commas.`);
-        attrs.tags = String(attrs.tags).split(',').map(function(s2) { return s2.trim(); }).filter(Boolean);
-      }
-      if (attrs.categories !== undefined && !Array.isArray(attrs.categories)) {
-        console.warn(`  [WARN] ${file}: frontmatter "categories" must be an array like ["a"]; auto-splitting "${attrs.categories}" on commas.`);
-        attrs.categories = String(attrs.categories).split(',').map(function(s2) { return s2.trim(); }).filter(Boolean);
-      }
-      const tags = applyTagAliases(Array.isArray(attrs.tags) ? attrs.tags : []).filter(function(t2) { return String(t2).trim() !== ''; });
-      const categories = (Array.isArray(attrs.categories) ? attrs.categories : []).filter(function(c2) { return String(c2).trim() !== ''; });
-      const draft = attrs.draft === true || attrs.draft === 'true';
-      const pinned = attrs.pinned === true || attrs.pinned === 'true';
-      const series = attrs.series ? String(attrs.series).trim() : null;
-      content = resolveWikiLinks(content, wikiLookup);
-  const hasMath = MATH_RX.test(content);
-  const hasMermaid = MERMAID_RX.test(content);
-      let htmlContent = marked.parse(content);
-      if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
-      htmlContent = sanitizeHtml(htmlContent);
-      const hasCode = hasHighlightableCode(htmlContent);
-      // Auto-generate excerpt from rendered HTML (strip tags, truncate).
-      // Code blocks (incl. mermaid sources) and math are stripped first so
-      // raw code / TeX never leaks into cards, meta, feeds or search index.
-      let excerptText = excerpt;
-      if (!excerptText) {
-        const noBlocks = htmlContent
-          .replace(/<pre[\s\S]*?<\/pre>/gi, ' ')
-          .replace(/<a[^>]*class="heading-anchor"[^>]*>[\s\S]*?<\/a>/gi, ' ');
-        const textOnly = noBlocks
-          .replace(/<[^>]+>/g, ' ')
-          .replace(/\$\$[\s\S]*?\$\$/g, ' ')
-          .replace(/\\\[[\s\S]*?\\\]/g, ' ')
-          .replace(/\\\([\s\S]*?\\\)/g, ' ')
-          .replace(/\$\S[^$\n]*?\S\$|\$\S\$/g, ' ')
-          .replace(/&lt;\/?[a-zA-Z][^&]*?&gt;/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
-        const as = (config.features && config.features.autoSummary) || {};
-        const excerptLen = as.maxLength || config.site.build.excerptLength || config.theme.card?.excerptLength || 150;
-        excerptText = textOnly.length > excerptLen ? textOnly.slice(0, excerptLen) + (as.ellipsis || '...') : textOnly;
-      }
-      // Read time: prefers the per-script speeds from features.readingTime
-      // (wordsPerMinuteCJK / wordsPerMinuteLatin); falls back to the legacy
-      // features.wordCount.wpm → theme.card.readTimeSpeed → 265 chain.
-      // features.readingTime.enabled === false disables the value entirely,
-      // which in turn hides every read-time badge in the templates.
-      const wordCount = countWords(content);
-      const readingTimeCfg = (config.features && config.features.readingTime) || {};
-      const wordCountCfg = (config.features && config.features.wordCount) || {};
-      let readTime = null;
-      if (readingTimeCfg.enabled !== false) {
-        const cjkSpeed = Number(readingTimeCfg.wordsPerMinuteCJK);
-        const latinSpeed = Number(readingTimeCfg.wordsPerMinuteLatin);
-        if (cjkSpeed > 0 && latinSpeed > 0) {
-          const detail = countWordsDetail(content);
-          readTime = Math.max(1, Math.ceil(detail.cjk / cjkSpeed + detail.latin / latinSpeed));
-        } else {
-          const readSpeed = wordCountCfg.wpm || config.theme.card?.readTimeSpeed || 265;
-          readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
-        }
-      }
-      const toc = extractToc(htmlContent);
-      // Auto OG image handled by scripts/generate-og.js (per-language PNG pipeline).
-
-      articles.push({
-        slug, title, url, date, tags, categories, draft, pinned, series,
-        lang, langPrefix: '/' + lang + '/',
-        content: htmlContent,
-        excerpt: excerptText,
-        wordCount, readTime, toc, hasMath, hasMermaid,
-        hasCode,
-        featuredImage: attrs.featuredImage || '',
-        frontmatter: attrs,
-        filename: file,
-        year: date ? new Date(date).getFullYear() : null,
-        month: date ? String(new Date(date).getMonth() + 1).padStart(2, '0') : null,
-        formattedDate: date ? formatDate(date, config.site.dateFormat) : ''
-      });
-      console.log(`  Processed: ${file} -> ${url}`);
-    } catch (err) {
-      if (err.isBuildAbort) throw err;
-      console.error(`  [ERROR] Failed to process ${file}: ${err.message}`);
-      if (buildErrors) buildErrors.add('article', `${file}: ${err.message}`);
-    }
-  }
-  articles.sort((a, b) => {
-    const pa = a.pinned ? 1 : 0, pb = b.pinned ? 1 : 0;
-    if (pa !== pb) return pb - pa;
-    if (!a.date && !b.date) return a.title.localeCompare(b.title);
-    if (!a.date) return 1;
-    if (!b.date) return -1;
-    return new Date(b.date) - new Date(a.date);
-  });
-  console.log(`  Total: ${articles.length} articles processed`);
-  return articles;
-}
-
-// Aggregate tags across all articles with count and slugified URL.
-// Returns array sorted by count descending.
-function collectTopTags(articles, limit, lang) {
-  const counts = {};
-  const published = getPublished(articles).filter(a => !lang || a.lang === lang);
-  published.forEach(function(a) {
-    (a.tags || []).forEach(function(t) { counts[t] = (counts[t] || 0) + 1; });
-  });
-  const prefix = lang ? '/' + lang : '';
-  const list = Object.keys(counts)
-    .sort(function(a, b) { return counts[b] - counts[a] || a.localeCompare(b); })
-    .map(function(t) { return { name: t, count: counts[t], url: prefix + '/tags/' + safeSlug(t) + '/' }; });
-  return limit == null ? list : list.slice(0, limit);
-}
-
-function collectTags(articles) {
-  const result = [];
-  const pubs = getPublished(articles);
-  const langSet = new Set(pubs.map(a => a.lang).filter(Boolean));
-  for (const lang of langSet) {
-    const map = new Map();
-    for (const a of pubs) {
-      if (a.lang !== lang) continue;
-      for (const tag of a.tags) {
-        const slug = safeSlug(tag);
-        if (!map.has(slug)) map.set(slug, { name: tag, slug, count: 0, url: `/${lang}/tags/${slug}/`, lang });
-        map.get(slug).count++;
-      }
-    }
-    for (const v of Array.from(map.values()).sort((a, b) => b.count - a.count)) result.push(v);
-  }
-  return result;
-}
+// 数据收集器模块（scripts/build/collectors.js）：注入发布过滤器 getPublished（含草稿与定时发布语义）。
+// 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
+const { collectTopTags, collectTags, collectSeries, collectFriends, collectGalleryImages, collectSiteStats, collectCategories, groupByYearMonth } = createCollectorsModule({
+  getPublished
+});
 
 // Compute related articles using a tag/category scoring algorithm.
 // Implementation lives in lib/related.js so the scoring (weights, topN,
 // minScore) is unit-testable; this wrapper feeds it the published articles
 // and the features.related config block.
-
-// Group articles into series (front-matter `series`). Each series lists its
-// articles in chronological order (oldest first) and annotates each article
-// with prev/next navigation inside the series for the detail-page panel.
-function collectSeries(articles) {
-  const map = new Map();
-  for (const a of getPublished(articles)) {
-    if (!a.series) continue;
-    if (!map.has(a.series)) map.set(a.series, []);
-    map.get(a.series).push(a);
-  }
-  const result = [];
-  for (const [name, list] of map) {
-    list.sort((x, y) => {
-      if (!x.date && !y.date) return x.title.localeCompare(y.title);
-      if (!x.date) return 1;
-      if (!y.date) return -1;
-      return new Date(x.date) - new Date(y.date);
-    });
-    list.forEach(function(a, i) {
-      a.seriesIndex = i + 1;
-      a.seriesTotal = list.length;
-      a.seriesPrevUrl = i > 0 ? list[i - 1].url : null;
-      a.seriesNextUrl = i < list.length - 1 ? list[i + 1].url : null;
-    });
-    result.push({ name, slug: safeSlug(name), count: list.length, firstUrl: list[0].url, articles: list });
-  }
-  return result.sort((a, b) => b.count - a.count);
-}
-
-function collectFriends(config) {
-  const cfg = config.friends || {};
-  if (!cfg.enabled || !Array.isArray(cfg.friends) || !cfg.friends.length) return null;
-  return cfg;
-}
-
-// Extract all media images referenced by published articles (featured images
-// plus inline markdown images) for the /gallery/ page. Deduplicates by src.
-// Returns array of {src, title, url, alt} sorted by source-article date desc.
-function collectGalleryImages(articles) {
-  const seen = new Set();
-  const items = [];
-  const published = getPublished(articles);
-  // Newest first; markdown body images come before the featured image so the
-  // cover is not presented first.
-  const newOrder = published.slice().reverse();
-  const IMG_RX = /<img[^>]+src="([^"]+)"/g;
-  for (const a of newOrder) {
-    for (let m = IMG_RX.exec(a.content); m !== null; m = IMG_RX.exec(a.content)) {
-      const src = m[1].startsWith('/') ? m[1] : null;
-      if (!src || seen.has(src)) continue;
-      seen.add(src);
-      items.push({ src, title: a.title, url: a.url, alt: a.title });
-    }
-    if (a.featuredImage && !seen.has(a.featuredImage)) {
-      seen.add(a.featuredImage);
-      items.push({ src: a.featuredImage, title: a.title, url: a.url, alt: a.title });
-    }
-  }
-  return items;
-}
-
-// Aggregate simple site statistics for the archive stats panel and sidebar
-// widget: published counts, total words, first/last publish date and daily avg.
-function collectSiteStats(articles, tags, categories) {
-  const published = getPublished(articles);
-  let words = 0;
-  let early = null;
-  let late = null;
-  for (const a of published) {
-    words += (a.wordCount || 0);
-    if (a.date) {
-      const t = new Date(a.date).getTime();
-      if (!early || t < early) early = t;
-      if (!late || t > late) late = t;
-    }
-  }
-  const days = early && late ? Math.max(1, Math.floor((late - early) / 86400000) + 1) : 0;
-  const count = published.length;
-  return {
-    posts: count,
-    words,
-    tags: (tags || []).length,
-    categories: (categories || []).length,
-    earliestDate: early ? new Date(early) : null,
-    latestDate: late ? new Date(late) : null,
-    days,
-    avgPerDay: days && count ? (count / days).toFixed(2) : 0
-  };
-}
-
-// Aggregate categories across all articles with count and slugified URL.
-// Returns array sorted by count descending.
-function collectCategories(articles) {
-  const result = [];
-  const pubs = getPublished(articles);
-  const langSet = new Set(pubs.map(a => a.lang).filter(Boolean));
-  for (const lang of langSet) {
-    const map = new Map();
-    for (const a of pubs) {
-      if (a.lang !== lang) continue;
-      for (const cat of a.categories) {
-        const slug = safeSlug(cat);
-        if (!map.has(slug)) map.set(slug, { name: cat, slug, count: 0, url: `/${lang}/categories/${slug}/`, lang });
-        map.get(slug).count++;
-      }
-    }
-    for (const v of Array.from(map.values()).sort((a, b) => b.count - a.count)) result.push(v);
-  }
-  return result;
-}
-
-// Group articles by year-month for the archive page.
-// Articles without dates are excluded. Groups sorted newest first.
-function groupByYearMonth(articles) {
-  const groups = {};
-  for (const a of articles) {
-    if (!a.year) continue;
-    const key = `${a.year}-${a.month || '00'}`;
-    if (!groups[key]) groups[key] = { year: a.year, month: a.month, articles: [], label: `${a.year}-${a.month || '??'}` };
-    groups[key].articles.push(a);
-  }
-  return Object.values(groups).sort((a, b) => {
-    if (a.year !== b.year) return b.year - a.year;
-    return (b.month || '00').localeCompare(a.month || '00');
-  });
-}
 
 // EJS 模板渲染模块（scripts/build/render.js）：注入模板目录、构建期 nonce、hooks 与构建错误收集器。
 // 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。

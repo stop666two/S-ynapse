@@ -66,7 +66,6 @@ const { DEFAULT_FEATURES, validateFeatures } = require('./lib/features-schema');
 const { validatePopupNotice } = require('./lib/popup-notice-config');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset } = require('./lib/theme-presets');
 const { formatConfigError } = require('./lib/config-error');
-const { evaluatePerfBudget, gzipSize, formatPerfBudget } = require('./lib/perf-budget');
 const { buildSitemapUrls } = require('./lib/robots');
 const { computeRelatedArticles } = require('./lib/related');
 const { trimCspDirectives } = require('./lib/csp');
@@ -78,6 +77,8 @@ const { bundleEnabled, esbuildAvailable, buildBundles } = require('./lib/bundle'
 const { createMinifyModule } = require('./build/minify');
 const { createMediaModule } = require('./build/media');
 const { createFeedsModule } = require('./build/feeds');
+const { createReportModule } = require('./build/report');
+const { createRenderModule } = require('./build/render');
 const { getAllFiles } = require('./build/fs-utils');
 const { createAssetsModule } = require('./build/assets');
 const { createSecurityFilesModule } = require('./build/security-files');
@@ -1170,74 +1171,14 @@ function groupByYearMonth(articles) {
   });
 }
 
-// Read an EJS template file from templates/ directory. Returns raw string or null.
-function getTemplate(name) {
-  const filePath = path.join(TEMPLATES_DIR, name);
-  if (fs.existsSync(filePath)) {
-    return fs.readFileSync(filePath, 'utf-8');
-  }
-  return null;
-}
-
-// 给最终 HTML 中所有 <script> 标签注入构建期 nonce（已有 nonce 属性则跳过）。
-// 假设：模板产出里 "<script" 只出现在真实脚本标签起始处，且标签属性值内不含 ">"
-// （当前模板满足；若将来引入含 "<script" 字样的字符串/注释需改用 DOM 解析）。
-function injectScriptNonce(html) {
-  if (!html || typeof html !== 'string') return html;
-  return html.replace(/<script\b(?![^>]*\bnonce\s*=)[^>]*>/gi, function (tag) {
-    const tail = tag.slice(-2) === '/>' ? '/>' : '>';
-    const head = tag.slice(0, tag.length - tail.length);
-    return head + ' nonce="' + CSP_NONCE + '"' + tail;
-  });
-}
-
-// Render an EJS template inside the layout template.
-// 1. Render inner template (e.g. index.ejs) → body HTML
-// 2. Wrap body in layout.ejs with merged data
-// 3. Run hooks.transformHTML if available
-// Returns full HTML string, or null on failure.
-// Compose the final HTML <title> for a page based on seo.titleTemplate in site.json5.
-// Placeholders: {site} {subtitle} {title}. Falls back to '{title} | {site}' (index: just site title).
-function applyTitleTemplate(config, pageType, pageTitle, lang) {
-  const tplSrc = (config.site.seo && config.site.seo.titleTemplate) || null;
-  const fallback = pageType === 'index' ? '{site}' : '{title} | {site}';
-  const tpl = tplSrc ? (tplSrc[pageType] || tplSrc.default || fallback) : fallback;
-  const site = (lang === 'en' && config.site.titleEn) ? config.site.titleEn : (config.site.title || '');
-  const subtitle = (lang === 'en' && config.site.subtitleEn) ? config.site.subtitleEn : (config.site.subtitle || '');
-  let out = tpl.replace(/\{site\}/g, site).replace(/\{subtitle\}/g, subtitle);
-  if (pageTitle) out = out.replace(/\{title\}/g, pageTitle);
-  else out = out.replace(/\{title\}/g, site);
-  return out.trim();
-}
-
-function renderPage(templateName, data, layoutTemplate, cfg) {
-  const templateStr = getTemplate(templateName);
-  if (!templateStr) {
-    console.error(`  [ERROR] Template not found: ${templateName}`);
-    recordBuildFailure('render', `Template not found: ${templateName}`);
-    return null;
-  }
-  try {
-    const rawTitle = (typeof data.title !== 'undefined' && data.title) ? data.title : null;
-    const pageTitleFinal = applyTitleTemplate(cfg, data.currentPage || 'index', rawTitle, data.lang);
-    const bodyContent = ejs.render(templateStr, data, { filename: path.join(TEMPLATES_DIR, templateName) });
-    let result;
-    if (layoutTemplate) {
-      result = ejs.render(layoutTemplate, { ...data, pageTitleFinal, body: bodyContent }, { filename: path.join(TEMPLATES_DIR, 'layout.ejs') });
-    } else {
-      result = bodyContent;
-    }
-    if (hooks && hooks.transformHTML) {
-      result = hooks.transformHTML(result, { template: templateName, ...data }) || result;
-    }
-    // nonce 注入放在 hooks.transformHTML 之后，确保最终串与 CSP 同源
-    return injectScriptNonce(result);
-  } catch (err) {
-    console.error(`  [ERROR] Failed to render template ${templateName}: ${err.message}`);
-    recordBuildFailure('render', `Failed to render template ${templateName}: ${err.message}`);
-    return null;
-  }
-}
+// EJS 模板渲染模块（scripts/build/render.js）：注入模板目录、构建期 nonce、hooks 与构建错误收集器。
+// 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
+const { getTemplate, renderPage } = createRenderModule({
+  templatesDir: TEMPLATES_DIR,
+  cspNonce: CSP_NONCE,
+  hooks,
+  recordBuildFailure
+});
 
 // Build the unified data object passed to every EJS template.
 // Contains: site config, theme, nav, sidebar, footer, security settings,
@@ -1903,102 +1844,14 @@ const { generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, gener
 
 let inlineConfigKb = 0;
 
-function collectBudgetStats() {
-  const htmlFiles = [];
-  (function walk(dir) {
-    let entries;
-    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (err) { return; }
-    for (const entry of entries) {
-      if (entry.isDirectory()) walk(path.join(dir, entry.name));
-      else if (entry.name === 'index.html') htmlFiles.push(path.join(dir, entry.name));
-    }
-  })(DIST_DIR);
-  let htmlKb = 0;
-  let requests = 0;
-  const rawKbs = [];
-  for (const file of htmlFiles) {
-    const raw = fs.readFileSync(file);
-    const kb = gzipSize(raw) / 1024;
-    if (kb > htmlKb) htmlKb = kb;
-    rawKbs.push(raw.length / 1024);
-    const html = raw.toString('utf-8');
-    const req = (html.match(/<script[^>]*\ssrc=/gi) || []).length
-      + (html.match(/<link[^>]*rel=["']?stylesheet/gi) || []).length
-      + (html.match(/<link[^>]*rel=["']?modulepreload/gi) || []).length;
-    if (req > requests) requests = req;
-  }
-  let jsBytes = 0;
-  (function walkJs(dir) {
-    let entries;
-    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (err) { return; }
-    for (const entry of entries) {
-      const p = path.join(dir, entry.name);
-      if (entry.isDirectory()) walkJs(p);
-      else if (entry.name.endsWith('.js')) jsBytes += gzipSize(fs.readFileSync(p));
-    }
-  })(path.join(DIST_DIR, 'assets', 'js'));
-  rawKbs.sort((a, b) => a - b);
-  const htmlRawKb = rawKbs.length ? rawKbs[Math.floor((rawKbs.length - 1) / 2)] : 0;
-  return { htmlKb, htmlRawKb, inlineConfigKb, jsKb: jsBytes / 1024, requests, pages: htmlFiles.length };
-}
-
-function checkPerfBudget(config) {
-  const budget = (config.features && config.features.perfBudget) || {};
-  if (budget.enabled === false) return;
-  const stats = collectBudgetStats();
-  const report = evaluatePerfBudget(stats, budget);
-  console.log('\n' + formatPerfBudget(report, budget.warnOnly !== false));
-  console.log('  (统计页数: ' + stats.pages + '；JS 预算仅计 assets/js 应用代码，vendor 库按需懒加载不计入)');
-  if (!report.ok && budget.warnOnly === false) {
-    throw new Error('性能预算超限: ' + report.items.filter(item => !item.ok).map(item => item.label).join(', '));
-  }
-}
-
-// Generate an HTML build report page with stats: build time, article count, tag/category counts,
-// output size, and feature enablement status. Written to dist/build-report.html.
-function generateBuildReport(config, articles, tags, categories, customPages, elapsed, policyResult) {
-  try {
-    const policyBlocked = (policyResult && policyResult.blocked) || [];
-    const policyCopied = (policyResult && policyResult.copied) || 0;
-    const published = getPublished(articles);
-    const tc = config.theme.colors;
-    const totalSize = getDirSize(DIST_DIR);
-    const html = `<!DOCTYPE html><html lang="${config.site.language}"><head><meta charset="UTF-8"><meta name="robots" content="noindex"><title>构建报告 - ${config.site.title}</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:2rem auto;padding:0 1rem;color:${tc.text}}h1{font-size:1.5rem}.stat{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid ${tc.border}}.stat-label{color:${tc.textSecondary}}.stat-value{font-weight:600}.good{color:#16a34a}.warn{color:#d97706}</style></head><body><h1>构建报告</h1><p style="color:${tc.textSecondary}">${new Date().toISOString().replace('T',' ').slice(0,19)}</p>
-    <div class="stat"><span class="stat-label">构建耗时</span><span class="stat-value">${elapsed}s</span></div>
-    <div class="stat"><span class="stat-label">文章数</span><span class="stat-value">${published.length}</span></div>
-    <div class="stat"><span class="stat-label">自定义页面</span><span class="stat-value">${(customPages||[]).length}</span></div>
-    <div class="stat"><span class="stat-label">标签数</span><span class="stat-value">${tags.length}</span></div>
-    <div class="stat"><span class="stat-label">分类数</span><span class="stat-value">${categories.length}</span></div>
-    <div class="stat"><span class="stat-label">输出体积</span><span class="stat-value">${totalSize}</span></div>
-    <div class="stat"><span class="stat-label">配置文件</span><span class="stat-value">${Object.keys(config).length}</span></div>
-    <div class="stat"><span class="stat-label">依赖</span><span class="stat-value">${published.reduce((s,a)=>s+(a.wordCount||0),0)} 字</span></div>
-    <div class="stat"><span class="stat-label">压缩</span><span class="stat-value ${config.site.build.minifyHTML?'good':'warn'}">${config.site.build.minifyHTML?'已启用':'未启用'}</span></div>
-    <div class="stat"><span class="stat-label">图片优化</span><span class="stat-value ${config.site.build.optimizeMedia?'good':'warn'}">${config.site.build.optimizeMedia?'已启用':'未启用'}</span></div>
-    <div class="stat"><span class="stat-label">内容策略拦截</span><span class="stat-value ${policyBlocked.length?'warn':'good'}">${policyBlocked.length} 项</span></div>
-    <div class="stat"><span class="stat-label">受保护资产复制</span><span class="stat-value">${policyCopied}</span></div>
-    <div class="stat"><span class="stat-label">缓存清除</span><span class="stat-value ${config.site.build.enableCacheBusting?'good':'warn'}">${config.site.build.enableCacheBusting?'已启用':'未启用'}</span></div>
-    <div class="stat"><span class="stat-label">CSP</span><span class="stat-value ${config.security.csp&&config.security.csp.enabled?'good':'warn'}">${config.security.csp&&config.security.csp.enabled?'已启用':'未启用'}</span></div>
-    <div class="stat"><span class="stat-label">RSS</span><span class="stat-value ${config.site.rss&&config.site.rss.enabled?'good':'warn'}">${config.site.rss&&config.site.rss.enabled?'已启用':'未启用'}</span></div>
-    ${policyBlocked.length ? `<h2>被拦截文件（内容策略）</h2><ul>${policyBlocked.map(b => `<li><code>${escapeHtml(String(b.path || ''))}</code> — ${escapeHtml(String(b.reason || ''))}</li>`).join('')}</ul>` : ''}</body></html>`;
-    writeFileAtomicSync(path.join(DIST_DIR, 'build-report.html'), html, 'utf-8');
-    console.log('  Created: build-report.html');
-  } catch (err) {
-    console.error(`  [ERROR] Build report failed: ${err.message}`);
-    recordBuildFailure('report', `Build report failed: ${err.message}`);
-  }
-}
-
-// Calculate the total size of a directory recursively. Returns human-readable string (B/KB/MB).
-function getDirSize(dir) {
-  try {
-    const files = getAllFiles(dir);
-    let total = 0;
-    for (const f of files) total += fs.statSync(f).size || 0;
-    if (total < 1024) return total + ' B';
-    if (total < 1048576) return (total / 1024).toFixed(1) + ' KB';
-    return (total / 1048576).toFixed(1) + ' MB';
-  } catch { return '?'; }
-}
+// 构建报告与性能预算模块（scripts/build/report.js）：注入产物目录、发布过滤器、内联配置体积读取器与构建错误收集器。
+// 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
+const { checkPerfBudget, generateBuildReport } = createReportModule({
+  distDir: DIST_DIR,
+  getPublished,
+  getInlineConfigKb: () => inlineConfigKb,
+  recordBuildFailure
+});
 
 // Generate Cloudflare-compatible _headers file and robots.txt.
 // 安全文件模块（scripts/build/security-files.js）：注入路径、nonce 与共享依赖。

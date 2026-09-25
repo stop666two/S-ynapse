@@ -9,28 +9,12 @@ if (!defaults || typeof defaults !== 'object') {
   console.error('[verify:config] DEFAULT_FEATURES not found in scripts/lib/features-schema.js');
   process.exit(1);
 }
-const diffs = [];
-function walk(cfg, def, p) {
-  if (cfg === null || typeof cfg !== 'object') {
-    if (def === undefined) { diffs.push(p + ' 仅存在于 features.json5（schema 缺失默认值）'); return; }
-    if (JSON.stringify(cfg) !== JSON.stringify(def)) {
-      diffs.push(p + ' 配置=' + JSON.stringify(cfg) + ' ≠ 默认=' + JSON.stringify(def));
-    }
-    return;
-  }
-  if (Array.isArray(cfg)) {
-    if (def !== undefined && !Array.isArray(def)) { diffs.push(p + ' 类型不一致：配置为数组、默认非数组'); return; }
-    if (Array.isArray(def) && def.length === 0) return;
-    cfg.forEach((v, i) => walk(v, (def || [])[i], p + '[' + i + ']'));
-    return;
-  }
-  for (const k of Object.keys(cfg)) {
-    const d = def ? def[k] : undefined;
-    walk(cfg[k], d, p + '.' + k);
-  }
-}
-walk(features, defaults, 'features');
-console.log('[verify:config] features.json5 ↔ DEFAULT_FEATURES 比对完成');
+const { compareFeatures } = require('./lib/config-consistency.js');
+const { errors: featureErrors, overrides: featureOverrides } = compareFeatures(features, defaults);
+const diffs = featureErrors.slice();
+console.log('[verify:config] features.json5 ↔ DEFAULT_FEATURES 比对完成' +
+  (featureOverrides.length ? '（用户覆盖 ' + featureOverrides.length + ' 处，值差异不影响通过）' : ''));
+featureOverrides.slice(0, 10).forEach(o => console.log('  · 覆盖 ' + o));
 
 // ---------- 第二部分：site/navigation/sidebar/footer 等配置文件结构监守 ----------
 // 目的：配置键必须存在于默认值注册表（lib/site-defaults.js），防止

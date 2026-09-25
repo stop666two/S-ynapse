@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **配置一致性检查允许值覆盖（真实站点适配）**：`verify:config` 的 features 比对改为结构/死键/类型判定，值级自定义（公告文案、OG 封面开关等）列为信息项不再误判 FAIL；新增 `scripts/lib/config-consistency.js` + 单测 7 项 — `scripts/check-config-consistency.js` + `scripts/config-consistency.test.js`
+
 - **Worker 路径归一化加固（审计 SEC-2）**：解码循环 + 点段折叠，阻断 `%2e%2e`/双重编码绕过 — `workers/lib/ip-utils.mjs` + 单测
 - **空数组配置语义（审计 SEC-6）**：`pathRestrictions: []` / `skipPaths: []` 显式生效，仅缺失字段回退内置兜底；文档与代码一致 — `workers/security-worker.js` + `scripts/generate-security-config.js` + `security.json5` + 单测 3 项
 - **安全头注入校验（审计 SEC-7）**：头名限 RFC 7230 token、值禁 CR/LF/NUL，非法配置构建期报错 — `scripts/generate-security-config.js` + 单测 4 项

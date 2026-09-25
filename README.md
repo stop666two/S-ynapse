@@ -526,8 +526,9 @@ npm run verify:security   # 集成安全回归
 | content-validate | 16 | 预校验（slug/日期/空标签/缺失媒体） |
 | publish-window | 5 | 定时发布过滤 |
 | asset-cache | 8 | 构建缓存键/配置指纹/命中判定 |
+| config-consistency（无 describe，顶层用例） | 7 | features 值与结构/死键判定 |
 
-> `npm test` 共 **188 项 / 42 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
+> `npm test` 共 **195 项 / 42 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
 
 ### 构建行为说明（2026-09 审计修复）
 

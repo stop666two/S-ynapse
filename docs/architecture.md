@@ -109,7 +109,7 @@ CI 顺序：check-agents → `npm ci` → audit → lint → typecheck → test 
 
 ## 10. 已知边界与后续项
 
-- `scripts/build.js` 2286 行，仍有拆分空间（render / page-data / config / report / build 等 cluster）。
+- `scripts/build.js` 已完成机械拆分（265 行编排器 + `scripts/build/` 工厂模块；等价护栏 `scripts/dist-hash-guard.js` + `.refactor-baseline.json`）。
 - `js/domains` 未按 core/features/guard 物理分层（`deferred.js` 已统一注册表）。
 - `style-src 'unsafe-inline'` 未消除；Worker 在无构建产物时的 FALLBACK CSP 仍含 `unsafe-inline`（见 SECURITY.md）。
 - 增量构建（`features.incrementalBuild`）为预留键位，未实现；方案见 `docs/incremental-build-design.md`。

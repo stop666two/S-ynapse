@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **构建管线拆分（反馈批次二·二.1）**：`scripts/build.js` 从 3416 行拆为 **265 行编排器 + `scripts/build/` 工厂模块**（config/markdown/articles/collectors/pages/helpers/report/render/feeds/security-files/assets/minify/media/serve/cache/context），每步 dist 哈希等价（173 文件）并以 `npm run test:build` 守护 — `scripts/build/*`
 - **软导航接管站内跳转**：`softNavigation` 默认开启时 `page-transition.js` 不再拦截点击（避免双重过渡）；`command-palette` 导航项/操作项改为打开时实时采集，消除软导航后的过期数据；卡顿探针定位「点击 336–410ms 长任务」根因为文档级导航本身（4× CPU 下），软导航从链路上消除该冻结 — `js/domains/page-transition.js` + `js/domains/command-palette.js`
 - **构建失败语义收紧（审计 T1）**：新增 `scripts/lib/build-errors.js` 收集器与构建前只读预校验（重复 slug/非法日期/空标签/缺失 `/media`）；feed/sitemap/模板/媒体/OG/压缩等运行期失败不再静默，构建尾部汇总并以非零退出码结束；`--allow-degraded` 支持本地降级预览 — `scripts/build.js` + `scripts/lib/build-errors.js` + `scripts/lib/content-validate.js` + 单测 27 项
 - **定时发布（审计 F-11）**：`date` 晚于构建时间的文章排除页面/feed/sitemap/搜索索引并在日志提示 — `scripts/lib/publish-window.js` + 单测 5 项

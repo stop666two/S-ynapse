@@ -52,6 +52,7 @@ const AXE_TAGS = { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21
 
   for (const spec of PAGES) {
     const page = await browser.newPage();
+    await page.setCacheEnabled(false);
     await page.setViewport({ width: 1440, height: 900 });
     const resp = await page.goto(BASE + spec.url, { waitUntil: 'domcontentloaded' });
     if (!resp || resp.status() < 200 || resp.status() >= 300) {

@@ -810,3 +810,12 @@ sitemap: {
 | `LOG_LEVEL` | Worker 结构化日志级别：`off`/`error`/`warn`/`info`/`debug`（默认 `info`）；日志为 JSON Lines（含 `requestId`/`level`/`event`），响应头 `X-Request-Id` 可对同请求溯源；不落 IP 明文（短哈希关联） |
 
 > 构建/部署变量的模板见根目录 `.env.example`；Worker 运行时变量（`MAINTENANCE` 系列）在 Cloudflare Dashboard → Workers 环境变量中配置。
+
+---
+
+## 附：运行时配置外置（/assets/config.<hash>.json）
+
+- 构建把 `features` / `tuning` / `guard`（启用时）/ `morphIcons` / `presets` / `quotes` / `ui-strings`（i18n）/ `linkWarning` / `pwa` 写入内容寻址文件 `/assets/config.<sha1 前 10 位>.json`（内容变即换名，与 `/assets/*` 同享 1 年 immutable 缓存）。
+- HTML 仅内联 ≤2KB 的降级子集（`features.guards` + `pwa` 开关；连同逐页小项 `__SITE_TITLE__`/`__ART_TITLE__`/`__SEARCH_PROVIDER__`）。
+- 前端启动时异步加载该文件并写入 `window.__FEATURES__` 等全局；失败自动重试 1 次，3 秒超时后使用内置最小子集继续运行（fail-open，`window.__CONFIG_OK__=false`）。
+- `site.build.cacheControl: false` 时该文件的缓存响应头同样不下发（与其它资源一致）。

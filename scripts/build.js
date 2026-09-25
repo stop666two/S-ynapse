@@ -75,6 +75,7 @@ const { createBuildErrorCollector, resolveExitCode, formatFailures } = require('
 const { preflightArticles, createMediaResolver } = require('./lib/content-validate');
 const { isScheduled } = require('./lib/publish-window');
 const { buildCacheKey, configFingerprint, getFresh, pruneTo } = require('./lib/asset-cache');
+const { buildRuntimeConfig, configUrlName } = require('./lib/config-split');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -1590,7 +1591,43 @@ function buildSiteCss(config, baseData) {
   console.log('  Created: ' + rel + ' (' + Math.round(Buffer.byteLength(css) / 1024) + 'KB)');
   return SITE_CSS_HREF;
 }
-function buildPageData(config, articles, tags, categories) {
+// Theme presets for runtime picker + externalized runtime config (global, identical on every page).
+function buildRuntimePresets() {
+  const out = [];
+  for (const id of Object.keys(THEME_PRESETS)) {
+    const p = THEME_PRESETS[id];
+    out.push({ id: id, label: p.label, labelEn: p.labelEn || p.label, light: p.light, dark: p.dark,
+      sample: { light: [p.light.background, p.light.primary, p.light.secondary, p.light.accent],
+                dark: [p.dark.background, p.dark.primary, p.dark.secondary, p.dark.accent] } });
+  }
+  return out;
+}
+
+// 运行时配置分层外部化（优化 Task 1.1）：写 /assets/config.<hash>.json（内容寻址、可 immutable 缓存），
+// 返回内联降级子集 critical（guard 开关 + PWA 注册信息，≤2048 字节，超限由 config-split 抛错阻断构建）。
+// 逐页/逐语言小项（__SITE_TITLE__/__ART_TITLE__/__SEARCH_PROVIDER__）不在此处，继续内联。
+function writeRuntimeConfig(config, presets, dailyQuotes) {
+  const { critical, external } = buildRuntimeConfig({
+    features: config.features,
+    tuning: config.tuning,
+    guard: config.guard,
+    morphIcons: (config.features && config.features.morphIcons) || {},
+    presets: presets,
+    quotes: dailyQuotes,
+    uiStrings: config.uiStrings,
+    linkWarning: config.site && config.site.externalLinkWarning,
+    pwa: config.site && config.site.pwa
+  });
+  const jsonText = JSON.stringify(external);
+  const url = configUrlName(jsonText);
+  const file = path.join(DIST_DIR, url.replace(/^\//, ''));
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  writeFileAtomicSync(file, jsonText, 'utf-8');
+  console.log('  Created: ' + url + ' (' + Math.round(Buffer.byteLength(jsonText) / 1024) + 'KB)');
+  return { url, critical };
+}
+
+function buildPageData(config, articles, tags, categories, resolvedDailyQuotes) {
   const published = getPublished(articles);
   const friendsCfg = collectFriends(config);
   let nav = config.navigation;
@@ -1643,16 +1680,7 @@ function buildPageData(config, articles, tags, categories) {
     searchProvider: (config.navigation && config.navigation.search && config.navigation.search.provider) || 'local',
     currentUrl: '/',
     currentPage: 'index',
-    presets: (function() {
-      const out = [];
-      for (const id of Object.keys(THEME_PRESETS)) {
-        const p = THEME_PRESETS[id];
-        out.push({ id: id, label: p.label, labelEn: p.labelEn || p.label, light: p.light, dark: p.dark,
-          sample: { light: [p.light.background, p.light.primary, p.light.secondary, p.light.accent],
-                    dark: [p.dark.background, p.dark.primary, p.dark.secondary, p.dark.accent] } });
-      }
-      return out;
-    })(),
+    presets: buildRuntimePresets(),
     formatDate: (d) => formatDate(d, config.site.dateFormat),
     generateSlug: safeSlug,
     categoryHue: categoryHue,
@@ -1673,7 +1701,7 @@ function buildPageData(config, articles, tags, categories) {
     Date: Date,
     cardImgAttrs: buildCardImgAttrs,
     config,
-    dailyQuotes: resolveDailyQuotes(config),
+    dailyQuotes: resolvedDailyQuotes || resolveDailyQuotes(config),
     faviconHtml: resolveFaviconHtml(config.site || {}, config.theme && config.theme.colors && config.theme.colors.secondary),
     siteCssHref: SITE_CSS_HREF
   };
@@ -2611,6 +2639,8 @@ function generateSecurityHeaders(config) {
   // Media/OG names may be reused when content changes → 7d + revalidate.
   // Disable via site.build.cacheControl === false.
   if (config.site.build.cacheControl !== false) {
+    // 运行时配置为内容寻址文件名（config.<sha1前10>.json），内容变即换名，可 immutable。
+    extraSections.push('/assets/config.*.json\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/css/*\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/js/*\n  Cache-Control: public, max-age=3600, stale-while-revalidate=86400');
     extraSections.push('/assets/vendor/*\n  Cache-Control: public, max-age=3600, stale-while-revalidate=86400');
@@ -3131,9 +3161,13 @@ async function build() {
         console.warn(`  [WARN] articleFooter.source "${config.theme.articleFooter.source}" not found in pages/ directory`);
       }
     }
-    const baseData = buildPageData(config, articles, tags, categories);
+    const dailyQuotes = resolveDailyQuotes(config);
+    const baseData = buildPageData(config, articles, tags, categories, dailyQuotes);
     if (pagesContent) baseData.pagesContent = pagesContent;
     baseData.siteCssHref = buildSiteCss(config, baseData);
+    const runtimeConfig = writeRuntimeConfig(config, baseData.presets, dailyQuotes);
+    baseData.runtimeConfigUrl = runtimeConfig.url;
+    baseData.criticalConfig = runtimeConfig.critical;
     const customPages = processCustomPages(config, baseData);
     await generatePages(config, articles, baseData, customPages);
     const generatedHtmlCount = getAllFiles(DIST_DIR).filter((f) => f.endsWith('.html')).length;

@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **运行时配置外置与 fail-open 降级（优化 1.1）**：全量运行时配置拆为内容寻址的 `/assets/config.<sha1 前10>.json`（immutable）；HTML 仅内联 ≤2KB 降级子集（guard 开关 + PWA 注册），单页 HTML raw 71.5KB → 42.8KB；启动异步加载（重试 1 次 / 3s 超时），失败时降级继续可用（`__CONFIG_OK__=false`）；新增 `scripts/lib/config-split.js` + 11 项单测，`boot.js` 等待配置就绪后调度，`runtime.js` 承载引导 — `scripts/build.js` + `templates/layout.ejs` + `js/core/*`
+
 - **dist 产物归一化哈希护栏（重构 T0.5）**：新增 `scripts/lib/dist-hash.js`（nonce/CRLF 归一化、`build-report.html` 与 `og/` 忽略、SHA-256 清单与差异比较）与 `scripts/dist-hash-guard.js` CLI（`snapshot`/`diff`；等价 exit 0、有差异 exit 1、参数错误 exit 2），用于 build.js 机械拆分前后的产物等价验证（跨构建随机 nonce 不再误报）；新增 16 项单测 — `scripts/lib/dist-hash.js` + `scripts/dist-hash-guard.js` + `scripts/dist-hash.test.js`
 - **可复现性能基线（优化 T0）**：新增 `npm run perf:audit`（`scripts/perf-audit.js`）——固定 Slow 4G（下行 1.6 Mbps / 上行 750 kbps / RTT 150ms）+ CPU 4x + 禁用缓存的冷加载采样，采集 LCP / CLS / 交互最大时长（INP 代理）/ 长任务总时长（TBT 代理）/ HTML 传输字节 / 总传输字节 / 请求数，支持 `--runs`（默认 3）取中位数、`--out` 输出 Markdown 基线与 `--json` 结构化结果、`--chrome`/`CHROME_PATH` 指定浏览器；生产站基线记录于 `docs/perf-baseline.md` — `scripts/perf-audit.js` + `package.json` + `docs/perf-baseline.md` + `README.md`
 - **Worker 结构化日志与请求 ID**：Worker 输出 JSON Lines 日志（`ts`/`level`（RFC 5424 严重度映射）/`module`/`requestId`/`event`），`LOG_LEVEL`（`off`/`error`/`warn`/`info`/`debug`，默认 `info`）控制级别；每请求复用 `CF-Ray` 或生成 UUID 作为 `requestId`，并以 `X-Request-Id` 响应头回传；IP 以 SHA-256 短哈希关联（不落明文）；维护/限流/黑名单/路径拦截/CSP 报告/502 等路径全部接入 — `workers/security-worker.js` + `scripts/security-worker.test.js` + `README.md` + `docs/config-reference.md` + `.env.example`

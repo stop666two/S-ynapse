@@ -1,11 +1,11 @@
 // Boot scheduler —— 三阶段启动调度（关键同步 → 空闲批次 → 重模块），含加载遮罩控制。
 // 配置：features.loading（遮罩）/ features.boot（调度）；时间线写入 window.__BOOT__ 供验证。
-const F = window.__FEATURES__ || {};
-const L = F.loading || {};
-const B = F.boot || {};
+// 配置外置后先等待 window.__CONFIG_READY__（无则立即继续）再读取 features 并调度三队列，
+// 保证降级路径（__CONFIG_OK__=false）不会因缺少 features 抛错。
+let L = {};
+let B = {};
 function log(msg) { if (B.log) console.info('[boot] ' + Math.round(performance.now()) + 'ms ' + msg); }
-
-export function yieldToMain() {
+function yieldToMain() {
   if (typeof scheduler !== 'undefined' && typeof scheduler.yield === 'function') return scheduler.yield();
   return new Promise(function (resolve) {
     setTimeout(function () { requestAnimationFrame(function () { resolve(); }); }, 0);
@@ -58,9 +58,17 @@ function createOverlay() {
   return el;
 }
 
-export function boot(queues) {
+export async function boot(queues) {
   const stats = { start: performance.now(), critEnd: 0, idleEnd: 0, heavyEnd: 0 };
   window.__BOOT__ = stats;
+  const ready = window.__CONFIG_READY__;
+  if (ready && typeof ready.then === 'function') {
+    try { await ready; } catch (e) { /* fail-open：配置层自身保证不 reject，此处仅防御 */ }
+  }
+  stats.configReadyAt = performance.now();
+  const F = window.__FEATURES__ || {};
+  L = F.loading || {};
+  B = F.boot || {};
   const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const loaderOn = L.enabled !== false && !(reduced && (L.reducedMotion || 'skip') === 'skip');
   let overlay = null, shownAt = 0, showTimer = null, failsafeTimer = null;

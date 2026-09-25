@@ -15,12 +15,6 @@ import { init as readingModeInit } from '../domains/reading-mode.js';
 import { init as codeBlockInit } from '../domains/code-block.js';
 import { boot } from './boot.js';
 
-const F = window.__FEATURES__ || {};
-
-function enabled(mod) {
-  return !mod || mod.enabled !== false;
-}
-
 function dyn(path) {
   return () => import(path).then(m => m.init());
 }
@@ -42,11 +36,9 @@ const idleQueue = [
   dyn('../domains/daily-quote.js'),
   dyn('../domains/reading-history.js'),
   dyn('../domains/command-palette.js'),
-  dyn('../domains/morphicons.js')
+  dyn('../domains/morphicons.js'),
+  dyn('../domains/favorites.js')
 ];
-if (enabled(F.favorites)) {
-  idleQueue.push(dyn('../domains/favorites.js'));
-}
 
 const criticalQueue = [
   () => themeInit(), () => navigationInit(), () => i18nInit(), () => announcementInit(),
@@ -54,9 +46,9 @@ const criticalQueue = [
   () => imageLazyInit(), () => seamlessNavInit(), () => pageTransitionInit(),
   () => externalLinkInit(), () => readingModeInit(), () => codeBlockInit()
 ];
-if (window.__GUARD__) {
-  criticalQueue.push(() => import('../domains/guard/core.js').then(m => m.init()));
-}
+// 配置外置后 __GUARD__ 在 boot 等待 __CONFIG_READY__ 后才存在，因此延迟到执行期判定；
+// favorites 同理（favorites.init 内部按 features.favorites.enabled 自行短路）。
+criticalQueue.push(() => window.__GUARD__ ? import('../domains/guard/core.js').then(m => m.init()) : undefined);
 
 boot({
   critical: criticalQueue,

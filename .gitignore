@@ -78,5 +78,6 @@ database.db-wal
 workers/security-config.js
 .build-cache.json
 .cache/
+exports/
 lang-verify.js
 lang-diag.js

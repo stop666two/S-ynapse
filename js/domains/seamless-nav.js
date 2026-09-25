@@ -76,6 +76,8 @@ function setSpeculation(on) {
   const s = document.createElement('script');
   s.type = 'speculationrules';
   s.id = 'specRules';
+  const nonceEl = document.querySelector('script[nonce]');
+  if (nonceEl) s.nonce = nonceEl.nonce || nonceEl.getAttribute('nonce') || '';
   s.textContent = JSON.stringify(json);
   document.head.appendChild(s);
 }

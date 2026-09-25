@@ -86,3 +86,35 @@ npm run audit && npm run verify:security && npm run build
 - `real-site/` 派生副本未同步本批修复（用户选择保留+文档定源，尚未写入文档）。
 - `.build-cache.json` 与 `.cache/` 已 gitignore；CI 首次构建无缓存属预期（全量生成）。
 - 浏览器侧变更（搜索/入口守卫）尚未经真实浏览器验证，仅静态断言与构建验证。
+
+---
+
+## 第二批交付（同一会话续，`a7b3852..0111de5`，合计 24 个提交）
+
+| 提交 | 审计项 | 摘要 |
+|------|--------|------|
+| f92a9fc | T2 收口 | OG 条目级缓存改为持久目录 `.cache/og` + 命中拷贝；二建 `made 0, reused 16` |
+| a7b3852 | L/A 系列 | 前端流畅性批次：readDock rAF、粒子 hidden 暂停、轮播/图片/主题 reduced-motion、TTS 心跳、blob revoke 1s、lightbox minSize/counterFormat、sidebar-drag 两键 |
+| 5b72494 | SEC-1 | CSP nonce 化：构建期 nonce 注入 HTML/`_headers`/Worker/meta；15 处模板内联事件改 `addEventListener`；根语言重定向与离线页同步；`script-src` 移除 `'unsafe-inline'` |
+| 0b040f6 | C-2/O-8/O-9 | chokidar → devDependencies（npm 同步锁文件）、`exports/` 忽略、工作树 CRLF 清理 |
+| 30ece29 | F-6 | `--out`/`SYNAPSE_OUT_DIR` + `scripts/build-smoke.test.js`（2 用例）+ `npm run test:build` 进 CI + 文档 |
+| 9dca6fd | F-10 | i18n 补键（archive.textArticle/heatmapSuffix、search.widgetPlaceholder 等 5 对）+ 模板中文残留清理（post/search/layout/links） |
+| 4079f76 | O-11/O-2 | `docs/runbook/rollback.md` + README 多工作区定源与回滚链接 + CI 门禁列表补 test:build |
+| 0111de5 | F-7 收口 | 浅色 Prism comment/fn/punct 对比度校正（≥4.5:1）、`.reader-gear` 移出 dock 重叠区、a11y 脚本禁用缓存（修 304 误判） |
+
+### 最终基线（本会话结束时实测）
+
+- `npm test`：188 项 / 42 组全通过；lint / typecheck / verify:config 退出码 0；`npm run test:build` 2/2 pass（~5s，缓存命中）。
+- `npm run audit`：0 vulnerabilities；`npm run verify:security`：PASS。
+- `npm run audit:a11y`：pages=14 checked=14 httpFailures=0 violations=0 critical=0 serious=0（真实无头 Chrome + axe wcag2a/2aa/21aa/22aa）。
+- 构建：`npm run build` 4.33s（媒体/OG 缓存全命中）；dist 85 页全部 `<script>` 均带与 `_headers` 一致的 nonce。
+- 无头浏览器验证：5 类页面主线程心跳 40/40、0 页面错误；交互（主题/预设/搜索/TTS/阅读模式/返回顶部）心跳 30/30、0 错误。
+
+### 残余与未做
+
+1. **推送未执行**：24 个提交仅在本机，未推送、未打 tag（推送会触发 CI → Cloudflare Pages 生产部署，需用户确认 + `git bundle` 备份）。
+2. **生产环境动态验证**：上线后需抽查响应头（nonce、无 unsafe-inline）、限流、日志脱敏；`LOG_IP_SECRET` 需在 Cloudflare 侧配置。
+3. **real-site 派生副本**：仍未同步（用户选择保留+文档定源，README 已写明同步核对命令）。
+4. **风格残余**：`style-src` 仍含 `'unsafe-inline'`（已在 SECURITY.md 声明为已知残余面）；Worker FALLBACK（无构建产物时）保留 `unsafe-inline` 保障可用性。
+5. **i18n 配置层**：reward/newsletter/friends 等纯配置字段缺 `*En` 变体，未动（属配置文件层，建议另立 issue）。
+6. **TTS 心跳取舍**：任何 `paused` 状态都会 `resume()`（含系统级暂停）；如需尊重手动暂停需另加来源标记。

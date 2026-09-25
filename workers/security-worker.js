@@ -81,8 +81,8 @@ const { rl, cspConfig, blockedRules, skipPaths } = resolveWorkerConfig(CONFIG);
 // —— 结构化日志（RFC 5424 严重度映射；JSON Lines 单行输出）——
 // 级别：off(0) < error(1) < warn(2) < info(3) < debug(4)；环境变量 LOG_LEVEL 控制（默认 info）。
 // 字段：ts(UTC ISO)/level/module/requestId/event + 事件附加字段；字符串字段去除换行并限长，
-// 不落 IP/UA 明文（需要关联时用 ipHash：SHA-256(ip|固定盐) 前 12 位十六进制，固定盐非机密，
-// 仅用于同 IP 的日志归并，不可逆推原始地址）。
+// 不落 IP/UA 明文（需要关联时用 ipHash 前 12 位十六进制）。默认 SHA-256(ip|固定盐)，
+// 固定盐可被枚举反查；配置 LOG_IP_SECRET 后改用 HMAC-SHA256（推荐生产启用）。
 const LOG_LEVELS = { off: 0, error: 1, warn: 2, info: 3, debug: 4 };
 
 function makeLog(env, requestId) {
@@ -112,11 +112,18 @@ function makeLog(env, requestId) {
 }
 
 /** 返回 IP 的短哈希（日志关联用，不可逆；仅当 crypto.subtle 可用时）。 */
-async function hashIp(ip) {
+async function hashIp(ip, env) {
   if (!ip) return undefined;
   try {
-    const data = new TextEncoder().encode(ip + "|s-ynapse-log");
-    const buf = await crypto.subtle.digest("SHA-256", data);
+    const enc = new TextEncoder();
+    const secret = env && env.LOG_IP_SECRET ? String(env.LOG_IP_SECRET) : "";
+    let buf;
+    if (secret) {
+      const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      buf = await crypto.subtle.sign("HMAC", key, enc.encode(ip));
+    } else {
+      buf = await crypto.subtle.digest("SHA-256", enc.encode(ip + "|s-ynapse-log"));
+    }
     return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
   } catch (e) {
     return undefined;
@@ -195,19 +202,22 @@ async function handleRequest(request, env) {
     return edgeResponse(null, 301, { Location: url.toString() }, requestId);
   }
 
-  if (rl.enabled && clientIP) {
+  if (rl.enabled) {
+    // Fail-closed: when CF-Connecting-IP is absent (non-Cloudflare front), requests
+    // share a single bucket instead of skipping rate limiting entirely.
+    const rateKey = clientIP || "unknown-ip";
     // Blacklist entries (IP or CIDR) are always blocked — checked before the sliding window.
-    if (ipMatchesAny(clientIP, rl.blacklist)) {
-      log.warn("ip_blacklisted", { ipHash: await hashIp(clientIP), path: url.pathname });
+    if (clientIP && ipMatchesAny(clientIP, rl.blacklist)) {
+      log.warn("ip_blacklisted", { ipHash: await hashIp(clientIP, env), path: url.pathname });
       return edgeResponse("Forbidden", 403, undefined, requestId);
     }
-    const whitelisted = ipMatchesAny(clientIP, rl.whitelist);
+    const whitelisted = clientIP ? ipMatchesAny(clientIP, rl.whitelist) : false;
     const assetRequest = (request.method === "GET" || request.method === "HEAD") && isStaticAsset(url.pathname, skipPaths);
     if (!whitelisted && !assetRequest) {
-      const verdict = limiter.check(clientIP, rl);
+      const verdict = limiter.check(rateKey, rl);
       if (verdict === "blocked" || verdict === "limited") {
         const retryAfter = String(Math.ceil((Number(rl.blockDuration) || 300000) / 1000));
-        log.warn("rate_limited", { ipHash: await hashIp(clientIP), path: url.pathname, verdict: verdict, retryAfter: retryAfter });
+        log.warn("rate_limited", { ipHash: await hashIp(clientIP, env), path: url.pathname, verdict: verdict, retryAfter: retryAfter });
         return edgeResponse("Too Many Requests", 429, { "Retry-After": retryAfter }, requestId);
       }
     }
@@ -254,7 +264,7 @@ async function handleRequest(request, env) {
       if (rule.requireAuth === true) {
         log.warn("path_blocked_require_auth", { rule: rule.path });
       }
-      log.warn("path_blocked", { rule: rule.path, ipHash: await hashIp(clientIP) });
+      log.warn("path_blocked", { rule: rule.path, ipHash: await hashIp(clientIP, env) });
       return edgeResponse("Forbidden", 403, undefined, requestId);
     }
   }

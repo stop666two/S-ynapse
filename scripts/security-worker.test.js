@@ -155,6 +155,15 @@ describe('security-worker integration (fixture config)', () => {
     assert.strictEqual(after.status, 429);
   });
 
+  it('rate limits requests without CF-Connecting-IP instead of skipping (fail-closed)', async () => {
+    for (let i = 0; i < 3; i++) {
+      const ok = await worker.fetch(req('https://example.com/zh/'), makeEnv());
+      assert.strictEqual(ok.status, 200, 'anonymous request ' + (i + 1));
+    }
+    const limited = await worker.fetch(req('https://example.com/zh/'), makeEnv());
+    assert.strictEqual(limited.status, 429);
+  });
+
   it('whitelisted IPs bypass rate limiting', async () => {
     for (let i = 0; i < 5; i++) {
       const res = await worker.fetch(req('https://example.com/zh/', {}, '192.168.1.1'), makeEnv());

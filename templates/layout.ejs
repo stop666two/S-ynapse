@@ -70,6 +70,7 @@
   %>
   <%- security.csp && security.csp.enabled && security.csp.metaEnabled === true ? '<meta http-equiv="Content-Security-Policy" content="' + Object.entries(security.csp.directives).map(function(e){return e[0]+' '+e[1].join(' ')}).join('; ') + '">' : '' %>
   <link rel="stylesheet" href="<%= siteCssHref %>">
+  <% if(typeof cjkFontsHref!=='undefined'&&cjkFontsHref){ %><link rel="stylesheet" href="<%= cjkFontsHref %>"><% } %>
   <%- site.customHead || '' %>
 <script>window.__CONFIG_URL__=<%- escapeJsonForScript(typeof runtimeConfigUrl!=='undefined'?runtimeConfigUrl:'') %>;window.__CRIT__=<%- escapeJsonForScript(typeof criticalConfig!=='undefined'?criticalConfig:{}) %>;window.__DEFERRED_URL__=<%- escapeJsonForScript(typeof deferredUrl!=='undefined'?deferredUrl:'') %>;window.__SITE_TITLE__=<%- escapeJsonForScript(_st()||'') %>;<% if(typeof article!=='undefined'&&article){ %>window.__ART_TITLE__=<%- escapeJsonForScript(article.title||'') %>;<% } %></script>
 <script>window.__SEARCH_PROVIDER__=<%- escapeJsonForScript(typeof searchProvider!=='undefined'?searchProvider:'local') %>;window.__SEARCH_INDEX_URL__=<%- escapeJsonForScript('/' + (typeof lang!=='undefined'&&lang?lang:'zh') + '/search-index.json') %>;</script>

@@ -123,6 +123,21 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       const badFonts = fs.readdirSync(katexFonts).filter((f) => !/\.woff2$/.test(f));
       assert.deepStrictEqual(badFonts, [], 'KaTeX fonts must be woff2-only: ' + badFonts.join(','));
     }
+    const fontRule = headers.split('\n\n').find((section) => section.startsWith('/assets/fonts/*'));
+    assert.ok(fontRule && fontRule.includes('max-age=31536000'), 'CJK subset font chunks must be immutable-cacheable');
+    // CJK 字体子集化双态（两态都绿）：有网络（或热缓存）时 CSS 与分片存在且 zh 页面引用；
+    // 断网且无缓存时构建成功、不产出 CSS，且 HTML 中的引用已被剥离（不会出现 404 外链）。
+    const cjkCss = path.join(tmpDir, 'assets', 'css', 'cjk-fonts.css');
+    const zhHome = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');
+    if (fs.existsSync(cjkCss)) {
+      assert.match(zhHome, /\/assets\/css\/cjk-fonts\.css/);
+      const cjkFontDir = path.join(tmpDir, 'assets', 'fonts', 'noto-sans-sc');
+      const cjkChunks = fs.existsSync(cjkFontDir) ? fs.readdirSync(cjkFontDir).filter((f) => /\.woff2$/.test(f)) : [];
+      assert.ok(cjkChunks.length >= 1, 'CJK subset must ship at least one woff2 chunk');
+      assert.match(fs.readFileSync(cjkCss, 'utf-8'), /@font-face[\s\S]*unicode-range:/, 'CJK subset CSS must keep @font-face unicode-range rules');
+    } else {
+      assert.ok(!zhHome.includes('cjk-fonts.css'), 'degraded build must not leave a dangling CJK stylesheet reference');
+    }
     const cssDir = path.join(tmpDir, 'assets', 'css');
     const siteCssFile = fs.readdirSync(cssDir).find((f) => /^site\..+\.css$/.test(f));
     assert.ok(siteCssFile, 'hashed site css bundle must exist');

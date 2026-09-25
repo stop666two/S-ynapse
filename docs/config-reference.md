@@ -144,6 +144,7 @@
 | `build.searchFullContent` | bool | `true` | 搜索索引含正文 |
 | `build.relatedArticles` | bool | `true` | 相关推荐 |
 | `build.cjkSpacing` | bool | `true` | 中英文间细空格 |
+| `build.cjkFonts` | object | 见下 | 中文字体（Noto Sans SC）构建期子集化 |
 | `build.buildReport` | bool | `true` | build-report.html |
 | `build.autoOgImage` | bool | `true` | 自动 OG 图 |
 | `build.forceContentWidth` | bool | `true` | 主内容强制宽高布局 |
@@ -154,6 +155,17 @@
 | `build.hashLength` | number | `10` | 内容哈希截取长度（6–16） |
 | `build.hashAlgorithm` | string | `md5` | 内容哈希算法（Node crypto 名称；仅作缓存键） |
 | `build.externalLinksTarget` / `externalLinksRel` | string | `_blank` / `noopener noreferrer` | 外链属性 |
+
+#### build.cjkFonts — 中文字体子集化（Noto Sans SC）
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `cjkFonts.enabled` | bool | `true` | 总开关；关闭后页面用系统字体链（`Noto Sans SC` 不存在时自动落到苹方/雅黑等） |
+| `cjkFonts.family` | string | `Noto Sans SC` | Google Fonts 字体族名（同时作为字体栈首位名与输出目录 slug） |
+| `cjkFonts.weights` | array | `[400,700]` | 需要的字重；空数组回退默认 |
+| `cjkFonts.fetchTimeoutMs` | number | `15000` | 单次网络请求超时（毫秒） |
+
+构建流程：页面生成后扫描 dist 全部 HTML 与产出 JSON 的实际用字（正文/`<title>`/meta/内联及外部化运行时配置），只下载命中的 Google Fonts woff2 分片，自托管到 `dist/assets/fonts/noto-sans-sc/` 并生成 `dist/assets/css/cjk-fonts.css`（保留 `unicode-range`、`font-display: swap`）；HTML 中的样式引用自动带内容哈希查询串（配合 `/assets/css/*` 与 `/assets/fonts/*` 的 1 年 immutable 缓存）。
+> 注意：首次构建需联网拉取字体清单与分片，结果缓存于 `.cache/fonts/`（不入库，7 天清单 TTL，之后离线可复用）；断网/超时/解析失败时自动跳过并 `console.warn`，页面回退系统字体链，构建不会失败。`/assets/fonts/*` 与 `/assets/css/*` 的长期缓存由 `build.cacheControl`（默认开）统一管理。
 
 ### site.performance — 性能优化
 | 字段 | 类型 | 默认 | 说明 |

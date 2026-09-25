@@ -9,6 +9,7 @@ const ejs = require('ejs');
 const frontMatter = require('front-matter');
 const { marked } = require('marked');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
+const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
@@ -185,7 +186,10 @@ function createPagesModule(ctx) {
       config,
       dailyQuotes: resolvedDailyQuotes || resolveDailyQuotes(config),
       faviconHtml: resolveFaviconHtml(config.site || {}, config.theme && config.theme.colors && config.theme.colors.secondary),
-      siteCssHref: SITE_CSS_HREF
+      siteCssHref: SITE_CSS_HREF,
+      // CJK 子集样式引用（构建后期由 scripts/build/cjk-fonts.js 产出并改写为内容哈希查询串；
+      // 失败/未启用时管线会剥离该引用，页面自动回退系统字体链）。
+      cjkFontsHref: (config.site.build && config.site.build.cjkFonts && config.site.build.cjkFonts.enabled !== false) ? CJK_CSS_HREF : ''
     };
   }
 

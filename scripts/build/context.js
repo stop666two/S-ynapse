@@ -17,6 +17,7 @@ const { createReportModule } = require('./report');
 const { createRenderModule } = require('./render');
 const { getAllFiles } = require('./fs-utils');
 const { createAssetsModule } = require('./assets');
+const { createCjkFontsModule } = require('./cjk-fonts');
 const { createSecurityFilesModule } = require('./security-files');
 const { createConfigModule } = require('./config');
 const { createMarkdownModule } = require('./markdown');
@@ -185,6 +186,15 @@ function createBuildContext(deps) {
     recordBuildFailure: helpers.recordBuildFailure
   });
 
+  // CJK 字体子集化模块（scripts/build/cjk-fonts.js）：页面生成后扫描 dist 页面与配置 JSON 实际用字，
+  // 下载/复用 Noto Sans SC woff2 分片（缓存于 .cache/fonts，不入库），写本地子集与 cjk-fonts.css；
+  // 断网/超时/解析失败自动降级（仅告警，构建继续）。
+  const cjkFonts = createCjkFontsModule({
+    distDir: DIST_DIR,
+    cacheDir: path.join(rootDir, '.cache', 'fonts'),
+    logger: console
+  });
+
   // Markdown 渲染模块（scripts/build/markdown.js）：marked 单例与 lib/utils 直连 require，无注入项。
   // 机械拆分 —— 函数体原样搬移（以 dist 哈希等价门禁验证）。
   const markdown = createMarkdownModule();
@@ -311,6 +321,7 @@ function createBuildContext(deps) {
     config,
     helpers,
     media,
+    cjkFonts,
     articles,
     mermaidSsr,
     collectors,

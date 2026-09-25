@@ -186,14 +186,16 @@ function createConfigModule(ctx) {
   }
 
   // FONT_STACKS — fontSystem.stack 预设枚举 → CSS font-family 栈。
-  // CJK_FALLBACK：统一中文字体回退链（鸿蒙 → 苹方 → 微软雅黑 UI → 雅黑），中西混排观感一致。
-  const CJK_FALLBACK = "'PingFang SC','HarmonyOS Sans SC','Microsoft YaHei UI','Microsoft YaHei',sans-serif";
+  // CJK_FALLBACK：统一中文字体回退链（Noto Sans SC 构建期按实际用字子集化并自托管 → 鸿蒙 →
+  // 苹方 → 微软雅黑 UI → 雅黑），中西混排观感一致；子集未启用/失败时该字体名不存在，
+  // 浏览器自动落到后续系统字体，无需运行时判断。
+  const CJK_FALLBACK = "'Noto Sans SC','PingFang SC','HarmonyOS Sans SC','Microsoft YaHei UI','Microsoft YaHei',sans-serif";
   const SERIF_STACK = "Georgia,'Noto Serif SC','Songti SC','STSong','SimSun',serif";
   const FONT_STACKS = {
     inter: "'Inter','Segoe UI','Helvetica Neue',Arial," + CJK_FALLBACK,
     sora: "'Sora','Inter','Segoe UI'," + CJK_FALLBACK,
     manrope: "'Manrope','Inter','Segoe UI'," + CJK_FALLBACK,
-    'noto-sans': "'Noto Sans SC'," + CJK_FALLBACK,
+    'noto-sans': CJK_FALLBACK,
     'noto-serif': "'Noto Serif SC'," + SERIF_STACK,
     system: "-apple-system,BlinkMacSystemFont,'Segoe UI'," + CJK_FALLBACK,
     serif: SERIF_STACK

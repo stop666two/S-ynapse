@@ -931,6 +931,28 @@
     // 类型: boolean | 可填: true/false | 推荐: true
     "cjkSpacing": true,
 
+    // 中文字体子集化（Noto Sans SC）
+    // 作用: 构建后期扫描 dist 全部 HTML 的实际用字，仅下载/自托管命中的 Google Fonts
+    //       woff2 分片，写 dist/assets/fonts/<family>/ 与 dist/assets/css/cjk-fonts.css，
+    //       并把字体栈首位的 'Noto Sans SC' 指向本地子集（无需整包字体，站点更轻）
+    // 类型: object
+    // 可填: enabled (boolean，默认 true) 是否启用
+    //       family  (string，默认 "Noto Sans SC") Google Fonts 字体族名
+    //       weights (number[]，默认 [400,700]) 需要的字重列表
+    //       fetchTimeoutMs (number，默认 15000) 单次网络请求超时（毫秒）
+    // 不可填: weights 空数组（回退默认）；family 留空（回退默认）
+    // 注意: 首次构建需联网拉取（结果缓存于 .cache/fonts/，之后离线可复用）；断网/超时/
+    //       解析失败时自动跳过并 console.warn，页面回退系统字体链，构建不会失败
+    "cjkFonts": {
+      "enabled": true,
+      "family": "Noto Sans SC",
+      "weights": [
+        400,
+        700
+      ],
+      "fetchTimeoutMs": 15000
+    },
+
     // 构建报告
     // 作用: 生成 dist/build-report.html（耗时/体积/文件统计）
     // 类型: boolean | 可填: true/false | 推荐: true

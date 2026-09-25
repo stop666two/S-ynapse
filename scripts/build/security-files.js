@@ -166,6 +166,7 @@ function generateSecurityHeaders(config) {
     // 运行时配置为内容寻址文件名（config.<sha1前10>.json），内容变即换名，可 immutable。
     extraSections.push('/assets/config.*.json\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/css/*\n  Cache-Control: public, max-age=31536000, immutable');
+    extraSections.push('/assets/fonts/*\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/js/*\n  Cache-Control: ' + (bundleActive
       ? 'public, max-age=31536000, immutable'
       : 'public, max-age=3600, stale-while-revalidate=86400'));

@@ -44,6 +44,7 @@ const {
   renderArticlesMermaid,
   collectTags, collectCategories,
   buildSiteCss, writeRuntimeConfig, buildPageData, processCustomPages, generatePages,
+  buildCjkFonts,
   generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, generateSearchIndex, generatePagefindIndex,
   checkPerfBudget, generateBuildReport, generateRedirects, buildCspTrimContext, generateSecurityHeaders,
   minifyAll, cacheBust, copyJsAssets, copyRuntimeBootstrap, copyVendorAssets, generatePWA,
@@ -158,6 +159,9 @@ async function build() {
     if (fs.existsSync(zh404)) {
       fs.copyFileSync(zh404, path.join(DIST_DIR, '404.html'));
     }
+    // CJK 子集化（须在 minify/cacheBust 前）：扫描页面与配置 JSON 实际用字 → 写字体分片与 @font-face；
+    // 失败仅告警降级（剥离样式引用），不阻断构建。
+    await buildCjkFonts(config);
     await generateRSS(config, articles);
     await generateJSONFeed(config, articles);
     await generateSitemap(config, articles, tags, categories, customPages);

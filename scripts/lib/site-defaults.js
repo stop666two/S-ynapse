@@ -55,7 +55,9 @@ const DEFAULT_CONFIG = {
         mediaResponsiveSizes: [640, 1024, 1920], mediaFormats: ['webp', 'original'],
         avif: { enabled: true, quality: 50, effort: 5 },
         usePictureTag: true,
-        relatedArticles: true, cjkSpacing: true, buildReport: true, forceContentWidth: true,
+        relatedArticles: true, cjkSpacing: true,
+        cjkFonts: { enabled: true, family: 'Noto Sans SC', weights: [400, 700], fetchTimeoutMs: 15000 },
+        buildReport: true, forceContentWidth: true,
         enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer',
         cssOutDir: 'assets/css', cssFileBase: 'site', hashLength: 10, hashAlgorithm: 'md5'

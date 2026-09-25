@@ -49,6 +49,7 @@ jobs:
       - name: Type check (tsc checkJs, scripts/lib)
         run: npm run typecheck
       - run: npm test
+      - run: npm run test:build
       - name: Config consistency (code defaults vs config files)
         run: npm run verify:config
       - name: Security verification (malicious-content build regression)

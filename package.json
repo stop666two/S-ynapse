@@ -11,6 +11,7 @@
     "postinstall": "node scripts/init-project.js",
     "init": "node scripts/init-project.js",
     "test": "node --test scripts/*.test.js",
+    "test:build": "node --test scripts/build-smoke.test.js",
     "lint": "eslint js scripts workers",
     "audit": "node scripts/audit.js",
     "typecheck": "tsc -p tsconfig.json",

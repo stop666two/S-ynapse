@@ -85,8 +85,20 @@ const MEDIA_DIR = path.join(ROOT, 'media');                 // Source images (pr
 const VIDEOS_DIR = path.join(ROOT, 'videos');               // Source videos (copied with policy filter)
 const ASSETS_DIR = path.join(ROOT, 'assets');               // Source downloadable files (copied with policy filter)
 const TEMPLATES_DIR = path.join(ROOT, 'templates');         // EJS template files
-const DIST_DIR = path.join(ROOT, 'dist');                   // Build output directory
 const PAGES_DIR = path.join(ROOT, 'pages');                 // Standalone page Markdown files (about, privacy, etc.)
+
+// Build output directory: `--out <dir>` > SYNAPSE_OUT_DIR > default dist/.
+// Relative values resolve against ROOT. 集成测试/预览构建可用 --out 写入临时目录；
+// 媒体与 OG 缓存（.build-cache.json / .cache/*）始终留在 ROOT，不随输出目录迁移。
+function resolveOutputDir(argv) {
+  const idx = argv.indexOf('--out');
+  let value = (idx !== -1 && argv[idx + 1] && argv[idx + 1].charAt(0) !== '-') ? argv[idx + 1] : '';
+  if (!value && process.env.SYNAPSE_OUT_DIR) value = process.env.SYNAPSE_OUT_DIR;
+  if (!value) return { dir: path.join(ROOT, 'dist'), custom: false };
+  return { dir: path.isAbsolute(value) ? path.resolve(value) : path.resolve(ROOT, value), custom: true };
+}
+const OUTPUT_DIR_RESOLVED = resolveOutputDir(process.argv);
+const DIST_DIR = OUTPUT_DIR_RESOLVED.dir;                   // Build output directory
 
 // CLI flags parsed from process.argv
 const WATCH_MODE = process.argv.includes('--watch');        // Rebuild on file changes
@@ -3136,6 +3148,9 @@ async function build() {
     await generateJSONFeed(config, articles);
     await generateSitemap(config, articles, tags, categories, customPages);
     if (!SERVE_MODE && !WATCH_MODE && config.features && config.features.ogImage && config.features.ogImage.enabled !== false && articles.length > 0) {
+      // 自定义输出目录（--out / SYNAPSE_OUT_DIR）时把解析后的绝对路径传给子进程，
+      // 保证 generate-og.js 的产图目录与本次构建的 DIST_DIR 完全一致。
+      if (OUTPUT_DIR_RESOLVED.custom) process.env.SYNAPSE_OUT_DIR = DIST_DIR;
       const ogArgs = [path.join(ROOT, 'scripts', 'generate-og.js')];
       if (SHOW_DRAFTS) ogArgs.push('--drafts');
       const ogRes = spawnSync(process.execPath, ogArgs, { stdio: 'inherit' });
@@ -3169,7 +3184,7 @@ async function build() {
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`\n========================================`);
     console.log(`  Build complete in ${elapsed}s`);
-    console.log(`  Output: dist/`);
+    console.log(`  Output: ${path.relative(ROOT, DIST_DIR).split(path.sep).join('/') || '.'}/`);
     console.log(`========================================`);
     if (config.site.build.buildReport !== false) {
       console.log('[14/14] Generating build report...');

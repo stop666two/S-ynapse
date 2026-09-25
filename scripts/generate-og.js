@@ -11,7 +11,12 @@ const { buildCacheKey, configFingerprint, getFresh, pruneTo } = require('./lib/a
 
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
-const OUT_DIR = path.join(ROOT, 'dist', 'og');
+// 输出根目录：SYNAPSE_OUT_DIR（build.js 在自定义输出时传入绝对路径）优先，默认 dist/。
+// 相对路径相对 ROOT 解析；OG 图片最终写入 <根目录>/og/{lang}/。
+const OUT_BASE = process.env.SYNAPSE_OUT_DIR
+  ? (path.isAbsolute(process.env.SYNAPSE_OUT_DIR) ? path.resolve(process.env.SYNAPSE_OUT_DIR) : path.resolve(ROOT, process.env.SYNAPSE_OUT_DIR))
+  : path.join(ROOT, 'dist');
+const OUT_DIR = path.join(OUT_BASE, 'og');
 const BUILD_CACHE_PATH = path.join(ROOT, '.build-cache.json');
 const OG_CACHE_DIR = path.join(ROOT, '.cache', 'og');
 let WIDTH = 1200;

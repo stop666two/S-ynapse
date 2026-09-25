@@ -2648,6 +2648,10 @@ function generateSecurityHeaders(config) {
     extraSections.push('/assets/config.*.json\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/css/*\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/js/*\n  Cache-Control: public, max-age=3600, stale-while-revalidate=86400');
+    // 打包产物为内容哈希（app/deferred/runtime.<hash>.js），可 immutable；后置规则覆盖上条兜底
+    extraSections.push('/assets/js/app.*.js\n  Cache-Control: public, max-age=31536000, immutable');
+    extraSections.push('/assets/js/deferred.*.js\n  Cache-Control: public, max-age=31536000, immutable');
+    extraSections.push('/assets/js/runtime.*.js\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/vendor/*\n  Cache-Control: public, max-age=3600, stale-while-revalidate=86400');
     extraSections.push('/media/*\n  Cache-Control: public, max-age=604800, stale-while-revalidate=86400');
     extraSections.push('/og/*\n  Cache-Control: public, max-age=604800, stale-while-revalidate=86400');

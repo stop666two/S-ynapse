@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **字体 preload 复核与哈希 JS 缓存升级（优化 1.4/1.5）**：确认并保留 4 个 preload（fonts.css + Inter/Sora/Manrope woff2，随字体栈自动生成，无冗余 preconnect）；`_headers` 为打包产物 `app/deferred/runtime.*.js` 追加 immutable 1 年（后置规则覆盖 `/assets/js/*` 的 1 小时 + SWR 兜底，no-bundle 回退仍走兜底）；交付层核对 HTML gzip 21.9KB — `scripts/build.js` + `README.md`
+
 - **vendor 瘦身（优化 1.3）**：KaTeX 字体仅保留 woff2（654.9→254KB，删除 woff/ttf 回退格式）；mermaid（3.5MB）由 `defer` 改为页面 `load` 后 `requestIdleCallback` 拉取（仅图表页加载，零成本页 0 请求）；Prism 维持 8 语言子集；冒烟新增 KaTeX 字体纯净断言，本地 runner 新增「零成本页不加载 mermaid / 图表页渲染 5 个 SVG」双态断言 — `scripts/build.js` + `templates/layout.ejs` + `scripts/build-smoke.test.js`
 
 - **esbuild 两段 chunk 打包（优化 1.2）**：`scripts/lib/bundle.js` 以 esbuild 0.28.1 产出内容哈希的 `app.<hash>.js`（首屏启动链）与 `deferred.<hash>.js`（21 个交互/重模块聚合，运行时按需载入），`runtime.js` 引导脚本内容哈希单发；`--no-bundle` 回退原生 ESM；新增 5 项单测与冒烟断言（chunk 存在/HTML 引用/raw 源码不拷贝）；JS gzip 全站 49.6→46.0KB — `scripts/lib/bundle.js` + `js/core/main.js` + `js/core/deferred.js` + `scripts/build.js` + `templates/layout.ejs`

@@ -535,13 +535,14 @@ npm run verify:security   # 集成安全回归
 
 - **失败即阻断**：内容预校验（重复 slug、非法日期、空标签/分类、缺失 `/media` 引用）在清理 `dist/` 之前报错并终止；运行期失败（模板/feed/sitemap/媒体/OG/压缩等）会汇总打印并以非零退出码结束。本地预览可用 `npm run build -- --allow-degraded` 降级继续（退出码保持 0）。
 - **定时发布**：`date` 晚于构建时间的文章视为已排期，自动排除页面、feed、sitemap 与搜索索引，并在构建日志中提示。
-- **缓存策略**：`_headers` 分级缓存：`/assets/css/*` immutable 1 年；`/assets/js|vendor/*` 1 小时 + `stale-while-revalidate`；`/media|og/*` 7 天 + SWR。可用 `site.build.cacheControl: false` 关闭。
+- **缓存策略**：`_headers` 分级缓存：`/assets/css/*`、打包产物 `app|deferred|runtime.*.js`、`/assets/config.*.json` immutable 1 年；其余 `/assets/js|vendor/*` 1 小时 + `stale-while-revalidate`；`/media|og/*` 7 天 + SWR。可用 `site.build.cacheControl: false` 关闭。
 - **搜索弱网**：索引请求 5 秒超时 + 一次重试，失败展示错误态与「重试」按钮；入口按钮在模块加载前点击不再报错。
 - **Worker 运行时**：`CF-Connecting-IP` 缺失时按共享桶限流（fail-closed）；配置 `LOG_IP_SECRET` 后 IP 日志哈希改用 HMAC-SHA256；`pathRestrictions: []` / `skipPaths: []` 为显式语义，仅缺失字段才回退内置兜底。
 - **配置校验语义**：`npm run verify:config` 校验 features/site 等的结构与死键（键存在性、类型）；值级自定义（站点文案、OG 开关等）列为「覆盖」信息项，不影响通过。
 - **运行时配置外置**：全量配置（features/tuning/guard/presets/quotes/i18n 等）写入内容寻址的 `/assets/config.<hash>.json`（immutable 缓存）；页面仅内联 ≤2KB 降级子集。启动时异步加载，失败自动重试 1 次、3 秒超时后降级为内置最小子集（fail-open），弱网/离线仍可阅读（`window.__CONFIG_OK__` 标记状态）。
 - **JS 两段打包**：esbuild 产出内容哈希的 `app.<hash>.js`（首屏启动链）与 `deferred.<hash>.js`（交互/重模块聚合，按需载入）；`runtime.js` 引导脚本内容哈希单发，避免与 bundle 错配；`--no-bundle` 可回退原生 ESM 拷贝模式。
 - **vendor 瘦身**：KaTeX 字体仅保留 woff2（654.9→254KB）；mermaid（3.5MB）改为页面 load 后 idle 拉取（仅图表页加载，零成本页不请求）；Prism 维持 8 语言子集。
+- **字体与预加载**：本地变量字体 3 个（Inter/Sora/Manrope，woff2 latin 子集）随字体栈自动生成 preload（含 fonts.css），`font-display` 可配；无冗余 preconnect。
 
 ---
 

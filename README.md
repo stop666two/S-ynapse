@@ -408,6 +408,11 @@ npx wrangler deploy --config workers/wrangler.toml --env production
 > 运行时读取该文件，实现边缘层与静态层 CSP/速率限制/路径限制/安全头完全一致，
 > 修改安全设置只需编辑 `security.json5` 一处。
 
+> **这是本项目的生产部署路径**：静态资产与安全层随同一次 `wrangler deploy` 发布（一个版本，可整体回滚）。
+> CI 推送只执行 `wrangler pages deploy`（Pages），**不会更新生产 Worker**。
+> 首次部署请配置日志隐私密钥：`npx wrangler secret put LOG_IP_SECRET --config workers/wrangler.toml --env production`；
+> 部署后抽查与回滚步骤见 `docs/runbook/rollback.md`。
+
 Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特定 IP）、CSP 报告收集（`/csp-report` 端点）、HTTP 安全头注入、HTTPS 强制跳转、**维护模式**（环境变量 `MAINTENANCE=1` → 503 维护页，`MAINTENANCE_MESSAGE` 自定义文案）、**结构化日志**（JSON Lines：`ts`/`level`/`module`/`requestId`/`event`；`LOG_LEVEL`（默认 `info`）控制级别；每个响应携带 `X-Request-Id`（复用 CF-Ray 或生成 UUID）；IP 以短哈希关联，不落明文）。
 
 ### 方式三：GitHub Actions（CI/CD 自动部署）
@@ -425,7 +430,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ### 派生副本与回滚
 
 - **多工作区定源**：本仓库是唯一事实源。若本机存在 `real-site/` 等派生副本（被 `.git/info/exclude` 排除、含独立 `.git`），任何修复只以本仓库为准；同步后必须用 `git diff --no-index --stat scripts/ real-site/scripts/` 与 `git diff --no-index --stat js/ real-site/js/` 核对差异归零，禁止只改副本或只改主仓库。
-- **发布回滚**：见 `docs/runbook/rollback.md`（Pages 部署回滚、Worker rollback、数据回滚与演练要求）。
+- **发布回滚**：见 `docs/runbook/rollback.md`（**Worker 优先**：`wrangler rollback` 同时回退脚本与静态资产；Pages 为备用路径；含 `LOG_IP_SECRET` 与部署后抽查命令）。
 
 ---
 
@@ -520,8 +525,9 @@ npm run verify:security   # 集成安全回归
 | build-errors | 6 | 构建失败收集/退出码/格式化 |
 | content-validate | 16 | 预校验（slug/日期/空标签/缺失媒体） |
 | publish-window | 5 | 定时发布过滤 |
+| asset-cache | 8 | 构建缓存键/配置指纹/命中判定 |
 
-> `npm test` 共 **180 项 / 38 组**（Node 内置 test runner；CSP 裁剪为顶层用例，不单独占用套件数）。
+> `npm test` 共 **188 项 / 42 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
 
 ### 构建行为说明（2026-09 审计修复）
 

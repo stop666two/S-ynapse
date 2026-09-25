@@ -112,9 +112,18 @@ npm run audit && npm run verify:security && npm run build
 
 ### 残余与未做
 
-1. **推送未执行**：24 个提交仅在本机，未推送、未打 tag（推送会触发 CI → Cloudflare Pages 生产部署，需用户确认 + `git bundle` 备份）。
+1. **推送未执行**：提交仅在本机，未推送、未打 tag。CI 推送只部署 Pages；**生产 Worker 需手动 `npm run build` + `npx wrangler deploy --config workers/wrangler.toml --env production`**（本批未部署），推送前建议 bundle 备份。
 2. **生产环境动态验证**：上线后需抽查响应头（nonce、无 unsafe-inline）、限流、日志脱敏；`LOG_IP_SECRET` 需在 Cloudflare 侧配置。
 3. **real-site 派生副本**：仍未同步（用户选择保留+文档定源，README 已写明同步核对命令）。
 4. **风格残余**：`style-src` 仍含 `'unsafe-inline'`（已在 SECURITY.md 声明为已知残余面）；Worker FALLBACK（无构建产物时）保留 `unsafe-inline` 保障可用性。
 5. **i18n 配置层**：reward/newsletter/friends 等纯配置字段缺 `*En` 变体，未动（属配置文件层，建议另立 issue）。
 6. **TTS 心跳取舍**：任何 `paused` 状态都会 `resume()`（含系统级暂停）；如需尊重手动暂停需另加来源标记。
+
+---
+
+### 第三批（文档更正，本会话末）
+
+- 按用户实际部署路径（**Wrangler → Workers**）更正三份文档：
+  - `docs/runbook/rollback.md` 重写为 Worker 优先（`wrangler rollback` 同时回退脚本+静态资产、`LOG_IP_SECRET` 配置、部署后 curl 抽查、维护模式与 `run_worker_first` 紧急摘除）。
+  - `README.md` 方式二标注为**生产部署路径**，新增“CI 只部署 Pages、不更新 Worker”的说明与密钥/回滚链接；测试计数更新为 188/42 并补 `asset-cache` 套件行。
+  - 本交接文档更正“推送=生产部署”的表述。

@@ -112,12 +112,27 @@ export function ipMatchesAny(rawIp, entries) {
 
 export function normalizePath(pathname) {
   let p = typeof pathname === 'string' ? pathname : '';
-  try {
-    p = decodeURIComponent(p);
-  } catch (e) { /* 保留原值 */ }
-  p = p.replace(/\/{2,}/g, '/');
-  if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
-  return p.toLowerCase();
+  for (let i = 0; i < 3; i++) {
+    let next;
+    try {
+      next = decodeURIComponent(p);
+    } catch (e) {
+      break;
+    }
+    if (next === p) break;
+    p = next;
+  }
+  p = p.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+  const segments = [];
+  for (const segment of p.split('/')) {
+    if (segment === '' || segment === '.') continue;
+    if (segment === '..') {
+      segments.pop();
+      continue;
+    }
+    segments.push(segment);
+  }
+  return ('/' + segments.join('/')).toLowerCase();
 }
 
 export function isPathBlocked(pathname, rules) {

@@ -78,6 +78,14 @@ describe('workers/lib ip-utils', () => {
     assert.strictEqual(ipUtils.isPathBlocked('/administrator', rules), null);
     assert.strictEqual(ipUtils.isPathBlocked('/', rules), null);
   });
+  it('folds dot segments and repeated encoding so traversal cannot bypass rules', () => {
+    const rules = [{ path: '/admin/*' }];
+    assert.ok(ipUtils.isPathBlocked('/media/../admin/panel', rules));
+    assert.ok(ipUtils.isPathBlocked('/media/%2e%2e/admin/panel', rules));
+    assert.ok(ipUtils.isPathBlocked('/media/%252e%252e/admin/panel', rules));
+    assert.ok(ipUtils.isPathBlocked('/./admin/panel', rules));
+    assert.strictEqual(ipUtils.isPathBlocked('/media/../photos/x', rules), null);
+  });
 });
 
 describe('workers/lib rate-limit', () => {

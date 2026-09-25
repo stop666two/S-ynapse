@@ -535,7 +535,7 @@ sitemap: {
 
 ### 3.69 commandPalette — 命令面板
 
-`enabled true` / `hotkey 'ctrl+shift+p'`(组合键,支持 `ctrl`/`cmd`/`meta`/`shift`/`alt` 修饰键;不含 `+` 的旧写法如 `'k'` 等价于主修饰键 Ctrl/Cmd+该键;置空 = 不监听;默认避开浏览器打印 Ctrl+P 与全站搜索 Ctrl+K) / `includeNavigation true`(页面导航项) / `includeActions true`(切换主题/回到顶部/打开搜索/我的收藏) / `includeSearch true`(首次打开时懒加载 search-index.json) / `maxResults 10`(结果上限) / `autoFocus true`。快捷键呼出居中面板,支持键盘上下选择、Enter 执行、Esc 关闭,中文输入法(IME)组合期不误触;样式由 `tuning.commandPalette`(`width`/`topOffset`/`backdropMix`)微调 — `js/domains/command-palette.js`。
+`enabled true` / `hotkey 'ctrl+shift+p'`(组合键,支持 `ctrl`/`cmd`/`meta`/`shift`/`alt` 修饰键;不含 `+` 的旧写法如 `'k'` 等价于主修饰键 Ctrl/Cmd+该键;置空 = 不监听;默认避开浏览器打印 Ctrl+P 与全站搜索 Ctrl+K) / `includeNavigation true`(页面导航项) / `includeActions true`(切换主题/回到顶部/打开搜索/我的收藏) / `includeSearch true`(首次打开时懒加载 search-index.json) / `maxResults 10`(结果上限) / `autoFocus true`。快捷键呼出居中面板,支持键盘上下选择、Enter 执行、Esc 关闭,中文输入法(IME)组合期不误触;样式由 `tuning.commandPalette`(`width`/`topOffset`/`backdropMix`)微调 — `js/domains/features/command-palette.js`。
 
 ### 3.70 subscribe — 订阅组件
 
@@ -547,7 +547,7 @@ sitemap: {
 
 ### 3.72 readingHistory — 继续阅读(本地阅读历史)
 
-`enabled true` / `maxItems 5`(首页最多条数) / `storageKey 's-history'`(localStorage 键,修改会丢弃旧历史) / `showOnHome true`(false=只记录不展示) / `clearable true`(显示清除按钮)。文章页自动记录(标题+路径+时间,上限 50 条),首页在卡片区上方展示最近阅读(相对时间,`Intl.RelativeTimeFormat` 双语);纯本地、无服务端 — `js/domains/reading-history.js`。
+`enabled true` / `maxItems 5`(首页最多条数) / `storageKey 's-history'`(localStorage 键,修改会丢弃旧历史) / `showOnHome true`(false=只记录不展示) / `clearable true`(显示清除按钮)。文章页自动记录(标题+路径+时间,上限 50 条),首页在卡片区上方展示最近阅读(相对时间,`Intl.RelativeTimeFormat` 双语);纯本地、无服务端 — `js/domains/features/reading-history.js`。
 
 ### 3.73 hreflang — 多语言替代声明(SEO)
 
@@ -563,7 +563,7 @@ sitemap: {
 
 ### 3.76 announcement — 公告条
 
-`enabled true` / `text` / `textEn` / `url`(单条模式：中英文文案与可选链接) / `items []`(多条模式，每项 `{text,textEn,url,icon?}`，非空时优先；`icon` 为前缀徽标短文本如 `"NEW"`) / `rotateMs 6000`(多条轮播间隔毫秒，`0`=只显示第一条；`prefers-reduced-motion` 下瞬间切换) / `pauseOnHover true`(悬停/按住暂停轮播与进度条) / `transition 'fade'`(条目切换动画：`fade` 淡入淡出 / `slide` 上滑+淡入) / `tone 'accent'`(`accent` 主题色淡渐变 / `solid` 实心主题色 / `minimal` 素色+下边框 / `gradient` 主→辅强渐变白字) / `showProgress false`(轮播剩余时间进度条；仅多条+自动轮播时渲染) / `showDot true`(左侧装饰圆点) / `newTab true`(外链 `target=_blank rel=noopener`；`false` 则当前窗口) / `dismissible true`(关闭按钮) / `storageKey 's-announce-dismissed'`(关闭记忆键；值为按语言区分的 JSON 对象，如 `{"zh":"…","en":"…"}`，旧版单值记录会在访问时自动迁移) / `removeDelayMs 340`(关闭动画后移除 DOM 延迟 ms)。固定于页面顶部（通过 `--annH` 变量将固定头部、移动菜单、粘性目录整体下移，内容偏移同步；**关闭后 `--annH` 收起为 0，头部自动上移**）；关闭按全部内容哈希记忆（`s-announce-dismissed`）不再出现。视觉细节（字号/字距）在 `tuning.json5` 的 `announcement` 分类调整。**防闪机制**：公告条默认隐藏，`<head>` 早检脚本在首帧前确认未被关闭后添加 `html.ann-on` 才显示；关闭记忆按内容哈希（`s-announce-dismissed`），关闭态刷新/导航零可见帧（禁用 JS 时公告不显示，属预期设计） — `templates/layout.ejs` + `js/domains/announcement.js`。
+`enabled true` / `text` / `textEn` / `url`(单条模式：中英文文案与可选链接) / `items []`(多条模式，每项 `{text,textEn,url,icon?}`，非空时优先；`icon` 为前缀徽标短文本如 `"NEW"`) / `rotateMs 6000`(多条轮播间隔毫秒，`0`=只显示第一条；`prefers-reduced-motion` 下瞬间切换) / `pauseOnHover true`(悬停/按住暂停轮播与进度条) / `transition 'fade'`(条目切换动画：`fade` 淡入淡出 / `slide` 上滑+淡入) / `tone 'accent'`(`accent` 主题色淡渐变 / `solid` 实心主题色 / `minimal` 素色+下边框 / `gradient` 主→辅强渐变白字) / `showProgress false`(轮播剩余时间进度条；仅多条+自动轮播时渲染) / `showDot true`(左侧装饰圆点) / `newTab true`(外链 `target=_blank rel=noopener`；`false` 则当前窗口) / `dismissible true`(关闭按钮) / `storageKey 's-announce-dismissed'`(关闭记忆键；值为按语言区分的 JSON 对象，如 `{"zh":"…","en":"…"}`，旧版单值记录会在访问时自动迁移) / `removeDelayMs 340`(关闭动画后移除 DOM 延迟 ms)。固定于页面顶部（通过 `--annH` 变量将固定头部、移动菜单、粘性目录整体下移，内容偏移同步；**关闭后 `--annH` 收起为 0，头部自动上移**）；关闭按全部内容哈希记忆（`s-announce-dismissed`）不再出现。视觉细节（字号/字距）在 `tuning.json5` 的 `announcement` 分类调整。**防闪机制**：公告条默认隐藏，`<head>` 早检脚本在首帧前确认未被关闭后添加 `html.ann-on` 才显示；关闭记忆按内容哈希（`s-announce-dismissed`），关闭态刷新/导航零可见帧（禁用 JS 时公告不显示，属预期设计） — `templates/layout.ejs` + `js/domains/core/announcement.js`。
 
 ### 3.77 guards — 防护与交互控制总控
 
@@ -603,7 +603,7 @@ sitemap: {
 
 ### 3.86 hotSearches — 热门搜索
 
-`enabled true` / `top 5`（展示条数）/ `storageKey 's-hotSearches'`（localStorage 键，修改会丢弃旧记录）/ `showInDropdown true`（搜索下拉中展示）/ `showClear true`（提供清空按钮）。数据源为本地搜索历史，纯前端、无服务端 — `js/domains/search.js`。
+`enabled true` / `top 5`（展示条数）/ `storageKey 's-hotSearches'`（localStorage 键，修改会丢弃旧记录）/ `showInDropdown true`（搜索下拉中展示）/ `showClear true`（提供清空按钮）。数据源为本地搜索历史，纯前端、无服务端 — `js/domains/features/search.js`。
 
 ### 3.87 readingTime — 阅读时长
 
@@ -611,15 +611,15 @@ sitemap: {
 
 ### 3.88 codeCopy — 代码块复制按钮
 
-`enabled true` / `buttonText '复制'` / `copiedText '已复制'`（成功态文案）/ `buttonTimeout 1500`（成功态停留毫秒）/ `showLineNumbers false`（行号列）/ `includeWindowBar true`（Mac 窗栏样条）。文案留空时回退 `ui-strings` 词典 — `js/domains/code-block.js`。
+`enabled true` / `buttonText '复制'` / `copiedText '已复制'`（成功态文案）/ `buttonTimeout 1500`（成功态停留毫秒）/ `showLineNumbers false`（行号列）/ `includeWindowBar true`（Mac 窗栏样条）。文案留空时回退 `ui-strings` 词典 — `js/domains/core/code-block.js`。
 
 ### 3.89 tocScrollSpy — 目录滚动高亮
 
-`enabled true` / `activeClass 'current'`（当前标题对应条目的类名）/ `offset 80`（高亮判定用的顶部偏移像素，通常与固定头部高度一致）/ `throttleMs 60`（滚动监听节流毫秒）。与 `features.toc` 配合，仅负责「当前阅读到哪一节」的高亮 — `js/domains/toc.js`。
+`enabled true` / `activeClass 'current'`（当前标题对应条目的类名）/ `offset 80`（高亮判定用的顶部偏移像素，通常与固定头部高度一致）/ `throttleMs 60`（滚动监听节流毫秒）。与 `features.toc` 配合，仅负责「当前阅读到哪一节」的高亮 — `js/domains/core/toc.js`。
 
 ### 3.90 searchHighlight — 搜索结果高亮
 
-`enabled true` / `markClass 'search-hit'`（高亮标记类名）/ `maxMatches 20`（单页最多高亮处数，防止超长文渲染卡顿）。命中片段在结果列表与正文内以该样式标注 — `js/domains/search.js`。
+`enabled true` / `markClass 'search-hit'`（高亮标记类名）/ `maxMatches 20`（单页最多高亮处数，防止超长文渲染卡顿）。命中片段在结果列表与正文内以该样式标注 — `js/domains/features/search.js`。
 
 ### 3.91 darkImageFilter — 暗色图片滤镜
 
@@ -631,11 +631,11 @@ sitemap: {
 
 ### 3.93 imageFallback — 图片兜底
 
-`enabled true` / `fallbackImage ''`（兜底图路径，空 = 不替换，仅隐藏破图）/ `showAlt true`（加载失败时以 `alt` 文本占位）。图片 404 或解码失败时避免页面出现破图与布局跳动 — `js/domains/image-lazy.js`。
+`enabled true` / `fallbackImage ''`（兜底图路径，空 = 不替换，仅隐藏破图）/ `showAlt true`（加载失败时以 `alt` 文本占位）。图片 404 或解码失败时避免页面出现破图与布局跳动 — `js/domains/core/image-lazy.js`。
 
 ### 3.94 mobileBottomNav — 移动端底部导航
 
-`enabled true` / `items ['home','archive','search','theme']`（底部按钮项列表，按序展示）/ `onlyMobile true`（仅移动端断点内显示）/ `useSafeArea true`（适配 iOS 安全区 `env(safe-area-inset-bottom)`）/ `labelHome ''` / `labelArchive ''` / `labelSearch ''` / `labelTheme ''` / `labelTop ''`（各按钮文案覆盖，空 = 使用 `ui-strings.json5` 的 `bottomNav.*` 词条，主题按钮文案随当前明暗状态动态切换）。与 `features.mobile` 的抽屉菜单互补：底部导航负责高频入口 — `templates/layout.ejs` + `js/domains/navigation.js`。
+`enabled true` / `items ['home','archive','search','theme']`（底部按钮项列表，按序展示）/ `onlyMobile true`（仅移动端断点内显示）/ `useSafeArea true`（适配 iOS 安全区 `env(safe-area-inset-bottom)`）/ `labelHome ''` / `labelArchive ''` / `labelSearch ''` / `labelTheme ''` / `labelTop ''`（各按钮文案覆盖，空 = 使用 `ui-strings.json5` 的 `bottomNav.*` 词条，主题按钮文案随当前明暗状态动态切换）。与 `features.mobile` 的抽屉菜单互补：底部导航负责高频入口 — `templates/layout.ejs` + `js/domains/core/navigation.js`。
 
 ### 3.95 incrementalBuild — 增量构建
 

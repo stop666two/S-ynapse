@@ -30,7 +30,7 @@ articles/ media/ static/ + 13 个 JSON5 配置
 | `scripts/generate-og.js` | OG 图生成（独立进程，`.cache/og` 增量缓存） |
 | `templates/*.ejs` | 页面模板（layout/index/post/archive/search/tag/category/404/PWA 等 15 个） |
 | `js/core/` | 启动器：`runtime.js`（配置加载引导）、`boot.js`（阶段队列）、`main.js`（入口）、`deferred.js`（懒加载模块注册表） |
-| `js/domains/` | 47 个功能模块（独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
+| `js/domains/{core,features,guard}/` | 46 个功能模块（core 14 关键 / features 21 延迟 / guard 11 防护；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
 | `workers/security-worker.js` + `workers/lib/` | 边缘安全层（`ip-utils` / `rate-limit`） |
 | `workers/wrangler.toml` | 生产部署配置（Worker 名、assets 绑定、环境变量） |
 | `*.json5`（根目录 13 个） | 站点/主题/功能/文案等配置，全部经 `verify:config` 校验 |
@@ -110,7 +110,7 @@ CI 顺序：check-agents → `npm ci` → audit → lint → typecheck → test 
 ## 10. 已知边界与后续项
 
 - `scripts/build.js` 已完成机械拆分（265 行编排器 + `scripts/build/` 工厂模块；等价护栏 `scripts/dist-hash-guard.js` + `.refactor-baseline.json`）。
-- `js/domains` 未按 core/features/guard 物理分层（`deferred.js` 已统一注册表）。
+- `js/domains` 已按 core（14 关键）/features（21 延迟）/guard（11 防护）物理分层（`deferred.js` 统一注册表）。
 - `style-src 'unsafe-inline'` 未消除；Worker 在无构建产物时的 FALLBACK CSP 仍含 `unsafe-inline`（见 SECURITY.md）。
 - 增量构建（`features.incrementalBuild`）为预留键位，未实现；方案见 `docs/incremental-build-design.md`。
 - accessGate 为软防护；`?key=`/`?guard=` 参数未做 URL 清理。

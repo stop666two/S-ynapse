@@ -117,7 +117,7 @@ S-ynapse/
 ├── videos/            # 视频资源（可选，按需创建；content-policy 排除制过滤后复制）
 ├── assets/            # 素材文件（可选，按需创建；PDF/文档/压缩包/音频/字体，content-policy 白名单）
 ├── static/            # 静态文件（直接复制到输出）
-├── js/                # 前端 ESM 源码（core/ 入口与运行时 + domains/ 领域模块；构建复制到 dist/assets/js/）
+├── js/                # 前端 ESM 源码（core/ 入口与运行时 + domains/{core,features,guard}/ 领域模块；构建复制到 dist/assets/js/）
 ├── templates/         # EJS 模板
 │   ├── layout.ejs     # 基础布局（CSS变量 + 暗黑模式 + 搜索 + 链接警告 + 灯箱）
 │   ├── site-css.ejs   # 全站样式表（构建期注入 layout，压缩后随页面内联）
@@ -562,7 +562,7 @@ npm run verify:security   # 集成安全回归
 | RSS/JSON Feed | feed 4 |
 | 代码高亮 | Prism 1.30（本地 vendor，多语言按需拼接） |
 | 字体 | Inter / Sora / Manrope（@fontsource latin woff2，本地 vendor） |
-| 前端模块 | 原生 ESM（js/core + js/domains，无打包器） |
+| 前端模块 | 原生 ESM（js/core + js/domains/{core,features,guard}，无打包器） |
 | 分析 | Cloudflare Web Analytics |
 | 部署 | Cloudflare Pages / Workers |
 | CI/CD | GitHub Actions |

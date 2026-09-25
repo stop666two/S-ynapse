@@ -2,28 +2,28 @@
 // 交互类/重模块在此静态导入并注册为 name → init 映射，运行时由 main.js 经
 // window.__DEFERRED_URL__ 动态载入本 chunk 后调用 load(name)。
 // 未打包回退模式（--no-bundle）下本文件不参与产物，main.js 走原生动态 import。
-import { init as searchInit } from '../domains/search.js';
-import { init as lightboxInit } from '../domains/lightbox.js';
-import { init as readingPanelInit } from '../domains/reading-panel.js';
-import { init as ttsInit } from '../domains/tts.js';
-import { init as shortcutsInit } from '../domains/shortcuts.js';
-import { init as prevNextInit } from '../domains/prev-next.js';
-import { init as shareInit } from '../domains/share.js';
-import { init as contactPopupInit } from '../domains/contact-popup.js';
-import { init as sidebarDragInit } from '../domains/sidebar-drag.js';
-import { init as themePresetsInit } from '../domains/theme-presets.js';
-import { init as themeScheduleInit } from '../domains/theme-schedule.js';
-import { init as pwaInit } from '../domains/pwa.js';
-import { init as commentsInit } from '../domains/comments.js';
-import { init as dailyQuoteInit } from '../domains/daily-quote.js';
-import { init as readingHistoryInit } from '../domains/reading-history.js';
-import { init as commandPaletteInit } from '../domains/command-palette.js';
-import { init as morphiconsInit } from '../domains/morphicons.js';
-import { init as favoritesInit } from '../domains/favorites.js';
+import { init as searchInit } from '../domains/features/search.js';
+import { init as lightboxInit } from '../domains/features/lightbox.js';
+import { init as readingPanelInit } from '../domains/features/reading-panel.js';
+import { init as ttsInit } from '../domains/features/tts.js';
+import { init as shortcutsInit } from '../domains/features/shortcuts.js';
+import { init as prevNextInit } from '../domains/features/prev-next.js';
+import { init as shareInit } from '../domains/features/share.js';
+import { init as contactPopupInit } from '../domains/features/contact-popup.js';
+import { init as sidebarDragInit } from '../domains/features/sidebar-drag.js';
+import { init as themePresetsInit } from '../domains/features/theme-presets.js';
+import { init as themeScheduleInit } from '../domains/features/theme-schedule.js';
+import { init as pwaInit } from '../domains/features/pwa.js';
+import { init as commentsInit } from '../domains/features/comments.js';
+import { init as dailyQuoteInit } from '../domains/features/daily-quote.js';
+import { init as readingHistoryInit } from '../domains/features/reading-history.js';
+import { init as commandPaletteInit } from '../domains/features/command-palette.js';
+import { init as morphiconsInit } from '../domains/features/morphicons.js';
+import { init as favoritesInit } from '../domains/features/favorites.js';
 import { init as guardInit } from '../domains/guard/core.js';
-import { init as backgroundInit } from '../domains/background.js';
-import { init as rewardInit } from '../domains/reward.js';
-import { init as popupNoticeInit } from '../domains/popup-notice.js';
+import { init as backgroundInit } from '../domains/features/background.js';
+import { init as rewardInit } from '../domains/features/reward.js';
+import { init as popupNoticeInit } from '../domains/features/popup-notice.js';
 
 const registry = {
   search: searchInit,

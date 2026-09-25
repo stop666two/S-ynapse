@@ -8,7 +8,7 @@
 | # | 任务 | 验收标准 |
 |---|---|---|
 | 1 | scripts/build.js 拆分收尾（report/render/config/markdown/articles/pages/collectors/serve） | 每包 lint/tsc/build 通过 + dist 哈希等价 173 文件 + test:build；编排器尽量 ≤300 行并记录实际值 |
-| 2 | js/domains 物理分层 core/features/guard（每模块独立文件） | deferred.js/main.js/测试路径同步；run-softnav 13/13 + test:build + 本地探针无错误 |
+| 2 | js/domains 物理分层 core/features/guard（每模块独立文件） | deferred.js/main.js/测试路径同步；run-softnav 13/13 + test:build + 本地探针无错误。已完成（registry 沿用 deferred.js） |
 | 3 | 软导航残余视觉重绑（motion 入场、图片 LQIP、侧栏拖拽、复制按钮 morph） | run-softnav 扩展场景通过 |
 | 4 | i18n 配置层补 *En（reward/newsletter/friends） | verify:config + 渲染无中文残留（英文页） |
 | 5 | 安全收尾：style-src-elem nonce + style-src-attr、FALLBACK CSP、frame-ancestors、accessGate ?key 清理、维护页语言 | verify:security + 线上响应头验证 |

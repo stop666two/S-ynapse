@@ -2,21 +2,21 @@
 // 双模式：
 //   - 打包构建（存在 window.__DEFERRED_URL__）：按需 import deferred chunk 后调用 load(name)；
 //   - 未打包回退（--no-bundle）：走原生动态 import 路径（产物为拷贝的 ESM 源码）。
-import { init as themeInit } from '../domains/theme.js';
-import { init as navigationInit } from '../domains/navigation.js';
-import { init as i18nInit } from '../domains/i18n.js';
-import { init as announcementInit } from '../domains/announcement.js';
-import { init as readPositionInit } from '../domains/read-position.js';
-import { init as tocInit } from '../domains/toc.js';
-import { init as readingInit } from '../domains/reading.js';
-import { init as motionInit } from '../domains/motion.js';
-import { init as imageLazyInit } from '../domains/image-lazy.js';
-import { init as seamlessNavInit } from '../domains/seamless-nav.js';
-import { init as pageTransitionInit } from '../domains/page-transition.js';
+import { init as themeInit } from '../domains/core/theme.js';
+import { init as navigationInit } from '../domains/core/navigation.js';
+import { init as i18nInit } from '../domains/core/i18n.js';
+import { init as announcementInit } from '../domains/core/announcement.js';
+import { init as readPositionInit } from '../domains/core/read-position.js';
+import { init as tocInit } from '../domains/core/toc.js';
+import { init as readingInit } from '../domains/core/reading.js';
+import { init as motionInit } from '../domains/core/motion.js';
+import { init as imageLazyInit } from '../domains/core/image-lazy.js';
+import { init as seamlessNavInit } from '../domains/core/seamless-nav.js';
+import { init as pageTransitionInit } from '../domains/core/page-transition.js';
 import { init as softNavInit } from './soft-nav.js';
-import { init as externalLinkInit } from '../domains/external-link.js';
-import { init as readingModeInit } from '../domains/reading-mode.js';
-import { init as codeBlockInit } from '../domains/code-block.js';
+import { init as externalLinkInit } from '../domains/core/external-link.js';
+import { init as readingModeInit } from '../domains/core/reading-mode.js';
+import { init as codeBlockInit } from '../domains/core/code-block.js';
 import { boot } from './boot.js';
 
 const DEFERRED_URL = (typeof window !== 'undefined' && window.__DEFERRED_URL__) || '';
@@ -40,25 +40,25 @@ function dyn(name, path) {
 }
 
 const idleQueue = [
-  dyn('search', '../domains/search.js'),
-  dyn('lightbox', '../domains/lightbox.js'),
-  dyn('reading-panel', '../domains/reading-panel.js'),
-  dyn('tts', '../domains/tts.js'),
-  dyn('shortcuts', '../domains/shortcuts.js'),
-  dyn('prev-next', '../domains/prev-next.js'),
-  dyn('share', '../domains/share.js'),
-  dyn('contact-popup', '../domains/contact-popup.js'),
-  dyn('sidebar-drag', '../domains/sidebar-drag.js'),
-  dyn('theme-presets', '../domains/theme-presets.js'),
-  dyn('theme-schedule', '../domains/theme-schedule.js'),
-  dyn('pwa', '../domains/pwa.js'),
-  dyn('comments', '../domains/comments.js'),
-  dyn('daily-quote', '../domains/daily-quote.js'),
-  dyn('reading-history', '../domains/reading-history.js'),
-  dyn('command-palette', '../domains/command-palette.js'),
-  dyn('morphicons', '../domains/morphicons.js'),
-  dyn('favorites', '../domains/favorites.js'),
-  dyn('popup-notice', '../domains/popup-notice.js')
+  dyn('search', '../domains/features/search.js'),
+  dyn('lightbox', '../domains/features/lightbox.js'),
+  dyn('reading-panel', '../domains/features/reading-panel.js'),
+  dyn('tts', '../domains/features/tts.js'),
+  dyn('shortcuts', '../domains/features/shortcuts.js'),
+  dyn('prev-next', '../domains/features/prev-next.js'),
+  dyn('share', '../domains/features/share.js'),
+  dyn('contact-popup', '../domains/features/contact-popup.js'),
+  dyn('sidebar-drag', '../domains/features/sidebar-drag.js'),
+  dyn('theme-presets', '../domains/features/theme-presets.js'),
+  dyn('theme-schedule', '../domains/features/theme-schedule.js'),
+  dyn('pwa', '../domains/features/pwa.js'),
+  dyn('comments', '../domains/features/comments.js'),
+  dyn('daily-quote', '../domains/features/daily-quote.js'),
+  dyn('reading-history', '../domains/features/reading-history.js'),
+  dyn('command-palette', '../domains/features/command-palette.js'),
+  dyn('morphicons', '../domains/features/morphicons.js'),
+  dyn('favorites', '../domains/features/favorites.js'),
+  dyn('popup-notice', '../domains/features/popup-notice.js')
 ];
 
 const criticalQueue = [
@@ -78,5 +78,5 @@ criticalQueue.push(function () {
 boot({
   critical: criticalQueue,
   idle: idleQueue,
-  heavy: [dyn('background', '../domains/background.js'), dyn('reward', '../domains/reward.js')]
+  heavy: [dyn('background', '../domains/features/background.js'), dyn('reward', '../domains/features/reward.js')]
 });

@@ -1,10 +1,10 @@
 <div class="post-article" style="padding:2rem">
   <h1 data-i18n="search.open">搜索</h1>
   <div style="margin:2rem 0">
-    <input type="text" id="searchPageInput" placeholder="输入关键词搜索" data-i18n-placeholder="search.inputPlaceholder" style="width:100%;padding:1rem 1.25rem;font-size:1.125rem;border:2px solid var(--color-border);border-radius:var(--r);background:var(--color-bg);color:var(--color-t);font-family:var(--ff);outline:none" autofocus>
+    <input type="text" id="searchPageInput" placeholder="<%= ui('search.inputPlaceholder','输入关键词搜索') %>" data-i18n-placeholder="search.inputPlaceholder" style="width:100%;padding:1rem 1.25rem;font-size:1.125rem;border:2px solid var(--color-border);border-radius:var(--r);background:var(--color-bg);color:var(--color-t);font-family:var(--ff);outline:none" autofocus>
   </div>
   <div id="searchPageResults">
-    <p style="color:var(--color-text-secondary);text-align:center;padding:2rem">输入关键词开始搜索</p>
+    <p style="color:var(--color-text-secondary);text-align:center;padding:2rem"><%= ui('search.startHint','输入关键词开始搜索') %></p>
   </div>
 </div>
 

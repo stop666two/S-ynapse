@@ -1,5 +1,5 @@
 <div class="post-article">
-<h1><%= friends.title || '友情链接' %></h1>
+<h1><%= (typeof title!=='undefined'&&title) || friends.title || ui('links.title','友情链接') %></h1>
 
 <% if (friends.description) { %><p class="links-description"><%= friends.description %></p><% } %>
 

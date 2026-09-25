@@ -36,6 +36,7 @@
     open: '搜索',
     inputPlaceholder: '输入关键词搜索',
     startHint: '输入关键词开始搜索',
+    widgetPlaceholder: '输入关键词…',
     foundCount: '找到 {count} 个结果',
     foundText: '个结果',
     recent: '最近搜索',
@@ -92,8 +93,8 @@
   toolbar: {
     backToTop: '返回顶部', openSearchLabel: '搜索', closeSearch: '关闭搜索', boostLabel: '页面加速设置', tocCollapse: '折叠目录', rotateL: '向左旋转', rotateR: '向右旋转', vtLabel: '页面过渡动画', specLabel: '预取/预渲染',
     darkLabel: '切换暗色模式', searchPlaceholder: '搜索文章…',
-    readingProgress: '阅读进度', close: '关闭',
-    tocToggle: '目录', backToToc: '回到目录',
+    readingProgress: '阅读进度', readingToolbar: '阅读工具栏', close: '关闭',
+    tocToggle: '目录', backToToc: '回到目录', tocDrawer: '文章目录',
     goTop: '返回顶部', openImage: '图片查看',
     zoomIn: '放大', zoomOut: '缩小', rotate: '旋转', reset: '重置',
     prevSlide: '上一张', nextSlide: '下一张',
@@ -114,7 +115,7 @@
   archive: {
     title: '归档', statPosts: '文章总数', statDays: '发文天数', postUnit: '篇', legend: '少 → 多',
     statWords: '总字数', statAvg: '日均篇数', statTags: '标签数',
-    statCats: '分类数', heatmap: '年每月文章数热力图',
+    statCats: '分类数', heatmap: '年每月文章数热力图', textArticle: '文章', heatmapSuffix: '热力图',
     empty: '暂无归档', count: '{count} 文章',
   },
 
@@ -274,6 +275,7 @@
       noResult: 'No matching articles', resultCount: '{count} results',
       openHint: 'Press / or Ctrl+K to search', open: 'Search',
       inputPlaceholder: 'Search posts...', startHint: 'Type a keyword to start',
+      widgetPlaceholder: 'Type a keyword…',
       foundCount: '{count} results found', foundText: 'results',
       recent: 'Recent searches',
     },
@@ -315,8 +317,8 @@
     toolbar: {
       backToTop: 'Back to top', openSearchLabel: 'Search', closeSearch: 'Close search', boostLabel: 'Page boost settings', tocCollapse: 'Collapse contents', rotateL: 'Rotate left', rotateR: 'Rotate right', vtLabel: 'Page transition', specLabel: 'Prefetch/prerender',
       darkLabel: 'Toggle dark mode', searchPlaceholder: 'Search posts...',
-      readingProgress: 'Reading progress', close: 'Close',
-      tocToggle: 'Contents', backToToc: 'Back to contents',
+      readingProgress: 'Reading progress', readingToolbar: 'Reading toolbar', close: 'Close',
+      tocToggle: 'Contents', backToToc: 'Back to contents', tocDrawer: 'Article contents',
       goTop: 'Back to top', openImage: 'Image viewer',
       zoomIn: 'Zoom in', zoomOut: 'Zoom out', rotate: 'Rotate', reset: 'Reset',
       prevSlide: 'Previous', nextSlide: 'Next',
@@ -335,7 +337,7 @@
     archive: {
       title: 'Archive', statPosts: 'Posts', statDays: 'Days', postUnit: 'posts', legend: 'Less → More',
       statWords: 'Words', statAvg: 'Avg/Day', statTags: 'Tags',
-      statCats: 'Categories', heatmap: 'Monthly post heatmap',
+      statCats: 'Categories', heatmap: 'Monthly post heatmap', textArticle: 'articles', heatmapSuffix: 'heatmap',
       empty: 'No archives', count: '{count} posts',
     },
     gallery: {

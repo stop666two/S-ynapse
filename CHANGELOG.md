@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **弹窗公告（用户需求）**：新增 `features.popupNotice` 配置块（标题/正文/图片/二维码/按钮组/关闭方式/频率记忆/自定义配色）与运行时 `js/domains/popup-notice.js`（焦点陷阱、Esc/遮罩/×/按钮关闭、内容哈希 + 会话/每天频率记忆、reduced-motion 适配），接入 idle 队列与 deferred chunk；构建期校验 `scripts/lib/popup-notice-config.js` + 单测 10 项 — `features.json5` + `scripts/lib/features-schema.js` + `templates/site-css.ejs` + `docs/config-reference.md`
+
 ### Changed
 
 - **构建失败语义收紧（审计 T1）**：新增 `scripts/lib/build-errors.js` 收集器与构建前只读预校验（重复 slug/非法日期/空标签/缺失 `/media`）；feed/sitemap/模板/媒体/OG/压缩等运行期失败不再静默，构建尾部汇总并以非零退出码结束；`--allow-degraded` 支持本地降级预览 — `scripts/build.js` + `scripts/lib/build-errors.js` + `scripts/lib/content-validate.js` + 单测 27 项

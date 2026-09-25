@@ -56,7 +56,8 @@ const idleQueue = [
   dyn('reading-history', '../domains/reading-history.js'),
   dyn('command-palette', '../domains/command-palette.js'),
   dyn('morphicons', '../domains/morphicons.js'),
-  dyn('favorites', '../domains/favorites.js')
+  dyn('favorites', '../domains/favorites.js'),
+  dyn('popup-notice', '../domains/popup-notice.js')
 ];
 
 const criticalQueue = [

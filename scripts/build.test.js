@@ -81,7 +81,7 @@ describe('features-schema validateFeatures', () => {
     assert.ok(r.errors.some(e => e.includes('must be an object')));
   });
   it('exposes 95 feature modules for configuration', () => {
-    assert.strictEqual(FEATURE_MODULES.length, 95);
+    assert.strictEqual(FEATURE_MODULES.length, 96);
   });
 });
 

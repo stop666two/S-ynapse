@@ -23,6 +23,7 @@ import { init as favoritesInit } from '../domains/favorites.js';
 import { init as guardInit } from '../domains/guard/core.js';
 import { init as backgroundInit } from '../domains/background.js';
 import { init as rewardInit } from '../domains/reward.js';
+import { init as popupNoticeInit } from '../domains/popup-notice.js';
 
 const registry = {
   search: searchInit,
@@ -45,7 +46,8 @@ const registry = {
   favorites: favoritesInit,
   guard: guardInit,
   background: backgroundInit,
-  reward: rewardInit
+  reward: rewardInit,
+  'popup-notice': popupNoticeInit
 };
 
 export function load(name) {

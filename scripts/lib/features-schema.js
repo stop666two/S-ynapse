@@ -191,6 +191,16 @@ const DEFAULT_FEATURES = {
     enabled: true, text: '欢迎来到 S-ynapse', textEn: 'Welcome to S-ynapse', url: '', items: [], rotateMs: 6000,
     pauseOnHover: true, transition: 'fade', tone: 'accent', showProgress: false, showDot: true, newTab: true, dismissible: true, storageKey: 's-announce-dismissed', removeDelayMs: 340
   },
+  popupNotice: {
+    enabled: false, delayMs: 1500, frequency: 'day', reshowOnChange: true,
+    storageKey: 's-popupNotice', width: '440px',
+    title: '', titleEn: '', body: '', bodyEn: '', image: '', imageAlt: '', imageAltEn: '',
+    qr: { enabled: false, src: '', caption: '', captionEn: '' },
+    buttons: [],
+    closeButton: { enabled: true, label: '知道了', labelEn: 'Got it', style: 'primary' },
+    closeIcon: true, closeOnBackdrop: true, escToClose: true,
+    colors: { overlay: '', background: '', text: '', textSecondary: '', border: '', primary: '', primaryText: '', ghost: '' }
+  },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
     touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true

@@ -63,6 +63,7 @@ try { hooks = require('./hooks'); } catch (e) { hooks = null; }
 const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode } = require('./lib/utils');
 const { writeFileAtomicSync } = require('./lib/atomic-write');
 const { DEFAULT_FEATURES, validateFeatures } = require('./lib/features-schema');
+const { validatePopupNotice } = require('./lib/popup-notice-config');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset } = require('./lib/theme-presets');
 const { formatConfigError } = require('./lib/config-error');
 const { evaluatePerfBudget, gzipSize, formatPerfBudget } = require('./lib/perf-budget');
@@ -472,6 +473,10 @@ function validateConfig(config) {
   const featureResults = validateFeatures(config.features, 'features');
   errors.push(...featureResults.errors);
   warnings.push(...featureResults.warnings);
+
+  const popupResults = validatePopupNotice((config.features || {}).popupNotice);
+  errors.push(...popupResults.errors);
+  warnings.push(...popupResults.warnings);
 
   const themeErrors = validateThemePreset(config.theme);
   errors.push(...themeErrors);

@@ -819,3 +819,4 @@ sitemap: {
 - HTML 仅内联 ≤2KB 的降级子集（`features.guards` + `pwa` 开关；连同逐页小项 `__SITE_TITLE__`/`__ART_TITLE__`/`__SEARCH_PROVIDER__`）。
 - 前端启动时异步加载该文件并写入 `window.__FEATURES__` 等全局；失败自动重试 1 次，3 秒超时后使用内置最小子集继续运行（fail-open，`window.__CONFIG_OK__=false`）。
 - `site.build.cacheControl: false` 时该文件的缓存响应头同样不下发（与其它资源一致）。
+- `popupNotice`（弹窗公告）：`enabled false`(总开关) / `delayMs 1500`(延迟弹出) / `frequency 'day'`(`session|day|always`，内容未变时频率) / `reshowOnChange true`(内容变化后重弹) / `storageKey 's-popupNotice'` / `width '440px'` / `title`/`titleEn` / `body`/`bodyEn`(空行分段，纯文本渲染) / `image`/`imageAlt`/`imageAltEn` / `qr{enabled,src,caption,captionEn}` / `buttons[]`(每项 `{label,labelEn,url,style:primary|ghost,newTab}`) / `closeButton{enabled,label,labelEn,style}` / `closeIcon true`(右上角 ×) / `closeOnBackdrop true` / `escToClose true` / `colors{overlay,background,text,textSecondary,border,primary,primaryText,ghost}`(留空跟随主题变量)。构建期由 `scripts/lib/popup-notice-config.js` 校验；启用但无任何内容仅告警。

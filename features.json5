@@ -2112,6 +2112,85 @@
   // ---------------------------------------------------------------------------
   // 60. 防护与交互控制总控(右键菜单/复制控制/快捷键拦截/检测等;细节全部在 guard.json5)
   // ---------------------------------------------------------------------------
+  // ===== 弹窗公告（popupNotice）=====
+  // 页面加载后延迟弹出的公告对话框，与顶部公告条(announcement)相互独立。
+  // 内容、按钮、关闭方式与配色均可自定义；默认关闭，需显式 enabled: true。
+  popupNotice: {
+    // 总开关(false = 不注入弹窗逻辑)
+    // 类型: boolean | 推荐: false(按需开启)
+    enabled: false,
+
+    // 弹出延迟(毫秒;0 = 立即弹出)
+    // 类型: number | 可填: 0 或 500–5000 | 推荐: 1200–2500
+    delayMs: 1500,
+
+    // 弹出频率(内容未变化时): 'session' 每会话一次 | 'day' 每天一次 | 'always' 每次都弹
+    // 类型: string | 推荐: 'day'
+    frequency: 'day',
+
+    // 内容变化后是否重新弹出(true = 修改标题/正文/按钮/图片等后，已关闭的用户会再看到一次)
+    // 类型: boolean | 推荐: true
+    reshowOnChange: true,
+
+    // 展示/关闭记忆的 localStorage 键(内容哈希与关闭日期存于此;会话记忆存同键+':session')
+    // 类型: string | 推荐: 's-popupNotice'
+    storageKey: 's-popupNotice',
+
+    // 弹窗宽度(CSS 长度;移动端自动限制为 92vw)
+    // 类型: string | 可填: 任意 CSS 宽度 | 推荐: '440px'
+    width: '440px',
+
+    // 标题(zh) / 英文标题(空 = en 站回退 zh)
+    // 类型: string
+    title: '', titleEn: '',
+
+    // 正文(zh) / 英文正文(空行分段;纯文本渲染，不解析 Markdown/HTML)
+    // 类型: string
+    body: '', bodyEn: '',
+
+    // 顶部图片(站内路径或外链;空 = 不显示) 与替代文本(zh/en)
+    // 类型: string
+    image: '', imageAlt: '', imageAltEn: '',
+
+    // 二维码区块(适合公众号/群引导;src 为空且 enabled=true 会被构建校验拦截)
+    qr: {
+      // 是否显示二维码图片
+      // 类型: boolean
+      enabled: false,
+      // 二维码图片地址(站内路径或外链)
+      // 类型: string
+      src: '',
+      // 图注(zh) / 英文图注(空 = en 站回退 zh)
+      // 类型: string
+      caption: '', captionEn: ''
+    },
+
+    // 按钮组(空 = 仅显示关闭按钮);每项: {label,labelEn,url,style:'primary'|'ghost',newTab}
+    // 类型: 数组 | 推荐: ≤2 个 | url 为空则渲染为仅关闭的按钮
+    // 示例: [{ label: '查看详情', labelEn: 'Learn more', url: '/zh/about/', style: 'ghost' }]
+    buttons: [],
+
+    // 关闭按钮(「知道了」类);enabled: false = 不显示(仍可用右上角 × 或其他方式关闭)
+    closeButton: { enabled: true, label: '知道了', labelEn: 'Got it', style: 'primary' },
+
+    // 右上角 × 按钮
+    // 类型: boolean | 推荐: true
+    closeIcon: true,
+
+    // 点击遮罩(弹窗外区域)关闭
+    // 类型: boolean | 推荐: true
+    closeOnBackdrop: true,
+
+    // Esc 键关闭
+    // 类型: boolean | 推荐: true
+    escToClose: true,
+
+    // 自定义配色(留空 = 跟随站点主题变量;支持任意 CSS 颜色值)
+    // overlay 遮罩 / background 弹窗底 / text 主文字 / textSecondary 次文字 / border 描边 /
+    // primary 主按钮底 / primaryText 主按钮字 / ghost 次按钮字
+    colors: { overlay: '', background: '', text: '', textSecondary: '', border: '', primary: '', primaryText: '', ghost: '' }
+  },
+
   guards: {
     // 总开关：false 时 guard.json5 全文件失效
     enabled: true,

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **构建失败语义收紧（审计 T1）**：新增 `scripts/lib/build-errors.js` 收集器与构建前只读预校验（重复 slug/非法日期/空标签/缺失 `/media`）；feed/sitemap/模板/媒体/OG/压缩等运行期失败不再静默，构建尾部汇总并以非零退出码结束；`--allow-degraded` 支持本地降级预览 — `scripts/build.js` + `scripts/lib/build-errors.js` + `scripts/lib/content-validate.js` + 单测 27 项
+- **定时发布（审计 F-11）**：`date` 晚于构建时间的文章排除页面/feed/sitemap/搜索索引并在日志提示 — `scripts/lib/publish-window.js` + 单测 5 项
+- **缓存头分级（审计 P-5）**：`/assets/css/*` immutable 1 年；`/assets/js|vendor/*` 1 小时 + `stale-while-revalidate`；`/media|og/*` 7 天 + SWR；`site.build.cacheControl: false` 可关闭 — `scripts/build.js`
+- **搜索弱网韧性（审计 L-1/L-2）**：索引请求 5 秒超时 + 一次重试、错误态与重试按钮、入口按钮存在性守卫 — `js/domains/search.js` + `templates/index.ejs` + `templates/layout.ejs`
+- **文档计数与安全声明（审计 F-14/O-5）**：测试计数更新为 180 项/38 组；新增 `SECURITY.md`（accessGate 软防护声明、LOG_IP_SECRET、限流边界）
+
+### Fixed
+
+- **Worker 路径归一化加固（审计 SEC-2）**：解码循环 + 点段折叠，阻断 `%2e%2e`/双重编码绕过 — `workers/lib/ip-utils.mjs` + 单测
+- **空数组配置语义（审计 SEC-6）**：`pathRestrictions: []` / `skipPaths: []` 显式生效，仅缺失字段回退内置兜底；文档与代码一致 — `workers/security-worker.js` + `scripts/generate-security-config.js` + `security.json5` + 单测 3 项
+- **安全头注入校验（审计 SEC-7）**：头名限 RFC 7230 token、值禁 CR/LF/NUL，非法配置构建期报错 — `scripts/generate-security-config.js` + 单测 4 项
+- **限流 fail-closed 与日志 HMAC（审计 SEC-3/SEC-8）**：`CF-Connecting-IP` 缺失时共享桶计数；`LOG_IP_SECRET` 配置后使用 HMAC-SHA256 — `workers/security-worker.js` + `.env.example` + 单测 1 项
+
 ### Added
 
 - **Worker 结构化日志与请求 ID**：Worker 输出 JSON Lines 日志（`ts`/`level`（RFC 5424 严重度映射）/`module`/`requestId`/`event`），`LOG_LEVEL`（`off`/`error`/`warn`/`info`/`debug`，默认 `info`）控制级别；每请求复用 `CF-Ray` 或生成 UUID 作为 `requestId`，并以 `X-Request-Id` 响应头回传；IP 以 SHA-256 短哈希关联（不落明文）；维护/限流/黑名单/路径拦截/CSP 报告/502 等路径全部接入 — `workers/security-worker.js` + `scripts/security-worker.test.js` + `README.md` + `docs/config-reference.md` + `.env.example`
@@ -113,7 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **JSON Feed 选项归位**：`site.rss.jsonFeed.fullContent/maxItems/path` 优先消费（修复死键；feed.json 恢复摘要模式） — `scripts/lib/feed-options.js` + `scripts/build.js` + `templates/layout.ejs`
 - **关联推荐与阅读时长接线**：`features.related.*`（topN/同标签/同分类权重/最低分）与 `features.readingTime.wordsPerMinuteCJK/Latin` 真实生效 — `scripts/lib/related.js` + `scripts/lib/utils.js` + `scripts/build.js`
 - **PWA 关闭时不再生成根 `manifest.json`/`site.webmanifest` 别名**（消除死重定向） — `scripts/build.js`
-- **文档计数口径统一**：features 800 项 / guard 171 项（对象逐层展开、数组元素逐项计入）/ 13 个配置文件 2522 项 / 测试 126 项 28 组 / tuning 32 分类 — `README.md` + `docs/config-reference.md`
+- **文档计数口径统一**：features 800 项 / guard 171 项（对象逐层展开、数组元素逐项计入）/ 13 个配置文件 2522 项 / 测试 180 项 38 组 / tuning 32 分类 — `README.md` + `docs/config-reference.md`
 - **构建日志补全 `[14/14]`** — `scripts/build.js`
 
 - **配置一致性 CI 监守（T0）**：新增 `npm run verify:config`（`scripts/check-config-consistency.js`）并接入 CI 阻塞步骤：逐项比对 features.json5 ↔ features-schema 默认值（配置文件为唯一事实来源，schema 额外键允许、空数组视为内容占位豁免）；首次运行修复 9 处历史不一致（copyAllButton、speculation.delivery、hero.heightVh、background.particles.count/opacity、commandPalette.hotkey、announcement.text/textEn 等） — `scripts/check-config-consistency.js` + `package.json` + `.github/workflows/deploy.yml` + `scripts/lib/features-schema.js`

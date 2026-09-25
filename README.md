@@ -70,7 +70,7 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html` 含详细统计（含内容策略拦截清单）
-- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（126 项 / 28 组）；`npm run lint` 提供 ESLint 静态检查
+- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（180 项 / 38 组）；`npm run lint` 提供 ESLint 静态检查
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -472,7 +472,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 126 项 / 28 组，全部通过
+npm test            # 180 项 / 38 组，全部通过
 npm run lint        # ESLint 静态检查（js / scripts / workers）
 npm run typecheck   # TypeScript checkJs（scripts/lib，渐进引入）
 npm run audit:a11y  # WCAG 2.x 无障碍审计（需先在另一终端 `npm run serve -- --port 3224`；也可用 `node scripts/a11y-audit.js <baseUrl>` 或 A11Y_BASE 环境变量指定地址；0 critical/serious 门禁）
@@ -498,7 +498,7 @@ npm run verify:security   # 集成安全回归
 | features-schema validateFeatures | 7 | features 默认/校验/枚举/数组字段 |
 | theme-presets | 6 | 主题预设校验（名称/形状/覆盖结构） |
 | formatConfigError | 2 | JSON5 错误格式化 |
-| generate-security-config | 9 | security.json5 → Worker 配置提取/渲染 |
+| generate-security-config | 13 | security.json5 → Worker 配置提取/渲染 + 头名校验 |
 | content-policy classifyFile | 5 | 三目录白名单/黑名单判定 |
 | perf-budget | 2 | 页面体积/请求数预算判定 |
 | computeRelatedArticles | 3 | 关联文章评分与截取 |
@@ -507,11 +507,23 @@ npm run verify:security   # 集成安全回归
 | encodeLoc | 3 | sitemap URL RFC 3986 编码 |
 | toSitemapLastmod | 3 | lastmod ISO 8601 归一/非法省略 |
 | CSP trimCspDirectives（无 describe，顶层用例） | 8 | CSP 指令按功能开关裁剪 |
-| workers/lib ip-utils | 4 | IPv4/IPv6 CIDR 解析与匹配 |
+| workers/lib ip-utils | 5 | IPv4/IPv6 CIDR 解析与匹配 + 点段折叠 |
 | workers/lib rate-limit | 2 | 限流封禁与清理 |
-| security-worker integration | 12 | Worker 集成（安全头/维护模式/静态资源/错误兜底） |
+| security-worker integration | 13 | Worker 集成（安全头/维护模式/静态资源/错误兜底/匿名限流） |
+| security-worker config resolution | 3 | 空数组 vs 缺失字段配置语义 |
+| build-errors | 6 | 构建失败收集/退出码/格式化 |
+| content-validate | 16 | 预校验（slug/日期/空标签/缺失媒体） |
+| publish-window | 5 | 定时发布过滤 |
 
-> `npm test` 共 **126 项 / 28 组**（Node 内置 test runner；CSP 裁剪为 8 项顶层用例，不单独占用套件数）。
+> `npm test` 共 **180 项 / 38 组**（Node 内置 test runner；CSP 裁剪为顶层用例，不单独占用套件数）。
+
+### 构建行为说明（2026-09 审计修复）
+
+- **失败即阻断**：内容预校验（重复 slug、非法日期、空标签/分类、缺失 `/media` 引用）在清理 `dist/` 之前报错并终止；运行期失败（模板/feed/sitemap/媒体/OG/压缩等）会汇总打印并以非零退出码结束。本地预览可用 `npm run build -- --allow-degraded` 降级继续（退出码保持 0）。
+- **定时发布**：`date` 晚于构建时间的文章视为已排期，自动排除页面、feed、sitemap 与搜索索引，并在构建日志中提示。
+- **缓存策略**：`_headers` 分级缓存：`/assets/css/*` immutable 1 年；`/assets/js|vendor/*` 1 小时 + `stale-while-revalidate`；`/media|og/*` 7 天 + SWR。可用 `site.build.cacheControl: false` 关闭。
+- **搜索弱网**：索引请求 5 秒超时 + 一次重试，失败展示错误态与「重试」按钮；入口按钮在模块加载前点击不再报错。
+- **Worker 运行时**：`CF-Connecting-IP` 缺失时按共享桶限流（fail-closed）；配置 `LOG_IP_SECRET` 后 IP 日志哈希改用 HMAC-SHA256；`pathRestrictions: []` / `skipPaths: []` 为显式语义，仅缺失字段才回退内置兜底。
 
 ---
 

@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **vendor 瘦身（优化 1.3）**：KaTeX 字体仅保留 woff2（654.9→254KB，删除 woff/ttf 回退格式）；mermaid（3.5MB）由 `defer` 改为页面 `load` 后 `requestIdleCallback` 拉取（仅图表页加载，零成本页 0 请求）；Prism 维持 8 语言子集；冒烟新增 KaTeX 字体纯净断言，本地 runner 新增「零成本页不加载 mermaid / 图表页渲染 5 个 SVG」双态断言 — `scripts/build.js` + `templates/layout.ejs` + `scripts/build-smoke.test.js`
+
 - **esbuild 两段 chunk 打包（优化 1.2）**：`scripts/lib/bundle.js` 以 esbuild 0.28.1 产出内容哈希的 `app.<hash>.js`（首屏启动链）与 `deferred.<hash>.js`（21 个交互/重模块聚合，运行时按需载入），`runtime.js` 引导脚本内容哈希单发；`--no-bundle` 回退原生 ESM；新增 5 项单测与冒烟断言（chunk 存在/HTML 引用/raw 源码不拷贝）；JS gzip 全站 49.6→46.0KB — `scripts/lib/bundle.js` + `js/core/main.js` + `js/core/deferred.js` + `scripts/build.js` + `templates/layout.ejs`
 
 - **运行时配置外置与 fail-open 降级（优化 1.1）**：全量运行时配置拆为内容寻址的 `/assets/config.<sha1 前10>.json`（immutable）；HTML 仅内联 ≤2KB 降级子集（guard 开关 + PWA 注册），单页 HTML raw 71.5KB → 42.8KB；启动异步加载（重试 1 次 / 3s 超时），失败时降级继续可用（`__CONFIG_OK__=false`）；新增 `scripts/lib/config-split.js` + 11 项单测，`boot.js` 等待配置就绪后调度，`runtime.js` 承载引导 — `scripts/build.js` + `templates/layout.ejs` + `js/core/*`

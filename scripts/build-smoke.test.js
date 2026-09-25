@@ -78,6 +78,11 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     assert.ok(runtimeMatch, 'index.html must reference the hashed runtime bootstrap');
     assert.ok(fs.existsSync(toAbs(runtimeMatch[0])), 'runtime bootstrap must exist on disk');
     assert.ok(!fs.existsSync(path.join(tmpDir, 'assets', 'js', 'core', 'main.js')), 'raw ESM sources must not be copied when bundling');
+    const katexFonts = path.join(tmpDir, 'assets', 'vendor', 'katex', 'fonts');
+    if (fs.existsSync(katexFonts)) {
+      const badFonts = fs.readdirSync(katexFonts).filter((f) => !/\.woff2$/.test(f));
+      assert.deepStrictEqual(badFonts, [], 'KaTeX fonts must be woff2-only: ' + badFonts.join(','));
+    }
   });
 
   it('bad content blocks the build and leaves previous output untouched', () => {

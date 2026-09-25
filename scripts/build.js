@@ -2961,9 +2961,8 @@ function copyVendorAssets(config) {
     fs.copyFileSync(path.join(morphDist, f), path.join(MORPH_VENDOR, f));
   });
   // KaTeX：js/css/auto-render + 字体目录（CSS 以相对路径引用 fonts/）
-  // 字体仅保留 woff2/woff：CSS 的 @font-face 依次声明 woff2/woff/ttf 三种格式，
-  // ttf 仅服务 IE9/旧版 Safari 等已淘汰浏览器；跳过 ttf 可省约 390KB 构建体积，
-  // 极端旧浏览器若请求 ttf 会 404 并回退到系统字体，不影响正文可读性。
+  // 字体仅保留 woff2：CSS 的 @font-face 依次声明 woff2/woff/ttf，浏览器命中 woff2 后
+  // 不会再请求后续格式；删除 woff/ttf 可再省约 300KB 产物，极端旧浏览器回退系统字体。
   const KATEX = path.join(VENDOR, 'katex');
   fs.mkdirSync(path.join(KATEX, 'contrib'), { recursive: true });
   fs.mkdirSync(path.join(KATEX, 'fonts'), { recursive: true });
@@ -2971,9 +2970,9 @@ function copyVendorAssets(config) {
   fs.copyFileSync(path.join(NODE_MODULES, 'katex', 'dist', 'katex.min.css'), path.join(KATEX, 'katex.min.css'));
   fs.copyFileSync(path.join(NODE_MODULES, 'katex', 'dist', 'contrib', 'auto-render.min.js'), path.join(KATEX, 'contrib', 'auto-render.min.js'));
   const kFontsSrc = path.join(NODE_MODULES, 'katex', 'dist', 'fonts');
-  fs.readdirSync(kFontsSrc).filter(function (f) { return /\.woff2?$/.test(f); }).forEach(function (f) { fs.copyFileSync(path.join(kFontsSrc, f), path.join(KATEX, 'fonts', f)); });
-  // 清理历史构建遗留的 ttf（旧版本曾整目录复制）
-  fs.readdirSync(path.join(KATEX, 'fonts')).forEach(function (f) { if (!/\.woff2?$/.test(f)) fs.unlinkSync(path.join(KATEX, 'fonts', f)); });
+  fs.readdirSync(kFontsSrc).filter(function (f) { return /\.woff2$/.test(f); }).forEach(function (f) { fs.copyFileSync(path.join(kFontsSrc, f), path.join(KATEX, 'fonts', f)); });
+  // 清理历史构建遗留的 woff/ttf（旧版本曾复制多格式）
+  fs.readdirSync(path.join(KATEX, 'fonts')).forEach(function (f) { if (!/\.woff2$/.test(f)) fs.unlinkSync(path.join(KATEX, 'fonts', f)); });
   // 字体：按需复制 latin 子集 woff2 并生成 @font-face CSS（中文由系统字体链回退）
   const FONTS = path.join(VENDOR, 'fonts');
   fs.mkdirSync(FONTS, { recursive: true });

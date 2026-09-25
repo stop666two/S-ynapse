@@ -81,3 +81,5 @@ workers/security-config.js
 exports/
 lang-verify.js
 lang-diag.js
+
+.refactor-baseline.json

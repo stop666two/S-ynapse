@@ -219,7 +219,7 @@ const DEFAULT_FEATURES = {
   },
   ogImage: {
     enabled: true, width: 1200, height: 630, useCover: true,
-    gradientForNoCover: true, fontScale: 0.75, cacheDir: '.og-cache',
+    gradientForNoCover: true, fontScale: 0.75,
     format: 'png', jpegQuality: 82
   },
   hotSearches: {
@@ -257,7 +257,7 @@ const DEFAULT_FEATURES = {
     labelHome: '', labelArchive: '', labelSearch: '', labelTheme: '', labelTop: ''
   },
   incrementalBuild: {
-    enabled: true, cacheDir: '.build-cache', fullFlag: '--full',
+    enabled: true, fullFlag: '--full',
     watch: true, fingerprintHash: 'sha1', skipUnchanged: true
   },
   customCSS: {

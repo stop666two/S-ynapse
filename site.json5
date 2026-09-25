@@ -755,6 +755,15 @@
     // 注意: 关闭后必须手动清理 dist,否则可能出现过期页面
     "cleanDist": true,
 
+    // 分级 Cache-Control 响应头
+    // 作用: 构建 _headers（静态托管）与 Worker 响应头时输出分级缓存策略：
+    //       /assets/css/* => 1 年 immutable；/assets/js|vendor/* => 1 小时 + stale-while-revalidate；
+    //       /media|og/* => 7 天 + stale-while-revalidate；HTML 保持 max-age=0 必须回验证
+    // 类型: boolean | 可填: true/false | 推荐: true（指纹资产可长期缓存，显著降低回访流量）
+    // 不可填: 无；设为 false 时完全不输出 Cache-Control（交由托管平台默认策略）
+    // 注意: 仅影响带内容哈希的静态资产；修改后需重新构建以再生成 _headers 与 Worker 配置
+    "cacheControl": true,
+
     // HTML 压缩
     // 作用: 构建后用 minify-html 压缩所有 .html（去空白/可选属性引号）
     // 类型: boolean | 可填: true/false | 推荐: 生产 true

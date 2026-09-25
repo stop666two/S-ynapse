@@ -47,7 +47,7 @@ const DEFAULT_CONFIG = {
       pwa: { enabled: false, manifest: {}, serviceWorker: '/sw.js', cacheName: 's-ynapse-v1' },
       favicon: { enabled: true, svg: '/icons/favicon.svg', png32: '/icons/favicon-32x32.png', appleTouch: '/icons/apple-touch-icon.png' },
       build: {
-        cleanDist: true, minifyHTML: false, minifyCSS: false, minifyJS: false,
+        cleanDist: true, cacheControl: true, minifyHTML: false, minifyCSS: false, minifyJS: false,
         removeConsole: false,
         generateIndex: true, generateArchive: true, generateTags: true, generateCategories: true,
         generateGallery: true,

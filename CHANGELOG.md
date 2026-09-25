@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **配置注册补齐与文档同步**：`site.build.cacheControl` 纳入 `scripts/lib/site-defaults.js` 注册表与 `site.json5`（含完整注释）——此前该键会被 `verify:config` 判为死键；`features.ogImage.cacheDir` / `features.incrementalBuild.cacheDir` 注释标注为预留未接线（实际为 `.cache/og` / `.build-cache.json`）；`docs/config-reference.md` 修正 `blobRevokeDelayMs` 默认值为 1000，README 补充 `verify:config` 值覆盖语义。
+
 - **speculationrules 动态脚本携带 nonce**：`seamless-nav.js` 动态创建的推测规则脚本继承页面 CSP nonce，修复 nonce 化后 Chrome 报 `'inline-speculation-rules'` CSP 违规（推测规则被拦截）的问题 — `js/domains/seamless-nav.js`
 
 - **安全验证夹具去演示依赖（真实站点适配）**：`security-verify.js` 夹具 `<img>` 改用 `/assets/sec-verify-placeholder.png`，不再引用可能被清理的演示媒体，避免无演示媒体的真实站点下 `verify:security` 被内容预校验误报中断 — `scripts/security-verify.js`

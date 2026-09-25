@@ -593,7 +593,7 @@
     // 类型: number(>0) | 可填: 0.5–1.2 | 推荐: 0.75
     // 计算方式: 最终字号 = ogImageStyle.fontSizeBase × fontScale;非法值回退 1;超长标题仍按 maxLines 自动压缩
     fontScale: 0.75,
-    // 生成缓存目录。
+    // 生成缓存目录（预留未接线：实际缓存目录固定为 .cache/og，修改本键不生效）。
     cacheDir: '.og-cache'
   },
 
@@ -733,7 +733,7 @@
   incrementalBuild: {
     // 增量构建:源文件未变化时跳过页面重渲染。
     enabled: true,
-    // 指纹缓存目录。
+    // 指纹缓存目录（预留未接线：实际缓存文件为 .build-cache.json 与 .cache/media，修改本键不生效）。
     cacheDir: '.build-cache',
     // 强制全量构建的参数。
     fullFlag: '--full',

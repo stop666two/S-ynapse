@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **弹窗公告（用户需求）**：新增 `features.popupNotice` 配置块（标题/正文/图片/二维码/按钮组/关闭方式/频率记忆/自定义配色）与运行时 `js/domains/popup-notice.js`（焦点陷阱、Esc/遮罩/×/按钮关闭、内容哈希 + 会话/每天频率记忆、reduced-motion 适配），接入 idle 队列与 deferred chunk；构建期校验 `scripts/lib/popup-notice-config.js` + 单测 10 项 — `features.json5` + `scripts/lib/features-schema.js` + `templates/site-css.ejs` + `docs/config-reference.md`
+- **软导航（无刷新跳转，用户需求）**：新增 `features.softNavigation` 配置块与 `js/core/soft-nav.js`：拦截站内同语言链接，经「悬停预取 + fetch + DOMParser 交换 `.content-wrapper` + 同步 head 元信息 + pushState/popstate」替代整页刷新；同文档 View Transitions 提供过渡；页面级模块（TOC/阅读进度/返回顶部/代码块/TTS/收藏/评论/阅读历史/打赏/命令面板）通过 `__SOFTNAV_HOOKS__` 在交换后重绑；任何异常自动回退 `location.href` 整页跳转；「页面加速」面板新增页内开关（默认开、带记忆）— `js/core/soft-nav.js` + `js/core/main.js` + `templates/layout.ejs` + `templates/site-css.ejs` + `features.json5` + `scripts/lib/features-schema.js`
 
 ### Changed
 
+- **软导航接管站内跳转**：`softNavigation` 默认开启时 `page-transition.js` 不再拦截点击（避免双重过渡）；`command-palette` 导航项/操作项改为打开时实时采集，消除软导航后的过期数据；卡顿探针定位「点击 336–410ms 长任务」根因为文档级导航本身（4× CPU 下），软导航从链路上消除该冻结 — `js/domains/page-transition.js` + `js/domains/command-palette.js`
 - **构建失败语义收紧（审计 T1）**：新增 `scripts/lib/build-errors.js` 收集器与构建前只读预校验（重复 slug/非法日期/空标签/缺失 `/media`）；feed/sitemap/模板/媒体/OG/压缩等运行期失败不再静默，构建尾部汇总并以非零退出码结束；`--allow-degraded` 支持本地降级预览 — `scripts/build.js` + `scripts/lib/build-errors.js` + `scripts/lib/content-validate.js` + 单测 27 项
 - **定时发布（审计 F-11）**：`date` 晚于构建时间的文章排除页面/feed/sitemap/搜索索引并在日志提示 — `scripts/lib/publish-window.js` + 单测 5 项
 - **缓存头分级（审计 P-5）**：`/assets/css/*` immutable 1 年；`/assets/js|vendor/*` 1 小时 + `stale-while-revalidate`；`/media|og/*` 7 天 + SWR；`site.build.cacheControl: false` 可关闭 — `scripts/build.js`

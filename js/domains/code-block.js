@@ -10,6 +10,8 @@ var CB0=(F&&F.codeBlock)||{};var win=CB0.windowBar!==false;var vis=CB0.copyButto
 var IC={dl:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path pathLength="100" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline pathLength="100" points="7,10 12,15 17,10"/><line pathLength="100" x1="12" y1="15" x2="12" y2="3"/></svg>',exp:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6,9 12,15 18,9"/></svg>',col:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="18,15 12,9 6,15"/></svg>'};
 var blocks=[];
 document.querySelectorAll('.post-content pre').forEach(function(p){
+if(p.getAttribute('data-cbBound')==='1')return;
+p.setAttribute('data-cbBound','1');
 if(p.getAttribute('data-language')==='mermaid'||p.querySelector('div.mermaid')||p.querySelector('code.language-mermaid'))return;
 var code0=p.querySelector('code');
 var CB=(F&&F.codeCopy)||{};var COPYT=CB.buttonText||__T('toolbar.copyCode','复制代码'),COPIED=CB.copiedText||__T('toolbar.copied','已复制'),COPYTIMEOUT=isNaN(+CB.buttonTimeout)?1500:+CB.buttonTimeout;
@@ -59,5 +61,7 @@ first.parentNode.insertBefore(row2,first);row2.appendChild(ab)}
 if(window.__morphScan)window.__morphScan();
 }
 export function init() {
-if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',boot)}else{boot()}
+var run=function(){boot()};
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run)}else{run()}
+window.__SOFTNAV_HOOKS__.push(run);
 }

@@ -13,6 +13,7 @@ import { init as motionInit } from '../domains/motion.js';
 import { init as imageLazyInit } from '../domains/image-lazy.js';
 import { init as seamlessNavInit } from '../domains/seamless-nav.js';
 import { init as pageTransitionInit } from '../domains/page-transition.js';
+import { init as softNavInit } from './soft-nav.js';
 import { init as externalLinkInit } from '../domains/external-link.js';
 import { init as readingModeInit } from '../domains/reading-mode.js';
 import { init as codeBlockInit } from '../domains/code-block.js';
@@ -64,7 +65,7 @@ const criticalQueue = [
   () => themeInit(), () => navigationInit(), () => i18nInit(), () => announcementInit(),
   () => readPositionInit(), () => tocInit(), () => readingInit(), () => motionInit(),
   () => imageLazyInit(), () => seamlessNavInit(), () => pageTransitionInit(),
-  () => externalLinkInit(), () => readingModeInit(), () => codeBlockInit()
+  () => externalLinkInit(), () => readingModeInit(), () => codeBlockInit(), () => softNavInit()
 ];
 // 配置外置后 __GUARD__ 在 boot 等待 __CONFIG_READY__ 后才存在，因此延迟到执行期判定；
 // favorites 同理（favorites.init 内部按 features.favorites.enabled 自行短路）。

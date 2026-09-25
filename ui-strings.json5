@@ -91,7 +91,7 @@
 
   // 顶栏/工具栏
   toolbar: {
-    backToTop: '返回顶部', openSearchLabel: '搜索', closeSearch: '关闭搜索', boostLabel: '页面加速设置', tocCollapse: '折叠目录', rotateL: '向左旋转', rotateR: '向右旋转', vtLabel: '页面过渡动画', specLabel: '预取/预渲染',
+    backToTop: '返回顶部', openSearchLabel: '搜索', closeSearch: '关闭搜索', boostLabel: '页面加速设置', tocCollapse: '折叠目录', rotateL: '向左旋转', rotateR: '向右旋转', vtLabel: '页面过渡动画', specLabel: '预取/预渲染', softNavLabel: '无刷新跳转',
     darkLabel: '切换暗色模式', searchPlaceholder: '搜索文章…',
     readingProgress: '阅读进度', readingToolbar: '阅读工具栏', close: '关闭',
     tocToggle: '目录', backToToc: '回到目录', tocDrawer: '文章目录',
@@ -315,7 +315,7 @@
     words: 'words', readMinutes: 'min read', readSettings: 'Reading settings', fontSize: 'Font size', lineHeight: 'Line height', width: 'Width', resetDefault: 'Reset to default', relatedTitle: 'Related articles', shareThis: 'Share this article', linkCopied: 'Link copied', disqusNoScript: 'Please enable JavaScript to view comments.', rewardQrCode: 'QR code',
     },
     toolbar: {
-      backToTop: 'Back to top', openSearchLabel: 'Search', closeSearch: 'Close search', boostLabel: 'Page boost settings', tocCollapse: 'Collapse contents', rotateL: 'Rotate left', rotateR: 'Rotate right', vtLabel: 'Page transition', specLabel: 'Prefetch/prerender',
+      backToTop: 'Back to top', openSearchLabel: 'Search', closeSearch: 'Close search', boostLabel: 'Page boost settings', tocCollapse: 'Collapse contents', rotateL: 'Rotate left', rotateR: 'Rotate right', vtLabel: 'Page transition', specLabel: 'Prefetch/prerender', softNavLabel: 'Seamless navigation',
       darkLabel: 'Toggle dark mode', searchPlaceholder: 'Search posts...',
       readingProgress: 'Reading progress', readingToolbar: 'Reading toolbar', close: 'Close',
       tocToggle: 'Contents', backToToc: 'Back to contents', tocDrawer: 'Article contents',

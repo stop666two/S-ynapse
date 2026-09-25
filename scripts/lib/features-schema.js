@@ -153,6 +153,12 @@ const DEFAULT_FEATURES = {
     excludeSelectors: ['[download]', '[rel~=nofollow]', '.no-speculate'],
     toggle: { show: true, defaultOn: true, storageKey: 's-speculation' }
   },
+  softNavigation: {
+    enabled: true,
+    toggle: { show: true, defaultOn: true, storageKey: 's-soft-nav' },
+    prefetchOnHover: true, prefetchDelayMs: 80, cacheTtlMs: 300000, timeoutMs: 10000,
+    viewTransition: true, excludeSelectors: ['[data-no-soft-nav]', '.no-soft-nav'], scrollToTop: true
+  },
   cardFx: {
     enabled: true, coverOverlay: true, categoryChip: true, readTimeBadge: true, hoverShine: true
   },
@@ -486,6 +492,7 @@ const ARRAY_FIELDS = {
   morphIcons: [],
   viewTransition: [],
   speculation: ['excludeSelectors'],
+  softNavigation: ['excludeSelectors'],
   announcement: ['items'],
   background: ['particles'], motion: [], ogImageStyle: []
 };

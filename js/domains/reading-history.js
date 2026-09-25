@@ -73,6 +73,8 @@ export function init() {
       });
     }
   }
-  record();
-  render();
+  function apply() { record(); render(); }
+  apply();
+  // 软导航交换 DOM 后重跑：记录新页面浏览量并重渲染侧栏列表。
+  window.__SOFTNAV_HOOKS__.push(apply);
 }

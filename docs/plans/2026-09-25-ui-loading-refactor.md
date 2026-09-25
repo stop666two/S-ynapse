@@ -231,3 +231,13 @@
 | 13 | 同步义务 | 主仓库为代码事实源；real-site 为本地生产副本、严禁入库 |
 | 14 | 回滚 | 每任务提交 + 部署前 Worker 版本记录 + `wrangler rollback` |
 | 15 | 门禁 | 现有全套（lint/typecheck/test/verify:config/verify:security/test:build）+ 产物哈希护栏 + perf-audit |
+
+### Phase 3 用户反馈批次（2026-09-25 晚）
+
+- ✅ 公告条按语言独立记忆（修复跨语言覆盖导致「关英文后中文复现」）— `b2ad93e`
+- ✅ 弹窗公告 `features.popupNotice`（高自定义度、频率记忆、配色）— `4be0e04`
+- ✅ 卡顿归因：4× CPU 探针（`.tmp-scripts/run-jank.js` / `profile-toc.js`）证明主源是**文档级导航冻结**（336–410ms），非 TOC/滚动模块；其余交互 0 长任务
+- ✅ 软导航 `features.softNavigation`（无刷新跳转 + 页内开关 + 自动回退；同文档 View Transitions 过渡）
+  - 验收：`.tmp-scripts/run-softnav.js` **13/13 PASS**（软导航无刷新、URL/标题/内容正确、TOC/进度条/返回顶部重绑、后退软恢复、关闭开关后整页回退、0 控制台错误）
+  - 重绑覆盖：TOC、阅读进度、返回顶部、代码块、TTS、收藏、评论、阅读历史、打赏、命令面板（打开时实时采集）
+  - 已知残余（低风险，不影响功能，后续可补）：motion 入场动画、图片 LQIP 淡入、侧栏拖拽排序、复制按钮 morph 在软导航后不重绑；CF Web Analytics 不计数软导航（已在 config-reference 注明）

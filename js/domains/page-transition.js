@@ -3,6 +3,8 @@ export function init() {
     var F = window.__FEATURES__ || {}, PT = (F && F.pageTransition) || {};
     if (PT.enabled === false) return;
     if (typeof window.__viewTransitionActive === 'function' && window.__viewTransitionActive()) return;
+    // 软导航开启时由 soft-nav 接管站内跳转（含过渡），pageTransition 不再拦截点击。
+    if (typeof window.__softNavActive === 'function' && window.__softNavActive()) return;
     var RM = PT.reducedMotion;
     if (RM === undefined) RM = PT.respectReducedMotion === false ? 'full' : 'light';
     if (RM === true) RM = 'light'; else if (RM === false) RM = 'full';

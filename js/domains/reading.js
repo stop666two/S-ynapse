@@ -9,94 +9,128 @@ function scrollToTop() {
   window.scrollTo({ top: 0, behavior: window.__SB() });
 }
 
-export function init() {
-  window.toggleReadingMode = toggleReadingMode;
+// 页面级元素引用与配置：软导航交换 DOM 后由 bind() 重新指向新节点，
+// 文档/窗口级监听器只在首次 init 绑定一次（通过全局状态读取当前引用）。
+var S = { bar: null, tip: null, dot: null, btt: null, dock: null, ring: null, dockToc: null, dockTop: null };
+var CFG = { RP: {}, BT: {}, D: {} };
+var lastW = -1, dockRaf = 0, progTimer = null, globalBound = false;
+
+function updateProgress() {
+  var bar = S.bar;
+  if (!bar) return;
+  var sh = document.documentElement.scrollHeight - window.innerHeight;
+  var pc = sh > 0 ? Math.min(1, window.scrollY / sh) : 0;
+  var w = Math.round(pc * 100);
+  if (w === lastW) return;
+  lastW = w;
+  bar.style.width = w + '%';
+  if (S.tip) S.tip.textContent = w + '%';
+  if (S.dot) S.dot.style.left = w + '%';
+}
+
+function updateBtt() {
+  var b = S.btt;
+  if (!b) return;
+  var px = isNaN(+CFG.BT.showAfterPx) ? 400 : +CFG.BT.showAfterPx;
+  if (window.scrollY > px) b.classList.add('visible'); else b.classList.remove('visible');
+}
+
+function updateDock() {
+  var d = S.dock;
+  if (!d) return;
+  var R = 100.5;
+  var sh = document.documentElement.scrollHeight - window.innerHeight;
+  var pc = sh > 0 ? Math.min(1, window.scrollY / sh) : 0;
+  if (S.ring) S.ring.style.strokeDashoffset = String(R * (1 - pc));
+  var last = +d.getAttribute('data-last') || 0, now = window.scrollY;
+  if (CFG.D.hideOnScrollDown !== false && document.querySelector('.post-content')) {
+    if (now < 80) { d.classList.add('visible'); d.classList.remove('scroll-hide'); }
+    else if (now > last + 12) { d.classList.remove('visible'); d.classList.add('scroll-hide'); }
+    else if (now < last - 12) { d.classList.add('visible'); d.classList.remove('scroll-hide'); }
+  }
+  d.setAttribute('data-last', String(now));
+}
+
+function bind() {
+  var F = window.__FEATURES__ || {};
+  CFG.RP = (F && F.readingProgress) || {};
+  CFG.BT = (F && F.backToTop) || {};
+  CFG.D = (F && F.readDock) || {};
   document.querySelectorAll('.reading-mode-btn').forEach(function (b) { b.addEventListener('click', toggleReadingMode); });
-  (function () {
-    var F = window.__FEATURES__ || {}, RP = (F && F.readingProgress) || {};
-    if (RP.enabled === false) return;
-    var bar = document.getElementById('rp'), tip = document.getElementById('rpTip'), dot = document.getElementById('rpDot');
-    if (!bar) return;
-    if (RP.articleOnly && !document.querySelector('.post-article')) return;
-    if (RP.showTip === false && tip) tip.style.display = 'none';
-    if (RP.clickToJump !== false) {
-      bar.classList.add('enabled');
-      bar.addEventListener('click', function (e) {
+
+  // 阅读进度条
+  S.bar = CFG.RP.enabled === false ? null : document.getElementById('rp');
+  S.tip = null; S.dot = null;
+  if (S.bar && CFG.RP.articleOnly && !document.querySelector('.post-article')) S.bar = null;
+  if (S.bar) {
+    S.tip = document.getElementById('rpTip');
+    S.dot = document.getElementById('rpDot');
+    if (CFG.RP.showTip === false && S.tip) S.tip.style.display = 'none';
+    if (CFG.RP.clickToJump !== false) {
+      S.bar.classList.add('enabled');
+      S.bar.addEventListener('click', function (e) {
         var sh = document.documentElement.scrollHeight - window.innerHeight;
         if (sh <= 0) return;
-        var r = bar.getBoundingClientRect();
+        var r = S.bar.getBoundingClientRect();
         window.scrollTo({ top: Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)) * sh, behavior: window.__SB() });
       });
     }
-    var last = -1;
-    function update() {
-      var sh = document.documentElement.scrollHeight - window.innerHeight;
-      var pc = sh > 0 ? Math.min(1, window.scrollY / sh) : 0;
-      var w = Math.round(pc * 100);
-      if (w === last) return;
-      last = w;
-      bar.style.width = w + '%';
-      if (tip) tip.textContent = w + '%';
-      if (dot) dot.style.left = w + '%';
-    }
-    var iv = Math.max(1, isNaN(+RP.updateThrottleMs) ? 30 : +RP.updateThrottleMs);
-    var tm = null;
-    window.addEventListener('scroll', function () { if (tm) return; tm = setTimeout(function () { tm = null; update(); }, iv); }, { passive: true });
-    bar.classList.add('visible');
-    update();
-  })();
-  (function () {
-    var F = window.__FEATURES__ || {}, BT = (F && F.backToTop) || {};
-    if (BT.enabled === false) return;
-    var b = document.getElementById('btt');
-    if (!b) return;
-    b.addEventListener('click', scrollToTop);
-    var px = isNaN(+BT.showAfterPx) ? 400 : +BT.showAfterPx;
-    function upd() { if (window.scrollY > px) { b.classList.add('visible'); } else { b.classList.remove('visible'); } }
-    window.addEventListener('scroll', upd, { passive: true });
-    upd();
-    if (BT.hotkey) {
-      var hk = String(BT.hotkey);
-      document.addEventListener('keydown', function (e) {
-        var t = e.target;
-        var inField = !!(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
-        if (inField || e.ctrlKey || e.metaKey || e.altKey) return;
-        if (e.key.toLowerCase() === hk.toLowerCase()) { e.preventDefault(); window.scrollTo({ top: 0, behavior: BT.smoothScroll === false ? 'auto' : window.__SB() }); }
-      });
-    }
-  })();
-  (function () {
-    var F = window.__FEATURES__ || {}, D = (F && F.readDock) || {};
-    if (D.enabled === false) return;
-    var d = document.getElementById('readDock'), ring = document.getElementById('dockFg'), toc = document.getElementById('dockToc'), top = document.getElementById('dockTop');
-    if (!d) return;
-    if (!document.querySelector('.post-article')) return;
-    d.classList.add('visible');
-    var R = 100.5;
-    function updat() {
-      var sh = document.documentElement.scrollHeight - window.innerHeight;
-      var pc = sh > 0 ? Math.min(1, window.scrollY / sh) : 0;
-      if (ring) ring.style.strokeDashoffset = String(R * (1 - pc));
-      var last = +d.getAttribute('data-last') || 0, now = window.scrollY;
-      if (D.hideOnScrollDown !== false && document.querySelector('.post-content')) {
-        if (now < 80) { d.classList.add('visible'); d.classList.remove('scroll-hide'); }
-        else if (now > last + 12) { d.classList.remove('visible'); d.classList.add('scroll-hide'); }
-        else if (now < last - 12) { d.classList.add('visible'); d.classList.remove('scroll-hide'); }
-      }
-      d.setAttribute('data-last', String(now));
-    }
-    var raf = 0;
-    function onScroll() {
-      if (raf) return;
-      raf = window.requestAnimationFrame(function () { raf = 0; updat(); });
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    updat();
-    if (top) top.addEventListener('click', scrollToTop);
-    if (toc) toc.onclick = function () {
+    S.bar.classList.add('visible');
+  }
+  lastW = -1;
+  updateProgress();
+
+  // 返回顶部
+  S.btt = CFG.BT.enabled === false ? null : document.getElementById('btt');
+  if (S.btt) {
+    S.btt.addEventListener('click', scrollToTop);
+    updateBtt();
+  }
+
+  // 阅读悬浮坞
+  S.dock = CFG.D.enabled === false ? null : document.getElementById('readDock');
+  if (S.dock && !document.querySelector('.post-article')) S.dock = null;
+  if (S.dock) {
+    S.ring = document.getElementById('dockFg');
+    S.dockToc = document.getElementById('dockToc');
+    S.dockTop = document.getElementById('dockTop');
+    S.dock.classList.add('visible');
+    if (S.dockTop) S.dockTop.addEventListener('click', scrollToTop);
+    if (S.dockToc) S.dockToc.onclick = function () {
       var t = document.querySelector('.toc-sidebar');
       if (t && window.getComputedStyle(t).display !== 'none') { t.scrollIntoView({ behavior: window.__SB(), block: 'start' }); }
       else { var mt = document.querySelector('.m-toc-drawer'); if (mt) { mt.classList.add('open'); } else { window.scrollTo({ top: 0, behavior: window.__SB() }); } }
     };
-  })();
+    updateDock();
+  }
+}
+
+function bindGlobals() {
+  if (globalBound) return;
+  globalBound = true;
+  window.addEventListener('scroll', function () {
+    updateBtt();
+    if (progTimer) return;
+    var iv = Math.max(1, isNaN(+CFG.RP.updateThrottleMs) ? 30 : +CFG.RP.updateThrottleMs);
+    progTimer = setTimeout(function () { progTimer = null; updateProgress(); }, iv);
+  }, { passive: true });
+  window.addEventListener('scroll', function () {
+    if (dockRaf) return;
+    dockRaf = window.requestAnimationFrame(function () { dockRaf = 0; updateDock(); });
+  }, { passive: true });
+  document.addEventListener('keydown', function (e) {
+    var hk = CFG.BT.hotkey;
+    if (!hk) return;
+    var t = e.target;
+    var inField = !!(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
+    if (inField || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key.toLowerCase() === String(hk).toLowerCase()) { e.preventDefault(); window.scrollTo({ top: 0, behavior: CFG.BT.smoothScroll === false ? 'auto' : window.__SB() }); }
+  });
+}
+
+export function init() {
+  window.toggleReadingMode = toggleReadingMode;
+  bind();
+  bindGlobals();
+  window.__SOFTNAV_HOOKS__.push(bind);
 }

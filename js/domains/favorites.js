@@ -18,8 +18,10 @@ export function init() {
     return read().some(x => x.url === url);
   }
 
+  function bind() {
   const btn = document.getElementById('favBtn');
-  if (btn) {
+  if (btn && btn.dataset.favBound !== '1') {
+    btn.dataset.favBound = '1';
     const url = btn.getAttribute('data-url') || location.pathname;
     const title = btn.getAttribute('data-title') || document.title;
     const sp = btn.querySelector('span');
@@ -76,4 +78,8 @@ export function init() {
     };
     render();
   }
+  }
+
+  bind();
+  window.__SOFTNAV_HOOKS__.push(bind);
 }

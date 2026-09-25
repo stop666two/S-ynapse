@@ -38,7 +38,8 @@ export function init() {
     });
   }
   function gatherNav() {
-    if (!F.includeNavigation || navItems) return navItems || [];
+    // 不做缓存：软导航交换 DOM 后导航项需要重新采集。
+    if (!F.includeNavigation) return [];
     var seen = {};
     navItems = Array.prototype.slice.call(document.querySelectorAll('.nav-list .nav-link')).map(function (a) {
       return { type: 'nav', label: (a.textContent || '').trim(), url: a.getAttribute('href') || a.href };
@@ -51,7 +52,8 @@ export function init() {
     return navItems;
   }
   function gatherActions() {
-    if (!F.includeActions || actItems) return actItems || [];
+    // 不做缓存：软导航后页面可用操作可能变化（搜索/收藏入口等）。
+    if (!F.includeActions) return [];
     actItems = [];
     if (document.querySelector('.dark-toggle')) {
       actItems.push({ type: 'action', label: T('commandPalette.actTheme', '切换主题'), run: function () { if (typeof window.toggleDark === 'function') window.toggleDark(); } });

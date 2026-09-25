@@ -2191,6 +2191,46 @@
     colors: { overlay: '', background: '', text: '', textSecondary: '', border: '', primary: '', primaryText: '', ghost: '' }
   },
 
+  // 软导航：拦截站内同语言链接，用 fetch + DOM 交换替代整页刷新（配合 View Transitions 实现无缝过渡）。
+  // 前提：目标为同源、同语言页面；任何异常（超时/解析失败/脚本报错）都会自动回退为普通整页跳转。
+  softNavigation: {
+    // 总开关(false = 完全不拦截链接)
+    // 类型: boolean | 推荐: true
+    enabled: true,
+
+    // 页内开关(「页面加速」面板)：用户可随时关闭以规避兼容问题
+    // toggle.show: 是否显示开关 | toggle.defaultOn: 默认是否开启 | storageKey: 记忆键
+    toggle: { show: true, defaultOn: true, storageKey: 's-soft-nav' },
+
+    // 悬停/聚焦链接时预取目标页 HTML(加速点击后的交换)
+    // 类型: boolean | 推荐: true
+    prefetchOnHover: true,
+
+    // 预取延迟(毫秒;避免快速掠过链接时产生无谓请求)
+    // 类型: number | 推荐: 80
+    prefetchDelayMs: 80,
+
+    // 页面内存缓存有效期(毫秒;前进/后退优先复用)
+    // 类型: number | 推荐: 300000(5 分钟)
+    cacheTtlMs: 300000,
+
+    // 单次 fetch 超时(毫秒;超时即回退整页跳转)
+    // 类型: number | 推荐: 10000
+    timeoutMs: 10000,
+
+    // 是否使用同文档 View Transitions 做过渡动画(false = 直接交换内容)
+    // 类型: boolean | 推荐: true
+    viewTransition: true,
+
+    // 不拦截的链接选择器(数组)
+    // 类型: 数组 | 推荐: ['[data-no-soft-nav]', '.no-soft-nav']
+    excludeSelectors: ['[data-no-soft-nav]', '.no-soft-nav'],
+
+    // 交换成功后是否滚动到页面顶部
+    // 类型: boolean | 推荐: true
+    scrollToTop: true
+  },
+
   guards: {
     // 总开关：false 时 guard.json5 全文件失效
     enabled: true,

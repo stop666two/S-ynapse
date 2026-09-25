@@ -76,5 +76,7 @@ database.db
 database.db-shm
 database.db-wal
 workers/security-config.js
+.build-cache.json
+.cache/
 lang-verify.js
 lang-diag.js

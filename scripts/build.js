@@ -69,6 +69,7 @@ const { trimCspDirectives } = require('./lib/csp');
 const { createBuildErrorCollector, resolveExitCode, formatFailures } = require('./lib/build-errors');
 const { preflightArticles, createMediaResolver } = require('./lib/content-validate');
 const { isScheduled } = require('./lib/publish-window');
+const { buildCacheKey, configFingerprint, getFresh, pruneTo } = require('./lib/asset-cache');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -89,6 +90,31 @@ const SHOW_DRAFTS = process.argv.includes('--drafts') || WATCH_MODE;  // Include
 const ALLOW_DEGRADED = process.argv.includes('--allow-degraded');    // Local preview: continue past content failures (exit code stays 0)
 
 const CACHE_BUST_MANIFEST_PATH = path.join(DIST_DIR, 'cache-bust-manifest.json');
+const BUILD_CACHE_PATH = path.join(ROOT, '.build-cache.json');
+const MEDIA_CACHE_DIR = path.join(ROOT, '.cache', 'media');
+
+// Build cache: source mtime+size+config fingerprint per media image / OG cover.
+// Best-effort only — a corrupt or missing cache never fails the build.
+function loadBuildCache() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(BUILD_CACHE_PATH, 'utf-8'));
+    return {
+      version: 1,
+      media: raw && raw.media && typeof raw.media === 'object' ? raw.media : {},
+      og: raw && raw.og && typeof raw.og === 'object' ? raw.og : {}
+    };
+  } catch (e) {
+    return { version: 1, media: {}, og: {} };
+  }
+}
+
+function saveBuildCache(cache) {
+  try {
+    writeFileAtomicSync(BUILD_CACHE_PATH, JSON.stringify(cache));
+  } catch (e) {
+    console.warn('  [WARN] Failed to write .build-cache.json: ' + e.message);
+  }
+}
 
 const PKG_VERSION = (() => {
   try {
@@ -558,6 +584,14 @@ function copyProtectedAssets(config) {
 }
 
 // Optimize images from media/ using sharp.
+// Copy one processed media file from the persistent cache into dist/media.
+function copyMediaOutput(rel) {
+  const src = path.join(MEDIA_CACHE_DIR, rel);
+  const dest = path.join(DIST_DIR, 'media', rel);
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(src, dest);
+}
+
 // Generates responsive variants at configured sizes and formats (WebP + original).
 // Output: dist/media/ with a media-manifest.json mapping original paths to variants.
 // The manifest is consumed by setupMarkedRenderer for <picture>/<img> tag generation.
@@ -579,14 +613,32 @@ async function optimizeMedia(config) {
   const formats = config.site.build.mediaFormats;
   const destDir = path.join(DIST_DIR, 'media');
   if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+  if (!fs.existsSync(MEDIA_CACHE_DIR)) fs.mkdirSync(MEDIA_CACHE_DIR, { recursive: true });
   const images = getAllFiles(MEDIA_DIR).filter(f => /\.(jpg|jpeg|png|gif|tiff|webp)$/i.test(f));
+  const cache = loadBuildCache();
+  const mediaCache = cache.media;
+  const mediaFingerprint = configFingerprint([sizes, quality, avifCfg, formats, (config.features && config.features.imageLazy) || {}]);
+  const seenIds = [];
   let count = 0;
+  let skipped = 0;
   const processImage = async (imgPath) => {
     const relPath = path.relative(MEDIA_DIR, imgPath);
     const parsed = path.parse(relPath);
     const ext = parsed.ext.toLowerCase();
     const supportedExts = ['.jpg', '.jpeg', '.png', '.tiff', '.webp'];
     if (!supportedExts.includes(ext)) return;
+    const cacheId = 'media/' + relPath.replace(/\\/g, '/');
+    seenIds.push(cacheId);
+    let stats = null;
+    try { stats = fs.statSync(imgPath); } catch (e) { /* 保留 null：文件不可读时走重新生成分支 */ }
+    const cacheKey = buildCacheKey(stats, mediaFingerprint);
+    const cached = getFresh(mediaCache, cacheId, cacheKey);
+    if (cached && Array.isArray(cached.outputs) && cached.outputs.every((rel) => fs.existsSync(path.join(MEDIA_CACHE_DIR, rel)))) {
+      for (const rel of cached.outputs) copyMediaOutput(rel);
+      manifest[cacheId] = cached.entry;
+      skipped++;
+      return;
+    }
     try {
       const metadata = await sharp(imgPath).metadata();
       const originalWidth = metadata.width;
@@ -601,12 +653,13 @@ async function optimizeMedia(config) {
         } catch (e) { /* LQIP 失败不影响主流程 */ }
       }
       const activeFormats = avifCfg.enabled ? ['avif', ...formats.filter(f => f !== 'avif')] : formats;
+      const outputs = [];
       for (const size of sizes) {
         if (originalWidth <= size) continue;
         for (const fmt of activeFormats) {
           const suffix = fmt === 'original' ? ext : fmt === 'webp' ? '.webp' : '.avif';
           const variantName = `${parsed.name}-${size}${suffix}`;
-          const outPath = path.join(destDir, parsed.dir || '', variantName);
+          const outPath = path.join(MEDIA_CACHE_DIR, parsed.dir || '', variantName);
           const outDir = path.dirname(outPath);
           if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
           let pipeline = sharp(imgPath).resize(size, null, { withoutEnlargement: true });
@@ -615,14 +668,18 @@ async function optimizeMedia(config) {
           else if (ext === '.png') pipeline = pipeline.png({ quality });
           else pipeline = pipeline.jpeg({ quality });
           await pipeline.toFile(outPath);
+          outputs.push(path.relative(MEDIA_CACHE_DIR, outPath).split(path.sep).join('/'));
           entry.variants[`${size}-${fmt}`] = `/media/${urlDir}${variantName}`;
         }
       }
-      const originalDest = path.join(destDir, parsed.dir || '', parsed.base);
+      const originalDest = path.join(MEDIA_CACHE_DIR, parsed.dir || '', parsed.base);
       const origDir = path.dirname(originalDest);
       if (!fs.existsSync(origDir)) fs.mkdirSync(origDir, { recursive: true });
       fs.copyFileSync(imgPath, originalDest);
-      manifest[`media/${relPath.replace(/\\/g, '/')}`] = entry;
+      outputs.push(path.relative(MEDIA_CACHE_DIR, originalDest).split(path.sep).join('/'));
+      for (const rel of outputs) copyMediaOutput(rel);
+      manifest[cacheId] = entry;
+      mediaCache[cacheId] = { key: cacheKey, entry: entry, outputs: outputs };
       count++;
     } catch (err) {
       console.error(`  [ERROR] Failed to optimize ${relPath}: ${err.message}`);
@@ -630,9 +687,11 @@ async function optimizeMedia(config) {
     }
   };
   await Promise.all(images.map(p => processImage(p)));
+  pruneTo(mediaCache, seenIds);
+  saveBuildCache(cache);
   const manifestPath = path.join(DIST_DIR, 'media-manifest.json');
   writeFileAtomicSync(manifestPath, JSON.stringify(manifest));
-  console.log(`  Optimized ${count} images`);
+  console.log(`  Optimized ${count} images (reused ${skipped} unchanged)`);
   return manifest;
 }
 
@@ -3043,7 +3102,7 @@ async function build() {
     await generateRSS(config, articles);
     await generateJSONFeed(config, articles);
     await generateSitemap(config, articles, tags, categories, customPages);
-    if (!SERVE_MODE && config.features && config.features.ogImage && config.features.ogImage.enabled !== false && articles.length > 0) {
+    if (!SERVE_MODE && !WATCH_MODE && config.features && config.features.ogImage && config.features.ogImage.enabled !== false && articles.length > 0) {
       const ogArgs = [path.join(ROOT, 'scripts', 'generate-og.js')];
       if (SHOW_DRAFTS) ogArgs.push('--drafts');
       const ogRes = spawnSync(process.execPath, ogArgs, { stdio: 'inherit' });

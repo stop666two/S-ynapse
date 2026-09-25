@@ -76,8 +76,9 @@ function applyHeaderHardening(security) {
 /**
  * 从已解析的 security 配置中提取 Worker 需要的字段。
  * 缺失字段自动用安全兜底值（禁执行、不限制、严格头），保证任何手写损坏
- * 的 JSON 不会让 Worker 变为无保护状态。skipPaths 是仅有的例外：缺失即为空
- * 数组（不跳过任何路径，严格计数），避免代码内置隐式策略。
+ * 的 JSON 不会让 Worker 变为无保护状态。显式空数组有明确语义：
+ * pathRestrictions: [] = 无受保护路径；skipPaths: [] = 不跳过任何路径（严格计数）。
+ * 仅当字段缺失（undefined）时才回退到 Worker 内置兜底（fail-closed）。
  * @param {Object} security security.json5 解析结果
  * @param {{giscusNeeded?: boolean, externalAssets?: Object}} [cspContext] CSP 裁剪上下文；
  *   传入时按实际启用功能裁剪可选域名（与 _headers 层保持一致）；不传则原样输出。

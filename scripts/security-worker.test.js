@@ -266,3 +266,27 @@ describe('security-worker integration (fixture config)', () => {
     assert.ok(!lines.some((l) => l.includes('198.51.100.77')), '不得出现明文 IP');
   });
 });
+
+describe('security-worker config resolution (empty arrays vs missing fields)', () => {
+  let resolveWorkerConfig = null;
+  before(async () => {
+    const mod = await import('../workers/security-worker.js');
+    resolveWorkerConfig = mod.resolveWorkerConfig;
+  });
+
+  it('exposes resolveWorkerConfig for semantic testing', () => {
+    assert.strictEqual(typeof resolveWorkerConfig, 'function');
+  });
+
+  it('keeps explicitly empty pathRestrictions and skipPaths (no fallback)', () => {
+    const r = resolveWorkerConfig({ pathRestrictions: [], rateLimiting: { enabled: true, skipPaths: [] } });
+    assert.deepStrictEqual(r.blockedRules, []);
+    assert.deepStrictEqual(r.skipPaths, []);
+  });
+
+  it('falls back to fail-closed defaults only when fields are missing', () => {
+    const r = resolveWorkerConfig({});
+    assert.deepStrictEqual(r.blockedRules, ['/admin/*']);
+    assert.ok(r.skipPaths.length > 0, 'missing skipPaths must keep the built-in static-asset skip list');
+  });
+});

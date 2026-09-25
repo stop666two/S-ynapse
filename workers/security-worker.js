@@ -63,12 +63,20 @@ try {
   console.warn("[security-worker] security-config.js not found — using built-in FALLBACK. Run `npm run build` to generate it from security.json5.");
 }
 
-const rl = CONFIG.rateLimiting || FALLBACK.rateLimiting;
-const cspConfig = CONFIG.csp || FALLBACK.csp;
-const blockedRules = Array.isArray(CONFIG.pathRestrictions) && CONFIG.pathRestrictions.length > 0
-  ? CONFIG.pathRestrictions
-  : FALLBACK.pathRestrictions;
-const skipPaths = Array.isArray(rl.skipPaths) && rl.skipPaths.length > 0 ? rl.skipPaths : DEFAULT_SKIP_PATHS;
+// Config resolution: an explicitly configured empty array is meaningful —
+// pathRestrictions: [] means "no restricted paths", skipPaths: [] means
+// "count every request". Only missing fields fall back to the fail-closed
+// built-ins (used when security-config.js is absent).
+function resolveWorkerConfig(config) {
+  const cfg = config && typeof config === "object" ? config : {};
+  const rl = cfg.rateLimiting || FALLBACK.rateLimiting;
+  const cspConfig = cfg.csp || FALLBACK.csp;
+  const blockedRules = Array.isArray(cfg.pathRestrictions) ? cfg.pathRestrictions : FALLBACK.pathRestrictions;
+  const skipPaths = Array.isArray(rl.skipPaths) ? rl.skipPaths : DEFAULT_SKIP_PATHS;
+  return { rl, cspConfig, blockedRules, skipPaths };
+}
+
+const { rl, cspConfig, blockedRules, skipPaths } = resolveWorkerConfig(CONFIG);
 
 // —— 结构化日志（RFC 5424 严重度映射；JSON Lines 单行输出）——
 // 级别：off(0) < error(1) < warn(2) < info(3) < debug(4)；环境变量 LOG_LEVEL 控制（默认 info）。
@@ -276,6 +284,7 @@ async function handleRequest(request, env) {
   });
 }
 
+export { resolveWorkerConfig };
 export default {
   fetch: handleRequest
 };

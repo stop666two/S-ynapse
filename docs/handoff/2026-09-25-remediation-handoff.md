@@ -127,3 +127,15 @@ npm run audit && npm run verify:security && npm run build
   - `docs/runbook/rollback.md` 重写为 Worker 优先（`wrangler rollback` 同时回退脚本+静态资产、`LOG_IP_SECRET` 配置、部署后 curl 抽查、维护模式与 `run_worker_first` 紧急摘除）。
   - `README.md` 方式二标注为**生产部署路径**，新增“CI 只部署 Pages、不更新 Worker”的说明与密钥/回滚链接；测试计数更新为 188/42 并补 `asset-cache` 套件行。
   - 本交接文档更正“推送=生产部署”的表述。
+
+---
+
+### 第四批（真实站点同步与生产部署，2026-09-25 晚）
+
+- **real-site 与主仓库代码完全对齐**（real-site 为本地生产副本，按用户要求严禁进入 git）：15 项一致性校验全 SAME（scripts/js/templates/workers/lib/security-worker/ui-strings/guard/security/theme/package/.gitignore/.gitattributes/eslint/tsconfig/SECURITY）；`features.json5` 三方合并保留真实定制（OG `showSite/showUrl=false`、公告文案）并合入主仓库新键；`site.json5` 合并主仓库新增（JSON Feed options、preconnect 清空）；`workers/wrangler.toml` 保持生产名 `blog`。
+- **real-site 门禁全绿**：`npm test` 195/42、lint/typecheck 0、`verify:config` PASS（5 处真实覆盖列为信息项）、`npm run build` 3.12s（OG made 2 / 搜索索引 1 条/语言）、`verify:security` PASS。
+- **本轮追加提交**：`954c0ed` verify:config 允许真实站点值覆盖；`99d8b32` 安全验证夹具去演示媒体依赖；`8e9b4b0` speculationrules 动态脚本携带 CSP nonce（生产无头探测发现并修复）。
+- **生产部署（Worker `blog`）**：版本 `1bcb3d64`（首次同步部署）→ `ec484e88`（nonce 修复重部署）；`LOG_IP_SECRET` 已配置（HMAC 日志哈希生效）。
+- **线上验证**：CSP `script-src` 含 nonce 且无 `'unsafe-inline'`；`/assets/css/*` = `max-age=31536000, immutable`；`/admin/` → 403；中英首页/文章/搜索 5 页 200；无头 Chrome 153 探测 0 控制台错误、0 CSP 违规；`/zh/feed.xml` 标题「stop666的blog」、`/en/feed.xml` 标题「stop666's Blog」；robots 指向 `/zh|en/sitemap.xml`（正常）。
+- **备份**：`D:\administrator\Documents\project\S-ynapse-realsite-backup-2026-09-25`（1.53MB 全文件快照：真实数据+定制代码）+ `S-ynapse-realsite-code-2026-09-25.bundle`（real-site git 历史）。
+- **残余**：`style-src 'unsafe-inline'`（已知残余）；real-site 工作区保持未提交（真实数据不入库）；边缘冷缓存首击偶发 6.9s TTFB（后续 1.7s）。

@@ -6,11 +6,14 @@ const https = require('https');
 const sharp = require('sharp');
 const { safeSlug, validateSlug } = require('./lib/utils');
 const { resolveOgFormat } = require('./lib/og-format');
-const { atomicTempPath, commitAtomicTemp, discardAtomicTemp } = require('./lib/atomic-write');
+const { atomicTempPath, commitAtomicTemp, discardAtomicTemp, writeFileAtomicSync } = require('./lib/atomic-write');
+const { buildCacheKey, configFingerprint, getFresh, pruneTo } = require('./lib/asset-cache');
 
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
 const OUT_DIR = path.join(ROOT, 'dist', 'og');
+const BUILD_CACHE_PATH = path.join(ROOT, '.build-cache.json');
+const OG_CACHE_DIR = path.join(ROOT, '.cache', 'og');
 let WIDTH = 1200;
 let HEIGHT = 630;
 const FONT = 'Microsoft YaHei, system-ui, sans-serif';
@@ -31,6 +34,23 @@ function readConfigFile(name) {
     } catch (e2) {
       return null;
     }
+  }
+}
+
+function loadBuildCache() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(BUILD_CACHE_PATH, 'utf-8'));
+    return raw && typeof raw === 'object' ? raw : { version: 1, media: {}, og: {} };
+  } catch (e) {
+    return { version: 1, media: {}, og: {} };
+  }
+}
+
+function saveBuildCache(cache) {
+  try {
+    writeFileAtomicSync(BUILD_CACHE_PATH, JSON.stringify(cache));
+  } catch (e) {
+    console.warn('  [WARN] generate-og: 写入 .build-cache.json 失败: ' + e.message);
   }
 }
 
@@ -328,6 +348,18 @@ async function main() {
   const paletteMode = styleCfg.palette || 'theme';
   if (+ogCfg.width > 0) WIDTH = +ogCfg.width;
   if (+ogCfg.height > 0) HEIGHT = +ogCfg.height;
+  const ogFontScale = (+ogCfg.fontScale > 0) ? +ogCfg.fontScale : 1;
+  const ogFingerprint = configFingerprint([
+    ogFmt.format, ogFmt.ext, ogFmt.quality,
+    WIDTH, HEIGHT, ogFontScale,
+    styleCfg, palette, paletteMode,
+    { from: fromColor, to: toColor },
+    siteTitle, siteUrl
+  ]);
+  const buildCache = loadBuildCache();
+  const ogCache = (buildCache.og && typeof buildCache.og === 'object') ? buildCache.og : (buildCache.og = {});
+  if (!buildCache.version) buildCache.version = 1;
+  if (!buildCache.media || typeof buildCache.media !== 'object') buildCache.media = {};
 
   const args = process.argv.slice(2);
   let only = null;
@@ -348,6 +380,7 @@ async function main() {
   const madeSlugs = new Map();
   const madeByLang = new Map();
   let success = 0;
+  let reused = 0;
   let skipped = 0;
   let failed = 0;
 
@@ -419,6 +452,23 @@ async function main() {
     const langOut = path.join(OUT_DIR, langDir);
     fs.mkdirSync(langOut, { recursive: true });
     const outPath = path.join(langOut, slug + '.' + ogFmt.ext);
+    const outName = path.basename(outPath);
+    const cacheLangDir = path.join(OG_CACHE_DIR, langDir);
+    fs.mkdirSync(cacheLangDir, { recursive: true });
+    const cachePath = path.join(cacheLangDir, slug + '.' + ogFmt.ext);
+    const cacheId = langDir + '/' + slug;
+    let mdStats;
+    try { mdStats = fs.statSync(file); } catch (e) { mdStats = null; }
+    const cacheKey = buildCacheKey(mdStats, ogFingerprint);
+    if (getFresh(ogCache, cacheId, cacheKey) && fs.existsSync(cachePath)) {
+      fs.copyFileSync(cachePath, outPath);
+      madeSlugs.set(cacheId, outName);
+      if (!madeByLang.has(langDir)) madeByLang.set(langDir, new Set());
+      madeByLang.get(langDir).add(outName);
+      reused++;
+      console.log(`reused: ${slug} (${outName})`);
+      continue;
+    }
     let pendingTmp = null;
     try {
       let img;
@@ -445,7 +495,7 @@ async function main() {
         if (paletteMode === 'hash' && catRaw) { const h = hashHue(catRaw); palFrom = hsl(h, 52, 34); palTo = hsl(h + 38, 52, 16); }
         const chars = TEMPLATE_CHARS[styleCfg.template] || 12;
         const maxLines = Math.min(4, Math.max(1, +styleCfg.maxLines || 2));
-        const size = Math.round((+styleCfg.fontSizeBase || 64) * ((+ogCfg.fontScale > 0) ? +ogCfg.fontScale : 1));
+        const size = Math.round((+styleCfg.fontSizeBase || 64) * ogFontScale);
         const lh = Math.round(size * 1.2);
         const svg = Buffer.from(renderCover({ template: styleCfg.template || 'aurora', siteTitle, siteUrl, lines: fitLines(wrapTitle(title, chars), maxLines), size, lineHeight: lh, from: palFrom, to: palTo, style: styleCfg, category: catOf(catRaw), palette }));
         const svgPipe = sharp(svg);
@@ -456,7 +506,9 @@ async function main() {
         commitAtomicTemp(pendingTmp, outPath);
         pendingTmp = null;
       }
-      madeSlugs.set(slug, path.basename(outPath));
+      fs.copyFileSync(outPath, cachePath);
+      madeSlugs.set(cacheId, outName);
+      ogCache[cacheId] = { key: cacheKey };
       if (!madeByLang.has(langDir)) madeByLang.set(langDir, new Set());
       madeByLang.get(langDir).add(path.basename(outPath));
       success++;
@@ -471,7 +523,9 @@ async function main() {
   // 有生成失败时保留旧文件（避免因个别失败产生缺口或误删仍被引用的图片）
   if (!only && failed === 0) pruneStaleOg(madeByLang);
   else if (!only) console.warn('  [WARN] OG cleanup skipped: ' + failed + ' image(s) failed to generate');
-  console.log(`\nOG images: ${success} generated, ${skipped} skipped (draft), ${failed} failed`);
+  if (!only) pruneTo(ogCache, Array.from(madeSlugs.keys()));
+  saveBuildCache(buildCache);
+  console.log(`\nOG images: made ${success}, reused ${reused}, skipped drafts ${skipped}, failed ${failed}`);
   if (failed > 0) process.exitCode = 1;
 }
 

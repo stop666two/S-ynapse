@@ -12,6 +12,7 @@ const {
   extractMermaidBlocks,
   replaceMermaidBlocks,
   resolveChromePath,
+  defaultWhich,
   createMermaidRenderer
 } = require('./lib/mermaid-render');
 
@@ -19,6 +20,36 @@ const SILENT = { log() {}, warn() {}, error() {} };
 
 function tmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'mermaid-render-'));
+}
+
+function createFakePuppeteer(behavior) {
+  const calls = { launches: 0, pages: 0, closes: 0, pageCloses: 0, launchOptions: null, evaluate: [] };
+  const makePage = () => {
+    calls.pages += 1;
+    return {
+      goto: async () => {},
+      addScriptTag: async () => {},
+      evaluate: async (fn, ...args) => {
+        calls.evaluate.push(args);
+        return behavior && behavior.evaluate ? behavior.evaluate(args) : '<svg id="fake"></svg>';
+      },
+      close: async () => { calls.pageCloses += 1; }
+    };
+  };
+  return {
+    calls,
+    puppeteer: {
+      launch: async (options) => {
+        calls.launches += 1;
+        calls.launchOptions = options;
+        if (behavior && behavior.launchError) throw behavior.launchError;
+        return {
+          newPage: async () => makePage(),
+          close: async () => { calls.closes += 1; }
+        };
+      }
+    }
+  };
 }
 
 describe('mermaidCacheKey', () => {
@@ -62,6 +93,11 @@ describe('extractMermaidBlocks', () => {
   });
   it('没有 mermaid 块时返回空数组', () => {
     assert.deepStrictEqual(extractMermaidBlocks('<p>plain</p>'), []);
+  });
+  it('解码数字实体（十进制/十六进制）并保留零码点，超大码点收敛到上限', () => {
+    const html = '<pre><code class="language-mermaid">A&#x41;&#66;&#0;&#x110000;</code></pre>';
+    const blocks = extractMermaidBlocks(html);
+    assert.deepStrictEqual(blocks.map((b) => b.code), ['AAB&#0;\u{10FFFF}']);
   });
 });
 
@@ -177,6 +213,24 @@ describe('resolveChromePath', () => {
     });
     assert.strictEqual(got, '/usr/bin/google-chrome');
   });
+  it('POSIX 下全部候选与 which 均未命中时返回 null', () => {
+    const got = resolveChromePath('', {
+      env: {},
+      platform: 'linux',
+      exists: () => false,
+      which: () => null
+    });
+    assert.strictEqual(got, null);
+  });
+});
+
+describe('defaultWhich', () => {
+  it('探测 PATH 中真实存在的可执行文件，不存在的返回 null', () => {
+    const nodePath = defaultWhich('node');
+    assert.strictEqual(typeof nodePath, 'string');
+    assert.ok(nodePath.length > 0, 'node 应能在 PATH 中被探测到');
+    assert.strictEqual(defaultWhich('s-ynapse-not-a-real-binary-xyz'), null);
+  });
 });
 
 describe('createMermaidRenderer 降级与缓存', () => {
@@ -226,5 +280,131 @@ describe('createMermaidRenderer 降级与缓存', () => {
     });
     assert.deepStrictEqual(await renderer.renderBatch([]), []);
     assert.strictEqual(launched, false);
+  });
+});
+
+describe('createMermaidRenderer 浏览器渲染路径（注入假浏览器，不真实启动）', () => {
+  const realAsset = path.join(__dirname, '..', 'package.json');
+
+  it('批量渲染成功：按主题初始化、写缓存、关闭浏览器', async () => {
+    const dir = tmpDir();
+    const { puppeteer, calls } = createFakePuppeteer();
+    const renderer = createMermaidRenderer({
+      cacheDir: dir,
+      logger: SILENT,
+      version: '1.2.3',
+      mermaidPath: realAsset,
+      resolveChrome: () => 'C:/fake/chrome.exe',
+      puppeteer
+    });
+    const items = [
+      { code: 'graph TD;A-->B', theme: 'default' },
+      { code: 'graph LR;C-->D', theme: 'dark' }
+    ];
+    const res = await renderer.renderBatch(items);
+    assert.ok(res.every((r) => r.svg === '<svg id="fake"></svg>'), '两条都应返回假浏览器 SVG');
+    assert.strictEqual(calls.launches, 1);
+    assert.strictEqual(calls.closes, 1, '浏览器必须关闭');
+    assert.strictEqual(calls.launchOptions.executablePath, 'C:/fake/chrome.exe');
+    assert.deepStrictEqual(calls.evaluate.filter((args) => args.length === 1), [['default'], ['dark']], '主题切换时才重新初始化');
+    for (const item of items) {
+      const key = mermaidCacheKey(item.code, item.theme, '1.2.3');
+      assert.ok(fs.existsSync(path.join(dir, key + '.svg')), '渲染结果须写入缓存: ' + key);
+    }
+  });
+
+  it('单条渲染失败仅影响该条，不重建页面', async () => {
+    const dir = tmpDir();
+    const { puppeteer, calls } = createFakePuppeteer({
+      evaluate: (args) => {
+        if (args[0] === 'BAD') throw new Error('render-exploded');
+        return '<svg id="ok"></svg>';
+      }
+    });
+    const renderer = createMermaidRenderer({
+      cacheDir: dir,
+      logger: SILENT,
+      mermaidPath: realAsset,
+      resolveChrome: () => 'C:/fake/chrome.exe',
+      puppeteer
+    });
+    const res = await renderer.renderBatch([
+      { code: 'BAD', theme: 'default' },
+      { code: 'GOOD', theme: 'default' }
+    ]);
+    assert.strictEqual(res[0].error, 'render-exploded');
+    assert.strictEqual(res[1].svg, '<svg id="ok"></svg>');
+    assert.strictEqual(calls.pages, 1);
+    assert.strictEqual(calls.pageCloses, 0);
+  });
+
+  it('单条超时返回 timeout 错误，并重建页面继续后续条目', async () => {
+    const dir = tmpDir();
+    const { puppeteer, calls } = createFakePuppeteer({
+      evaluate: (args) => (args[0] === 'SLOW' ? new Promise(() => {}) : '<svg id="after"></svg>')
+    });
+    const renderer = createMermaidRenderer({
+      cacheDir: dir,
+      logger: SILENT,
+      mermaidPath: realAsset,
+      resolveChrome: () => 'C:/fake/chrome.exe',
+      puppeteer,
+      timeoutMs: 30
+    });
+    const res = await renderer.renderBatch([
+      { code: 'SLOW', theme: 'default' },
+      { code: 'FAST', theme: 'default' }
+    ]);
+    assert.ok(res[0].error && res[0].error.indexOf('timeout:') === 0, '第一条须为超时错误');
+    assert.strictEqual(res[1].svg, '<svg id="after"></svg>');
+    assert.strictEqual(calls.pages, 2, '超时后必须重建页面');
+    assert.strictEqual(calls.pageCloses, 1);
+  });
+
+  it('launch 失败时整批标记错误、写告警且不抛出', async () => {
+    const dir = tmpDir();
+    const { puppeteer, calls } = createFakePuppeteer({ launchError: new Error('launch-failed') });
+    const warnings = [];
+    const renderer = createMermaidRenderer({
+      cacheDir: dir,
+      logger: { log() {}, warn: (m) => warnings.push(m), error() {} },
+      mermaidPath: realAsset,
+      resolveChrome: () => 'C:/fake/chrome.exe',
+      puppeteer
+    });
+    const res = await renderer.renderBatch([
+      { code: 'A', theme: 'default' },
+      { code: 'B', theme: 'default' }
+    ]);
+    assert.deepStrictEqual(res.map((r) => r.error), ['launch-failed', 'launch-failed']);
+    assert.ok(warnings.some((w) => w.includes('render batch failed')));
+    assert.strictEqual(calls.closes, 0);
+  });
+
+  it('Chrome 存在但本地 mermaid 资源缺失时整批降级，不启动浏览器', async () => {
+    const dir = tmpDir();
+    const renderer = createMermaidRenderer({
+      cacheDir: dir,
+      logger: SILENT,
+      mermaidPath: path.join(dir, 'missing-mermaid.js'),
+      resolveChrome: () => 'C:/fake/chrome.exe'
+    });
+    const res = await renderer.renderBatch([{ code: 'graph TD', theme: 'default' }]);
+    assert.strictEqual(res[0].error, 'mermaid-asset-missing');
+  });
+
+  it('缓存文件读取失败按未命中处理，继续走降级路径', async () => {
+    const dir = tmpDir();
+    const code = 'graph TD;BROKEN';
+    const key = mermaidCacheKey(code, 'default', '9.9.9');
+    fs.mkdirSync(path.join(dir, key + '.svg'), { recursive: true });
+    const renderer = createMermaidRenderer({
+      cacheDir: dir,
+      logger: SILENT,
+      version: '9.9.9',
+      resolveChrome: () => null
+    });
+    const res = await renderer.renderBatch([{ code, theme: 'default' }]);
+    assert.strictEqual(res[0].error, 'chrome-not-found');
   });
 });

@@ -417,7 +417,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 
 ### 方式三：GitHub Actions（CI/CD 自动部署）
 
-项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署（Node 24 + `npm audit --audit-level=high` + `npm test` + `npm run lint` + `npm run typecheck` + `verify:config` + `verify:security` + `npm run test:build` 门禁），并在部署前检查 AGENTS.md 是否被误提交。
+项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署（Node 24 + `npm audit --audit-level=high` + `npm test` + `npm run test:coverage`（`scripts/lib` 行覆盖率 ≥80%） + `npm run lint` + `npm run typecheck` + `verify:config` + `verify:security` + `npm run test:build` + `npm run sbom`（CycloneDX 1.5，上传 `sbom-cyclonedx` artifact）门禁），并在部署前检查 AGENTS.md 是否被误提交。
 
 **配置步骤**：
 1. 在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加 `CF_API_TOKEN`（如需部署）
@@ -467,8 +467,10 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（267 项 / 54 组） |
+| `npm test` | 运行单元测试（313 项 / 70 组） |
+| `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前总量约 98%） |
 | `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物与 CSP nonce；CI 运行，不进 `npm test`） |
+| `npm run sbom` | 生成 CycloneDX 1.5（ECMA-424）SBOM → `build-artifacts/sbom.cdx.json`（不入库；CI 上传为 `sbom-cyclonedx` artifact） |
 | `npm run lint` | ESLint 静态检查（js/scripts/workers；CI 门禁） |
 | `npm run audit` | 依赖漏洞扫描（固定官方 registry：本机 npm 镜像会阻断 audit 接口） |
 | `npm run typecheck` | TypeScript checkJs 类型检查（scripts/lib；CI 门禁） |
@@ -484,7 +486,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 180 项 / 38 组，全部通过
+npm test            # 313 项 / 70 组，全部通过
+npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
 npm run typecheck   # TypeScript checkJs（scripts/lib，渐进引入）
 npm run audit:a11y  # WCAG 2.x 无障碍审计（需先在另一终端 `npm run serve -- --port 3224`；页面列表自动从 dist 派生；也可用 `node scripts/a11y-audit.js <baseUrl>` 或 A11Y_BASE 环境变量指定地址；Chrome 路径用 CHROME_PATH 覆盖；0 critical/serious/HTTP 失败门禁）
@@ -527,10 +530,17 @@ npm run verify:security   # 集成安全回归
 | content-validate | 16 | 预校验（slug/日期/空标签/缺失媒体） |
 | publish-window | 5 | 定时发布过滤 |
 | asset-cache | 8 | 构建缓存键/配置指纹/命中判定 |
-| mermaid-render | 22 | SSR 缓存键/块提取替换/sanitize 回退/Chrome 探测/无 Chrome 降级 |
+| mermaid-render | 31 | SSR 缓存键/块提取替换/sanitize 回退/Chrome 探测/无 Chrome 降级/假浏览器渲染路径与超时重建 |
+| sbom | 14 | CycloneDX 1.5 构建：组件计数/purl 编码/SHA-512 哈希/去重 bom-ref/稳定排序/落盘 |
 | config-consistency（无 describe，顶层用例） | 7 | features 值与结构/死键判定 |
 
-> `npm test` 共 **267 项 / 54 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
+> `npm test` 共 **313 项 / 70 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
+
+### SBOM（软件物料清单）
+
+- **标准**：CycloneDX **1.5** JSON（ECMA-424）；`bomFormat/specVersion/serialNumber(urn:uuid)/version/metadata/components` 最小合法结构，根组件 `s-ynapse@1.0.2`（type `application`）。
+- **依赖映射**：读取 `package-lock.json`（lockfileVersion 3）非根条目，逐条输出 `type:"library"` + `name` + `version` + `purl`（作用域包按 purl 规范将 `@` 编码为 `%40`）+ 唯一 `bom-ref`；`integrity`（sha512 base64）转为 `hashes[{alg:"SHA-512",content:<hex>}]`，无 integrity 则省略；按 `name/version` 稳定排序，重复同版本以 `#2` 后缀去重。
+- **生成**：`npm run sbom` → `build-artifacts/sbom.cdx.json`（目录已加入 `.gitignore`，原子写入，不入库）；CI 在构建后生成并上传为 `sbom-cyclonedx` artifact（`if-no-files-found: error`）。
 
 ### 构建行为说明（2026-09 审计修复）
 

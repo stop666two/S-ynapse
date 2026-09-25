@@ -49,12 +49,22 @@ jobs:
       - name: Type check (tsc checkJs, scripts/lib)
         run: npm run typecheck
       - run: npm test
+      - name: Coverage gate (scripts/lib lines >= 80%)
+        run: npm run test:coverage
       - run: npm run test:build
       - name: Config consistency (code defaults vs config files)
         run: npm run verify:config
       - name: Security verification (malicious-content build regression)
         run: npm run verify:security
       - run: npm run build
+      - name: SBOM (CycloneDX 1.5 / ECMA-424)
+        run: npm run sbom
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: build-artifacts/sbom.cdx.json
+          if-no-files-found: error
       - name: Deploy to Cloudflare Pages
         if: github.ref == 'refs/heads/main'
         env:

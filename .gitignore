@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# SBOM build artifact (CycloneDX, uploaded by CI, never committed)
+build-artifacts/
+
 # Runtime data (created by the app at startup)
 *.db
 *.db-wal

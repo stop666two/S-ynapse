@@ -413,6 +413,7 @@ module.exports = {
   extractMermaidBlocks,
   replaceMermaidBlocks,
   resolveChromePath,
+  defaultWhich,
   resolveMermaidVersion,
   createMermaidRenderer
 };

@@ -76,6 +76,7 @@ const { preflightArticles, createMediaResolver } = require('./lib/content-valida
 const { isScheduled } = require('./lib/publish-window');
 const { buildCacheKey, configFingerprint, getFresh, pruneTo } = require('./lib/asset-cache');
 const { buildRuntimeConfig, configUrlName } = require('./lib/config-split');
+const { bundleEnabled, esbuildAvailable, buildBundles } = require('./lib/bundle');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -106,6 +107,7 @@ const WATCH_MODE = process.argv.includes('--watch');        // Rebuild on file c
 const SERVE_MODE = process.argv.includes('--serve');        // Start dev HTTP server after build
 const SHOW_DRAFTS = process.argv.includes('--drafts') || WATCH_MODE;  // Include draft articles
 const ALLOW_DEGRADED = process.argv.includes('--allow-degraded');    // Local preview: continue past content failures (exit code stays 0)
+const BUNDLE_ACTIVE = bundleEnabled(process.argv, esbuildAvailable());   // esbuild 两段 chunk；--no-bundle 回退原生 ESM
 
 const CACHE_BUST_MANIFEST_PATH = path.join(DIST_DIR, 'cache-bust-manifest.json');
 const BUILD_CACHE_PATH = path.join(ROOT, '.build-cache.json');
@@ -1534,6 +1536,9 @@ function resolveFaviconHtml(site, themeColor) {
   return _faviconHtmlCache;
 }
 let SITE_CSS_HREF = '';
+let SITE_APP_JS_HREF = '/assets/js/core/main.js';
+let SITE_DEFERRED_URL = '';
+let SITE_RUNTIME_JS_HREF = '/assets/js/core/runtime.js';
 // 卡片（首页/标签列表）图片属性构造：从媒体 manifest 读取原格式多尺寸变体生成 srcset，
 // 使首屏卡片不再下载 1600px 原图（LCP 优化）。仅用 original 格式变体（不引入 <picture>，不改现有 CSS 选择器结构）。
 // manifest 不可用时回退为纯 src 属性；URL 会在 cache-bust 阶段被重写为带哈希路径。
@@ -2792,7 +2797,7 @@ async function minifyAll(config) {
   await minifyHTMLInDir(DIST_DIR, config);
   await minifyInlineStylesInDir(DIST_DIR, config);
   await minifyCSSInDir(DIST_DIR, config);
-  await minifyJSInDir(path.join(DIST_DIR, 'assets', 'js'), config);
+  if (!BUNDLE_ACTIVE) await minifyJSInDir(path.join(DIST_DIR, 'assets', 'js'), config);
   const types = [];
   if (config.site.build.minifyHTML) types.push('HTML');
   if (config.site.build.minifyCSS) types.push('CSS');
@@ -2905,6 +2910,21 @@ function copyJsAssets() {
   };
   walk(SRC, '');
   console.log('  Copied js/ assets to /assets/js/');
+}
+
+// 打包模式下仍需独立引导脚本 runtime.js（__T/__SB/__toast 与配置引导，必须先于 app 执行），
+// 以内容哈希命名：runtime 与 bundle 版本错配时能自动换名，避免旧缓存混用。
+function copyRuntimeBootstrap() {
+  const SRC = path.join(ROOT, 'js', 'core', 'runtime.js');
+  if (!fs.existsSync(SRC)) return '';
+  const content = fs.readFileSync(SRC);
+  const hash = crypto.createHash('sha1').update(content).digest('hex').slice(0, 10);
+  const rel = 'assets/js/runtime.' + hash + '.js';
+  const dest = path.join(DIST_DIR, rel);
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  writeFileAtomicSync(dest, content);
+  console.log('  Created: /' + rel);
+  return '/' + rel;
 }
 
 // copyVendorAssets — 本地化第三方前端资产（Prism / Mermaid / KaTeX / 字体）。
@@ -3168,6 +3188,16 @@ async function build() {
     const runtimeConfig = writeRuntimeConfig(config, baseData.presets, dailyQuotes);
     baseData.runtimeConfigUrl = runtimeConfig.url;
     baseData.criticalConfig = runtimeConfig.critical;
+    if (BUNDLE_ACTIVE) {
+      const bundle = await buildBundles({ root: ROOT, outDir: DIST_DIR, minify: config.site.build.minifyJS !== false });
+      SITE_APP_JS_HREF = bundle.appJsHref;
+      SITE_DEFERRED_URL = bundle.deferredUrl;
+      SITE_RUNTIME_JS_HREF = copyRuntimeBootstrap() || SITE_RUNTIME_JS_HREF;
+      console.log('  Bundled: ' + bundle.files.join(', '));
+    }
+    baseData.appJsHref = SITE_APP_JS_HREF;
+    baseData.deferredUrl = SITE_DEFERRED_URL;
+    baseData.runtimeJsHref = SITE_RUNTIME_JS_HREF;
     const customPages = processCustomPages(config, baseData);
     await generatePages(config, articles, baseData, customPages);
     const generatedHtmlCount = getAllFiles(DIST_DIR).filter((f) => f.endsWith('.html')).length;
@@ -3200,7 +3230,7 @@ async function build() {
     if (generateWorkerSecurity) {
       generateWorkerSecurity(config.security, path.join(ROOT, 'workers', 'security-config.js'), buildCspTrimContext(config));
     }
-    copyJsAssets();
+    if (!BUNDLE_ACTIVE) copyJsAssets();
     copyVendorAssets(config);
     await generatePWA(config);
     await minifyAll(config);

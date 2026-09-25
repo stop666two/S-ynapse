@@ -66,6 +66,18 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     const scriptSrc = cspLine.split(';').map((part) => part.trim()).find((part) => part.startsWith('script-src')) || '';
     assert.ok(scriptSrc.includes('nonce-'), 'script-src must carry the build-time nonce');
     assert.ok(!scriptSrc.includes("'unsafe-inline'"), "script-src must not allow 'unsafe-inline'");
+    const html = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');
+    const appMatch = html.match(/\/assets\/js\/app\.[0-9A-Za-z]+\.js/);
+    const deferredMatch = html.match(/__DEFERRED_URL__=[`"'](\/assets\/js\/deferred\.[0-9A-Za-z]+\.js)[`"']/);
+    assert.ok(appMatch, 'index.html must reference the hashed app chunk');
+    assert.ok(deferredMatch, 'index.html must expose the hashed deferred chunk URL');
+    const toAbs = (url) => path.join(tmpDir, url.replace(/^\//, '').split('/').join(path.sep));
+    assert.ok(fs.existsSync(toAbs(appMatch[0])), 'app chunk must exist on disk');
+    assert.ok(fs.existsSync(toAbs(deferredMatch[1])), 'deferred chunk must exist on disk');
+    const runtimeMatch = html.match(/\/assets\/js\/runtime\.[0-9A-Za-z]+\.js/);
+    assert.ok(runtimeMatch, 'index.html must reference the hashed runtime bootstrap');
+    assert.ok(fs.existsSync(toAbs(runtimeMatch[0])), 'runtime bootstrap must exist on disk');
+    assert.ok(!fs.existsSync(path.join(tmpDir, 'assets', 'js', 'core', 'main.js')), 'raw ESM sources must not be copied when bundling');
   });
 
   it('bad content blocks the build and leaves previous output untouched', () => {

@@ -1,4 +1,7 @@
-// 入口：仅关键模块静态加载并同步初始化；交互类/重模块全部由 boot.js 动态导入分阶段调度。
+// 入口：关键模块静态加载并同步初始化；交互类/重模块由 boot.js 经 deferred chunk 分阶段调度。
+// 双模式：
+//   - 打包构建（存在 window.__DEFERRED_URL__）：按需 import deferred chunk 后调用 load(name)；
+//   - 未打包回退（--no-bundle）：走原生动态 import 路径（产物为拷贝的 ESM 源码）。
 import { init as themeInit } from '../domains/theme.js';
 import { init as navigationInit } from '../domains/navigation.js';
 import { init as i18nInit } from '../domains/i18n.js';
@@ -15,29 +18,45 @@ import { init as readingModeInit } from '../domains/reading-mode.js';
 import { init as codeBlockInit } from '../domains/code-block.js';
 import { boot } from './boot.js';
 
-function dyn(path) {
-  return () => import(path).then(m => m.init());
+const DEFERRED_URL = (typeof window !== 'undefined' && window.__DEFERRED_URL__) || '';
+let deferredPromise = null;
+
+function loadFeature(name) {
+  if (!deferredPromise) {
+    deferredPromise = import(DEFERRED_URL).catch(function (err) {
+      console.warn('[bundle] deferred chunk 加载失败，交互类功能不可用：' + (err && err.message ? err.message : err));
+      return null;
+    });
+  }
+  return deferredPromise.then(function (m) { return m ? m.load(name) : undefined; });
+}
+
+function dyn(name, path) {
+  return function () {
+    if (DEFERRED_URL) return loadFeature(name);
+    return import(path).then(function (m) { return m.init(); });
+  };
 }
 
 const idleQueue = [
-  dyn('../domains/search.js'),
-  dyn('../domains/lightbox.js'),
-  dyn('../domains/reading-panel.js'),
-  dyn('../domains/tts.js'),
-  dyn('../domains/shortcuts.js'),
-  dyn('../domains/prev-next.js'),
-  dyn('../domains/share.js'),
-  dyn('../domains/contact-popup.js'),
-  dyn('../domains/sidebar-drag.js'),
-  dyn('../domains/theme-presets.js'),
-  dyn('../domains/theme-schedule.js'),
-  dyn('../domains/pwa.js'),
-  dyn('../domains/comments.js'),
-  dyn('../domains/daily-quote.js'),
-  dyn('../domains/reading-history.js'),
-  dyn('../domains/command-palette.js'),
-  dyn('../domains/morphicons.js'),
-  dyn('../domains/favorites.js')
+  dyn('search', '../domains/search.js'),
+  dyn('lightbox', '../domains/lightbox.js'),
+  dyn('reading-panel', '../domains/reading-panel.js'),
+  dyn('tts', '../domains/tts.js'),
+  dyn('shortcuts', '../domains/shortcuts.js'),
+  dyn('prev-next', '../domains/prev-next.js'),
+  dyn('share', '../domains/share.js'),
+  dyn('contact-popup', '../domains/contact-popup.js'),
+  dyn('sidebar-drag', '../domains/sidebar-drag.js'),
+  dyn('theme-presets', '../domains/theme-presets.js'),
+  dyn('theme-schedule', '../domains/theme-schedule.js'),
+  dyn('pwa', '../domains/pwa.js'),
+  dyn('comments', '../domains/comments.js'),
+  dyn('daily-quote', '../domains/daily-quote.js'),
+  dyn('reading-history', '../domains/reading-history.js'),
+  dyn('command-palette', '../domains/command-palette.js'),
+  dyn('morphicons', '../domains/morphicons.js'),
+  dyn('favorites', '../domains/favorites.js')
 ];
 
 const criticalQueue = [
@@ -48,10 +67,14 @@ const criticalQueue = [
 ];
 // 配置外置后 __GUARD__ 在 boot 等待 __CONFIG_READY__ 后才存在，因此延迟到执行期判定；
 // favorites 同理（favorites.init 内部按 features.favorites.enabled 自行短路）。
-criticalQueue.push(() => window.__GUARD__ ? import('../domains/guard/core.js').then(m => m.init()) : undefined);
+criticalQueue.push(function () {
+  if (!window.__GUARD__) return undefined;
+  if (DEFERRED_URL) return loadFeature('guard');
+  return import('../domains/guard/core.js').then(function (m) { return m.init(); });
+});
 
 boot({
   critical: criticalQueue,
   idle: idleQueue,
-  heavy: [dyn('../domains/background.js'), dyn('../domains/reward.js')]
+  heavy: [dyn('background', '../domains/background.js'), dyn('reward', '../domains/reward.js')]
 });

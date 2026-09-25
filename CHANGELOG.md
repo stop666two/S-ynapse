@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **esbuild 两段 chunk 打包（优化 1.2）**：`scripts/lib/bundle.js` 以 esbuild 0.28.1 产出内容哈希的 `app.<hash>.js`（首屏启动链）与 `deferred.<hash>.js`（21 个交互/重模块聚合，运行时按需载入），`runtime.js` 引导脚本内容哈希单发；`--no-bundle` 回退原生 ESM；新增 5 项单测与冒烟断言（chunk 存在/HTML 引用/raw 源码不拷贝）；JS gzip 全站 49.6→46.0KB — `scripts/lib/bundle.js` + `js/core/main.js` + `js/core/deferred.js` + `scripts/build.js` + `templates/layout.ejs`
+
 - **运行时配置外置与 fail-open 降级（优化 1.1）**：全量运行时配置拆为内容寻址的 `/assets/config.<sha1 前10>.json`（immutable）；HTML 仅内联 ≤2KB 降级子集（guard 开关 + PWA 注册），单页 HTML raw 71.5KB → 42.8KB；启动异步加载（重试 1 次 / 3s 超时），失败时降级继续可用（`__CONFIG_OK__=false`）；新增 `scripts/lib/config-split.js` + 11 项单测，`boot.js` 等待配置就绪后调度，`runtime.js` 承载引导 — `scripts/build.js` + `templates/layout.ejs` + `js/core/*`
 
 - **dist 产物归一化哈希护栏（重构 T0.5）**：新增 `scripts/lib/dist-hash.js`（nonce/CRLF 归一化、`build-report.html` 与 `og/` 忽略、SHA-256 清单与差异比较）与 `scripts/dist-hash-guard.js` CLI（`snapshot`/`diff`；等价 exit 0、有差异 exit 1、参数错误 exit 2），用于 build.js 机械拆分前后的产物等价验证（跨构建随机 nonce 不再误报）；新增 16 项单测 — `scripts/lib/dist-hash.js` + `scripts/dist-hash-guard.js` + `scripts/dist-hash.test.js`

@@ -10,6 +10,11 @@ const frontMatter = require('front-matter');
 const { marked } = require('marked');
 const ejs = require('ejs');
 
+// 构建期 CSP nonce（每次构建进程生成一次）：同一值写入最终 HTML 的 <script nonce="...">
+// 与 CSP 的 script-src 'nonce-...'（_headers / Worker / meta 三处同源），两者必须同步，
+// 否则内联脚本会被浏览器按 CSP 拦截。
+const CSP_NONCE = crypto.randomBytes(16).toString('base64');
+
 // Optional dependency loading — each fails gracefully to null/fallback
 // This allows the build to run with missing packages (features degrade instead of crashing)
 let json5, deepmerge, Feed, sharp, minifyHtmlNode, CleanCSS, terser, chokidar;
@@ -1368,6 +1373,18 @@ function getTemplate(name) {
   return null;
 }
 
+// 给最终 HTML 中所有 <script> 标签注入构建期 nonce（已有 nonce 属性则跳过）。
+// 假设：模板产出里 "<script" 只出现在真实脚本标签起始处，且标签属性值内不含 ">"
+// （当前模板满足；若将来引入含 "<script" 字样的字符串/注释需改用 DOM 解析）。
+function injectScriptNonce(html) {
+  if (!html || typeof html !== 'string') return html;
+  return html.replace(/<script\b(?![^>]*\bnonce\s*=)[^>]*>/gi, function (tag) {
+    const tail = tag.slice(-2) === '/>' ? '/>' : '>';
+    const head = tag.slice(0, tag.length - tail.length);
+    return head + ' nonce="' + CSP_NONCE + '"' + tail;
+  });
+}
+
 // Render an EJS template inside the layout template.
 // 1. Render inner template (e.g. index.ejs) → body HTML
 // 2. Wrap body in layout.ejs with merged data
@@ -1407,7 +1424,8 @@ function renderPage(templateName, data, layoutTemplate, cfg) {
     if (hooks && hooks.transformHTML) {
       result = hooks.transformHTML(result, { template: templateName, ...data }) || result;
     }
-    return result;
+    // nonce 注入放在 hooks.transformHTML 之后，确保最终串与 CSP 同源
+    return injectScriptNonce(result);
   } catch (err) {
     console.error(`  [ERROR] Failed to render template ${templateName}: ${err.message}`);
     recordBuildFailure('render', `Failed to render template ${templateName}: ${err.message}`);
@@ -2025,7 +2043,8 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
     };
     const html = renderPage('index.ejs', rootData, layoutTemplate, config);
     if (html) {
-      const redirectSnippet = '<script>/*S-LANG-REDIRECT*/if(navigator.language&&/(en|en-US|en-GB|en-CA)/i.test(navigator.language)&&!localStorage.getItem("s-ss-lang")){location.replace("/en/");}</script>';
+      // 该片段在 renderPage 之后插入，必须自行带上构建期 nonce（否则严格 CSP 下不执行）
+      const redirectSnippet = '<script nonce="' + CSP_NONCE + '">/*S-LANG-REDIRECT*/if(navigator.language&&/(en|en-US|en-GB|en-CA)/i.test(navigator.language)&&!localStorage.getItem("s-ss-lang")){location.replace("/en/");}</script>';
       const finalHtml = html.replace('</head>', redirectSnippet + '</head>');
       await writeFile('index.html', finalHtml);
     }
@@ -2512,6 +2531,18 @@ function buildCspTrimContext(config) {
   };
 }
 
+// 把构建期 CSP_NONCE 注入内存配置（幂等）：移除 script-src 的 'unsafe-inline'，
+// 追加 'nonce-...'。必须早于页面数据组装（meta CSP）、generateSecurityHeaders() 与
+// Worker 配置生成，保证三处 directives 完全一致。
+function applyCspNonce(config) {
+  const csp = config && config.security && config.security.csp;
+  if (!csp || !csp.directives || !Array.isArray(csp.directives['script-src'])) return;
+  const token = "'nonce-" + CSP_NONCE + "'";
+  const next = csp.directives['script-src'].filter(function (v) { return v !== "'unsafe-inline'"; });
+  if (next.indexOf(token) === -1) next.push(token);
+  csp.directives['script-src'] = next;
+}
+
 function generateSecurityHeaders(config) {
   console.log('[10/14] Generating security files...');
   const lines = [];
@@ -2959,7 +2990,7 @@ async function generatePWA(config) {
     const home = isEn ? '/en/' : '/zh/';
     const lt = config.theme.colors;
     const dk = (config.theme.darkMode && config.theme.darkMode.colors) || {};
-    const offlineHtml = '<!DOCTYPE html><html lang="' + (isEn ? 'en' : 'zh') + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' + S.t + ' · ' + config.site.title + '</title><style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:' + lt.background + ';color:' + lt.text + ';font-family:system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:26rem;padding:2.5rem;text-align:center}h1{font-size:1rem;opacity:.6;margin:0 0 1.25rem}.t{font-size:1.35rem;font-weight:700;margin:0 0 .5rem}.d{opacity:.7;line-height:1.7;margin:0 0 1.75rem}button,a{font:inherit}button{cursor:pointer;padding:.6rem 1.4rem;border-radius:999px;border:0;background:' + lt.secondary + ';color:' + lt.surface + '}button:hover{filter:brightness(1.08)}a{color:inherit;margin-left:1rem;text-decoration:underline;text-underline-offset:3px}@media(prefers-color-scheme:dark){body{background:' + (dk.background || lt.background) + ';color:' + (dk.text || lt.text) + '}button{background:' + (dk.secondary || lt.secondary) + '}}</style></head><body><main><h1>' + config.site.title + '</h1><p class="t">' + S.t + '</p><p class="d">' + S.d + '</p><p><button onclick="location.reload()">' + S.r + '</button><a href="' + home + '">' + S.h + '</a></p></main></body></html>';
+    const offlineHtml = '<!DOCTYPE html><html lang="' + (isEn ? 'en' : 'zh') + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' + S.t + ' · ' + config.site.title + '</title><style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:' + lt.background + ';color:' + lt.text + ';font-family:system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:26rem;padding:2.5rem;text-align:center}h1{font-size:1rem;opacity:.6;margin:0 0 1.25rem}.t{font-size:1.35rem;font-weight:700;margin:0 0 .5rem}.d{opacity:.7;line-height:1.7;margin:0 0 1.75rem}button,a{font:inherit}button{cursor:pointer;padding:.6rem 1.4rem;border-radius:999px;border:0;background:' + lt.secondary + ';color:' + lt.surface + '}button:hover{filter:brightness(1.08)}a{color:inherit;margin-left:1rem;text-decoration:underline;text-underline-offset:3px}@media(prefers-color-scheme:dark){body{background:' + (dk.background || lt.background) + ';color:' + (dk.text || lt.text) + '}button{background:' + (dk.secondary || lt.secondary) + '}}</style></head><body><main><h1>' + config.site.title + '</h1><p class="t">' + S.t + '</p><p class="d">' + S.d + '</p><p><button type="button" id="offlineRetry">' + S.r + '</button><a href="' + home + '">' + S.h + '</a></p></main><script nonce="' + CSP_NONCE + '">document.getElementById("offlineRetry").addEventListener("click",function(){location.reload()})</script></body></html>';
     writeFileAtomicSync(path.join(DIST_DIR, 'offline.html'), offlineHtml, 'utf-8');
     console.log('  Created: offline.html');
   }
@@ -3057,6 +3088,8 @@ async function build() {
     if (!validateConfig(config)) {
       abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
     }
+    // CSP nonce 注入（远早于 _headers / Worker 生成，同时覆盖 meta CSP 与页面 HTML）
+    applyCspNonce(config);
     if (hooks && hooks.preBuild) await hooks.preBuild(config);
     const preflight = preflightContent();
     if (preflight.errors.length > 0) {

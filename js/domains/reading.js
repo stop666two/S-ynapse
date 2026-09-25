@@ -5,8 +5,13 @@ export function toggleReadingMode() {
   else { d.setAttribute('data-reading', 'true'); try { localStorage.setItem('readingMode', 'true'); } catch (e) { /* 忽略：存储不可用时阅读模式仅当次会话有效 */ } }
 }
 
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: window.__SB() });
+}
+
 export function init() {
   window.toggleReadingMode = toggleReadingMode;
+  document.querySelectorAll('.reading-mode-btn').forEach(function (b) { b.addEventListener('click', toggleReadingMode); });
   (function () {
     var F = window.__FEATURES__ || {}, RP = (F && F.readingProgress) || {};
     if (RP.enabled === false) return;
@@ -45,6 +50,7 @@ export function init() {
     if (BT.enabled === false) return;
     var b = document.getElementById('btt');
     if (!b) return;
+    b.addEventListener('click', scrollToTop);
     var px = isNaN(+BT.showAfterPx) ? 400 : +BT.showAfterPx;
     function upd() { if (window.scrollY > px) { b.classList.add('visible'); } else { b.classList.remove('visible'); } }
     window.addEventListener('scroll', upd, { passive: true });
@@ -86,7 +92,7 @@ export function init() {
     }
     window.addEventListener('scroll', onScroll, { passive: true });
     updat();
-    if (top) top.onclick = function () { window.scrollTo({ top: 0, behavior: window.__SB() }); };
+    if (top) top.addEventListener('click', scrollToTop);
     if (toc) toc.onclick = function () {
       var t = document.querySelector('.toc-sidebar');
       if (t && window.getComputedStyle(t).display !== 'none') { t.scrollIntoView({ behavior: window.__SB(), block: 'start' }); }

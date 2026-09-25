@@ -35,7 +35,7 @@
   <p class="error-message" data-i18n="notFound.desc">您访问的页面不存在或已被移除。</p>
   <div class="error-actions">
     <a href="<%= (typeof langPrefix!=='undefined' ? langPrefix : '/zh/') %>" class="btn btn-primary" data-i18n="notFound.backHome">返回首页</a>
-    <button type="button" class="btn btn-outline" id="errSearchBtn" onclick="openSearch && openSearch()" data-i18n="notFound.searchSite">站内搜索</button>
+    <button type="button" class="btn btn-outline" id="errSearchBtn" data-i18n="notFound.searchSite">站内搜索</button>
   </div>
   <% if (typeof recentPosts !== 'undefined' && recentPosts && recentPosts.length) { %>
     <div class="error-suggest">

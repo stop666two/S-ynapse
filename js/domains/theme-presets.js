@@ -2,5 +2,6 @@
 export function init() {
 window.togglePresetPop=togglePresetPop;
 window.applyPreset=applyPreset;
+(function(){var b=document.getElementById('presetBtn');if(b)b.addEventListener('click',togglePresetPop);var items=document.querySelectorAll('.preset-item');for(var i=0;i<items.length;i++){(function(bb){bb.addEventListener('click',function(){applyPreset(bb.getAttribute('data-preset'))})})(items[i])}})();
 var F=window.__FEATURES__||{},PL=(F&&F.themePresets)||{};var P=window.__PRESETS__||[];if(PL.enabled===false||!P.length)return;if(PL.pickerVisible===false){var b=document.getElementById('presetBtn'),w=document.querySelector('[data-preset-wrap]');if(b)b.style.display='none';if(w)w.style.display='none';return}var saved=null;try{saved=localStorage.getItem('ss-preset')}catch(e){/* 忽略：存储不可用时按无已选预设处理 */}if(PL.persistChoice!==false&&saved&&saved!==document.body.getAttribute('data-built-preset')){applyPreset(saved);var items=document.querySelectorAll('.preset-item');items.forEach(function(b){b.classList.toggle('active',b.getAttribute('data-preset')===saved)})}document.addEventListener('click',function(e){var p=document.getElementById('presetPop');if(!p)return;if(!e.target.closest('.preset-pop')&&!e.target.closest('#presetBtn'))p.classList.remove('open')})
 }

@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **CSP nonce 化（审计 SEC-1）**：构建期为全部可执行内联脚本注入一次性 nonce，`_headers` 与 Worker 同步下发 `'nonce-…'`；15 处模板内联事件属性改为 `addEventListener`（导航/主题/预设/搜索/联系弹窗/返回顶部/KaTeX/Mermaid 等），`script-src` 移除 `'unsafe-inline'`（`style-src` 暂保留并注明原因）；根语言重定向与 PWA 离线页内联脚本同步加 nonce — `scripts/build.js` + `security.json5` + `templates/*.ejs` + `js/domains/*` + `SECURITY.md`
+
 - **依赖安全升级（dev 链）**：`puppeteer-core` 24.16.0 → 25.12.0，消除经 `@puppeteer/browsers` 传递的 `extract-zip` 高危通告（符号链接路径穿越 / 任意文件写入）；仅影响本地无障碍审计工具链，生产构建不依赖该包；修复后 CI `npm audit --audit-level=high` 门禁可正常通过 — `package.json`针对审计发现的构建/安全/防护/前端问题逐项修复，每条独立提交并逐项验证（构建、单测、浏览器探针、无障碍审计）。分类明细见下方 Added/Changed/Fixed/Removed。
 - **guard 安全默认调整**：`hotkeyGuard` 的 `ctrlU/ctrlS/ctrlP` 改为按需开启（默认放行）；`devtoolsDetect` 的 `reload` 增加每会话熔断（避免尺寸误报导致无限刷新）；`tamperWatch` 上报增加超时/节流/去除查询串 — `guard.json5` + `js/domains/guard/*`
 

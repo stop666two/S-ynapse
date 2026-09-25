@@ -1,7 +1,7 @@
 <div class="post-article" style="padding:2rem">
   <h1 data-i18n="search.open">搜索</h1>
   <div style="margin:2rem 0">
-    <input type="text" id="searchPageInput" placeholder="输入关键词搜索" data-i18n-placeholder="search.inputPlaceholder" style="width:100%;padding:1rem 1.25rem;font-size:1.125rem;border:2px solid var(--color-border);border-radius:var(--r);background:var(--color-bg);color:var(--color-t);font-family:var(--ff);outline:none" oninput="searchPage(this.value)" autofocus>
+    <input type="text" id="searchPageInput" placeholder="输入关键词搜索" data-i18n-placeholder="search.inputPlaceholder" style="width:100%;padding:1rem 1.25rem;font-size:1.125rem;border:2px solid var(--color-border);border-radius:var(--r);background:var(--color-bg);color:var(--color-t);font-family:var(--ff);outline:none" autofocus>
   </div>
   <div id="searchPageResults">
     <p style="color:var(--color-text-secondary);text-align:center;padding:2rem">输入关键词开始搜索</p>
@@ -96,6 +96,8 @@ function searchPage(query){
     rDiv.innerHTML='<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">'+__T('search.notFound','未找到相关文章')+'</p>';
   }
 }
+var __spInp=document.getElementById('searchPageInput');
+if(__spInp)__spInp.addEventListener('input',function(){searchPage(this.value)});
 window.addEventListener('DOMContentLoaded',function(){
   if(window.__SEARCH_PROVIDER__==='pagefind'){initPagefindPage();return;}
   var params=new URLSearchParams(window.location.search);

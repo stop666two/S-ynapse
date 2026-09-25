@@ -8,4 +8,6 @@ export function toggleDark() {
 
 export function init() {
   window.toggleDark = toggleDark;
+  var btn = document.querySelector('.dark-toggle');
+  if (btn) btn.addEventListener('click', toggleDark);
 }

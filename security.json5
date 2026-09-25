@@ -39,14 +39,20 @@
       // 推荐: ["'self'"]（仅同源）
       "default-src": ["'self'"],
       // 脚本来源
-      // 可填: 同源 + 必要的内联（本项目模板内联脚本需要 'unsafe-inline'）
+      // 可填: 同源；'inline-speculation-rules'（Speculation Rules 内联规则）；
       //       统计（static.cloudflareinsights.com，仅 webAnalytics 配置 token 时由 autoTrim 保留）
       //       评论（giscus.app）
-      // 不可填: 未使用的第三方 CDN（攻击面扩大）
-      // 注意: cdn.jsdelivr.net 与 giscus.app 在未启用对应能力时由 autoTrim 自动移除
-      "script-src": ["'self'", "'unsafe-inline'", "'inline-speculation-rules'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com", "https://giscus.app"],
+      // 不可填: 'unsafe-inline'（放开任意内联脚本，削弱 XSS 防护；本项目内联脚本一律以
+      //       构建期 nonce 放行——build.js 每构建生成 CSP_NONCE，同步注入 HTML 的
+      //       <script nonce="..."> 与本数组末尾的 'nonce-...'；模板内联事件属性已全部
+      //       改为 addEventListener，不再依赖 'unsafe-inline'）
+      // 注意: cdn.jsdelivr.net 与 giscus.app 在未启用对应能力时由 autoTrim 自动移除；
+      //       nonce 由构建自动追加，无需手写（手写值会与实际 HTML 不一致而被拦截）
+      "script-src": ["'self'", "'inline-speculation-rules'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com", "https://giscus.app"],
       // 样式来源（Google Fonts 样式表 / jsdelivr 兜底）
-      // 注意: googleapis/jsdelivr 无 externalAssets 引用时由 autoTrim 自动移除
+      // 注意: 保留 'unsafe-inline' —— 模板仍存在大量内联 style="..." 属性（主题预设/组件）
+      //       与少量 <style> 块，尚无 nonce 治理；googleapis/jsdelivr 无 externalAssets
+      //       引用时由 autoTrim 自动移除
       "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
       // 图片来源（data: 用于内联占位图;https: 整域放行便于外链封面）
       "img-src": ["'self'", "data:", "https:"],

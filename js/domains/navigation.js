@@ -15,6 +15,14 @@ export function init() {
     }, { passive: true });
     update();
   }
+  const nt = document.getElementById('navToggle');
+  if (nt) {
+    nt.addEventListener('click', function () {
+      const mn = document.getElementById('mainNav');
+      if (mn) mn.classList.toggle('open');
+      nt.classList.toggle('active');
+    });
+  }
   const MB = (F && F.mobileBottomNav) || {};
   const nav = document.getElementById('mBottomNav');
   if (!nav || MB.enabled === false) return;

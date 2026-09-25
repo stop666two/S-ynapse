@@ -15,8 +15,11 @@ Pages `_headers` 与可选 `security-worker` 双层下发安全策略。本文�
 
 - **构建期消毒**：`marked` 渲染 → CJK 间距 → `sanitize-html` 白名单；危险标签、
   事件属性与 `javascript:`/`data:` 协议被剥离；SVG 走 `content-policy` 检测。
-- **CSP**：默认由 `_headers` 与 Worker 下发。当前 `script-src` 含 `'unsafe-inline'`
-  （模板内联脚本所需），属纵深防御缺口，计划改为 nonce；`style-src` 同理保留。
+- **CSP**：默认由 `_headers` 与 Worker 下发。`script-src` 已移除 `'unsafe-inline'`：构建期为所有
+  可执行内联脚本注入一次性 nonce（HTML 与 CSP 同步），模板内联事件属性全部改为监听器；
+  `style-src` 仍含 `'unsafe-inline'`（大量内联 `style=` 与 `<style>` 未治理），属已知残余面。
+  未构建的原型部署（security-config.js 缺失）会用 Worker 内置 FALLBACK，其中保留
+  `'unsafe-inline'` 以保障可用性——正式产物会覆盖。
 - **accessGate（`guard.json5`）是软防护，不是访问控制**：密码哈希与解锁码内联在
   前端产物中，`?guard=off` 与 localStorage 伪造均可绕过；关闭 JavaScript 或直接
   读取 HTML 也能看到内容。请勿用它保护机密数据——需要真实门禁请使用

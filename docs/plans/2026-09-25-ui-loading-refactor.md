@@ -114,6 +114,19 @@
 
 ## 3. Phase 2：代码结构重构（机械拆分，行为 0 变化）
 
+> **Phase 2 执行记录（2026-09-25）**
+> - ✅ 2.1 基线：`dist` 快照 173 文件（`.refactor-baseline.json`，忽略 `build-report.html`、`og/`）；函数依赖图由 `.tmp-scripts/build-inventory.js` 产出（初始 3416 行 / 95 个顶层函数）
+> - ◐ 2.2 机械拆分（部分完成）：`scripts/build.js` **3416 → 2286 行**，已拆出 6 个模块（工厂注入、现有调用点不变，每包 dist 哈希等价 + `test:build` 通过）：
+>   - `scripts/build/minify.js`（12fdac1，−203 行）：minifyHTMLInDir / minifyInlineStylesInDir / minifyCSSInDir / minifyJSInDir / minifyAll / cacheBust
+>   - `scripts/build/fs-utils.js` + `scripts/build/media.js`（ed3c362，−238 行）：getAllFiles / setupDist / copyStatic / copyDirSync / copyProtectedAssets / copyMediaOutput / optimizeMedia
+>   - `scripts/build/feeds.js`（c785e4c）：generateRSS / generateJSONFeed / generateSitemap / pingSearchEngines / generateSearchIndex / generatePagefindIndex
+>   - `scripts/build/security-files.js`（acddfca）：generateRedirects / buildCspTrimContext / applyCspNonce / generateSecurityHeaders
+>   - `scripts/build/assets.js`（c219ef2）：copyJsAssets / copyRuntimeBootstrap / copyVendorAssets / generatePWA（+ VENDOR_FONTS 常量导出）
+> - **偏差**：编排器 ≤300 行未达成（当前 2286 行）。剩余 cluster（render / page-data / processArticles / config / report / build / startServer）可按既定模式（`createXxxModule(ctx)` + 每包 dist 哈希等价 + `test:build`）在后续会话继续，无需返工
+> - **偏差**：2.3 `js/domains` 文件夹搬迁未执行——`js/core/deferred.js` 注册表已承担“模块清单统一”职能；文件夹分层属纯组织性变更，收益低于迁移风险，推迟到后续会话独立进行
+> - ✅ 2.4 死键清理 7854684（cacheDir 三处同步；dist 变更仅为 config 哈希文件重命名 + 84 页引用，已重新快照基线）
+> - ✅ 2.5 `docs/architecture.md` 新增 + 本记录；等价验证：每集群 `npm test` + `npm run test:build` + dist 哈希 diff 全绿（2.4 为预期差异）
+
 ### Task 2.1：拆分基线
 - [ ] `node scripts/dist-hash-guard.js snapshot dist .refactor-baseline.json`（用真实站内容构建的 dist）
 - [ ] 记录 `build.js` 函数依赖图（本任务只记录，不改代码）

@@ -1,5 +1,5 @@
 export function init() {
-  function boot() {
+  function scan() {
     var F = window.__FEATURES__ || {}, IL = (F && F.imageLazy) || {};
     if (IL.enabled === false) return;
     var fade = IL.fadeIn !== false;
@@ -7,14 +7,22 @@ export function init() {
     var lc = IL.loadingClass || 'js-img', ec = IL.errorClass || '', ef = Math.max(0, parseInt(IL.eagerFirst) || 0);
     if (IL.lqip !== false) {
       document.querySelectorAll('img[data-lqip]').forEach(function (i) {
+        if (i.getAttribute('data-lqip-applied') === '1') return;
+        i.setAttribute('data-lqip-applied', '1');
         i.style.backgroundSize = 'cover';
         i.style.backgroundPosition = '50% 50%';
         i.style.backgroundImage = 'url("' + i.getAttribute('data-lqip') + '")';
       });
     }
-    var imgs = Array.prototype.slice.call(document.querySelectorAll('img:not([loading=eager])'));
-    for (var j = 0; j < Math.min(ef, imgs.length); j++) { imgs[j].setAttribute('loading', 'eager'); }
+    var imgs = Array.prototype.slice.call(document.querySelectorAll('img:not([loading=eager])')).filter(function (i) {
+      return i.getAttribute('data-lazy-bound') !== '1';
+    });
+    for (var j = 0; j < Math.min(ef, imgs.length); j++) {
+      imgs[j].setAttribute('loading', 'eager');
+      imgs[j].setAttribute('data-lazy-bound', '1');
+    }
     imgs.slice(ef).forEach(function (i) {
+      i.setAttribute('data-lazy-bound', '1');
       if (fbimg && !i.getAttribute('data-fb')) i.setAttribute('data-fb', fbimg);
       if (!fade) return;
       i.classList.add(lc);
@@ -31,5 +39,6 @@ export function init() {
       });
     });
   }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } else { boot(); }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', scan); } else { scan(); }
+  window.__SOFTNAV_HOOKS__.push(scan);
 }

@@ -1,12 +1,124 @@
-export function init() {var F=window.__FEATURES__||{},SB=(F&&F.sidebarDrag)||{};if(SB.enabled===false)return;var aside=document.querySelector('.sidebar');if(!aside)return;var slots=aside.querySelectorAll('.sidebar-widget');if(slots.length<2)return;var KEY=SB.storageKey;var persist=SB.persistOrder!==false;var lpDelay=typeof SB.touchLongPress==='number'&&SB.touchLongPress>0?+SB.touchLongPress:500;function wrap(){Array.prototype.forEach.call(slots,function(w){if(w.parentNode.classList.contains('sidebar-widget-slot'))return;var slot=document.createElement('div');slot.className='sidebar-widget-slot';slot.setAttribute('data-widget-type',(w.className.match(/widget-(\w+)/)||[])[1]||'x');var handle=document.createElement('span');handle.className='drag-handle';handle.innerHTML='&equiv;';handle.title=__T('toolbar.dragSort','拖动以排序');handle.setAttribute('aria-label',__T('toolbar.dragSort','拖动排序'));if(SB.showHandleOnHover===false)handle.style.opacity='1';w.parentNode.insertBefore(slot,w);slot.appendChild(handle);slot.appendChild(w);w.setAttribute('draggable','true');w.addEventListener('dragstart',function(e){e.dataTransfer.setData('text/plain','1');slot.classList.add('dragging')});w.addEventListener('dragend',function(){slot.classList.remove('dragging');save()});w.addEventListener('dragover',function(e){e.preventDefault();e.stopPropagation();slot.classList.add('drag-over')});w.addEventListener('dragleave',function(){slot.classList.remove('drag-over')});w.addEventListener('drop',function(e){e.preventDefault();var from=document.querySelector('.sidebar-widget-slot.dragging');if(!from||from===slot)return;var parent=aside;from.parentNode.removeChild(from);if(slot.nextSibling)parent.insertBefore(from,slot.nextSibling);else parent.appendChild(from);slot.classList.remove('drag-over');save()})});}
-function save(){if(!persist)return;var arr=[];Array.prototype.forEach.call(aside.querySelectorAll('.sidebar-widget-slot'),function(sl){arr.push(sl.getAttribute('data-widget-type'))});try{localStorage.setItem(KEY,JSON.stringify(arr))}catch(e){/* 忽略：存储不可用时顺序仅当次会话有效 */}}
-function restore(){if(!persist)return;var arr,fail=false;try{var raw=localStorage.getItem(KEY);arr=raw==null?null:JSON.parse(raw);if(arr!=null&&!Array.isArray(arr)){arr=null;fail=true}}catch(e){arr=null;fail=true}if(fail){if(SB.resetOnLoadFail!==false){try{localStorage.removeItem(KEY)}catch(e){/* 忽略：存储不可用时无需重置 */}}return}if(!arr||!arr.length)return;Array.prototype.forEach.call(arr,function(t){if(!t||!/^[A-Za-z0-9_-]+$/.test(t))return;var src=aside.querySelector('.sidebar-widget-slot[data-widget-type="'+t+'"]');if(src){aside.removeChild(src);aside.appendChild(src)}})}
-wrap();restore();
+function readCfg() {
+  var F = window.__FEATURES__ || {};
+  return (F && F.sidebarDrag) || {};
+}
 
-if(SB.touchLongPress===false)return;var touchTimer=null,touchSlot=null;
-Array.prototype.forEach.call(aside.querySelectorAll('.sidebar-widget-slot'),function(sl){var w=sl.querySelector('.sidebar-widget');if(!w)return;
-w.addEventListener('touchstart',function(e){if(e.touches.length!==1)return;touchSlot=sl;touchTimer=setTimeout(function(){touchSlot.classList.add('dragging');if(navigator.vibrate)navigator.vibrate(10)},lpDelay)},{passive:true});
-w.addEventListener('touchmove',function(e){if(!touchSlot||!touchSlot.classList.contains('dragging'))return;e.preventDefault();var touch=e.touches[0];var el=document.elementFromPoint(touch.clientX,touch.clientY);if(!el)return;var slot=el.closest?el.closest('.sidebar-widget-slot'):null;if(slot&&slot!==touchSlot){var y=touch.clientY;var rect=slot.getBoundingClientRect();if(y<rect.top+rect.height/2){aside.insertBefore(touchSlot,slot)}else{aside.insertBefore(touchSlot,slot.nextSibling)}}},{passive:false});
-w.addEventListener('touchend',function(){if(touchTimer){clearTimeout(touchTimer);touchTimer=null}if(touchSlot){touchSlot.classList.remove('dragging');touchSlot=null;save()}});
-w.addEventListener('touchcancel',function(){if(touchTimer){clearTimeout(touchTimer);touchTimer=null}if(touchSlot){touchSlot.classList.remove('dragging');touchSlot=null}})});
+function save(SB, aside) {
+  if (SB.persistOrder === false) return;
+  var arr = [];
+  Array.prototype.forEach.call(aside.querySelectorAll('.sidebar-widget-slot'), function (sl) { arr.push(sl.getAttribute('data-widget-type')); });
+  try { localStorage.setItem(SB.storageKey, JSON.stringify(arr)); } catch (e) { /* 忽略：存储不可用时顺序仅当次会话有效 */ }
+}
+
+function restore(SB, aside) {
+  if (SB.persistOrder === false) return;
+  var arr, fail = false;
+  try {
+    var raw = localStorage.getItem(SB.storageKey);
+    arr = raw == null ? null : JSON.parse(raw);
+    if (arr != null && !Array.isArray(arr)) { arr = null; fail = true; }
+  } catch (e) { arr = null; fail = true; }
+  if (fail) {
+    if (SB.resetOnLoadFail !== false) { try { localStorage.removeItem(SB.storageKey); } catch (e) { /* 忽略：存储不可用时无需重置 */ } }
+    return;
+  }
+  if (!arr || !arr.length) return;
+  Array.prototype.forEach.call(arr, function (t) {
+    if (!t || !/^[A-Za-z0-9_-]+$/.test(t)) return;
+    var src = aside.querySelector('.sidebar-widget-slot[data-widget-type="' + t + '"]');
+    if (src) { aside.removeChild(src); aside.appendChild(src); }
+  });
+}
+
+function bindDrag(SB, aside, slot, w) {
+  w.setAttribute('draggable', 'true');
+  w.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/plain', '1'); slot.classList.add('dragging'); });
+  w.addEventListener('dragend', function () { slot.classList.remove('dragging'); save(SB, aside); });
+  w.addEventListener('dragover', function (e) { e.preventDefault(); e.stopPropagation(); slot.classList.add('drag-over'); });
+  w.addEventListener('dragleave', function () { slot.classList.remove('drag-over'); });
+  w.addEventListener('drop', function (e) {
+    e.preventDefault();
+    var from = document.querySelector('.sidebar-widget-slot.dragging');
+    if (!from || from === slot) return;
+    from.parentNode.removeChild(from);
+    if (slot.nextSibling) aside.insertBefore(from, slot.nextSibling);
+    else aside.appendChild(from);
+    slot.classList.remove('drag-over');
+    save(SB, aside);
+  });
+}
+
+function bindTouch(SB, aside, w, slot, lpDelay) {
+  var touchTimer = null, touchSlot = null;
+  w.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) return;
+    touchSlot = slot;
+    touchTimer = setTimeout(function () {
+      touchSlot.classList.add('dragging');
+      if (navigator.vibrate) navigator.vibrate(10);
+    }, lpDelay);
+  }, { passive: true });
+  w.addEventListener('touchmove', function (e) {
+    if (!touchSlot || !touchSlot.classList.contains('dragging')) return;
+    e.preventDefault();
+    var touch = e.touches[0];
+    var el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!el) return;
+    var target = el.closest ? el.closest('.sidebar-widget-slot') : null;
+    if (target && target !== touchSlot) {
+      var y = touch.clientY;
+      var rect = target.getBoundingClientRect();
+      if (y < rect.top + rect.height / 2) aside.insertBefore(touchSlot, target);
+      else aside.insertBefore(touchSlot, target.nextSibling);
+    }
+  }, { passive: false });
+  w.addEventListener('touchend', function () {
+    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+    if (touchSlot) { touchSlot.classList.remove('dragging'); touchSlot = null; save(SB, aside); }
+  });
+  w.addEventListener('touchcancel', function () {
+    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+    if (touchSlot) { touchSlot.classList.remove('dragging'); touchSlot = null; }
+  });
+}
+
+function rebind() {
+  var SB = readCfg();
+  if (SB.enabled === false) return;
+  var aside = document.querySelector('.sidebar');
+  if (!aside) return;
+  var widgets = aside.querySelectorAll('.sidebar-widget');
+  if (widgets.length < 2) return;
+  var lpDelay = typeof SB.touchLongPress === 'number' && SB.touchLongPress > 0 ? +SB.touchLongPress : 500;
+  Array.prototype.forEach.call(widgets, function (w) {
+    if (w.getAttribute('data-sb-drag-bound') === '1') return;
+    w.setAttribute('data-sb-drag-bound', '1');
+    var slot = w.parentNode && w.parentNode.classList && w.parentNode.classList.contains('sidebar-widget-slot') ? w.parentNode : null;
+    if (!slot) {
+      slot = document.createElement('div');
+      slot.className = 'sidebar-widget-slot';
+      slot.setAttribute('data-widget-type', (w.className.match(/widget-(\w+)/) || [])[1] || 'x');
+      w.parentNode.insertBefore(slot, w);
+    }
+    if (!slot.querySelector('.drag-handle')) {
+      var handle = document.createElement('span');
+      handle.className = 'drag-handle';
+      handle.innerHTML = '&equiv;';
+      handle.title = __T('toolbar.dragSort', '拖动以排序');
+      handle.setAttribute('aria-label', __T('toolbar.dragSort', '拖动排序'));
+      if (SB.showHandleOnHover === false) handle.style.opacity = '1';
+      slot.appendChild(handle);
+    }
+    slot.appendChild(w);
+    bindDrag(SB, aside, slot, w);
+    if (SB.touchLongPress !== false) bindTouch(SB, aside, w, slot, lpDelay);
+  });
+  restore(SB, aside);
+}
+
+export function init() {
+  var SB = readCfg();
+  if (SB.enabled === false) return;
+  rebind();
+  window.__SOFTNAV_HOOKS__.push(rebind);
 }

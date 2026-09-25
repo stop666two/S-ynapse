@@ -114,7 +114,7 @@ function initTheme() {
 }
 function initFav() {
   const btn = document.querySelector('#favBtn');
-  if (!btn) return;
+  if (!btn || morphs.has(btn)) return;
   const svg = btn.querySelector('svg');
   if (!svg) return;
   const outline = mod.svgToIcon(svg.outerHTML);
@@ -125,7 +125,7 @@ function initFav() {
 }
 function initTts() {
   const btn = document.querySelector('#ttsBtn');
-  if (!btn) return;
+  if (!btn || morphs.has(btn)) return;
   const svg = btn.querySelector('svg');
   if (!svg) return;
   const idle = mod.svgToIcon(svg.outerHTML);
@@ -191,15 +191,37 @@ export function init() {
     window.requestIdleCallback(function () { loadVendor().then(function (m) { if (m) initAll(); }); }, { timeout: 3000 });
   }
   const events = ['pointerover', 'pointerdown', 'touchstart', 'focusin'];
+  function disarm() {
+    events.forEach(function (ev) { document.removeEventListener(ev, arm, true); });
+  }
   function arm(e) {
     const t = e.target;
     if (!t || !t.closest) return;
     if (!t.closest('.dark-toggle,#favBtn,#ttsBtn,#navToggle,.code-action-btn.copy')) return;
     loadVendor().then(function (m) {
-      if (!m) { events.forEach(function (ev) { document.removeEventListener(ev, arm, true); }); return; }
+      if (!m) { disarm(); return; }
       initAll();
-      events.forEach(function (ev) { document.removeEventListener(ev, arm, true); });
+      disarm();
+    });
+  }
+  function pruneDetached() {
+    morphs.forEach(function (v, k) { if (!k.isConnected) morphs.delete(k); });
+  }
+  function rescan() {
+    if (!cfg()) return;
+    pruneDetached();
+    if (inited) {
+      initCopyButtons();
+      initFav();
+      initTts();
+      return;
+    }
+    loadVendor().then(function (m) {
+      if (!m) return;
+      initAll();
+      disarm();
     });
   }
   events.forEach(function (ev) { document.addEventListener(ev, arm, true); });
+  window.__SOFTNAV_HOOKS__.push(rescan);
 }

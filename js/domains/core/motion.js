@@ -28,6 +28,38 @@ export function init() {
       document.documentElement.style.setProperty('--mh-ripple', Math.min((+pick('rippleDurationMs', 'rippleDurationMs') || 500), 300) + 'ms');
     }
     var stagger = +pick('staggerDelayMs', 'revealDelayMs') || 0;
+    var revealIO = null;
+    function bindReveal() {
+      if (M.scrollReveal === false) return;
+      var els = [];
+      if (M.revealCards !== false) document.querySelectorAll('.post-card:not(.motion-reveal),.related-post-card:not(.motion-reveal)').forEach(function (x) { els.push(x); });
+      if (M.revealHeadings !== false) document.querySelectorAll('.post-content h2:not(.motion-reveal),.post-content h3:not(.motion-reveal)').forEach(function (x) { els.push(x); });
+      if (M.revealImages !== false) document.querySelectorAll('.post-content img:not(.motion-reveal),.post-card-image:not(.motion-reveal)').forEach(function (x) { els.push(x); });
+      if (M.revealBlocks !== false) document.querySelectorAll('.post-content pre:not(.motion-reveal),.post-content blockquote:not(.motion-reveal),.post-content table:not(.motion-reveal)').forEach(function (x) { els.push(x); });
+      if (revealIO) revealIO.disconnect();
+      revealIO = null;
+      if (!els.length) return;
+      var once = M.revealOnce !== false;
+      var th = +(M.revealThreshold);
+      if (isNaN(th) || th < 0) th = 0;
+      revealIO = new IntersectionObserver(function (es) {
+        var batch = [];
+        es.forEach(function (en) {
+          if (en.isIntersecting) {
+            batch.push(en.target);
+            if (once) revealIO.unobserve(en.target);
+          }
+        });
+        batch.forEach(function (el, idx) {
+          if (stagger > 0) {
+            el.style.transitionDelay = (Math.min(idx, 8) * stagger) + 'ms';
+            setTimeout(function () { el.style.transitionDelay = ''; }, +M.revealCleanupMs);
+          }
+          el.classList.add('in');
+        });
+      }, { threshold: th });
+      els.forEach(function (x) { x.classList.add('motion-reveal'); revealIO.observe(x); });
+    }
     function boot() {
       var it = window.location.pathname.replace(/\/index\.html$/, '/');
       document.querySelectorAll('header .nav-link').forEach(function (a) {
@@ -58,36 +90,9 @@ export function init() {
           ink.addEventListener('animationend', function () { ink.remove(); });
         });
       }
-      if (M.scrollReveal !== false) {
-        var els = [];
-        if (M.revealCards !== false) document.querySelectorAll('.post-card,.related-post-card').forEach(function (x) { els.push(x); });
-        if (M.revealHeadings !== false) document.querySelectorAll('.post-content h2,.post-content h3').forEach(function (x) { els.push(x); });
-        if (M.revealImages !== false) document.querySelectorAll('.post-content img,.post-card-image:not(.motion-reveal)').forEach(function (x) { els.push(x); });
-        if (M.revealBlocks !== false) document.querySelectorAll('.post-content pre,.post-content blockquote,.post-content table').forEach(function (x) { els.push(x); });
-        if (els.length) {
-          var once = M.revealOnce !== false;
-          var th = +(M.revealThreshold);
-          if (isNaN(th) || th < 0) th = 0;
-          var io = new IntersectionObserver(function (es) {
-            var batch = [];
-            es.forEach(function (en) {
-              if (en.isIntersecting) {
-                batch.push(en.target);
-                if (once) io.unobserve(en.target);
-              }
-            });
-            batch.forEach(function (el, idx) {
-              if (stagger > 0) {
-                el.style.transitionDelay = (Math.min(idx, 8) * stagger) + 'ms';
-                setTimeout(function () { el.style.transitionDelay = ''; }, +M.revealCleanupMs);
-              }
-              el.classList.add('in');
-            });
-          }, { threshold: th });
-          els.forEach(function (x) { x.classList.add('motion-reveal'); io.observe(x); });
-        }
-      }
+      bindReveal();
     }
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } else { boot(); }
+    window.__SOFTNAV_HOOKS__.push(bindReveal);
   })();
 }

@@ -41,6 +41,7 @@ const {
   getPublished, resolveDailyQuotes, recordBuildFailure,
   setupDist, copyStatic, copyProtectedAssets, optimizeMedia,
   processPagesContent, preflightContent, processArticles,
+  renderArticlesMermaid,
   collectTags, collectCategories,
   buildSiteCss, writeRuntimeConfig, buildPageData, processCustomPages, generatePages,
   generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, generateSearchIndex, generatePagefindIndex,
@@ -117,6 +118,7 @@ async function build() {
     const mediaManifest = await optimizeMedia(config);
     MEDIA_MANIFEST = mediaManifest;
     const articles = await processArticles(config, mediaManifest, buildErrors);
+    await renderArticlesMermaid(config, articles);
     if (articles.length === 0) console.log('  [WARN] No articles found');
     const scheduledCount = articles.filter(function(a) { return !a.draft && isScheduled(a, new Date()); }).length;
     if (scheduledCount > 0) console.warn('  [INFO] ' + scheduledCount + ' future-dated article(s) scheduled; excluded until their publish date.');

@@ -336,7 +336,7 @@
 `enabled true` / `autoDetect true` / `version 0.16.22` / `inlineDelimiters ['$']` / `blockDelimiters ['$$']` / `throwOnError false` / `strict false` / `renderRoundParens true` / `renderSquareBrackets true` / `selector .post-content` / `mathml true`
 
 ### 3.18 mermaid
-`enabled true` / `autoDetect true` / `version 11.4.1` / `followTheme true` / `lightTheme default` / `darkTheme dark` / `securityLevel strict` / `copyAfterRender false` / `errorText [图表渲染失败]`（`errorTextEn` 为 en 站文案，空回退中文）
+`enabled true` / `autoDetect true` / `version 11.4.1` / `followTheme true` / `lightTheme default` / `darkTheme dark` / `securityLevel strict` / `mode 'build'`（渲染模式：`build`=构建期服务端渲染，生成双主题内联 `<svg>`，页面不再加载 3.5MB vendor，渲染失败或无 Chrome 自动回退客户端 / `client`=保持懒加载 vendor + `__mmStart` 客户端渲染） / `darkMode true`（仅 `mode='build'` 生效：明/暗各渲染一份 SVG，页内 CSS 切换、零闪烁；false=仅明色） / `chromePath ''`（仅 `mode='build'` 自动探测失败时使用；自动探测顺序：`CHROME_PATH` 环境变量 > Windows 默认安装路径 > Linux/macOS 的 `google-chrome`/`chromium`；缓存目录 `.cache/mermaid`，不入库） / `copyAfterRender false` / `errorText [图表渲染失败]`（`errorTextEn` 为 en 站文案，空回退中文）
 
 `size` 子块 — 图表尺寸（全局默认，单图可覆盖）：
 - `width ''` / `height ''`(全局默认宽高，空=自然尺寸；单位白名单 px/%/vw/vh/rem，纯数字按 px)

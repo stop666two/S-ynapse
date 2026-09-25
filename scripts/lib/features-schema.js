@@ -315,6 +315,7 @@ const DEFAULT_FEATURES = {
     enabled: true, autoDetect: true, version: '11.4.1', followTheme: true,
     lightTheme: 'default', darkTheme: 'dark', securityLevel: 'strict',
     copyAfterRender: false, errorText: '[图表渲染失败]', errorTextEn: '[Diagram failed to render]',
+    mode: 'build', darkMode: true, chromePath: '',
     size: { width: '', height: '', minWidth: '320px', maxWidth: 'none', minHeight: '200px', maxHeight: 'none', fit: 'scroll' }
   },
   series: {
@@ -449,7 +450,7 @@ const ENUM_FIELDS = {
   externalLink: { mode: ['warn', 'prohibit', 'hint'] },
   themeToggle: { defaultTheme: ['light', 'dark', 'system'], iconStyle: ['auto', 'sun-moon', 'toggle'] },
   wikiLinks: { unknownMode: ['text', 'link', 'hide'] },
-  mermaid: { followTheme: ['enabled', true, false], 'size.fit': ['scroll', 'scale'] },
+  mermaid: { followTheme: ['enabled', true, false], 'size.fit': ['scroll', 'scale'], mode: ['build', 'client'] },
   series: { order: ['asc', 'desc'] },
   pinned: { badgeStyle: ['pill', 'corner', 'none'], sortRule: ['pinned-first', 'normal'] },
   share: { position: ['toolbar', 'floating'] },

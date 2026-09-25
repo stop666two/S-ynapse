@@ -977,6 +977,18 @@
     darkTheme: 'dark',
     // 安全级别:strict/loose。
     securityLevel: 'strict',
+    // 渲染模式:构建期服务端渲染(默认) / 客户端按需渲染(旧行为)。
+    // 类型: string | 可填: 'build'(构建时生成内联 <svg>,页面不再加载 3.5MB vendor;渲染失败或无 Chrome 时自动回退客户端) |
+    //          'client'(保持懒加载 vendor + __mmStart 客户端渲染) | 推荐: 'build'
+    mode: 'build',
+    // 双主题渲染(仅 mode='build' 生效):true = 明/暗各渲染一份 SVG,靠页内 CSS 切换(零闪烁、无 JS);
+    // false = 只渲染明色主题,暗色模式下沿用同一张图。
+    // 类型: boolean | 可填: true | false | 推荐: true
+    darkMode: true,
+    // Chrome/Chromium 可执行文件路径(仅 mode='build' 自动探测失败时使用;自动探测顺序:
+    // CHROME_PATH 环境变量 > Windows 默认安装路径 > Linux/macOS 的 google-chrome/chromium)。
+    // 类型: string | 可填: 绝对路径 或 ''(自动探测) | 推荐: ''(自动探测)
+    chromePath: '',
     // 是否显示流程图内文本的复制按钮。
     copyAfterRender: false,
     // 渲染失败占位文本。

@@ -19,8 +19,8 @@
 ## 特性
 
 **全配置驱动**
-- 13 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2522 项，按叶子键递归统计：对象逐层展开、数组元素逐项计入），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
-- `features.json5` 功能总控域：**95 个模块、800 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（32 分类 / 204 项）
+- 13 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2525 项，按叶子键递归统计：对象逐层展开、数组元素逐项计入），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- `features.json5` 功能总控域：**95 个模块、803 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（32 分类 / 204 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
 - 详细参考文档：`docs/config-reference.md`（11 章，逐字段权威参考）
@@ -70,7 +70,7 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html` 含详细统计（含内容策略拦截清单）
-- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（180 项 / 38 组）；`npm run lint` 提供 ESLint 静态检查
+- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（267 项 / 54 组）；`npm run lint` 提供 ESLint 静态检查
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -275,7 +275,7 @@ S-ynapse/
 
 ### features.json5 — 功能总控魔方
 
-`features.json5` 是全部交互与内容功能的统一开关域：95 个模块、799 个配置项，逐项中文注释。几例：
+`features.json5` 是全部交互与内容功能的统一开关域：95 个模块、802 个配置项，逐项中文注释。几例：
 
 ```json5
 {
@@ -467,7 +467,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（126 项 / 28 组） |
+| `npm test` | 运行单元测试（267 项 / 54 组） |
 | `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物与 CSP nonce；CI 运行，不进 `npm test`） |
 | `npm run lint` | ESLint 静态检查（js/scripts/workers；CI 门禁） |
 | `npm run audit` | 依赖漏洞扫描（固定官方 registry：本机 npm 镜像会阻断 audit 接口） |
@@ -527,9 +527,10 @@ npm run verify:security   # 集成安全回归
 | content-validate | 16 | 预校验（slug/日期/空标签/缺失媒体） |
 | publish-window | 5 | 定时发布过滤 |
 | asset-cache | 8 | 构建缓存键/配置指纹/命中判定 |
+| mermaid-render | 22 | SSR 缓存键/块提取替换/sanitize 回退/Chrome 探测/无 Chrome 降级 |
 | config-consistency（无 describe，顶层用例） | 7 | features 值与结构/死键判定 |
 
-> `npm test` 共 **195 项 / 42 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
+> `npm test` 共 **267 项 / 54 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
 
 ### 构建行为说明（2026-09 审计修复）
 

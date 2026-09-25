@@ -21,6 +21,7 @@ const { createSecurityFilesModule } = require('./security-files');
 const { createConfigModule } = require('./config');
 const { createMarkdownModule } = require('./markdown');
 const { createArticlesModule } = require('./articles');
+const { createMermaidModule } = require('./mermaid');
 const { createCollectorsModule } = require('./collectors');
 const { createHelpersModule } = require('./helpers');
 const { createPagesModule } = require('./pages');
@@ -200,6 +201,13 @@ function createBuildContext(deps) {
     recordBuildFailure: helpers.recordBuildFailure
   });
 
+  // Mermaid 构建期渲染模块（scripts/build/mermaid.js）：注入项目根与构建期 CSP nonce；
+  // 文章解析后把 mermaid 代码块渲染为双主题内联 SVG（缓存 .cache/mermaid，失败回退客户端）。
+  const mermaidSsr = createMermaidModule({
+    rootDir,
+    cspNonce: CSP_NONCE
+  });
+
   // 数据收集器模块（scripts/build/collectors.js）：注入发布过滤器 getPublished（含草稿与定时发布语义）。
   // 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
   const collectors = createCollectorsModule({
@@ -304,6 +312,7 @@ function createBuildContext(deps) {
     helpers,
     media,
     articles,
+    mermaidSsr,
     collectors,
     render,
     pages,

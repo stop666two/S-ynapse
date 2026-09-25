@@ -79,16 +79,16 @@
     "bodyWeight": 400,
 
     // 展示层字体（h1 / hero 大标题 / 站点 Logo）
-    // 类型: string（枚举,同 stack 命名空间） | 可填: "sora"(推荐) / "manrope" / "inter" 等
-    // 推荐: "sora"（几何感,标题张力）
+    // 类型: string（枚举,同 stack 命名空间） | 可填: "sora" / "manrope" / "inter" / "serif"（系统衬线,离线可用,编辑部风） 等
+    // 推荐: "serif"（编辑部头版方向）
     // 注意: 仅影响拉丁字符;中文字符自动回退 CJK 链
-    "displayStack": "sora",
+    "displayStack": "serif",
 
     // 次级标题字体（h2-h6 / 卡片标题 / 侧栏部件标题）
-    // 类型: string | 可填: "manrope"(推荐) / "sora" / "inherit"(跟随正文) / "sans" / "serif"
-    // 推荐: "manrope"
+    // 类型: string | 可填: "manrope" / "sora" / "inherit"(跟随正文) / "sans" / "serif"
+    // 推荐: "serif"（编辑部头版方向;与 displayStack 统一）
     // 注意: "inherit" 表示与正文同族;"sans"/"serif" 使用内置通用栈
-    "headingStack": "manrope",
+    "headingStack": "serif",
 
     // 数字等宽显示
     // 作用: 统计数字/阅读面板进度等使用等宽字体（对齐更整齐）
@@ -103,13 +103,13 @@
   // 圆角档位
   // 类型: string（枚举） | 可填: "sharp"(2px)/"sm"(4px)/"md"(0.618rem)/"lg"(0.75rem)
   // 不可填: 其他值（回退默认 md） | 推荐: "md"（黄金分割圆角）
-  "rounding": "md",
+  "rounding": "sharp",
 
   // 阴影档位
   // 类型: string（枚举） | 可填: "flat"(无)/"soft"(轻,推荐)/"medium"(中)/"strong"(重)
   // 不可填: 其他值（回退 soft）
   // 注意: 暗色模式阴影另有 dark 变体（tiers.shadow.*.dark）,自动随主题切换
-  "shadowLevel": "soft",
+  "shadowLevel": "flat",
 
   // 边框档位
   // 类型: string（枚举） | 可填: "none"(隐藏)/"subtle"(淡,推荐)/"visible"(明显)
@@ -211,8 +211,8 @@
     // 类型: string（枚举）
     // 可填: "plain"(纯色)/"gradient"(对角渐变)/"grid"(网格纸)/"dots"(点阵)/"particles"(动态粒子)
     // 不可填: 其他值（回退 plain）
-    // 推荐: "particles"（动态质感）或 "plain"（极简/性能优先）
-    "mode": "particles",
+    // 推荐: "plain"（编辑部头版/极简性能优先）或 "particles"（动态质感）
+    "mode": "plain",
 
     // gradient 模式两端色
     // 类型: [CSS颜色, CSS颜色]（数组固定 2 项）

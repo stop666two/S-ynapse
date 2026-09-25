@@ -483,3 +483,42 @@
     @media(max-width:1200px){.nav-social{display:none}}
     @media(max-width:1100px){.nav-link{padding:.5rem .55rem}}
     @media(max-width:960px){.nav-boost{display:none}.nav-link{font-size:.875rem}.site-logo{font-size:calc(var(--header-logoSize,var(--nb-ls,1.272em))*.85)}}
+
+    /* ======================================================================
+       界面方向 A：编辑部头版（Editorial Front Page）— 2026-09-25 用户选定
+       令牌依据：theme.json5 rounding=sharp / shadowLevel=flat（无阴影）；
+                fontSystem displayStack/headingStack=serif；background.mode=plain；
+                features.atmosphere.glow=false；features.cardFx 悬浮特效全关。
+       位置说明：本段位于样式表末尾，以同等优先级后置覆盖前文增强样式。
+       ====================================================================== */
+    .site-header{background:var(--color-bg)}
+    .site-header::after{display:none}
+    .site-header.scrolled{box-shadow:none}
+    .site-logo{font-family:var(--ff-d)}
+    .hero{text-align:left;align-items:flex-start;max-width:920px;margin:0;padding-bottom:1.75rem;border-bottom:1px solid var(--color-border)}
+    .hero h1{font-size:clamp(2.1rem,4.2vw,2.75rem);line-height:1.22;letter-spacing:.005em}
+    .hero h1::after{display:none}
+    .hero-sub{max-width:680px}
+    .hero-actions{justify-content:flex-start}
+    .hero-date{font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;color:var(--color-a);font-weight:600}
+    .post-card{background:transparent;border-radius:0;box-shadow:none;border-bottom:1px solid var(--color-border)}
+    .post-card:hover{transform:none}
+    .post-card-image{box-shadow:none}
+    .post-card-title a:hover{color:var(--color-a)}
+    .post-card-meta{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+    .post-card-nocover{display:none}
+    .blog-grid.bento>article:first-child .post-card-title{font-family:var(--ff-d);font-size:calc(var(--card-titleSize,1.272rem) * 1.55);line-height:1.28}
+    .post-article{background:transparent;box-shadow:none;border-radius:0;padding:0}
+    .post-header{text-align:left;border-bottom:1px solid var(--color-t);padding-bottom:1rem}
+    .post-title{font-size:clamp(2rem,4vw,2.6rem);line-height:1.22;letter-spacing:.005em}
+    .post-meta{justify-content:flex-start;border-top:0;border-bottom:1px solid var(--color-border);padding:.55rem 0;margin-top:.9rem}
+    .post-content h2{font-size:1.55rem;line-height:1.4}
+    .post-content h2::before{width:2px;height:.9em;background:var(--color-a)}
+    .post-content blockquote{background:none;border-radius:0;border-left:3px solid var(--color-a);font-style:italic;color:var(--color-ts)}
+    .post-content blockquote::before{display:none}
+    .post-content img{box-shadow:none}
+    .post-content figcaption{color:var(--color-ts);letter-spacing:.01em}
+    .archive-year{box-shadow:none;border:1px solid var(--color-border)}
+    .rh-time,.rh-clear{color:var(--color-ts)}
+    @media(prefers-reduced-motion:reduce){.post-card{transition:none}}
+

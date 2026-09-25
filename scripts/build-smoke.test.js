@@ -86,6 +86,11 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       const badFonts = fs.readdirSync(katexFonts).filter((f) => !/\.woff2$/.test(f));
       assert.deepStrictEqual(badFonts, [], 'KaTeX fonts must be woff2-only: ' + badFonts.join(','));
     }
+    const cssDir = path.join(tmpDir, 'assets', 'css');
+    const siteCssFile = fs.readdirSync(cssDir).find((f) => /^site\..+\.css$/.test(f));
+    assert.ok(siteCssFile, 'hashed site css bundle must exist');
+    const siteCss = fs.readFileSync(path.join(cssDir, siteCssFile), 'utf-8');
+    assert.ok(/--ff-d:[^;]*(Georgia|Songti)/.test(siteCss), 'display font stack must resolve to the editorial serif stack');
   });
 
   it('bad content blocks the build and leaves previous output untouched', () => {

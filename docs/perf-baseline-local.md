@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 | --- | --- |
-| 生成时间（UTC） | 2026-09-25T14:29:30.056Z |
+| 生成时间（UTC） | 2026-09-25T14:51:00.619Z |
 | 目标 URL | http://localhost:3311/zh/ |
 | 命令行 | `node scripts/perf-audit.js --url http://localhost:3311/zh/ --runs 3 --out docs/perf-baseline-local.md` |
 | 运行环境 | C:/Program Files/Google/Chrome/Application/chrome.exe（Chrome/153.0.8010.37） |
@@ -20,10 +20,10 @@
 
 | 运行 | LCP(ms) | CLS | 交互最大时长(ms)（INP 代理） | TBT(ms)（长任务总时长代理） | HTML 传输字节 | 总传输字节 | 请求数 | 长任务数 | LCP 元素 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 1 | 2968 | 0.0000 | 0 | 466 | 46994 | 493559 | 16 | 7 | img.post-card-image.motion-reveal |
-| 2 | 2872 | 0.0006 | 0 | 424 | 46994 | 493559 | 16 | 6 | img.post-card-image |
-| 3 | 2904 | 0.0006 | 0 | 195 | 46994 | 493559 | 16 | 3 | img.post-card-image.motion-reveal |
-| **中位数** | 2904 | 0.0006 | 0 | 424 | 46994 | 493559 | 16 | - | - |
+| 1 | 2416 | 0.0000 | 0 | 0 | 45635 | 435374 | 14 | 0 | img.post-card-image.motion-reveal |
+| 2 | 2624 | 0.0000 | 0 | 85 | 45635 | 435374 | 14 | 1 | img.post-card-image |
+| 3 | 2956 | 0.0000 | 0 | 194 | 45635 | 435374 | 14 | 2 | img.post-card-image |
+| **中位数** | 2624 | 0.0000 | 0 | 85 | 45635 | 435374 | 14 | - | - |
 
 ## 说明与局限
 

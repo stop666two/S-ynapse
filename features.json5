@@ -1874,13 +1874,13 @@
     // 总开关(false = 卡片恢复为纯图片+文字的基础样式)。
     enabled: true,
     // 封面底部渐变遮罩(提升文字可读性与层次感)。
-    coverOverlay: true,
+    coverOverlay: false,
     // 封面左下分类色标(按分类名哈希取色,同分类同色)。
-    categoryChip: true,
+    categoryChip: false,
     // 封面右上阅读时长徽章。
-    readTimeBadge: true,
+    readTimeBadge: false,
     // 悬停扫过光泽(自动尊重 reduced-motion)。
-    hoverShine: true
+    hoverShine: false
   },
 
   // ---------------------------------------------------------------------------
@@ -2033,7 +2033,7 @@
     // 全页颗粒噪点层(伪元素纹理;强度/密度在 tuning.json5→texture 分类调整)
     grain: true,
     // Hero 区主题色光晕(关闭可省一次全屏合成,低端设备建议 false)
-    glow: true
+    glow: false
   },
 
   // ---------------------------------------------------------------------------

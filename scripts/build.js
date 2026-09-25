@@ -329,13 +329,15 @@ function applyDensity(theme) {
 // FONT_STACKS — fontSystem.stack 预设枚举 → CSS font-family 栈。
 // CJK_FALLBACK：统一中文字体回退链（鸿蒙 → 苹方 → 微软雅黑 UI → 雅黑），中西混排观感一致。
 const CJK_FALLBACK = "'PingFang SC','HarmonyOS Sans SC','Microsoft YaHei UI','Microsoft YaHei',sans-serif";
+const SERIF_STACK = "Georgia,'Noto Serif SC','Songti SC','STSong','SimSun',serif";
 const FONT_STACKS = {
   inter: "'Inter','Segoe UI','Helvetica Neue',Arial," + CJK_FALLBACK,
   sora: "'Sora','Inter','Segoe UI'," + CJK_FALLBACK,
   manrope: "'Manrope','Inter','Segoe UI'," + CJK_FALLBACK,
   'noto-sans': "'Noto Sans SC'," + CJK_FALLBACK,
-  'noto-serif': "'Noto Serif SC',Georgia,'Songti SC','STSong','SimSun',serif",
-  system: "-apple-system,BlinkMacSystemFont,'Segoe UI'," + CJK_FALLBACK
+  'noto-serif': "'Noto Serif SC'," + SERIF_STACK,
+  system: "-apple-system,BlinkMacSystemFont,'Segoe UI'," + CJK_FALLBACK,
+  serif: SERIF_STACK
 };
 // FONT_LINKS — 字体样式入口：inter/sora/manrope 使用本地 vendor 版本（离线可用）；
 // 本地字体合并为单一 fonts.css（只 1 个阻塞请求；内部含三个 @font-face，未用到的字面体开销极小）；
@@ -347,6 +349,7 @@ const FONT_LINKS = {
   'noto-sans': 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap',
   'noto-serif': 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap',
   system: null,
+  serif: null,
   custom: null
 };
 
@@ -359,7 +362,7 @@ function resolveFontSystem(theme) {
   theme.fontFamily = family;
   const hs = fs.headingStack;
   theme.fontFamilyHeading = hs === 'serif'
-    ? "Georgia, 'Noto Serif SC', 'Songti SC', 'STSong', serif"
+    ? FONT_STACKS.serif
     : (hs === 'sans' ? FONT_STACKS.inter : (FONT_STACKS[hs] || family));
   const ds = fs.displayStack;
   theme.fontFamilyDisplay = FONT_STACKS[ds] || theme.fontFamilyHeading;

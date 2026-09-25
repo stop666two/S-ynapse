@@ -21,6 +21,9 @@ export function init() {
       cv.width = window.innerWidth; cv.height = window.innerHeight; dots = [];
       for (var i = 0; i < N; i++) { dots.push({ x: Math.random() * cv.width, y: Math.random() * cv.height, vx: (Math.random() - 0.5) * R, vy: (Math.random() - 0.5) * R, r: Math.random() * 1.8 + 1 }); }
     }
+    var rafId = 0;
+    function start() { if (!rafId) rafId = window.requestAnimationFrame(step); }
+    function stop() { if (rafId) { window.cancelAnimationFrame(rafId); rafId = 0; } }
     function step() {
       ctx.clearRect(0, 0, cv.width, cv.height);
       for (var i = 0; i < dots.length; i++) {
@@ -42,9 +45,10 @@ export function init() {
         ctx.fillStyle = 'rgba(' + dotrgb + ',' + opa + ')';
         ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
       }
-      requestAnimationFrame(step);
+      rafId = window.requestAnimationFrame(step);
     }
-    rs(); step();
+    rs(); start();
     window.addEventListener('resize', rs, { passive: true });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) { stop(); } else { start(); } });
   })();
 }

@@ -79,7 +79,12 @@ export function init() {
       }
       d.setAttribute('data-last', String(now));
     }
-    window.addEventListener('scroll', updat, { passive: true });
+    var raf = 0;
+    function onScroll() {
+      if (raf) return;
+      raf = window.requestAnimationFrame(function () { raf = 0; updat(); });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
     updat();
     if (top) top.onclick = function () { window.scrollTo({ top: 0, behavior: window.__SB() }); };
     if (toc) toc.onclick = function () {

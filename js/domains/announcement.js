@@ -33,7 +33,9 @@ function run() {
     progI.style.animation = '';
     progI.style.animationPlayState = '';
   }
-  if (rot > 0 && spans.length > 1) {
+  var rm = false;
+  try { rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { /* 忽略：无法查询动效偏好时按允许轮播处理 */ }
+  if (rot > 0 && spans.length > 1 && !rm) {
     var i = 0, paused = false;
     rotTimer = setInterval(function () {
       if (paused || document.hidden) return;

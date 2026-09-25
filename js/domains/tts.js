@@ -36,8 +36,11 @@ export function init() {
       }
     }
     function set(on) { b.classList.toggle('speaking', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+    var hb = null;
+    function stopHB() { if (hb) { clearInterval(hb); hb = null; } }
+    function finish() { stopHB(); clearHL(); set(false); }
     b.onclick = function () {
-      if (speechSynthesis.speaking || speechSynthesis.pending) { speechSynthesis.cancel(); u = null; clearHL(); set(false); return; }
+      if (speechSynthesis.speaking || speechSynthesis.pending) { stopHB(); speechSynthesis.cancel(); u = null; clearHL(); set(false); return; }
       var t = text();
       if (!t) return;
       u = new SpeechSynthesisUtterance(t);
@@ -46,10 +49,19 @@ export function init() {
       u.rate = isNaN(+TNR.ttsRate) ? (parseFloat(b.getAttribute('data-rate')) || 1) : +TNR.ttsRate;
       u.pitch = isNaN(+TNR.ttsPitch) ? 1 : +TNR.ttsPitch;
       u.onboundary = function (e) { if (e && typeof e.charIndex === 'number') hlAt(e.charIndex); };
-      u.onend = function () { clearHL(); set(false); };
-      u.onerror = function () { clearHL(); set(false); };
+      /* Chromium 长文本会自动暂停卡死状态：短暂停心跳 resume，恢复或结束即清理 */
+      u.onpause = function () {
+        if (hb || !speechSynthesis.paused) return;
+        hb = setInterval(function () {
+          if (!speechSynthesis.paused) { stopHB(); return; }
+          speechSynthesis.resume();
+        }, 500);
+      };
+      u.onend = finish;
+      u.onerror = finish;
       speechSynthesis.speak(u);
       set(true);
     };
+    window.addEventListener('beforeunload', stopHB);
   })();
 }

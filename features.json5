@@ -255,9 +255,9 @@
     copySuccessText: '已复制',
     // 复制失败提示文本。
     copyFailText: '复制失败',
-    // 下载触发后释放 Blob URL 的延迟(ms)。过短可能导致部分浏览器下载中断。
-    // 类型: number(ms) | 推荐: 100
-    blobRevokeDelayMs: 100,
+    // 下载触发后释放 Blob URL 的延迟(ms)。100ms 在慢盘/大文件下可能先于浏览器读取完成即被撤销,导致下载中断。
+    // 类型: number(ms) | 推荐: 1000
+    blobRevokeDelayMs: 1000,
     // 是否显示语言标签。
     showLanguageTag: true,
     // 是否显示 macOS 三圆点窗口栏(代码块顶部装饰栏)。

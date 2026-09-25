@@ -6,9 +6,6 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const frontMatter = require('front-matter');
-const { marked } = require('marked');
-const ejs = require('ejs');
 
 // 构建期 CSP nonce（每次构建进程生成一次）：同一值写入最终 HTML 的 <script nonce="...">
 // 与 CSP 的 script-src 'nonce-...'（_headers / Worker / meta 三处同源），两者必须同步，
@@ -60,14 +57,11 @@ try {
 // Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
-const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('./lib/utils');
 const { writeFileAtomicSync } = require('./lib/atomic-write');
-const { PRESETS: THEME_PRESETS } = require('./lib/theme-presets');
 const { buildSitemapUrls } = require('./lib/robots');
 const { computeRelatedArticles } = require('./lib/related');
 const { createBuildErrorCollector, resolveExitCode, formatFailures } = require('./lib/build-errors');
 const { isScheduled } = require('./lib/publish-window');
-const { buildRuntimeConfig, configUrlName } = require('./lib/config-split');
 const { bundleEnabled, esbuildAvailable, buildBundles } = require('./lib/bundle');
 const { createMinifyModule } = require('./build/minify');
 const { createMediaModule } = require('./build/media');
@@ -81,6 +75,8 @@ const { createConfigModule } = require('./build/config');
 const { createMarkdownModule } = require('./build/markdown');
 const { createArticlesModule } = require('./build/articles');
 const { createCollectorsModule } = require('./build/collectors');
+const { createHelpersModule } = require('./build/helpers');
+const { createPagesModule } = require('./build/pages');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -148,11 +144,16 @@ const PKG_VERSION = (() => {
   }
 })();
 
-// Filter out draft articles unless SHOW_DRAFTS is active
-function getPublished(articles) {
-  const now = new Date();
-  return articles.filter(a => (!a.draft || SHOW_DRAFTS) && !isScheduled(a, now));
-}
+// 辅助函数模块（scripts/build/helpers.js）：注入项目根、favicon 静态目录、草稿开关、监视模式、
+// JSON5 实现与构建错误收集器读取器（活值 getter）；函数体原样搬移（以 dist 哈希等价门禁验证）。
+const { getPublished, resolveDailyQuotes, resolveFaviconHtml, recordBuildFailure } = createHelpersModule({
+  rootDir: ROOT,
+  staticDir: STATIC_DIR,
+  watchMode: WATCH_MODE,
+  showDrafts: SHOW_DRAFTS,
+  getJson5: () => json5,
+  getBuildErrors: () => BUILD_ERRORS
+});
 
 // 配置族模块（scripts/build/config.js）：注入项目根目录、监视模式、JSON5/深合并实现（活值 getter）
 // 与后置模块提供的 CSP 裁剪上下文、字体清单；机械拆分 —— 函数体原样搬移（以 dist 哈希等价门禁验证）。
@@ -220,655 +221,40 @@ const { getTemplate, renderPage } = createRenderModule({
   recordBuildFailure
 });
 
-// Build the unified data object passed to every EJS template.
-// Contains: site config, theme, nav, sidebar, footer, security settings,
-// all articles, tags, categories, archives, and helper functions.
-// This is the base context — individual page generators add page-specific keys on top.
-
-  const BUILTIN_QUOTES = [
-    { text: '认识你自己。', author: '苏格拉底' },
-    { text: '我思故我在。', author: '笛卡尔' },
-    { text: '知行合一。', author: '王阳明' },
-    { text: '路漫漫其修远兮，吾将上下而求索。', author: '屈原' },
-    { text: '学而不思则罔，思而不学则殆。', author: '孔子' },
-    { text: '纸上得来终觉浅，绝知此事要躬行。', author: '陆游' },
-    { text: 'Where there is a will, there is a way.', author: 'Thomas Edison' }
-  ];
-function resolveDailyQuotes(config) {
-  const dq = (config.features && config.features.dailyQuote) || {};
-  const src = typeof dq.source === 'string' ? dq.source.trim() : '';
-  if (!src || src === 'builtin') return BUILTIN_QUOTES;
-  if (!/\.(json|json5)$/i.test(src)) {
-    console.warn('  [WARN] dailyQuote.source "' + src + '" 不是 .json/.json5 路径,已回退内置引语');
-    return BUILTIN_QUOTES;
-  }
-  const file = path.isAbsolute(src) ? src : path.join(ROOT, src);
-  try {
-    const raw = fs.readFileSync(file, 'utf-8');
-    const parsed = /\.json5$/i.test(file) && json5 ? json5.parse(raw) : JSON.parse(raw);
-    const list = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.quotes) ? parsed.quotes : []);
-    const quotes = list.map(function (q) {
-      if (typeof q === 'string') return { text: q, author: '' };
-      if (q && typeof q.text === 'string') return { text: q.text, author: typeof q.author === 'string' ? q.author : '' };
-      return null;
-    }).filter(Boolean);
-    if (!quotes.length) throw new Error('文件中没有可用引语');
-    console.log('  dailyQuote.source: ' + path.relative(ROOT, file) + ' (' + quotes.length + ' 条)');
-    return quotes;
-  } catch (err) {
-    console.warn('  [WARN] dailyQuote.source "' + src + '" 加载失败 (' + err.message + '),已回退内置引语');
-    return BUILTIN_QUOTES;
-  }
-}
-function faviconFallbackSvg(color) {
-  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="' + color + '"/><g stroke="#fff" stroke-width="4" stroke-linecap="round"><line x1="20" y1="22" x2="44" y2="21"/><line x1="20" y1="22" x2="32" y2="44"/><line x1="44" y1="21" x2="32" y2="44"/></g><g fill="#fff"><circle cx="20" cy="22" r="6.2"/><circle cx="44" cy="21" r="6.2"/><circle cx="32" cy="44" r="6.4"/></g></svg>';
-}
-function readPngSize(absPath) {
-  try {
-    const fd = fs.openSync(absPath, 'r');
-    const buf = Buffer.alloc(24);
-    fs.readSync(fd, buf, 0, 24, 0);
-    fs.closeSync(fd);
-    if (buf.readUInt32BE(12) === 0x49484452) return buf.readUInt32BE(16) + 'x' + buf.readUInt32BE(20);
-  } catch (e) { /* 尺寸不可读时省略 sizes 属性 */ }
-  return '';
-}
-let _faviconHtmlCache = null;
-function resolveFaviconHtml(site, themeColor) {
-  // --watch 模式下 favicon 文件可能被增删，缓存必须失效重查（普通构建复用缓存）
-  if (_faviconHtmlCache !== null && !WATCH_MODE) return _faviconHtmlCache;
-  const f = (site && site.favicon) || {};
-  if (f.enabled === false) { _faviconHtmlCache = ''; return _faviconHtmlCache; }
-  const isExternal = function (u) { return /^https?:\/\//i.test(u); };
-  const localAbs = function (u) {
-    if (typeof u !== 'string' || u.charAt(0) !== '/') return '';
-    const rel = u.replace(/^\/+/, '').split('?')[0].split('#')[0];
-    return path.join(STATIC_DIR, rel);
-  };
-  const pick = function (u, build) {
-    if (!u || typeof u !== 'string') return null;
-    if (isExternal(u)) return build(u, '');
-    const abs = localAbs(u);
-    if (abs && fs.existsSync(abs)) return build(u, abs);
-    console.warn('  [WARN] favicon 文件不存在: ' + u + '（已跳过）');
-    return null;
-  };
-  const link = function (rel, type, sizes, href) {
-    return '<link rel="' + rel + '" type="' + type + '"' + (sizes ? ' sizes="' + sizes + '"' : '') + ' href="' + escapeAttr(href) + '">';
-  };
-  const parts = [
-    pick(f.svg, function (u) { return link('icon', 'image/svg+xml', '', u); }),
-    pick(f.png32, function (u, abs) { return link('icon', 'image/png', abs ? readPngSize(abs) : '', u); }),
-    pick(f.appleTouch, function (u, abs) { return link('apple-touch-icon', 'image/png', abs ? readPngSize(abs) : '', u); })
-  ].filter(Boolean);
-  if (!parts.length) {
-    parts.push('<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,' + encodeURIComponent(faviconFallbackSvg(themeColor)) + '">');
-  }
-  _faviconHtmlCache = parts.join('');
-  return _faviconHtmlCache;
-}
-let SITE_CSS_HREF = '';
 let SITE_APP_JS_HREF = '/assets/js/core/main.js';
 let SITE_DEFERRED_URL = '';
 let SITE_RUNTIME_JS_HREF = '/assets/js/core/runtime.js';
-// 卡片（首页/标签列表）图片属性构造：从媒体 manifest 读取原格式多尺寸变体生成 srcset，
-// 使首屏卡片不再下载 1600px 原图（LCP 优化）。仅用 original 格式变体（不引入 <picture>，不改现有 CSS 选择器结构）。
-// manifest 不可用时回退为纯 src 属性；URL 会在 cache-bust 阶段被重写为带哈希路径。
 let MEDIA_MANIFEST = null;
 
-// Collects runtime failures so the build can exit non-zero instead of silently ignoring them.
 let BUILD_ERRORS = null;
-function recordBuildFailure(stage, message) {
-  if (BUILD_ERRORS) BUILD_ERRORS.add(stage, message);
-}
-function buildCardImgAttrs(src) {
-  const raw = String(src || '');
-  const fallback = `src="${escapeAttr(raw)}"`;
-  if (!raw || !MEDIA_MANIFEST) return fallback;
-  const entry = MEDIA_MANIFEST[raw.replace(/^\//, '')];
-  if (!entry || !entry.variants) return fallback;
-  const items = [];
-  for (const [key, val] of Object.entries(entry.variants)) {
-    if (key.split('-').pop() !== 'original') continue;
-    const w = parseInt(key.split('-')[0], 10);
-    if (w) items.push([w, val]);
-  }
-  if (!items.length) return fallback;
-  items.sort((a, b) => a[0] - b[0]);
-  const srcFinal = entry.original || raw;
-  const naturalW = parseInt(entry.width, 10);
-  if (naturalW && !items.some((it) => it[0] === naturalW)) items.push([naturalW, srcFinal]);
-  const srcset = items.map((it) => `${escapeAttr(it[1])} ${it[0]}w`).join(', ');
-  return `src="${escapeAttr(srcFinal)}" srcset="${srcset}" sizes="(max-width: 768px) 100vw, 640px"`;
-}
 
-function buildSiteCss(config, baseData) {
-  const b = config.site.build;
-  SITE_CSS_HREF = '/' + b.cssOutDir + '/' + b.cssFileBase + '.css';
-  const templateStr = getTemplate('site-css.ejs');
-  if (!templateStr) {
-    console.error('  [WARN] templates/site-css.ejs not found; layout will reference ' + SITE_CSS_HREF);
-    return SITE_CSS_HREF;
-  }
-  let css = ejs.render(templateStr, baseData, { filename: path.join(TEMPLATES_DIR, 'site-css.ejs') });
-  if (CleanCSS && config.site.build.minifyCSS !== false) {
-    try {
-      const min = new CleanCSS({ level: 1 }).minify(css);
-      if (!min.errors || !min.errors.length) css = min.styles;
-    } catch (e) {
-      console.warn('  [WARN] site CSS minify failed: ' + e.message);
-    }
-  }
-  const hash = crypto.createHash(b.hashAlgorithm).update(css).digest('hex').slice(0, b.hashLength);
-  const rel = b.cssOutDir + '/' + b.cssFileBase + '.' + hash + '.css';
-  const file = path.join(DIST_DIR, rel);
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  writeFileAtomicSync(file, css, 'utf-8');
-  SITE_CSS_HREF = '/' + rel;
-  console.log('  Created: ' + rel + ' (' + Math.round(Buffer.byteLength(css) / 1024) + 'KB)');
-  return SITE_CSS_HREF;
-}
-// Theme presets for runtime picker + externalized runtime config (global, identical on every page).
-function buildRuntimePresets() {
-  const out = [];
-  for (const id of Object.keys(THEME_PRESETS)) {
-    const p = THEME_PRESETS[id];
-    out.push({ id: id, label: p.label, labelEn: p.labelEn || p.label, light: p.light, dark: p.dark,
-      sample: { light: [p.light.background, p.light.primary, p.light.secondary, p.light.accent],
-                dark: [p.dark.background, p.dark.primary, p.dark.secondary, p.dark.accent] } });
-  }
-  return out;
-}
-
-// 运行时配置分层外部化（优化 Task 1.1）：写 /assets/config.<hash>.json（内容寻址、可 immutable 缓存），
-// 返回内联降级子集 critical（guard 开关 + PWA 注册信息，≤2048 字节，超限由 config-split 抛错阻断构建）。
-// 逐页/逐语言小项（__SITE_TITLE__/__ART_TITLE__/__SEARCH_PROVIDER__）不在此处，继续内联。
-function writeRuntimeConfig(config, presets, dailyQuotes) {
-  const { critical, external } = buildRuntimeConfig({
-    features: config.features,
-    tuning: config.tuning,
-    guard: config.guard,
-    morphIcons: (config.features && config.features.morphIcons) || {},
-    presets: presets,
-    quotes: dailyQuotes,
-    uiStrings: config.uiStrings,
-    linkWarning: config.site && config.site.externalLinkWarning,
-    pwa: config.site && config.site.pwa
-  });
-  const jsonText = JSON.stringify(external);
-  inlineConfigKb = Buffer.byteLength(JSON.stringify(critical), 'utf-8') / 1024;
-  const url = configUrlName(jsonText);
-  const file = path.join(DIST_DIR, url.replace(/^\//, ''));
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  writeFileAtomicSync(file, jsonText, 'utf-8');
-  console.log('  Created: ' + url + ' (' + Math.round(Buffer.byteLength(jsonText) / 1024) + 'KB)');
-  return { url, critical };
-}
-
-function buildPageData(config, articles, tags, categories, resolvedDailyQuotes) {
-  const published = getPublished(articles);
-  const friendsCfg = collectFriends(config);
-  let nav = config.navigation;
-// Auto-inject a 友链 menu entry when friends are configured but no menu item points to /links/.
-  // Inserted right after the "关于" menu item (falling back to append at end).
-  if (friendsCfg && nav && Array.isArray(nav.menu)) {
-    const hasLinks = nav.menu.some(function(m) { return m && (m.url === '/links/' || m.url === '/links'); });
-    if (!hasLinks) {
-      const menu = nav.menu.slice();
-      const aboutIdx = menu.findIndex(function(m) { return m && /\/about\/?$/.test(m.url) && /关于/.test(m.label || ''); });
-      const linkItem = { label: '友链', labelEn: 'Links', url: '/links/', type: 'page' };
-      if (aboutIdx > -1) { menu.splice(aboutIdx + 1, 0, linkItem); }
-      else { menu.push(linkItem); }
-      nav = { ...nav, menu };
-    }
-  }
-  let imageFitCss = '';
-  const _ifCfg = (config.features && config.features.imageFit) || {};
-  if (_ifCfg.enabled !== false && _ifCfg.content && _ifCfg.content.upscale === 'cap') {
-    try {
-      const mf = JSON.parse(fs.readFileSync(path.join(DIST_DIR, 'media-manifest.json'), 'utf8'));
-      const widths = new Set();
-      Object.keys(mf).forEach(function (k) { const e = mf[k]; if (e && e.width) widths.add(e.width); });
-      imageFitCss = Array.from(widths).map(function (w) { return '[data-iw="' + w + '"]{--iw:' + w + 'px}'; }).join('');
-    } catch (e) { imageFitCss = ''; }
-  }
-  return {
-    site: config.site,
-    theme: config.theme,
-    features: config.features,
-    uiStrings: config.uiStrings || {},
-    tuning: config.tuning || {},
-    guard: config.guard || {},
-    imageFitCss,
-    nav,
-    sidebar: config.sidebar,
-    footer: config.footer,
-    security: config.security,
-    allArticles: published,
-    page: {},
-    recentPosts: published.slice(0, 10),
-    allTags: tags,
-    allCategories: categories,
-    archives: groupByYearMonth(published),
-    seriesList: collectSeries(published),
-    friends: friendsCfg,
-    galleryItems: collectGalleryImages(articles),
-    siteStats: collectSiteStats(articles, tags, categories),
-    listCoverEnabled: !!(config.features && config.features.listCover && config.features.listCover.enabled !== false),
-    searchProvider: (config.navigation && config.navigation.search && config.navigation.search.provider) || 'local',
-    currentUrl: '/',
-    currentPage: 'index',
-    presets: buildRuntimePresets(),
-    formatDate: (d) => formatDate(d, config.site.dateFormat),
-    generateSlug: safeSlug,
-    categoryHue: categoryHue,
-    escapeAttr: escapeAttr,
-    ui: function(path, fallback, lang) {
-      let o = config.uiStrings || {};
-      if (lang === 'en' && o.en) o = o.en;
-      for (const k of String(path).split('.')) {
-        if (o == null) return fallback;
-        o = o[k];
-      }
-      return (o === undefined || o === null) ? fallback : o;
-    },
-    escapeJsonForScript: escapeJsonForScript,
-    JSON: JSON,
-    Array: Array,
-    Math: Math,
-    Date: Date,
-    cardImgAttrs: buildCardImgAttrs,
-    config,
-    dailyQuotes: resolvedDailyQuotes || resolveDailyQuotes(config),
-    faviconHtml: resolveFaviconHtml(config.site || {}, config.theme && config.theme.colors && config.theme.colors.secondary),
-    siteCssHref: SITE_CSS_HREF
-  };
-}
-
-// Parse standalone pages from Markdown files in pages/ directory (parsing only, no rendering).
-// Each .md file is rendered per language by generatePages() to /{lang}/{slug}/index.html.
-// Language override: pages/{lang}/{file} wins over pages/{file} when present (fallback = default file).
-// Title priority: frontmatter.title > filename. Slug priority: slugOverride > attrs.slug > safeSlug(title).
-// The same files are also loaded by processPagesContent() for template embedding (e.g. article footer).
-// Duplicate slugs are silently skipped (first writer wins).
-function processCustomPages(config) {
-  console.log('Processing custom pages...');
-  const createdSlugs = new Set();
-  const customPages = [];
-  const langs = (config.site.languages && config.site.languages.length) ? config.site.languages : ['zh', 'en'];
-  function parseOne(sourcePath, file, slugOverride) {
-    const raw = fs.readFileSync(sourcePath, 'utf-8');
-    const fm = frontMatter(raw);
-    const attrs = fm.attributes || {};
-    const content = fm.body || '';
-    const title = attrs.title || path.basename(file, '.md');
-    const description = attrs.description || config.site.description || '';
-    const slugCheck = validateSlug(slugOverride || attrs.slug || safeSlug(title));
-    if (!slugCheck.ok) {
-      throw new Error(`invalid page slug "${String(slugOverride || attrs.slug || '').slice(0, 80)}" in ${file}: ${slugCheck.reason}`);
-    }
-    const slug = slugCheck.slug;
-    let htmlContent = marked.parse(content);
-    if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
-    htmlContent = sanitizeHtml(htmlContent);
-    return { slug, title, description, content: htmlContent, hasCode: hasHighlightableCode(htmlContent), date: attrs.date || null };
-  }
-  if (fs.existsSync(PAGES_DIR)) {
-    const files = fs.readdirSync(PAGES_DIR).filter(f => /\.md$/i.test(f));
-    for (const file of files) {
-      try {
-        const def = parseOne(path.join(PAGES_DIR, file), file);
-        if (createdSlugs.has(def.slug)) continue;
-        createdSlugs.add(def.slug);
-        const page = {
-          slug: def.slug,
-          date: def.date,
-          default: { title: def.title, description: def.description, content: def.content },
-          langs: {}
-        };
-        for (const lang of langs) {
-          const langFile = path.join(PAGES_DIR, lang, file);
-          if (fs.existsSync(langFile)) {
-            const ov = parseOne(langFile, file, def.slug);
-            page.langs[lang] = { title: ov.title, description: ov.description, content: ov.content };
-          }
-        }
-        customPages.push(page);
-      } catch (err) {
-        console.error('  [ERROR] Failed to process custom page ' + file + ': ' + err.message);
-        recordBuildFailure('page', 'Failed to process custom page ' + file + ': ' + err.message);
-      }
-    }
-  }
-  console.log('  Total: ' + customPages.length + ' custom pages processed');
-  return customPages;
-}
-
-// Generate all HTML pages for the site (per-language):
-// For each language (config.site.languages or ['zh','en']), renders:
-// - Index pages with pagination (/{lang}/, /{lang}/page/N/)
-// - Article detail pages (/{lang}/{slug}/)
-// - Archive (/{lang}/archive/)
-// - Tags overview + individual tag pages (/{lang}/tags/)
-// - Categories overview + individual category pages (/{lang}/categories/)
-// - 404 (/{lang}/404.html), search (/{lang}/search/), favorites (/{lang}/favorites/)
-// - gallery (/{lang}/gallery/), links (/{lang}/links/)
-// - Env: baseData.articles/friends/pagesContent are language-agnostic; each lang
-//   filters its own published articles and tags/categories below.
-function localizeSidebar(sidebar, lang) {
-  if (!sidebar || !sidebar.widgets) return sidebar;
-  const copy = JSON.parse(JSON.stringify(sidebar));
-  copy.widgets = copy.widgets.map(w => {
-    if (lang === 'en' && w.titleEn) return { ...w, title: w.titleEn };
-    return w;
-  });
-  return copy;
-}
-
-function localizeNav(nav, pf, lang) {
-  if (!nav || !nav.menu) return nav;
-  const copy = JSON.parse(JSON.stringify(nav));
-  copy.menu = copy.menu.map(m => {
-    const u = m.url || '';
-    return { ...m, url: (u.startsWith('/') && !u.startsWith('//')) ? pf + u.replace(/^\//, '') : u, label: (lang === 'en' && m.labelEn) ? m.labelEn : m.label };
-  });
-  return copy;
-}
-
-function localizeFooter(footer, pf, lang) {
-  if (!footer) return footer;
-  const copy = JSON.parse(JSON.stringify(footer));
-  const fix = (l) => {
-    const u = l.url || '';
-    return { ...l, url: (u.startsWith('/') && !u.startsWith('//')) ? pf + u.replace(/^\//, '') : u, label: (lang === 'en' && l.labelEn) ? l.labelEn : l.label };
-  };
-  if (copy.columnItems && copy.columnItems.items) {
-    copy.columnItems.items = copy.columnItems.items.map(c => {
-      const fixed = { ...c };
-      if (c.titleEn) fixed.title = (lang === 'en') ? c.titleEn : c.title;
-      if (!c.links) return fixed;
-      return { ...fixed, links: c.links.map(l => l.enabled === false ? l : fix(l)) };
-    });
-  }
-  if (copy.bottomLinks && copy.bottomLinks.items) {
-    copy.bottomLinks.items = copy.bottomLinks.items.map(l => l.enabled === false ? l : fix(l));
-  }
-  return copy;
-}
-
-// 分页窗口化:total<=maxVisible 时全显示;超出时保留首尾与当前窗口,间隔用省略号。
-// maxVisibleRaw 可来自 tuning(字符串)或 undefined(默认 5);下限 3。
-function buildPaginationItems(totalPages, current, maxVisibleRaw, urlFor) {
-  const mv = Math.max(3, parseInt(maxVisibleRaw, 10) || 5);
-  const items = [];
-  if (totalPages <= mv) {
-    for (let p = 1; p <= totalPages; p++) items.push({ num: p, url: urlFor(p), current: p === current });
-    return items;
-  }
-  const half = Math.max(1, Math.floor((mv - 2) / 2));
-  const nums = new Set([1, totalPages]);
-  for (let p = current - half; p <= current + half; p++) { if (p >= 1 && p <= totalPages) nums.add(p); }
-  let prev = 0;
-  for (let p = 1; p <= totalPages; p++) {
-    if (nums.has(p)) { items.push({ num: p, url: urlFor(p), current: p === current }); prev = p; }
-    else if (prev !== -1) { items.push({ ellipsis: true }); prev = -1; }
-  }
-  return items;
-}
-
-async function generatePages(config, articles, preBuiltBaseData, customPages) {
-  console.log('[6/14] Generating pages...');
-  const layoutTemplate = getTemplate('layout.ejs');
-  if (!layoutTemplate) { console.error('  [FATAL] layout.ejs not found in templates/'); recordBuildFailure('render', 'layout.ejs not found in templates/'); return; }
-  const baseData = preBuiltBaseData || buildPageData(config, articles, collectTags(articles), collectCategories(articles));
-  if (customPages && customPages.length) baseData.customPages = customPages;
-
-  const siteLangs = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
-
-  async function writeFile(relPath, content) {
-    if (!content) return;
-    const fullPath = path.join(DIST_DIR, relPath);
-    const dir = path.dirname(fullPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    writeFileAtomicSync(fullPath, content, 'utf-8');
-    console.log(`  Created: ${relPath}`);
-  }
-
-  for (const lang of siteLangs) {
-    const pf = '/' + lang + '/';
-    const langArticles = articles.filter(a => a.lang === lang);
-    const langPublished = getPublished(langArticles);
-    const langTags = collectTags(langArticles);
-    const langCategories = collectCategories(langArticles);
-    const langTopTags = collectTopTags(langArticles, null, lang);
-    const langData = {
-      ...baseData,
-      lang,
-      langPrefix: pf,
-      title: lang === 'en' ? (config.site.titleEn || config.site.title) : config.site.title,
-      articleTitle: null,
-      ui: (path, fallback) => {
-        let o = config.uiStrings || {};
-        if (lang === 'en' && o.en) o = o.en;
-        for (const k of String(path).split('.')) {
-          if (o == null) return fallback;
-          o = o[k];
-        }
-        return (o === undefined || o === null) ? fallback : o;
-      },
-      articles: langPublished,
-      allArticles: langPublished,
-      tags: langTags,
-      allTags: langTags,
-      categories: langCategories,
-      allCategories: langCategories,
-      recentPosts: langPublished.slice(0, 10),
-      archives: groupByYearMonth(langPublished),
-      seriesList: collectSeries(langPublished),
-      galleryItems: collectGalleryImages(langArticles),
-      siteStats: collectSiteStats(langArticles, langTags, langCategories),
-      nav: localizeNav(baseData.nav, pf, lang),
-      footer: localizeFooter(baseData.footer, pf, lang),
-      sidebar: localizeSidebar(baseData.sidebar, lang)
-    };
-
-    if (config.site.build.generateIndex !== false) {
-      const postsPerPage = config.site.postsPerPage || 10;
-      const totalPages = Math.max(1, Math.ceil(langPublished.length / postsPerPage));
-      for (let page = 1; page <= totalPages; page++) {
-        const start = (page - 1) * postsPerPage;
-        const end = start + postsPerPage;
-        const pageArticles = langPublished.slice(start, end);
-        const f = config.features;
-        const heroEnabled = page === 1 && config.site.hero && config.site.hero.enabled !== false && f.hero.enabled !== false;
-        const data = {
-          ...langData,
-          articles: pageArticles,
-          heroData: heroEnabled ? {
-            title: (lang === 'en' && config.site.hero.titleEn) ? config.site.hero.titleEn : (config.site.hero.title || config.site.title),
-            subtitle: (lang === 'en' && config.site.hero.subtitleEn) ? config.site.hero.subtitleEn : (config.site.hero.subtitle || config.site.subtitle || config.site.description),
-            showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
-            showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
-            showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
-            ctaLabel: lang === 'en' ? (config.site.hero.ctaLabelEn || f.hero.ctaLabelEn) : (config.site.hero.ctaLabel || f.hero.ctaLabel),
-            ctaUrl: config.site.hero.ctaUrl || f.hero.ctaUrl,
-            showDate: f.hero.showDate === true,
-            date: (langPublished[0] && langPublished[0].formattedDate) || '',
-            tagCount: config.site.hero.tagCount || f.hero.tagCount,
-            tags: langTopTags.slice(0, config.site.hero.tagCount || f.hero.tagCount)
-          } : null,
-          pagination: {
-            current: page,
-            total: totalPages,
-            prev: page > 1 ? (page === 2 ? pf : pf + 'page/' + (page - 1) + '/') : null,
-            next: page < totalPages ? pf + 'page/' + (page + 1) + '/' : null,
-            prevLabel: lang === 'en' ? 'Previous' : (config.site.paginationPrev || '上一页'),
-            nextLabel: lang === 'en' ? 'Next' : (config.site.paginationNext || '下一页'),
-            items: buildPaginationItems(totalPages, page, config.tuning && config.tuning.pagination && config.tuning.pagination.maxVisible, function (p) { return p === 1 ? pf : pf + 'page/' + p + '/'; })
-          },
-          currentUrl: page === 1 ? pf : pf + 'page/' + page + '/',
-          currentPage: 'index'
-        };
-        const html = renderPage('index.ejs', data, layoutTemplate, config);
-        if (html) {
-          if (page === 1) await writeFile(lang + '/index.html', html);
-          else await writeFile(lang + '/page/' + page + '/index.html', html);
-        }
-      }
-    }
-
-    // Article detail pages (per language)
-    for (const article of langPublished) {
-      if (article.draft) continue;
-      const idx = langPublished.indexOf(article);
-      const prev = idx > 0 ? langPublished[idx - 1] : null;
-      const next = idx < langPublished.length - 1 ? langPublished[idx + 1] : null;
-      const data = {
-        ...langData,
-        article,
-        title: article.title,
-        prevArticle: prev && !prev.draft ? { title: prev.title, url: prev.url, featuredImage: prev.featuredImage || '' } : null,
-        nextArticle: next && !next.draft ? { title: next.title, url: next.url, featuredImage: next.featuredImage || '' } : null,
-        altArticle: (() => {
-          const alt = getPublished(articles).find(a => a.lang !== article.lang && a.slug === article.slug && !a.draft);
-          return alt ? { url: alt.url, lang: alt.lang, title: alt.title } : null;
-        })(),
-        currentUrl: article.url,
-        currentPage: 'post'
-      };
-      const html = renderPage('post.ejs', data, layoutTemplate, config);
-      if (html) await writeFile(lang + '/' + article.slug + '/index.html', html);
-    }
-
-    if (config.site.build.generateArchive !== false) {
-      const data = { ...langData, title: lang === 'en' ? 'Archive' : '归档', currentUrl: pf + 'archive', currentPage: 'archive' };
-      const html = renderPage('archive.ejs', data, layoutTemplate, config);
-      if (html) await writeFile(lang + '/archive/index.html', html);
-    }
-
-    if (config.site.build.generateTags !== false) {
-      const data = { ...langData, title: lang === 'en' ? 'Tags' : '标签', currentUrl: pf + 'tags', currentPage: 'tags' };
-      const html = renderPage('tags.ejs', data, layoutTemplate, config);
-      if (html) await writeFile(lang + '/tags/index.html', html);
-      for (const tag of langTags) {
-        const tagArticles = langPublished.filter(a => !a.draft && a.tags.includes(tag.name));
-        const tagData = { ...langData, title: tag.name, tag, tagName: tag.name, articles: tagArticles, currentUrl: tag.url, currentPage: 'tag' };
-        const tagHtml = renderPage('tag.ejs', tagData, layoutTemplate, config);
-        if (tagHtml) await writeFile(lang + '/tags/' + tag.slug + '/index.html', tagHtml);
-      }
-    }
-
-    if (config.site.build.generateCategories !== false) {
-      const data = { ...langData, title: lang === 'en' ? 'Categories' : '分类', currentUrl: pf + 'categories', currentPage: 'categories' };
-      const html = renderPage('categories.ejs', data, layoutTemplate, config);
-      if (html) await writeFile(lang + '/categories/index.html', html);
-      for (const cat of langCategories) {
-        const catArticles = langPublished.filter(a => !a.draft && a.categories.includes(cat.name));
-        const catData = { ...langData, title: cat.name, category: cat, categoryName: cat.name, articles: catArticles, currentUrl: cat.url, currentPage: 'category' };
-        const catHtml = renderPage('category.ejs', catData, layoutTemplate, config);
-        if (catHtml) await writeFile(lang + '/categories/' + cat.slug + '/index.html', catHtml);
-      }
-    }
-
-    const data404 = { ...langData, title: '404', currentUrl: pf + '404', currentPage: '404' };
-    const html404 = renderPage('404.ejs', data404, layoutTemplate, config);
-    if (html404) await writeFile(lang + '/404.html', html404);
-
-    if (config.features && config.features.favorites && config.features.favorites.enabled !== false) {
-      const favData = { ...langData, title: lang === 'en' ? 'Favorites' : '收藏', currentUrl: pf + 'favorites', currentPage: 'favorites' };
-      const favHtml = renderPage('favorites.ejs', favData, layoutTemplate, config);
-      if (favHtml) await writeFile(lang + '/favorites/index.html', favHtml);
-    }
-
-    if (config.site.build.generateGallery !== false) {
-      const galleryData = { ...langData, title: lang === 'en' ? 'Gallery' : '图库', currentUrl: pf + 'gallery', currentPage: 'gallery' };
-      const galleryHtml = renderPage('gallery.ejs', galleryData, layoutTemplate, config);
-      if (galleryHtml) await writeFile(lang + '/gallery/index.html', galleryHtml);
-    }
-
-    if (baseData.friends) {
-      const fdTitle = (baseData.friends.labels && (lang === 'en' ? baseData.friends.labels.en : baseData.friends.labels.zh)) || (lang === 'en' ? 'Friends' : '友情链接');
-      const linksData = { ...langData, title: fdTitle, currentUrl: pf + 'links/', currentPage: 'links', pageTitle: fdTitle };
-      const linksHtml = renderPage('links.ejs', linksData, layoutTemplate, config);
-      if (linksHtml) await writeFile(lang + '/links/index.html', linksHtml);
-    }
-
-    if (config.navigation.search && config.navigation.search.enabled) {
-      const searchData = { ...langData, title: lang === 'en' ? 'Search' : '搜索', currentUrl: pf + 'search', currentPage: 'search' };
-      const searchHtml = renderPage('search.ejs', searchData, layoutTemplate, config);
-      if (searchHtml) await writeFile(lang + '/search/index.html', searchHtml);
-    }
-
-    if (customPages && customPages.length) {
-      for (const cp of customPages) {
-        const ov = (cp.langs && cp.langs[lang]) || cp.default;
-        const pageData = {
-          ...langData,
-          title: ov.title,
-          description: ov.description,
-          pageTitle: ov.title,
-          pageContent: ov.content,
-          hasCode: typeof ov.hasCode === 'boolean' ? ov.hasCode : hasHighlightableCode(ov.content),
-          pageSlug: cp.slug,
-          currentUrl: pf + cp.slug + '/',
-          currentPage: 'page'
-        };
-        const pageHtml = renderPage('page.ejs', pageData, layoutTemplate, config);
-        if (pageHtml) await writeFile(lang + '/' + cp.slug + '/index.html', pageHtml);
-      }
-    }
-  }
-  // Root / landing = zh index + auto language redirect script.
-  {
-    const rootLang = 'zh';
-    const pf = '/' + rootLang + '/';
-    const rp = getPublished(articles.filter(a => a.lang === rootLang));
-    const postsPerPage = config.site.postsPerPage || 10;
-    const totalPages = Math.max(1, Math.ceil(rp.length / postsPerPage));
-    const start = 0;
-    const end = start + postsPerPage;
-    const rootArticles = rp.slice(start, end);
-    const f = config.features;
-    const rt = collectTopTags(articles.filter(a => a.lang === rootLang), null, rootLang);
-    const heroEnabled = config.site.hero && config.site.hero.enabled !== false && f.hero.enabled !== false;
-    const rootData = {
-      ...baseData,
-      lang: rootLang,
-      langPrefix: pf,
-      articles: rootArticles,
-      allArticles: rp,
-      heroData: heroEnabled ? {
-        title: config.site.hero.title || config.site.title,
-        subtitle: config.site.hero.subtitle || config.site.subtitle || config.site.description,
-        showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
-        showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
-        showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
-        ctaLabel: config.site.hero.ctaLabel || f.hero.ctaLabel,
-        ctaUrl: config.site.hero.ctaUrl || f.hero.ctaUrl,
-        showDate: f.hero.showDate === true,
-        date: (rp[0] && rp[0].formattedDate) || '',
-        tagCount: config.site.hero.tagCount || f.hero.tagCount,
-        tags: rt.slice(0, config.site.hero.tagCount || f.hero.tagCount)
-      } : null,
-      pagination: {
-        current: 1, total: totalPages,
-        prev: null,
-        next: totalPages > 1 ? pf + 'page/2/' : null,
-        prevLabel: '上一页', nextLabel: '下一页',
-        items: buildPaginationItems(totalPages, 1, config.tuning && config.tuning.pagination && config.tuning.pagination.maxVisible, function (p) { return p === 1 ? pf : pf + 'page/' + p + '/'; })
-      },
-      currentUrl: pf,
-      currentPage: 'index'
-    };
-    const html = renderPage('index.ejs', rootData, layoutTemplate, config);
-    if (html) {
-      // 该片段在 renderPage 之后插入，必须自行带上构建期 nonce（否则严格 CSP 下不执行）
-      const redirectSnippet = '<script nonce="' + CSP_NONCE + '">/*S-LANG-REDIRECT*/if(navigator.language&&/(en|en-US|en-GB|en-CA)/i.test(navigator.language)&&!localStorage.getItem("s-ss-lang")){location.replace("/en/");}</script>';
-      const finalHtml = html.replace('</head>', redirectSnippet + '</head>');
-      await writeFile('index.html', finalHtml);
-    }
-  }
-}
+// 页面生成模块（scripts/build/pages.js）：注入产物/页面/模板目录、CSP nonce、模板渲染器、
+// 发布过滤器、收集器、页面状态读取器（媒体 manifest getter、内联配置体积 setter）与共享依赖。
+// 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
+const { buildSiteCss, writeRuntimeConfig, buildPageData, processCustomPages, generatePages } = createPagesModule({
+  distDir: DIST_DIR,
+  pagesDir: PAGES_DIR,
+  templatesDir: TEMPLATES_DIR,
+  cspNonce: CSP_NONCE,
+  getTemplate,
+  renderPage,
+  getPublished,
+  recordBuildFailure,
+  collectFriends,
+  collectSeries,
+  collectGalleryImages,
+  collectSiteStats,
+  collectTags,
+  collectCategories,
+  collectTopTags,
+  groupByYearMonth,
+  categoryHue,
+  resolveDailyQuotes,
+  resolveFaviconHtml,
+  CleanCSS,
+  getMediaManifest: () => MEDIA_MANIFEST,
+  setInlineConfigKb: (kb) => { inlineConfigKb = kb; }
+});
 
 // 订阅源/站点地图/搜索索引模块（scripts/build/feeds.js）：依赖通过 ctx 注入，函数体原样搬移。
 const { generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, generateSearchIndex, generatePagefindIndex } = createFeedsModule({

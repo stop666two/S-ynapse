@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **预算门禁收紧（T1.7）**：`features.perfBudget` 由 3 项扩为 5 项：`htmlKb 70→28`、新增 `htmlRawKb 50`（页面 raw 中位）与 `inlineConfigKb 2`（内联关键配置）、`jsKb 90→55`、`requests 18→12`；实测全绿（21.9 / 35.8 / 0.3 / 47.7 / 8）— `scripts/lib/perf-budget.js` + `scripts/build.js` + `features.json5` + 单测 2 项
+
+- **Prism 按页门控（T1.3 偏差项）**：`theme.externalAssets.scripts` 中的默认 Prism 仅在含高亮代码块的页面注入（`hasHighlightableCode` 纯函数，mermaid-only 块不计；inline `<code>` 不计）；首页/列表/归档等零成本页不再加载 82KB vendor，实测首页请求 17→16、总传输 −82KB、TBT 中位 515→424ms — `scripts/lib/utils.js` + `scripts/build.js` + `templates/layout.ejs` + 单测 5 项 + 冒烟 2 断言
+
 - **字体 preload 复核与哈希 JS 缓存升级（优化 1.4/1.5）**：确认并保留 4 个 preload（fonts.css + Inter/Sora/Manrope woff2，随字体栈自动生成，无冗余 preconnect）；`_headers` 为打包产物 `app/deferred/runtime.*.js` 追加 immutable 1 年（后置规则覆盖 `/assets/js/*` 的 1 小时 + SWR 兜底，no-bundle 回退仍走兜底）；交付层核对 HTML gzip 21.9KB — `scripts/build.js` + `README.md`
 
 - **vendor 瘦身（优化 1.3）**：KaTeX 字体仅保留 woff2（654.9→254KB，删除 woff/ttf 回退格式）；mermaid（3.5MB）由 `defer` 改为页面 `load` 后 `requestIdleCallback` 拉取（仅图表页加载，零成本页 0 请求）；Prism 维持 8 语言子集；冒烟新增 KaTeX 字体纯净断言，本地 runner 新增「零成本页不加载 mermaid / 图表页渲染 5 个 SVG」双态断言 — `scripts/build.js` + `templates/layout.ejs` + `scripts/build-smoke.test.js`

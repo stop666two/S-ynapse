@@ -236,7 +236,7 @@
 | `card.showWordCount` | bool | `true` | 字数 |
 | `button.radius/padding/primaryBackground/primaryText/hoverScale` | — | — | 按钮 |
 | ~~`customCSS`~~ | — | — | 已迁移至 features.customCSS（本文件不再读取该键） |
-| `externalAssets.styles/scripts` | array | `[]` | 额外 CSS/JS；元素可为字符串 URL 或对象 `{ href/src, integrity?, crossorigin? }`（第三方 CDN 建议配 SRI：`integrity` 校验要求 CORS，跨域一般同时填 `crossorigin: 'anonymous'`；同源/本地无需填）。Prism 高亮脚本由构建本地注入；字体样式由 fontSystem 自动追加 |
+| `externalAssets.styles/scripts` | array | `[]` | 额外 CSS/JS；元素可为字符串 URL 或对象 `{ href/src, integrity?, crossorigin? }`（第三方 CDN 建议配 SRI：`integrity` 校验要求 CORS，跨域一般同时填 `crossorigin: 'anonymous'`；同源/本地无需填）。默认 Prism 项按页门控：仅含高亮代码块的页面注入 `/assets/vendor/prism.js`（首页/列表等零成本页不加载），其他额外脚本照常全局输出；字体样式由 fontSystem 自动追加。Prism 高亮脚本由构建本地注入 |
 | `contentOffset` | number | `0` | 内容偏移 |
 | `headerContentGap` | number | `0` | 头内容间隙 |
 | `tocWidth` | string | `200px` | 目录宽 |
@@ -527,7 +527,7 @@ sitemap: {
 
 ### 3.67 perfBudget — 性能预算门禁
 
-`enabled true` / `htmlKb 70`(单页 HTML gzip 上限,含内联 CSS/脚本) / `jsKb 90`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入) / `requests 18`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
+`enabled true` / `htmlKb 28`(单页 HTML gzip 上限,含内联 CSS/脚本) / `htmlRawKb 50`(页面 HTML raw 体积中位上限;长文等极端页面由中位口径自然豁免) / `inlineConfigKb 2`(页面内联关键配置降级子集上限) / `jsKb 55`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入) / `requests 12`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
 
 ### 3.68 scrollIndicator — 滚动进度条
 

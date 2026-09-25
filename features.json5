@@ -1910,11 +1910,15 @@
     // 总开关(false = 跳过预算检查)。
     enabled: true,
     // 单页 HTML gzip 大小上限(KB;含内联 CSS/脚本,超出触发提醒/阻断)。
-    htmlKb: 70,
+    htmlKb: 28,
+    // 页面 HTML raw 体积中位上限(KB;长文压力页等极端页面不受中位代表,仅作回归护栏)。
+    htmlRawKb: 50,
+    // 页面内联关键配置(降级子集)上限(KB;完整配置已外置为 /assets/config.<hash>.json)。
+    inlineConfigKb: 2,
     // 应用 JS(assets/js)全量 gzip 合计上限(KB;第三方 vendor 库按需懒加载,不计入)。
-    jsKb: 90,
+    jsKb: 55,
     // 单页静态请求数上限(script src + stylesheet + modulepreload 之和)。
-    requests: 18,
+    requests: 12,
     // true = 仅提醒不阻断构建;false = 超限时构建失败(严格门禁)。
     warnOnly: true
   },

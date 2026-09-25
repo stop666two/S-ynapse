@@ -49,6 +49,14 @@
 
 ## 2. Phase 1：加载优化（资源与启动管线；视觉尽量不变）
 
+> **Phase 1 执行记录（2026-09-25 收口）**
+> - ✅ 1.1 配置分层外部化 `46ab4da`（HTML raw 71.5→42.8KB；探针双态：正常 configOk / 拦截配置请求仍可运行）
+> - ✅ 1.2 esbuild 两段 chunk `71ab90c`（runtime 哈希单发修复 404；`--no-bundle` 回退已验证）
+> - ✅ 1.3 vendor 瘦身 `9843470`；**Prism 偏差**：未做语言子集裁剪，改为按页门控（仅高亮代码页注入；首页 −82KB、请求 17→16、TBT 中位 515→424ms）
+> - ✅ 1.4/1.5 字体 preload 复核 + 哈希 JS immutable `1cdc4f6`
+> - ◐ 1.6 本地 3 次中位：LCP 2904ms、CLS 0.0006、TBT 424ms、HTML 47.0KB、请求 16 → `docs/perf-baseline-local.md`（本地 serve 无压缩，仅作回归基线；**生产对比待 S3**）。偏差：LCP ≤1.2s / 请求 ≤10 需生产（Brotli+CDN）复测判定，本地口径不可比
+> - ✅ 1.7 预算 5 项；**偏差**：`htmlRawKb` 采用页面 raw 中位 ≤50 而非单页最大 ≤45（home 45.7KB、长文压力页 72.7KB 属极端样本）；请求采用构建期静态请求 ≤12 而非运行时 ≤10（运行时含字体/图片，生产复测另计）
+
 ### Task 1.1：配置分层外部化
 **Files**：Modify `scripts/build.js`、`templates/layout.ejs`、`js/core/boot.js`、`js/core/runtime.js`；Create `scripts/lib/config-split.js`；Create `scripts/config-split.test.js`
 **接口**：

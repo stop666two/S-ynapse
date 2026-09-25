@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
-const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWordsDetail } = require('./lib/utils');
+const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWordsDetail, hasHighlightableCode } = require('./lib/utils');
 const { extractWorkerSecurity, renderWorkerConfig, applyHeaderHardening } = require('./generate-security-config');
 const { validateFeatures, DEFAULT_FEATURES, FEATURE_MODULES } = require('./lib/features-schema');
 const { formatConfigError } = require('./lib/config-error');
@@ -526,6 +526,21 @@ describe('perf-budget', () => {
     assert.strictEqual(report.ok, true);
     assert.strictEqual(report.items.length, 3);
   });
+  it('gates inline critical config and raw HTML median', () => {
+    const report = evaluatePerfBudget(
+      { htmlKb: 20, htmlRawKb: 48, inlineConfigKb: 2.4, jsKb: 40, requests: 8 },
+      { htmlRawKb: 50, inlineConfigKb: 2 }
+    );
+    assert.strictEqual(report.items.length, 5);
+    assert.strictEqual(report.ok, false);
+    assert.strictEqual(report.items.find(item => item.key === 'inlineConfigKb').ok, false);
+    assert.strictEqual(report.items.find(item => item.key === 'htmlRawKb').ok, true);
+  });
+  it('skips metrics absent from the stats object', () => {
+    const report = evaluatePerfBudget({ htmlKb: 10 }, {});
+    assert.strictEqual(report.items.length, 1);
+    assert.strictEqual(report.ok, true);
+  });
 });
 
 describe('countWordsDetail', () => {
@@ -588,5 +603,25 @@ describe('resolveJsonFeedOptions', () => {
       resolveJsonFeedOptions({ jsonFeed: { maxItems: 0, fullContent: 'yes' } }),
       { fullContent: false, maxItems: 50 }
     );
+  });
+});
+
+describe('hasHighlightableCode', () => {
+  it('detects fenced blocks without a language annotation', () => {
+    assert.strictEqual(hasHighlightableCode('<pre><code>plain</code></pre>'), true);
+  });
+  it('detects language-annotated blocks', () => {
+    assert.strictEqual(hasHighlightableCode('<pre class="code"><code class="language-js">x</code></pre>'), true);
+  });
+  it('ignores mermaid-only blocks (handled by the mermaid vendor)', () => {
+    assert.strictEqual(hasHighlightableCode('<pre><code class="language-mermaid">graph TD</code></pre>'), false);
+  });
+  it('detects a real code block next to a mermaid block', () => {
+    assert.strictEqual(hasHighlightableCode('<pre><code class="language-mermaid">graph</code></pre><pre><code class="language-js">x</code></pre>'), true);
+  });
+  it('ignores inline code, empty and non-string input', () => {
+    assert.strictEqual(hasHighlightableCode('<p>use <code>x</code></p>'), false);
+    assert.strictEqual(hasHighlightableCode(''), false);
+    assert.strictEqual(hasHighlightableCode(null), false);
   });
 });

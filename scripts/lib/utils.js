@@ -236,4 +236,19 @@ function resolveWikiLinks(content, lookup) {
   });
 }
 
-module.exports = { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks };
+// 检测渲染后的 HTML 是否包含需要 Prism 高亮的代码块；仅 mermaid 代码块不需要
+// （由 mermaid vendor 接管），内联 <code> 也不算。用于按页决定是否引入 prism.js。
+function hasHighlightableCode(html) {
+  if (typeof html !== 'string' || !html) return false;
+  const blockRe = /<pre\b[^>]*>\s*<code\b([^>]*)>/gi;
+  let m;
+  while ((m = blockRe.exec(html))) {
+    const clsMatch = /class\s*=\s*"([^"]*)"/i.exec(m[1] || '');
+    const langs = (clsMatch ? clsMatch[1] : '').split(/\s+/).filter(function (c) { return /^language-/.test(c); });
+    if (langs.length && langs.every(function (c) { return c === 'language-mermaid'; })) continue;
+    return true;
+  }
+  return false;
+}
+
+module.exports = { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode };

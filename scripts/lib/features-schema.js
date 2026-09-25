@@ -160,7 +160,7 @@ const DEFAULT_FEATURES = {
     enabled: true, dropCap: true, figureBleed: true, tableHover: true, headingNumbers: false
   },
   perfBudget: {
-    enabled: true, htmlKb: 70, jsKb: 90, requests: 18, warnOnly: true
+    enabled: true, htmlKb: 28, htmlRawKb: 50, inlineConfigKb: 2, jsKb: 55, requests: 12, warnOnly: true
   },
   scrollIndicator: {
     enabled: true, height: '2px', gradient: true, respectReducedMotion: true

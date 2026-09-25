@@ -60,7 +60,7 @@ try {
 // Hook functions: preBuild(config), transformMarkdown(content, attrs), transformHTML(html, data), postBuild(config, stats)
 let hooks;
 try { hooks = require('./hooks'); } catch (e) { hooks = null; }
-const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks } = require('./lib/utils');
+const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode } = require('./lib/utils');
 const { writeFileAtomicSync } = require('./lib/atomic-write');
 const { classifyFile, sanitizeSvg } = require('./lib/content-policy');
 const { DEFAULT_FEATURES, validateFeatures } = require('./lib/features-schema');
@@ -1137,6 +1137,7 @@ async function processArticles(config, mediaManifest, buildErrors) {
       let htmlContent = marked.parse(content);
       if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
       htmlContent = sanitizeHtml(htmlContent);
+      const hasCode = hasHighlightableCode(htmlContent);
       // Auto-generate excerpt from rendered HTML (strip tags, truncate).
       // Code blocks (incl. mermaid sources) and math are stripped first so
       // raw code / TeX never leaks into cards, meta, feeds or search index.
@@ -1187,6 +1188,7 @@ async function processArticles(config, mediaManifest, buildErrors) {
         content: htmlContent,
         excerpt: excerptText,
         wordCount, readTime, toc, hasMath, hasMermaid,
+        hasCode,
         featuredImage: attrs.featuredImage || '',
         frontmatter: attrs,
         filename: file,
@@ -1624,6 +1626,7 @@ function writeRuntimeConfig(config, presets, dailyQuotes) {
     pwa: config.site && config.site.pwa
   });
   const jsonText = JSON.stringify(external);
+  inlineConfigKb = Buffer.byteLength(JSON.stringify(critical), 'utf-8') / 1024;
   const url = configUrlName(jsonText);
   const file = path.join(DIST_DIR, url.replace(/^\//, ''));
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -1738,7 +1741,7 @@ function processCustomPages(config) {
     let htmlContent = marked.parse(content);
     if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
     htmlContent = sanitizeHtml(htmlContent);
-    return { slug, title, description, content: htmlContent, date: attrs.date || null };
+    return { slug, title, description, content: htmlContent, hasCode: hasHighlightableCode(htmlContent), date: attrs.date || null };
   }
   if (fs.existsSync(PAGES_DIR)) {
     const files = fs.readdirSync(PAGES_DIR).filter(f => /\.md$/i.test(f));
@@ -2035,6 +2038,7 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
           description: ov.description,
           pageTitle: ov.title,
           pageContent: ov.content,
+          hasCode: typeof ov.hasCode === 'boolean' ? ov.hasCode : hasHighlightableCode(ov.content),
           pageSlug: cp.slug,
           currentUrl: pf + cp.slug + '/',
           currentPage: 'page'
@@ -2405,6 +2409,8 @@ async function generatePagefindIndex(config) {
   }
 }
 
+let inlineConfigKb = 0;
+
 function collectBudgetStats() {
   const htmlFiles = [];
   (function walk(dir) {
@@ -2417,10 +2423,12 @@ function collectBudgetStats() {
   })(DIST_DIR);
   let htmlKb = 0;
   let requests = 0;
+  const rawKbs = [];
   for (const file of htmlFiles) {
     const raw = fs.readFileSync(file);
     const kb = gzipSize(raw) / 1024;
     if (kb > htmlKb) htmlKb = kb;
+    rawKbs.push(raw.length / 1024);
     const html = raw.toString('utf-8');
     const req = (html.match(/<script[^>]*\ssrc=/gi) || []).length
       + (html.match(/<link[^>]*rel=["']?stylesheet/gi) || []).length
@@ -2437,7 +2445,9 @@ function collectBudgetStats() {
       else if (entry.name.endsWith('.js')) jsBytes += gzipSize(fs.readFileSync(p));
     }
   })(path.join(DIST_DIR, 'assets', 'js'));
-  return { htmlKb, jsKb: jsBytes / 1024, requests, pages: htmlFiles.length };
+  rawKbs.sort((a, b) => a - b);
+  const htmlRawKb = rawKbs.length ? rawKbs[Math.floor((rawKbs.length - 1) / 2)] : 0;
+  return { htmlKb, htmlRawKb, inlineConfigKb, jsKb: jsBytes / 1024, requests, pages: htmlFiles.length };
 }
 
 function checkPerfBudget(config) {

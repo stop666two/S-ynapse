@@ -541,8 +541,9 @@ npm run verify:security   # 集成安全回归
 - **配置校验语义**：`npm run verify:config` 校验 features/site 等的结构与死键（键存在性、类型）；值级自定义（站点文案、OG 开关等）列为「覆盖」信息项，不影响通过。
 - **运行时配置外置**：全量配置（features/tuning/guard/presets/quotes/i18n 等）写入内容寻址的 `/assets/config.<hash>.json`（immutable 缓存）；页面仅内联 ≤2KB 降级子集。启动时异步加载，失败自动重试 1 次、3 秒超时后降级为内置最小子集（fail-open），弱网/离线仍可阅读（`window.__CONFIG_OK__` 标记状态）。
 - **JS 两段打包**：esbuild 产出内容哈希的 `app.<hash>.js`（首屏启动链）与 `deferred.<hash>.js`（交互/重模块聚合，按需载入）；`runtime.js` 引导脚本内容哈希单发，避免与 bundle 错配；`--no-bundle` 可回退原生 ESM 拷贝模式。
-- **vendor 瘦身**：KaTeX 字体仅保留 woff2（654.9→254KB）；mermaid（3.5MB）改为页面 load 后 idle 拉取（仅图表页加载，零成本页不请求）；Prism 维持 8 语言子集。
+- **vendor 瘦身**：KaTeX 字体仅保留 woff2（654.9→254KB）；mermaid（3.5MB）改为页面 load 后 idle 拉取（仅图表页加载，零成本页不请求）；Prism 改为按页门控（仅含高亮代码块的页面引入，首页/列表零成本，实测首页 −82KB、请求 17→16）。
 - **字体与预加载**：本地变量字体 3 个（Inter/Sora/Manrope，woff2 latin 子集）随字体栈自动生成 preload（含 fonts.css），`font-display` 可配；无冗余 preconnect。
+- **预算门禁**：`[budget]` 检查 5 项：单页 HTML gzip ≤28KB、页面 HTML raw 中位 ≤50KB、内联关键配置 ≤2KB、应用 JS gzip 合计 ≤55KB、单页静态请求 ≤12；阈值见 `features.perfBudget`，`warnOnly: false` 时超限终止构建。
 
 ---
 

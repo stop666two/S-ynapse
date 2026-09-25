@@ -1,7 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWordsDetail } = require('./lib/utils');
-const { extractWorkerSecurity, renderWorkerConfig } = require('./generate-security-config');
+const { extractWorkerSecurity, renderWorkerConfig, applyHeaderHardening } = require('./generate-security-config');
 const { validateFeatures, DEFAULT_FEATURES, FEATURE_MODULES } = require('./lib/features-schema');
 const { formatConfigError } = require('./lib/config-error');
 const { evaluatePerfBudget } = require('./lib/perf-budget');
@@ -25,6 +25,32 @@ describe('formatConfigError', () => {
     const out = formatConfigError('theme.json5', err, {});
     assert.ok(out.includes('theme.json5'));
     assert.ok(out.includes('Unexpected end'));
+  });
+});
+
+describe('applyHeaderHardening header validation (SEC-7)', () => {
+  it('rejects header values containing CR or LF', () => {
+    assert.throws(
+      () => applyHeaderHardening({ customHeaders: { 'X-Bad': 'ok\r\nX-Evil: 1' } }),
+      /X-Bad/
+    );
+  });
+
+  it('rejects header names with invalid token characters', () => {
+    assert.throws(() => applyHeaderHardening({ customHeaders: { 'X Bad': 'v' } }), /X Bad/);
+    assert.throws(() => applyHeaderHardening({ customHeaders: { 'X-Bad:': 'v' } }), /X-Bad:/);
+  });
+
+  it('rejects CRLF in the built-in headers section too', () => {
+    assert.throws(
+      () => applyHeaderHardening({ headers: { 'X-Frame-Options': 'DENY\r\nX-Inject: 1' } }),
+      /X-Frame-Options/
+    );
+  });
+
+  it('accepts valid header names and values', () => {
+    const out = applyHeaderHardening({ customHeaders: { 'X-Custom-Header': 'a b; c=d' } });
+    assert.strictEqual(out['X-Custom-Header'], 'a b; c=d');
   });
 });
 

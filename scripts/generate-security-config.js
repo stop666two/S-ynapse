@@ -44,6 +44,24 @@ function filterIpEntries(list, context) {
   return out;
 }
 
+const HEADER_NAME_RX = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+
+/**
+ * 校验最终响应头的名称与值：头名必须是 RFC 7230 token，值不得含 CR/LF/NUL，
+ * 防止头注入破坏 _headers 或让 Worker 的 Headers.set 抛错。非法时抛错并指明头名。
+ */
+function validateHeaderEntries(headers) {
+  for (const [name, value] of Object.entries(headers || {})) {
+    if (!HEADER_NAME_RX.test(name)) {
+      throw new Error('Invalid HTTP header name "' + name + '" in security headers config (RFC 7230 token characters only)');
+    }
+    if (/[\r\n\0]/.test(String(value))) {
+      throw new Error('Invalid HTTP header value for "' + name + '": contains CR/LF/NUL (header injection)');
+    }
+  }
+  return headers;
+}
+
 /**
  * 将 hardening / customHeaders 段合并进最终响应头对象，返回合并结果。
  * _headers 与 Worker 共用本函数，确保两层头部完全一致（含 HSTS preload 保留）。
@@ -70,7 +88,7 @@ function applyHeaderHardening(security) {
   for (const [key, val] of Object.entries(custom)) {
     if (val) headers[key] = val;
   }
-  return headers;
+  return validateHeaderEntries(headers);
 }
 
 /**
@@ -150,7 +168,7 @@ function generateSecurityConfig(securityConfig, outFile, cspContext) {
   return file;
 }
 
-module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, applyHeaderHardening, isValidIpEntry, OUT_FILE };
+module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, applyHeaderHardening, validateHeaderEntries, isValidIpEntry, OUT_FILE };
 
 if (require.main === module) {
   const ROOT = path.join(__dirname, '..');

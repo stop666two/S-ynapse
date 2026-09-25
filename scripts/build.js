@@ -66,6 +66,8 @@ const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('./lib/robots'
 const { resolveJsonFeedOptions } = require('./lib/feed-options');
 const { computeRelatedArticles } = require('./lib/related');
 const { trimCspDirectives } = require('./lib/csp');
+const { createBuildErrorCollector, resolveExitCode, formatFailures } = require('./lib/build-errors');
+const { preflightArticles, createMediaResolver } = require('./lib/content-validate');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -83,6 +85,7 @@ const PAGES_DIR = path.join(ROOT, 'pages');                 // Standalone page M
 const WATCH_MODE = process.argv.includes('--watch');        // Rebuild on file changes
 const SERVE_MODE = process.argv.includes('--serve');        // Start dev HTTP server after build
 const SHOW_DRAFTS = process.argv.includes('--drafts') || WATCH_MODE;  // Include draft articles
+const ALLOW_DEGRADED = process.argv.includes('--allow-degraded');    // Local preview: continue past content failures (exit code stays 0)
 
 const CACHE_BUST_MANIFEST_PATH = path.join(DIST_DIR, 'cache-bust-manifest.json');
 
@@ -879,6 +882,33 @@ function processPagesContent() {
   return result;
 }
 
+// Read-only content preflight. Runs BEFORE dist/ is cleaned so content errors
+// never leave a half-written output directory. Checks duplicate slugs, invalid
+// dates, empty taxonomy entries and missing /media references.
+function preflightContent() {
+  console.log('[preflight] Validating article content...');
+  const errors = [];
+  const items = [];
+  const LANGS = ['zh', 'en'];
+  const rel = (p) => path.relative(ROOT, p).split(path.sep).join('/');
+  for (const lang of LANGS) {
+    const langDir = path.join(ARTICLES_DIR, lang);
+    if (!fs.existsSync(langDir)) continue;
+    for (const name of fs.readdirSync(langDir).filter((f) => /\.md$/i.test(f))) {
+      const full = path.join(langDir, name);
+      try {
+        const fm = frontMatter(fs.readFileSync(full, 'utf-8'));
+        items.push({ file: rel(full), lang: lang, attrs: fm.attributes || {}, body: fm.body || '' });
+      } catch (err) {
+        errors.push({ stage: 'article', file: rel(full), message: rel(full) + ': unreadable (' + err.message + ')' });
+      }
+    }
+  }
+  const sources = getAllFiles(MEDIA_DIR).map((f) => path.relative(MEDIA_DIR, f).split(path.sep).join('/'));
+  const result = preflightArticles(items, { mediaExists: createMediaResolver(sources) });
+  return { errors: errors.concat(result.errors), warnings: result.warnings };
+}
+
 // Parse all Markdown articles from articles/ into structured article objects.
 // For each article:
 //   1. Extract frontmatter (title, slug, date, tags, categories, draft, excerpt)
@@ -891,7 +921,7 @@ function processPagesContent() {
 //   8. If hooks.transformMarkdown exists, run content through it first
 // Returns array sorted by date descending.
 // Articles with multiple h1 tags are skipped with error.
-async function processArticles(config, mediaManifest) {
+async function processArticles(config, mediaManifest, buildErrors) {
   console.log('[5/14] Processing articles...');
   setupMarkedRenderer(config, mediaManifest);
   const articles = [];
@@ -963,6 +993,7 @@ async function processArticles(config, mediaManifest) {
       const h1Count = h1Matches ? h1Matches.length : 0;
       if (h1Count > 1) {
         console.error(`  [ERROR] ${file}: ${h1Count} h1 headings found (max 1). Skipping.`);
+        if (buildErrors) buildErrors.add('article', `${file}: ${h1Count} h1 headings found (max 1). Skipping.`);
         continue;
       }
       // Title resolution priority: frontmatter.title > first markdown h1 > filename
@@ -1008,8 +1039,8 @@ async function processArticles(config, mediaManifest) {
         console.warn(`  [WARN] ${file}: frontmatter "categories" must be an array like ["a"]; auto-splitting "${attrs.categories}" on commas.`);
         attrs.categories = String(attrs.categories).split(',').map(function(s2) { return s2.trim(); }).filter(Boolean);
       }
-      const tags = applyTagAliases(Array.isArray(attrs.tags) ? attrs.tags : []);
-      const categories = Array.isArray(attrs.categories) ? attrs.categories : [];
+      const tags = applyTagAliases(Array.isArray(attrs.tags) ? attrs.tags : []).filter(function(t2) { return String(t2).trim() !== ''; });
+      const categories = (Array.isArray(attrs.categories) ? attrs.categories : []).filter(function(c2) { return String(c2).trim() !== ''; });
       const draft = attrs.draft === true || attrs.draft === 'true';
       const pinned = attrs.pinned === true || attrs.pinned === 'true';
       const series = attrs.series ? String(attrs.series).trim() : null;
@@ -1080,6 +1111,7 @@ async function processArticles(config, mediaManifest) {
     } catch (err) {
       if (err.isBuildAbort) throw err;
       console.error(`  [ERROR] Failed to process ${file}: ${err.message}`);
+      if (buildErrors) buildErrors.add('article', `${file}: ${err.message}`);
     }
   }
   articles.sort((a, b) => {
@@ -2914,6 +2946,7 @@ async function build() {
   console.log('  S-ynapse Static Blog Builder v' + PKG_VERSION);
   console.log('========================================\n');
   const startTime = Date.now();
+  const buildErrors = createBuildErrorCollector();
   if (!validateJsonSyntax()) {
     abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
   }
@@ -2923,12 +2956,22 @@ async function build() {
       abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
     }
     if (hooks && hooks.preBuild) await hooks.preBuild(config);
+    const preflight = preflightContent();
+    if (preflight.errors.length > 0) {
+      for (const entry of preflight.errors) buildErrors.add(entry.stage, entry.message);
+      console.error('\n[PREFLIGHT] Content validation found ' + preflight.errors.length + ' problem(s):');
+      console.error(formatFailures(preflight.errors));
+      if (!ALLOW_DEGRADED) {
+        abortBuild('\n[FATAL] Build aborted by content preflight errors. Fix the files above, or run with --allow-degraded for a local preview.\n');
+      }
+      console.warn('[WARN] --allow-degraded is set; continuing with degraded output.');
+    }
     setupDist(config);
     copyStatic(config);
     const policyResult = copyProtectedAssets(config);
     const mediaManifest = await optimizeMedia(config);
     MEDIA_MANIFEST = mediaManifest;
-    const articles = await processArticles(config, mediaManifest);
+    const articles = await processArticles(config, mediaManifest, buildErrors);
     if (articles.length === 0) console.log('  [WARN] No articles found');
     const tags = collectTags(articles);
     const categories = collectCategories(articles);
@@ -2995,6 +3038,11 @@ async function build() {
       generateBuildReport(config, articles, tags, categories, customPages, elapsed, policyResult);
     }
     checkPerfBudget(config);
+    if (buildErrors.hasErrors) {
+      console.error('\n[FAILURES] ' + buildErrors.entries.length + ' build failure(s) recorded:');
+      console.error(formatFailures(buildErrors.entries));
+    }
+    process.exitCode = resolveExitCode(buildErrors, { allowDegraded: ALLOW_DEGRADED });
     return config;
   } catch (err) {
     console.error(`\n[FATAL] Build failed: ${err.message}`);

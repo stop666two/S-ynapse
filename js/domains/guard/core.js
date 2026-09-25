@@ -28,6 +28,21 @@ function bypassed() {
   return false;
 }
 
+// 清除地址栏中的防护参数（?guard= 绕过标记与 ?key= 解锁码），保留其它查询串与 hash。
+// 时序约束：必须在绕过判定与 accessGate 解锁逻辑读取完成之后调用——过早移除会让
+// 解锁码失效。仅原地替换当前历史记录（replaceState），不新增历史条目。
+function stripUrlParams() {
+  const names = [(CORE.bypass && CORE.bypass.queryParam) || 'guard', 'key'];
+  try {
+    const url = new URL(location.href);
+    let changed = false;
+    names.forEach(function (name) {
+      if (name && url.searchParams.has(name)) { url.searchParams.delete(name); changed = true; }
+    });
+    if (changed) history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+  } catch (e) { /* 忽略：URL 清理失败不影响防护判定与解锁 */ }
+}
+
 function t(key, fallback, vars) {
   const S = ((window.__I18N__ || {}).guard) || {};
   let s = S[key] || fallback || key;
@@ -53,9 +68,9 @@ function markReady() { try { window.__GUARD_READY__ = true; } catch (e) { /* 忽
 
 export function init() {
   if (!Object.keys(G).length) { markReady(); return; }
-  if (bypassed()) { log('bypassed'); markReady(); return; }
+  if (bypassed()) { log('bypassed'); stripUrlParams(); markReady(); return; }
   const preset = (F.guards && F.guards.preset) || 'soft';
-  if (preset === 'off') { log('preset off'); markReady(); return; }
+  if (preset === 'off') { log('preset off'); stripUrlParams(); markReady(); return; }
 
   function active(mod) {
     if (F.guards && F.guards[mod] === false) return false;
@@ -80,7 +95,12 @@ export function init() {
   if (active('consoleGuard')) import('./console-guard.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('consoleGuard load failed', e); });
   if (active('privacyCurtain')) import('./privacy-curtain.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('privacyCurtain load failed', e); });
   if (active('tamperWatch')) import('./tamper-watch.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('tamperWatch load failed', e); });
-  if (active('accessGate')) import('./access-gate.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('accessGate load failed', e); });
+  // 解锁码读取在 access-gate 初始化内完成；等其就绪后再清理地址栏（含 ?key=）。
+  // 未启用 accessGate 时无解锁读取，可直接清理。
+  const gateReady = active('accessGate')
+    ? import('./access-gate.js').then(function (m) { m.init(ctx); }).catch(function (e) { log('accessGate load failed', e); })
+    : null;
   log('init', preset);
+  if (gateReady) gateReady.then(stripUrlParams); else stripUrlParams();
   markReady();
 }

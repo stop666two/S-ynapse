@@ -50,10 +50,22 @@
       //       nonce 由构建自动追加，无需手写（手写值会与实际 HTML 不一致而被拦截）
       "script-src": ["'self'", "'inline-speculation-rules'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com", "https://giscus.app"],
       // 样式来源（Google Fonts 样式表 / jsdelivr 兜底）
-      // 注意: 保留 'unsafe-inline' —— 模板仍存在大量内联 style="..." 属性（主题预设/组件）
-      //       与少量 <style> 块，尚无 nonce 治理；googleapis/jsdelivr 无 externalAssets
-      //       引用时由 autoTrim 自动移除
-      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
+      // 可填: 同源；'nonce-...'（由构建期 applyCspNonce 自动注入，与 script-src 同一枚）；
+      //       外链样式表域名（googleapis / jsdelivr）
+      // 不可填: 'unsafe-inline'（style-src-elem 语境的内联 <style> 一律以构建期 nonce 放行——
+      //       build.js 每构建生成 CSP_NONCE，同步注入 HTML 的 <style nonce="..."> 与本数组
+      //       末尾的 'nonce-...'，无需手写）
+      // 注意: 模板内联 style="..." 属性不受本条约束（CSP3 中属性不支持 nonce），由下方
+      //       style-src-attr 单独放行；googleapis/jsdelivr 无 externalAssets 引用时由
+      //       autoTrim 自动移除；nonce 由构建自动追加，手写值会与实际 HTML 不一致而被拦截
+      "style-src": ["'self'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
+      // 样式属性来源（内联 style="..." 属性专用，仅作用于 element 的属性语境）
+      // 作用: 放行模板中大量内联 style="..."（主题预设色/背景图/CSS 变量等动态值）
+      // 类型: string[] | 可填: ["'unsafe-inline'"]（CSP 规范中 style 属性不支持 nonce/hash 放行，
+      //       只能整体放行；如需收紧须先把模板内联样式全部抽离为类名）
+      // 不可填: []（会拦截全部内联样式属性，页面视觉立即损坏）
+      // 推荐: ["'unsafe-inline'"]（已知残余面：注入 style 属性无法执行脚本，风险低于内联脚本）
+      "style-src-attr": ["'unsafe-inline'"],
       // 图片来源（data: 用于内联占位图;https: 整域放行便于外链封面）
       "img-src": ["'self'", "data:", "https:"],
       // 字体来源（Google Fonts 字体文件 / jsdelivr 兜底;本地 vendor 字体为同源）
@@ -67,6 +79,12 @@
       // iframe 嵌入来源（giscus 评论为 iframe） | 推荐: ["https://giscus.app"]
       // 注意: 评论未启用时本指令被 autoTrim 裁空后整条移除
       "frame-src": ["https://giscus.app"],
+      // 本页可被哪些页面 iframe 嵌入（CSP3 标准；防点击劫持的第二道锁）
+      // 推荐: ["'none'"]（任何来源都不得嵌入本站页面）
+      // 不可填: ["'self'"] 之外的来源（除非确有被嵌入需求）
+      // 注意: 与 headers 段 X-Frame-Options: DENY 同时保留——旧客户端只认 X-Frame-Options，
+      //       现代浏览器以 frame-ancestors 为准，两者语义一致；meta CSP 语境下本指令被忽略
+      "frame-ancestors": ["'none'"],
       // Web Worker 来源 | 推荐: ["'self'"]
       "worker-src": ["'self'"],
       // Manifest 来源 | 推荐: ["'self'"]

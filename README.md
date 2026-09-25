@@ -413,7 +413,7 @@ npx wrangler deploy --config workers/wrangler.toml --env production
 > 首次部署请配置日志隐私密钥：`npx wrangler secret put LOG_IP_SECRET --config workers/wrangler.toml --env production`；
 > 部署后抽查与回滚步骤见 `docs/runbook/rollback.md`。
 
-Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特定 IP）、CSP 报告收集（`/csp-report` 端点）、HTTP 安全头注入、HTTPS 强制跳转、**维护模式**（环境变量 `MAINTENANCE=1` → 503 维护页，`MAINTENANCE_MESSAGE` 自定义文案）、**结构化日志**（JSON Lines：`ts`/`level`/`module`/`requestId`/`event`；`LOG_LEVEL`（默认 `info`）控制级别；每个响应携带 `X-Request-Id`（复用 CF-Ray 或生成 UUID）；IP 以短哈希关联，不落明文）。
+Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特定 IP）、CSP 报告收集（`/csp-report` 端点）、HTTP 安全头注入、HTTPS 强制跳转、**维护模式**（环境变量 `MAINTENANCE=1` → 503 维护页，默认文案按 `Accept-Language` 选中/英，`MAINTENANCE_MESSAGE` 自定义覆盖）、**结构化日志**（JSON Lines：`ts`/`level`/`module`/`requestId`/`event`；`LOG_LEVEL`（默认 `info`）控制级别；每个响应携带 `X-Request-Id`（复用 CF-Ray 或生成 UUID）；IP 以短哈希关联，不落明文）。
 
 ### 方式三：GitHub Actions（CI/CD 自动部署）
 

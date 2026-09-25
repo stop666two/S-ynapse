@@ -714,7 +714,7 @@ sitemap: {
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `headers` | `{}` | 自定义响应头 |
-| `csp.enabled` / `directives` / `reportOnly` / `reportUri` | `false`/`{}`/`false`/`/csp-report` | Content-Security-Policy |
+| `csp.enabled` / `directives` / `reportOnly` / `reportUri` | `false`/`{}`/`false`/`/csp-report` | Content-Security-Policy。构建期为 `script-src` 与 `style-src` 注入同一枚 `'nonce-...'`（内联 `<script>`/`<style>` 同步注入 nonce 属性），二者移除 `'unsafe-inline'`；内联 `style="..."` 属性由 `style-src-attr ['unsafe-inline']` 单独放行（CSP 属性语境不支持 nonce）；`frame-ancestors 'none'` 与 `X-Frame-Options: DENY` 双保险 |
 | `csp.autoTrim` / `csp.metaEnabled` | `true`/`false` | 构建期按功能裁剪未用域名（giscus / jsdelivr / Google Fonts / Cloudflare 统计——统计域名仅在 site.webAnalytics 配置 token 时保留；在 Cloudflare 面板另开统计而未配 token 时请设 `false`）；`metaEnabled` 开启时额外输出 `<head>` meta CSP（与响应头使用同一裁剪结果，仅无响应头环境需要，默认关） |
 | `robots.enabled` / `rules[]` | `false`/`[]` | robots 规则 |
 | `rateLimiting.enabled` | `false` | Worker 限流(100 req/60s) |
@@ -783,7 +783,7 @@ sitemap: {
 第 13 个配置文件（11 个模块 / 171 项，统计口径：对象逐层展开、数组元素逐项计入；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
 
 **结构**：
-- `core`（8 项）：`preset 'soft'` / `bypass.localhost false` / `bypass.queryParam 'guard'` / `bypass.storageFlag 's-guards-off'` / `logLevel 'off'` / `respectEditable true` / `i18nFallbackLang 'zh'` / `edgePadding '8px'`。绕过优先级：URL 参数 > localStorage 标志 > localhost（开启时）。
+- `core`（8 项）：`preset 'soft'` / `bypass.localhost false` / `bypass.queryParam 'guard'` / `bypass.storageFlag 's-guards-off'` / `logLevel 'off'` / `respectEditable true` / `i18nFallbackLang 'zh'` / `edgePadding '8px'`。绕过优先级：URL 参数 > localStorage 标志 > localhost（开启时）。`?guard=`（含 `?guard=off`）在绕过判定完成后由 `history.replaceState` 从地址栏移除（保留其它查询串与 hash），参数名跟随 `bypass.queryParam`。
 - `contextMenu`（34 项）：`enabled` / `revokeDelayMs 3000`(下载后释放 Blob URL 延迟 ms) / `translateUrl`(划词翻译模板，`{lang}`/`{text}`；空=隐藏翻译项) / `disableNative` / `trigger.longPress`+`longPressMs 550` / `behavior.closeOnEsc|closeOnScroll|closeOnOutside|closeOnBlur` / `style.width|radius|blur|animMs|shadowOpacity`（width/radius 留空=走 `tuning.json5` → `guard` 分类）/ `showOn.selection|link|image|code|blank` / `builtin.*`（copy/copyLink/openNewTab/searchSelected/translate/backToTop/toggleTheme/print/copyCode/copyRaw/download；`viewSource`/`inspect` 默认关）/ `items[]` 自定义项（`label`/`labelEn`/`icon`/`url`|`action`/`selector`；自定义动作派发 `guard:menu-action` 事件）/ `excludeSelectors[]` / `ariaLabel`。
 - `copyGuard`（18 项）：`mode 'attribution'`（`off` | `attribution` 追加出处 | `weakBlock` 首次拦截并提示、再次放行 | `block` 硬拦截）/ `attribution.text`+`textEn`（占位符 `{title}{url}{author}{site}`）/ `position after|before` / `separator` / `minChars 40`（短复制不打扰）/ `onlyArticles true` / `allow.codeBlocks true`+`allow.selectors[]`（代码块与可编辑区始终放行）/ `block.toast|toastText|flash`（复用统一 `__toast`）/ `extra.alsoCut|imageNotice|iOSOverride` / `noticeOncePerSession true` / `logCopyEvents false`（仅本地 console，无网络上报）/ `flashRemoveMs 600`(闪烁遮罩移除延迟 ms)。
 - `selectionGuard`（7 项，**默认关**）：`mode 'content'`（`allow` | `content` 正文禁选 | `strict` 全域）/ `allowSelectors[]`+`allowCode true`（代码白名单）/ `allowCtrlA|allowShiftArrows true`（保留键盘选择，无障碍优先）/ `noticeToast|noticeText`。实现：CSS `user-select:none`（正文/全域）+ `selectstart` 事件双保险，输入框与代码始终豁免。
@@ -793,7 +793,7 @@ sitemap: {
 - `consoleGuard`（18 项，**默认关**）：`bannerEnabled|bannerText|bannerTextEn|bannerAscii`（控制台站方留言）/ `clearEnabled|clearIntervalMs|clearOnDetect`（周期清屏与检测联动）/ `muteEnabled|muteMethods[]|muteFreeze`（对页面脚本伪装 console 方法）/ `trapEnabled|trapAction|trapText`（console.log 访问陷阱）/ `hideSelfLogs` / `noticeOncePerSession`。无法拦截真实控制台求值，仅作用于页面上下文。
 - `privacyCurtain`（10 项，**默认关**）：`blurOnBlur`（窗口失焦）/ `blurOnVisibility`（切标签）/ `blurAmount '8px'` / `curtainText|curtainTextEn`（帘上文案）/ `revealDelayMs 200`（恢复去抖）/ `prtScNotice|prtScText|prtScOncePerSession`（PrintScreen 仅检测提示）。`backdrop-filter` 静态遮罩 + `pointer-events:none`，不挡交互。
 - `tamperWatch`（19 项，**默认关**）：`scripts.monitor|action`（动态 `<script>` 注入；action `toast`|`remove`|`report`）+ `scripts.allowPathPrefixes[]`（同源路径前缀白名单，默认 `['/pagefind/']` 豁免 Pagefind 索引脚本，置 `[]` 关闭）/ `attrs.monitor`（动态内联事件）/ `iframes.monitor|action` / `prototype.watch`（fetch/XHR/eval 原型替换，周期比较）/ `dom.monitor|targets[]`（关键节点缺失检测）/ `probeIntervalMs 2000` / `reportEndpoint ''`（默认不上报；自定义跨域端点需加入 CSP `connect-src`，否则会被静默拦截）+ `reportTimeoutMs 5000`（上报超时 ms，1000–30000） + `reportThrottleMs 10000`（上报节流窗口 ms，0 关闭，上限 60000）+ `reportPrivacyMode true`（仅事件类型，URL 去除查询串）/ `cspViolationToast` / `noticeOncePerSession` / `logDetect`。页面级监视可被先行关闭，属异常发现而非安全边界。
-- `accessGate`（12 项，**默认关**）：`password.enabled|hash|salt|rememberHours|title|placeholder|errorText`（SHA-256(salt+密码) 十六进制，`crypto.subtle` 校验）/ `focusDelayMs 50`(解锁后聚焦密码框延迟 ms)/ `paths[]`（路径前缀，空=全站）/ `viewsPerDay|viewsAction`（本地限次，`toast`|`lock`）/ `unlockCodes[]`（`?key=` 永久解锁本机）/ `logDetect`。诚实声明：静态站密码为软防护（哈希在前端源码中可离线分析），敏感内容请用 Cloudflare Access 等后端方案。
+- `accessGate`（12 项，**默认关**）：`password.enabled|hash|salt|rememberHours|title|placeholder|errorText`（SHA-256(salt+密码) 十六进制，`crypto.subtle` 校验）/ `focusDelayMs 50`(解锁后聚焦密码框延迟 ms)/ `paths[]`（路径前缀，空=全站）/ `viewsPerDay|viewsAction`（本地限次，`toast`|`lock`）/ `unlockCodes[]`（`?key=` 永久解锁本机；解锁逻辑读取完成后 `history.replaceState` 清除地址栏参数，保留其它查询串与 hash）/ `logDetect`。诚实声明：静态站密码为软防护（哈希在前端源码中可离线分析），敏感内容请用 Cloudflare Access 等后端方案。
 
 **测试**：`.tmp-scripts/verify-guard-p1.js` 17 项 + `verify-guard-p2.js` 20 项 + `verify-guard-p3.js` 11 项 + `verify-guard-p4.js` 13 项断言（P1：原生菜单拦截、菜单项与上下文匹配、Esc/输入框豁免、复制署名改写、代码块放行、`?guard=off` 完全绕过、block 拦截+toast；P2：选择拦截/代码放行/可编辑豁免、F12 与 Ctrl+Shift+I 拦截+提示、Ctrl+A 保留、水印三模式与默认关反例；P3：检测提示/锁屏与关闭键、控制台静音（页面脚本无输出）、隐私帘显示/恢复与默认关反例；P4：门槛显示/错误提示/正确解锁与会话记忆/解锁码/限次锁定、脚本注入与关键节点缺失提示、默认关反例）；界面截图已目检（明暗菜单、拦截提示、对角/固定角水印、锁屏、隐私帘、访问门槛） — `js/domains/guard/{core,context-menu,copy-guard,selection-guard,hotkey-guard,watermark,devtools-detect,console-guard,privacy-curtain,tamper-watch,access-gate}.js`。
 
@@ -811,7 +811,7 @@ sitemap: {
 | `SITE_URL` | 覆盖 `site.json5` 的 `site.url`（CI 预览/多域名部署；留空则用配置文件值） |
 | `CF_WEB_ANALYTICS_TOKEN` | 未在 site.json5 填写 token 时读取;缺失则跳过注入并警告 |
 | `MAINTENANCE` | 生产 Worker / 本地 serve 维护模式(`1` 生效) |
-| `MAINTENANCE_MESSAGE` | 维护页自定义文案（Worker 运行时变量，HTML 转义后输出） |
+| `MAINTENANCE_MESSAGE` | 维护页自定义文案（Worker 运行时变量，HTML 转义后输出）；未设置时按 `Accept-Language` 选择内置中/英文案（`en*` → 英文，其余 → 中文） |
 | `LOG_LEVEL` | Worker 结构化日志级别：`off`/`error`/`warn`/`info`/`debug`（默认 `info`）；日志为 JSON Lines（含 `requestId`/`level`/`event`），响应头 `X-Request-Id` 可对同请求溯源；不落 IP 明文（短哈希关联） |
 
 > 构建/部署变量的模板见根目录 `.env.example`；Worker 运行时变量（`MAINTENANCE` 系列）在 Cloudflare Dashboard → Workers 环境变量中配置。

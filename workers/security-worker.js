@@ -33,8 +33,15 @@ const FALLBACK = {
   csp: {
     directives: {
       "default-src": ["'self'"],
-      "script-src": ["'self'", "'unsafe-inline'", "'inline-speculation-rules'", "https://cdn.jsdelivr.net", "https://giscus.app"],
-      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      // 无 security-config.js 时没有构建期 nonce 可用：按 fail-closed 收紧，移除
+      // 'unsafe-inline'（模板内联事件已全部改为 addEventListener）。代价是兜底场景下
+      // 普通页面的构建期内联脚本会被拦截——安全优先，正式产物（含 nonce）会覆盖本兜底。
+      "script-src": ["'self'", "'inline-speculation-rules'"],
+      // 兜底无 nonce 可注入 <style>，故 style-src 保留 'unsafe-inline' 保障降级页
+      // （服务不可用/维护页）样式可读；正式产物由构建期 nonce 替换本项。
+      "style-src": ["'self'", "'unsafe-inline'"],
+      // 内联 style 属性不受 nonce 约束（CSP 规范不支持），兜底与正式产物均需放行。
+      "style-src-attr": ["'unsafe-inline'"],
       "img-src": ["'self'", "data:", "https:"],
       "font-src": ["'self'", "https://fonts.gstatic.com"],
       "object-src": ["'none'"],
@@ -77,6 +84,59 @@ function resolveWorkerConfig(config) {
 }
 
 const { rl, cspConfig, blockedRules, skipPaths } = resolveWorkerConfig(CONFIG);
+
+/**
+ * 解析 Accept-Language，判断首选具体语言是否为英语（RFC 4647 基本过滤的简化实现）：
+ * 按 q 值降序、同 q 保持请求顺序，取第一个具体语言标签的基础子标签比较（en-US → en）；
+ * "*" 与空值视为中文（站点默认语言）。仅用于维护页默认文案，不用于内容协商缓存。
+ */
+function prefersEnglish(acceptLanguage) {
+  const entries = String(acceptLanguage || "")
+    .split(",")
+    .map(function (part, index) {
+      const segments = part.trim().split(";");
+      const qMatch = /q\s*=\s*([0-9.]+)/i.exec(segments.slice(1).join(";"));
+      const qValue = qMatch ? Number(qMatch[1]) : 1;
+      return { tag: (segments[0] || "").trim().toLowerCase(), q: Number.isFinite(qValue) ? qValue : 1, index: index };
+    })
+    .filter(function (entry) { return entry.tag && entry.tag !== "*"; });
+  entries.sort(function (a, b) { return (b.q - a.q) || (a.index - b.index); });
+  if (entries.length === 0) return false;
+  return entries[0].tag.split("-")[0] === "en";
+}
+
+/** 从生效 CSP 配置提取 style-src(elem) 的构建期 nonce；FALLBACK（无 nonce）时返回空串。 */
+function getStyleNonce() {
+  const directives = (cspConfig && cspConfig.directives) || {};
+  for (const name of ["style-src-elem", "style-src"]) {
+    const list = Array.isArray(directives[name]) ? directives[name] : [];
+    for (const value of list) {
+      const match = /^'nonce-([^']+)'$/.exec(String(value));
+      if (match) return match[1];
+    }
+  }
+  return "";
+}
+
+/**
+ * 维护页文案：默认中英双语内置，按 Accept-Language 选择（en* → 英文，其余 → 中文）；
+ * 自定义 MAINTENANCE_MESSAGE 原样覆盖正文（输出前 HTML 转义）。<style> 仅在生效 CSP
+ * 含构建期 nonce 时注入同一 nonce（FALLBACK 无 nonce，依赖 style-src 'unsafe-inline'）。
+ */
+function maintenanceCopy(acceptLanguage, env) {
+  const en = prefersEnglish(acceptLanguage);
+  const custom = env && env.MAINTENANCE_MESSAGE ? String(env.MAINTENANCE_MESSAGE) : "";
+  const rawMessage = custom || (en ? "The site is under maintenance. Please check back later." : "本站正在维护中，请稍后再来。");
+  const heading = en ? "Maintenance" : "维护中";
+  const nonce = getStyleNonce();
+  return {
+    lang: en ? "en" : "zh-CN",
+    title: escapeHtml(heading + " - " + rawMessage),
+    heading: escapeHtml(heading),
+    message: escapeHtml(rawMessage),
+    nonceAttr: nonce ? ' nonce="' + escapeHtml(nonce) + '"' : ""
+  };
+}
 
 // —— 结构化日志（RFC 5424 严重度映射；JSON Lines 单行输出）——
 // 级别：off(0) < error(1) < warn(2) < info(3) < debug(4)；环境变量 LOG_LEVEL 控制（默认 info）。
@@ -183,11 +243,12 @@ async function handleRequest(request, env) {
   const log = makeLog(env, requestId);
 
   // Maintenance mode — enabled by setting env var MAINTENANCE=1 (e.g. via wrangler deploy).
-  // Optional env var MAINTENANCE_MESSAGE customizes the notice (HTML-escaped).
+  // Default notice is bilingual and picked by Accept-Language (en* → English, otherwise
+  // Chinese); optional env var MAINTENANCE_MESSAGE overrides the notice verbatim (HTML-escaped).
   if (env && env.MAINTENANCE === "1") {
     log.info("maintenance_served", { path: url.pathname });
-    const message = escapeHtml(env.MAINTENANCE_MESSAGE || "本站正在维护中，请稍后再来。");
-    const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ${message}</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f7fafc;color:#1a202c}h1{font-weight:700}p{color:#4a5568}</style></head><body><main><h1>维护中</h1><p>${message}</p></main></body></html>`;
+    const copy = maintenanceCopy(request.headers.get("Accept-Language"), env);
+    const html = `<!DOCTYPE html><html lang="${copy.lang}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${copy.title}</title><style${copy.nonceAttr}>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f7fafc;color:#1a202c}h1{font-weight:700}p{color:#4a5568}</style></head><body><main><h1>${copy.heading}</h1><p>${copy.message}</p></main></body></html>`;
     return edgeResponse(html, 503, {
       "Content-Type": "text/html; charset=utf-8",
       "Retry-After": "3600",

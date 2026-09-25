@@ -15,6 +15,8 @@
 //   1. URL 参数  ?guard=off 强制关闭      ?guard=on 强制开启（覆盖一切）
 //   2. localStorage['s-guards-off']='1'  持久关闭（控制台执行一次即可）
 //   3. core.bypass.localhost = true 时，localhost/127.0.0.1 自动关闭
+// 注意：URL 参数在绕过判定与 accessGate 解锁码读取完成后，会被 history.replaceState
+//   从地址栏移除（保留其它查询串与 hash）——避免开关状态随链接传播与留存可分享 URL。
 //
 // 诚实声明：所有“拦截/检测”类能力均为威慑手段，均可被浏览器菜单、
 //   开发者工具、阅读模式等绕过；且可能影响可访问性与正常用户操作。
@@ -48,6 +50,8 @@
       // 类型：string；可填：任意参数名（避免与已有参数冲突）
       // 不可填：空字符串（为空则禁用该通道）
       // 推荐：'guard'
+      // 注意：参数在绕过判定完成后即从地址栏移除（replaceState，保留其它查询串与 hash），
+      //   不改变判定优先级；改参数名时清理逻辑自动跟随本字段
       queryParam: 'guard',
 
       // 作用：localStorage 键名，值为 '1' 时持久关闭防护
@@ -697,7 +701,8 @@
     viewsAction: 'toast',
 
     // 作用：解锁码（URL ?key=CODE 访问即永久解锁本机）；类型：array<string>；推荐 []
-    // 不可填：空字符串元素；注意：解锁码会出现在 URL 与浏览器历史中
+    // 不可填：空字符串元素；注意：解锁码在解锁逻辑读取完成后会被 replaceState 从地址栏
+    //   移除（保留其它查询串与 hash），但输入时仍可能进入浏览器历史/日志，敏感码请定期更换
     unlockCodes: [],
 
     // 作用：控制台输出门槛日志；类型：boolean；推荐：false

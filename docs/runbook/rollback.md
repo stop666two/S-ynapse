@@ -26,7 +26,8 @@
 4. **验证**：
    ```
    curl -sI https://<域名>/zh/ | findstr /I "content-security-policy x-frame-options cache-control"
-   # 期望：script-src 含 'nonce-...' 且无 'unsafe-inline'
+   # 期望：script-src 与 style-src 含同一 'nonce-...' 且均无 'unsafe-inline'（elem 语境），
+   #       style-src-attr 含 'unsafe-inline'（放行内联 style 属性），frame-ancestors 'none' 存在
    curl -sI https://<域名>/assets/css/site.<hash>.css | findstr /I "cache-control"   # immutable 1 年
    ```
    另抽查首页/文章页/搜索 Console 无 CSP 违规、feed/sitemap 可访问。
@@ -39,7 +40,7 @@
 
 ## 3. 紧急停用与维护模式
 
-- 维护页：`npx wrangler secret put MAINTENANCE --config workers/wrangler.toml --env production`（值 `1`）→ 全站 503，恢复时删除该 secret 或置空；`MAINTENANCE_MESSAGE` 可自定义文案。
+- 维护页：`npx wrangler secret put MAINTENANCE --config workers/wrangler.toml --env production`（值 `1`）→ 全站 503，恢复时删除该 secret 或置空；不设置 `MAINTENANCE_MESSAGE` 时默认文案按 `Accept-Language` 自动选中/英（`en*` → 英文，其余 → 中文），自定义时原样覆盖。
 - 暂时摘除安全层：将 `[assets] run_worker_first = false` 后重新部署（静态 `_headers` 仍提供基础安全头），故障排除后改回 `true` 再部署。
 
 ## 4. 运行时密钥与配置

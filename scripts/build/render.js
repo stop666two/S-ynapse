@@ -27,6 +27,18 @@ function createRenderModule(ctx) {
     });
   }
 
+  // 给最终 HTML 中所有内联 <style> 块注入与 <script> 同一枚构建期 nonce（已有 nonce 则跳过）。
+  // 仅作用于内联 <style> 元素（style-src-elem 语境）；外链 <link rel="stylesheet"> 不在此列。
+  // 内联 style="..." 属性不受 nonce 约束（CSP 规范中属性不支持 nonce），由 style-src-attr 放行。
+  function injectStyleNonce(html) {
+    if (!html || typeof html !== 'string') return html;
+    return html.replace(/<style\b(?![^>]*\bnonce\s*=)[^>]*>/gi, function (tag) {
+      const tail = tag.slice(-2) === '/>' ? '/>' : '>';
+      const head = tag.slice(0, tag.length - tail.length);
+      return head + ' nonce="' + ctx.cspNonce + '"' + tail;
+    });
+  }
+
   // Render an EJS template inside the layout template.
   // 1. Render inner template (e.g. index.ejs) → body HTML
   // 2. Wrap body in layout.ejs with merged data
@@ -67,7 +79,7 @@ function createRenderModule(ctx) {
         result = ctx.hooks.transformHTML(result, { template: templateName, ...data }) || result;
       }
       // nonce 注入放在 hooks.transformHTML 之后，确保最终串与 CSP 同源
-      return injectScriptNonce(result);
+      return injectStyleNonce(injectScriptNonce(result));
     } catch (err) {
       console.error(`  [ERROR] Failed to render template ${templateName}: ${err.message}`);
       ctx.recordBuildFailure('render', `Failed to render template ${templateName}: ${err.message}`);
@@ -75,7 +87,7 @@ function createRenderModule(ctx) {
     }
   }
 
-  return { getTemplate, injectScriptNonce, applyTitleTemplate, renderPage };
+  return { getTemplate, injectScriptNonce, injectStyleNonce, applyTitleTemplate, renderPage };
 }
 
 module.exports = { createRenderModule };

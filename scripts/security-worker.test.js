@@ -18,7 +18,7 @@ const FIXTURE = {
     skipPaths: ['/assets/']
   },
   csp: {
-    directives: { 'default-src': ["'self'"], 'script-src': ["'self'"] },
+    directives: { 'default-src': ["'self'"], 'script-src': ["'self'"], 'style-src': ["'self'", "'nonce-test-style'"] },
     reportOnly: false,
     reportUri: '/csp-report'
   },
@@ -221,7 +221,7 @@ describe('security-worker integration (fixture config)', () => {
   });
 
   it('maintenance mode escapes the custom message and sets security headers', async () => {
-    const res = await worker.fetch(req('https://example.com/zh/', {}, '203.0.113.60'), makeEnv({
+    const res = await worker.fetch(req('https://example.com/zh/', { headers: { 'Accept-Language': 'en-US' } }, '203.0.113.60'), makeEnv({
       MAINTENANCE: '1',
       MAINTENANCE_MESSAGE: '<img src=x onerror=alert(1)>'
     }));
@@ -229,8 +229,26 @@ describe('security-worker integration (fixture config)', () => {
     const body = await res.text();
     assert.ok(body.includes('&lt;img src=x onerror=alert(1)&gt;'), 'message must be escaped');
     assert.ok(!body.includes('<img src=x'), 'raw payload must not appear');
+    assert.ok(!body.includes('The site is under maintenance.'), 'custom message must override the bilingual default');
+    assert.ok(body.includes('<style nonce="test-style">'), 'CSP 带 nonce 时维护页内联样式应同 nonce');
     assert.strictEqual(res.headers.get('X-Frame-Options'), 'DENY');
     assert.ok((res.headers.get('Content-Security-Policy') || '').includes('report-uri /csp-report'));
+  });
+
+  it('maintenance default notice follows Accept-Language (en-US / zh-CN)', async () => {
+    const en = await worker.fetch(req('https://example.com/zh/', { headers: { 'Accept-Language': 'en-US,en;q=0.9' } }, '203.0.113.61'), makeEnv({ MAINTENANCE: '1' }));
+    assert.strictEqual(en.status, 503);
+    const enBody = await en.text();
+    assert.ok(enBody.includes('lang="en"'), 'en-US 维护页 lang 应为 en');
+    assert.ok(enBody.includes('The site is under maintenance. Please check back later.'), 'en-US 应返回英文默认文案');
+    assert.ok(enBody.includes('<h1>Maintenance</h1>'), 'en-US 标题应为英文');
+
+    const zh = await worker.fetch(req('https://example.com/zh/', { headers: { 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8' } }, '203.0.113.62'), makeEnv({ MAINTENANCE: '1' }));
+    assert.strictEqual(zh.status, 503);
+    const zhBody = await zh.text();
+    assert.ok(zhBody.includes('lang="zh-CN"'), 'zh-CN 维护页 lang 应为 zh-CN');
+    assert.ok(zhBody.includes('本站正在维护中，请稍后再来。'), 'zh-CN 应返回中文默认文案');
+    assert.ok(zhBody.includes('<h1>维护中</h1>'), 'zh-CN 标题应为中文');
   });
 
   it('adds CSP + security headers on normal responses', async () => {

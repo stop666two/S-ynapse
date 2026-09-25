@@ -15,11 +15,14 @@ Pages `_headers` 与可选 `security-worker` 双层下发安全策略。本文�
 
 - **构建期消毒**：`marked` 渲染 → CJK 间距 → `sanitize-html` 白名单；危险标签、
   事件属性与 `javascript:`/`data:` 协议被剥离；SVG 走 `content-policy` 检测。
-- **CSP**：默认由 `_headers` 与 Worker 下发。`script-src` 已移除 `'unsafe-inline'`：构建期为所有
-  可执行内联脚本注入一次性 nonce（HTML 与 CSP 同步），模板内联事件属性全部改为监听器；
-  `style-src` 仍含 `'unsafe-inline'`（大量内联 `style=` 与 `<style>` 未治理），属已知残余面。
-  未构建的原型部署（security-config.js 缺失）会用 Worker 内置 FALLBACK，其中保留
-  `'unsafe-inline'` 以保障可用性——正式产物会覆盖。
+- **CSP**：默认由 `_headers` 与 Worker 下发。`script-src` 与 `style-src` 均已移除
+  `'unsafe-inline'`：构建期为所有内联 `<script>` 与 `<style>` 注入同一枚一次性 nonce
+  （HTML 与 CSP 同步），模板内联事件属性全部改为监听器；内联 `style="..."` 属性由
+  `style-src-attr 'unsafe-inline'` 放行（CSP 属性语境不支持 nonce，注入 style 属性无法
+  执行脚本，属已知残余面）。`frame-ancestors 'none'` 与 `X-Frame-Options: DENY` 双重
+  禁止页面被嵌入。未构建的原型部署（security-config.js 缺失）会用 Worker 内置 FALLBACK：
+  `script-src` 同步移除 `'unsafe-inline'`（fail-closed），`style-src` 因无构建期 nonce
+  可注入而保留 `'unsafe-inline'` 以保障降级页可读——正式产物会覆盖。
 - **accessGate（`guard.json5`）是软防护，不是访问控制**：密码哈希与解锁码内联在
   前端产物中，`?guard=off` 与 localStorage 伪造均可绕过；关闭 JavaScript 或直接
   读取 HTML 也能看到内容。请勿用它保护机密数据——需要真实门禁请使用
@@ -40,7 +43,7 @@ Pages `_headers` 与可选 `security-worker` 双层下发安全策略。本文�
 | `LOG_LEVEL` | 否 | `off`/`error`/`warn`/`info`/`debug`，默认 `info` |
 | `LOG_IP_SECRET` | 生产建议必填 | IP 日志哈希 HMAC 密钥；未设置时使用固定盐 |
 | `MAINTENANCE` | 否 | `1` 时全站返回 503 维护页 |
-| `MAINTENANCE_MESSAGE` | 否 | 维护页提示文案（HTML 转义后输出） |
+| `MAINTENANCE_MESSAGE` | 否 | 维护页提示文案（HTML 转义后输出）；未设置时按 `Accept-Language` 选择内置中/英文案 |
 | `CF-Connecting-IP` | 平台注入 | 客户端 IP 来源；缺失时限流按共享桶 fail-closed |
 
 ## 支持版本

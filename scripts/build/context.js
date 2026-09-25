@@ -259,6 +259,7 @@ function createBuildContext(deps) {
   // 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
   const report = createReportModule({
     distDir: DIST_DIR,
+    cspNonce: CSP_NONCE,
     getPublished: helpers.getPublished,
     getInlineConfigKb: deps.getInlineConfigKb,
     recordBuildFailure: helpers.recordBuildFailure

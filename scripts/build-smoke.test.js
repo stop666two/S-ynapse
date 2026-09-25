@@ -65,10 +65,24 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     const jsRule = headers.split('\n\n').find((section) => section.startsWith('/assets/js/*'));
     assert.ok(jsRule && jsRule.includes('max-age=31536000'), 'hashed JS bundle path must be immutable in bundle mode (single merged Cache-Control)');
     const cspLine = headers.split('\n').find((line) => line.includes('Content-Security-Policy')) || '';
-    const scriptSrc = cspLine.split(';').map((part) => part.trim()).find((part) => part.startsWith('script-src')) || '';
+    const cspParts = cspLine.split(';').map((part) => part.trim());
+    const scriptSrc = cspParts.find((part) => part.startsWith('script-src ')) || '';
+    const styleSrc = cspParts.find((part) => part.startsWith('style-src ')) || '';
+    const styleAttr = cspParts.find((part) => part.startsWith('style-src-attr ')) || '';
     assert.ok(scriptSrc.includes('nonce-'), 'script-src must carry the build-time nonce');
     assert.ok(!scriptSrc.includes("'unsafe-inline'"), "script-src must not allow 'unsafe-inline'");
+    assert.ok(styleSrc.includes('nonce-'), 'style-src must carry the build-time nonce');
+    assert.ok(!styleSrc.includes("'unsafe-inline'"), "style-src must not allow 'unsafe-inline' (element context)");
+    assert.ok(styleAttr.includes("'unsafe-inline'"), "style-src-attr must allow 'unsafe-inline' for inline style attributes");
+    assert.ok(cspLine.includes("frame-ancestors 'none'"), "frame-ancestors 'none' must be present");
+    const styleNonce = /'nonce-([^']+)'/.exec(styleSrc);
+    assert.ok(styleNonce && styleNonce[1] === (/'nonce-([^']+)'/.exec(scriptSrc) || [])[1], 'script-src and style-src must share one nonce');
     const html = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');
+    const styleTags = html.match(/<style\b[^>]*>/gi) || [];
+    assert.ok(styleTags.length > 0, 'index.html must contain the customCSS <style> block');
+    for (const tag of styleTags) {
+      assert.ok(tag.includes('nonce="' + styleNonce[1] + '"'), 'inline <style> must carry the build-time nonce: ' + tag);
+    }
     const appMatch = html.match(/\/assets\/js\/app\.[0-9A-Za-z]+\.js/);
     const deferredMatch = html.match(/__DEFERRED_URL__=[`"'](\/assets\/js\/deferred\.[0-9A-Za-z]+\.js)[`"']/);
     assert.ok(appMatch, 'index.html must reference the hashed app chunk');

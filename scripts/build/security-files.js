@@ -88,16 +88,22 @@ function buildCspTrimContext(config) {
   };
 }
 
-// 把构建期 cspNonce 注入内存配置（幂等）：移除 script-src 的 'unsafe-inline'，
-// 追加 'nonce-...'。必须早于页面数据组装（meta CSP）、generateSecurityHeaders() 与
-// Worker 配置生成，保证三处 directives 完全一致。
+// 把构建期 cspNonce 注入内存配置（幂等）：script-src 与 style-src 均移除 'unsafe-inline'，
+// 追加同一枚 'nonce-...'（script-src-elem / style-src-elem 未单独声明时回退到这两条）。
+// style-src-attr 不参与 nonce 注入：CSP 规范中内联 style 属性不支持 nonce，由配置显式
+// 保留 'unsafe-inline'（模板存在大量 style="..." 属性）。必须早于页面数据组装（meta CSP）、
+// generateSecurityHeaders() 与 Worker 配置生成，保证几处 directives 完全一致。
 function applyCspNonce(config) {
   const csp = config && config.security && config.security.csp;
-  if (!csp || !csp.directives || !Array.isArray(csp.directives['script-src'])) return;
+  if (!csp || !csp.directives) return;
   const token = "'nonce-" + cspNonce + "'";
-  const next = csp.directives['script-src'].filter(function (v) { return v !== "'unsafe-inline'"; });
-  if (next.indexOf(token) === -1) next.push(token);
-  csp.directives['script-src'] = next;
+  for (const name of ['script-src', 'style-src']) {
+    const src = csp.directives[name];
+    if (!Array.isArray(src)) continue;
+    const next = src.filter(function (v) { return v !== "'unsafe-inline'"; });
+    if (next.indexOf(token) === -1) next.push(token);
+    csp.directives[name] = next;
+  }
 }
 
 function generateSecurityHeaders(config) {

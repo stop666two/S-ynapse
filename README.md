@@ -412,7 +412,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 
 ### 方式三：GitHub Actions（CI/CD 自动部署）
 
-项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署（Node 24 + `npm audit --audit-level=high` + `npm test` + `npm run lint` + `npm run typecheck` + `verify:config` + `verify:security` 门禁），并在部署前检查 AGENTS.md 是否被误提交。
+项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署（Node 24 + `npm audit --audit-level=high` + `npm test` + `npm run lint` + `npm run typecheck` + `verify:config` + `verify:security` + `npm run test:build` 门禁），并在部署前检查 AGENTS.md 是否被误提交。
 
 **配置步骤**：
 1. 在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加 `CF_API_TOKEN`（如需部署）
@@ -421,6 +421,11 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ### 方式四：手动部署到任意静态托管
 
 `npm run build` 生成的 `dist/` 目录可直接部署到任何静态文件服务器。
+
+### 派生副本与回滚
+
+- **多工作区定源**：本仓库是唯一事实源。若本机存在 `real-site/` 等派生副本（被 `.git/info/exclude` 排除、含独立 `.git`），任何修复只以本仓库为准；同步后必须用 `git diff --no-index --stat scripts/ real-site/scripts/` 与 `git diff --no-index --stat js/ real-site/js/` 核对差异归零，禁止只改副本或只改主仓库。
+- **发布回滚**：见 `docs/runbook/rollback.md`（Pages 部署回滚、Worker rollback、数据回滚与演练要求）。
 
 ---
 

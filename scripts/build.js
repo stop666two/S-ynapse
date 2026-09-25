@@ -68,6 +68,7 @@ const { computeRelatedArticles } = require('./lib/related');
 const { trimCspDirectives } = require('./lib/csp');
 const { createBuildErrorCollector, resolveExitCode, formatFailures } = require('./lib/build-errors');
 const { preflightArticles, createMediaResolver } = require('./lib/content-validate');
+const { isScheduled } = require('./lib/publish-window');
 
 // Project directory structure — all paths relative to project root
 const ROOT = path.resolve(__dirname, '..');
@@ -98,7 +99,10 @@ const PKG_VERSION = (() => {
 })();
 
 // Filter out draft articles unless SHOW_DRAFTS is active
-function getPublished(articles) { return articles.filter(a => !a.draft || SHOW_DRAFTS); }
+function getPublished(articles) {
+  const now = new Date();
+  return articles.filter(a => (!a.draft || SHOW_DRAFTS) && !isScheduled(a, now));
+}
 // Deterministic hue for a category/tag name (same name → same color everywhere).
 function hashHue(str) {
   let h = 0;
@@ -1757,7 +1761,7 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
         }
         return (o === undefined || o === null) ? fallback : o;
       },
-      articles: langArticles,
+      articles: langPublished,
       allArticles: langPublished,
       tags: langTags,
       allTags: langTags,
@@ -1819,11 +1823,11 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
     }
 
     // Article detail pages (per language)
-    for (const article of langArticles) {
+    for (const article of langPublished) {
       if (article.draft) continue;
-      const idx = langArticles.indexOf(article);
-      const prev = idx > 0 ? langArticles[idx - 1] : null;
-      const next = idx < langArticles.length - 1 ? langArticles[idx + 1] : null;
+      const idx = langPublished.indexOf(article);
+      const prev = idx > 0 ? langPublished[idx - 1] : null;
+      const next = idx < langPublished.length - 1 ? langPublished[idx + 1] : null;
       const data = {
         ...langData,
         article,
@@ -1831,7 +1835,7 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
         prevArticle: prev && !prev.draft ? { title: prev.title, url: prev.url, featuredImage: prev.featuredImage || '' } : null,
         nextArticle: next && !next.draft ? { title: next.title, url: next.url, featuredImage: next.featuredImage || '' } : null,
         altArticle: (() => {
-          const alt = articles.find(a => a.lang !== article.lang && a.slug === article.slug && !a.draft);
+          const alt = getPublished(articles).find(a => a.lang !== article.lang && a.slug === article.slug && !a.draft);
           return alt ? { url: alt.url, lang: alt.lang, title: alt.title } : null;
         })(),
         currentUrl: article.url,
@@ -1852,7 +1856,7 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
       const html = renderPage('tags.ejs', data, layoutTemplate, config);
       if (html) await writeFile(lang + '/tags/index.html', html);
       for (const tag of langTags) {
-        const tagArticles = langArticles.filter(a => !a.draft && a.tags.includes(tag.name));
+        const tagArticles = langPublished.filter(a => !a.draft && a.tags.includes(tag.name));
         const tagData = { ...langData, title: tag.name, tag, tagName: tag.name, articles: tagArticles, currentUrl: tag.url, currentPage: 'tag' };
         const tagHtml = renderPage('tag.ejs', tagData, layoutTemplate, config);
         if (tagHtml) await writeFile(lang + '/tags/' + tag.slug + '/index.html', tagHtml);
@@ -1864,7 +1868,7 @@ async function generatePages(config, articles, preBuiltBaseData, customPages) {
       const html = renderPage('categories.ejs', data, layoutTemplate, config);
       if (html) await writeFile(lang + '/categories/index.html', html);
       for (const cat of langCategories) {
-        const catArticles = langArticles.filter(a => !a.draft && a.categories.includes(cat.name));
+        const catArticles = langPublished.filter(a => !a.draft && a.categories.includes(cat.name));
         const catData = { ...langData, title: cat.name, category: cat, categoryName: cat.name, articles: catArticles, currentUrl: cat.url, currentPage: 'category' };
         const catHtml = renderPage('category.ejs', catData, layoutTemplate, config);
         if (catHtml) await writeFile(lang + '/categories/' + cat.slug + '/index.html', catHtml);
@@ -2115,7 +2119,7 @@ async function generateSitemap(config, articles, tags, categories, customPages) 
           urls.push({ loc: pf + 'page/' + p + '/', changefreq: pageFreq, priority: String(pagePr) });
         }
       }
-      for (const a of langArticles) {
+      for (const a of langPubs) {
         if (a.draft) continue;
         urls.push({ loc: a.url, changefreq: postFreq, priority: String(postPr), lastmod: a.date || undefined });
       }
@@ -2999,6 +3003,8 @@ async function build() {
     MEDIA_MANIFEST = mediaManifest;
     const articles = await processArticles(config, mediaManifest, buildErrors);
     if (articles.length === 0) console.log('  [WARN] No articles found');
+    const scheduledCount = articles.filter(function(a) { return !a.draft && isScheduled(a, new Date()); }).length;
+    if (scheduledCount > 0) console.warn('  [INFO] ' + scheduledCount + ' future-dated article(s) scheduled; excluded until their publish date.');
     const tags = collectTags(articles);
     const categories = collectCategories(articles);
     if (config.site.build.relatedArticles !== false) computeRelatedArticles(getPublished(articles), (config.features && config.features.related) || {});

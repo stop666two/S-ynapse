@@ -21,7 +21,7 @@ title: 'S-ynapse sec verify </script><script>window.__SEC_PWNED__=1</script>'
 slug: ${TEMP_SLUG}
 tags: ["安全验证"]
 categories: ["安全"]
-date: 2099-01-01 00:00
+date: 2020-01-01 00:00
 ---
 
 # 安全验证
@@ -30,7 +30,7 @@ date: 2099-01-01 00:00
 
 <script>alert(1)</script>
 
-<img src="/media/og-image.svg" onerror="alert(99)">
+<img src="/media/test-photo-1.jpg" onerror="alert(99)">
 
 <a href="javascript:alert(2)">危险链接</a>
 
@@ -48,7 +48,7 @@ date: 2099-01-01 00:00
 const MALICIOUS_SLUG = `---
 title: 'Slug escape attempt'
 slug: ../../${ESCAPE_NAME}
-date: 2099-01-02 00:00
+date: 2020-01-02 00:00
 ---
 
 # slug escape

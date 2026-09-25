@@ -2503,6 +2503,19 @@ function generateSecurityHeaders(config) {
     extraSections.push('/speculation-rules.json\n  Content-Type: application/speculationrules+json\n  Access-Control-Allow-Origin: *');
   }
 
+  // Browser cache policy (audit P-5). Only assets/css/* is content-fingerprinted
+  // today (site.<hash>.css); /assets/js and /assets/vendor keep stable names, so
+  // they must NOT be immutable or upgrades would serve stale files for a year.
+  // Media/OG names may be reused when content changes → 7d + revalidate.
+  // Disable via site.build.cacheControl === false.
+  if (config.site.build.cacheControl !== false) {
+    extraSections.push('/assets/css/*\n  Cache-Control: public, max-age=31536000, immutable');
+    extraSections.push('/assets/js/*\n  Cache-Control: public, max-age=3600, stale-while-revalidate=86400');
+    extraSections.push('/assets/vendor/*\n  Cache-Control: public, max-age=3600, stale-while-revalidate=86400');
+    extraSections.push('/media/*\n  Cache-Control: public, max-age=604800, stale-while-revalidate=86400');
+    extraSections.push('/og/*\n  Cache-Control: public, max-age=604800, stale-while-revalidate=86400');
+  }
+
   if (lines.length > 0) {
     let headerContent = '/*\n' + lines.join('\n') + '\n';
     if (extraSections.length) headerContent += '\n' + extraSections.join('\n\n') + '\n';

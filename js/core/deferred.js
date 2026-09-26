@@ -25,6 +25,7 @@ import { init as backgroundInit } from '../domains/features/background.js';
 import { init as rewardInit } from '../domains/features/reward.js';
 import { init as popupNoticeInit } from '../domains/features/popup-notice.js';
 import { init as coverInit } from '../domains/features/cover.js';
+import { init as touchFallbackInit } from '../domains/features/touch-fallback.js';
 
 const registry = {
   search: searchInit,
@@ -49,7 +50,8 @@ const registry = {
   background: backgroundInit,
   reward: rewardInit,
   'popup-notice': popupNoticeInit,
-  cover: coverInit
+  cover: coverInit,
+  'touch-fallback': touchFallbackInit
 };
 
 export function load(name) {

@@ -1,4 +1,5 @@
 function lines(p){var c=p.querySelector('code');return c?(c.textContent||'').split('\n').length:0}
+var hintBound=false;
 var TERM=['bash','sh','shell','zsh','fish'];
 function langLabel(lang){if(!lang)return'';if(lang==='powershell')return'PS> powershell';if(lang==='console')return'> console';if(TERM.indexOf(lang)>-1)return'$ '+lang;return lang}
 function drawIco(svg){if(!svg)return;svg.classList.remove('icon-draw');void svg.getBoundingClientRect();svg.classList.add('icon-draw')}
@@ -59,6 +60,15 @@ var fbAll=function(){var ta=document.createElement('textarea');ta.value=all;ta.s
 ab.onclick=function(){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(all).then(doneAll).catch(fbAll)}else{fbAll()}};
 var first=blocks[0].previousElementSibling&&blocks[0].previousElementSibling.classList.contains('code-windowbar')?blocks[0].previousElementSibling:blocks[0];
 first.parentNode.insertBefore(row2,first);row2.appendChild(ab)}
+/* W4：features.mobile.codeScrollHint（默认 true）——超宽代码块显示「可横向滚动」提示；
+   首次横滚后自动隐藏（.code-scrolled）；尺寸依赖字体与容器布局，rAF + fonts.ready + resize 多点扫描，幂等。 */
+var M0=(F&&F.mobile)||{};
+if(M0.enabled!==false&&M0.codeScrollHint!==false){
+var scan=function(){document.querySelectorAll('.post-content pre').forEach(function(p){if(p.getAttribute('data-scrollHint')==='1')return;if(p.scrollWidth-p.clientWidth<=8)return;p.setAttribute('data-scrollHint','1');var h=document.createElement('span');h.className='code-scroll-hint';h.setAttribute('aria-hidden','true');h.textContent=__T('toolbar.codeScrollHint','可横向滚动');p.appendChild(h);p.addEventListener('scroll',function(){if(p.scrollLeft>4)p.classList.add('code-scrolled')},{passive:true})})};
+var reScan=function(){if(window.requestAnimationFrame)window.requestAnimationFrame(scan);else scan()};
+if(!hintBound){hintBound=true;window.addEventListener('resize',reScan);if(document.fonts&&document.fonts.ready&&document.fonts.ready.then)document.fonts.ready.then(function(){reScan()},function(){/* 忽略：字体加载失败时按首轮 rAF 结果 */});}
+reScan();
+}
 if(window.__morphScan)window.__morphScan();
 }
 export function init() {

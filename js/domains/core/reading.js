@@ -5,8 +5,32 @@ export function toggleReadingMode() {
   else { d.setAttribute('data-reading', 'true'); try { localStorage.setItem('readingMode', 'true'); } catch (e) { /* 忽略：存储不可用时阅读模式仅当次会话有效 */ } }
 }
 
+// 返回顶部：features.backToTop.scrollDurationMs 自定义 rAF 缓动（0=瞬时）；
+// smoothScroll=false 或 window.__SB()==='auto'（含系统减少动效/滚动行为关闭）走原生瞬时；
+// 用户滚轮/触摸即取消动画（bttAnim 递增使旧帧失效）。与 hotkey 共用本函数。
+var bttAnim = 0;
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+// 逐帧定位必须绕过 CSS scroll-behavior:smooth（否则每帧被浏览器再平滑一次，与 rAF 打架）；
+// behavior:'instant' 为标准值，旧浏览器 catch 后回退传统两参调用。
+function jumpTo(y) {
+  try { window.scrollTo({ top: y, behavior: 'instant' }); }
+  catch (e) { window.scrollTo(0, y); }
+}
 function scrollToTop() {
-  window.scrollTo({ top: 0, behavior: window.__SB() });
+  var BT = CFG.BT || {};
+  var start = window.scrollY || window.pageYOffset || 0;
+  var ms = isNaN(+BT.scrollDurationMs) ? 450 : Math.max(0, +BT.scrollDurationMs);
+  var auto = (typeof window.__SB === 'function' ? window.__SB() : 'smooth') === 'auto';
+  if (start <= 0) { jumpTo(0); return; }
+  if (BT.smoothScroll === false || ms <= 0 || auto || !window.requestAnimationFrame) { jumpTo(0); return; }
+  bttAnim++;
+  var id = bttAnim, t0 = performance.now();
+  (function step(now) {
+    if (id !== bttAnim) return;
+    var p = Math.min(1, (now - t0) / ms);
+    jumpTo(Math.round(start * (1 - easeOutCubic(p))));
+    if (p < 1) window.requestAnimationFrame(step);
+  })(t0);
 }
 
 // 页面级元素引用与配置：软导航交换 DOM 后由 bind() 重新指向新节点，
@@ -168,8 +192,11 @@ function bindGlobals() {
     var t = e.target;
     var inField = !!(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
     if (inField || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key.toLowerCase() === String(hk).toLowerCase()) { e.preventDefault(); window.scrollTo({ top: 0, behavior: CFG.BT.smoothScroll === false ? 'auto' : window.__SB() }); }
+    if (e.key.toLowerCase() === String(hk).toLowerCase()) { e.preventDefault(); scrollToTop(); }
   });
+  // 用户主动滚动时取消返回顶部动画（rAF 帧检测 id 失效即停）。
+  window.addEventListener('wheel', function () { bttAnim++; }, { passive: true });
+  window.addEventListener('touchstart', function () { bttAnim++; }, { passive: true });
 }
 
 export function init() {

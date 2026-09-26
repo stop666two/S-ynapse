@@ -79,7 +79,7 @@ function searchPage(query){
   }
   results.sort(function(a,b){return b.score-a.score});
   if(results.length){
-    rDiv.innerHTML='<p class="search-count">'+__T('search.foundCount','找到')+' '+results.length+' '+__T('search.foundCount','个结果')+'</p>'+
+    rDiv.innerHTML='<p class="search-count">'+<%- JSON.stringify(ui('search.foundCount','找到 {count} 个结果')).replace(/<\//g,'<\\/') %>.replace('{count}',results.length)+'</p>'+
       results.map(function(r){
         var meta='';
         if(r.date)meta+='<span class="post-card-meta-item">'+escHtml(r.date)+'</span>';

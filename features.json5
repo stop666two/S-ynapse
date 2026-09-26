@@ -364,24 +364,14 @@
   themeToggle: {
     // 启用明暗切换按钮(需 theme.json5 darkMode.enabled)。
     enabled: true,
-    // 默认主题:light/dark/system。
-    // ⚠ 未接线（预留）：实际由 theme.darkMode.default 与模板固定行为控制（同义键，保留兼容）。
-    defaultTheme: 'system',
-    // 是否记住用户选择(localStorage)。
-    // ⚠ 未接线（预留）：实际由 theme.darkMode.default 与模板固定行为控制（同义键，保留兼容）。
-    rememberChoice: true,
-    // 按钮图标:auto/sun-moon/toggle。
-    // ⚠ 未接线（预留）：实际由 theme.darkMode.default 与模板固定行为控制（同义键，保留兼容）。
-    iconStyle: 'sun-moon',
-    // 切换时过渡所有元素(否则仅 body)。
-    // ⚠ 未接线（预留）：实际由 theme.darkMode.default 与模板固定行为控制（同义键，保留兼容）。
-    transitionAll: true,
-    // 主题选择的 localStorage 键名。
+    // 主题选择的 localStorage 键名（theme.darkMode.rememberChoice=false 时改用 sessionStorage 同键名）。
     persistKey: 'ss-theme',
-    // 切换时是否交替显示太阳/月亮图标。
+    // 切换时是否交替显示太阳/月亮图标（仅 theme.darkMode.iconStyle='sun-moon' 生效）。
     toggleIconSwap: true,
     // 切换按钮的 CSS z-index。
     zIndex: 100
+    // 说明：默认主题/是否记忆/图标样式/过渡四项的唯一来源为 theme.json5 → darkMode.default/rememberChoice/iconStyle/transitionAll，
+    // 原 themeToggle.defaultTheme/rememberChoice/iconStyle/transitionAll 语义重复，已于 2026-09-27 删除（迁移见 CHANGELOG）。
   },
 
   // ---------------------------------------------------------------------------
@@ -440,8 +430,7 @@
     help: '?',
     // 关闭弹窗/抽屉(通用)。
     close: 'Escape',
-    // 显示帮助提示按钮。
-    // ⚠ 未接线（预留）：帮助提示按钮未实现（快捷键 ? 恒可开帮助面板）。
+    // 显示帮助提示按钮（页脚 ? 按钮，可键盘聚焦，点击开关帮助面板）。
     showHelpHint: true,
     // 帮助面板标题。
     helpTitle: '快捷键一览',
@@ -466,8 +455,9 @@
     maxLevel: 4,
     // 是否折叠子级。
     collapsible: true,
-    // 默认展开层级。
-    // ⚠ 未接线（预留）：默认展开层级未实现（折叠由 collapsible + tuning.toc.collapsedByDefault 控制）。
+    // 初始展开层级：0=全折叠；N≥1 表示展开到「minLevel + N - 1」级标题
+    // （默认 2 且 minLevel=2 时展开到 h3，h4 初始折叠可点分组箭头展开）。
+    // 仅在 collapsible=true 时生效；tuning.toc.collapsedByDefault=true 恒为全折叠（优先级更高）。
     defaultOpenLevel: 2,
     // 高亮当前阅读章节。
     highlightActive: true,
@@ -568,7 +558,8 @@
     // 回退策略:firstParagraph(取正文首段)。
     fallback: 'firstParagraph',
     // 是否剥离 Markdown 语法(链接/强调标记等)。
-    // ⚠ 未接线（预留）：摘要由渲染后 HTML 去标签生成，Markdown 已天然剥离；frontmatter excerpt 原样使用。
+    // true=frontmatter excerpt 先用纯文本化规则剥离 Markdown 标记；false=原样保留。
+    // 自动摘要（无 frontmatter excerpt）由渲染后 HTML 去标签生成，天然不含 Markdown。
     stripMarkdown: true,
     // 截断时的省略号。
     ellipsis: '…'
@@ -721,10 +712,9 @@
     // 复制成功后按钮恢复时间(ms)。
     buttonTimeout: 1500,
     // 是否显示行号。
-    showLineNumbers: false,
-    // 是否复用代码窗栏(主题切换器按钮共用)。
-    // ⚠ 未接线（预留）：代码窗栏复用由 features.codeBlock.windowBar 控制（同义键）。
-    includeWindowBar: true
+    showLineNumbers: false
+    // 说明：代码窗栏复用（window bar）唯一来源为 features.codeBlock.windowBar（js/domains/core/code-block.js 消费）；
+    // 原 codeCopy.includeWindowBar 语义重复，已于 2026-09-27 删除（迁移见 CHANGELOG）。
   },
 
   // ---------------------------------------------------------------------------
@@ -743,9 +733,9 @@
   searchHighlight: {
     // 搜索结果关键词高亮。
     enabled: true,
-    // 高亮 span 类名。
-    // ⚠ 未接线（预留）：高亮使用内置 <mark> 标签，未附加自定义类名。
-    markClass: 'search-hit',
+    // 高亮 <mark> 附加类名（空=不加类；非法字符会被过滤，仅保留 [A-Za-z0-9_-]）。
+    // 作用于搜索浮层/搜索页结果标题与摘要；样式仍由 site.css 的 mark 规则统一提供。
+    markClass: '',
     // 每篇结果最大高亮次数(防止长文爆量)。
     maxMatches: 20
   },
@@ -768,18 +758,17 @@
     enabled: true,
     // 首页生效。
     showOnHome: true,
-    // 归档页生效。
-    // ⚠ 未接线（预留）：归档页封面与卡片比例由 theme.card / tuning.card.imageAspect 控制（近似同义键）。
+    // 标签归档列表页（/tags/<tag>/）封面显隐；false=列表卡片不渲染封面。
+    // 注：/archive/ 年表页为纯文字列表（无封面），不受本键影响。
     showOnArchive: true,
     // 无封面时的回退形态。
     // 类型: string | 可填: 'pattern'(渐变占位块,显示标题文字,默认) | 'none'(纯文字卡片,不渲染占位块)
     // 推荐: 'pattern'
     fallback: 'pattern',
-    // 封面图宽高比。
-    // ⚠ 未接线（预留）：归档页封面与卡片比例由 theme.card / tuning.card.imageAspect 控制（近似同义键）。
-    aspectRatio: '21/9',
     // 封面懒加载。
     lazy: true,
+    // 说明：封面宽高比唯一来源为 tuning.json5 → card.imageAspect（CSS 变量 --card-imageAspect）；
+    // 原 listCover.aspectRatio 语义重复，已于 2026-09-27 删除（迁移见 CHANGELOG）。
 
     // 无封面文章自动生成封面（构建期 SVG → sharp 出图）。
     // 作用: 文章 frontmatter 无 featuredImage 时，列表卡片与文章页头图改用自动生成的封面，
@@ -839,17 +828,15 @@
 
   // ---------------------------------------------------------------------------
   mobileBottomNav: {
-    // 移动端底部导航栏(仅小屏显示)。桌面不受影响。
+    // 移动端底部导航栏（默认仅小屏显示，见 onlyMobile）。桌面不受影响。
     enabled: true,
     // 按钮顺序:home/archive/search/theme（可加 top）。
     items: ['home', 'archive', 'search', 'theme'],
-    // 是否仅移动端显示。
-    // ⚠ 未接线（预留）：CSS 恒仅移动端显示；安全区由 features.mobile.safeAreaBottom 控制。
+    // 是否仅移动端显示；false=桌面端也显示底部导航（≤mobileBreakpoint 断点行为不变）。
     onlyMobile: true,
-    // 是否适配 iOS 安全区(safe-area-inset-bottom)。
-    // ⚠ 未接线（预留）：CSS 恒仅移动端显示；安全区由 features.mobile.safeAreaBottom 控制。
-    useSafeArea: true,
-    // 以下标签为空 = 走 ui-strings.json5 的 bottomNav.* 双语词典（推荐保持空）。
+    // 说明：iOS 安全区（safe-area-inset-bottom）唯一来源为 features.mobile.safeAreaBottom；
+    // 原 mobileBottomNav.useSafeArea 语义重复，已于 2026-09-27 删除（迁移见 CHANGELOG）。
+    // 标签文案覆盖（空=走 ui-strings.json5 的 bottomNav.* 双语词典；推荐保持空）。
     // 标签覆盖:首页。
     labelHome: '',
     // 标签覆盖:归档。
@@ -925,7 +912,7 @@
     // 按钮文本（en 站；空 = 回退中文）。
     labelEn: 'Reading Mode',
     // 进入阅读模式后隐藏侧栏/目录(仅保留正文)。
-    // ⚠ 未接线（预留）：阅读模式 CSS 恒仅保留正文（data-reading）。
+    // true=隐藏侧栏（现行为）；false=保留侧栏，仅收窄正文（html[data-reading-focus="false"] 门控）。
     focusOnlyContent: true,
     // 字号倍率(1=正常)。
     fontScale: 1
@@ -1251,17 +1238,13 @@
   pinned: {
     // 启用置顶。
     enabled: true,
-    // 置顶徽标文本。
-    // ⚠ 未接线（预留）：徽标文案由 ui-strings.card.pinned 提供；样式/排序固定 pill/pinned-first。
+    // 置顶徽标文本（优先于 ui-strings.card.pinned；空则回退词典文案）。
     badgeText: '置顶',
-    // 置顶徽标文本（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：徽标文案由 ui-strings.card.pinned 提供；样式/排序固定 pill/pinned-first。
+    // 置顶徽标文本（en 站；空 = 回退中文/词典）。
     badgeTextEn: 'Pinned',
-    // 置顶徽标样式:pill/corner/none。
-    // ⚠ 未接线（预留）：徽标文案由 ui-strings.card.pinned 提供；样式/排序固定 pill/pinned-first。
+    // 置顶徽标样式:pill(胶囊,现行为)/corner(卡片角标)/none(不渲染徽标)。
     badgeStyle: 'pill',
-    // 置顶排序规则:pinned-first(置顶前)/normal(仅标记不重排)。
-    // ⚠ 未接线（预留）：徽标文案由 ui-strings.card.pinned 提供；样式/排序固定 pill/pinned-first。
+    // 置顶排序规则:pinned-first(置顶前)/normal(仅标记不重排，按日期自然排序)。
     sortRule: 'pinned-first'
   },
 
@@ -1912,9 +1895,8 @@
     revealDurationMs: 250,
     // 同屏多个元素连续渐入时相邻延迟(ms)。
     revealDelayMs: 0,
-    // 同屏元素错峰总时间上限(ms),超过不再累加,避免长页面等待过久。
-    // ⚠ 未接线（预留）：错峰总时长上限未实现（motion.js 未做 revealStaggerMax）。
-    revealStaggerMax: 80,
+    // 同屏元素错峰总时间上限(ms)：单项 delay=min(revealDelayMs, 剩余预算)，总附加延迟不超过本值。
+    revealStaggerMax: 500,
     // 渐入起点位移(px)。
     revealOffset: '10px',
     // 每个元素只渐入一次(滚动回顶不重复)。
@@ -1928,9 +1910,9 @@
   dailyQuote: {
     // 开启每日一言(侧栏 widget + 文章页引用)。
     enabled: true,
-    // 数据显示于侧栏还是正文顶部,若为 false 则显示在文章内容开头。
-    // ⚠ 未接线（预留）：每日一言恒渲染在侧栏/文章引用位（widgetStyle 未分流）。
-    widgetStyle: 'sidebar',
+    // 侧栏每日一言外观：'card'（卡片外框，现行为）| 'plain'（无卡片外框，仅文字与署名）；
+    // 兼容旧值 'sidebar'（等同 card）。运行时给 .quote-widget 附加 quote-widget-card / quote-widget-plain。
+    widgetStyle: 'card',
     // 题目标签。
     label: '每日一言',
     // 题目标签（en 站；空 = 回退中文）。
@@ -1957,8 +1939,7 @@
     label: '收藏',
     // 按钮标签（en 站；空 = 回退中文）。
     labelEn: 'Favorite',
-    // 文章列表是否显示右侧收藏 icon。
-    // ⚠ 未接线（预留）：列表页收藏图标未实现（仅文章页按钮与 /favorites 页）。
+    // /favorites 收藏页列表项是否显示收藏图标（inline SVG，aria-hidden）。
     listIcon: true,
     // 未收藏状态文案。
     notText: '收藏',
@@ -1981,13 +1962,13 @@
     enabled: true,
     // 可选样式集合。
     patterns: ['gradient', 'stripes', 'dots', 'blob', 'mesh'],
-    // 首篇文章默认 pattern。
-    // ⚠ 未接线（预留）：封面样式选择器已渲染（cover.enabled/patterns）；默认 pattern 与「图片优先」行为固定为 gradient/优先图片，未读取本键。
+    // 默认 pattern（封面样式选择器 initial active；preferImage=false 时文章页初始即应用该 pattern）。
+    // 取值需在 patterns 内，否则回退 patterns[0]。
     defaultPattern: 'gradient',
     // 在线预览(悬浮缩略图)。
     preview: true,
-    // 图片链接若存在是否优先使用(否则用 pattern 合成)。
-    // ⚠ 未接线（预留）：封面样式选择器已渲染（cover.enabled/patterns）；默认 pattern 与「图片优先」行为固定为 gradient/优先图片，未读取本键。
+    // 图片优先：true=文章头图显示 featuredImage（现行为，点选 pattern 才切换）；
+    // false=文章头图初始即用 defaultPattern 合成块替代图片。
     preferImage: true
   },
   // ---------------------------------------------------------------------------
@@ -2009,8 +1990,8 @@
     enabled: true,
     // index 目录。
     indexPath: '/pagefind',
-    // 是否集成到现有 search 覆盖层。
-    // ⚠ 未接线（预留）：Pagefind 集成恒开（provider=pagefind 时直接接入浮层）。
+    // 是否集成到现有 search 覆盖层/搜索页。
+    // false=即使 provider=pagefind 也回退内置本地搜索链路（构建期会同时产出 search-index.json）。
     integrate: true
   },
   // ---------------------------------------------------------------------------

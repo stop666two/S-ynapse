@@ -37,7 +37,7 @@ test('guard 在两种模式下均有加载路径', () => {
 
 test('deferred 注册表键数量与 load/has 导出存在', () => {
   const keys = [...DEFERRED_SRC.matchAll(/^\s{2}(?:'([a-z-]+)'|([a-z-]+)):/gm)].map((m) => m[1] || m[2]);
-  assert.strictEqual(keys.length, 22, '注册表键数量应为 22，实际 ' + keys.length + '：' + keys.join(','));
+  assert.strictEqual(keys.length, 23, '注册表键数量应为 23，实际 ' + keys.length + '：' + keys.join(','));
   assert.match(DEFERRED_SRC, /export function load\(/);
   assert.match(DEFERRED_SRC, /export function has\(/);
 });

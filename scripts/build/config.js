@@ -304,6 +304,9 @@ function createConfigModule(ctx) {
       if (!['light', 'dark', 'system'].includes(config.theme.darkMode.default)) {
         errors.push('theme.darkMode.default must be "light", "dark", or "system"');
       }
+      if (config.theme.darkMode.iconStyle !== undefined && !['sun-moon', 'single', 'switch'].includes(config.theme.darkMode.iconStyle)) {
+        errors.push('theme.darkMode.iconStyle must be "sun-moon", "single", or "switch"');
+      }
     }
     if (config.theme.spacing) {
       const cw = config.theme.spacing.containerWidth;

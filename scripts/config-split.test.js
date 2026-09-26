@@ -23,7 +23,7 @@ describe('config-split buildRuntimeConfig', () => {
     const src = makeSources();
     const { external } = buildRuntimeConfig(src);
     assert.deepStrictEqual(Object.keys(external).sort(), [
-      'features', 'guard', 'i18n', 'linkWarning', 'morphIcons', 'presets', 'pwa', 'quotes', 'tuning'
+      'features', 'guard', 'i18n', 'linkWarning', 'morphIcons', 'presets', 'pwa', 'quotes', 'theme', 'tuning'
     ]);
     assert.strictEqual(external.features, src.features);
     assert.strictEqual(external.tuning, src.tuning);

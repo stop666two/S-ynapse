@@ -343,9 +343,28 @@
 
     // 默认模式
     // 类型: string（枚举） | 可填: "light"(强制亮)/"dark"(强制暗)/"system"(跟随系统,推荐)
-    // 不可填: 其他值（回退 system）
+    // 不可填: 其他值（报错阻断构建）
     // 注意: 用户手动切换后的偏好存 localStorage,优先级高于此默认
     "default": "system",
+
+    // 是否记住用户手动选择
+    // 作用: true=偏好存 localStorage 长期记忆（现行为）；false=改用 sessionStorage，仅当次会话有效
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 键名仍取 features.json5 → themeToggle.persistKey；改为 false 后不再读取旧 localStorage 值
+    "rememberChoice": true,
+
+    // 切换按钮图标样式
+    // 作用: "sun-moon"=太阳/月亮双图标交替（现行为，另受 themeToggle.toggleIconSwap 控制）；
+    //       "single"=常显单个月亮图标（不交替）；"switch"=CSS 滑块开关（无 SVG，圆点随主题移动）
+    // 类型: string（枚举） | 可填: "sun-moon"/"single"/"switch" | 推荐: "sun-moon"
+    // 不可填: 其他值（报错阻断构建）
+    "iconStyle": "sun-moon",
+
+    // 切换主题时是否整体过渡
+    // 作用: true=切换瞬间给 <html> 加 .theme-switching（background/color 过渡，现行为）；
+    //       false=不加类，主题瞬时切换（body 自身仍保留 --td 过渡）
+    // 类型: boolean | 可填: true/false | 推荐: true
+    "transitionAll": true,
 
     // 暗色颜色覆盖（与明亮 colors 同 13 色键名,此处覆盖常用 12 键）
     // 类型: 同 colors | 推荐: 保持对比 ≥ 4.5:1（链接/强调色需提亮）

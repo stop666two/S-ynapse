@@ -26,10 +26,11 @@ const CRITICAL_MAX_BYTES = 2048;
  *   - uiStrings: 界面文案字典（ui-strings.json5）
  *   - linkWarning: 外链警告配置（site.externalLinkWarning）
  *   - pwa: PWA 配置（site.pwa）；critical 仅取 enabled/serviceWorker
+ *   - theme: 主题运行时子集（theme.darkMode 的 default/rememberChoice/iconStyle/transitionAll）
  *   - siteTitle: 站点标题。**故意不进入 external**（逐语言变化，继续随页面内联）
  * @returns {{ critical: object, external: object }}
  *   critical = { features: { guards }, pwa: { enabled, serviceWorker } }，JSON ≤ 2048 字节；
- *   external = { features, tuning, guard?, morphIcons, presets, quotes, i18n, linkWarning, pwa }。
+ *   external = { features, tuning, guard?, morphIcons, presets, quotes, i18n, linkWarning, pwa, theme }。
  * @throws {Error} critical 序列化超过 CRITICAL_MAX_BYTES 时抛出（构建必须失败）。
  */
 function buildRuntimeConfig(sources) {
@@ -44,7 +45,8 @@ function buildRuntimeConfig(sources) {
     quotes: Array.isArray(src.quotes) ? src.quotes : [],
     i18n: src.uiStrings || {},
     linkWarning: src.linkWarning || {},
-    pwa: src.pwa || { enabled: false, serviceWorker: '' }
+    pwa: src.pwa || { enabled: false, serviceWorker: '' },
+    theme: src.theme || {}
   };
   const guards = features && features.guards;
   if (guards && guards.enabled !== false && src.guard) {

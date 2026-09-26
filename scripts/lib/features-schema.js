@@ -60,9 +60,7 @@ const DEFAULT_FEATURES = {
     whitelistNewTab: false, copyButtonText: '复制', copyButtonTextEn: 'Copy'
   },
   themeToggle: {
-    enabled: true, defaultTheme: 'system', rememberChoice: true,
-    iconStyle: 'sun-moon', transitionAll: true,
-    persistKey: 'ss-theme', toggleIconSwap: true, zIndex: 100
+    enabled: true, persistKey: 'ss-theme', toggleIconSwap: true, zIndex: 100
   },
   themePresets: {
     enabled: true, pickerVisible: true, persistChoice: true,
@@ -95,7 +93,7 @@ const DEFAULT_FEATURES = {
     showTopButton: true, hideOnScrollDown: true, position: 'right'
   },
   dailyQuote: {
-    enabled: true, widgetStyle: 'sidebar', label: '每日一言', labelEn: 'Daily Quote',
+    enabled: true, widgetStyle: 'card', label: '每日一言', labelEn: 'Daily Quote',
     source: 'builtin', count: 7, quoteColor: ''
   },
   favorites: {
@@ -260,13 +258,13 @@ const DEFAULT_FEATURES = {
   },
   codeCopy: {
     enabled: true, buttonText: '复制', buttonTextEn: 'Copy', copiedText: '已复制', copiedTextEn: 'Copied', buttonTimeout: 1500,
-    showLineNumbers: false, includeWindowBar: true
+    showLineNumbers: false
   },
   tocScrollSpy: {
     enabled: true, activeClass: 'current', offset: 80, throttleMs: 60
   },
   searchHighlight: {
-    enabled: true, markClass: 'search-hit', maxMatches: 20
+    enabled: true, markClass: '', maxMatches: 20
   },
   darkImageFilter: {
     enabled: true, filter: 'brightness(0.85) saturate(0.9)',
@@ -274,7 +272,7 @@ const DEFAULT_FEATURES = {
   },
   listCover: {
     enabled: true, showOnHome: true, showOnArchive: true, fallback: 'pattern',
-    aspectRatio: '21/9', lazy: true,
+    lazy: true,
     autoGenerate: {
       enabled: true, width: 1200, height: 630, format: 'webp',
       backgroundStyle: 'gradient', showSiteName: true, showCategory: false
@@ -285,7 +283,7 @@ const DEFAULT_FEATURES = {
   },
   mobileBottomNav: {
     enabled: true, items: ['home', 'archive', 'search', 'theme'],
-    onlyMobile: true, useSafeArea: true,
+    onlyMobile: true,
     labelHome: '', labelArchive: '', labelSearch: '', labelTheme: '', labelTop: ''
   },
   incrementalBuild: {
@@ -448,7 +446,7 @@ const DEFAULT_FEATURES = {
     buttonRipple: true, rippleDurationMs: 500,
     scrollReveal: true, revealCards: true, revealHeadings: true,
     revealImages: true, revealBlocks: false,
-    revealDurationMs: 250, revealDelayMs: 0, revealStaggerMax: 80, revealOffset: '10px',
+    revealDurationMs: 250, revealDelayMs: 0, revealStaggerMax: 500, revealOffset: '10px',
     revealOnce: true, revealThreshold: 0.08, reducedMotion: 'light'
   },
   ogImageStyle: {
@@ -468,7 +466,7 @@ const SHARE_PLATFORMS = ['weibo', 'qq', 'wechat', 'x', 'facebook', 'mail', 'copy
 const ENUM_FIELDS = {
   imageLazy: { mode: ['lazy', 'native', 'eager'] },
   externalLink: { mode: ['warn', 'prohibit', 'hint'] },
-  themeToggle: { defaultTheme: ['light', 'dark', 'system'], iconStyle: ['auto', 'sun-moon', 'toggle'] },
+  dailyQuote: { widgetStyle: ['card', 'plain', 'sidebar'] },
   wikiLinks: { unknownMode: ['text', 'link', 'hide'] },
   mermaid: { followTheme: ['enabled', true, false], 'size.fit': ['scroll', 'scale'], mode: ['build', 'client'] },
   series: { order: ['asc', 'desc'] },

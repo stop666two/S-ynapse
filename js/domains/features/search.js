@@ -319,13 +319,8 @@ export function init() {
   if (sc) sc.addEventListener('click', function () { closeSearch(); });
   var si = document.getElementById('searchInput');
   if (si) si.addEventListener('input', function (e) { doSearch(e.target.value); });
-  document.querySelectorAll('.widget-search-input').forEach(function (w) {
-    w.addEventListener('keydown', function (e) { if (e.key === 'Enter' && window.openSearch) openSearch(); });
-  });
-  document.querySelectorAll('.hero-search').forEach(function (b) { b.addEventListener('click', function () { openSearch(); }); });
-  var eb = document.getElementById('errSearchBtn');
-  if (eb) eb.addEventListener('click', function () { openSearch(); });
   window.openSearch = openSearch;
+  if (window.__openSearchPending) { window.__openSearchPending = false; openSearch(); }
   window.closeSearch = closeSearch;
   window.doSearch = doSearch;
   window.searchKbDir = searchKbDir;

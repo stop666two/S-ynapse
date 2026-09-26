@@ -40,6 +40,23 @@ function dyn(name, path) {
   };
 }
 
+// 搜索入口统一委托（首页 hero 按钮 / 404 错误按钮 / 侧栏搜索框回车）：
+// 软导航会替换内容区节点，直接绑定随旧节点失效；文档级委托不受影响。
+// search 模块尚未加载时以占位函数排队，加载完成后由 search.js 重放（见文件尾部 pending 处理）。
+if (typeof window.openSearch !== 'function') {
+  window.openSearch = function () { window.__openSearchPending = true; };
+}
+document.addEventListener('click', function (e) {
+  const t = e.target;
+  if (!t || typeof t.closest !== 'function') return;
+  if (t.closest('.hero-search') || t.closest('#errSearchBtn')) window.openSearch();
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter') return;
+  const t = e.target;
+  if (t && t.classList && t.classList.contains('widget-search-input')) window.openSearch();
+});
+
 const idleQueue = [
   dyn('search', '../domains/features/search.js'),
   dyn('lightbox', '../domains/features/lightbox.js'),

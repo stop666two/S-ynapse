@@ -6,7 +6,7 @@
 ## 1. 总体架构
 
 ```
-articles/ media/ static/ + 13 个 JSON5 配置
+articles/ media/ static/ + 14 个 JSON5 配置
         │
         ▼  npm run build（Node，scripts/build.js 编排）
    dist/（静态站点 + _headers + 404 + PWA + 搜索索引 + 哈希资源）
@@ -33,7 +33,7 @@ articles/ media/ static/ + 13 个 JSON5 配置
 | `js/domains/{core,features,guard}/` | 46 个功能模块（core 14 关键 / features 21 延迟 / guard 11 防护；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
 | `workers/security-worker.js` + `workers/lib/` | 边缘安全层（`ip-utils` / `rate-limit`） |
 | `workers/wrangler.toml` | 生产部署配置（Worker 名、assets 绑定、环境变量） |
-| `*.json5`（根目录 13 个） | 站点/主题/功能/文案等配置，全部经 `verify:config` 校验 |
+| `*.json5`（根目录 14 个） | 站点/主题/功能/文案/压缩等配置，全部经 `verify:config` 校验 |
 
 ## 3. 构建管线
 
@@ -68,7 +68,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 
 ## 5. 配置体系
 
-- 13 个 JSON5：`site` / `theme` / `features` / `tuning` / `guard` / `ui-strings` / `navigation` / `sidebar` / `footer` / `security` / `content-policy` / `tag-aliases` / `friends`。
+- 14 个 JSON5：`site` / `theme` / `features` / `tuning` / `guard` / `ui-strings` / `navigation` / `sidebar` / `footer` / `security` / `content-policy` / `tag-aliases` / `friends` / `compression`。
 - 三层约束：`site-defaults.js`（默认值注册表）、`features-schema.js`（features 结构登记）、`scripts/check-config-consistency.js`（`verify:config`，允许用户值覆盖默认值）。
 - 逐字段说明见 `docs/config-reference.md`；新增字段须三处同步（配置 + 注册表/结构 + 文档）。
 

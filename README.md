@@ -12,7 +12,7 @@
 
 | 文档 | 用途 |
 | --- | --- |
-| [配置参考](docs/config-reference.md) | 全部 13 个配置文件（site/theme/tuning/navigation/sidebar/footer/security/features/ui-strings/content-policy/tag-aliases/friends/guard）的逐字段权威说明：每个配置项的含义、可填值、推荐值与默认值，以及值域校验、环境变量、重定向/友链/标签别名示例 |
+| [配置参考](docs/config-reference.md) | 全部 14 个配置文件（site/theme/tuning/navigation/sidebar/footer/security/features/ui-strings/content-policy/tag-aliases/friends/guard/compression）的逐字段权威说明：每个配置项的含义、可填值、推荐值与默认值，以及值域校验、环境变量、重定向/友链/标签别名示例 |
 | [移动端真机点检清单](docs/mobile-checklist.md) | iOS Safari / Android Chrome 各 15 项发布前真机点检：安全区、软导航、TOC 抽屉、弹窗公告、CJK 字体、暗色、横屏、双击缩放、滚动性能、分享/TTS 权限等，含预期结果与问题记录表 |
 | [变更日志](CHANGELOG.md) | 按版本号记录本项目的全部变更：安全修复、新增功能、配置项变化，遵循 Keep a Changelog 格式，每个条目注明涉及的源文件 |
 | [增量构建设计](docs/incremental-build-design.md) | 增量构建（`--watch`）的架构设计文档：哈希指纹缓存、按页面拆分构建、默认跳过未变化源的完整方案 |
@@ -20,7 +20,7 @@
 ## 特性
 
 **全配置驱动**
-- 13 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2525 项，按叶子键递归统计：对象逐层展开、数组元素逐项计入），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- 14 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2525 项，按叶子键递归统计：对象逐层展开、数组元素逐项计入），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
 - `features.json5` 功能总控域：**95 个模块、803 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（32 分类 / 204 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
@@ -362,7 +362,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 加载配置 | 13 个 JSON5 配置（含 tuning.json5 与 guard.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 95 模块结构校验 |
+| 1 | 加载配置 | 14 个 JSON5 配置（含 tuning.json5、guard.json5 与 compression.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 95 模块结构校验 |
 | 2 | 设置输出目录 | 清空 `dist/` 并创建子目录 |
 | 3 | 复制静态文件 | `static/` → `dist/`；按 content-policy.json5 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
 | 4 | 媒体优化 | sharp 生成 WebP/AVIF + 多尺寸响应式图片（输出 manifest） |

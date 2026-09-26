@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **构建产物压缩配置层与压缩增强步骤（`compression.json5`，第 14 个配置文件）**：
+  - **配置层**：`scripts/lib/compression-config.js`（默认值注册表、深合并、类型/枚举/`exclude` 校验、glob 豁免判定、`compressionActive`）与 `scripts/lib/compression-steps.js`（增强计划装配、HTML 选项装配、JSON 去空白纯函数）；`verify:config` 结构监守与 `verify:config-refs` 引用扫描纳入 compression.json5。
+  - **加载与注入**：构建期由 `scripts/build/context.js` 注入压缩配置；加载/覆盖校验错误 → 告警 + 记录构建失败 + 降级内置默认值（不中止构建）；`--serve`/`--watch` 自动关闭增强步骤（本地调试所见与基线一致）；`--compression-override <path>`（JSON5 深合并、仍过 `validateCompression`、不写仓库配置文件）供隔离第二态构建。
+  - **增强步骤**（位于 cacheBust 之前；基线 minify-html/CleanCSS/Terser 恒定行为不变，默认态 HTML 产物与基线逐字段一致）：① `html.aggressive=true` 叠加真实 minify-html 激进选项（省略可选闭合标签/属性引号折叠等，默认 false）；② `json.enabled` 时扫描 dist `*.json` 去空白——跳过已紧凑单行、`assets/config.<hash>.json`（内容寻址且写入时已紧凑）与 `exclude` 命中项，单文件失败只告警并保留原文件；CSS 合并去重与 JS 混淆为 C3/C4 预留接口（当前 `[WARN]` 不执行）。
+  - **测试与文档**：新增 `scripts/compression-pipeline.test.js`（24 例）；`scripts/build-smoke.test.js` 增加压缩关闭态第二态构建断言（vendor 与 `node_modules` 源逐字节一致、HTML nonce 归一化后逐字节一致、feed.json 开关真实生效且语义等价）；`docs/config-reference.md` 补「基线 vs 增强」语义、serve/watch 与 config JSON 跳过说明；README 与架构文档配置计数 13 → 14。
+  - **门禁**：`npm test` 497/497（87 suites）、`npm run test:build` 3/3、`npm run lint` 0 错、`npm run typecheck` 0 错、`verify:config` / `verify:config-refs` PASS；双态隔离构建体积对照：默认态 raw −3.7KB / gzip −80B（全部来自 2 份 feed.json 去空白；vendor/HTML/JS/CSS 字节不变）。
 - **`--theme-override <path>` 构建参数**：与 `--features-override` 同模式（JSON5 深合并、数组替换语义、仍过 `validateConfig` 的 theme 校验；不写仓库配置文件），供隔离验证/预览构建生成第二态主题（如 `theme.darkMode.iconStyle=single`）；新增单测 `scripts/theme-override.test.js`（5 例，含 CLI 解析与缺失/解析错误路径）。
 - **隔离夹具验证收口（runner `.tmp-scripts/run-w6.js`，28 PASS / 0 FAIL；夹具与覆盖文件运行时生成、不入库）**：`pinned.sortRule=normal` 真实排序（夹具含「置顶但较旧」与「未置顶但最新」）；未知双链 `unknownMode=link/hide` 构建期 SSR 产物 + HTTP 端到端；`--theme-override` 第二态 `iconStyle=single` 单图标；增量构建逐页证据（冷缓存全量 → 无变更全部跳过且 HTML mtime 不变 → 改单页 `pages/about.md` rebuilt=1、指纹仅目标页变化 → 改一篇文章仅该语言耦合页、另一语言跳过 → `--full` 强制全量重写）；端口 3329 三次串行复用并在关闭后校验释放。
 - **第七轮配置接线（W5 收尾波，2026-09-27）**：全部「⚠ 未接线（预留）」键收口（`features.json5` 标记清零），新增未接线静态守卫——

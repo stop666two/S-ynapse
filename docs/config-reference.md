@@ -756,7 +756,7 @@ sitemap: {
 
 ### 3.81 exportBackup — 备份导出
 
-`enabled true`（总开关）/ `includeMedia true`（打包 `media/` 图片）/ `includeConfig true`（打包 13 个 JSON5 配置）/ `outputDir 'exports'`（输出目录）/ `fileNamePrefix 's-ynapse-backup'`（归档名前缀，实际文件名追加时间戳）。由 `npm run export` 调用：配置 + 文章 + 媒体打包为单一归档，便于迁移与留档 — `scripts/export.js`。
+`enabled true`（总开关）/ `includeMedia true`（打包 `media/` 图片）/ `includeConfig true`（打包 14 个 JSON5 配置，含 compression.json5）/ `outputDir 'exports'`（输出目录）/ `fileNamePrefix 's-ynapse-backup'`（归档名前缀，实际文件名追加时间戳）。由 `npm run export` 调用：配置 + 文章 + 媒体打包为单一归档，便于迁移与留档 — `scripts/export.js`。
 
 ### 3.82 mediaAudit — 媒体审计
 
@@ -1023,32 +1023,45 @@ listCover: {
 
 ## 12. compression.json5 — 构建产物压缩
 
-第 14 个配置文件。对 `dist/` 产物做可配置压缩：HTML/CSS/JS/JSON 单行化与去注释、CSS 同页 `<style>` 合并去重、可选 JS 混淆（默认关）；配套无头对比门禁与自动回退。加载与校验由 `scripts/lib/compression-config.js` 承担，压缩执行位于 `scripts/build/minify.js` 的压缩阶段（`scripts/compression-config.test.js` 覆盖默认合并/类型/枚举/glob 语义）。
+第 14 个配置文件。对 `dist/` 产物做可配置压缩：HTML/CSS/JS/JSON 单行化与去注释、CSS 同页 `<style>` 合并去重、可选 JS 混淆（默认关）；配套无头对比门禁与自动回退。加载与校验由 `scripts/lib/compression-config.js` 承担，压缩执行位于 `scripts/build/minify.js` 的压缩阶段（`scripts/compression-config.test.js` 覆盖默认合并/类型/枚举/glob 语义，`scripts/compression-pipeline.test.js` 覆盖增强步骤装配）。
 
 **生效范围（重要）**
 - 仅作用于 `dist/` 产物；`exclude` 命中的路径按原字节复制。
 - `--serve` / `--watch` 自动关闭：本地调试所见即未压缩产物，无需改配置。
 - 压缩发生在内容哈希（cacheBust）之前：文件名哈希对应压缩后的最终字节；改配置 → 产物字节变化 → 哈希换代，不会出现「哈希未变、内容已变」的脏缓存。
 
+**语义：基线压缩 vs 增强步骤**
+- **基线压缩**：`site.build.minifyHTML/minifyCSS/minifyJS` 驱动的既有 minify-html / CleanCSS / Terser 行为，恒定执行且**不受本文件开关影响**（默认态产物字节与引入本文件前一致）。`exclude` 只约束增强步骤，不改变基线。
+- **增强步骤**（仅当 `enabled=true` 且非 serve/watch 时执行；逐文件先经 `isExcluded(distRelPath, exclude)`）：
+  - `html.aggressive=true`：minify-html 叠加真实支持的激进选项（省略可选闭合标签 `<html>/<head>` 无属性开标签、属性值去引号与属性间空格折叠、`minify_doctype`、移除 bangs/处理指令）。默认 false 时选项与基线逐字段一致（产物哈希可证明）；开启后需 C5 无头门禁裁决。
+  - `html.removeComments=false`：保留 HTML 注释（压缩阶段的基线选项回退，仅 `enabled` 时生效；默认 true 与基线一致）。
+  - `json.enabled=true`：`dist/**/*.json` 去空白（`JSON.parse → JSON.stringify`，键序保持、输出合法 JSON、Unicode 原样）。跳过：已是紧凑单行、`exclude` 命中项、`assets/config.<hash>.json`（文件名由内容哈希派生，是 HTML 的引用键；重写会破坏一致性——该文件写入时已紧凑，天然无需处理）。逐文件失败只告警并保留原文件。
+  - `css.mergeInlineStyles`/`css.dedupe`：**C3 预留接口**（本波只传递配置与计划标志，不执行合并/去重）。
+  - `js.obfuscate.*`：**C4 预留接口**（本波不引入混淆依赖；`obfuscate.enabled=true` 时构建输出 `[WARN]` 且不执行）。
+- `html.collapseWhitespace=false` 暂不受支持：minify-html 恒折叠安全空白，配置为 false 时输出 `[WARN]` 并保持折叠。
+- `verify.headless`/`verify.fallbackOnFailure`：**C5 门禁参数**，本波仅进入增强计划，不执行无头对比。
+- 失败处理：配置加载/覆盖校验错误 → 记录构建失败 + 告警 + 降级内置默认值（不中止构建流程；`--allow-degraded` 可让退出码为 0）；逐文件压缩失败 → 告警 + 保留原文件 + 记录构建失败。
+- `--compression-override <path>`：隔离验证/预览构建的第二态压缩配置（JSON5 深合并、仍过 `validateCompression`、不写仓库 `compression.json5`）；文件缺失或解析错误按 `--features-override`/`--theme-override` 同模式中止构建。
+
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
 | `enabled` | bool | `true` | 压缩总开关；false = 整个压缩阶段跳过（serve/watch 下强制 false，配置无法覆盖） |
 | `html.enabled` | bool | `true` | HTML 压缩开关（与 `site.build.minifyHTML` 相互独立） |
-| `html.removeComments` | bool | `true` | 移除 `<!-- -->` 注释；条件注释等特殊注释不保证保留 |
-| `html.collapseWhitespace` | bool | `true` | 折叠可安全移除的空白；`<pre>`/`<textarea>` 与元素间必要空格自动保留 |
-| `html.aggressive` | bool | `false` | 实验性激进压缩；开启后需经无头门禁裁决，失败回退未压缩产物 |
-| `css.enabled` | bool | `true` | 外链 CSS 压缩开关 |
-| `css.mergeInlineStyles` | bool | `true` | 同一页面多段 `<style>` 合并为一段（保留 nonce 与层叠顺序；跨文件不合并） |
-| `css.dedupe` | bool | `true` | 同一 CSS 文件内完全重复规则去重（不做语义级合并） |
+| `html.removeComments` | bool | `true` | 移除 `<!-- -->` 注释；false = 压缩阶段保留（仅增强步骤生效，默认与基线一致） |
+| `html.collapseWhitespace` | bool | `true` | 折叠可安全移除的空白（minify-html 恒折叠，false 暂不受支持，输出告警） |
+| `html.aggressive` | bool | `false` | 实验性激进压缩（省略可选闭合标签/属性引号折叠等）；开启后需经无头门禁裁决 |
+| `css.enabled` | bool | `true` | 外链 CSS 压缩开关（增强步骤门；基线 CleanCSS 恒定执行） |
+| `css.mergeInlineStyles` | bool | `true` | 同一页面多段 `<style>` 合并为一段（C3 预留接口，本波未执行） |
+| `css.dedupe` | bool | `true` | 同一 CSS 文件内完全重复规则去重（C3 预留接口，本波未执行） |
 | `js.enabled` | bool | `true` | JS 压缩开关（vendor 与豁免名单始终排除） |
 | `js.minify` | bool | `true` | Terser 压缩（空白/注释/死代码/局部变量名） |
-| `js.obfuscate.enabled` | bool | `false` | JS 混淆开关；仅作用于自研 bundle，开启会明显增加构建耗时 |
+| `js.obfuscate.enabled` | bool | `false` | JS 混淆开关（C4 预留接口，本波未执行；仅作用于自研 bundle） |
 | `js.obfuscate.preset` | string | `'medium'` | 混淆强度：`low` \| `medium` \| `high`（仅在 enabled=true 时生效） |
 | `js.obfuscate.seed` | number | `0` | 0 = 每次随机；填固定正整数可保证每次构建字节一致、内容哈希稳定 |
-| `json.enabled` | bool | `true` | JSON 产物去空白（search-index/config/feed 等），输出始终是合法 JSON |
+| `json.enabled` | bool | `true` | JSON 产物去空白（本波实装；跳过紧凑单行与 `assets/config.*.json`，输出始终合法） |
 | `exclude` | string[] | 见文件 | 相对 dist 根的 glob 豁免名单；整体替换（不与默认项合并） |
-| `verify.headless` | bool | `true` | 压缩后无头对比门禁（DOM、采样计算样式、控制台错误、关键交互） |
-| `verify.fallbackOnFailure` | bool | `true` | 门禁失败/压缩异常时回退未压缩产物并告警；false = 门禁失败即构建失败 |
+| `verify.headless` | bool | `true` | 压缩后无头对比门禁（C5 预留接口，本波仅进入增强计划不执行） |
+| `verify.fallbackOnFailure` | bool | `true` | 门禁失败/压缩异常时回退未压缩产物并告警（C5 预留接口） |
 
 **`exclude` glob 语义**：`**` 跨目录（可匹配零层）、`*` 仅段内、`?` 单字符；大小写敏感（与线上 Cloudflare 文件系统语义一致）；分隔符用 `/`，反斜杠会归一化；不带 `**/` 的模式只匹配 dist 根位置。
 

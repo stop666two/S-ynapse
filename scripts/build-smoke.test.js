@@ -202,10 +202,16 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     assert.ok(styleNonce && styleNonce[1] === (/'nonce-([^']+)'/.exec(scriptSrc) || [])[1], 'script-src and style-src must share one nonce');
     const html = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');
     const styleTags = html.match(/<style\b[^>]*>/gi) || [];
-    assert.ok(styleTags.length > 0, 'index.html must contain the customCSS <style> block');
+    assert.ok(styleTags.length > 0, 'index.html must contain inline <style> blocks');
     for (const tag of styleTags) {
       assert.ok(tag.includes('nonce="' + styleNonce[1] + '"'), 'inline <style> must carry the build-time nonce: ' + tag);
     }
+    // C3 同页合并（增强默认开启）：首页无跨 stylesheet 截断，presets 与 customCSS 合并且保留原首尾片段。
+    const pageStyleBlocks = html.match(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi) || [];
+    assert.strictEqual(pageStyleBlocks.length, 1, 'C3 merge must collapse page inline styles into one block');
+    assert.match(pageStyleBlocks[0], /\[data-preset=/, 'merged block must keep the first original rule (presets)');
+    assert.match(pageStyleBlocks[0], /border-left-color:\s*var\(--color-accent\)/, 'merged block must keep the last original rule (customCSS)');
+    assert.ok(!/id="?customCSS"?/.test(html), 'merged block drops the per-block id attribute (documented behavior)');
     const appMatch = html.match(/\/assets\/js\/app\.[0-9A-Za-z]+\.js/);
     const deferredMatch = html.match(/__DEFERRED_URL__=[`"'](\/assets\/js\/deferred\.[0-9A-Za-z]+\.js)[`"']/);
     assert.ok(appMatch, 'index.html must reference the hashed app chunk');
@@ -323,16 +329,27 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
         treeDigest(path.join(tmpDir, 'assets', 'vendor')),
         'vendor tree must be identical between default and compression-off builds'
       );
-      // ② 非增强文件跨状态一致：HTML 页面（nonce 归一化后）逐字节相同。
+      // ② 增强步骤只改内联 <style>：移除 style 块后，HTML 跨态逐字节一致；
+      // 且开启态 style 块数不得多于关闭态（C3 合并真实生效）。
       const defaultHtml = collectHtml(tmpDir);
       const offHtml = collectHtml(offDir);
       assert.ok(Object.keys(defaultHtml).length > 0, 'build must emit HTML pages');
       assert.deepStrictEqual(Object.keys(offHtml).sort(), Object.keys(defaultHtml).sort(),
         'both states must emit the same HTML page set');
+      const stripStyleBlocks = (text) => text.replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, '');
       for (const rel of Object.keys(defaultHtml)) {
-        assert.strictEqual(normalizeNonce(offHtml[rel]), normalizeNonce(defaultHtml[rel]),
-          'non-enhanced HTML must be identical across states: ' + rel);
+        assert.strictEqual(
+          stripStyleBlocks(normalizeNonce(offHtml[rel])),
+          stripStyleBlocks(normalizeNonce(defaultHtml[rel])),
+          'non-style HTML must be identical across states: ' + rel
+        );
+        const onCount = (defaultHtml[rel].match(/<style\b/gi) || []).length;
+        const offCount = (offHtml[rel].match(/<style\b/gi) || []).length;
+        assert.ok(onCount <= offCount, 'compression-on must not add style blocks: ' + rel + ' (' + onCount + ' vs ' + offCount + ')');
       }
+      // 混淆默认关：两态 bundle 文件名一致（未发生混淆重命名）。
+      const bundleNames = (dir) => fs.readdirSync(path.join(dir, 'assets', 'js')).filter((f) => /^(app|deferred)\./.test(f)).sort();
+      assert.deepStrictEqual(bundleNames(offDir), bundleNames(tmpDir), 'obfuscation-off default must keep bundle names across states');
       // 已紧凑的单行 JSON（search-index）不因压缩步骤变化。
       assert.deepStrictEqual(
         fs.readFileSync(path.join(offDir, 'zh', 'search-index.json')),

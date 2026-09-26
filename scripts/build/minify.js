@@ -2,19 +2,26 @@
 // 构建产物压缩与缓存指纹（自 scripts/build.js 机械拆分；仅移动函数与依赖接线，不含逻辑变更）。
 // 编排器通过 createMinifyModule(ctx) 注入路径、开关与共享依赖，避免模块间隐式全局。
 // 压缩阶段分两层：基线压缩（minify-html / CleanCSS / Terser 的既有行为，恒定执行）与增强步骤
-// （compression.json5 控制：HTML 激进选项、JSON 去空白；CSS/JS 接口预留给后续实现），
+// （compression.json5 控制：HTML 激进选项、CSS 同页合并去重、JSON 去空白；JS 混淆接口预留），
 // 增强步骤全部位于 cacheBust 之前，保证文件名哈希对应最终字节。
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { isExcluded } = require('../lib/compression-config');
+const { mergeStyleBlocks, dedupeStyleBlocks, dedupeCss } = require('../lib/css-merge');
 const {
   buildHtmlMinifyOptions,
   compactJsonText,
   compressionEnhancementPlan,
   jsonSkipReason
 } = require('../lib/compression-steps');
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes)) return '?';
+  if (bytes < 1024) return bytes + ' B';
+  return (bytes / 1024).toFixed(1) + ' KB';
+}
 
 function createMinifyModule(ctx) {
   const { minifyHtmlNode, CleanCSS, terser } = ctx;
@@ -155,6 +162,65 @@ function createMinifyModule(ctx) {
     return compacted;
   }
 
+  // C3：页面内联 <style> 合并 + 保守去重，以及 dist 外链 CSS 文件的保守去重。
+  // 逐文件 try/catch：解析异常（标签/括号/引号/注释不配平）只告警并保留原文件，不阻断构建。
+  // 注意：外链 CSS 与基线 CleanCSS 行为一致，只改内容不改名（assets/ 不参与 cacheBust）。
+  async function runCssEnhancements() {
+    const totals = { pages: 0, blocksMerged: 0, rulesCollapsed: 0, declsDropped: 0, cssFiles: 0, bytesSaved: 0, skipped: 0 };
+    const htmlFiles = ctx.getAllFiles(ctx.distDir).filter(f => /\.html?$/i.test(f));
+    for (const file of htmlFiles) {
+      const rel = distRel(file);
+      if (isExcluded(rel, compressionPlan.exclude)) continue;
+      try {
+        const before = fs.readFileSync(file, 'utf-8');
+        let html = before;
+        let merged = null;
+        let deduped = null;
+        if (compressionPlan.cssMergeInlineStyles) {
+          merged = mergeStyleBlocks(html, { nonce: ctx.cspNonce });
+          html = merged.html;
+        }
+        if (compressionPlan.cssDedupe) {
+          deduped = dedupeStyleBlocks(html);
+          html = deduped.html;
+        }
+        if (html === before) continue;
+        writeFileAtomicSync(file, html, 'utf-8');
+        totals.pages += 1;
+        if (merged) totals.blocksMerged += merged.stats.blocksMerged;
+        if (deduped) {
+          totals.rulesCollapsed += deduped.stats.rulesCollapsed;
+          totals.declsDropped += deduped.stats.declsDropped;
+        }
+        totals.bytesSaved += before.length - html.length;
+      } catch (err) {
+        console.warn(`  [WARN] HTML 内联样式合并/去重跳过 ${rel}，保留原文件: ${err.message}`);
+        ctx.recordBuildFailure('compression', `CSS ${rel}: ${err.message}`);
+        totals.skipped += 1;
+      }
+    }
+    if (!compressionPlan.cssDedupe) return totals;
+    for (const file of ctx.getAllFiles(ctx.distDir).filter(f => /\.css$/i.test(f))) {
+      const rel = distRel(file);
+      if (isExcluded(rel, compressionPlan.exclude)) continue;
+      try {
+        const before = fs.readFileSync(file, 'utf-8');
+        const result = dedupeCss(before);
+        if (!result.changed) continue;
+        writeFileAtomicSync(file, result.css, 'utf-8');
+        totals.cssFiles += 1;
+        totals.rulesCollapsed += result.stats.rulesCollapsed;
+        totals.declsDropped += result.stats.declsDropped;
+        totals.bytesSaved += result.stats.bytesSaved;
+      } catch (err) {
+        console.warn(`  [WARN] CSS 文件去重跳过 ${rel}，保留原文件: ${err.message}`);
+        ctx.recordBuildFailure('compression', `CSS ${rel}: ${err.message}`);
+        totals.skipped += 1;
+      }
+    }
+    return totals;
+  }
+
   // 压缩配置加载/覆盖校验问题集中上报：warnings 打日志，errors 记录构建失败（不中止构建流程）。
   function reportCompressionIssues() {
     for (const message of compressionState.warnings) console.warn('  [WARN] ' + message);
@@ -176,6 +242,21 @@ function createMinifyModule(ctx) {
     }
     const steps = [];
     if (compressionPlan.htmlAggressive) steps.push('HTML 激进选项');
+    if (compressionPlan.cssMergeInlineStyles || compressionPlan.cssDedupe) {
+      const css = await runCssEnhancements();
+      if (css.pages > 0 || css.cssFiles > 0) {
+        const parts = [];
+        if (css.blocksMerged > 0) parts.push('合并 style 块 ×' + css.blocksMerged + '（' + css.pages + ' 个页面）');
+        if (css.rulesCollapsed > 0 || css.declsDropped > 0) {
+          parts.push('去重规则 ×' + css.rulesCollapsed + '、声明 ×' + css.declsDropped
+            + (css.cssFiles > 0 ? '（含 ' + css.cssFiles + ' 个 CSS 文件）' : ''));
+        }
+        parts.push('节省 ' + formatBytes(css.bytesSaved));
+        console.log('  [compression] CSS：' + parts.join('；'));
+        steps.push('CSS 合并去重');
+      }
+      if (css.skipped > 0) console.log('  [compression] CSS：跳过 ' + css.skipped + ' 个解析异常文件（见构建失败记录）');
+    }
     if (compressionPlan.jsonCompact) {
       const count = await compactJsonInDir(ctx.distDir);
       if (count > 0) steps.push('JSON 去空白 ×' + count);

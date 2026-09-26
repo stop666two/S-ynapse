@@ -292,6 +292,12 @@
     // 类型: number（整数） | 可填: 1–200 | 不可填: 0/负数 | 推荐: 50
     "maxItems": 50,
 
+    // <head> 订阅链接
+    // 作用: true=输出 RSS alternate（及 JSON Feed alternate）<link>;false=完全不在 <head> 暴露 feed 地址
+    // 类型: boolean | 可填: true/false | 推荐: true
+    // 注意: 关闭仅影响自动发现的 <link> 标签;feed 文件本身仍生成（受 enabled 控制）
+    "injectHeadLinks": true,
+
     // JSON Feed 配置块
     "jsonFeed": {
       // 是否生成 JSON Feed（/feed.json）

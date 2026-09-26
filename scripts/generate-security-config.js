@@ -100,8 +100,9 @@ function applyHeaderHardening(security) {
  * @param {Object} security security.json5 解析结果
  * @param {{giscusNeeded?: boolean, externalAssets?: Object}} [cspContext] CSP 裁剪上下文；
  *   传入时按实际启用功能裁剪可选域名（与 _headers 层保持一致）；不传则原样输出。
+ * @param {Object} [features] features.json5 解析结果；传入时携带 maintenance（Retry-After 开关与秒数）。
  */
-function extractWorkerSecurity(security, cspContext) {
+function extractWorkerSecurity(security, cspContext, features) {
   const s = security && typeof security === 'object' ? security : {};
   const rl = s.rateLimiting && typeof s.rateLimiting === 'object' ? s.rateLimiting : {};
   const csp = s.csp && typeof s.csp === 'object' ? s.csp : {};
@@ -144,7 +145,18 @@ function extractWorkerSecurity(security, cspContext) {
     },
     pathRestrictions: paths,
     forceHttps: s.forceHttps === true,
-    headers: applyHeaderHardening(s)
+    headers: applyHeaderHardening(s),
+    maintenance: maintenanceWorkerConfig(features)
+  };
+}
+
+/** maintenance 的 Worker 侧配置（features.maintenance）：setRetryAfter 默认 true、retryAfter 默认 3600。 */
+function maintenanceWorkerConfig(features) {
+  const m = (features && features.maintenance) || {};
+  const retry = parseInt(m.retryAfter, 10);
+  return {
+    setRetryAfter: m.setRetryAfter !== false,
+    retryAfter: Number.isFinite(retry) && retry > 0 ? retry : 3600
   };
 }
 
@@ -159,16 +171,16 @@ function renderWorkerConfig(extracted) {
 }
 
 /** 读 security.json5 → 写 workers/security-config.js。返回生成的文件路径。 */
-function generateSecurityConfig(securityConfig, outFile, cspContext) {
+function generateSecurityConfig(securityConfig, outFile, cspContext, features) {
   const file = outFile || OUT_FILE;
-  const extracted = extractWorkerSecurity(securityConfig, cspContext);
+  const extracted = extractWorkerSecurity(securityConfig, cspContext, features);
   const rendered = renderWorkerConfig(extracted);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, rendered, 'utf-8');
   return file;
 }
 
-module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, applyHeaderHardening, validateHeaderEntries, isValidIpEntry, OUT_FILE };
+module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, maintenanceWorkerConfig, applyHeaderHardening, validateHeaderEntries, isValidIpEntry, OUT_FILE };
 
 if (require.main === module) {
   const ROOT = path.join(__dirname, '..');

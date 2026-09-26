@@ -1,7 +1,24 @@
 // 朗读（TTS）：软导航交换 DOM 后由 bind() 重新指向新按钮，并终止上一页的朗读状态。
-// W4 接线：preferDefaultVoice（命中语音按 localService/default 评分）、voiceBy（lang|name 匹配策略）、
+// 接线：preferDefaultVoice（命中语音按 localService/default 评分）、voiceBy（lang|name 匹配策略）、
 // highlightParagraph（逐段朗读并高亮当前段落，停止/切段清理；接管后不再叠加字级高亮）。
 var STATE = null, unloadBound = false;
+
+// 首启语音预热：Chromium 首次 getVoices() 可能返回空列表，语音在 voiceschanged 后才可用；
+// 模块级缓存并在事件后刷新，使首次点击朗读即可命中匹配语音（无语音时行为不变，仍用浏览器默认）。
+var VOICES_CACHE = null, VOICES_WARMED = false;
+function warmVoices() {
+  if (!window.speechSynthesis || !window.speechSynthesis.getVoices) return;
+  var list = window.speechSynthesis.getVoices();
+  if (list && list.length) VOICES_CACHE = list;
+}
+function ensureVoicesWarm() {
+  if (VOICES_WARMED) return;
+  VOICES_WARMED = true;
+  warmVoices();
+  if (window.speechSynthesis && window.speechSynthesis.addEventListener) {
+    window.speechSynthesis.addEventListener('voiceschanged', function () { warmVoices(); });
+  }
+}
 
 function bind() {
   if (STATE) { try { STATE.stop(); } catch (e) { /* 忽略：旧状态清理失败不影响新绑定 */ } STATE = null; }
@@ -59,7 +76,7 @@ function bind() {
     return out;
   }
   function pickVoice() {
-    var list = speechSynthesis.getVoices ? speechSynthesis.getVoices() : [];
+    var list = (VOICES_CACHE && VOICES_CACHE.length) ? VOICES_CACHE : (speechSynthesis.getVoices ? speechSynthesis.getVoices() : []);
     if (!list || !list.length) return null;
     var exact = String(lang).toLowerCase(), base = exact.split(/[-_]/)[0], matched = [];
     if (TS.voiceBy === 'name') {
@@ -141,6 +158,7 @@ function bind() {
 }
 
 export function init() {
+  ensureVoicesWarm();
   bind();
   if (!unloadBound) {
     unloadBound = true;

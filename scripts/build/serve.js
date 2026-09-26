@@ -36,22 +36,31 @@ function createServeModule(ctx) {
     }
     var MAINTENANCE = process.argv.indexOf('--maintenance') !== -1 || process.env.MAINTENANCE === '1';
     var MAINT_MSG = process.env.MAINTENANCE_MESSAGE || '本站正在维护中，请稍后再来。';
+    // features.maintenance：setRetryAfter=false 时维护响应不输出 Retry-After；retryAfter 为秒数（非法回退 3600）。
+    var maintCfg = (config.features && config.features.maintenance) || {};
+    var maintRetry = parseInt(maintCfg.retryAfter, 10);
+    if (!Number.isFinite(maintRetry) || maintRetry <= 0) maintRetry = 3600;
+    var maintHeaders = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' };
+    if (maintCfg.setRetryAfter !== false) maintHeaders['Retry-After'] = String(maintRetry);
     var maintPage = '<!DOCTYPE html><html lang="' + config.site.language + '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ' + MAINT_MSG + '</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:' + config.theme.colors.background + ';color:' + config.theme.colors.text + '}p{color:' + config.theme.colors.textSecondary + '}</style></head><body><main><h1>维护中</h1><p>' + MAINT_MSG + '</p></main></body></html>';
+    var applyRedirects = !(config.features && config.features.redirects && config.features.redirects.applyInServe === false);
     var REDIRECT_LIST = [];
-    try {
-      var rc = fs.readFileSync(path.join(distDir, '_redirects'), 'utf-8');
-      rc.split('\n').forEach(function(line) {
-        if (!line.trim()) return;
-        var parts = line.trim().split(/\s+/);
-        if (parts.length >= 3) REDIRECT_LIST.push({ from: parts[0], to: parts[1], status: parts[2] === '302' ? 302 : 301 });
-      });
-    } catch (e) { /* 忽略：serve 模式下 _redirects 不存在时按空规则处理 */ }
+    if (applyRedirects) {
+      try {
+        var rc = fs.readFileSync(path.join(distDir, '_redirects'), 'utf-8');
+        rc.split('\n').forEach(function(line) {
+          if (!line.trim()) return;
+          var parts = line.trim().split(/\s+/);
+          if (parts.length >= 3) REDIRECT_LIST.push({ from: parts[0], to: parts[1], status: parts[2] === '302' ? 302 : 301 });
+        });
+      } catch (e) { /* 忽略：serve 模式下 _redirects 不存在时按空规则处理 */ }
+    }
     var mime = { '.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.xml':'application/xml','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.gif':'image/gif','.ico':'image/x-icon','.txt':'text/plain','.mp4':'video/mp4','.webm':'video/webm','.avi':'video/x-msvideo','.mov':'video/quicktime','.mkv':'video/x-matroska','.mp3':'audio/mpeg','.wav':'audio/wav','.m4a':'audio/mp4','.ogg':'audio/ogg','.flac':'audio/flac','.pdf':'application/pdf','.csv':'text/csv','.zip':'application/zip','.7z':'application/x-7z-compressed','.rar':'application/x-rar-compressed','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf','.otf':'font/otf','.eot':'application/vnd.ms-fontobject' };
     var lastActivity = Date.now();
     var server = http.createServer(function(req, res) {
       lastActivity = Date.now();
       if (MAINTENANCE) {
-        res.writeHead(503, { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '3600', 'Cache-Control': 'no-store' });
+        res.writeHead(503, maintHeaders);
         res.end(maintPage);
         return;
       }

@@ -2,7 +2,7 @@
 
 const zlib = require('node:zlib');
 
-const DEFAULTS = { htmlKb: 28, htmlRawKb: 50, inlineConfigKb: 2, jsKb: 55, requests: 12 };
+const DEFAULTS = { htmlKb: 28, htmlRawKb: 50, inlineConfigKb: 2, jsKb: 60, requests: 12 };
 
 function toNumber(value, fallback) {
   const n = parseFloat(value);

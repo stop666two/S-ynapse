@@ -13,7 +13,7 @@ const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
-const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapPalette, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig } = require('../lib/feature-wiring');
+const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette } = require('../lib/feature-wiring');
 const { stableSerialize, pageCacheKey, hashTemplateDir } = require('../lib/incremental');
 const { pruneTo } = require('../lib/asset-cache');
 
@@ -224,8 +224,13 @@ function createPagesModule(ctx) {
     const seriesCfg = seriesConfig(config.features);
     const wordCfg = wordCountConfig(config.features);
     PRESERVE_AR = imagePreserveAspectRatio(config.features);
+    // analytics：构建期归一化并生成引导脚本（injectAt 决定模板输出位置；token 已在 loadConfig 解析优先级）。
+    const analyticsCfg = analyticsConfig(config.features);
+    const analyticsTag = buildAnalyticsTag(analyticsCfg, (config.site.webAnalytics && config.site.webAnalytics.token) || '');
     // W4 接线（lightbox/backToTop/heatmap/stats/mobile/contactPopup）：构建期归一化一次，供模板与 CSS 消费。
     const heatCfg = heatmapConfig(config.features);
+    const heatPalette = resolveHeatmapPalette(heatCfg);
+    if (heatPalette.warning) console.warn('  [WARN] ' + heatPalette.warning);
     const statsCfgW4 = statsConfig(config.features);
     const statsRawW4 = (config.features && config.features.stats) || {};
     return {
@@ -290,7 +295,7 @@ function createPagesModule(ctx) {
       contactPopupCfg: contactPopupConfig(config.features),
       // W4 接线：归档热力图（层数/图例/月份数字/tooltip）与统计卡（显隐/文案链/跳转）。
       heatmapCfg: heatCfg,
-      heatmapPalette: heatmapPalette(heatCfg.levels),
+      heatmapPalette: heatPalette.colors,
       heatmapLegendLevels: heatmapLegendLevels(heatCfg.levels),
       heatmapBucketLevel: heatmapBucketLevel,
       heatmapLegendLow: function(lang) { return heatmapLegendText(heatCfg, lang, 'low', uiText('archive.legendLow', '少', lang)); },
@@ -302,6 +307,9 @@ function createPagesModule(ctx) {
       statsLabel: function(lang, key, dict, fallbackKey) { return statsLabel(statsRawW4, lang, key, dict, fallbackKey); },
       // 主题暗色规范化（canonical 来源 theme.darkMode；模板早置脚本与按钮样式共用）。
       themeDarkMode: normalizeThemeDarkMode(config.theme && config.theme.darkMode),
+      // 云统计引导脚本（features.analytics）：injectAt 决定 head/body 输出位置，tag 为空时不输出。
+      analyticsCfg: analyticsCfg,
+      analyticsTag: analyticsTag,
       // 页脚快捷键提示按钮渲染门控（features.shortcuts.showHelpHint，默认 true）。
       showHelpHint: showHelpHint(config.features),
       searchProvider: (config.navigation && config.navigation.search && config.navigation.search.provider) || 'local',

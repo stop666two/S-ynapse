@@ -159,7 +159,8 @@ function createBuildContext(deps) {
     cspNonce: CSP_NONCE,
     bundleActive: BUNDLE_ACTIVE,
     applyHeaderHardening: (sec) => applyHeaderHardening(sec),
-    buildSitemapUrls
+    buildSitemapUrls,
+    recordBuildFailure: helpers.recordBuildFailure
   });
 
   // 静态资产与 PWA 模块（scripts/build/assets.js）：注入根路径与产物目录。

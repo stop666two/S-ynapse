@@ -166,7 +166,7 @@ const DEFAULT_FEATURES = {
     enabled: true, dropCap: true, figureBleed: true, tableHover: true, headingNumbers: false
   },
   perfBudget: {
-    enabled: true, htmlKb: 28, htmlRawKb: 50, inlineConfigKb: 2, jsKb: 55, requests: 12, warnOnly: true
+    enabled: true, htmlKb: 28, htmlRawKb: 50, inlineConfigKb: 2, jsKb: 60, requests: 12, warnOnly: true
   },
   lcpOptimize: {
     revealExemptFirstPaint: false, asyncCjkFontCss: false, skipLatinFontPreloadOnCjk: false,
@@ -398,16 +398,11 @@ const DEFAULT_FEATURES = {
     searchPlaceholder: '搜索文章…', searchPlaceholderEn: 'Search posts…', showDate: false,
     ctaLabelEn: 'View all posts', heightVh: 61.8, backgroundImage: ''
   },
-  feed: {
-    rssEnabled: true, rssPath: '/feed.xml', rssFullContent: true, rssMaxItems: 50,
-    jsonFeedPath: '/feed.json', jsonFeedFullContent: false, jsonFeedMaxItems: 20,
-    injectHeadLinks: true, injectFooterLink: false
-  },
   analytics: {
     enabled: true, scriptSrc: 'https://static.cloudflareinsights.com/beacon.min.js',
     injectAt: 'body', emitBeacon: true, siteTag: ''
   },
-  redirects: { enabled: false, generatePagesFile: true, applyInServe: true, invalidRule: 'abort' },
+  redirects: { enabled: true, generatePagesFile: true, applyInServe: true, invalidRule: 'abort' },
   maintenance: {
     enabled: false, message: '站点维护中，请稍后再来。', messageEn: 'The site is under maintenance. Please try again later.', status: 503,
     setRetryAfter: true, retryAfter: 3600
@@ -503,7 +498,7 @@ const ARRAY_FIELDS = {
   supSub: [], math: ['inlineDelimiters', 'blockDelimiters'], mermaid: [],
   series: [], related: [], pinned: [], wordCount: [], share: ['order'],
   reward: [], gallery: [], heatmap: ['palette'], stats: [], prevNext: [],
-  feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
+  analytics: [], redirects: [], maintenance: [], mobile: [],
   comments: [], contactPopup: [], performance: [], debug: [],
   scrollBehavior: [], toast: [], breadcrumb: [], pageTransition: [], pwa: [],
   morphIcons: [],

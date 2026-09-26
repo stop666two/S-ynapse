@@ -49,6 +49,8 @@ const FALLBACK = {
   },
   pathRestrictions: ["/admin/*"],
   forceHttps: true,
+  // 维护响应默认设置 Retry-After: 3600；正式产物由构建期按 features.maintenance 覆盖。
+  maintenance: { setRetryAfter: true, retryAfter: 3600 },
   headers: {
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",
@@ -77,10 +79,11 @@ function resolveWorkerConfig(config) {
   const cspConfig = cfg.csp || FALLBACK.csp;
   const blockedRules = Array.isArray(cfg.pathRestrictions) ? cfg.pathRestrictions : FALLBACK.pathRestrictions;
   const skipPaths = Array.isArray(rl.skipPaths) ? rl.skipPaths : DEFAULT_SKIP_PATHS;
-  return { rl, cspConfig, blockedRules, skipPaths };
+  const maintenance = cfg.maintenance && typeof cfg.maintenance === "object" ? cfg.maintenance : FALLBACK.maintenance;
+  return { rl, cspConfig, blockedRules, skipPaths, maintenance };
 }
 
-const { rl, cspConfig, blockedRules, skipPaths } = resolveWorkerConfig(CONFIG);
+const { rl, cspConfig, blockedRules, skipPaths, maintenance: maintenanceCfg } = resolveWorkerConfig(CONFIG);
 
 /**
  * 解析 Accept-Language，判断首选具体语言是否为英语（RFC 4647 基本过滤的简化实现）：
@@ -246,11 +249,15 @@ async function handleRequest(request, env) {
     log.info("maintenance_served", { path: url.pathname });
     const copy = maintenanceCopy(request.headers.get("Accept-Language"), env);
     const html = `<!DOCTYPE html><html lang="${copy.lang}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${copy.title}</title><style${copy.nonceAttr}>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f7fafc;color:#1a202c}h1{font-weight:700}p{color:#4a5568}</style></head><body><main><h1>${copy.heading}</h1><p>${copy.message}</p></main></body></html>`;
-    return edgeResponse(html, 503, {
+    const maintHeaders = {
       "Content-Type": "text/html; charset=utf-8",
-      "Retry-After": "3600",
       "Cache-Control": "no-store"
-    }, requestId);
+    };
+    // features.maintenance.setRetryAfter=false 时不输出 Retry-After；retryAfter 秒数由配置提供。
+    if (maintenanceCfg.setRetryAfter !== false) {
+      maintHeaders["Retry-After"] = String(maintenanceCfg.retryAfter || 3600);
+    }
+    return edgeResponse(html, 503, maintHeaders, requestId);
   }
 
   // HTTP→HTTPS redirect in production only (local dev uses HTTP)

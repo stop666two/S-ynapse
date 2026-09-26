@@ -141,13 +141,23 @@ function createConfigModule(ctx) {
       config.features = ctx.getDeepmerge().all([{}, config.features, overrideObj || {}], { arrayMerge: (target, source) => source });
       console.log('  [features-override] ' + path.relative(ctx.rootDir, ctx.featuresOverridePath).split(path.sep).join('/'));
     }
-    // Cloudflare Web Analytics token: explicit config wins, else env fallback.
+    // Cloudflare Web Analytics token 解析优先级（features.analytics）：siteTag（非空）> 站点配置 token
+    // > CF_WEB_ANALYTICS_TOKEN 环境变量。features.analytics.enabled=false 直接关闭注入。
     if (config.site && config.site.webAnalytics && config.site.webAnalytics.enabled) {
       const wa = config.site.webAnalytics;
-      if (!wa.token && process.env.CF_WEB_ANALYTICS_TOKEN) wa.token = process.env.CF_WEB_ANALYTICS_TOKEN;
-      if (!wa.token) {
-        console.log('  [WARN] webAnalytics.enabled=true but no token set (config token or CF_WEB_ANALYTICS_TOKEN); beacon will not be injected');
+      const anFeatures = (config.features && config.features.analytics) || {};
+      const siteTag = anFeatures.siteTag == null ? '' : String(anFeatures.siteTag).trim();
+      if (anFeatures.enabled === false) {
         wa.enabled = false;
+        console.log('  [INFO] webAnalytics 已按 features.analytics.enabled=false 关闭');
+      } else if (siteTag) {
+        wa.token = siteTag;
+      } else {
+        if (!wa.token && process.env.CF_WEB_ANALYTICS_TOKEN) wa.token = process.env.CF_WEB_ANALYTICS_TOKEN;
+        if (!wa.token) {
+          console.log('  [WARN] webAnalytics.enabled=true but no token set (features.analytics.siteTag, config token or CF_WEB_ANALYTICS_TOKEN); beacon will not be injected');
+          wa.enabled = false;
+        }
       }
     }
     // SITE_URL 环境变量（CI / 预览部署）：显式覆盖配置中的站点地址，

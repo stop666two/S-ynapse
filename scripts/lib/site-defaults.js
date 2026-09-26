@@ -32,7 +32,7 @@ const DEFAULT_CONFIG = {
       paginationNext: '下一页',
       prevPostLabel: '上一篇',
       nextPostLabel: '下一篇',
-      rss: { enabled: false, path: '/feed.xml', fullContent: true, maxItems: 50, jsonFeed: { enabled: false, path: '/feed.json', fullContent: false, maxItems: 20 } },
+      rss: { enabled: false, path: '/feed.xml', fullContent: true, maxItems: 50, injectHeadLinks: true, jsonFeed: { enabled: false, path: '/feed.json', fullContent: false, maxItems: 20 } },
       seo: {
         metaKeywords: [], metaKeywordsEn: [], metaRobots: 'index, follow',
         ogImage: '', ogType: 'website',

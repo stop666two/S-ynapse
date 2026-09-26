@@ -7,9 +7,11 @@ const fs = require('fs');
 const path = require('path');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { trimCspDirectives } = require('../lib/csp');
+const { normalizeRedirectRules } = require('../lib/redirect-rules');
 
 function createSecurityFilesModule(ctx) {
   const { distDir, cspNonce, applyHeaderHardening, buildSitemapUrls, bundleActive } = ctx;
+  const recordBuildFailure = ctx.recordBuildFailure;
 
 // The _headers file sets CSP directives, HTTP security headers, and custom headers
 // from the security.json5 configuration. Applied to all paths (/*).
@@ -18,29 +20,32 @@ function createSecurityFilesModule(ctx) {
 // Each entry: {from, to, permanent} — permanent=true → 301, false → 302.
 // Supports wildcard syntax (e.g. "/old/* /new/:splat 301") via CF Pages native matching.
 function generateRedirects(config, customPages) {
+  const rCfg = (config.features && config.features.redirects) || {};
+  // features.redirects.enabled=false 或 generatePagesFile=false：不产出 _redirects（语言根别名一并跳过）。
+  if (rCfg.enabled === false || rCfg.generatePagesFile === false) {
+    console.log('  [SKIP] _redirects generation disabled (features.redirects.enabled/generatePagesFile)');
+    return [];
+  }
   const list = config.site.redirects;
   const lines = [];
-  const valid = [];
+  // features.redirects.enabled=false：跳过 site.json5 自定义规则，仅保留框架语言/别名规则。
+  const customRules = rCfg.enabled === false ? [] : list;
+  const parsed = normalizeRedirectRules(customRules, rCfg.invalidRule);
+  const valid = parsed.valid;
 
-  const langs = (config.site.languages && config.site.languages.length) ? config.site.languages : ['zh'];
-  for (const r of list) {
-    if (!r || !r.from || !r.to) {
-      console.warn('  [WARN] Skipped invalid redirect entry (missing from/to): ' + JSON.stringify(r || null));
-      continue;
+  for (const inv of parsed.invalid) {
+    const message = 'Invalid redirect entry (missing from/to or bad target): ' + JSON.stringify(inv.rule || null) + ' — ' + inv.reason;
+    if (parsed.abortOnInvalid) {
+      console.error('  [ERROR] ' + message);
+      recordBuildFailure('redirect', message);
+    } else {
+      console.warn('  [WARN] ' + message);
     }
-    // 清洗重定向规则：控制字符（\x00-\x1f 与 \x7f）混入 from/to 会造成规则解析歧义，必须剔除
-    // eslint-disable-next-line no-control-regex
-    const from = String(r.from).replace(/[\s\u0000-\u001f\u007f]+/g, '');
-    // eslint-disable-next-line no-control-regex
-    const to = String(r.to).replace(/[\s\u0000-\u001f\u007f]+/g, '');
-    if (!from.startsWith('/') || !/^(?:\/|https?:\/\/)/i.test(to)) {
-      console.warn('  [WARN] Skipped invalid redirect entry (from must start with "/", to must be a path or http(s) URL): ' + JSON.stringify(r));
-      continue;
-    }
-    const status = r.permanent === false ? 302 : 301;
-    valid.push({ from, to, status });
-    lines.push(`${from} ${to} ${status}`);
   }
+  for (const r of valid) {
+    lines.push(`${r.from} ${r.to} ${r.status}`);
+  }
+  const langs = (config.site.languages && config.site.languages.length) ? config.site.languages : ['zh'];
   if (langs.length > 0 && langs[0] !== 'en') {
     if (!lines.some(l => l.startsWith('/ '))) {
       lines.unshift(`/ /${langs[0]}/ 302`);

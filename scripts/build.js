@@ -14,6 +14,7 @@ const { computeRelatedArticles } = require('./lib/related');
 const { getAllFiles } = require('./build/fs-utils');
 const { createBuildContext } = require('./build/context');
 const { computeIncrementalContext } = require('./lib/incremental');
+const { debugConfig, configSummary } = require('./lib/feature-wiring');
 
 // 编排器活值（build() 函数体直接读写；经 getter/setter 注入构建上下文，保持活值语义）：
 //   BUILD_ERRORS   构建错误收集器（build() 赋值；helpers 记录构建失败时读取）
@@ -55,7 +56,7 @@ const {
   buildSiteCss, writeRuntimeConfig, buildPageData, processCustomPages, generatePages,
   buildCjkFonts,
   generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, generateSearchIndex, generatePagefindIndex,
-  checkPerfBudget, generateBuildReport, generateRedirects, buildCspTrimContext, generateSecurityHeaders,
+  checkPerfBudget, checkPerformanceWarnings, generateBuildReport, generateRedirects, buildCspTrimContext, generateSecurityHeaders,
   minifyAll, cacheBust, copyJsAssets, copyRuntimeBootstrap, copyVendorAssets, generatePWA,
   startServer
 } = ctx;
@@ -109,6 +110,17 @@ async function build() {
     if (!validateConfig(config)) {
       abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
     }
+    // 开发助手（features.debug）：默认全部关闭，不影响正常输出。
+    const debugCfg = debugConfig(config.features);
+    const debugMark = function (label) {
+      if (debugCfg.verbose) console.log('  [DEBUG] ' + label + '（+' + (Date.now() - startTime) + 'ms）');
+    };
+    if (debugCfg.dumpConfig) {
+      console.log('\n[DEBUG] 配置摘要（解析合并后；敏感值仅显示是否已设置）:');
+      for (const line of configSummary(config)) console.log('  ' + line);
+      console.log('');
+    }
+    debugMark('配置加载与校验完成');
     // 增量构建上下文（features.incrementalBuild）：watch（incrementalBuild.watch）或显式 --incremental 时
     // 启用页面级复用；复用依赖既有 dist 产物，故在内存中暂时关闭 cleanDist（不写回配置文件）。
     INCREMENTAL_CTX = computeIncrementalContext(config.features, { argv: process.argv, watchMode: WATCH_MODE });
@@ -150,6 +162,7 @@ async function build() {
     if (scheduledCount > 0) console.warn('  [INFO] ' + scheduledCount + ' future-dated article(s) scheduled; excluded until their publish date.');
     const tags = collectTags(articles);
     const categories = collectCategories(articles);
+    debugMark('文章解析与媒体优化完成');
     if (config.site.build.relatedArticles !== false) computeRelatedArticles(getPublished(articles), (config.features && config.features.related) || {});
     const pagesContent = processPagesContent();
     if (config.theme.articleFooter && config.theme.articleFooter.enabled && config.theme.articleFooter.source) {
@@ -191,6 +204,7 @@ async function build() {
     if (generatedHtmlCount === 0) {
       throw new Error('页面生成结果为空：dist/ 下没有产出任何 HTML（模板渲染可能整体失败，请检查 templates/*.ejs 的语法与变量）');
     }
+    debugMark('页面生成完成（' + generatedHtmlCount + ' 个 HTML）');
     // 根 404：以中文 404 为基底；若存在英文 404 页，则注入语言自适应跳转（en 访客 → /en/404.html）。
     // 该脚本不经过 renderPage 的 nonce 注入链，必须在此显式使用同一枚构建期 nonce，否则会被 CSP 拦截。
     const zh404 = path.join(DIST_DIR, 'zh', '404.html');
@@ -227,7 +241,7 @@ async function build() {
     generateSecurityHeaders(config);
     generateRedirects(config, customPages);
     if (generateWorkerSecurity && !OUTPUT_DIR_RESOLVED.custom) {
-      generateWorkerSecurity(config.security, path.join(ROOT, 'workers', 'security-config.js'), buildCspTrimContext(config));
+      generateWorkerSecurity(config.security, path.join(ROOT, 'workers', 'security-config.js'), buildCspTrimContext(config), config.features);
     } else if (generateWorkerSecurity) {
       console.log('  [INFO] 自定义输出目录构建：跳过 workers/security-config.js 写入（避免污染部署配置的 CSP nonce）');
     }
@@ -237,6 +251,7 @@ async function build() {
     await minifyAll(config);
     await cacheBust(config);
     await generatePagefindIndex(config);
+    debugMark('压缩与缓存指纹完成（构建产物就绪）');
     if (hooks && hooks.postBuild) {
       await hooks.postBuild(config, {
         articles: articles.length,
@@ -256,6 +271,16 @@ async function build() {
       generateBuildReport(config, articles, tags, categories, customPages, elapsed, policyResult);
     }
     checkPerfBudget(config);
+    checkPerformanceWarnings(config, (Date.now() - startTime) / 1000);
+    // features.debug.listPages：构建末输出渲染页面清单（相对产物根路径，按字典序）。
+    if (debugCfg.listPages) {
+      const pageList = getAllFiles(DIST_DIR)
+        .filter((f) => f.endsWith('.html'))
+        .map((f) => path.relative(DIST_DIR, f).split(path.sep).join('/'))
+        .sort();
+      console.log('\n[DEBUG] 页面清单（' + pageList.length + '）:');
+      for (const p of pageList) console.log('  - ' + p);
+    }
     if (buildErrors.hasErrors) {
       console.error('\n[FAILURES] ' + buildErrors.entries.length + ' build failure(s) recorded:');
       console.error(formatFailures(buildErrors.entries));

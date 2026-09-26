@@ -1,4 +1,6 @@
 'use strict';
+// 配置键 → 运行时/模板值的归一化函数集合（构建期纯函数，单测覆盖在 scripts/config-wiring.test.js）。
+const { escapeJsonForScript } = require('./utils');
 
 // 配置接线纯函数（第三轮配置闭环 W1）：
 // 供构建期（scripts/build/**.js、templates/*.ejs 经 baseData 注入）与单测复用；
@@ -724,13 +726,18 @@ function heatmapLevelCount(raw) {
   return Math.min(HEATMAP_LEVEL_MAX, Math.max(HEATMAP_LEVEL_MIN, n));
 }
 
-// heatmap 配置归一化：levels 钳制 2~7；showLegend/showMonthNumbers 默认 true；文案键保留原值（空串交由回退链）。
+// heatmap 配置归一化：levels 钳制 2~7；showLegend/showMonthNumbers 默认 true；文案键保留原值（空串交由回退链）；
+// scaling='fixed' 时消费 palette（长度须 >= levels，见 resolveHeatmapPalette），'auto'（默认）忽略 palette。
 function heatmapConfig(features) {
   const H = (features && features.heatmap) || {};
   const str = function (v) { return v == null ? '' : String(v); };
   return {
     enabled: H.enabled !== false,
     levels: heatmapLevelCount(H.levels),
+    scaling: H.scaling === 'fixed' ? 'fixed' : 'auto',
+    palette: Array.isArray(H.palette)
+      ? H.palette.filter(function (x) { return typeof x === 'string' && x.trim() !== ''; }).map(function (x) { return x.trim(); })
+      : [],
     showLegend: H.showLegend !== false,
     legendLow: str(H.legendLow),
     legendLowEn: str(H.legendLowEn),
@@ -865,6 +872,110 @@ function contactCopyText(features, lang, dict) {
   return v || (dict == null ? '' : String(dict));
 }
 
+// 解析热力色阶：scaling='fixed' 且 palette 长度 >= levels 时使用固定色表（取前 levels 项）；
+// 长度不足/非法时回退 auto 色阶并返回构建期提示（warning 由调用方打印一次）。
+function resolveHeatmapPalette(cfg) {
+  const c = cfg || {};
+  const levels = heatmapLevelCount(c.levels);
+  const palette = Array.isArray(c.palette) ? c.palette : [];
+  if (c.scaling === 'fixed') {
+    if (palette.length >= levels) return { colors: palette.slice(0, levels), warning: '' };
+    return {
+      colors: heatmapPalette(levels),
+      warning: 'features.heatmap.scaling=fixed 但 palette 仅 ' + palette.length + ' 色（需要 ' + levels + '），已回退 auto 色阶'
+    };
+  }
+  return { colors: heatmapPalette(levels), warning: '' };
+}
+
+// analytics 配置归一化：injectAt 枚举（head|body，非法回退 body）；emitBeacon 默认 true；
+// scriptSrc 空值回退 Cloudflare 官方 beacon；siteTag 为站点级 token 覆盖来源（非空优先，
+// 优先级解析在 scripts/build/config.js，见 config-reference §3.30）。
+function analyticsConfig(features) {
+  const A = (features && features.analytics) || {};
+  const src = A.scriptSrc == null ? '' : String(A.scriptSrc).trim();
+  return {
+    enabled: A.enabled !== false,
+    scriptSrc: src || 'https://static.cloudflareinsights.com/beacon.min.js',
+    injectAt: A.injectAt === 'head' ? 'head' : 'body',
+    emitBeacon: A.emitBeacon !== false,
+    siteTag: A.siteTag == null ? '' : String(A.siteTag).trim()
+  };
+}
+
+// 生成 Cloudflare Web Analytics 引导脚本（内联 <script> 标签串）：token 为空/未启用时返回空串；
+// emitBeacon=false 时不输出 data-cf-beacon JSON（脚本仍加载，由 beacon 自行处理无 token 场景）。
+// nonce 由 renderPage 的 injectScriptNonce 统一注入，本函数不写 nonce 属性。
+function buildAnalyticsTag(cfg, token) {
+  const a = cfg || {};
+  const t = token == null ? '' : String(token).trim();
+  if (a.enabled === false || !t) return '';
+  const src = escapeJsonForScript(a.scriptSrc || 'https://static.cloudflareinsights.com/beacon.min.js');
+  const beaconInit = a.emitBeacon === false ? '' : 'var cfg=' + escapeJsonForScript({ token: t }) + ';';
+  const beaconAttr = a.emitBeacon === false ? '' : 'e.setAttribute("data-cf-beacon",JSON.stringify(cfg));';
+  return '<script>(function(){var src=' + src + ';' + beaconInit +
+    'function go(){if(document.getElementById("cfBeacon"))return;var e=document.createElement("script");e.defer=true;e.id="cfBeacon";e.src=src;' +
+    beaconAttr + 'document.head.appendChild(e)}if(document.prerendering){document.addEventListener("prerenderingchange",go,{once:true})}else{go()}})();</script>';
+}
+
+// 构建性能阈值告警（features.performance.warning*）：返回 [WARN] 文案数组，仅提示不阻断构建；
+// 预算门禁由 features.perfBudget 负责（warnOnly=false 时阻断），两者职责与日志前缀均不同。
+function performanceWarnings(perf, stats, elapsedMs) {
+  const p = perf || {};
+  const s = stats || {};
+  const pos = function (v) { return Number.isFinite(+v) && +v > 0 ? +v : 0; };
+  const out = [];
+  const js = pos(p.warningJsKb);
+  if (js && s.jsKb > js) out.push('JS 体积 ' + s.jsKb.toFixed(1) + 'KB 超过 performance.warningJsKb=' + js + 'KB');
+  const html = pos(p.warningHtmlKb);
+  if (html && s.htmlRawMaxKb > html) out.push('最大 HTML 原始体积 ' + s.htmlRawMaxKb.toFixed(1) + 'KB 超过 performance.warningHtmlKb=' + html + 'KB');
+  const img = pos(p.warningImageKb);
+  if (img && Array.isArray(s.largeImages) && s.largeImages.length) {
+    const top = s.largeImages[0];
+    out.push(s.largeImages.length + ' 张图片超过 performance.warningImageKb=' + img + 'KB（最大 ' + top.kb.toFixed(1) + 'KB：' + top.path + '）');
+  }
+  const ms = pos(p.warningBuildMs);
+  if (ms && elapsedMs > ms) out.push('构建耗时 ' + Math.round(elapsedMs) + 'ms 超过 performance.warningBuildMs=' + ms + 'ms');
+  return out;
+}
+
+// debug 开关归一化（features.debug）：默认全部关闭，构建日志行为不受影响。
+function debugConfig(features) {
+  const d = (features && features.debug) || {};
+  return {
+    verbose: d.verbose === true,
+    listPages: d.listPages === true,
+    dumpConfig: d.dumpConfig === true
+  };
+}
+
+// 解析后配置摘要（features.debug.dumpConfig）：输出顶层模块与键数、关键开关状态；
+// 敏感字段（token/secret/password）只输出是否已设置，绝不输出明文。
+function configSummary(config) {
+  const cfg = config && typeof config === 'object' ? config : {};
+  const out = [];
+  const sensitive = /(token|secret|password|credential|apikey|api_key)/i;
+  for (const key of Object.keys(cfg).sort()) {
+    const v = cfg[key];
+    if (v === null || typeof v !== 'object') {
+      out.push(key + ' = ' + (sensitive.test(key) ? (v ? '***' : '') : JSON.stringify(v)));
+      continue;
+    }
+    if (Array.isArray(v)) { out.push(key + ' = [' + v.length + ' 项]'); continue; }
+    if (key === 'features') { out.push('features = ' + Object.keys(v).length + ' 个模块'); continue; }
+    const parts = [];
+    for (const k of Object.keys(v).sort()) {
+      const val = v[k];
+      if (sensitive.test(k)) parts.push(k + '=' + (val ? '***' : ''));
+      else if (val === null || typeof val !== 'object') parts.push(k + '=' + JSON.stringify(val));
+      else if (Array.isArray(val)) parts.push(k + '=[' + val.length + ' 项]');
+      else parts.push(k + '={' + Object.keys(val).length + '}');
+    }
+    out.push(key + ' = ' + (parts.length ? parts.join(', ') : '(空)'));
+  }
+  return out;
+}
+
 module.exports = {
   normalizeThemeDarkMode,
   normalizeMarkClass,
@@ -925,5 +1036,11 @@ module.exports = {
   statsLabel,
   mobileConfig,
   contactPopupConfig,
-  contactCopyText
+  contactCopyText,
+  resolveHeatmapPalette,
+  analyticsConfig,
+  buildAnalyticsTag,
+  performanceWarnings,
+  debugConfig,
+  configSummary
 };

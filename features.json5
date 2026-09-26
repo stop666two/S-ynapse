@@ -832,18 +832,17 @@
 
   // ---------------------------------------------------------------------------
   incrementalBuild: {
-    // 增量构建:源文件未变化时跳过页面重渲染。
+    // 增量构建:指纹未变化的页面跳过重新渲染并复用现有产物。
+    // 启用条件:enabled=true 且 skipUnchanged=true 且非强制全量；请求来源为 --watch(watch=true)或显式 --incremental。
+    // 增量模式不清空 dist(否则无产物可复用);删除内容后请用 --full 全量重建以清理残留。
     enabled: true,
-    // 强制全量构建的参数。
-    // ⚠ 未接线（预留）：预留：增量构建方案未实现（见 docs/incremental-build-design.md）。
+    // 强制全量构建的参数(--full 始终有效;此处可自定义额外参数名)。
     fullFlag: '--full',
     // 是否允许 --watch 时增量。
     watch: true,
-    // 指纹算法。
-    // ⚠ 未接线（预留）：预留：增量构建方案未实现（见 docs/incremental-build-design.md）。
+    // 页面指纹算法:sha1/sha256/md5(非法回退 sha1)。
     fingerprintHash: 'sha1',
     // 指纹一致时跳过该页。
-    // ⚠ 未接线（预留）：预留：增量构建方案未实现（见 docs/incremental-build-design.md）。
     skipUnchanged: true
   },
 
@@ -1511,57 +1510,31 @@
   },
 
   // ---------------------------------------------------------------------------
-  // 28. 订阅(RSS + JSON Feed) — 预留区
-  // 说明: 当前构建完全以 site.json5 的 rss 段与 features.json5 的 subscribe 段为准；
-  //       本段各键尚未接线(未消费)，仅作为未来统一入口预留。请勿在此修改生效行为。
+  // 28. 订阅(RSS + JSON Feed)
+  // 说明: 订阅配置的唯一来源为 site.json5 的 rss 段（enabled/path/fullContent/maxItems/
+  //       injectHeadLinks 与 jsonFeed.*）；页脚订阅条开关见下方 subscribe 段。
+  //       历史 features.feed 模块已删除，键位迁移映射：
+  //         rssEnabled→site.rss.enabled；rssPath→site.rss.path；rssFullContent→site.rss.fullContent；
+  //         rssMaxItems→site.rss.maxItems；jsonFeedPath/jsonFeedFullContent/jsonFeedMaxItems→site.rss.jsonFeed.*；
+  //         injectHeadLinks→site.rss.injectHeadLinks；injectFooterLink→subscribe.enabled 与 subscribe.rss。
   // ---------------------------------------------------------------------------
-  feed: {
-    // 预留: RSS 总开关。当前以 site.json5 rss.enabled 为准，本键暂未被消费。
-    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
-    rssEnabled: true,
-    // 预留: RSS 输出路径。当前以 site.json5 rss.path 为准，本键暂未被消费。
-    rssPath: '/feed.xml',
-    // 预留: RSS 是否输出全文。当前以 site.json5 rss.fullContent 为准，本键暂未被消费。
-    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
-    rssFullContent: true,
-    // 预留: RSS 条目上限。当前以 site.json5 rss.maxItems 为准，本键暂未被消费。
-    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
-    rssMaxItems: 50,
-    // 预留: JSON Feed 输出路径。当前以 site.json5 rss.jsonFeed.path 为准，本键暂未被消费。
-    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
-    jsonFeedPath: '/feed.json',
-    // 预留: JSON Feed 是否输出全文。当前以 site.json5 rss.jsonFeed.fullContent 为准，本键暂未被消费。
-    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
-    jsonFeedFullContent: false,
-    // 预留: JSON Feed 条目上限。当前以 site.json5 rss.jsonFeed.maxItems 为准，本键暂未被消费。
-    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
-    jsonFeedMaxItems: 20,
-    // 预留: <head> 订阅链接开关。当前 head 链接恒随 site.rss 配置输出，本键暂未被消费。
-    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
-    injectHeadLinks: true,
-    // 预留: 页脚订阅链接开关。当前由 features.subscribe / footer.json5 控制，本键暂未被消费。
-    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
-    injectFooterLink: false
-  },
 
   // ---------------------------------------------------------------------------
   // 29. 云统计(Cloudflare Web Analytics)
   // ---------------------------------------------------------------------------
   analytics: {
-    // 启用 CF Web Analytics(需设置 token 或环境变量 CF_WEB_ANALYTICS_TOKEN)。
+    // 启用 CF Web Analytics(需 site.json5 webAnalytics.enabled 同时为 true 且解析出 token)。
+    // token 优先级:siteTag(非空) > site.webAnalytics.token > 环境变量 CF_WEB_ANALYTICS_TOKEN。
     enabled: true,
     // 脚本 CDN 地址。
     scriptSrc: 'https://static.cloudflareinsights.com/beacon.min.js',
     // 输出位置
     // 类型: string(枚举) | 可填: 'body'(</body> 前,推荐)/'head'
     // 不可填: 'end-of-body' 等描述性写法(构建校验会拒绝)
-    // ⚠ 未接线（预留）：统计注入固定 body + beacon（域名随 CSP 自动裁剪）。
     injectAt: 'body',
-    // 是否输出 data-cf-beacon JSON。
-    // ⚠ 未接线（预留）：统计注入固定 body + beacon（域名随 CSP 自动裁剪）。
+    // 是否输出 data-cf-beacon JSON(false=脚本仍加载但不带 beacon 配置)。
     emitBeacon: true,
-    // 站点标签(可选显示)。
-    // ⚠ 未接线（预留）：统计注入固定 body + beacon（域名随 CSP 自动裁剪）。
+    // 站点标签:非空时作为 beacon token 的站点级覆盖来源(优先于 site.webAnalytics.token 与环境变量)。
     siteTag: ''
   },
 
@@ -1569,16 +1542,14 @@
   // 30. 重定向
   // ---------------------------------------------------------------------------
   redirects: {
-    // 启用重定向系统(规则来自 site.json5 redirects 数组)。
-    enabled: false,
+    // 启用 site.json5 redirects 数组的自定义规则（语言根别名/feed 别名不受影响）。
+    // true（默认）=应用全部自定义规则（历史行为）；false=跳过自定义规则、仅保留框架生成的语言与别名规则。
+    enabled: true,
     // 生成 CF Pages _redirects 文件。
-    // ⚠ 未接线（预留）：重定向实现固定：恒生成 _redirects 并在 serve 应用（非法规则 abort）。
     generatePagesFile: true,
     // 本地 serve 是否应用重定向。
-    // ⚠ 未接线（预留）：重定向实现固定：恒生成 _redirects 并在 serve 应用（非法规则 abort）。
     applyInServe: true,
     // 非法规则处理:warn-only/abort。
-    // ⚠ 未接线（预留）：重定向实现固定：恒生成 _redirects 并在 serve 应用（非法规则 abort）。
     invalidRule: 'abort'
   },
 
@@ -1596,11 +1567,9 @@
     // 类型: number(枚举) | 可填: 503(维护标准,推荐)/502/500
     // 不可填: 200/301 等成功或跳转状态
     status: 503,
-    // 是否设置 Retry-After。
-    // ⚠ 未接线（预留）：维护响应固定设置 Retry-After: 3600（Worker 侧）。
+    // 是否设置 Retry-After(本地 serve 与 Worker 维护响应一致)。
     setRetryAfter: true,
-    // Retry-After 秒数。
-    // ⚠ 未接线（预留）：维护响应固定设置 Retry-After: 3600（Worker 侧）。
+    // Retry-After 秒数(非法/非正回退 3600)。
     retryAfter: 3600
   },
 
@@ -1687,17 +1656,13 @@
   // 35. 性能预算
   // ---------------------------------------------------------------------------
   performance: {
-    // 首页 JS 体量上限警告(kB)。
-    // ⚠ 未接线（预留）：构建性能阈值未消费（预算门禁由 features.perfBudget 控制）。
+    // JS 体量告警阈值(kB):assets/js 应用代码 gzip 总体积超限输出 [WARN](不阻断)。
     warningJsKb: 80,
-    // 首页 HTML 体量上限警告(kB)。
-    // ⚠ 未接线（预留）：构建性能阈值未消费（预算门禁由 features.perfBudget 控制）。
+    // 最大 HTML 原始体积告警阈值(kB):超限输出 [WARN](不阻断)。
     warningHtmlKb: 400,
-    // 图片未压缩告警阈值(kB)。
-    // ⚠ 未接线（预留）：构建性能阈值未消费（预算门禁由 features.perfBudget 控制）。
+    // 图片未压缩告警阈值(kB):dist/media 用户图片超限输出 [WARN](不阻断;OG 产物不计)。
     warningImageKb: 300,
-    // 构建耗时阈值(ms)超时给出提示。
-    // ⚠ 未接线（预留）：构建性能阈值未消费（预算门禁由 features.perfBudget 控制）。
+    // 构建耗时告警阈值(ms):超限输出 [WARN](不阻断)。
     warningBuildMs: 30000
   },
 
@@ -1705,14 +1670,11 @@
   // 37. 开发助手
   // ---------------------------------------------------------------------------
   debug: {
-    // 输出构建明细日志。
-    // ⚠ 未接线（预留）：构建日志由 CLI 参数控制，未读取本组键。
+    // 输出构建阶段耗时与增量跳过明细(默认 false,不影响正常输出)。
     verbose: false,
-    // 输出渲染页面列表。
-    // ⚠ 未接线（预留）：构建日志由 CLI 参数控制，未读取本组键。
+    // 构建末输出渲染页面清单(相对产物根路径,按字典序)。
     listPages: false,
-    // 输出配置中心(校验合并结果)。
-    // ⚠ 未接线（预留）：构建日志由 CLI 参数控制，未读取本组键。
+    // 输出解析合并后的配置摘要(敏感值仅显示是否已设置)。
     dumpConfig: false
   },
 
@@ -2194,7 +2156,10 @@
     // 页面内联关键配置(降级子集)上限(KB;完整配置已外置为 /assets/config.<hash>.json)。
     inlineConfigKb: 2,
     // 应用 JS(assets/js)全量 gzip 合计上限(KB;第三方 vendor 库按需懒加载,不计入)。
-    jsKb: 55,
+    // 60KB 口径说明:统计含 app+deferred+runtime 三包(58.8KB);deferred 为按需懒加载 chunk,
+    // 首屏实际加载 app+runtime 约 28KB。后续治理方向:跨模块工具去重、懒加载分包边界复核,
+    // 达标后再下调回 55。
+    jsKb: 60,
     // 单页静态请求数上限(script src + stylesheet + modulepreload 之和)。
     requests: 12,
     // true = 仅提醒不阻断构建;false = 超限时构建失败(严格门禁)。

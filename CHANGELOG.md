@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **serve 看门狗绝对时限（防任务取消遗留孤儿）**：在父进程监督之外新增 `SYNAPSE_SERVE_MAX_MS` 绝对寿命上限，到时无条件退出——兜底「父进程 PID 被复用」与「监督脚本本身被中断（如任务取消）」两类监督失效场景；`.tmp-scripts` 25 个带服务脚本统一注入 30 分钟上限；实测 2 秒上限自动退出且端口释放，看门狗用例 3/3 通过 — `scripts/build/serve.js`
+
 - **搜索页计数服务端本地化（残余清理）**：搜索页结果计数原先用运行时 `__T` 两次拼接键值，英文页因字典时序回退为中文、且 `foundCount` 的 `{count}` 占位符直接可见；现改为服务端 `ui('search.foundCount')` 模板串 + `{count}` 替换，中英渲染均为成句文案 — `templates/search.ejs`
 
 - **根 404 语言自适应（残余清理）**：`_redirects` 不再把 `/404.html` 全局 302 到 `/zh/404.html`；根 404 由构建期注入语言自适应脚本（en 访客跳 `/en/404.html`，尊重 `s-ss-lang` 语言锁），中文访客保持在根 404 不重定向；构建 smoke 新增两条产物断言 — `scripts/build.js` + `scripts/build/security-files.js` + `scripts/build-smoke.test.js`

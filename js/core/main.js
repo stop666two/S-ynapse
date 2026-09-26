@@ -7,6 +7,7 @@ import { init as navigationInit } from '../domains/core/navigation.js';
 import { init as i18nInit } from '../domains/core/i18n.js';
 import { init as announcementInit } from '../domains/core/announcement.js';
 import { init as readPositionInit } from '../domains/core/read-position.js';
+import { init as anchorStabilizeInit } from '../domains/core/anchor-stabilize.js';
 import { init as tocInit } from '../domains/core/toc.js';
 import { init as readingInit } from '../domains/core/reading.js';
 import { init as motionInit } from '../domains/core/motion.js';
@@ -81,7 +82,7 @@ const idleQueue = [
 
 const criticalQueue = [
   () => themeInit(), () => navigationInit(), () => i18nInit(), () => announcementInit(),
-  () => readPositionInit(), () => tocInit(), () => readingInit(), () => motionInit(),
+  () => readPositionInit(), () => anchorStabilizeInit(), () => tocInit(), () => readingInit(), () => motionInit(),
   () => imageLazyInit(), () => seamlessNavInit(), () => pageTransitionInit(), () => vtNamesInit(),
   () => externalLinkInit(), () => readingModeInit(), () => codeBlockInit(), () => softNavInit()
 ];

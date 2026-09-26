@@ -164,6 +164,37 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     assert.ok(siteCssFile, 'hashed site css bundle must exist');
     const siteCss = fs.readFileSync(path.join(cssDir, siteCssFile), 'utf-8');
     assert.ok(/--ff-d:[^;]*(Georgia|Songti)/.test(siteCss), 'display font stack must resolve to the editorial serif stack');
+    // 构建期图片定尺寸（CLS 修复）：manifest 图片（data-iw 标记，含 <picture> 内 img）必须带
+    // width/height，供浏览器解码前预留宽高比；头图/卡片图/画廊图同源断言在各自页面。
+    const articlePage = ['long-stress', 'code-showcase'].map((s) => path.join(tmpDir, 'zh', s, 'index.html')).find((f) => fs.existsSync(f));
+    assert.ok(articlePage, 'a manifest-image article page (long-stress/code-showcase) must exist');
+    const articleHtml = fs.readFileSync(articlePage, 'utf-8');
+    const bodyImgs = (articleHtml.match(/<img\b[^>]*>/g) || []).filter((t) => t.includes('data-iw='));
+    assert.ok(bodyImgs.length >= 1, 'article page must render at least one manifest image');
+    for (const tag of bodyImgs) {
+      assert.ok(/\bwidth="?\d+/.test(tag) && /\bheight="?\d+/.test(tag),
+        'manifest image must carry build-time width/height (CLS fix): ' + tag.slice(0, 160));
+    }
+    const featuredImg = articleHtml.match(/<img[^>]*post-featured-image[^>]*>/);
+    assert.ok(featuredImg, 'article page must render the featured image');
+    assert.ok(/\bwidth="?\d+/.test(featuredImg[0]) && /\bheight="?\d+/.test(featuredImg[0]),
+      'featured image must carry build-time width/height (CLS fix): ' + featuredImg[0].slice(0, 160));
+    const cardHtml = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');
+    const cardImg = cardHtml.match(/<img[^>]*post-card-image[^>]*>/);
+    if (cardImg) {
+      assert.ok(/\bwidth="?\d+/.test(cardImg[0]) && /\bheight="?\d+/.test(cardImg[0]),
+        'card image must carry build-time width/height (CLS fix): ' + cardImg[0].slice(0, 160));
+    }
+    const galleryPage = path.join(tmpDir, 'zh', 'gallery', 'index.html');
+    if (fs.existsSync(galleryPage)) {
+      const galleryHtml = fs.readFileSync(galleryPage, 'utf-8');
+      const galleryBlock = (galleryHtml.match(/<figure class="gallery-item">[\s\S]*?<\/figure>/g) || [])[0];
+      const galleryImg = galleryBlock ? (galleryBlock.match(/<img\b[^>]*>/) || [])[0] : null;
+      if (galleryImg) {
+        assert.ok(/\bwidth="?\d+/.test(galleryImg) && /\bheight="?\d+/.test(galleryImg),
+          'gallery image must carry build-time width/height (CLS fix): ' + galleryImg.slice(0, 160));
+      }
+    }
   });
 
   it('bad content blocks the build and leaves previous output untouched', () => {

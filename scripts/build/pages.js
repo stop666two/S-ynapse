@@ -20,27 +20,47 @@ function createPagesModule(ctx) {
 
   // 卡片（首页/标签列表）图片属性构造：从媒体 manifest 读取原格式多尺寸变体生成 srcset，
   // 使首屏卡片不再下载 1600px 原图（LCP 优化）。仅用 original 格式变体（不引入 <picture>，不改现有 CSS 选择器结构）。
+  // 同时输出 width/height（manifest 原图元数据），供浏览器在解码前预留宽高比空间（CLS 修复）。
   // manifest 不可用时回退为纯 src 属性；URL 会在 cache-bust 阶段被重写为带哈希路径。
+  function getMediaEntry(src) {
+    const raw = String(src || '');
+    if (!raw) return null;
+    const MEDIA_MANIFEST = ctx.getMediaManifest();
+    if (!MEDIA_MANIFEST) return null;
+    return MEDIA_MANIFEST[raw.replace(/^\//, '')] || null;
+  }
+
+  // 通用图片尺寸属性（width/height）构造：用于文章头图、画廊图、prev/next 缩略图等
+  // 未被 buildCardImgAttrs 覆盖的 <img>。manifest 无条目或元数据不完整时返回空串（不输出属性）。
+  function imgDimsAttrs(src) {
+    const entry = getMediaEntry(src);
+    const w = entry ? parseInt(entry.width, 10) : NaN;
+    const h = entry ? parseInt(entry.height, 10) : NaN;
+    if (!w || !h) return '';
+    return `width="${w}" height="${h}"`;
+  }
+
   function buildCardImgAttrs(src) {
     const raw = String(src || '');
     const fallback = `src="${escapeAttr(raw)}"`;
-    const MEDIA_MANIFEST = ctx.getMediaManifest();
-    if (!raw || !MEDIA_MANIFEST) return fallback;
-    const entry = MEDIA_MANIFEST[raw.replace(/^\//, '')];
-    if (!entry || !entry.variants) return fallback;
+    const entry = getMediaEntry(raw);
+    if (!entry) return fallback;
+    const dims = imgDimsAttrs(raw);
+    const dimSuffix = dims ? ' ' + dims : '';
+    if (!entry.variants || !Object.keys(entry.variants).length) return fallback + dimSuffix;
     const items = [];
     for (const [key, val] of Object.entries(entry.variants)) {
       if (key.split('-').pop() !== 'original') continue;
       const w = parseInt(key.split('-')[0], 10);
       if (w) items.push([w, val]);
     }
-    if (!items.length) return fallback;
+    if (!items.length) return fallback + dimSuffix;
     items.sort((a, b) => a[0] - b[0]);
     const srcFinal = entry.original || raw;
     const naturalW = parseInt(entry.width, 10);
     if (naturalW && !items.some((it) => it[0] === naturalW)) items.push([naturalW, srcFinal]);
     const srcset = items.map((it) => `${escapeAttr(it[1])} ${it[0]}w`).join(', ');
-    return `src="${escapeAttr(srcFinal)}" srcset="${srcset}" sizes="(max-width: 768px) 100vw, 640px"`;
+    return `src="${escapeAttr(srcFinal)}" srcset="${srcset}" sizes="(max-width: 768px) 100vw, 640px"${dimSuffix}`;
   }
 
   function buildSiteCss(config, baseData) {
@@ -184,6 +204,7 @@ function createPagesModule(ctx) {
       Math: Math,
       Date: Date,
       cardImgAttrs: buildCardImgAttrs,
+      imgDimsAttrs: imgDimsAttrs,
       config,
       dailyQuotes: resolvedDailyQuotes || resolveDailyQuotes(config),
       faviconHtml: resolveFaviconHtml(config.site || {}, config.theme && config.theme.colors && config.theme.colors.secondary),
@@ -607,7 +628,7 @@ function createPagesModule(ctx) {
     }
   }
 
-  return { buildCardImgAttrs, buildSiteCss, buildRuntimePresets, writeRuntimeConfig, buildPageData, processCustomPages, localizeSidebar, localizeNav, localizeFooter, localizeSite, buildPaginationItems, generatePages };
+  return { buildCardImgAttrs, imgDimsAttrs, buildSiteCss, buildRuntimePresets, writeRuntimeConfig, buildPageData, processCustomPages, localizeSidebar, localizeNav, localizeFooter, localizeSite, buildPaginationItems, generatePages };
 }
 
 module.exports = { createPagesModule };

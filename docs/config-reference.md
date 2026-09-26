@@ -672,6 +672,18 @@ sitemap: {
 
 实测前后对照与分相明细见 `docs/perf-baseline-local-lcp.md`；采集口径见 `scripts/perf-audit.js` 顶部注释 — `templates/layout.ejs` + `templates/site-css.ejs` + `scripts/lib/features-schema.js`。
 
+### 3.97 anchorStabilize — 锚点落点稳定
+
+整页加载带 hash 直达（如 `/zh/long-stress/#结语`）时，浏览器可能在该锚点上方内容（字体/图片/动态块）完成布局前就完成锚定，晚到的布局增长把落点推走数百 px（长文页实测最后一段增长约 460px，发生在 `load` 之后）。本开关在 `load` 后校正落点，并用 `ResizeObserver` 跟踪文档高度变化，直到布局静默 `settleMs` 或超过 `maxTrackMs`；**仅当用户尚未产生输入**（`wheel`/`touchstart`/`pointerdown`/`keydown`）且未自行滚动时执行，因此不影响 TOC 点击、返回顶部、软导航（三者均不触发 `load`，各自处理滚动；软导航切换时模块自动退出）。配合「构建期图片定尺寸」（正文/头图/卡片/画廊图片输出 `width`/`height` 属性）使用，后者把冷锚点 CLS 从 0.53 降至 0.001 量级，本开关兜底晚到布局造成的落点漂移。
+
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `enabled` | `true` | 总开关。关闭即不注册任何监听（回退成本为零） |
+| `settleMs` | `300` | 布局静默窗口（ms）：文档高度变化后等待该时长无新变化才校正；连续变化（字体分片陆续应用）只会顺延 |
+| `maxTrackMs` | `8000` | 最长跟踪时间（ms，自首次校正起算）：超时前做最后一次校正并断开 observer，避免长页面持续懒加载时无限校正；`0` = 不设时限 |
+
+实测（2026-09，本地 gzip serve + Slow4G + 4× CPU，每页 3 次中位）：冷锚点落点误差 1431px（偶发 1903px）→ 0px；冷锚点 CLS(sum) 0.5367 → 0.0011；滚动扫描 CLS 增量 0.0240 → 0.0002；TOC 高亮/返回顶部/软导航进出不受影响 — `js/domains/core/anchor-stabilize.js` + `js/core/main.js` + `scripts/lib/features-schema.js`。
+
 ---
 
 ## 4. navigation.json5 — 导航

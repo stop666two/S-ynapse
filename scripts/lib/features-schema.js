@@ -172,6 +172,9 @@ const DEFAULT_FEATURES = {
     revealExemptFirstPaint: false, asyncCjkFontCss: false, skipLatinFontPreloadOnCjk: false,
     contentVisibility: false
   },
+  anchorStabilize: {
+    enabled: true, settleMs: 300, maxTrackMs: 8000
+  },
   scrollIndicator: {
     enabled: true, height: '2px', gradient: true, respectReducedMotion: true
   },

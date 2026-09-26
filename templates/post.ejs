@@ -41,7 +41,7 @@
   </header>
 
   <% if (article.featuredImage) { %>
-  <img src="<%= article.featuredImage %>" alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-featured-image" loading="eager" fetchpriority="high">
+  <img src="<%= article.featuredImage %>" alt="<%= article.title %>"<% if(typeof imgDimsAttrs==='function'){ %> <%- imgDimsAttrs(article.featuredImage) %><% } %><% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-featured-image" loading="eager" fetchpriority="high">
   <% if(features.cover&&features.cover.enabled!==false&&article.featuredImage){ %>
   <div class="cover-strip cover-apply" data-article="<%= article.slug %>">
     <span class="cover-strip-label"><%= ui('post.coverStyle','封面样式') %></span>
@@ -196,14 +196,14 @@
 <nav class="post-navigation<%= (features.prevNext&&features.prevNext.labelPosition&&features.prevNext.labelPosition!=='left')?' pos-'+features.prevNext.labelPosition:'' %>">
   <% if (prevArticle) { %>
   <a href="<%= prevArticle.url %>" class="post-nav-link">
-    <% if(features.prevNext&&features.prevNext.showThumbnail&&prevArticle.featuredImage){ %><img src="<%= prevArticle.featuredImage %>" alt="" class="post-nav-thumb" loading="lazy"><% } %>
+    <% if(features.prevNext&&features.prevNext.showThumbnail&&prevArticle.featuredImage){ %><img src="<%= prevArticle.featuredImage %>"<% if(typeof imgDimsAttrs==='function'){ %> <%- imgDimsAttrs(prevArticle.featuredImage) %><% } %> alt="" class="post-nav-thumb" loading="lazy"><% } %>
     <% if(features.prevNext&&features.prevNext.showLabels!==false){ %><span class="post-nav-label"><%= (typeof lang!=='undefined'&&lang==='en'&&features.prevNext.prevLabelEn)?features.prevNext.prevLabelEn:(features.prevNext.prevLabel||site.prevPostLabel||ui('post.prev','上一篇')) %></span><% } %>
     <span class="post-nav-title"><%= prevArticle.title %></span>
   </a>
   <% } %>
   <% if (nextArticle) { %>
   <a href="<%= nextArticle.url %>" class="post-nav-link next">
-    <% if(features.prevNext&&features.prevNext.showThumbnail&&nextArticle.featuredImage){ %><img src="<%= nextArticle.featuredImage %>" alt="" class="post-nav-thumb" loading="lazy"><% } %>
+    <% if(features.prevNext&&features.prevNext.showThumbnail&&nextArticle.featuredImage){ %><img src="<%= nextArticle.featuredImage %>"<% if(typeof imgDimsAttrs==='function'){ %> <%- imgDimsAttrs(nextArticle.featuredImage) %><% } %> alt="" class="post-nav-thumb" loading="lazy"><% } %>
     <% if(features.prevNext&&features.prevNext.showLabels!==false){ %><span class="post-nav-label"><%= (typeof lang!=='undefined'&&lang==='en'&&features.prevNext.nextLabelEn)?features.prevNext.nextLabelEn:(features.prevNext.nextLabel||site.nextPostLabel||ui('post.next','下一篇')) %></span><% } %>
     <span class="post-nav-title"><%= nextArticle.title %></span>
   </a>

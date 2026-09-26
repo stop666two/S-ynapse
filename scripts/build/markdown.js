@@ -124,6 +124,8 @@ function createMarkdownModule() {
             if (entry && entry.variants && Object.keys(entry.variants).length > 0) {
               const lqipAttr = entry.lqip ? ` data-lqip="${escapeAttr(entry.lqip)}"` : '';
               const iwAttr = entry.width ? ` data-iw="${entry.width}"` : '';
+              const dimAttr = (parseInt(entry.width, 10) && parseInt(entry.height, 10))
+                ? ` width="${parseInt(entry.width, 10)}" height="${parseInt(entry.height, 10)}"` : '';
               const webpSources = [];
               const avifSources = [];
               const origSources = [];
@@ -142,7 +144,7 @@ function createMarkdownModule() {
               html += webpSources.join('\n');
               if (webpSources.length && origSources.length) html += '\n';
               html += origSources.join('\n') + '\n';
-              html += `  <img src="${fallbackSrc}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}${lqipAttr}${iwAttr}>\n`;
+              html += `  <img src="${fallbackSrc}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}${lqipAttr}${iwAttr}${dimAttr}>\n`;
               html += '</picture>';
               return html;
             }
@@ -153,7 +155,9 @@ function createMarkdownModule() {
             if (entry && entry.original) {
               const lqipAttr = entry.lqip ? ` data-lqip="${escapeAttr(entry.lqip)}"` : '';
               const iwAttr = entry.width ? ` data-iw="${entry.width}"` : '';
-            return `<img src="${escapeAttr(entry.original)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}${lqipAttr}${iwAttr}>`;
+              const dimAttr = (parseInt(entry.width, 10) && parseInt(entry.height, 10))
+                ? ` width="${parseInt(entry.width, 10)}" height="${parseInt(entry.height, 10)}"` : '';
+            return `<img src="${escapeAttr(entry.original)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}${lqipAttr}${iwAttr}${dimAttr}>`;
             }
           }
           return `<img src="${escapeAttr(decodedHref)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}>`;

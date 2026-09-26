@@ -1,8 +1,10 @@
 'use strict';
 // 开发预览服务器模块（自 scripts/build.js 机械拆分；仅移动函数与依赖接线，不含逻辑变更）。
 // 编排器通过 createServeModule(ctx) 注入产物目录；http 在函数体内按需 require，非 serve 模式零开销。
+// MIME 表、gzip 协商与静态文件解析委托 scripts/lib/static-server.js（与压缩验证服务器共享语义）。
 const fs = require('fs');
 const path = require('path');
+const { MIME_TYPES, acceptsGzip, isCompressibleType, resolveStaticFile } = require('../lib/static-server');
 
 function createServeModule(ctx) {
   const { distDir } = ctx;
@@ -19,21 +21,6 @@ function createServeModule(ctx) {
     var opts = options || {};
     var argvPort = parseInt(process.argv[process.argv.indexOf('--port') + 1]);
     var PORT = Number.isInteger(opts.port) ? opts.port : (argvPort || 3000);
-    // 可压缩的文本类 MIME（前缀匹配，忽略 charset 参数）；图片/字体/媒体等二进制不压缩。
-    var COMPRESSIBLE_PREFIXES = ['text/', 'application/javascript', 'application/json', 'application/manifest+json', 'image/svg+xml', 'application/xml'];
-    function acceptsGzip(header) {
-      var raw = String(header || '').toLowerCase();
-      if (raw.indexOf('gzip') === -1) return false;
-      var parts = raw.split(',');
-      for (var i = 0; i < parts.length; i++) {
-        var token = parts[i].trim();
-        if (token.indexOf('gzip') === 0) {
-          var q = token.match(/;\s*q=([0-9.]+)/);
-          return !q || parseFloat(q[1]) > 0;
-        }
-      }
-      return false;
-    }
     var MAINTENANCE = process.argv.indexOf('--maintenance') !== -1 || process.env.MAINTENANCE === '1';
     var MAINT_MSG = process.env.MAINTENANCE_MESSAGE || '本站正在维护中，请稍后再来。';
     // features.maintenance：setRetryAfter=false 时维护响应不输出 Retry-After；retryAfter 为秒数（非法回退 3600）。
@@ -55,7 +42,7 @@ function createServeModule(ctx) {
         });
       } catch (e) { /* 忽略：serve 模式下 _redirects 不存在时按空规则处理 */ }
     }
-    var mime = { '.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.xml':'application/xml','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.gif':'image/gif','.ico':'image/x-icon','.txt':'text/plain','.mp4':'video/mp4','.webm':'video/webm','.avi':'video/x-msvideo','.mov':'video/quicktime','.mkv':'video/x-matroska','.mp3':'audio/mpeg','.wav':'audio/wav','.m4a':'audio/mp4','.ogg':'audio/ogg','.flac':'audio/flac','.pdf':'application/pdf','.csv':'text/csv','.zip':'application/zip','.7z':'application/x-7z-compressed','.rar':'application/x-rar-compressed','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf','.otf':'font/otf','.eot':'application/vnd.ms-fontobject' };
+    var mime = MIME_TYPES;
     var lastActivity = Date.now();
     var server = http.createServer(function(req, res) {
       lastActivity = Date.now();
@@ -89,18 +76,9 @@ function createServeModule(ctx) {
           }
         }
       }
-      var urlNoSlash = urlPath.replace(/\/$/, '');
-      var filePath = urlNoSlash ? path.resolve(distDir, '.' + urlNoSlash) : path.join(distDir, 'index.html');
-      if (!filePath.startsWith(path.resolve(distDir) + path.sep) && !filePath.startsWith(path.resolve(distDir) + '/')) {
-        filePath = path.join(distDir, '404.html');
-      }
-      try { if (fs.statSync(filePath).isDirectory()) filePath = path.join(filePath, 'index.html'); } catch(e) { /* 忽略：路径不存在/非目录时按原路径处理 */ }
-      var isNotFound = false;
-      if (!fs.existsSync(filePath)) {
-        var alt = filePath + '.html';
-        if (fs.existsSync(alt)) filePath = alt;
-        else { filePath = path.join(distDir, '404.html'); isNotFound = true; }
-      }
+      var resolved = resolveStaticFile(distDir, urlPath);
+      var filePath = resolved.filePath;
+      var isNotFound = resolved.isNotFound;
       fs.stat(filePath, function(serr, st) {
         if (serr || !st.isFile()) { res.writeHead(500); res.end('Server Error'); return; }
         var ext = path.extname(filePath).toLowerCase();
@@ -114,8 +92,7 @@ function createServeModule(ctx) {
         fs.readFile(filePath, function(err, data) {
           if (err) { res.writeHead(500); res.end('Server Error'); return; }
           var contentType = mime[ext] || 'application/octet-stream';
-          var baseType = contentType.split(';')[0].trim().toLowerCase();
-          var compressible = COMPRESSIBLE_PREFIXES.some(function(p) { return baseType.indexOf(p) === 0; });
+          var compressible = isCompressibleType(contentType);
           var headers = { 'Content-Type': contentType, 'ETag': etag, 'Last-Modified': lastMod, 'Cache-Control': 'no-cache', 'Vary': 'Accept-Encoding' };
           var status = isNotFound ? 404 : 200;
           if (compressible && acceptsGzip(req.headers['accept-encoding'])) {

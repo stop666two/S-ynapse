@@ -280,22 +280,20 @@
 **双语约定（*En 字段）**:所有文案型字段均可追加同名 `En` 后缀（如 `reward.buttonTextEn`）提供英文站文案；类型与中文值一致，**空字符串 = en 站回退中文值**。共覆盖 60 键：search / codeBlock / externalLink / shortcuts / readingTime / codeCopy / readMode / readingPanel / mermaid / series / related / pinned / wordCount / share / reward / gallery / heatmap / stats / prevNext / maintenance / comments / contactPopup / hero / dailyQuote / favorites / subscribe。构建期模板按页面语言渲染 `*En`；运行时模块（`search.js`/`share.js`/`code-block.js`/`comments.js`/`contact-popup.js`/`favorites.js`）按当前页面语言（`data-lang`）取 `*En`。
 
 
-### 3.0 未接线键总表（预留状态；第二轮 + 第三轮配置闭环 2026-09-27）
+### 3.0 未接线键总表（预留状态；第二轮 + 第三轮 + 第四轮配置闭环 2026-09-27）
 
-> 状态口径：本轮「已接线」= 代码读取且生效（见各模块小节说明）；「未接线（已标注）」= 功能未实现或实现固定，JSON5 对应键上方已加 `// ⚠ 未接线（预留）：…` 注释，**修改暂不生效**；「已实现」= 本轮新增实现（hotSearches 热门词、readingProgress 悬停气泡与 aria、readingTime.showInMeta、toc min/maxLevel、mobileToc overlayClose/lockScroll、readDock show*、externalLink showFullUrl/openInNewTab、share copiedShowMs/popupWidth/popupHeight/wechatText、tts.volume、comments.loadContainer、darkImageFilter.applyImages、mobileToc.autoClose、themePresets.showInNavbar/previewOnHover、themeSchedule.applyInstantly、shortcuts.helpTitle/showHelpTable、ogImage.useCover/gradientForNoCover、search.highlightMatches/closeOnOverlay/focusOnOpen、searchHighlight.enabled 门控）。
+> 状态口径：本节「已接线」= 代码读取且生效（见各模块小节说明）；「未接线（已标注）」= 功能未实现或实现固定，JSON5 对应键上方已加 `// ⚠ 未接线（预留）：…` 注释，**修改暂不生效**；「已实现」= 本轮新增实现（hotSearches 热门词、readingProgress 悬停气泡与 aria、readingTime.showInMeta、toc min/maxLevel、mobileToc overlayClose/lockScroll、readDock show*、externalLink showFullUrl/openInNewTab、share copiedShowMs/popupWidth/popupHeight/wechatText、tts.volume、comments.loadContainer、darkImageFilter.applyImages、mobileToc.autoClose、themePresets.showInNavbar/previewOnHover、themeSchedule.applyInstantly、shortcuts.helpTitle/showHelpTable、ogImage.useCover/gradientForNoCover、search.highlightMatches/closeOnOverlay/focusOnOpen、searchHighlight.enabled 门控）。
 > 第三轮闭环（2026-09-27 W1，15 项）已从本表移除并在各模块小节更新：`themeToggle.defaultTheme/rememberChoice/iconStyle/transitionAll`（删除重复键 → 唯一来源 `theme.darkMode.*`）、`shortcuts.showHelpHint`、`toc.defaultOpenLevel`、`autoSummary.stripMarkdown`、`codeCopy.includeWindowBar`（删除重复键 → `codeBlock.windowBar`）、`searchHighlight.markClass`、`listCover.showOnArchive`（接线）/`aspectRatio`（删除重复键 → `tuning.card.imageAspect`）、`mobileBottomNav.onlyMobile`（接线）/`useSafeArea`（删除重复键 → `mobile.safeAreaBottom`）、`readMode.focusOnlyContent`、`pinned.*`、`motion.revealStaggerMax`、`dailyQuote.widgetStyle`、`favorites.listIcon`、`cover.defaultPattern/preferImage`、`pagefind.integrate`。
+> 第四轮闭环（2026-09-27 W2）已从本表移除并在各模块小节更新：`search.emptyHint/emptyHintEn`（接线：空输入提示 + 无结果链首）、`search.showCount`、`search.matchTags/matchCategories`、`search.weightTitle/weightExcerpt/weightContent`、`externalLink.whitelistNewTab/copyButtonText/copyButtonTextEn`、`wikiLinks.unknownMode/unknownSuffix/caseInsensitive/allowCustomLabel`、`hero.searchPlaceholderEn`（接线）；`search.placeholder/placeholderEn`、`search.pinyinFuzzy`、`linkBehavior` 整个模块（删除，迁移见 CHANGELOG/§3.4/§3.36）。
 > 本表由审计脚本扫出（`js/templates/scripts` 对叶子键名的引用检测）；`enabled`、`height`、`size` 等通用名键不在机器扫描口径内，已按跨文件重复与抽样核验处理（见 `docs/config-audit-2026-09-27.md`「第二轮闭环结果」）。
 
 | 模块 | 未接线键（JSON5 已标注） | 原因 / 替代来源 |
 |---|---|---|
 | `lightbox` | `maxWidthVw` / `openDurationMs` / `switchDurationMs` | 灯箱打开/切换补间未实现；现由 CSS transition（transitionDurationMs）统一控制 |
 | `backToTop` | `rightOffset` / `bottomOffset` / `scrollDurationMs` / `htmlAnchorFallback` | 返回顶部用原生 scrollTo（smooth/auto 由 smoothScroll 控制<sup>①</sup>），自定义时长与无 JS 锚点回退未实现 |
-| `search` | `emptyHint` / `emptyHintEn` / `matchTags` / `matchCategories` / `weightTitle` / `weightExcerpt` / `weightContent` / `pinyinFuzzy` | 前端检索实现固定（仅标题/摘要/正文子串匹配，无加权与拼音）；文案由 navigation/ui-strings 提供 |
 | `imageLazy` | `preserveAspectRatio` | 构建期已恒输出 width/height 防抖；关闭需改构建模板 |
-| `externalLink` | `whitelistNewTab` / `copyButtonText` / `copyButtonTextEn` | 白名单链路不做 target 改写；联系弹窗为图标点击复制，无按钮文案位 |
 | `incrementalBuild` | `fullFlag` / `fingerprintHash` / `skipUnchanged` | 增量构建方案未实现（见 docs/incremental-build-design.md） |
 | `tts` | `preferDefaultVoice` / `voiceBy` / `highlightParagraph` | 语音选择与逐句高亮实现固定（highlightParagraph 与 highlightReading 重叠） |
-| `wikiLinks` | `unknownMode` / `unknownSuffix` / `caseInsensitive` / `allowCustomLabel` | 双链解析实现固定（未知目标按纯文本、区分大小写、支持自定义标签） |
 | `supSub` | `supMarker` / `subMarker` / `skipInsideMath` / `preserveUnmatched` | 上下标标记固定为 ^/~，构建期正则未做动态标记 |
 | `math` | `autoDetect` / `inlineDelimiters` / `blockDelimiters` / `mathml` | 定界符固定为 $/$$；MathML 输出恒开 |
 | `mermaid` | `autoDetect` / `followTheme` / `copyAfterRender` / `errorTextEn` | 图表检测/主题跟随实现固定（构建期 SSR） |
@@ -312,10 +310,8 @@
 | `maintenance` | `setRetryAfter` / `retryAfter` | 维护响应固定设置 Retry-After: 3600（Worker 侧） |
 | `mobile` | `searchFullscreen` / `buttonStackGap` / `touchFallback` / `codeScrollHint` | 搜索全屏/按钮堆叠由 tuning 位置控制；触屏悬停与滚动提示未实现 |
 | `contactPopup` | `copyTextEn` / `showAllItems` | 弹窗宽度模板固定 400px（与默认 360px 存在漂移，待统一）；复制文案由 ui-strings 提供；条目全量展示 |
-| `linkBehavior` | `matchMode` / `skipInternal` / `mailtoMode` / `lateTargeted` | 模块未接入 external-link 链路（外链行为由 features.externalLink 控制） |
 | `performance` | `warningJsKb` / `warningHtmlKb` / `warningImageKb` / `warningBuildMs` | 构建性能阈值未消费（预算门禁由 features.perfBudget 控制） |
 | `debug` | `verbose` / `listPages` / `dumpConfig` | 构建日志由 CLI 参数控制，未读取本组键 |
-| `hero` | `searchPlaceholderEn` | Hero 搜索占位由 ui-strings.toolbar.searchPlaceholder 提供（en 站同源双语） |
 
 > ①：`backToTop.rightOffset/bottomOffset` 与 `tuning.backToTop.offsetSide/offsetBottom` 同义，实际生效 tuning 值；`scrollDurationMs`/`htmlAnchorFallback` 未实现。
 
@@ -347,9 +343,12 @@
 `enabled true` / `showAfterPx 400` / `rightOffset 2rem` / `bottomOffset 2rem` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false`
 
 ### 3.4 search — 客户端搜索
-`enabled true` / `minChars 1` / `maxResults 30` / `noResultText 未找到匹配内容`（`noResultTextEn` 为 en 站文案，空回退中文；`tuning.search.emptyTextEn` 优先于它） / `excerptLength 120` / `includeContent true`(构建期生效:是否将正文写入 search-index.json) / `focusDelayMs 100`(打开搜索后延迟聚焦输入框 ms) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效)
+`enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true`（与 `searchHighlight.enabled` 联动，任一 false 即不高亮） / `showCount true`（结果计数显隐：false 时浮层结果区与 /search 页均不显示；文案取 `ui-strings.search.foundCount`，`{count}` 占位，中英双语） / `emptyHint ''` / `emptyHintEn ''` / `noResultText 未找到匹配内容` / `noResultTextEn No matching content`(空回退中文链) / `excerptLength 120` / `includeContent true`(构建期生效:是否将正文写入 search-index.json) / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `closeOnOverlay true` / `focusOnOpen true` / `focusDelayMs 100`(打开搜索后延迟聚焦输入框 ms) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效) / `debounceMs 120` / `showHistoryOnFocus true` / `maxHistory 5`
 
-> 未接线预留键（当前修改不生效，JSON5 已加 ⚠ 注释）: `showCount` / `placeholder`（实际使用 navigation.json5 search.placeholder / search.placeholderEn） / `emptyHint`（`emptyHintEn` 同步预留） / `matchTags` / `matchCategories` / `weightTitle` / `weightExcerpt` / `weightContent`(前端无加权排序) / `pinyinFuzzy`(拼音首字母匹配未实现)。`highlightMatches`/`closeOnOverlay`/`focusOnOpen` 已于第二轮接线生效（与 `searchHighlight.enabled` 联动；`tuning.hotCount` 为预留，热门词条数实际读 `hotSearches.top`）。
+> **检索语义（第四轮 W2 接线；浮层搜索与 /search 页统一）**：命中字段得分 = 字段权重 × 命中出现次数（线性计数），按总分降序；同分保持索引原序（`search-index.json` 由构建期按日期倒序生成，等价「同分按日期」）。**权重为 0 = 该字段既不参与匹配也不参与计分**（如 `weightContent=0` 时正文不再命中）。`tags`/`categories` 命中仅参与「是否入选」（计 0 分，排在所有加权命中之后），分别由 `matchTags`/`matchCategories` 门控（默认 true → 结果为历史行为的超集）。canonical 纯函数：`scripts/lib/feature-wiring.js → rankSearchEntries`（单测覆盖）。
+> **无结果文案优先级链**：`emptyHint(En)` > `noResultText(En)` > `tuning.search.emptyText(En)` > i18n 内置文案；`emptyHint` 非空时也作为「输入为空」的浮层提示（默认空串 = 不显示，保持历史输出「未找到匹配内容」）。注意：与 W2 之前不同，现在 features 键优先于 tuning（两者默认文案同值，默认渲染不变）。
+> **连续查询**：每次渲染前清空旧结果节点（修复此前结果容器追加、旧结果残留的缺陷）；`search-index.json` 已含 `tags`/`categories` 字段（构建期由 `scripts/build/feeds.js` 写入）。
+> **已删除**：`placeholder`/`placeholderEn`（与 `navigation.json5 → search.placeholder/placeholderEn` 重复；canonical 保留 navigation，模板 SSR 直接消费，迁移见 CHANGELOG）；`pinyinFuzzy`（无第三方依赖无法实现 CJK→拼音映射，且不得以子序列模糊冒名拼音；未来引入拼音库再恢复）。
 
 ### 3.5 imageLazy — 懒加载
 `enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
@@ -361,6 +360,8 @@
 
 ### 3.7 externalLink — 外链拦截
 `enabled true`(需 site.externalLinkWarning.enabled 同真) / `whitelist []` / `blacklist []` / `mode warn`(`warn|prohibit|hint`) / `message 即将离开本站,前往外部链接：` / `messageEn ''`(en 站提示文案,空回退中文) / `confirmText 继续访问` / `confirmTextEn ''` / `cancelText 返回` / `cancelTextEn ''` / `copyButtonText 复制` / `copyButtonTextEn ''` / `showFullUrl true` / `openInNewTab true` / `whitelistNewTab false`
+
+> 第四轮 W2 接线：`whitelistNewTab=true` 时白名单外链强制新标签页打开（`target=_blank + noopener/noreferrer` 等效，经 `window.open`，动态插入链接同样生效）；false（默认）= 浏览器默认行为（当前页跳转），保持历史行为。`copyButtonText(En)` 控制外链提醒浮层「复制链接」按钮文案（点击复制目标 URL，短暂显示「已复制」）：`copyButtonTextEn`（en 站，空回退中文键）> `copyButtonText` > `ui-strings.toolbar.copyLink`（新增双语）> 内置文案；默认 `复制`/`Copy`（按钮为 W2 新增，见 CHANGELOG Added）。
 
 ### 3.8 themeToggle
 `enabled true` / `persistKey ss-theme`(主题偏好存储键；`theme.darkMode.rememberChoice=false` 时改用 sessionStorage 同键) / `toggleIconSwap true`(仅在 `theme.darkMode.iconStyle='sun-moon'` 时生效：切换交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)。**切换过渡时长唯一来源为 `theme.animation.transitionDuration`（经 `tuning.motion.transitionDuration` 覆盖；原 `themeToggle.animationMs` 已删除）。**默认主题/是否记忆/图标样式/是否整体过渡的**唯一来源为 `theme.json5 → darkMode.default / rememberChoice / iconStyle / transitionAll**（2026-09-27 第三轮闭环：原 `themeToggle.defaultTheme/rememberChoice/iconStyle/transitionAll` 重复键已删除；运行时经外置配置 `window.__THEME__.darkMode` 读取，模板早置脚本服务端直读）。`iconStyle`：`sun-moon` 双图标交替（默认）/ `single` 常显单个月亮图标 / `switch` CSS 滑块开关；`transitionAll=true`（默认）切换时给 `<html>` 加 `.theme-switching`（`--td` 时长后移除），false=不加类瞬时切换。`rememberChoice=false` 时早置脚本与切换均忽略 localStorage 旧值、仅用 sessionStorage。
@@ -384,7 +385,9 @@
 `enabled true` / `rate 0.5`(0.1~10) / `pitch 1` / `volume 1` / `preferDefaultVoice true` / `voiceBy lang` / `readSelector .post-content` / `icon speaker` / `highlightParagraph false` / `position toolbar` / `resumeIntervalMs 500`(Chromium 长文本自动暂停后的心跳恢复间隔 ms) / `resumeMaxTries 3`(心跳恢复最大次数，超过即结束朗读)
 
 ### 3.15 wikiLinks — 双链
-`enabled true` / `unknownMode text`(`text|link|hide`) / `unknownSuffix ''` / `openNewTab false` / `caseInsensitive true` / `allowCustomLabel true`
+`enabled true`(false = `[[...]]` 原样保留) / `unknownMode text`(`text`=未知目标降级纯文本（默认，历史行为）/`link`=渲染为站内搜索链接 `/{lang}/search/?q=<encodeURIComponent(目标)>`/`hide`=整体移除) / `unknownSuffix ''`(仅未知目标显示文本追加后缀；已知目标不加) / `openNewTab false` / `caseInsensitive true`(false = 按原始标题精确匹配；slug 始终精确匹配) / `allowCustomLabel true`(false = 忽略 `[[目标|自定义文本]]` 的 `|` 后文本，已知用规范标题、未知用目标、外链用 URL)
+
+> 第四轮 W2 接线：构建期 `scripts/lib/utils.js → resolveWikiLinks(content, lookup, options)` 参数化，`scripts/build/articles.js` 传入本组键（`unknownMode`/`unknownSuffix`/`caseInsensitive`/`allowCustomLabel` + 当前语言）；`enabled=false` 跳过整个解析。查表新增 `titlesExact`（原始大小写标题）供 `caseInsensitive=false` 使用。单测覆盖三模式与各键四态（含 URL 编码）。
 
 ### 3.16 supSub — 上下标
 `enabled true` / `supMarker ^` / `subMarker ~` / `skipInsideMath false` / `preserveUnmatched true`
@@ -455,8 +458,14 @@
 ### 3.35 contactPopup
 `enabled true` / `title 联系方式` / `copyText 复制` / `copySuccessText ''`(复制成功提示,留空用内置双语文案)（`titleEn`/`copyTextEn`/`copySuccessTextEn` 为 en 站文案，空回退中文） / `popupWidth 360px` / `showAllItems true` / `showIcon true`(弹窗顶部图标) / `maxItems 4`(最多联系方式条目数,多行值按行截断)。弹窗实际标题/正文来自 `site.social.items[].popupTitle/popupContent`（en 站优先 `popupTitleEn`/`popupContentEn`，见 §1 site.social）
 
-### 3.36 linkBehavior
-`matchMode hostname` / `skipInternal true` / `mailtoMode leave` / `lateTargeted false`
+### 3.36 linkBehavior（已删除，2026-09-27 第四轮 W2）
+
+> 该模块四个键（`matchMode hostname` / `skipInternal true` / `mailtoMode leave` / `lateTargeted false`）从未接线，且与 `features.externalLink` 语义重叠或与现状矛盾，整体删除（无代码消费，无行为变化）：
+> - `matchMode`：白名单匹配规则已由 `externalLink.whitelist` 表达式（含 `*.` 通配）唯一定义，第二套匹配模式切换会造成双来源；
+> - `skipInternal`：站内链接永不拦截是「外链」警告的固有不变量（现实现按同源判定 return），无可配置空间；
+> - `mailtoMode`：现行为 mailto 链接直接交给系统客户端（不拦截），属浏览器默认且无历史告警需求；
+> - `lateTargeted`：现点击处理为 document 级事件委托，天然覆盖动态插入链接（晚绑定）；false 默认与现状相悖，保留会误导。
+> 迁移：外链行为请改 `features.externalLink`（`mode`/`whitelist`/`blacklist`/`openInNewTab`/`whitelistNewTab` 等，见 §3.7）；如未来确需 mailto 告警，应在 `externalLink` 下新增专用键而非恢复本模块。
 
 ### 3.37 performance
 `warningJsKb 80` / `warningHtmlKb 400` / `warningImageKb 300` / `warningBuildMs 30000`
@@ -509,7 +518,7 @@ sitemap: {
 `enabled true` / `template 'aurora'`(`aurora|mesh|grid|paper|duotone`;无封面文章的 OG 底图模板) / `palette 'theme'`(`theme|hash`;hash=按首个分类名哈希取色,同分类同色) / `showCategory true`(封面角标) / `align 'center'`(`center|left`) / `showSite true`(站点名) / `showUrl true`(右下角站点 URL;false=保持画面简洁) / `useGradient true` / `gradientAngle '135deg'` / `fontSizeBase 64` / `maxLines 4` / `letterSpacing '0.02em'`。构建期为无封面文章生成模板化 OG 图(1200×630;尺寸与字号缩放经 `site.seo.ogImage` 的 width/height/fontScale 控制);有封面文章走"封面+底部渐变条"合成 — `scripts/generate-og.js`。
 
 ### 3.45 hero — 首页 Hero
-`enabled true` / `showSearch true` / `showTags true` / `tagCount 5` / `showDate false`(显示最新文章日期) / `ctaLabelEn View all posts`(en CTA 文案;`ctaLabel` 中文,空回退) / `searchPlaceholder 搜索文章…`（`searchPlaceholderEn` en 站文案，空回退中文） / `heightVh 60`(Hero 最小高度 vh) / `backgroundImage ''`(背景图 URL,空则纯色/渐变)。首页顶部横幅,显示标题简介+搜索+热门标签。
+`enabled true` / `showSearch true` / `showTags true` / `tagCount 5` / `showDate false`(显示最新文章日期) / `ctaLabelEn View all posts`(en CTA 文案;`ctaLabel` 中文,空回退) / `searchPlaceholder 搜索文章…` / `searchPlaceholderEn Search posts…`（第四轮 W2 接线：构建期 SSR，hero 键 > `ui-strings.toolbar.searchPlaceholder(En)`；空串回退 ui-strings） / `heightVh 60`(Hero 最小高度 vh) / `backgroundImage ''`(背景图 URL,空则纯色/渐变)。首页顶部横幅,显示标题简介+搜索+热门标签。
 
 ### 3.46 background — 背景特效
 `background.particles.enabled true`（粒子总开关；仅 `theme.background.mode='particles'` 时生效，颜色自动跟随 `--color-s`） / `particles.count 72`(10~120，越少越省电) / `particles.speed 0.5`(0.2~2) / `particles.linkDistance 120`(连线距离 px) / `particles.opacity 0.7`(0~1) / `particles.showLines true` / `particles.autoDisableMobile false`(触屏/窄屏自动关闭粒子) / `particles.mobileMaxWidth 640`(autoDisableMobile 的窄屏阈值 px)。

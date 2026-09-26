@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **第四轮配置接线（W2，2026-09-27）**：搜索/外链/双链/Hero 组「未接线」键全部真实可控或作为重复键删除——
+  - 检索（浮层搜索与 /search 页统一语义）：`search.weightTitle/weightExcerpt/weightContent`（得分 = 字段权重 × 命中出现次数；权重 0 = 该字段不参与匹配与计分；按总分降序、同分保持日期倒序索引原序）、`search.matchTags/matchCategories`（标签/分类命中参与入选、计 0 分；默认 true → 结果集为历史行为的超集）、`search.showCount`（结果计数显隐，false 时浮层结果区与 /search 页均不显示；文案 `ui-strings.search.foundCount` 双语 `{count}` 占位）、`search.emptyHint/emptyHintEn`（无结果文案链首位 + 空输入浮层提示；默认空串 = 沿用 `noResultText`，保持历史输出）。
+  - 外链：`externalLink.whitelistNewTab`（true = 白名单外链 `target=_blank + noopener/noreferrer` 等效，事件委托对动态插入链接同样生效）、`externalLink.copyButtonText/copyButtonTextEn`（外链提醒浮层新增「复制链接」按钮：点击复制目标 URL 并短暂显示「已复制」；文案链 config(En→中文) > `ui-strings.toolbar.copyLink`（新增双语）> 内置）。
+  - 双链（构建期）：`wikiLinks.unknownMode`（`text` 默认降级纯文本 / `link` 站内搜索链接 `/{lang}/search/?q=<encodeURIComponent(目标)>` / `hide` 整体移除）、`unknownSuffix`（仅未知目标追加）、`caseInsensitive`（false = 原始标题精确匹配；新增 `titlesExact` 查表）、`allowCustomLabel`（false = 忽略 `|` 后文本）、`enabled=false` 跳过解析。
+  - Hero：`hero.searchPlaceholder/searchPlaceholderEn` 构建期 SSR 生效（hero 键 > `ui-strings.toolbar.searchPlaceholder(En)`，空串回退 ui-strings）。
+  - 新增纯函数 `normalizeSearchConfig` / `searchEmptyText` / `rankSearchEntries` / `wikiLinkConfig` / `heroSearchPlaceholder`（`scripts/lib/feature-wiring.js`），`scripts/config-wiring.test.js` 单测由 17 例扩至 26 例。
+- **缺陷修复：浮层搜索连续查询旧结果残留（用户可感知）**：`doSearchNow` 结果分支渲染前未清空 `#searchResults`，连续查询会叠加旧结果节点；现每次渲染前清空并重置键盘高亮索引（runner 对 W1 旧构建复现 4 条残留、新构建回归 1 条）。
 - **第三轮配置接线（W1，15 项，2026-09-27）**：全部「未接线（预留）」键真实可控或作为重复键删除——
   - 主题：`theme.darkMode.rememberChoice`（false=偏好仅存 sessionStorage）、`theme.darkMode.iconStyle`（`sun-moon`/`single`/`switch` 三种按钮形态）、`theme.darkMode.transitionAll`（true=切换加 `.theme-switching`，false=瞬时）；运行时经外置配置 `window.__THEME__.darkMode` 读取。
   - 导航/阅读：`mobileBottomNav.onlyMobile`（false=桌面端也显示底部导航）、`readMode.focusOnlyContent`（false=阅读模式保留侧栏）、`toc.defaultOpenLevel`（0=全折叠；N≥1 展开到 minLevel+N-1 级，默认 2 → h4 初始折叠）。
@@ -22,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **第四轮配置闭环（W2）语义变更**：浮层搜索排序由「索引原序（日期倒序）」改为「加权总分降序（默认标题 5 / 摘要 2 / 正文 1）」；`/search` 页排序由固定 `10/3/3/5/4` 改为同一 config 权重语义（标签/分类改为仅参与入选、计 0 分），两处检索行为统一；`matchTags/matchCategories` 默认 true 使标签/分类命中进入结果集（**超集**，行为变化）；结果计数文案由 `N 个结果`（`ui-strings.search.foundText`）改为 `找到 N 个结果`（`ui-strings.search.foundCount`）；`hero.searchPlaceholderEn` 默认文案由 ui-strings 的 `Search posts...` 切换为 features 值 `Search posts…`（en 首页占位仅省略号字符差异）；`search.emptyHint/emptyHintEn` 默认由 `输入关键词开始搜索` / `Type a keyword to search` 改为空串（= 沿用 `noResultText`，浮层无结果默认输出不变）；外链提醒浮层新增「复制链接」按钮（默认 `复制`/`Copy`）。
+- **无结果文案优先级调整（W2）**：`features.search` 键现在优先于 `tuning.search`（`emptyHint(En) > noResultText(En) > tuning.search.emptyText(En) > i18n 兜底`；此前 `tuning.search.emptyText(En)` 优先于 `noResultText(En)`）；两者默认文案同值，默认渲染不变。
 - **第三轮配置闭环（2026-09-27 W1）语义/来源变更**：`themeToggle.defaultTheme/rememberChoice/iconStyle/transitionAll` 唯一来源迁移至 `theme.json5 → darkMode.*`（原键删除，`themeToggle` 仅保留 `enabled/persistKey/toggleIconSwap/zIndex`）；`listCover.showOnArchive` 由未接线转为生效（标签归档列表 `/tags/<tag>/` 封面显隐，默认 true=现行为；/archive/ 年表页保持纯文字列表）；`dailyQuote.widgetStyle` 取值语义改为 `card`（默认，等同旧值 `sidebar`）/`plain`；`motion.revealStaggerMax` 默认值由 80 调整为 500（仅在 `revealDelayMs>0` 时产生错峰，默认 `revealDelayMs=0` 行为不变）；`searchHighlight.markClass` 默认由 `'search-hit'` 调整为 `''`（代码此前恒输出裸 `<mark>`，默认行为不变）。
 - **未接线预留键全量标注（W2）**：对 features.json5 中机器扫描确认无消费方的 142 个叶子键逐键加 `⚠ 未接线（预留）：<原因/替代> ` 注释，并在 `docs/config-reference.md` 新增「3.0 未接线键总表」（43 个模块分组，状态/原因/替代来源）；本轮接线 20+ 键后剩余 135 个预留键全部可审计，不再存在「看起来能调、实际无效且无标注」的键。
 - **跨文件语义重复清理（W3）**：`features.themeToggle.animationMs`（250）与 `theme.animation.transitionDuration`（0.25s）语义重叠、实际生效后者，已删除前者（features.json5/schema/config-reference 同步）；其余重复项结论见 `docs/config-audit-2026-09-27.md`（backToTop 偏移与 tuning 同义、lightbox.maxWidthVw 与 imageFit.lightbox.maxWidthPct 同义、contactPopup.popupWidth 360px 与模板 400px 漂移等，已在 JSON5 标注）。
@@ -29,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- `features.search.placeholder` / `features.search.placeholderEn`（第四轮，语义重复；搜索框占位唯一来源 `navigation.json5 → search.placeholder/placeholderEn`（空回退 `ui-strings.search.placeholder`），模板 SSR 直接消费且实测生效。**迁移**：把值搬入 `navigation.json5` 同名键；默认 `搜索文章...` / `Search posts...` 行为不变）。
+- `features.search.pinyinFuzzy`（第四轮，未接线且零依赖无法实现真正 CJK→拼音映射，不得以子序列模糊冒名拼音。**迁移**：如需拼音检索，先引入拼音库并在 `features.search` 重新立项；当前检索仅支持子串匹配）。
+- `features.linkBehavior` 整个模块（`matchMode` / `skipInternal` / `mailtoMode` / `lateTargeted`，第四轮，从未接线且与 `features.externalLink` 语义重叠或与现状相悖，整体删除、无行为变化；**迁移**：外链行为改 `features.externalLink`，逐键裁决见 `docs/config-reference.md` §3.36）。
 - `features.themeToggle.defaultTheme` / `rememberChoice` / `iconStyle` / `transitionAll`（第三轮，语义重复；唯一来源 `theme.json5 → darkMode.default/rememberChoice/iconStyle/transitionAll`。**迁移**：将这 4 个键的值原样写入 `theme.json5` 的 `darkMode` 同名键即可；`rememberChoice`/`iconStyle`/`transitionAll` 为新增键，缺省即旧行为）。
 - `features.codeCopy.includeWindowBar`（第三轮，语义重复；代码窗栏唯一来源 `features.codeBlock.windowBar`（`js/domains/core/code-block.js` 消费）。**迁移**：使用 `includeWindowBar` 的站点改在 `codeBlock.windowBar` 配置，默认 true 行为不变）。
 - `features.listCover.aspectRatio`（第三轮，语义重复；封面宽高比唯一来源 `tuning.json5 → card.imageAspect`（CSS 变量 `--card-imageAspect`）。**迁移**：改 `tuning.card.imageAspect`，默认 `16/10` 行为不变）。
@@ -37,6 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 验证与门禁
 
+- **第四轮（W2）**：`npm test` 405/405（82 suites；`scripts/config-wiring.test.js` 由 17 例扩至 26 例，`scripts/build.test.js` 模块计数 99→98 同步）、`npm run test:build` 2/2、`npm run lint` 0 错、`npm run typecheck` 0 错、`npm run verify:config` PASS（98 模块一致）。
+- **第四轮（W2）**：构建 `.tmp-scripts/out/w2-build` 成功（3.8s、81 页，OG 复用 16/失败 0，search-index 8+8；预算告警与 W1 基线同级，`perfBudget.warnOnly=true` 非阻断）。
+- **第四轮（W2）**：无头 runner `.tmp-scripts/run-w2.js`（端口 3326，自收尾看门狗 + 端口释放校验）：**34 断言全绿**（浮层加权/计数/回归/空结果链 5、hero 2、配置拦截变体 12、/search 页 4、externalLink 5、静态/bundle/SSR 4、门禁 1），0 控制台错误；对 W1 旧构建复现「重复查询旧结果残留」等未接线差异 15 项（复现记录见提交说明与 `.tmp-scripts/repro` 日志）。
 - **第三轮（W1）**：`npm test` 396/396（82 suites，含新增 `scripts/config-wiring.test.js` 17 例）、`npm run test:build` 2/2、`npm run lint` 0 错、`npm run typecheck` 0 错、`npm run verify:config` PASS（99 模块一致）。
 - **第三轮（W1）**：构建 `.tmp-scripts/out/w1-build` 成功（3.6s，81 页）；预算告警与基线持平（HTML 单页 gzip 最大 33.7KB / JS 合计 56.4KB，`perfBudget.warnOnly=true` 非阻断）。
 - **第三轮（W1）**：无头 runner `.tmp-scripts/run-w1.js`：**37 断言全绿**（theme 7 / mobileBottomNav 3 / shortcuts 1 / searchHighlight 2 / pagefind 2 / dailyQuote 1 / motion 2 / toc 3 / readMode 2 / cover 3 / favorites 2 / pinned 2 / listCover 1 / SSR+bundle 4 / 门禁 1，另含配置拦截变体：toc=1/0、cover.preferImage=false），0 控制台错误，父死/空闲看门狗与端口 3325 释放校验通过；截图 3 张存 `.tmp-scripts/out/w1-*.png`。

@@ -117,6 +117,16 @@ function createBuildContext(deps) {
     return path.isAbsolute(value) ? value : path.resolve(rootDir, value);
   })();
 
+  // theme 覆盖文件（`--theme-override <file>`）：仅用于隔离验证/预览构建的
+  // theme 深合并覆盖（例如 runner 生成第二态主题构建而不改动仓库 theme.json5）。
+  // 相对路径按 rootDir 解析；合并结果仍经 validateConfig 校验（preset/枚举等）。
+  const THEME_OVERRIDE_PATH = (() => {
+    const idx = argv.indexOf('--theme-override');
+    const value = (idx !== -1 && argv[idx + 1] && argv[idx + 1].charAt(0) !== '-') ? argv[idx + 1] : '';
+    if (!value) return '';
+    return path.isAbsolute(value) ? value : path.resolve(rootDir, value);
+  })();
+
   // CLI flags parsed from argv
   const WATCH_MODE = argv.includes('--watch');        // Rebuild on file changes
   const SERVE_MODE = argv.includes('--serve');        // Start dev HTTP server after build
@@ -178,6 +188,7 @@ function createBuildContext(deps) {
     rootDir,
     watchMode: WATCH_MODE,
     featuresOverridePath: FEATURES_OVERRIDE_PATH,
+    themeOverridePath: THEME_OVERRIDE_PATH,
     getJson5: () => json5,
     getDeepmerge: () => deepmerge,
     getVendorFonts: () => assets.VENDOR_FONTS,

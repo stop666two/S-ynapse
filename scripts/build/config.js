@@ -141,6 +141,23 @@ function createConfigModule(ctx) {
       config.features = ctx.getDeepmerge().all([{}, config.features, overrideObj || {}], { arrayMerge: (target, source) => source });
       console.log('  [features-override] ' + path.relative(ctx.rootDir, ctx.featuresOverridePath).split(path.sep).join('/'));
     }
+    // `--theme-override <file>`：隔离验证/预览构建的第二态 theme 覆盖（深合并，
+    // 数组替换语义与 theme.json5 一致）；合并结果仍经 validateConfig 校验（preset/iconStyle 等）。
+    if (ctx.themeOverridePath) {
+      if (!fs.existsSync(ctx.themeOverridePath)) {
+        abortBuild('\n[FATAL] --theme-override file not found: ' + ctx.themeOverridePath + '\n');
+      }
+      let overrideRaw = fs.readFileSync(ctx.themeOverridePath, 'utf-8');
+      if (overrideRaw.charCodeAt(0) === 0xFEFF) overrideRaw = overrideRaw.slice(1);
+      let overrideObj;
+      try {
+        overrideObj = ctx.getJson5().parse(overrideRaw.replace(/\r\n/g, '\n'));
+      } catch (err) {
+        abortBuild('\n[FATAL] --theme-override parse error in ' + ctx.themeOverridePath + ': ' + err.message + '\n');
+      }
+      config.theme = ctx.getDeepmerge().all([{}, config.theme, overrideObj || {}], { arrayMerge: (target, source) => source });
+      console.log('  [theme-override] ' + path.relative(ctx.rootDir, ctx.themeOverridePath).split(path.sep).join('/'));
+    }
     // Cloudflare Web Analytics token 解析优先级（features.analytics）：siteTag（非空）> 站点配置 token
     // > CF_WEB_ANALYTICS_TOKEN 环境变量。features.analytics.enabled=false 直接关闭注入。
     if (config.site && config.site.webAnalytics && config.site.webAnalytics.enabled) {

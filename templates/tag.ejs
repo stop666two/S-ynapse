@@ -5,20 +5,21 @@
 </div>
 
 <% if (articles && articles.length) { %>
+<% var _catCss = []; %>
 <div class="blog-grid">
-<% articles.forEach(function(article) { %>
+<% articles.forEach(function(article, _ai) { %>
 <article class="post-card<%= (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.hoverShine!==false)?' card-shine':'' %>">
   <% if (article.featuredImage) { %>
   <a href="<%= article.url %>" class="card-media">
-    <img <%- cardImgAttrs(article.featuredImage) %> alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> style="view-transition-name:cover-<%= article.slug %>"<% } %> class="post-card-image" loading="lazy">
+    <img <%- cardImgAttrs(article.featuredImage) %> alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-card-image" loading="lazy">
     <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.coverOverlay!==false) { %><span class="card-overlay" aria-hidden="true"></span><% } %>
-    <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.categoryChip!==false&&article.categories&&article.categories.length) { %><span class="card-cat" style="--cat-h:<%= categoryHue(article.categories[0]) %>"><%= article.categories[0] %></span><% } %>
+    <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.categoryChip!==false&&article.categories&&article.categories.length) { _catCss.push('.card-cat-h'+_ai+'{--cat-h:'+categoryHue(article.categories[0])+'}'); %><span class="card-cat card-cat-h<%= _ai %>"><%= article.categories[0] %></span><% } %>
     <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.readTimeBadge!==false&&article.readTime) { %><span class="card-time"><%= ui('card.minute','{minutes} 分钟阅读').replace('{minutes}', article.readTime) %></span><% } %>
   </a>
   <% } %>
   <h2 class="post-card-title">
     <% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span><% } %><% if (article.series) { %><span class="series-badge"><%= ui('card.series','系列') %></span><% } %>
-    <a href="<%= article.url %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> style="view-transition-name:title-<%= article.slug %>"<% } %>><%= article.title %></a>
+    <a href="<%= article.url %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="title-<%= article.slug %>"<% } %>><%= article.title %></a>
   </h2>
   <div class="post-card-meta">
     <% if (theme.card && theme.card.showDate && article.date) { %>
@@ -42,7 +43,7 @@
   <p class="post-card-excerpt"><%= article.excerpt %></p>
   <% } %>
   <% if (theme.card && theme.card.showTags && article.tags && article.tags.length) { %>
-  <div class="post-tags" style="margin-top:0.75rem">
+  <div class="post-tags card-tags">
     <% article.tags.forEach(function(tag) { %>
     <a href="<%= (typeof langPrefix!=='undefined' ? langPrefix : '/zh/') %>tags/<%= generateSlug(tag) %>/" class="post-tag"><%= tag %></a>
     <% }) %>
@@ -50,7 +51,8 @@
   <% } %>
 </article>
 <% }) %>
+<% if (_catCss.length) { %><style><%- _catCss.join('') %></style><% } %>
 </div>
 <% } else { %>
-<div class="post-article"><p style="text-align:center;padding:2rem;color:var(--color-ts)"><%= ui('tag.empty','该标签下暂无文章') %></p></div>
+<div class="post-article"><p class="empty-state-ts"><%= ui('tag.empty','该标签下暂无文章') %></p></div>
 <% } %>

@@ -105,6 +105,7 @@ function initTheme() {
   if (F.themeToggle) F.themeToggle.toggleIconSwap = false;
   if (moon) moon.remove();
   sun.style.display = '';
+  sun.classList.remove('u-hidden');
   const path = asPath(sun);
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   bind(btn, mod.createMorph(path, isDark ? iconMoon : iconSun, { reducedMotion: 'never' }), iconSun, iconMoon, isDark, 'theme');

@@ -9,7 +9,7 @@
 %>
 <article class="post-article">
   <header class="post-header">
-    <h1 class="post-title" id="<%= article.slug %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> style="view-transition-name:title-<%= article.slug %>"<% } %>><% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span>       <% } %><%= article.title %></h1>
+    <h1 class="post-title" id="<%= article.slug %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="title-<%= article.slug %>"<% } %>><% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span>       <% } %><%= article.title %></h1>
     <% if (features.i18n && features.i18n.translationNotice !== false && typeof altArticle !== 'undefined' && altArticle) { %><div class="translation-notice"><a href="<%= altArticle.url %>"><%= ui('post.translationNotice','本文也有 {lang} 版本').replace('{lang}', altArticle.lang === 'en' ? 'English' : '中文') %></a></div><% } %>
     <div class="post-meta">
       <% if (article.date) { %>
@@ -41,7 +41,7 @@
   </header>
 
   <% if (article.featuredImage) { %>
-  <img src="<%= article.featuredImage %>" alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> style="view-transition-name:cover-<%= article.slug %>"<% } %> class="post-featured-image" loading="eager" fetchpriority="high">
+  <img src="<%= article.featuredImage %>" alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-featured-image" loading="eager" fetchpriority="high">
   <% if(features.cover&&features.cover.enabled!==false&&article.featuredImage){ %>
   <div class="cover-strip cover-apply" data-article="<%= article.slug %>">
     <span class="cover-strip-label"><%= ui('post.coverStyle','封面样式') %></span>
@@ -61,8 +61,8 @@
   <% if(features.favorites&&features.favorites.enabled!==false&&features.favorites.position!=='meta'&&!page.favoriteExclude){ %>
   <button type="button" class="fav-btn" id="favBtn" data-url="<%= article.url %>" data-title="<%= article.title %>" aria-label="<%= ui('favorites.not','收藏') %>"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.6-9.6-8.4C.6 9.2 2.6 5.5 6.2 5.5c2.1 0 3.6 1.2 4.4 2.4.8-1.2 2.3-2.4 4.4-2.4 3.6 0 5.6 3.7 3.8 7.1C19 16.4 12 21 12 21z"/></svg><span><%= ui('favorites.not', (typeof lang!=='undefined'&&lang==='en'&&features.favorites.notTextEn)?features.favorites.notTextEn:(features.favorites.notText||'收藏')) %></span></button>
   <% } %>
-  <% if(theme.articleFooter&&theme.articleFooter.enabled!==false&&theme.articleFooter.source&&typeof pagesContent!=='undefined'&&pagesContent[theme.articleFooter.source]){ var f=theme.articleFooter; var pc=pagesContent[f.source]; %><div class="article-footer" style="--ff-bg:<%=f.backgroundColor%>;--ff-t:<%=f.textColor%>;--ff-bd:<%=f.borderColor%>;--ff-pan:<%=f.paddingTop||'1.25rem'%>;--ff-par:<%=f.paddingRight||'1.5rem'%>;--ff-pab:<%=f.paddingBottom||'1.25rem'%>;--ff-pal:<%=f.paddingLeft||'1.5rem'%>;--ff-r:<%=f.borderRadius||'0.5rem'%>;--ff-fs:<%=f.fontSize||'0.875rem'%>"><%- pc.content %></div><% } %>
-  <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--color-border)">
+  <% if(theme.articleFooter&&theme.articleFooter.enabled!==false&&theme.articleFooter.source&&typeof pagesContent!=='undefined'&&pagesContent[theme.articleFooter.source]){ var f=theme.articleFooter; var pc=pagesContent[f.source]; %><style>.article-footer{--ff-bg:<%=f.backgroundColor%>;--ff-t:<%=f.textColor%>;--ff-bd:<%=f.borderColor%>;--ff-pan:<%=f.paddingTop||'1.25rem'%>;--ff-par:<%=f.paddingRight||'1.5rem'%>;--ff-pab:<%=f.paddingBottom||'1.25rem'%>;--ff-pal:<%=f.paddingLeft||'1.5rem'%>;--ff-r:<%=f.borderRadius||'0.5rem'%>;--ff-fs:<%=f.fontSize||'0.875rem'%>}</style><div class="article-footer"><%- pc.content %></div><% } %>
+  <div class="post-actions">
     <% if(features.tts&&features.tts.enabled!==false){ %><button class="read-tts-btn" id="ttsBtn" aria-pressed="false" data-rate="<%= features.tts.rate||1 %>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg> <%= ui('post.ttsLabel','朗读') %></button><% } %>
     <% if(features.readMode&&features.readMode.enabled!==false){ %><button class="reading-mode-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> <%= (typeof lang!=='undefined'&&lang==='en'&&features.readMode.labelEn)?features.readMode.labelEn:(features.readMode.label||ui('post.readingMode','阅读模式')) %></button><% } %>
   </div>
@@ -146,7 +146,7 @@
 <% if (article.series && features.series && features.series.enabled!==false && features.series.showNavPanel!==false) { %>
 <div class="series-nav" role="navigation" aria-label="<%= ui('post.seriesNav','系列导航') %>">
   <div class="series-nav-head"><span class="series-nav-badge"><span data-i18n="post.series"><%= ui('post.series','系列') %></span></span><span class="series-nav-name"><%= article.series %></span><span class="series-nav-progress"><%= String(features.series.progressLabel||'{index} / {total}').replace('{index}',article.seriesIndex).replace('{total}',article.seriesTotal) %></span></div>
-  <% var _spct=article.seriesTotal>0?Math.round((article.seriesIndex/article.seriesTotal)*100):0; %><div class="series-progress" aria-hidden="true"><i style="width:<%= _spct %>%"></i></div>
+  <% var _spct=article.seriesTotal>0?Math.round((article.seriesIndex/article.seriesTotal)*100):0; %><style>.series-progress i{width:<%= _spct %>%}</style><div class="series-progress" aria-hidden="true"><i></i></div>
   <div class="series-nav-links">
     <% if (article.seriesPrevUrl) { %><a href="<%= article.seriesPrevUrl %>" class="series-nav-link prev">← <%= (typeof lang!=='undefined'&&lang==='en'&&features.series.prevLabelEn)?features.series.prevLabelEn:(features.series.prevLabel||ui('post.prev','上一篇')) %></a><% } %>
     <% if (article.seriesNextUrl) { %><a href="<%= article.seriesNextUrl %>" class="series-nav-link next"><%= (typeof lang!=='undefined'&&lang==='en'&&features.series.nextLabelEn)?features.series.nextLabelEn:(features.series.nextLabel||ui('post.next','下一篇')) %> →</a><% } %>

@@ -1,10 +1,10 @@
-<div class="post-article" style="padding:2rem">
+<div class="post-article page-pad">
   <h1 data-i18n="search.open">搜索</h1>
-  <div style="margin:2rem 0">
-    <input type="text" id="searchPageInput" placeholder="<%= ui('search.inputPlaceholder','输入关键词搜索') %>" data-i18n-placeholder="search.inputPlaceholder" style="width:100%;padding:1rem 1.25rem;font-size:1.125rem;border:2px solid var(--color-border);border-radius:var(--r);background:var(--color-bg);color:var(--color-t);font-family:var(--ff);outline:none" autofocus>
+  <div class="search-page-form">
+    <input type="text" id="searchPageInput" placeholder="<%= ui('search.inputPlaceholder','输入关键词搜索') %>" data-i18n-placeholder="search.inputPlaceholder" class="search-page-input" autofocus>
   </div>
   <div id="searchPageResults">
-    <p style="color:var(--color-text-secondary);text-align:center;padding:2rem"><%= ui('search.startHint','输入关键词开始搜索') %></p>
+    <p class="empty-state"><%= ui('search.startHint','输入关键词开始搜索') %></p>
   </div>
 </div>
 
@@ -33,7 +33,7 @@ function initPagefindPage(){
   function pfFallback(){
     if(inp&&inp.parentElement)inp.parentElement.style.display='';
     wrap.innerHTML='';
-    var p=document.createElement('p');p.style.cssText='color:var(--color-text-secondary);text-align:center;padding:2rem';
+    var p=document.createElement('p');p.className='empty-state';
     p.textContent=(typeof __T==='function')?__T('search.unavailable','搜索暂不可用'):'搜索暂不可用';
     wrap.appendChild(p);
   }
@@ -63,7 +63,7 @@ function searchPage(query){
   var rDiv=document.getElementById('searchPageResults');
   if(!rDiv)return;
   if(!query||query.length<2){
-    rDiv.innerHTML='<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">'+__T('search.startHint','输入关键词开始搜索')+'</p>';
+    rDiv.innerHTML='<p class="empty-state">'+__T('search.startHint','输入关键词开始搜索')+'</p>';
     return;
   }
   if(!searchData.length&&!window.__SEARCH_DATA_READY__){ensureSearchData(function(){searchPage(query)});return}
@@ -79,7 +79,7 @@ function searchPage(query){
   }
   results.sort(function(a,b){return b.score-a.score});
   if(results.length){
-    rDiv.innerHTML='<p style="color:var(--color-text-secondary);margin-bottom:1rem">'+__T('search.foundCount','找到')+' '+results.length+' '+__T('search.foundCount','个结果')+'</p>'+
+    rDiv.innerHTML='<p class="search-count">'+__T('search.foundCount','找到')+' '+results.length+' '+__T('search.foundCount','个结果')+'</p>'+
       results.map(function(r){
         var meta='';
         if(r.date)meta+='<span class="post-card-meta-item">'+escHtml(r.date)+'</span>';
@@ -89,11 +89,11 @@ function searchPage(query){
           '<h2 class="post-card-title"><a href="'+escHtml(r.url)+'">'+hlOnce(r.title,query)+'</a></h2>'+
           (r.excerpt?'<p class="post-card-excerpt">'+hlOnce(wrapExcerpt(r.excerpt,query,170),query)+'</p>':'')+
           (meta?'<div class="post-card-meta">'+meta+'</div>':'')+
-          (r.tags&&r.tags.length?'<div class="post-tags" style="margin-top:0.5rem">'+r.tags.slice(0,6).map(function(t){return '<span class="post-tag">'+escHtml(t)+'</span>'}).join('')+'</div>':'')+
+          (r.tags&&r.tags.length?'<div class="post-tags search-result-tags">'+r.tags.slice(0,6).map(function(t){return '<span class="post-tag">'+escHtml(t)+'</span>'}).join('')+'</div>':'')+
         '</article>';
       }).join('');
   }else{
-    rDiv.innerHTML='<p style="color:var(--color-text-secondary);text-align:center;padding:2rem">'+__T('search.notFound','未找到相关文章')+'</p>';
+    rDiv.innerHTML='<p class="empty-state">'+__T('search.notFound','未找到相关文章')+'</p>';
   }
 }
 var __spInp=document.getElementById('searchPageInput');

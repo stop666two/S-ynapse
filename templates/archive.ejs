@@ -41,8 +41,8 @@
   </div>
 </div>
 <% }) %>
-<div class="cal-legend"><span><%= ui('archive.count','文章') %></span><i class="cal-cell l0" style="background:<%=(features.heatmap&&features.heatmap.emptyColor)||'var(--color-hover)'%>"></i><i class="cal-cell l1"></i><i class="cal-cell l2"></i><i class="cal-cell l4"></i><span><%= ui('archive.legend','少 → 多') %></span></div>
+<div class="cal-legend"><span><%= ui('archive.count','文章') %></span><i class="cal-cell l0"></i><i class="cal-cell l1"></i><i class="cal-cell l2"></i><i class="cal-cell l4"></i><span><%= ui('archive.legend','少 → 多') %></span></div>
 <% } else { %>
-<p style="color:var(--color-text-secondary)"><%= ui('archive.empty','暂无归档') %></p>
+<p class="empty-note"><%= ui('archive.empty','暂无归档') %></p>
 <% } %>
 </div>

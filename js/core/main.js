@@ -13,6 +13,7 @@ import { init as motionInit } from '../domains/core/motion.js';
 import { init as imageLazyInit } from '../domains/core/image-lazy.js';
 import { init as seamlessNavInit } from '../domains/core/seamless-nav.js';
 import { init as pageTransitionInit } from '../domains/core/page-transition.js';
+import { init as vtNamesInit } from '../domains/core/vt-names.js';
 import { init as softNavInit } from './soft-nav.js';
 import { init as externalLinkInit } from '../domains/core/external-link.js';
 import { init as readingModeInit } from '../domains/core/reading-mode.js';
@@ -64,7 +65,7 @@ const idleQueue = [
 const criticalQueue = [
   () => themeInit(), () => navigationInit(), () => i18nInit(), () => announcementInit(),
   () => readPositionInit(), () => tocInit(), () => readingInit(), () => motionInit(),
-  () => imageLazyInit(), () => seamlessNavInit(), () => pageTransitionInit(),
+  () => imageLazyInit(), () => seamlessNavInit(), () => pageTransitionInit(), () => vtNamesInit(),
   () => externalLinkInit(), () => readingModeInit(), () => codeBlockInit(), () => softNavInit()
 ];
 // 配置外置后 __GUARD__ 在 boot 等待 __CONFIG_READY__ 后才存在，因此延迟到执行期判定；

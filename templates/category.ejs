@@ -1,6 +1,6 @@
 <div class="post-article">
   <h1><%= ui('category.title','分类') %>: <%= categoryName %></h1>
-  <p style="color:var(--color-ts);margin-bottom:1.5rem"><%= articles.length %> <%= ui('category.postCount','篇文章') %></p>
+  <p class="category-count"><%= articles.length %> <%= ui('category.postCount','篇文章') %></p>
 </div>
 
 <% if (articles && articles.length) { %>
@@ -36,6 +36,6 @@
 <% }) %>
 </div>
 <% } else { %>
-<div class="post-article"><p style="text-align:center;padding:2rem;color:var(--color-ts)"><%= ui('category.empty','该分类下暂无文章') %></p></div>
+<div class="post-article"><p class="empty-state-ts"><%= ui('category.empty','该分类下暂无文章') %></p></div>
 <% } %>
 

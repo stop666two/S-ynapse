@@ -1,14 +1,14 @@
 <% if (!pageContent.match(/<h1/i)) { %><h1><%= pageTitle %></h1><% } %>
-<div class="post-article" style="padding:2rem">
+<div class="post-article page-pad">
   <div class="post-content">
     <%- pageContent %>
   </div>
 </div>
 <% var ac = (typeof features!=='undefined'&&features.authorCard)||{}; var ap = (typeof site!=='undefined'&&site.authorProfile)||{}; var acName=(ap.name||site.author||''); if (pageSlug===(ac.pageSlug||'about')&&ac.enabled!==false&&(ap.bio||ap.avatar||(ap.skills&&ap.skills.length)||(ap.timeline&&ap.timeline.length)||(ap.socials&&ap.socials.length))) { %>
-<div class="post-article" style="padding:0 2rem 2rem">
+<div class="post-article author-section">
 <div class="author-card">
   <div class="author-card-head">
-    <% if (ap.avatar) { %><img class="author-avatar" src="<%= ap.avatar %>" alt="<%= acName %>" loading="lazy" decoding="async" style="width:<%= ac.avatarSize||'96px' %>;height:<%= ac.avatarSize||'96px' %>"><% } %>
+    <% if (ap.avatar) { %><style>.author-card{--about-avatar-size:<%= ac.avatarSize||'96px' %>}</style><img class="author-avatar" src="<%= ap.avatar %>" alt="<%= acName %>" loading="lazy" decoding="async"><% } %>
     <div class="author-card-meta">
       <% if (acName) { %><div class="author-card-name"><%= acName %></div><% } %>
       <% if (ap.bio) { %><p class="author-card-bio"><%= ap.bio %></p><% } %>

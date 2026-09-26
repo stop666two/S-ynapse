@@ -1,5 +1,5 @@
 // 联系方式弹窗（点击社交图标打开；点击值块复制）。
-// W4 接线：copyText(En) 作为值块复制按钮 title/aria-label；showAllItems=false 时超过 2 条折叠为「更多」展开器；
+// copyText(En) 作为值块复制按钮 title/aria-label；showAllItems=false 时超过 2 条折叠为「更多」展开器；
 // popupWidth 由构建期模板写入 CSS（见 templates/site-css.ejs）。
 function isEn() {
   var l = document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh');

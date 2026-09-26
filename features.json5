@@ -141,7 +141,7 @@
     // 滚动多少像素后显示按钮。
     showAfterPx: 400,
     // 距右边缘距离与距底边距离：唯一来源为 tuning.backToTop.offsetSide / offsetBottom。
-    // （原 features.backToTop.rightOffset/bottomOffset 重复键已于 2026-09-27 第六轮删除，迁移见 CHANGELOG。）
+    // （features.backToTop.rightOffset/bottomOffset 为已移除的重复键，迁移说明见 CHANGELOG。）
     // 按钮尺寸(px)。
     size: '44px',
     // 滚动回顶部动画时长(ms;0=瞬时;rAF 缓动实现)。
@@ -174,7 +174,7 @@
     highlightMatches: true,
     // 是否显示结果数量提示（false = 结果区与 /search 页均不显示「找到 N 条」；计数文案取 ui-strings.search.foundCount 双语）。
     showCount: true,
-    // 无输入提示 + 无结果提示（第四轮 W2 接线）。
+    // 无输入提示 + 无结果提示。
     // ①输入为空时显示本键非空值（空 = 不显示，保持历史行为）；
     // ②无结果文案优先级链：emptyHint > noResultText > tuning.search.emptyText > i18n 内置兜底。
     // 空 = 沿用 noResultText（默认空串，保持历史输出「未找到匹配内容」）。
@@ -351,8 +351,8 @@
     toggleIconSwap: true,
     // 切换按钮的 CSS z-index。
     zIndex: 100
-    // 说明：默认主题/是否记忆/图标样式/过渡四项的唯一来源为 theme.json5 → darkMode.default/rememberChoice/iconStyle/transitionAll，
-    // 原 themeToggle.defaultTheme/rememberChoice/iconStyle/transitionAll 语义重复，已于 2026-09-27 删除（迁移见 CHANGELOG）。
+    // 说明：默认主题/是否记忆/图标样式/过渡四项的唯一来源为 theme.json5 → darkMode.default/rememberChoice/iconStyle/transitionAll；
+    // themeToggle 同名键为已移除的重复键，迁移说明见 CHANGELOG。
   },
 
   // ---------------------------------------------------------------------------
@@ -695,7 +695,7 @@
     // 是否显示行号。
     showLineNumbers: false
     // 说明：代码窗栏复用（window bar）唯一来源为 features.codeBlock.windowBar（js/domains/core/code-block.js 消费）；
-    // 原 codeCopy.includeWindowBar 语义重复，已于 2026-09-27 删除（迁移见 CHANGELOG）。
+    // codeCopy.includeWindowBar 为已移除的重复键，迁移说明见 CHANGELOG。
   },
 
   // ---------------------------------------------------------------------------
@@ -749,7 +749,7 @@
     // 封面懒加载。
     lazy: true,
     // 说明：封面宽高比唯一来源为 tuning.json5 → card.imageAspect（CSS 变量 --card-imageAspect）；
-    // 原 listCover.aspectRatio 语义重复，已于 2026-09-27 删除（迁移见 CHANGELOG）。
+    // listCover.aspectRatio 为已移除的重复键，迁移说明见 CHANGELOG。
 
     // 无封面文章自动生成封面（构建期 SVG → sharp 出图）。
     // 作用: 文章 frontmatter 无 featuredImage 时，列表卡片与文章页头图改用自动生成的封面，
@@ -816,7 +816,7 @@
     // 是否仅移动端显示；false=桌面端也显示底部导航（≤mobileBreakpoint 断点行为不变）。
     onlyMobile: true,
     // 说明：iOS 安全区（safe-area-inset-bottom）唯一来源为 features.mobile.safeAreaBottom；
-    // 原 mobileBottomNav.useSafeArea 语义重复，已于 2026-09-27 删除（迁移见 CHANGELOG）。
+    // mobileBottomNav.useSafeArea 为已移除的重复键，迁移说明见 CHANGELOG。
     // 标签文案覆盖（空=走 ui-strings.json5 的 bottomNav.* 双语词典；推荐保持空）。
     // 标签覆盖:首页。
     labelHome: '',
@@ -1642,7 +1642,7 @@
     // 复制成功提示英文（en 站；空 = 回退内置双语 toast）。
     copySuccessTextEn: '',
     // 弹窗宽度(px)。
-    // 默认 400px（与模板历史 max-width 一致；原 360px 默认值从未生效，第六轮按视觉不变修正）。
+    // 默认 400px（与模板 max-width 一致，视觉不变）。
     popupWidth: '400px',
     // 是否全量展示条目：false = 超过 2 条折叠为「更多」展开器（默认 true = 全部展示）。
     showAllItems: true,
@@ -2625,14 +2625,14 @@
   },
 
   // ---------------------------------------------------------------------------
-  // 62. 启动调度(三阶段:关键同步 → 空闲批次 → 重模块动态导入;防长任务卡顿)
+  // 62. 启动调度(三阶段:关键同步 → 空闲切片 → 重模块动态导入;防长任务卡顿)
   // ---------------------------------------------------------------------------
   boot: {
     // 总开关；false = 旧行为（全部模块立即初始化，可能出现长任务）
     enabled: true,
     // 空闲等待上限(ms)：requestIdleCallback 超时兜底（推荐 500-1500）
     idleTimeoutMs: 800,
-    // 首次交互（点击/按键/触摸/滚轮）立即唤醒后续批次（推荐 true，保 INP）
+    // 首次交互（点击/按键/触摸/滚轮）立即唤醒后续切片（推荐 true，保 INP）
     interactionWake: true,
     // 控制台输出启动时间线（[boot] 前缀；排查性能时开，生产建议 false）
     log: false,
@@ -2642,7 +2642,7 @@
     heavyMode: 'idle',
     // 无 requestIdleCallback 时的回退间隔(ms)（推荐 80-200）
     idleFallbackMs: 120,
-    // 唤醒后续批次的交互事件名列表（默认四件套；可增删，如 'scroll'）
+    // 唤醒后续切片的交互事件名列表（默认四件套；可增删，如 'scroll'）
     interactionEvents: ['pointerdown', 'keydown', 'touchstart', 'wheel'],
     // 外置配置加载超时(ms)：超过该时长仍未取到 config.json 时降级为内联最小子集（见 js/core/runtime.js）。
     // 类型: number(ms) | 推荐: 2000-5000

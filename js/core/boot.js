@@ -1,4 +1,4 @@
-// Boot scheduler —— 三阶段启动调度（关键同步 → 空闲批次 → 重模块），含加载遮罩控制。
+// Boot scheduler —— 三阶段启动调度（关键同步 → 空闲切片 → 重模块），含加载遮罩控制。
 // 配置：features.loading（遮罩）/ features.boot（调度）；时间线写入 window.__BOOT__ 供验证。
 // 配置外置后先等待 window.__CONFIG_READY__（无则立即继续）再读取 features 并调度三队列，
 // 保证降级路径（__CONFIG_OK__=false）不会因缺少 features 抛错。

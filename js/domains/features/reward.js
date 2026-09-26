@@ -1,5 +1,5 @@
 // 打赏弹层：开合按钮随文章内容交换而重建；文档级监听器只绑定一次，弹层元素实时按 id 查询。
-// W4 接线：features.reward.closeByBtn/closeByOverlay/closeByEsc 三个关闭路径各自门控（默认 true=现行为）。
+// features.reward.closeByBtn/closeByOverlay/closeByEsc 三个关闭路径各自门控（默认 true=现行为）。
 var globalBound = false;
 
 function closeCfg() {

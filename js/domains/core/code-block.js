@@ -60,7 +60,7 @@ var fbAll=function(){var ta=document.createElement('textarea');ta.value=all;ta.s
 ab.onclick=function(){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(all).then(doneAll).catch(fbAll)}else{fbAll()}};
 var first=blocks[0].previousElementSibling&&blocks[0].previousElementSibling.classList.contains('code-windowbar')?blocks[0].previousElementSibling:blocks[0];
 first.parentNode.insertBefore(row2,first);row2.appendChild(ab)}
-/* W4：features.mobile.codeScrollHint（默认 true）——超宽代码块显示「可横向滚动」提示；
+/* features.mobile.codeScrollHint（默认 true）——超宽代码块显示「可横向滚动」提示；
    首次横滚后自动隐藏（.code-scrolled）；尺寸依赖字体与容器布局，rAF + fonts.ready + resize 多点扫描，幂等。 */
 var M0=(F&&F.mobile)||{};
 if(M0.enabled!==false&&M0.codeScrollHint!==false){

@@ -4,7 +4,7 @@ export function init() {
     if (!lb || !img) return;
     var F = window.__FEATURES__ || {}, L = (F && F.lightbox) || {};
     if (L.enabled === false) return;
-    /* W4 接线：openDurationMs/switchDurationMs 为专键（0=瞬时），未设回退通用 transitionDurationMs（再回退 220）；
+    /* openDurationMs/switchDurationMs 为专键（0=瞬时），未设回退通用 transitionDurationMs（再回退 220）；
        系统减少动效时跳过动画（瞬时）；与 scripts/lib/feature-wiring.js → lightboxConfig 同源。 */
     var numOr = function (v, d) { var n = parseFloat(v); return isNaN(n) || n < 0 ? d : n; };
     var transMs = numOr(L.transitionDurationMs, 220);

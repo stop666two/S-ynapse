@@ -1,4 +1,4 @@
-// W4：features.mobile.touchFallback（默认 true）——触屏设备为 hover-only 控件提供替代交互。
+// features.mobile.touchFallback（默认 true）——触屏设备为 hover-only 控件提供替代交互。
 // 触屏判定后给 <html> 置 data-touch-fallback；文档级委托 touchstart/focusin：
 // 点击 pre / 标题（h2-h4）/ Mermaid SSR 容器即加 .touch-reveal（显形复制按钮/标题锚点/图表复制），
 // 点击其它区域或另一目标时清除；卡片遮罩由 CSS :active 处理（见 templates/site-css.ejs）。

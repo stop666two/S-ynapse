@@ -42,6 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **搜索页计数服务端本地化（残余清理）**：搜索页结果计数原先用运行时 `__T` 两次拼接键值，英文页因字典时序回退为中文、且 `foundCount` 的 `{count}` 占位符直接可见；现改为服务端 `ui('search.foundCount')` 模板串 + `{count}` 替换，中英渲染均为成句文案 — `templates/search.ejs`
+
+- **根 404 语言自适应（残余清理）**：`_redirects` 不再把 `/404.html` 全局 302 到 `/zh/404.html`；根 404 由构建期注入语言自适应脚本（en 访客跳 `/en/404.html`，尊重 `s-ss-lang` 语言锁），中文访客保持在根 404 不重定向；构建 smoke 新增两条产物断言 — `scripts/build.js` + `scripts/build/security-files.js` + `scripts/build-smoke.test.js`
+
 - **英文页站点级文案与 404/guard 残余 i18n（反馈批次三 T4）**：`site.json5` 补 `descriptionEn`（meta/OG/JSON-LD/Feed）、`languageEn`、`seo.metaKeywordsEn`、`authorProfile.bio/bioEn` 演示数据，`scripts/build/pages.js` 新增 `localizeSite()` 按页面语言取用（未配置 `*En` 的站点行为不变）；修复英文页侧栏「最近文章」日期显示 `2026年9月10日`（`layout.ejs` 的 `toLocaleDateString(site.language)` 现随语言取 `languageEn`，空则 `en-US`）；404 页 notFound 五处静态中文改为服务端 `ui()` 按语言渲染（`data-i18n` 运行时兜底不变）；guard 锁屏标题/正文/关闭按钮改走 `ui-strings.json5`（`guard.json5` 对应键留空，显式填写仍优先覆盖），`guard/core.js` 的 `t()` 按页面语言优先取 `__I18N__.en.guard`（右键菜单等 guard 提示在英文页同步生效）；新增 10 项单测与产物/运行时 runner（`.tmp-scripts/run-t4-i18n.js`，端口 3313 自收尾）— `site.json5` + `scripts/lib/site-defaults.js` + `scripts/build/pages.js` + `templates/404.ejs` + `ui-strings.json5` + `guard.json5` + `js/domains/guard/{core,devtools-detect}.js` + `scripts/i18n-residuals.test.js` + `docs/config-reference.md`
 
 - **搜索入口在软导航后失效修复（用户反馈）**：首页 hero「搜索文章」、404 页搜索按钮、侧栏搜索框回车原先由 search 模块一次性绑定到具体节点——软导航替换内容区后节点被换新，入口静默失效（点按无反应）；且模块加载完成前点击同样无响应。现改为 `js/core/main.js` 关键路径的**文档级事件委托**（`click` 捕获 `.hero-search`/`#errSearchBtn`、`keydown` 捕获 `.widget-search-input` 回车），并对加载前点击以占位 `openSearch` 排队、search 模块就绪后自动补开 — `js/core/main.js` + `js/domains/features/search.js` + 回归 runner `.tmp-scripts/run-search-entry.js`（9/9：加载前排队补开/无刷新/首访/软导航返回/404/侧栏回车/0 控制台错误）

@@ -107,6 +107,16 @@ function createBuildContext(deps) {
   const OUTPUT_DIR_RESOLVED = resolveOutputDir(argv, rootDir);
   const DIST_DIR = OUTPUT_DIR_RESOLVED.dir;                   // Build output directory
 
+  // features 覆盖文件（`--features-override <file>`）：仅用于隔离验证/预览构建的
+  // features 深合并覆盖（例如 runner 生成第二态构建而不改动仓库 features.json5）。
+  // 相对路径按 rootDir 解析；文件内仍受 validateFeatures 校验（未知键报错）。
+  const FEATURES_OVERRIDE_PATH = (() => {
+    const idx = argv.indexOf('--features-override');
+    const value = (idx !== -1 && argv[idx + 1] && argv[idx + 1].charAt(0) !== '-') ? argv[idx + 1] : '';
+    if (!value) return '';
+    return path.isAbsolute(value) ? value : path.resolve(rootDir, value);
+  })();
+
   // CLI flags parsed from argv
   const WATCH_MODE = argv.includes('--watch');        // Rebuild on file changes
   const SERVE_MODE = argv.includes('--serve');        // Start dev HTTP server after build
@@ -166,6 +176,7 @@ function createBuildContext(deps) {
   const config = createConfigModule({
     rootDir,
     watchMode: WATCH_MODE,
+    featuresOverridePath: FEATURES_OVERRIDE_PATH,
     getJson5: () => json5,
     getDeepmerge: () => deepmerge,
     getVendorFonts: () => assets.VENDOR_FONTS,

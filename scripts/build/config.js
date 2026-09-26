@@ -124,6 +124,23 @@ function createConfigModule(ctx) {
     // platforms the user removed). Deepmerge's default arrayMerge concatenates,
     // so features gets its own merge pass with a replace strategy.
     config.features = ctx.getDeepmerge().all([{}, DEFAULT_FEATURES, features], { arrayMerge: (target, source) => source });
+    // `--features-override <file>`：隔离验证/预览构建的第二态 features 覆盖（深合并，
+    // 数组替换语义与 features.json5 一致）；未知键仍会被 validateFeatures 拦截。
+    if (ctx.featuresOverridePath) {
+      if (!fs.existsSync(ctx.featuresOverridePath)) {
+        abortBuild('\n[FATAL] --features-override file not found: ' + ctx.featuresOverridePath + '\n');
+      }
+      let overrideRaw = fs.readFileSync(ctx.featuresOverridePath, 'utf-8');
+      if (overrideRaw.charCodeAt(0) === 0xFEFF) overrideRaw = overrideRaw.slice(1);
+      let overrideObj;
+      try {
+        overrideObj = ctx.getJson5().parse(overrideRaw.replace(/\r\n/g, '\n'));
+      } catch (err) {
+        abortBuild('\n[FATAL] --features-override parse error in ' + ctx.featuresOverridePath + ': ' + err.message + '\n');
+      }
+      config.features = ctx.getDeepmerge().all([{}, config.features, overrideObj || {}], { arrayMerge: (target, source) => source });
+      console.log('  [features-override] ' + path.relative(ctx.rootDir, ctx.featuresOverridePath).split(path.sep).join('/'));
+    }
     // Cloudflare Web Analytics token: explicit config wins, else env fallback.
     if (config.site && config.site.webAnalytics && config.site.webAnalytics.enabled) {
       const wa = config.site.webAnalytics;

@@ -304,7 +304,8 @@ test('删除键无残留引用（W1+W2：js/templates/scripts 源码扫描）', 
     /mobileBottomNav\.useSafeArea/,
     /codeCopy\.includeWindowBar/,
     /\bpinyinFuzzy\b/,
-    /\blinkBehavior\b/
+    /\blinkBehavior\b/,
+    /\bincrementalByDefault\b/
   ];
   const offenders = [];
   for (const f of walk(ROOT, [])) {
@@ -313,4 +314,249 @@ test('删除键无残留引用（W1+W2：js/templates/scripts 源码扫描）', 
     for (const p of pats) if (p.test(src)) offenders.push(path.relative(ROOT, f) + ' :: ' + p);
   }
   assert.deepStrictEqual(offenders, []);
+});
+
+// ---------------------------------------------------------------------------
+// 第五轮 W3（2026-09-27）：math/supSub/mermaid/series/related/wordCount/gallery/imageLazy 接线。
+// ---------------------------------------------------------------------------
+test('features.json5：第五轮删除项与默认值口径修正（incrementalByDefault / skipInsideMath / countDigits）', () => {
+  assert.ok(!('incrementalByDefault' in features.gallery), 'features.gallery.incrementalByDefault 应已删除（无增量清单缓存实现）');
+  assert.ok(!('incrementalByDefault' in DEFAULT_FEATURES.gallery), 'schema gallery.incrementalByDefault 应已删除');
+  assert.strictEqual(features.supSub.skipInsideMath, true, 'skipInsideMath 默认 true = 历史行为（数学段内不处理）');
+  assert.strictEqual(DEFAULT_FEATURES.supSub.skipInsideMath, true);
+  assert.strictEqual(features.wordCount.countDigits, true, 'countDigits 默认 true = 历史行为（数字计入）');
+  assert.strictEqual(DEFAULT_FEATURES.wordCount.countDigits, true);
+  assert.strictEqual(features.math.autoDetect, true);
+  assert.deepStrictEqual(features.math.inlineDelimiters, ['$']);
+  assert.deepStrictEqual(features.math.blockDelimiters, ['$$']);
+  assert.strictEqual(features.math.mathml, true);
+  assert.strictEqual(features.mermaid.copyAfterRender, false);
+  assert.strictEqual(features.mermaid.errorTextEn, '[Diagram failed to render]');
+  assert.strictEqual(features.series.showBadge, true);
+  assert.strictEqual(features.series.badgeFormat, '系列 · {name}');
+  assert.strictEqual(features.series.sidebarWidget, true);
+  assert.strictEqual(features.series.panelTitle, '本系列共 {total} 篇');
+  assert.strictEqual(features.series.showPosition, true);
+  assert.strictEqual(features.related.excludeCurrent, true);
+  assert.strictEqual(features.wordCount.onCards, true);
+  assert.strictEqual(features.gallery.collectFeatured, true);
+  assert.strictEqual(features.imageLazy.preserveAspectRatio, true);
+});
+
+test('supSubConfig：标记归一化 / 空值回退 / 布尔缺省', () => {
+  assert.deepStrictEqual(w.supSubConfig({}), { enabled: true, supMarker: '^', subMarker: '~', skipInsideMath: true, preserveUnmatched: true });
+  const c = w.supSubConfig({ supSub: { supMarker: '^^', subMarker: '', skipInsideMath: false, preserveUnmatched: false, enabled: false } });
+  assert.deepStrictEqual(c, { enabled: false, supMarker: '^^', subMarker: '~', skipInsideMath: false, preserveUnmatched: false });
+  assert.strictEqual(w.supSubConfig({ supSub: { supMarker: 7 } }).supMarker, '7');
+});
+
+test('matchSupSub / transformSupSubText：成对、多字符、跨行禁止、preserveUnmatched 两态', () => {
+  const def = w.supSubConfig({});
+  const m = w.supSubMatchers(def);
+  assert.deepStrictEqual(w.matchSupSub('^x^ 后文', m), { raw: '^x^', text: 'x', up: true });
+  assert.deepStrictEqual(w.matchSupSub('~y~', m), { raw: '~y~', text: 'y', up: false });
+  assert.strictEqual(w.matchSupSub('^x\ny^', m), null, '不得跨行');
+  assert.strictEqual(w.matchSupSub('^a~b^', m), null, '内容含其它标记时不解析');
+  assert.strictEqual(w.matchSupSub('^', m), null);
+  const multi = w.supSubMatchers(w.supSubConfig({ supSub: { supMarker: '^^', subMarker: '%%' } }));
+  assert.deepStrictEqual(w.matchSupSub('^^x^^', multi), { raw: '^^x^^', text: 'x', up: true });
+  assert.deepStrictEqual(w.matchSupSub('%%x%%', multi), { raw: '%%x%%', text: 'x', up: false });
+  assert.strictEqual(w.transformSupSubText('a^b^c', m, true), 'a<sup>b</sup>c');
+  assert.strictEqual(w.transformSupSubText('a^bc', m, true), 'a^bc');
+  assert.strictEqual(w.transformSupSubText('a^bc', m, false), 'abc');
+  assert.strictEqual(w.transformSupSubText('~~x~~', m, false), '~~x~~', '标记重复不剥离（保留删除线语法）');
+  assert.strictEqual(w.transformSupSubText('^<b>^', m, true), '<sup>&lt;b&gt;</sup>');
+});
+
+test('mathConfig / buildMathGuardPatterns：默认等价历史、自定义定界符、正则转义、开关', () => {
+  const def = w.mathConfig({});
+  assert.deepStrictEqual([def.enabled, def.autoDetect, def.mathml], [true, true, true]);
+  assert.deepStrictEqual(def.inlineDelimiters, ['$']);
+  assert.deepStrictEqual(def.blockDelimiters, ['$$']);
+  assert.strictEqual(def.renderRoundParens, true);
+  assert.strictEqual(def.renderSquareBrackets, true);
+  const custom = w.mathConfig({ math: { inlineDelimiters: ['%', '%'], blockDelimiters: ['%%'], mathml: false, autoDetect: false } });
+  assert.deepStrictEqual(custom.inlineDelimiters, ['%'], '去重');
+  assert.strictEqual(custom.mathml, false);
+  assert.strictEqual(custom.autoDetect, false);
+  assert.deepStrictEqual(w.mathConfig({ math: { inlineDelimiters: [] } }).inlineDelimiters, ['$'], '空数组回退默认');
+
+  const pat = w.buildMathGuardPatterns(w.mathConfig({}));
+  assert.strictEqual(pat.blockToken.exec('$$\nx\n$$')[0], '$$\nx\n$$');
+  assert.strictEqual(pat.blockStart.exec('段落\n$$\nx\n$$').index, 3);
+  assert.strictEqual(pat.inlineToken.exec('$x$')[0], '$x$');
+  assert.strictEqual(pat.inlineToken.exec('$5 元 $6 元'), null, '$ 结尾数字不匹配（金额防误报）');
+  assert.strictEqual(pat.inlineToken.exec('$a\nb$'), null, '行内不跨行');
+  assert.strictEqual(pat.inlineToken.exec('$$a$$')[0], '$$a$$', '行内位置允许块定界符');
+  assert.strictEqual(pat.inlineToken.exec('\\(x\\)')[0], '\\(x\\)');
+  assert.strictEqual(pat.inlineToken.exec('\\[x\\]')[0], '\\[x\\]');
+  const patNoParen = w.buildMathGuardPatterns(w.mathConfig({ math: { renderRoundParens: false, renderSquareBrackets: false } }));
+  assert.strictEqual(patNoParen.inlineToken.exec('\\(x\\)'), null);
+  const patEsc = w.buildMathGuardPatterns(w.mathConfig({ math: { inlineDelimiters: ['.*'], blockDelimiters: ['**'] } }));
+  assert.strictEqual(patEsc.inlineToken.exec('.*x.*')[0], '.*x.*', '正则元字符定界符按字面量');
+  assert.strictEqual(patEsc.blockToken.exec('**x**')[0], '**x**');
+  const patPct = w.buildMathGuardPatterns(custom);
+  assert.strictEqual(patPct.inlineToken.exec('%x%')[0], '%x%');
+  assert.strictEqual(patPct.blockToken.exec('%%\nx\n%%')[0], '%%\nx\n%%');
+});
+
+test('hasCustomMathDelimiters：单 $ 不触发、自定义成对触发', () => {
+  const def = w.mathConfig({});
+  assert.strictEqual(w.hasCustomMathDelimiters('公式 $x$ 与 $y$', def), false, '默认 $ 不改变历史按需加载口径');
+  const pct = w.mathConfig({ math: { inlineDelimiters: ['%'] } });
+  assert.strictEqual(w.hasCustomMathDelimiters('公式 %x%', pct), true);
+  assert.strictEqual(w.hasCustomMathDelimiters('公式 %x', pct), false);
+  const block = w.mathConfig({ math: { blockDelimiters: ['%%'] } });
+  assert.strictEqual(w.hasCustomMathDelimiters('%%\nx\n%%', block), true);
+});
+
+test('mermaidConfig / mermaidErrorText：默认与两态', () => {
+  const def = w.mermaidConfig({});
+  assert.deepStrictEqual([def.enabled, def.autoDetect, def.followTheme, def.copyAfterRender], [true, true, true, false]);
+  const c = w.mermaidConfig({ mermaid: { autoDetect: false, followTheme: false, copyAfterRender: true, errorText: '失败', errorTextEn: 'Failed' } });
+  assert.deepStrictEqual([c.autoDetect, c.followTheme, c.copyAfterRender], [false, false, true]);
+  assert.strictEqual(w.mermaidErrorText(c, 'zh'), '失败');
+  assert.strictEqual(w.mermaidErrorText(c, 'en'), 'Failed');
+  assert.strictEqual(w.mermaidErrorText({ errorText: '失败' }, 'en'), '失败', 'en 空回退中文');
+  assert.strictEqual(w.mermaidErrorText({}, 'en'), '');
+});
+
+test('seriesConfig / seriesBadgeText / seriesPanelTitle：模板替换与 en 回退链', () => {
+  const def = w.seriesConfig({});
+  assert.strictEqual(def.showBadge, true);
+  assert.strictEqual(def.sidebarWidget, true);
+  assert.strictEqual(def.showPosition, true);
+  assert.strictEqual(def.defaultWidgetCount, 8);
+  const c = w.seriesConfig({ series: { showBadge: false, sidebarWidget: false, showPosition: false, defaultWidgetCount: 3 } });
+  assert.deepStrictEqual([c.showBadge, c.sidebarWidget, c.showPosition, c.defaultWidgetCount], [false, false, false, 3]);
+  assert.strictEqual(w.seriesBadgeText(def, 'zh', '前端', '系列', 'Series'), '系列 · 前端');
+  assert.strictEqual(w.seriesBadgeText(def, 'en', 'Frontend', '系列', 'Series'), 'Series · Frontend');
+  assert.strictEqual(w.seriesBadgeText({ badgeFormat: '系列 · {name}', badgeFormatEn: '' }, 'en', 'X', '系列', 'Series'), '系列 · X', 'en 空回退中文');
+  assert.strictEqual(w.seriesBadgeText({ badgeFormat: '' }, 'zh', 'X', '词典', 'Dict'), '词典', '空模板回退词典');
+  assert.strictEqual(w.seriesPanelTitle(def, 'zh', 3, '系列', 'Series'), '本系列共 3 篇');
+  assert.strictEqual(w.seriesPanelTitle(def, 'en', 3, '系列', 'Series'), '3 posts in this series');
+  assert.strictEqual(w.seriesPanelTitle({ panelTitle: '', panelTitleEn: '' }, 'en', 3, '系列', 'Series'), 'Series', '空模板回退词典');
+});
+
+test('relatedConfig / galleryCollectFeatured / imagePreserveAspectRatio：默认与关闭态', () => {
+  assert.strictEqual(w.relatedConfig({}).excludeCurrent, true);
+  assert.strictEqual(w.relatedConfig({ related: { excludeCurrent: false } }).excludeCurrent, false);
+  assert.strictEqual(w.galleryCollectFeatured({}), true);
+  assert.strictEqual(w.galleryCollectFeatured({ gallery: { collectFeatured: false } }), false);
+  assert.strictEqual(w.imagePreserveAspectRatio({}), true);
+  assert.strictEqual(w.imagePreserveAspectRatio({ imageLazy: { preserveAspectRatio: false } }), false);
+});
+
+test('wordCountConfig / wordCountText / readTimeText：模板链与 en 回退', () => {
+  const def = w.wordCountConfig({});
+  assert.deepStrictEqual([def.onCards, def.inArticle, def.countCjkChars, def.countDigits], [true, true, true, true]);
+  assert.strictEqual(def.wpm, 265);
+  assert.strictEqual(w.wordCountText(def, 'zh', 1234, '词典', 'Dict'), '1234 字');
+  assert.strictEqual(w.wordCountText(def, 'en', 1234, '词典', 'Dict'), '1234 words');
+  assert.strictEqual(w.wordCountText({ textFormat: '', textFormatEn: '' }, 'en', 5, '词典', 'Dict'), 'Dict', '空模板回退词典');
+  assert.strictEqual(w.wordCountText({ textFormat: '{count} 个字符' }, 'zh', 5, '词典', 'Dict'), '5 个字符');
+  assert.strictEqual(w.readTimeText(def, 'zh', 3, '词典', 'Dict'), '3 分钟阅读');
+  assert.strictEqual(w.readTimeText(def, 'en', 3, '词典', 'Dict'), '3 min read');
+  assert.strictEqual(w.readTimeText({ readTimeFormatEn: '' }, 'en', 3, '词典', 'Dict'), '3 分钟阅读', 'en 空回退中文');
+  assert.strictEqual(w.wordCountConfig({ wordCount: { wpm: 0 } }).wpm, 265);
+});
+
+test('countWordsDetail 参数化：中英混排 / 纯数字 / CJK 开关矩阵', () => {
+  const { countWordsDetail, countWords } = require('./lib/utils');
+  assert.deepStrictEqual(countWordsDetail('你好 world 123'), { cjk: 2, latin: 2, total: 4 });
+  assert.deepStrictEqual(countWordsDetail('a b c', { countDigits: false }), { cjk: 0, latin: 3, total: 3 });
+  assert.deepStrictEqual(countWordsDetail('123 456', { countDigits: false }), { cjk: 0, latin: 0, total: 0 });
+  assert.deepStrictEqual(countWordsDetail('abc123', { countDigits: false }), { cjk: 0, latin: 1, total: 1 }, '混合 token 仍计 1');
+  assert.deepStrictEqual(countWordsDetail('中文123', { countDigits: false }), { cjk: 2, latin: 0, total: 2 });
+  assert.deepStrictEqual(countWordsDetail('中文 english', { countCjkChars: false }), { cjk: 0, latin: 1, total: 1 });
+  assert.deepStrictEqual(countWordsDetail('中文 english', { countCjkChars: false, countDigits: false }), { cjk: 0, latin: 1, total: 1 });
+  assert.strictEqual(countWords('你好 world', { countCjkChars: false }), 1);
+  assert.strictEqual(countWords(undefined), 0);
+});
+
+test('computeRelatedArticles：excludeCurrent 两态（相关推荐自引用）', () => {
+  const { computeRelatedArticles } = require('./lib/related');
+  function make() {
+    return [
+      { slug: 'a', lang: 'zh', title: 'A', url: '/zh/a/', tags: ['x'], categories: ['c'], excerpt: '' },
+      { slug: 'b', lang: 'zh', title: 'B', url: '/zh/b/', tags: ['x'], categories: ['c'], excerpt: '' }
+    ];
+  }
+  const on = make();
+  computeRelatedArticles(on, { excludeCurrent: true });
+  assert.deepStrictEqual(on[0].relatedArticles.map(r => r.slug), ['b']);
+  const off = make();
+  computeRelatedArticles(off, { excludeCurrent: false });
+  assert.deepStrictEqual(off[0].relatedArticles.map(r => r.slug), ['a', 'b'], '关闭排除后自身排第一');
+});
+
+test('markdown 渲染集成：mathGuard 保护 / supSub / 删除线 / math 围栏 / 图片尺寸两态', () => {  const { createMarkdownModule } = require('./build/markdown');
+  const { marked } = require('marked');
+  const mod = createMarkdownModule();
+  const baseSite = { build: { usePictureTag: false }, url: '' };
+
+  // 1) 默认配置：数学保护 + 默认标记
+  mod.setupMarkedRenderer({ features: {}, site: baseSite }, null);
+  const h1 = marked.parse('公式 $x^2$ 与 $y$');
+  assert.ok(h1.includes('$x^2$'), '数学段受保护：' + h1);
+  const h2 = marked.parse('a^上^ 与 b~下~');
+  assert.ok(h2.includes('<sup>上</sup>') && h2.includes('<sub>下</sub>'), h2);
+  const h3 = marked.parse('~~删除~~');
+  assert.ok(h3.includes('<del>'), '删除线未被 supSub 破坏：' + h3);
+  const h4 = marked.parse('孤立 ^ 标记');
+  assert.ok(h4.includes('孤立 ^ 标记'), 'preserveUnmatched 默认保持：' + h4);
+  const h5 = marked.parse('$x^2^$');
+  assert.ok(!h5.includes('<sup>'), 'skipInsideMath 默认 true：数学段内不转换：' + h5);
+
+  // 2) 自定义配置：标记自定义 + 孤立剥离 + math.autoDetect=false（```math 围栏块）
+  mod.setupMarkedRenderer({
+    features: { supSub: { supMarker: '^^', subMarker: '%%', preserveUnmatched: false }, math: { autoDetect: false } },
+    site: baseSite
+  }, null);
+  const c1 = marked.parse('^^up^^ 与 %%down%%');
+  assert.ok(c1.includes('<sup>up</sup>') && c1.includes('<sub>down</sub>'), c1);
+  const c2 = marked.parse('a^^b');
+  assert.ok(c2.includes('ab') && !c2.includes('^^'), '孤立标记剥离：' + c2);
+  const c3 = marked.parse('```math\nE = mc^2\n```');
+  assert.ok(c3.includes('class="math-block"') && c3.includes('data-tex="E = mc^2"'), '```math 围栏块输出：' + c3);
+  const c4 = marked.parse('$x$');
+  assert.ok(c4.includes('$x$'), 'autoDetect=false 不解析行内定界符（原样保留）');
+
+  // 3) imageLazy.preserveAspectRatio=false：不输出 width/height；恢复 true 后输出（renderer 后注册覆盖）
+  const manifest = { 'a.png': { width: 800, height: 600, original: '/a.png' } };
+  mod.setupMarkedRenderer({ features: { imageLazy: { preserveAspectRatio: false } }, site: baseSite }, manifest);
+  const i1 = marked.parse('![alt](/a.png)');
+  assert.ok(!/\bwidth="/.test(i1) && !/\bheight="/.test(i1), '关闭防抖：不输出尺寸：' + i1);
+  mod.setupMarkedRenderer({ features: {}, site: baseSite }, manifest);
+  const i2 = marked.parse('![alt](/a.png)');
+  assert.ok(/\bwidth="800"/.test(i2) && /\bheight="600"/.test(i2), '默认输出尺寸：' + i2);
+});
+
+test('mathNeeded：autoDetect 两态（自定义定界符 / ```math 围栏）', () => {
+  const def = w.mathConfig({});
+  assert.strictEqual(w.mathNeeded('公式 $$x$$', def), true);
+  assert.strictEqual(w.mathNeeded('公式 \\(x\\)', def), true);
+  assert.strictEqual(w.mathNeeded('公式 $x$', def), false, '单 $ 不单独触发（历史口径）');
+  assert.strictEqual(w.mathNeeded('普通文本', def), false);
+  const pct = w.mathConfig({ math: { inlineDelimiters: ['%'] } });
+  assert.strictEqual(w.mathNeeded('公式 %x%', pct), true);
+  assert.strictEqual(w.mathNeeded('公式 %x', pct), false);
+  const fence = w.mathConfig({ math: { autoDetect: false } });
+  assert.strictEqual(w.mathNeeded('正文 $$x$$', fence), false, 'autoDetect=false 时 $$ 不触发');
+  assert.strictEqual(w.mathNeeded('```math\nE=mc^2\n```', fence), true);
+  assert.strictEqual(w.mathNeeded('```mermaid\ngraph TD\n```', fence), false);
+  assert.strictEqual(w.mathNeeded('$$x$$', w.mathConfig({ math: { enabled: false } })), false);
+});
+
+test('collectGalleryImages：collectFeatured 两态（含封面 / 仅正文图片）', () => {
+  const { createCollectorsModule } = require('./build/collectors');
+  const mod = createCollectorsModule({ getPublished: (list) => list });
+  const articles = [
+    { slug: 'a', title: 'A', url: '/zh/a/', lang: 'zh', featuredImage: '/media/f.jpg', content: '<img src="/media/inline.jpg"> <img src="https://x/y.jpg">' },
+    { slug: 'b', title: 'B', url: '/zh/b/', lang: 'zh', featuredImage: '/media/f.jpg', content: '' }
+  ];
+  const on = mod.collectGalleryImages(articles, { collectFeatured: true }).map(i => i.src);
+  assert.deepStrictEqual(on, ['/media/f.jpg', '/media/inline.jpg'], '封面收集 + 去重 + 外链剔除');
+  const off = mod.collectGalleryImages(articles, { collectFeatured: false }).map(i => i.src);
+  assert.deepStrictEqual(off, ['/media/inline.jpg'], '关闭封面收集');
 });

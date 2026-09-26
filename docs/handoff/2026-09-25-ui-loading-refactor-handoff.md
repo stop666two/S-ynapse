@@ -66,3 +66,19 @@
 - real-site 同步已执行（代码 + features.json5 合入 popupNotice/softNavigation；真实数据保持本地、严禁入库）；真实站门禁全绿（lint / tsc / 244 测试 / verify:config / build / verify:security）。
 - 软导航已知残余（低风险）：motion 入场动画、图片 LQIP 淡入、侧栏拖拽排序、复制按钮 morph 在软导航后不重绑；CF Web Analytics 不计数软导航（config-reference 已注明）。
 - 推送 / tag 仍未执行；`.refactor-baseline.json` 已删除并加入 `.gitignore`（`92c9fcb`）。
+
+## 7. 反馈批次二（2026-09-26）
+
+- **构建拆分（二.1）**：`scripts/build.js` 3416→265 行，`scripts/build/` 15 个工厂模块 + `context.js`；机械等价护栏逐包验证（dist 哈希 173 文件）。
+- **分层（二.2）**：`js/domains/{core,features,guard}`；`deferred.js` 为统一注册表。
+- **软导航视觉重绑（二.3）**：motion/LQIP/侧栏拖拽/复制按钮 morph 入 `__SOFTNAV_HOOKS__`；run-softnav 23/23。
+- **i18n（二.4）**：配置层 60+ `*En` 键（features/friends/navigation/sidebar/site/tuning/ui-strings）；英文页 0 中文残留（静态 38/38 + 运行时断言）。
+- **安全收尾（二.5）**：`style-src` nonce 化（残余仅 `style-src-attr 'unsafe-inline'`）；Worker FALLBACK 收紧；`frame-ancestors 'none'`；accessGate `?key=?guard=` 用后清理；维护页 Accept-Language 双语。
+- **Mermaid 构建期渲染（三）**：`features.mermaid.mode`（默认 build）双主题内联 SVG + `.cache/mermaid` + 失败回退客户端；图表页 vendor 0 请求。
+- **CJK 字体子集化（三）**：Noto Sans SC 按实际用字 52/202 chunk → dist 24 个 woff2（生产 200 + `immutable`），源字体本地缓存不入库；离线构建自动跳过并告警。
+- **工程化**：覆盖率门禁 98.23%（CI 阻断）；CycloneDX SBOM（CI artifact）；测试入口 `scripts/run-tests.js`（自举，Node 20 无 glob 可用）；a11y 全页 84 页 0 违规（wcag22aa，明暗双跑）；移动端模拟 182/182 + `docs/mobile-checklist.md`。
+- **事故修复**：开发服务器看门狗（`SYNAPSE_SERVE_PARENT_PID`/`SYNAPSE_SERVE_IDLE_MS`）+ `kill-orphans.js`；15 个工具脚本自动继承。
+- **Node 20.19 实测**：本地 `npx node@20.19.0` 被环境 npm 包装器劫持（总是本地 v26.7.0），无法本地实测；已加 CI `compat-node20` 任务（推送后由 CI 验证）。
+- **部署**：real-site 三方合并同步（`git merge-file --ours` 保留真实值：ogImageStyle×3 / announcement / bio 等）；门禁 313/313 + smoke 2/2 + verify:config（10 处真实覆盖）/verify:security/build 全过；**生产版本 `5167ec62-fb9f-4ed7-84d3-c784b88627e5`**，回滚点 `cd4a01dd-330c-4279-a583-c306e7daed2c`（`npx wrangler rollback`）。
+- **线上验证**：softnav ALL PASS（无刷新、TOC/进度条、0 错误）；CSP `script-src`/`style-src` 均 nonce 且无 unsafe-inline、`style-src-attr` 保留、`frame-ancestors 'none'`；`cjk-fonts.css` 与 woff2 皆 `immutable` 200；`/admin/` 403。
+- **已知残余**：LCP 未达 1.2s 目标（历史遗留，生产 3 次中位约 3.8s，波动大）；`style-src-attr` unsafe-inline；popupNotice 生产默认关闭（待用户启用）；推送/tag 未执行。

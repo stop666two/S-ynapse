@@ -183,7 +183,14 @@ async function build() {
       maxDimension: ogAuto.maxDimension,
       autoSize: ogAuto.enabled !== false
     });
-    if (pagesContent) baseData.pagesContent = pagesContent;
+    if (pagesContent) {
+      // pagesContent 仅被 templates/post.ejs 的文章页脚按 articleFooter.source 取用；
+      // 投影为单键可避免「无关自定义页改动」使全部页面数据指纹失效（增量构建按页复用）。
+      const footerSource = config.theme.articleFooter && config.theme.articleFooter.source;
+      baseData.pagesContent = (footerSource && pagesContent[footerSource])
+        ? { [footerSource]: pagesContent[footerSource] }
+        : {};
+    }
     baseData.siteCssHref = buildSiteCss(config, baseData);
     const runtimeConfig = writeRuntimeConfig(config, baseData.presets, dailyQuotes);
     baseData.runtimeConfigUrl = runtimeConfig.url;

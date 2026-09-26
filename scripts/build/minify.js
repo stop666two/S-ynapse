@@ -151,6 +151,9 @@ function createMinifyModule(ctx) {
         const content = fs.readFileSync(file);
         const hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 10);
         const parsed = path.parse(file);
+        // 幂等：文件名已带本轮内容哈希（增量构建不清理 dist，上一轮的内容寻址产物会
+        // 再次进入扫描）时跳过，避免重复追加哈希并连锁改写全部 HTML 引用。
+        if (parsed.name.endsWith('.' + hash)) continue;
         const basename = parsed.name;
         const hashedName = `${basename}.${hash}${parsed.ext}`;
         const hashedPath = path.join(parsed.dir, hashedName);

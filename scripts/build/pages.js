@@ -507,7 +507,6 @@ function createPagesModule(ctx) {
     const layoutTemplate = getTemplate('layout.ejs');
     if (!layoutTemplate) { console.error('  [FATAL] layout.ejs not found in templates/'); recordBuildFailure('render', 'layout.ejs not found in templates/'); return; }
     const baseData = preBuiltBaseData || buildPageData(config, articles, collectTags(articles), collectCategories(articles));
-    if (customPages && customPages.length) baseData.customPages = customPages;
 
     const siteLangs = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
 

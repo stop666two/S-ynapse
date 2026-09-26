@@ -27,7 +27,9 @@ function createServeModule(ctx) {
       });
     } catch (e) { /* 忽略：serve 模式下 _redirects 不存在时按空规则处理 */ }
     var mime = { '.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.xml':'application/xml','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.gif':'image/gif','.ico':'image/x-icon','.txt':'text/plain','.mp4':'video/mp4','.webm':'video/webm','.avi':'video/x-msvideo','.mov':'video/quicktime','.mkv':'video/x-matroska','.mp3':'audio/mpeg','.wav':'audio/wav','.m4a':'audio/mp4','.ogg':'audio/ogg','.flac':'audio/flac','.pdf':'application/pdf','.csv':'text/csv','.zip':'application/zip','.7z':'application/x-7z-compressed','.rar':'application/x-rar-compressed','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf','.otf':'font/otf','.eot':'application/vnd.ms-fontobject' };
-    http.createServer(function(req, res) {
+    var lastActivity = Date.now();
+    var server = http.createServer(function(req, res) {
+      lastActivity = Date.now();
       if (MAINTENANCE) {
         res.writeHead(503, { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '3600', 'Cache-Control': 'no-store' });
         res.end(maintPage);
@@ -86,9 +88,32 @@ function createServeModule(ctx) {
           res.end(data);
         });
       });
-    }).listen(PORT, function() {
+    });
+    server.listen(PORT, function() {
       console.log('  Server: http://localhost:' + PORT + '/');
       console.log('  (Press Ctrl+C to stop)');
+    });
+    // 自动退出看门狗（防孤儿进程）：环境变量 SYNAPSE_SERVE_PARENT_PID 指定父进程，父进程消失后 5 秒内自退；
+    // SYNAPSE_SERVE_IDLE_MS 指定空闲毫秒数，超时自退（两者缺省均关闭，仅测试/工具脚本使用）。
+    var parentPid = parseInt(process.env.SYNAPSE_SERVE_PARENT_PID || '', 10);
+    function tryClose(reason) {
+      console.log('  Auto-exit: ' + reason);
+      try { server.closeAllConnections(); } catch (e) { /* 旧版 Node 无此 API 时忽略 */ }
+      server.close(function() { process.exit(0); });
+      setTimeout(function() { process.exit(0); }, 1000).unref();
+    }
+    function parentAlive() {
+      try { process.kill(parentPid, 0); return true; } catch (e) { return false; }
+    }
+    var idleMs = parseInt(process.env.SYNAPSE_SERVE_IDLE_MS || '0', 10) || 0;
+    if (parentPid > 0 || idleMs > 0) {
+      setInterval(function() {
+        if (parentPid > 0 && !parentAlive()) { tryClose('parent process exited'); return; }
+        if (idleMs > 0 && Date.now() - lastActivity > idleMs) tryClose('idle ' + Math.round((Date.now() - lastActivity) / 1000) + 's');
+      }, 5000);
+    }
+    ['SIGINT', 'SIGTERM'].forEach(function(sig) {
+      process.on(sig, function() { tryClose('signal ' + sig); });
     });
   }
 

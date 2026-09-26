@@ -2,7 +2,7 @@
 // 配置键 → 运行时/模板值的归一化函数集合（构建期纯函数，单测覆盖在 scripts/config-wiring.test.js）。
 const { escapeJsonForScript } = require('./utils');
 
-// 配置接线纯函数（第三轮配置闭环 W1）：
+// 配置接线纯函数：
 // 供构建期（scripts/build/**.js、templates/*.ejs 经 baseData 注入）与单测复用；
 // 浏览器运行时（js/domains/**）因模块格式限制按同一语义就地实现，由 config-wiring.test.js
 // 与本 runner 双重覆盖。所有函数均以「配置缺省 = 该键默认值 = 历史行为」为原则。
@@ -149,7 +149,7 @@ function stripMarkdownText(text) {
     .trim();
 }
 
-// features.search 检索参数归一化（第四轮 W2 接线）。
+// features.search 检索参数归一化。
 //   showCount/matchTags/matchCategories 默认 true（= 历史行为）；
 //   weightTitle/weightExcerpt/weightContent 默认 5/2/1（与 features-schema.js → DEFAULT_FEATURES.search 同值）；
 //   权重为 0 = 该字段不参与匹配与计分；负数/空值回退默认。
@@ -239,7 +239,7 @@ function heroSearchPlaceholder(features, lang) {
 }
 
 // ---------------------------------------------------------------------------
-// 第五轮 W3（2026-09-27）：supSub / math / mermaid / series / related / wordCount /
+// supSub / math / mermaid / series / related / wordCount /
 // gallery / imageLazy 配置接线纯函数（构建期与模板共用；默认值 = 历史行为）。
 // ---------------------------------------------------------------------------
 
@@ -524,7 +524,7 @@ function seriesConfig(features) {
   };
 }
 
-// 语言模板解析（W3 文案键统一链）：未设置 = 默认模板；显式空串 = 回退词典；
+// 语言模板解析（文案键统一链）：未设置 = 默认模板；显式空串 = 回退词典；
 // en 站优先 *En（空串回退中文模板，中文模板缺省时用默认中文模板）。
 function resolveTemplate(cfg, lang, zhKey, enKey, defZh) {
   const c = cfg || {};
@@ -603,7 +603,7 @@ function imagePreserveAspectRatio(features) {
 }
 
 // ---------------------------------------------------------------------------
-// 第六轮 W4（2026-09-27）：lightbox / backToTop / tts / reward / heatmap / stats /
+// lightbox / backToTop / tts / reward / heatmap / stats /
 // mobile / contactPopup 接线。以下纯函数为构建期与测试的 canonical 语义。
 // ---------------------------------------------------------------------------
 

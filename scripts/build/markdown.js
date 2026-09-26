@@ -1,8 +1,8 @@
 'use strict';
 // Markdown 渲染器（自 scripts/build.js 机械拆分；仅移动函数与依赖接线，不含逻辑变更）。
 // 依赖 marked 单例与 lib/utils 转义辅助直连 require，无编排器注入项。
-// 第五轮 W3：math（autoDetect/定界符/mathml）、supSub（标记/数学段跳过/孤立标记）、
-// imageLazy.preserveAspectRatio 接线；缺省配置 = 历史行为。
+// 构建期接线：math（autoDetect/定界符/mathml）、supSub（标记/数学段跳过/孤立标记）、
+// imageLazy.preserveAspectRatio；缺省配置 = 历史行为。
 const { marked } = require('marked');
 const { escapeAttr, escapeHtml, safeSlug } = require('../lib/utils');
 const {

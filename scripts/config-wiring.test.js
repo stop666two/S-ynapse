@@ -1,5 +1,5 @@
 'use strict';
-// 第三轮配置闭环 W1（15 项键接线）单测：键注册表 / 删除项 / 纯函数语义 / 往返边界。
+// 配置接线单测：键注册表 / 删除项 / 纯函数语义 / 往返边界。
 // 运行：node --test scripts/config-wiring.test.js（由 npm test 统一收集）。
 const test = require('node:test');
 const assert = require('node:assert');
@@ -172,9 +172,9 @@ test('schema 枚举：dailyQuote.widgetStyle 受控；themeToggle 枚举残留�
 });
 
 // ---------------------------------------------------------------------------
-// 第四轮 W2（2026-09-27）：搜索加权/标签分类/计数/空结果、外链新标签与复制、双链参数化、删除重复键。
+// 搜索加权/标签分类/计数/空结果、外链新标签与复制、双链参数化、删除重复键。
 // ---------------------------------------------------------------------------
-test('features.json5：第四轮删除项与 schema 同步（pinyinFuzzy/placeholder/linkBehavior）', () => {
+test('features.json5：删除项与 schema 同步（pinyinFuzzy/placeholder/linkBehavior）', () => {
   assert.ok(!('pinyinFuzzy' in features.search), 'features.search.pinyinFuzzy 应已删除');
   assert.ok(!('pinyinFuzzy' in DEFAULT_FEATURES.search), 'schema search.pinyinFuzzy 应已删除');
   assert.ok(!('placeholder' in features.search), 'features.search.placeholder 应已删除（canonical: navigation.search.placeholder）');
@@ -287,7 +287,7 @@ test('resolveWikiLinks：unknownMode text/link/hide + suffix + 大小写 + 自�
   assert.strictEqual(resolveWikiLinks(undefined, lookup), undefined);
 });
 
-test('删除键无残留引用（W1+W2：js/templates/scripts 源码扫描）', () => {
+test('删除键无残留引用（js/templates/scripts 源码扫描）', () => {
   function walk(dir, out) {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name);
@@ -317,9 +317,9 @@ test('删除键无残留引用（W1+W2：js/templates/scripts 源码扫描）', 
 });
 
 // ---------------------------------------------------------------------------
-// 第五轮 W3（2026-09-27）：math/supSub/mermaid/series/related/wordCount/gallery/imageLazy 接线。
+// math/supSub/mermaid/series/related/wordCount/gallery/imageLazy 接线。
 // ---------------------------------------------------------------------------
-test('features.json5：第五轮删除项与默认值口径修正（incrementalByDefault / skipInsideMath / countDigits）', () => {
+test('features.json5：删除项与默认值口径修正（incrementalByDefault / skipInsideMath / countDigits）', () => {
   assert.ok(!('incrementalByDefault' in features.gallery), 'features.gallery.incrementalByDefault 应已删除（无增量清单缓存实现）');
   assert.ok(!('incrementalByDefault' in DEFAULT_FEATURES.gallery), 'schema gallery.incrementalByDefault 应已删除');
   assert.strictEqual(features.supSub.skipInsideMath, true, 'skipInsideMath 默认 true = 历史行为（数学段内不处理）');
@@ -562,10 +562,10 @@ test('collectGalleryImages：collectFeatured 两态（含封面 / 仅正文图�
 });
 
 // ---------------------------------------------------------------------------
-// 第六轮 W4（2026-09-27）：lightbox / backToTop / tts / reward / heatmap / stats /
+// lightbox / backToTop / tts / reward / heatmap / stats /
 // mobile / contactPopup 接线（含 backToTop 重复键删除与默认值口径修正）。
 // ---------------------------------------------------------------------------
-test('features.json5：第六轮删除项与默认值口径（backToTop 重复键 / buttonStackGap / popupWidth）', () => {
+test('features.json5：删除项与默认值口径（backToTop 重复键 / buttonStackGap / popupWidth）', () => {
   assert.ok(!('rightOffset' in features.backToTop), 'features.backToTop.rightOffset 应已删除（canonical: tuning.backToTop.offsetSide）');
   assert.ok(!('bottomOffset' in features.backToTop), 'features.backToTop.bottomOffset 应已删除（canonical: tuning.backToTop.offsetBottom）');
   assert.ok(!('rightOffset' in DEFAULT_FEATURES.backToTop), 'schema backToTop.rightOffset 应已删除');
@@ -731,14 +731,14 @@ test('contactPopupConfig / contactCopyText：宽度漂移修正与复制文案�
   assert.strictEqual(w.contactCopyText({}, 'en', 'Copy'), 'Copy');
 });
 
-test('ui-strings.json5：W4 新增词典键双语齐全（codeScrollHint / legendLow / legendHigh）', () => {
+test('ui-strings.json5：新增词典键双语齐全（codeScrollHint / legendLow / legendHigh）', () => {
   assert.ok(uiStrings.toolbar.codeScrollHint, 'zh toolbar.codeScrollHint 缺失');
   assert.ok(uiStrings.en.toolbar.codeScrollHint, 'en toolbar.codeScrollHint 缺失');
   assert.ok(uiStrings.archive.legendLow && uiStrings.archive.legendHigh, 'zh archive.legendLow/High 缺失');
   assert.ok(uiStrings.en.archive.legendLow && uiStrings.en.archive.legendHigh, 'en archive.legendLow/High 缺失');
 });
 
-test('删除键无残留引用（W4：backToTop 重复键源码扫描）', () => {
+test('删除键无残留引用（backToTop 重复键源码扫描）', () => {
   function walk(dir, out) {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name);
@@ -760,7 +760,7 @@ test('删除键无残留引用（W4：backToTop 重复键源码扫描）', () =>
 });
 
 // ---------------------------------------------------------------------------
-// 第七轮配置闭环：feed 合并删除、analytics/redirects/maintenance/performance/debug 接线、heatmap.palette。
+// feed 合并删除、analytics/redirects/maintenance/performance/debug 接线、heatmap.palette。
 // ---------------------------------------------------------------------------
 test('features.json5：feed 模块已删除且 schema/site-defaults 同步（唯一来源 site.rss/subscribe）', () => {
   assert.ok(!('feed' in features), 'features.feed 应已删除');

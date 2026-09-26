@@ -259,14 +259,14 @@ function createPagesModule(ctx) {
       listCoverFallback: (config.features && config.features.listCover && config.features.listCover.fallback) || 'pattern',
       // 标签归档列表页封面显隐（features.listCover.showOnArchive；默认 true=现行为）。
       listCoverShowOnArchive: archiveCoverEnabled(config.features),
-      // 置顶徽标/排序/W1 接线（features.pinned；配置文案优先于 ui-strings 词典）。
+      // 置顶徽标/排序接线（features.pinned；配置文案优先于 ui-strings 词典）。
       pinnedCfg: pinnedConfig(config.features),
       pinnedText: function(lang) {
         return pinnedText(pinnedCfg, lang, uiText('card.pinned', '置顶', lang), uiText('card.pinned', 'Pinned', 'en'));
       },
       // cover 运行时归一化（defaultPattern 回退 patterns[0]、preferImage 默认 true）。
       coverCfg: coverRuntimeConfig(config.features),
-      // series/wordCount W3 接线：配置文案模板（*En 空回退中文）优先于 ui-strings 词典。
+      // series/wordCount 接线：配置文案模板（*En 空回退中文）优先于 ui-strings 词典。
       seriesCfg: seriesCfg,
       wordCfg: wordCfg,
       seriesBadge: function(name, lang) {
@@ -288,12 +288,12 @@ function createPagesModule(ctx) {
         if (label) return String(rt.labelBefore || '') + minutes + label;
         return readTimeText(wordCfg, lang, minutes, uiText('card.minute', '{minutes} 分钟阅读', lang), uiText('card.minute', '{minutes} min read', 'en'));
       },
-      // W4 接线：lightbox 时长/宽度、backToTop 滚动与锚点回退、mobile 细节、contactPopup 宽度。
+      // lightbox 时长/宽度、backToTop 滚动与锚点回退、mobile 细节、contactPopup 宽度。
       lightboxCfg: lightboxConfig(config.features),
       backToTopCfg: backToTopConfig(config.features),
       mobileCfg: mobileConfig(config.features),
       contactPopupCfg: contactPopupConfig(config.features),
-      // W4 接线：归档热力图（层数/图例/月份数字/tooltip）与统计卡（显隐/文案链/跳转）。
+      // 归档热力图（层数/图例/月份数字/tooltip）与统计卡（显隐/文案链/跳转）。
       heatmapCfg: heatCfg,
       heatmapPalette: heatPalette.colors,
       heatmapLegendLevels: heatmapLegendLevels(heatCfg.levels),

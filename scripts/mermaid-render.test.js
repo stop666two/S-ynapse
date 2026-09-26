@@ -288,7 +288,7 @@ describe('createMermaidRenderer 降级与缓存', () => {
     assert.ok(res[1].error);
   });
 
-  it('空批次不启动浏览器且返回空数组', async () => {
+  it('空输入不启动浏览器且返回空数组', async () => {
     let launched = false;
     const renderer = createMermaidRenderer({
       cacheDir: tmpDir(),

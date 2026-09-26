@@ -48,8 +48,8 @@ function encodeLoc(fullUrl) {
 }
 
 // 将文章日期转为 ISO 8601 UTC（RFC 3339）。
-// 可接受：Date 对象、可被 Date 解析的字符串（如 2026-09-10）。
-// 返回：如 2026-09-10T00:00:00.000Z；无效/空值 → null（调用方省略 <lastmod>）。
+// 可接受：Date 对象、可被 Date 解析的日期字符串（如 'YYYY-MM-DD'）。
+// 返回：ISO 8601 UTC 字符串（如 'YYYY-MM-DDT00:00:00.000Z'）；无效/空值 → null（调用方省略 <lastmod>）。
 function toSitemapLastmod(value) {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(String(value));

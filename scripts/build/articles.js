@@ -105,7 +105,8 @@ function createArticlesModule(ctx) {
       }
     }
     // Pre-scan pass: build a title/slug lookup so [[wiki links]] resolve across articles.
-    const wikiLookup = { titles: new Map(), slugs: new Map() };
+    // titles 键为小写（caseInsensitive=true 用）；titlesExact 保留原始大小写（caseInsensitive=false 用）。
+    const wikiLookup = { titles: new Map(), titlesExact: new Map(), slugs: new Map() };
     const tagAliasesCfg = config.tagAliases || {};
     const aliasEnabled = tagAliasesCfg.enabled !== false;
     const tagAliases = tagAliasesCfg.aliases && typeof tagAliasesCfg.aliases === 'object' ? tagAliasesCfg.aliases : {};
@@ -125,6 +126,7 @@ function createArticlesModule(ctx) {
         }
         const entry = { title: t || s, url: '/' + lang + '/' + s + '/' };
         wikiLookup.titles.set((t || s).toLowerCase(), entry);
+        if (!wikiLookup.titlesExact.has(t || s)) wikiLookup.titlesExact.set(t || s, entry);
         wikiLookup.slugs.set(s, entry);
       } catch (e) { /* skip unreadable files in lookup */ }
     }
@@ -215,7 +217,17 @@ function createArticlesModule(ctx) {
         const draft = attrs.draft === true || attrs.draft === 'true';
         const pinned = attrs.pinned === true || attrs.pinned === 'true';
         const series = attrs.series ? String(attrs.series).trim() : null;
-        content = resolveWikiLinks(content, wikiLookup);
+        // features.wikiLinks：构建期双链解析参数（unknownMode/unknownSuffix/caseInsensitive/allowCustomLabel）。
+        const _wlCfg = (config.features && config.features.wikiLinks) || {};
+        if (_wlCfg.enabled !== false) {
+          content = resolveWikiLinks(content, wikiLookup, {
+            unknownMode: _wlCfg.unknownMode,
+            unknownSuffix: _wlCfg.unknownSuffix,
+            caseInsensitive: _wlCfg.caseInsensitive,
+            allowCustomLabel: _wlCfg.allowCustomLabel,
+            lang
+          });
+        }
     const hasMath = MATH_RX.test(content);
     const hasMermaid = MERMAID_RX.test(content);
         let htmlContent = marked.parse(content);

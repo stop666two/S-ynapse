@@ -217,26 +217,41 @@ function escapeJsonForScript(value, space) {
 }
 
 // Resolve [[wiki links]] into Markdown links before Markdown parsing.
-// lookup: Map-like { titles: Map(lowerTitle → {title,url}), slugs: Map(slug → {title,url}) }
+// lookup: Map-like { titles: Map(lowerTitle → {title,url}), slugs: Map(slug → {title,url}),
+//                    titlesExact: Map(exactTitle → {title,url})  // caseInsensitive=false 时使用 }
+// options（features.wikiLinks，默认值 = 历史固定行为）:
+//   unknownMode: 'text'（未知目标降级纯文本，默认）| 'link'（渲染为站内搜索链接 /{lang}/search/?q=…）| 'hide'（整体移除）
+//   unknownSuffix: 未知目标显示文本附加后缀（默认 ''）
+//   caseInsensitive: 标题匹配是否忽略大小写（默认 true）
+//   allowCustomLabel: 是否允许 [[目标|自定义文本]] 覆盖显示文本（默认 true；false 时忽略 | 后文本）
+//   lang: 'link' 模式的站内链接语言前缀（缺省时回退 'zh'）
 // Patterns: [[title]] [[title|显示文本]] [[slug]] [[slug|文本]] [[https://...]] [[url|文本]]
-// Unknown targets are unwrapped to plain text (no link, no error).
-function resolveWikiLinks(content, lookup) {
+function resolveWikiLinks(content, lookup, options) {
   if (typeof content !== 'string' || !lookup) return content;
+  const cfg = options || {};
+  const mode = ['text', 'link', 'hide'].includes(cfg.unknownMode) ? cfg.unknownMode : 'text';
+  const suffix = cfg.unknownSuffix == null ? '' : String(cfg.unknownSuffix);
+  const caseInsensitive = cfg.caseInsensitive !== false;
+  const allowLabel = cfg.allowCustomLabel !== false;
+  const lang = /^[a-z]{2}(-[a-z0-9]+)?$/i.test(String(cfg.lang || '')) ? String(cfg.lang) : 'zh';
   const titles = lookup.titles || new Map();
   const slugs = lookup.slugs || new Map();
+  const titlesExact = lookup.titlesExact || null;
   return content.replace(/\[\[([^\]]+)\]\]/g, function(m, inner) {
     const parts = inner.split('|');
     const target = parts[0].trim();
-    const label = (parts[1] || '').trim();
+    const label = allowLabel ? (parts[1] || '').trim() : '';
     if (/^https?:\/\//i.test(target)) {
-      const outer = label || target;
-      return '[' + outer + '](' + target + ')';
+      return '[' + (label || target) + '](' + target + ')';
     }
-    const byTitle = titles.get(target.toLowerCase());
+    const byTitle = caseInsensitive ? titles.get(target.toLowerCase()) : (titlesExact ? titlesExact.get(target) : titles.get(target));
     const bySlug = slugs.get(target.replace(/^\/+|\/+$/g, ''));
     const hit = byTitle || bySlug;
     if (hit) return '[' + (label || hit.title) + '](' + hit.url + ')';
-    return label || target;
+    if (mode === 'hide') return '';
+    const text = (label || target) + suffix;
+    if (mode === 'link') return '[' + text + '](/' + lang + '/search/?q=' + encodeURIComponent(target) + ')';
+    return text;
   });
 }
 

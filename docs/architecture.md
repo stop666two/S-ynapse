@@ -114,3 +114,4 @@ CI 顺序：check-agents → `npm ci` → audit → lint → typecheck → test 
 - `style-src` 已随 `<style>` nonce 注入消除 `'unsafe-inline'`；残余面为 `style-src-attr 'unsafe-inline'`（属性语境无法用 nonce，见 SECURITY.md）。Worker 无构建产物时的 FALLBACK 因无 nonce 可注入而保留 `style-src 'unsafe-inline'`，`script-src` 已同步收紧。
 - 增量构建（`features.incrementalBuild`）为预留键位，未实现；方案见 `docs/incremental-build-design.md`。
 - accessGate 为软防护；`?key=`/`?guard=` 参数在判定/解锁读取完成后经 `history.replaceState` 从地址栏清理（保留其它查询串与 hash），但不改变其可被绕过的事实。
+- 开发服务器支持进程看门狗（`SYNAPSE_SERVE_PARENT_PID` / `SYNAPSE_SERVE_IDLE_MS`，`scripts/build/serve.js`），工具脚本退出即回收；兜底清理 `node .tmp-scripts/kill-orphans.js`。

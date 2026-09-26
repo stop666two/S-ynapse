@@ -70,20 +70,33 @@ function searchPage(query){
     return;
   }
   if(!searchData.length&&!window.__SEARCH_DATA_READY__){ensureSearchData(function(){searchPage(query)});return}
+  // features.search 检索参数（与浮层搜索同一语义）：weightTitle/weightExcerpt/weightContent 加权，
+  // 权重 0 = 字段不参与匹配与计分；matchTags/matchCategories 控制标签/分类命中（仅参与命中、计 0 分）；
+  // showCount 控制结果计数显隐。canonical 语义见 scripts/lib/feature-wiring.js → rankSearchEntries。
+  var SCF=(window.__FEATURES__||{}).search||{};
+  function cfgNum(raw,dflt){return (raw===''||raw==null||isNaN(+raw))?dflt:Math.max(0,+raw)}
+  var wT=cfgNum(SCF.weightTitle,5),wE=cfgNum(SCF.weightExcerpt,2),wC=cfgNum(SCF.weightContent,1);
+  var mTags=SCF.matchTags!==false,mCats=SCF.matchCategories!==false,showCnt=SCF.showCount!==false;
+  function cntOcc(hay,q){var n=0,i=0;while((i=hay.indexOf(q,i))!==-1){n++;i+=q.length}return n}
+  function hasAny(list,q){if(!list||!list.length)return false;for(var j=0;j<list.length;j++)if(String(list[j]).toLowerCase().indexOf(q)!==-1)return true;return false}
   var lq=query.toLowerCase(),results=[];
   for(var i=0;i<searchData.length;i++){
-    var it=searchData[i],score=0;
-    if(it.title&&it.title.toLowerCase().includes(lq))score+=10;
-    if(it.content&&it.content.toLowerCase().includes(lq))score+=3;
-    if(it.excerpt&&it.excerpt.toLowerCase().includes(lq))score+=3;
-    if(it.tags&&it.tags.some(function(t){return t.toLowerCase().includes(lq)}))score+=5;
-    if(it.categories&&it.categories.some(function(c){return c.toLowerCase().includes(lq)}))score+=4;
-    if(score>0){it.score=score;results.push(it)}
+    var it=searchData[i],score=0,hit=false;
+    var t=String(it.title||'').toLowerCase(),ex=String(it.excerpt||'').toLowerCase(),co=String(it.content||'').toLowerCase();
+    if(wT>0){var nt=cntOcc(t,lq);if(nt){score+=nt*wT;hit=true}}
+    if(wE>0){var ne=cntOcc(ex,lq);if(ne){score+=ne*wE;hit=true}}
+    if(wC>0){var nc=cntOcc(co,lq);if(nc){score+=nc*wC;hit=true}}
+    if(mTags&&hasAny(it.tags,lq))hit=true;
+    if(mCats&&hasAny(it.categories,lq))hit=true;
+    if(hit){results.push({it:it,score:score})}
   }
+  // 总分降序；同分保持索引原序（search-index.json 按日期倒序生成）。
   results.sort(function(a,b){return b.score-a.score});
   if(results.length){
-    rDiv.innerHTML='<p class="search-count">'+<%- JSON.stringify(ui('search.foundCount','找到 {count} 个结果')).replace(/<\//g,'<\\/') %>.replace('{count}',results.length)+'</p>'+
-      results.map(function(r){
+    var cntTpl=<%- JSON.stringify(ui('search.foundCount','找到 {count} 个结果')).replace(/<\//g,'<\\/') %>;
+    rDiv.innerHTML=(showCnt?'<p class="search-count">'+cntTpl.replace('{count}',results.length)+'</p>':'')+
+      results.map(function(r0){
+        var r=r0.it;
         var meta='';
         if(r.date)meta+='<span class="post-card-meta-item">'+escHtml(r.date)+'</span>';
         if(r.categories&&r.categories.length)meta+='<span class="post-card-meta-item">'+r.categories.map(escHtml).join(' · ')+'</span>';

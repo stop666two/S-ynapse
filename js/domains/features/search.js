@@ -61,6 +61,9 @@ export function init() {
     var PF = (window.__FEATURES__ || {}).pagefind || {};
     return String(window.__SEARCH_PROVIDER__ || '') === 'pagefind' && PF.integrate !== false;
   }
+  function isEnSearch() {
+    return (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
+  }
   function focusPagefind() {
     var wrap = document.getElementById('pfWrap');
     var i = wrap && wrap.querySelector('input');
@@ -121,6 +124,15 @@ export function init() {
     var _focus = _scf.focusOnOpen !== false;
     if (isPagefind()) { ensurePagefind(_focus); return; }
     ensureData();
+    // features.search.emptyHint(En)：无输入提示（空 = 不显示，保持历史行为）。
+    var _ih = isEnSearch() ? (_scf.emptyHintEn || '') : (_scf.emptyHint || '');
+    var _ird = document.getElementById('searchResults');
+    if (_ih && _ird && !_ird.classList.contains('has-results') && !_ird.childNodes.length) {
+      var _hb = document.createElement('div');
+      _hb.className = 'search-result-empty';
+      _hb.textContent = _ih;
+      _ird.appendChild(_hb);
+    }
     if (!_focus) return;
     setTimeout(function () { var i = document.getElementById('searchInput'); if (i) i.focus(); }, isNaN(+_scf.focusDelayMs) ? 100 : Math.max(0, +_scf.focusDelayMs));
   }
@@ -182,8 +194,19 @@ export function init() {
     if (!q || q.length < mc) {
       d.classList.remove('has-results');
       d.innerHTML = '';
+      searchKbIdx = -1;
       var t = document.getElementById('searchCount');
       if (t) t.textContent = '';
+      if (!q) {
+        // features.search.emptyHint(En)：无输入提示（空 = 不显示，保持历史行为）。
+        var eh = isEnSearch() ? (SC.emptyHintEn || '') : (SC.emptyHint || '');
+        if (eh) {
+          var hintBox = document.createElement('div');
+          hintBox.className = 'search-result-empty';
+          hintBox.textContent = eh;
+          d.appendChild(hintBox);
+        }
+      }
       return;
     }
     if (en) saveHistory(q);
@@ -195,7 +218,7 @@ export function init() {
       });
       return;
     }
-    var r = [], lq = q.toLowerCase();
+    var lq = q.toLowerCase();
     var mrst = isNaN(+TNS.resultLimit) ? (isNaN(+SC.maxResults) ? 30 : +SC.maxResults) : +TNS.resultLimit;
     var el = isNaN(+TNS.excerptLength) ? (isNaN(+SC.excerptLength) ? 120 : +SC.excerptLength) : +TNS.excerptLength;
     var shl = (F && F.searchHighlight) || {};
@@ -221,19 +244,47 @@ export function init() {
           it: it0,
           t: String(it0.title || '').toLowerCase(),
           e: String(it0.excerpt || '').toLowerCase(),
-          c: String(it0.content || '').toLowerCase()
+          c: String(it0.content || '').toLowerCase(),
+          g: (Array.isArray(it0.tags) ? it0.tags : []).map(function (x) { return String(x).toLowerCase(); }),
+          k: (Array.isArray(it0.categories) ? it0.categories : []).map(function (x) { return String(x).toLowerCase(); })
         });
       }
     }
+    // features.search.weightTitle/weightExcerpt/weightContent（默认 5/2/1；权重 0 = 该字段不参与匹配与计分）
+    // 与 matchTags/matchCategories（tags/categories 仅参与命中判定，计 0 分）。
+    // canonical 纯函数语义见 scripts/lib/feature-wiring.js → rankSearchEntries（本函数为镜像实现）。
+    var __wNum = function (raw, dflt) { return (raw === '' || raw == null || isNaN(+raw)) ? dflt : Math.max(0, +raw); };
+    var wT = __wNum(SC.weightTitle, 5), wE = __wNum(SC.weightExcerpt, 2), wC = __wNum(SC.weightContent, 1);
+    var mTags = SC.matchTags !== false, mCats = SC.matchCategories !== false, showCnt = SC.showCount !== false;
+    function __cnt(hay) {
+      var n = 0, i = 0;
+      while ((i = hay.indexOf(lq, i)) !== -1) { n++; i += lq.length; }
+      return n;
+    }
+    function __has(list) {
+      for (var j = 0; j < list.length; j++) if (list[j].indexOf(lq) !== -1) return true;
+      return false;
+    }
+    var scored = [];
     for (var i = 0; i < lcIndex.length; i++) {
       var row = lcIndex[i];
-      if (row.t.includes(lq) || row.e.includes(lq) || row.c.includes(lq)) {
-        r.push(row.it);
-        if (r.length >= mrst) break;
-      }
+      var score = 0, hit = false;
+      if (wT > 0) { var nt = __cnt(row.t); if (nt) { score += nt * wT; hit = true; } }
+      if (wE > 0) { var ne = __cnt(row.e); if (ne) { score += ne * wE; hit = true; } }
+      if (wC > 0) { var ncc = __cnt(row.c); if (ncc) { score += ncc * wC; hit = true; } }
+      if (mTags && __has(row.g)) hit = true;
+      if (mCats && __has(row.k)) hit = true;
+      if (hit) scored.push({ it: row.it, score: score, idx: i });
     }
+    // 总分降序；同分保持索引原序（search-index.json 按日期倒序生成）→ 等价同分按日期。
+    scored.sort(function (a, b) { return (b.score - a.score) || (a.idx - b.idx); });
+    if (scored.length > mrst) scored = scored.slice(0, mrst);
+    var r = scored.map(function (x) { return x.it; });
     var cnt = document.getElementById('searchCount');
     if (r.length) {
+      // 清空旧结果，避免连续查询时旧结果节点叠加（回归：重复查询追加）。
+      d.innerHTML = '';
+      searchKbIdx = -1;
       d.classList.add('has-results');
       var groups = {};
       r.forEach(function (item) { var g = item.group || 'article'; if (!groups[g]) groups[g] = []; groups[g].push(item); });
@@ -261,14 +312,18 @@ export function init() {
           d.appendChild(a);
         });
       });
-      if (cnt) cnt.textContent = r.length + ' ' + __T('search.foundText', '个结果');
+      // features.search.showCount：结果计数显隐；文案取 ui-strings.search.foundCount（双语，{count} 占位）。
+      if (cnt) cnt.textContent = showCnt ? __T('search.foundCount', '找到 {count} 个结果').replace('{count}', String(r.length)) : '';
     } else {
       d.classList.remove('has-results');
       d.innerHTML = '';
+      searchKbIdx = -1;
       var empty = document.createElement('div');
       empty.className = 'search-result-empty';
-      var __en = (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
-      empty.textContent = __en ? (TNS.emptyTextEn || SC.noResultTextEn || __T('search.noResult', '未找到相关内容')) : (TNS.emptyText || SC.noResultText || __T('search.noResult', '未找到相关内容'));
+      // 无结果文案优先级链：emptyHint(En) > noResultText(En) > tuning.search.emptyText(En) > i18n 兜底。
+      empty.textContent = isEnSearch()
+        ? (SC.emptyHintEn || SC.noResultTextEn || TNS.emptyTextEn || __T('search.noResult', '未找到相关内容'))
+        : (SC.emptyHint || SC.noResultText || TNS.emptyText || __T('search.noResult', '未找到相关内容'));
       d.appendChild(empty);
       if (cnt) cnt.textContent = '';
     }

@@ -22,10 +22,12 @@ featureOverrides.slice(0, 10).forEach(o => console.log('  · 覆盖 ' + o));
 // 自由映射（默认值为 {}）跳过递归，如 social.items / pwa.manifest。
 // 豁免：theme.json5（preset 预设接管 colors/darkMode）、security.json5（注册表为部分
 // 默认值，hardening/rateLimiting 细项由 security.json5 全量提供）。
-// tuning.json5 与 guard.json5 的结构注册表在 lib/tuning-defaults.js / lib/guard-defaults.js。
+// tuning.json5 与 guard.json5 的结构注册表在 lib/tuning-defaults.js / lib/guard-defaults.js，
+// compression.json5 在 lib/compression-config.js。
 const { DEFAULT_CONFIG } = require('./lib/site-defaults.js');
 const { DEFAULT_TUNING } = require('./lib/tuning-defaults.js');
 const { DEFAULT_GUARD } = require('./lib/guard-defaults.js');
+const { DEFAULT_COMPRESSION } = require('./lib/compression-config.js');
 const STRUCT_FILES = [
   ['site.json5', 'site'],
   ['navigation.json5', 'navigation'],
@@ -35,9 +37,10 @@ const STRUCT_FILES = [
   ['tag-aliases.json5', 'tagAliases'],
   ['friends.json5', 'friends'],
   ['tuning.json5', 'tuning'],
-  ['guard.json5', 'guard']
+  ['guard.json5', 'guard'],
+  ['compression.json5', 'compression']
 ];
-const STRUCT_REGISTRY = Object.assign({}, DEFAULT_CONFIG, { tuning: DEFAULT_TUNING, guard: DEFAULT_GUARD });
+const STRUCT_REGISTRY = Object.assign({}, DEFAULT_CONFIG, { tuning: DEFAULT_TUNING, guard: DEFAULT_GUARD, compression: DEFAULT_COMPRESSION });
 const typeOf = (v) => (Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v);
 function checkStructure(user, def, p, out) {
   if (Array.isArray(user)) {

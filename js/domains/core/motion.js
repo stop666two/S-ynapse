@@ -28,6 +28,10 @@ export function init() {
       document.documentElement.style.setProperty('--mh-ripple', Math.min((+pick('rippleDurationMs', 'rippleDurationMs') || 500), 300) + 'ms');
     }
     var stagger = +pick('staggerDelayMs', 'revealDelayMs') || 0;
+    // features.motion.revealStaggerMax（ms，默认 500）：同屏错峰总附加延迟上限；
+    // 单项 delay=min(stagger, 剩余预算)，预算耗尽后其余元素同时入场。
+    var _staggerMaxRaw = +pick('revealStaggerMax', 'revealStaggerMax');
+    var staggerMax = isNaN(_staggerMaxRaw) || _staggerMaxRaw < 0 ? 500 : _staggerMaxRaw;
     var revealIO = null;
     function bindReveal() {
       if (M.scrollReveal === false) return;
@@ -50,9 +54,12 @@ export function init() {
             if (once) revealIO.unobserve(en.target);
           }
         });
-        batch.forEach(function (el, idx) {
-          if (stagger > 0) {
-            el.style.transitionDelay = (Math.min(idx, 8) * stagger) + 'ms';
+        var budget = staggerMax;
+        batch.forEach(function (el) {
+          if (stagger > 0 && budget > 0) {
+            var d = Math.min(stagger, budget);
+            budget = Math.max(0, budget - d);
+            el.style.transitionDelay = d + 'ms';
             setTimeout(function () { el.style.transitionDelay = ''; }, +M.revealCleanupMs);
           }
           el.classList.add('in');

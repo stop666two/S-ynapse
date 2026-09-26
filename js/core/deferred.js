@@ -24,6 +24,7 @@ import { init as guardInit } from '../domains/guard/core.js';
 import { init as backgroundInit } from '../domains/features/background.js';
 import { init as rewardInit } from '../domains/features/reward.js';
 import { init as popupNoticeInit } from '../domains/features/popup-notice.js';
+import { init as coverInit } from '../domains/features/cover.js';
 
 const registry = {
   search: searchInit,
@@ -47,7 +48,8 @@ const registry = {
   guard: guardInit,
   background: backgroundInit,
   reward: rewardInit,
-  'popup-notice': popupNoticeInit
+  'popup-notice': popupNoticeInit,
+  cover: coverInit
 };
 
 export function load(name) {

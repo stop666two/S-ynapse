@@ -58,7 +58,14 @@ function bind() {
       tg.classList.toggle('rotated', open);
     };
   }
-  if (String(TNT.collapsedByDefault) === 'true') { d.classList.add('collapsed'); if (tg) tg.setAttribute('aria-expanded', 'false'); }
+  var _cbd = String(TNT.collapsedByDefault) === 'true';
+  if (_cbd) { d.classList.add('collapsed'); if (tg) tg.setAttribute('aria-expanded', 'false'); }
+  // features.toc.defaultOpenLevel：0=全折叠（列表收起）；N≥1 → 可见最大标题级=minLevel+N-1
+  // （默认 2 且 minLevel=2 → 展开到 h3，h4 初始折叠；tuning.collapsedByDefault 优先级更高）。
+  var _dl = +S.T.defaultOpenLevel; if (isNaN(_dl) || _dl < 0) _dl = 2;
+  var _minLv = isNaN(+S.T.minLevel) ? 2 : Math.max(1, Math.floor(+S.T.minLevel));
+  var _visibleMax = _dl === 0 ? 0 : _minLv + Math.floor(_dl) - 1;
+  if (_dl === 0 && !_cbd && S.T.collapsible !== false) { d.classList.add('collapsed'); if (tg) tg.setAttribute('aria-expanded', 'false'); }
   S.off = isNaN(+TNT.scrollOffset) ? (isNaN(+S.TSS.offset) ? (isNaN(+S.T.activeOffset) ? 120 : +S.T.activeOffset) : +S.TSS.offset) : +TNT.scrollOffset;
   S.links = Array.prototype.slice.call(d.querySelectorAll('.toc-sidebar-link'));
   S.links.forEach(function (l) { var h = l.getAttribute('href'); if (h && h[0] === '#') S.ids.push(h.slice(1)); });
@@ -87,9 +94,25 @@ function bind() {
         e.stopPropagation();
         var c = g.li.classList.toggle('collapsed');
         b.setAttribute('aria-expanded', c ? 'false' : 'true');
-        g.children.forEach(function (ch) { ch.classList.toggle('toc-child-hidden', c); });
+        g.children.forEach(function (ch) { ch.classList.toggle('toc-child-hidden', c); ch.classList.remove('toc-depth-hidden'); });
       };
       g.li.appendChild(b);
+      // defaultOpenLevel 初态：超出可见层级的子项折叠/隐藏（默认 2 → h4 隐藏；≤1 → h3+ 整组折叠）。
+      if (!_cbd && _dl > 0) {
+        var deep = [];
+        g.children.forEach(function (ch) {
+          var lk = ch.querySelector('.toc-sidebar-link');
+          var lv = lk ? +((lk.className.match(/level-(\d)/) || [])[1]) : 0;
+          if (lv > _visibleMax) deep.push(ch);
+        });
+        if (deep.length && deep.length === g.children.length) {
+          g.li.classList.add('collapsed');
+          b.setAttribute('aria-expanded', 'false');
+          deep.forEach(function (ch) { ch.classList.add('toc-child-hidden'); });
+        } else {
+          deep.forEach(function (ch) { ch.classList.add('toc-depth-hidden'); });
+        }
+      }
     });
   }
   S.headingEls = S.ids.map(function (id) { return document.getElementById(id); });
@@ -129,12 +152,16 @@ function bindGlobals() {
     if (e.key !== 'Escape') return;
     var dr = document.getElementById('mTocDrawer'), h = document.getElementById('kbdHelp'), btn = document.getElementById('mTocBtn');
     if (dr && dr.classList.contains('open')) { dr.classList.remove('open'); if (S.MT.lockScroll !== false) document.body.style.overflow = ''; }
-    if (h) h.classList.remove('open');
+    if (h) { h.classList.remove('open'); var hb2 = document.getElementById('kbdHintBtn'); if (hb2) hb2.setAttribute('aria-expanded', 'false'); }
     if (btn) btn.classList.remove('open');
   });
   document.addEventListener('click', function (e) {
     var h = document.getElementById('kbdHelp');
-    if (h && h.classList.contains('open') && !e.target.closest('#kbdHelp')) h.classList.remove('open');
+    if (h && h.classList.contains('open') && !e.target.closest('#kbdHelp') && !e.target.closest('#kbdHintBtn')) {
+      h.classList.remove('open');
+      var hb = document.getElementById('kbdHintBtn');
+      if (hb) hb.setAttribute('aria-expanded', 'false');
+    }
     var dr = document.getElementById('mTocDrawer');
     if (!dr || !dr.classList.contains('open')) return;
     if (S.MT.overlayClose === false) return;

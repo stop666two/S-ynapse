@@ -113,6 +113,8 @@
     shortcutDark: '切换暗色模式', shortcutNext: '下一篇', shortcutPrev: '上一篇',
     shortcutImage: '图片查看器切图', shortcutClose: '关闭弹层',
     shortcutHelp: '开关本帮助', mobileNav: '移动端底部导航',
+    // 页脚快捷键提示按钮（features.shortcuts.showHelpHint）
+    shortcutHint: '快捷键提示',
     copyCode: '复制代码', copied: '已复制', downloadCode: '下载代码文件',
     copyAllCode: '复制全部代码', copyFailed: '复制失败',
     expandAll: '展开全文', collapseAll: '收起',
@@ -363,6 +365,7 @@
       shortcutNext: 'Next post', shortcutPrev: 'Previous post',
       shortcutImage: 'Image viewer next', shortcutClose: 'Close overlay',
       shortcutHelp: 'Toggle this help', mobileNav: 'Mobile bottom nav',
+      shortcutHint: 'Keyboard shortcuts',
       copyCode: 'Copy code', copied: 'Copied!',
       copyAllCode: 'Copy all code', copyFailed: 'Copy failed',
       downloadCode: 'Download code', expandAll: 'Expand all', collapseAll: 'Collapse',

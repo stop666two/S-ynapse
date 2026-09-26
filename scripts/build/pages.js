@@ -13,6 +13,7 @@ const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
+const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint } = require('../lib/feature-wiring');
 
 function createPagesModule(ctx) {
   const { getTemplate, renderPage, getPublished, recordBuildFailure, collectFriends, collectSeries, collectGalleryImages, collectSiteStats, collectTags, collectCategories, collectTopTags, groupByYearMonth, categoryHue, resolveDailyQuotes, resolveFaviconHtml, CleanCSS } = ctx;
@@ -152,7 +153,12 @@ function createPagesModule(ctx) {
       quotes: dailyQuotes,
       uiStrings: config.uiStrings,
       linkWarning: config.site && config.site.externalLinkWarning,
-      pwa: config.site && config.site.pwa
+      pwa: config.site && config.site.pwa,
+      // theme.darkMode 运行时子集（default/rememberChoice/iconStyle/transitionAll 的 canonical 来源；
+      // 完整 theme 不注入以控制配置体积）。features.themeToggle 同义键已删除。
+      theme: {
+        darkMode: normalizeThemeDarkMode(config.theme && config.theme.darkMode)
+      }
     });
     const jsonText = JSON.stringify(external);
     ctx.setInlineConfigKb(Buffer.byteLength(JSON.stringify(critical), 'utf-8') / 1024);
@@ -195,6 +201,17 @@ function createPagesModule(ctx) {
         imageFitCss = Array.from(widths).map(function (w) { return '[data-iw="' + w + '"]{--iw:' + w + 'px}'; }).join('');
       } catch (e) { imageFitCss = ''; }
     }
+    // 词典文案查询（与返回对象上的 ui() 同语义，供下方闭包提前使用）。
+    function uiText(path, fallback, lang) {
+      let o = config.uiStrings || {};
+      if (lang === 'en' && o.en) o = o.en;
+      for (const k of String(path).split('.')) {
+        if (o == null) return fallback;
+        o = o[k];
+      }
+      return (o === undefined || o === null) ? fallback : o;
+    }
+    const pinnedCfg = pinnedConfig(config.features);
     return {
       site: config.site,
       theme: config.theme,
@@ -219,6 +236,19 @@ function createPagesModule(ctx) {
       siteStats: collectSiteStats(articles, tags, categories),
       listCoverEnabled: !!(config.features && config.features.listCover && config.features.listCover.enabled !== false),
       listCoverFallback: (config.features && config.features.listCover && config.features.listCover.fallback) || 'pattern',
+      // 标签归档列表页封面显隐（features.listCover.showOnArchive；默认 true=现行为）。
+      listCoverShowOnArchive: archiveCoverEnabled(config.features),
+      // 置顶徽标/排序/W1 接线（features.pinned；配置文案优先于 ui-strings 词典）。
+      pinnedCfg: pinnedConfig(config.features),
+      pinnedText: function(lang) {
+        return pinnedText(pinnedCfg, lang, uiText('card.pinned', '置顶', lang), uiText('card.pinned', 'Pinned', 'en'));
+      },
+      // cover 运行时归一化（defaultPattern 回退 patterns[0]、preferImage 默认 true）。
+      coverCfg: coverRuntimeConfig(config.features),
+      // 主题暗色规范化（canonical 来源 theme.darkMode；模板早置脚本与按钮样式共用）。
+      themeDarkMode: normalizeThemeDarkMode(config.theme && config.theme.darkMode),
+      // 页脚快捷键提示按钮渲染门控（features.shortcuts.showHelpHint，默认 true）。
+      showHelpHint: showHelpHint(config.features),
       searchProvider: (config.navigation && config.navigation.search && config.navigation.search.provider) || 'local',
       currentUrl: '/',
       currentPage: 'index',

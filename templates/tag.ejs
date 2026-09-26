@@ -5,11 +5,11 @@
 </div>
 
 <% if (articles && articles.length) { %>
-<% var _catCss = []; %>
+<% var _catCss = []; var _pcfg=(typeof pinnedCfg!=='undefined'&&pinnedCfg)||{showBadge:true,badgeStyle:'pill'}; var _lcShowArchive=(typeof listCoverShowOnArchive==='undefined')?true:listCoverShowOnArchive; %>
 <div class="blog-grid">
 <% articles.forEach(function(article, _ai) { %>
 <article class="post-card<%= (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.hoverShine!==false)?' card-shine':'' %>">
-  <% var _coverSrc = (typeof coverSrc==='function') ? coverSrc(article) : (article.featuredImage || ''); %>
+  <% var _coverSrc = _lcShowArchive ? ((typeof coverSrc==='function') ? coverSrc(article) : (article.featuredImage || '')) : ''; %>
   <% if (_coverSrc) { %>
   <a href="<%= article.url %>" class="card-media">
     <img <%- (typeof cardCoverAttrs==='function') ? cardCoverAttrs(article) : cardImgAttrs(article.featuredImage) %> alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-card-image" loading="lazy">
@@ -19,7 +19,7 @@
   </a>
   <% } %>
   <h2 class="post-card-title">
-    <% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span><% } %><% if (article.series) { %><span class="series-badge"><%= ui('card.series','系列') %></span><% } %>
+    <% if (article.pinned && _pcfg.showBadge) { %><span class="pin-badge<%= _pcfg.badgeStyle==='corner'?' pin-badge-corner':'' %>"><%= (typeof pinnedText==='function')?pinnedText(typeof lang!=='undefined'?lang:'zh'):ui('card.pinned','置顶') %></span><% } %><% if (article.series) { %><span class="series-badge"><%= ui('card.series','系列') %></span><% } %>
     <a href="<%= article.url %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="title-<%= article.slug %>"<% } %>><%= article.title %></a>
   </h2>
   <div class="post-card-meta">

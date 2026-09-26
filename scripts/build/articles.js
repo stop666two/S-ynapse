@@ -9,6 +9,7 @@ const { marked } = require('marked');
 const { getAllFiles } = require('./fs-utils');
 const { preflightArticles, createMediaResolver } = require('../lib/content-validate');
 const { formatDate, safeSlug, validateSlug, applyCjkSpacingToHtml, extractToc, sanitizeHtml, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode } = require('../lib/utils');
+const { makeArticleComparator, stripMarkdownText } = require('../lib/feature-wiring');
 
 function createArticlesModule(ctx) {
   // Load Markdown content from pages/ as key-value map (filename → {title, content, body}).
@@ -187,7 +188,11 @@ function createArticlesModule(ctx) {
         if (!seenSlugs.has(lang)) seenSlugs.set(lang, new Set());
         seenSlugs.get(lang).add(slug);
         const url = `/${lang}/${slug}/`;
-        const excerpt = attrs.excerpt || '';
+        let excerpt = attrs.excerpt || '';
+        // features.autoSummary.stripMarkdown（默认 true）：frontmatter excerpt 先剥离 Markdown 标记；
+        // false 时原样保留（旧行为）。
+        const _asCfg = (config.features && config.features.autoSummary) || {};
+        if (excerpt && _asCfg.stripMarkdown !== false) excerpt = stripMarkdownText(excerpt);
         const date = attrs.date || null;
         if (date && isNaN(new Date(date).getTime())) {
           console.error(`  [ERROR] ${file}: frontmatter "date: ${date}" is not a valid date. Expected YYYY-MM-DD or ISO 8601. Skipping.`);
@@ -283,14 +288,8 @@ function createArticlesModule(ctx) {
         if (buildErrors) buildErrors.add('article', `${file}: ${err.message}`);
       }
     }
-    articles.sort((a, b) => {
-      const pa = a.pinned ? 1 : 0, pb = b.pinned ? 1 : 0;
-      if (pa !== pb) return pb - pa;
-      if (!a.date && !b.date) return a.title.localeCompare(b.title);
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return new Date(b.date) - new Date(a.date);
-    });
+    // features.pinned.sortRule='normal' 时按日期自然排序（不重排置顶）；'pinned-first'（默认）保持现行为。
+    articles.sort(makeArticleComparator(config.features));
     console.log(`  Total: ${articles.length} articles processed`);
     return articles;
   }

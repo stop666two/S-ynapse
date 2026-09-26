@@ -7,6 +7,13 @@ export function init() {
     var kNext = S.nextPost ? String(S.nextPost) : '';
     var kPrev = S.prevPost ? String(S.prevPost) : '';
     var kHelp = S.help ? String(S.help) : '';
+    function toggleHelp() {
+      var h = document.getElementById('kbdHelp');
+      if (!h) return;
+      var open = h.classList.toggle('open');
+      var hb = document.getElementById('kbdHintBtn');
+      if (hb) hb.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
     document.addEventListener('keydown', function (e) {
       var t = e.target;
       var inField = !!(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
@@ -17,7 +24,13 @@ export function init() {
       else if (k.toLowerCase() === kTheme.toLowerCase() && kTheme) { window.toggleDark(); }
       else if (k.toLowerCase() === kNext.toLowerCase() && kNext) { var n = document.querySelector('.post-nav-link.next'); if (n) n.click(); }
       else if (k.toLowerCase() === kPrev.toLowerCase() && kPrev) { var pv = document.querySelector('.post-nav-link.prev'); if (pv) pv.click(); }
-      else if (k === kHelp && kHelp) { var h = document.getElementById('kbdHelp'); if (h) h.classList.toggle('open'); }
+      else if (k === kHelp && kHelp) { toggleHelp(); }
     });
+    // features.shortcuts.showHelpHint 页脚提示按钮（模板按配置渲染；此处仅绑定行为）。
+    var hb = document.getElementById('kbdHintBtn');
+    if (hb && hb.dataset.hintBound !== '1') {
+      hb.dataset.hintBound = '1';
+      hb.addEventListener('click', function () { toggleHelp(); });
+    }
   })();
 }

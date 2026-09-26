@@ -57,7 +57,9 @@ export function init() {
     }
   }
   function isPagefind() {
-    return String(window.__SEARCH_PROVIDER__ || '') === 'pagefind';
+    // features.pagefind.integrate=false → 即使 provider=pagefind 也回退内置搜索链路。
+    var PF = (window.__FEATURES__ || {}).pagefind || {};
+    return String(window.__SEARCH_PROVIDER__ || '') === 'pagefind' && PF.integrate !== false;
   }
   function focusPagefind() {
     var wrap = document.getElementById('pfWrap');
@@ -199,6 +201,9 @@ export function init() {
     var shl = (F && F.searchHighlight) || {};
     var mm = isNaN(+shl.maxMatches) ? 20 : +shl.maxMatches;
     var hlOn = shl.enabled !== false && SC.highlightMatches !== false;
+    // searchHighlight.markClass：只保留安全类名字符；空=不附加 class（默认，保持历史输出）。
+    var mkCls = String(shl.markClass == null ? '' : shl.markClass).replace(/[^\w-]/g, '');
+    var markOpen = mkCls ? '<mark class="' + mkCls + '">' : '<mark>';
     function hl(sx, qq) {
       var esc = sx.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       if (!hlOn) return esc;
@@ -206,7 +211,7 @@ export function init() {
       try { re = new RegExp('(' + qq.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'); }
       catch (e) { return esc; }
       var n = 0;
-      return esc.replace(re, function (m) { return n++ < mm ? '<mark>' + m + '</mark>' : m; });
+      return esc.replace(re, function (m) { return n++ < mm ? markOpen + m + '</mark>' : m; });
     }
     if (!lcIndex || lcIndex.length !== w.length) {
       lcIndex = [];

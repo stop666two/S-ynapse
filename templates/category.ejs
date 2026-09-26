@@ -5,10 +5,10 @@
 
 <% if (articles && articles.length) { %>
 <div class="blog-grid">
-<% articles.forEach(function(article) { %>
+<% var _pcfg=(typeof pinnedCfg!=='undefined'&&pinnedCfg)||{showBadge:true,badgeStyle:'pill'}; articles.forEach(function(article) { %>
 <article class="post-card">
   <h2 class="post-card-title">
-    <% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span><% } %><% if (article.series) { %><span class="series-badge"><%= ui('card.series','系列') %></span><% } %>
+    <% if (article.pinned && _pcfg.showBadge) { %><span class="pin-badge<%= _pcfg.badgeStyle==='corner'?' pin-badge-corner':'' %>"><%= (typeof pinnedText==='function')?pinnedText(typeof lang!=='undefined'?lang:'zh'):ui('card.pinned','置顶') %></span><% } %><% if (article.series) { %><span class="series-badge"><%= ui('card.series','系列') %></span><% } %>
     <a href="<%= article.url %>"><%= article.title %></a>
   </h2>
   <div class="post-card-meta">

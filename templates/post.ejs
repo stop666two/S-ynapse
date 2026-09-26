@@ -9,7 +9,7 @@
 %>
 <article class="post-article">
   <header class="post-header">
-    <h1 class="post-title" id="<%= article.slug %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="title-<%= article.slug %>"<% } %>><% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span>       <% } %><%= article.title %></h1>
+    <h1 class="post-title" id="<%= article.slug %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="title-<%= article.slug %>"<% } %>><% var _pcfg=(typeof pinnedCfg!=='undefined'&&pinnedCfg)||{showBadge:true,badgeStyle:'pill'}; if (article.pinned && _pcfg.showBadge) { %><span class="pin-badge<%= _pcfg.badgeStyle==='corner'?' pin-badge-corner':'' %>"><%= (typeof pinnedText==='function')?pinnedText(typeof lang!=='undefined'?lang:'zh'):ui('card.pinned','置顶') %></span>       <% } %><%= article.title %></h1>
     <% if (features.i18n && features.i18n.translationNotice !== false && typeof altArticle !== 'undefined' && altArticle) { %><div class="translation-notice"><a href="<%= altArticle.url %>"><%= ui('post.translationNotice','本文也有 {lang} 版本').replace('{lang}', altArticle.lang === 'en' ? 'English' : '中文') %></a></div><% } %>
     <div class="post-meta">
       <% if (article.date) { %>
@@ -41,18 +41,21 @@
   </header>
 
   <% var _postCoverSrc = (typeof coverSrc==='function') ? coverSrc(article) : (article.featuredImage || ''); %>
-  <% if (_postCoverSrc) { %>
+  <% var _cc=(typeof coverCfg!=='undefined'&&coverCfg)||{enabled:true,patterns:['gradient','stripes','dots','blob','mesh'],defaultPattern:'gradient',preferImage:true}; %>
+  <% if (_postCoverSrc && _cc.preferImage!==false) { %>
   <img <%- (typeof postCoverAttrs==='function') ? postCoverAttrs(article) : ('src="' + article.featuredImage + '"') %> alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-featured-image" loading="eager" fetchpriority="high">
-  <% if(features.cover&&features.cover.enabled!==false&&article.featuredImage){ %>
+  <% } else if (_postCoverSrc) { %>
+  <div class="cover-render cover-pattern-<%= _cc.defaultPattern %>" role="img" aria-label="<%= _cc.defaultPattern %>"></div>
+  <% } %>
+  <% if(_cc.enabled!==false&&_postCoverSrc&&article.featuredImage){ %>
   <div class="cover-strip cover-apply" data-article="<%= article.slug %>">
     <span class="cover-strip-label"><%= ui('post.coverStyle','封面样式') %></span>
     <div class="cover-thumb-row" role="radiogroup" aria-label="<%= ui('post.coverStyle','封面样式') %>">
-    <% (features.cover.patterns||['gradient','stripes','dots','blob','mesh']).forEach(function(pat,i){ %>
-    <button type="button" class="cover-thumb cover-pattern-<%= pat %> <%= i===0?'active':'' %>" data-cover="<%= pat %>" aria-label="<%= pat %>" title="<%= pat %>"></button>
+    <% _cc.patterns.forEach(function(pat){ %>
+    <button type="button" class="cover-thumb cover-pattern-<%= pat %> <%= pat===_cc.defaultPattern?'active':'' %>" data-cover="<%= pat %>" aria-label="<%= pat %>" title="<%= pat %>"></button>
     <% }) %>
     </div>
   </div>
-  <% } %>
   <% } %>
 
   <div class="post-content<% var _mg=(typeof features!=='undefined'&&features.magazine)||{}; if(_mg.enabled!==false){ if(_mg.dropCap!==false){%> mg-dropcap<%} if(_mg.figureBleed!==false){%> mg-bleed<%} if(_mg.tableHover!==false){%> mg-tablehover<%} if(_mg.headingNumbers){%> mg-h2num<%} } %>">

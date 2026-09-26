@@ -28,7 +28,7 @@
 <div class="blog-grid<%= (typeof tuning!=='undefined'&&tuning.card&&tuning.card.bentoFeatured===false)?'':' bento' %>">
 <% var _bentoOn = !(typeof tuning!=='undefined'&&tuning.card&&tuning.card.bentoFeatured===false); %>
 <% var _catCss = []; %>
-<% articles.forEach(function(article, _ai) { %>
+<% var _pcfg=(typeof pinnedCfg!=='undefined'&&pinnedCfg)||{showBadge:true,badgeStyle:'pill'}; articles.forEach(function(article, _ai) { %>
 <article class="post-card<%= (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.hoverShine!==false)?' card-shine':'' %>">
   <% var _coverSrc = (typeof coverSrc==='function') ? coverSrc(article) : (article.featuredImage || ''); %>
   <% if (_coverSrc && listCoverEnabled) { %>
@@ -42,7 +42,7 @@
   <a href="<%= article.url %>" class="post-card-nocover" aria-hidden="true" tabindex="-1"><%= article.title %></a>
   <% } %>
   <h2 class="post-card-title">
-    <% if (article.pinned) { %><span class="pin-badge"><%= ui('card.pinned','置顶') %></span><% } %><% if (article.series) { %><span class="series-badge"><%= ui('card.series','系列') %></span><% } %>
+    <% if (article.pinned && _pcfg.showBadge) { %><span class="pin-badge<%= _pcfg.badgeStyle==='corner'?' pin-badge-corner':'' %>"><%= (typeof pinnedText==='function')?pinnedText(typeof lang!=='undefined'?lang:'zh'):ui('card.pinned','置顶') %></span><% } %><% if (article.series) { %><span class="series-badge"><%= ui('card.series','系列') %></span><% } %>
     <a href="<%= article.url %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="title-<%= article.slug %>"<% } %>><%= article.title %></a>
   </h2>
   <div class="post-card-meta">

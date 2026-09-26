@@ -4,6 +4,13 @@ export function init() {
     if (Q.enabled === false) return;
     var qt = document.getElementById('quoteText');
     if (!qt || !window.__QUOTES__) return;
+    // features.dailyQuote.widgetStyle：'plain'=无卡片外框；'card'/'sidebar'（旧值）=卡片外观（现行为）。
+    var wq = qt.closest('.quote-widget');
+    if (wq) {
+      var plain = Q.widgetStyle === 'plain';
+      wq.classList.toggle('quote-widget-plain', plain);
+      wq.classList.toggle('quote-widget-card', !plain);
+    }
     var qa = document.getElementById('quoteAuthor');
     var qs = window.__QUOTES__;
     var n = qs.length;

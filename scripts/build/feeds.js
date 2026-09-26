@@ -7,6 +7,7 @@ const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { escapeHtml, stripHtml } = require('../lib/utils');
 const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('../lib/robots');
 const { resolveJsonFeedOptions } = require('../lib/feed-options');
+const { localSearchIndexNeeded } = require('../lib/feature-wiring');
 
 function createFeedsModule(ctx) {
   // Generate an RSS 2.0 feed (per-language).
@@ -256,7 +257,8 @@ function createFeedsModule(ctx) {
     }
   }
   function generateSearchIndex(config, articles) {
-    if (!config.navigation.search || !config.navigation.search.enabled || config.navigation.search.provider !== 'local') {
+    // provider=pagefind 时仅当 features.pagefind.integrate=false（回退内置搜索链路）才生成本地索引。
+    if (!localSearchIndexNeeded(config.navigation, config.features)) {
       console.log('  [SKIP] Search index generation disabled or provider not local');
       return;
     }

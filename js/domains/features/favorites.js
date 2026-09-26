@@ -59,6 +59,13 @@ export function init() {
       data.forEach(it => {
         const row = document.createElement('div');
         row.className = 'fav-page-item';
+        if (FV.listIcon !== false) {
+          const ic = document.createElement('span');
+          ic.className = 'fav-item-icon';
+          ic.setAttribute('aria-hidden', 'true');
+          ic.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.6-9.6-8.4C.6 9.2 2.6 5.5 6.2 5.5c2.1 0 3.6 1.2 4.4 2.4.8-1.2 2.3-2.4 4.4-2.4 3.6 0 5.6 3.7 3.8 7.1C19 16.4 12 21 12 21z"/></svg>';
+          row.appendChild(ic);
+        }
         const a = document.createElement('a');
         a.href = it.url;
         a.textContent = it.title;

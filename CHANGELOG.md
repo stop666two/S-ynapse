@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **header 图标按钮悬停微动效统一（用户验收反馈）**：此前仅 `dark-toggle`（主题切换旋转）与 `nav-link` 系列有悬停动效，`search-toggle`/`nav-boost-btn`/`nav-toggle` 悬停无反馈。现 `search-toggle`、`nav-boost-btn` 的 svg 与 `nav-link` 系列共用 `--icons-hoverLift` 上浮过渡；`nav-toggle` 汉堡图标（morphicons 接管后的 svg，或未启用 morphicons 时的三条 span）同样轻量上浮；统一在 `prefers-reduced-motion:reduce` 下 `transform:none`；`dark-toggle` 主题切换 morphicon 动画保持不变 — `templates/site-css.ejs` + 巡检 runner `.tmp-scripts/run-nav-detail.js`
+
 - **测试入口自举（Node 20 兼容）**：`npm test` / `npm run test:coverage` 改由 `scripts/run-tests.js` 枚举 `scripts/*.test.js` 后调用内置 test runner，消除对 Node 21+ 内部 glob 展开与 shell 展开的依赖（Windows + Node 20 可用）；CI 新增 `compat-node20` 任务（Node 20.19.0 上跑 `npm test` + `verify:config` + `test:build` + `build`） — `scripts/run-tests.js`、`package.json`、`.github/workflows/deploy.yml`
 - **开发服务器看门狗（防孤儿进程）**：`scripts/build/serve.js` 支持 `SYNAPSE_SERVE_PARENT_PID`（父进程退出后 5 秒内自退）与 `SYNAPSE_SERVE_IDLE_MS`（空闲超时自退）环境变量，并处理 SIGINT/SIGTERM；所有 `.tmp-scripts` 工具脚本自动继承；新增 `node .tmp-scripts/kill-orphans.js` 兜底清理 — `scripts/build/serve.js`
 - **构建管线拆分（反馈批次二·二.1）**：`scripts/build.js` 从 3416 行拆为 **265 行编排器 + `scripts/build/` 工厂模块**（config/markdown/articles/collectors/pages/helpers/report/render/feeds/security-files/assets/minify/media/serve/cache/context），每步 dist 哈希等价（173 文件）并以 `npm run test:build` 守护 — `scripts/build/*`
@@ -45,6 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **文档计数与安全声明（审计 F-14/O-5）**：测试计数更新为 180 项/38 组；新增 `SECURITY.md`（accessGate 软防护声明、LOG_IP_SECRET、限流边界）
 
 ### Fixed
+
+- **顶部导航高亮软导航失联 + 滑动指示器（用户验收反馈）**：首屏 `nav-active` 原由 `motion.js` 在启动时一次性按 `location.pathname` 计算，软导航只交换 `.content-wrapper`，标签栏高亮停留在旧页（需再点一次标签触发整页刷新才更新，且无过渡）。现抽成可重入 `syncNav()`（重算 `nav-active` 与 `aria-current="page"` 并清理旧项），在初始化、`__SOFTNAV_HOOKS__`（每次内容交换完成）、`popstate`（前进/后退）三处触发；桌面端在 `#mainNav` 内新增 `span.nav-indicator` 浅色 pill，按当前激活链接相对导航容器定位，`transform`+`width` 用 `--td/--te` 过渡，`ResizeObserver` + `window resize` + `document.fonts.ready` 后重算，移动端（≤导航断点，导航折叠）隐藏，`prefers-reduced-motion:reduce` 取消位移动画直接切换；指示器为纯增强——JS 失效时 `.nav-active` 颜色/底纹高亮不变（仅在指示器激活时由 `.nav-indicator.on~.nav-list` 让位背景避免叠加）。实测 runner `.tmp-scripts/run-nav-detail.js`（端口 3320，37 断言全过：首屏对齐、软导航/后退随动、无整页刷新、移动端隐藏、0 控制台错误、端口释放）— `js/domains/core/motion.js` + `templates/layout.ejs` + `templates/site-css.ejs`
+
+- **header 图标按钮原生悬浮提示恢复（用户验收反馈）**：`nav-toggle`/`search-toggle`/`nav-boost-btn`/`dark-toggle`/`lang-btn`/`back-to-top`、文章页 `reader-gear`、`m-toc-btn`、`m-toc-close`/`lb-close`/`search-close` 此前只有 `aria-label`，鼠标悬停无原生 title 提示；现统一补 `title` + `data-i18n-title` 并保持中英随语言；i18n 运行时新增 `data-i18n-title` 支持（与 `data-i18n-aria` 同路径，切换语言同步更新 title）。巡检断言中英页 title 与词典一致（英文页不为中文回退）— `templates/layout.ejs` + `templates/post.ejs` + `js/domains/core/i18n.js`
 
 - **图片构建期定尺寸 + 锚点落点稳定（CLS 治理）**：正文（含 `<picture>`）/头图/卡片/画廊图片构建期输出 `width`/`height`（manifest 原图元数据，渲染前预留宽高比），修复「图片未预留高度导致布局偏移与锚点落点漂移」；新增 `features.anchorStabilize`（`enabled`/`settleMs`/`maxTrackMs`，默认开）在整页 hash 直达后按 `load` + `ResizeObserver` 校正落点、跟踪至布局静默，用户输入即停（`html.anchor-stabilizing{overflow-anchor:none}` 防止滚动锚定反向推走落点）。实测（本地 gzip serve + Slow4G + 4× CPU，3 次中位）：冷锚点 CLS 0.5367→0.0011、滚动扫描增量 0.0240→0.0002、落点 1587→146px（最终误差 9.9px，校正瞬间即达理想位，其后极晚布局回移约 10px，页面总高 13983px 不可感知）；TOC 高亮/返回顶部/软导航不受影响；构建 smoke 新增图片尺寸与锚点断言 — `scripts/build/markdown.js` + `scripts/build/pages.js` + `js/domains/core/anchor-stabilize.js` + `js/core/main.js` + `templates/{post,gallery,site-css}.ejs` + `features.json5` + `scripts/build.test.js` + `scripts/build-smoke.test.js`
 

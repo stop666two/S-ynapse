@@ -418,7 +418,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 
 ### 方式三：GitHub Actions（CI/CD 自动部署）
 
-项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署（Node 24 + `npm audit --audit-level=high` + `npm test` + `npm run test:coverage`（`scripts/lib` 行覆盖率 ≥80%） + `npm run lint` + `npm run typecheck` + `verify:config` + `verify:security` + `npm run test:build` + `npm run sbom`（CycloneDX 1.5，上传 `sbom-cyclonedx` artifact）门禁），并在部署前检查 AGENTS.md 是否被误提交。
+项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署（Node 24 + `npm audit --audit-level=high` + `npm test` + `npm run test:coverage`（`scripts/lib` 行覆盖率 ≥80%） + `npm run lint` + `npm run typecheck` + `verify:config` + `verify:security` + `npm run test:build` + `npm run sbom`（CycloneDX 1.5，上传 `sbom-cyclonedx` artifact）门禁），并在部署前检查 AGENTS.md 是否被误提交；另有 `compat-node20` 任务在 Node 20.19.0（`engines` 下限）上运行 `npm test` + `npm run verify:config` + `npm run test:build` + `npm run build`，保证 LTS 可用性。
 
 **配置步骤**：
 1. 在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加 `CF_API_TOKEN`（如需部署）

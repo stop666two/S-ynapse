@@ -340,23 +340,23 @@ npm run build -- --out .tmp-scripts/out/audit-build
 
 ### 10.7 受约束项与已知盲区
 
-1. **`pinned.sortRule=normal` 的 runner 数据受限**：已闭环——新增隔离夹具（含「置顶但较旧」与「未置顶但最新」文章），runner 断言 normal=日期序、pinned-first=置顶优先，徽标在 normal 下仍渲染；详见 §11。
-2. **`theme.darkMode.iconStyle=single` 无法经 `--features-override` 覆盖**：已闭环——新增 `--theme-override <path>`（深合并 + `validateConfig` 校验 + 不写仓库配置），夹具第二态构建与 HTTP 断言单图标 + 早置脚本 `iconStyle=single`；详见 §11。
+1. **`pinned.sortRule=normal` 的 runner 数据受限**：已收口——新增隔离夹具（含「置顶但较旧」与「未置顶但最新」文章），runner 断言 normal=日期序、pinned-first=置顶优先，徽标在 normal 下仍渲染；详见 §11。
+2. **`theme.darkMode.iconStyle=single` 无法经 `--features-override` 覆盖**：已收口——新增 `--theme-override <path>`（深合并 + `validateConfig` 校验 + 不写仓库配置），夹具第二态构建与 HTTP 断言单图标 + 早置脚本 `iconStyle=single`；详见 §11。
 3. **JS 预算**：58.8KB 按实测调至 60KB；压缩治理（跨模块工具去重、deferred 分包边界、预算分层口径）列入后续。
 4. **静态扫描已知盲区**：通用短键名（`enabled`/`size` 等）与运行时动态拼接键（`stats.label*En`）无法按名判定，分别由扫描口径声明与允许名单登记；后续可评估基于属性访问路径的静态分析。
 
 ---
 
-## 十一、最终状态（残余验证闭环）
+## 十一、最终状态（残余验证收口）
 
-> 结论：`features.json5` 无未接线键（`npm run verify:config-refs` exit 0）；残余三项验证均已闭环，另发现并修复两处阻塞增量按页复用的缺陷。
+> 结论：`features.json5` 无未接线键（`npm run verify:config-refs` exit 0）；残余三项验证均已收口，另发现并修复两处阻塞增量按页复用的缺陷。
 
 | 项 | 状态 | 证据 |
 |---|---|---|
-| `pinned.sortRule=normal` 真实排序 | 已闭环 | 隔离夹具默认（pinned-first）= `pinned-old, fresh-top, wiki-demo, mid-article`；normal = 纯日期序 `fresh-top, wiki-demo, mid-article, pinned-old`；徽标仍渲染。runner 断言 + 构建产物卡片顺序解析 |
-| `theme.darkMode.iconStyle=single` 第二态 | 已闭环 | `--theme-override`（新增，与 `--features-override` 同模式）第二态构建：产物仅 `<svg id=moonI>`（无 sunI）、早置脚本 `iconStyle:'single'`；HTTP 端到端一致；单测 `scripts/theme-override.test.js` 5 例 |
-| 未知双链 `unknownMode=link/hide` | 已闭环 | 夹具文章含 `[[ghost-target]]`：text 默认降级纯文本；link 模式 SSR 产物与 HTTP 响应均含 `search/?q=ghost-target`；hide 模式整体移除；已知链接 `[[fresh-top]]` 三态均正确解析 |
-| `incrementalBuild` 逐页证据 | 已闭环（并修复两处缺陷） | 冷缓存首轮 rebuilt=33 → 无变更次轮 skipped=33/rebuilt=0（HTML mtime 不变）→ 改 `pages/about.md` rebuilt=1（mtime 与页面指纹仅目标页变化，另一语言同 slug 页复用）→ 改一篇文章 rebuilt=20/skipped=13（另一语言全部跳过，mtime/指纹不变）→ `--full` 强制全量重写 |
+| `pinned.sortRule=normal` 真实排序 | 已收口 | 隔离夹具默认（pinned-first）= `pinned-old, fresh-top, wiki-demo, mid-article`；normal = 纯日期序 `fresh-top, wiki-demo, mid-article, pinned-old`；徽标仍渲染。runner 断言 + 构建产物卡片顺序解析 |
+| `theme.darkMode.iconStyle=single` 第二态 | 已收口 | `--theme-override`（新增，与 `--features-override` 同模式）第二态构建：产物仅 `<svg id=moonI>`（无 sunI）、早置脚本 `iconStyle:'single'`；HTTP 端到端一致；单测 `scripts/theme-override.test.js` 5 例 |
+| 未知双链 `unknownMode=link/hide` | 已收口 | 夹具文章含 `[[ghost-target]]`：text 默认降级纯文本；link 模式 SSR 产物与 HTTP 响应均含 `search/?q=ghost-target`；hide 模式整体移除；已知链接 `[[fresh-top]]` 三态均正确解析 |
+| `incrementalBuild` 逐页证据 | 已收口（并修复两处缺陷） | 冷缓存首轮 rebuilt=33 → 无变更次轮 skipped=33/rebuilt=0（HTML mtime 不变）→ 改 `pages/about.md` rebuilt=1（mtime 与页面指纹仅目标页变化，另一语言同 slug 页复用）→ 改一篇文章 rebuilt=20/skipped=13（另一语言全部跳过，mtime/指纹不变）→ `--full` 强制全量重写 |
 | `heatmap.scaling=auto` 与 `palette` 组合边界 | 已覆盖 | `scripts/config-wiring.test.js → resolveHeatmapPalette`（auto 忽略 palette；fixed 长度不足回退自动色阶并告警；空/非字符串过滤） |
 | JS 预算 | 残余（非阻断） | 58.8KB 按实测调至 60KB（`warnOnly=true`）；压缩治理列入后续 |
 | 增量粒度边界 | 残余（设计约束） | 修改一篇文章仍重建该语言全部页面（文章列表进入每语言页面指纹）；按模板数据投影/步骤级增量见 `docs/incremental-build-design.md` 远期方案 |

@@ -615,7 +615,7 @@ sitemap: {
 
 ### 3.85 ogImage — 自动 OG 图
 
-`enabled true` / `width 1200` / `height 630`（输出尺寸）/ `format 'png'`（输出格式：`png` 默认无损 / `jpeg` 有损体积更小，`jpg` 视为同义；切换后旧格式文件下次构建自动清理）/ `jpegQuality 82`（`format='jpeg'` 时生效，1–100，越界回退 82）/ `useCover true`（有封面时以封面为底图）/ `gradientForNoCover true`（无封面时生成渐变底）/ `fontScale 0.75`（标题字号相对缩放）。OG 图 URL、`og:image`/`twitter:image`/JSON-LD image 与输出扩展名由 `format` 统一决定。`serve` 模式跳过生成 — `scripts/generate-og.js` + `scripts/lib/og-format.js` + `templates/layout.ejs`。
+`enabled true` / `width null` / `height null`（输出尺寸；**null = 自动**：全站文章封面仅 1 张 → 用该图尺寸；多张 → 取面积最大者；0 张 → 1200×630。显式填数字时需 width+height 同时提供，且优先于自动检测；示例 `width: 1200, height: 630`）/ `autoSize { enabled true, maxDimension 2560 }`（自动尺寸开关与长边上限，超限等比缩小）/ `coverFit 'cover'`（有封面时缩放方式：`cover` 裁切填满 / `contain` 完整显示可能留白（jpeg 留白为黑）/ `fill` 拉伸不推荐）/ `overlay { enabled true, wrap 20 }`（封面标题叠层开关与每行最大字符数）/ `format 'png'`（输出格式：`png` 默认无损 / `jpeg` 有损体积更小，`jpg` 视为同义；切换后旧格式文件下次构建自动清理）/ `jpegQuality 82`（`format='jpeg'` 时生效，1–100，越界回退 82）/ `useCover true`（有封面时以封面为底图）/ `gradientForNoCover true`（无封面时生成渐变底）/ `fontScale 0.75`（标题字号相对缩放）。OG 图 URL、`og:image`/`twitter:image`/JSON-LD image 与输出扩展名由 `format` 统一决定。`serve` 模式跳过生成 — `scripts/generate-og.js` + `scripts/lib/og-size.js` + `scripts/lib/og-format.js` + `templates/layout.ejs`。
 
 ### 3.86 hotSearches — 热门搜索
 
@@ -643,7 +643,7 @@ sitemap: {
 
 ### 3.92 listCover — 列表封面
 
-`enabled true` / `showOnHome true`（首页卡片）/ `showOnArchive true`（归档列表）/ `fallback 'none'`（无封面文章的回退取值）/ `aspectRatio '21/9'`（列表封面宽高比）/ `lazy true`（懒加载）。与 `features.cover`（文章封面样式库）分工：此项控制列表页是否展示封面及其比例 — `templates/index.ejs` + `scripts/build.js`。
+`enabled true` / `showOnHome true`（首页卡片）/ `showOnArchive true`（归档列表）/ `fallback 'pattern'`（无封面文章的回退形态：`pattern` 渐变占位块显示标题文字（默认） / `none` 纯文字卡片不渲染占位块；`enabled=false` 时完全隐藏列表媒体区）/ `aspectRatio '21/9'`（列表封面宽高比）/ `lazy true`（懒加载）。与 `features.cover`（文章封面样式库）分工：此项控制列表页是否展示封面及其比例 — `templates/index.ejs` + `scripts/build/pages.js`。
 
 ### 3.93 imageFallback — 图片兜底
 

@@ -6,10 +6,12 @@ const https = require('https');
 const sharp = require('sharp');
 const { safeSlug, validateSlug } = require('./lib/utils');
 const { resolveOgFormat } = require('./lib/og-format');
+const { resolveOgSize } = require('./lib/og-size');
 const { atomicTempPath, commitAtomicTemp, discardAtomicTemp, writeFileAtomicSync } = require('./lib/atomic-write');
 const { buildCacheKey, configFingerprint, getFresh, pruneTo } = require('./lib/asset-cache');
 
-const ROOT = path.resolve(__dirname, '..');
+// 根目录：SYNAPSE_ROOT（测试隔离用）优先，默认仓库根。
+const ROOT = process.env.SYNAPSE_ROOT ? path.resolve(process.env.SYNAPSE_ROOT) : path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
 // 输出根目录：SYNAPSE_OUT_DIR（build.js 在自定义输出时传入绝对路径）优先，默认 dist/。
 // 相对路径相对 ROOT 解析；OG 图片最终写入 <根目录>/og/{lang}/。
@@ -108,13 +110,14 @@ function fetchUrl(url, redirects) {
   });
 }
 
-// 读取封面本地文件（frontmatter 的 cover/featuredImage 可能是相对路径）。
+// 解析封面本地文件绝对路径（frontmatter 的 cover/featuredImage 可能是相对路径）。
 // 安全约束：解析后的绝对路径必须位于项目根内；越界路径（如 ../../etc/hosts 或
 // C:/Windows/...）一律拒绝并告警，防止被篡改的 frontmatter 读取仓库外文件。
-// 返回：Buffer（找到且合法）或 null（不存在/越界）；网络 URL 走 fetchUrl。
-async function loadCoverBuffer(cover) {
-  if (/^https?:\/\//i.test(cover)) return fetchUrl(cover, 0);
-  const rel = cover.replace(/\\/g, '/').replace(/^\/+/, '');
+// 返回：绝对路径（存在且合法）或 null（不存在/越界/远程 URL）。
+const warnedCoverPaths = new Set();
+function resolveCoverFile(cover) {
+  if (!cover || /^https?:\/\//i.test(String(cover))) return null;
+  const rel = String(cover).replace(/\\/g, '/').replace(/^\/+/, '');
   const rootResolved = path.resolve(ROOT) + path.sep;
   const candidates = [
     path.join(ROOT, rel),
@@ -122,19 +125,49 @@ async function loadCoverBuffer(cover) {
     path.join(ROOT, 'static', rel),
     path.join(ROOT, 'assets', rel)
   ];
-  let warned = false;
   for (const c of candidates) {
     const abs = path.resolve(c);
     if (!abs.startsWith(rootResolved)) {
-      if (!warned) {
-        console.warn('  [WARN] generate-og: 封面路径越界已拒绝: ' + String(cover).slice(0, 120));
-        warned = true;
+      const key = String(cover).slice(0, 120);
+      if (!warnedCoverPaths.has(key)) {
+        warnedCoverPaths.add(key);
+        console.warn('  [WARN] generate-og: 封面路径越界已拒绝: ' + key);
       }
       continue;
     }
-    if (fs.existsSync(abs)) return fs.readFileSync(abs);
+    if (fs.existsSync(abs)) return abs;
   }
   return null;
+}
+
+// 读取封面内容：本地文件返回 Buffer，远程 URL 走 fetchUrl，找不到返回 null。
+async function loadCoverBuffer(cover) {
+  if (/^https?:\/\//i.test(cover)) return fetchUrl(cover, 0);
+  const abs = resolveCoverFile(cover);
+  return abs ? fs.readFileSync(abs) : null;
+}
+
+// 自动尺寸检测：扫描文章封面图（仅本地文件、仅非草稿），用 sharp 读取像素尺寸。
+// 供 resolveOgSize 决定 OG 画布尺寸（单图取该图 / 多图取最大 / 无图回退默认）。
+async function collectCoverSizes(files) {
+  const sizes = [];
+  const seen = new Set();
+  for (const file of files) {
+    try {
+      const attrs = parseFrontMatter(fs.readFileSync(file, 'utf-8'));
+      if (attrs.draft === true || attrs.draft === 'true') continue;
+      const cover = (attrs.cover || attrs.featuredImage || '').toString().trim();
+      if (!cover) continue;
+      const abs = resolveCoverFile(cover);
+      if (!abs || seen.has(abs)) continue;
+      seen.add(abs);
+      const meta = await sharp(abs).metadata();
+      if (meta && meta.width > 0 && meta.height > 0) sizes.push({ width: meta.width, height: meta.height });
+    } catch (err) {
+      console.warn('  [WARN] generate-og: 封面尺寸检测跳过 ' + path.basename(file) + ': ' + err.message);
+    }
+  }
+  return sizes;
 }
 
 function parseColor(val, fallback) {
@@ -351,8 +384,19 @@ async function main() {
   const styleCfg = featuresConfig.ogImageStyle || {};
   if (ogFmt.format === 'jpeg') console.log(`  OG format: jpeg (quality ${ogFmt.quality})`);
   const paletteMode = styleCfg.palette || 'theme';
-  if (+ogCfg.width > 0) WIDTH = +ogCfg.width;
-  if (+ogCfg.height > 0) HEIGHT = +ogCfg.height;
+  // 尺寸解析：显式 width+height 优先；否则自动检测文章封面图（单图取该图/多图取最大/无图默认 1200x630），
+  // 长边超过 autoSize.maxDimension（默认 2560）时等比缩小。详见 scripts/lib/og-size.js。
+  const autoSizeCfg = ogCfg.autoSize || {};
+  const ogSize = resolveOgSize({
+    explicitWidth: ogCfg.width,
+    explicitHeight: ogCfg.height,
+    covers: await collectCoverSizes(walkArticles(ARTICLES_DIR, [])),
+    maxDimension: autoSizeCfg.maxDimension,
+    autoSize: autoSizeCfg.enabled !== false
+  });
+  WIDTH = ogSize.width;
+  HEIGHT = ogSize.height;
+  console.log(`  OG size: ${WIDTH}x${HEIGHT} (${ogSize.source}${ogSize.scaled ? ', capped' : ''})`);
   const ogFontScale = (+ogCfg.fontScale > 0) ? +ogCfg.fontScale : 1;
   const ogFingerprint = configFingerprint([
     ogFmt.format, ogFmt.ext, ogFmt.quality,
@@ -464,7 +508,16 @@ async function main() {
     const cacheId = langDir + '/' + slug;
     let mdStats;
     try { mdStats = fs.statSync(file); } catch (e) { mdStats = null; }
-    const cacheKey = buildCacheKey(mdStats, ogFingerprint);
+    // 封面文件变更（例如替换了同尺寸的新图）也要使缓存失效：把封面 stat 并入指纹。
+    let coverStats = null;
+    if (cover) {
+      const coverAbsForStats = resolveCoverFile(cover);
+      if (coverAbsForStats) {
+        try { coverStats = fs.statSync(coverAbsForStats); } catch (e) { coverStats = null; }
+      }
+    }
+    const articleFp = coverStats ? configFingerprint([ogFingerprint, coverStats.mtimeMs, coverStats.size]) : ogFingerprint;
+    const cacheKey = buildCacheKey(mdStats, articleFp);
     if (getFresh(ogCache, cacheId, cacheKey) && fs.existsSync(cachePath)) {
       fs.copyFileSync(cachePath, outPath);
       madeSlugs.set(cacheId, outName);
@@ -481,8 +534,15 @@ async function main() {
         try {
           const coverBuf = await loadCoverBuffer(cover);
           if (coverBuf) {
-            const overlay = Buffer.from(coverOverlay(siteTitle, fitLines(wrapTitle(title, 20))));
-            const coverPipe = sharp(coverBuf).resize(WIDTH, HEIGHT, { fit: 'cover' }).composite([{ input: overlay }]);
+            // 封面合成：overlay 可经 features.ogImage.overlay 关闭；coverFit 控制缩放方式。
+            const overlayCfg = ogCfg.overlay || {};
+            const coverFit = ['cover', 'contain', 'fill'].includes(ogCfg.coverFit) ? ogCfg.coverFit : 'cover';
+            const coverPipe = sharp(coverBuf).resize(WIDTH, HEIGHT, { fit: coverFit });
+            if (overlayCfg.enabled !== false) {
+              const wrapChars = (Number.isFinite(+overlayCfg.wrap) && +overlayCfg.wrap > 0) ? Math.round(+overlayCfg.wrap) : 20;
+              const overlay = Buffer.from(coverOverlay(siteTitle, fitLines(wrapTitle(title, wrapChars))));
+              coverPipe.composite([{ input: overlay }]);
+            }
             pendingTmp = atomicTempPath(outPath);
             img = await (ogFmt.format === 'jpeg'
               ? coverPipe.jpeg({ quality: ogFmt.quality, mozjpeg: true })

@@ -160,6 +160,7 @@ function createPagesModule(ctx) {
       galleryItems: collectGalleryImages(articles),
       siteStats: collectSiteStats(articles, tags, categories),
       listCoverEnabled: !!(config.features && config.features.listCover && config.features.listCover.enabled !== false),
+      listCoverFallback: (config.features && config.features.listCover && config.features.listCover.fallback) || 'pattern',
       searchProvider: (config.navigation && config.navigation.search && config.navigation.search.provider) || 'local',
       currentUrl: '/',
       currentPage: 'index',

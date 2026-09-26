@@ -234,7 +234,9 @@ const DEFAULT_FEATURES = {
     authorUrl: true, wordCount: true, timeRequired: true, keywords: true, articleSection: true, image: true
   },
   ogImage: {
-    enabled: true, width: 1200, height: 630, useCover: true,
+    enabled: true, width: null, height: null, useCover: true,
+    autoSize: { enabled: true, maxDimension: 2560 },
+    coverFit: 'cover', overlay: { enabled: true, wrap: 20 },
     gradientForNoCover: true, fontScale: 0.75,
     format: 'png', jpegQuality: 82
   },
@@ -261,7 +263,7 @@ const DEFAULT_FEATURES = {
     applyImages: true, applyVideos: true
   },
   listCover: {
-    enabled: true, showOnHome: true, showOnArchive: true, fallback: 'none',
+    enabled: true, showOnHome: true, showOnArchive: true, fallback: 'pattern',
     aspectRatio: '21/9', lazy: true
   },
   imageFallback: {

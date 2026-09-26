@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-09-26
 
 ### Added
 
@@ -420,4 +420,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 新增 `docs/config-reference.md`（9 章：site/theme/features/navigation/sidebar/footer/security/content-policy/tag-aliases+friends，含校验行为、环境变量表、重定向/友链/标签别名示例）
 - README 全面更新：目录结构、配置详解、构建管线、交互功能、NPM 速查、测试表、技术栈
 
+[1.1.0]: https://github.com/stop666two/S-ynapse/releases/tag/v1.1.0
 [1.0.1]: https://github.com/stop666two/S-ynapse/releases/tag/v1.0.1

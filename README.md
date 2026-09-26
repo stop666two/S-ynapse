@@ -539,7 +539,7 @@ npm run verify:security   # 集成安全回归
 
 ### SBOM（软件物料清单）
 
-- **标准**：CycloneDX **1.5** JSON（ECMA-424）；`bomFormat/specVersion/serialNumber(urn:uuid)/version/metadata/components` 最小合法结构，根组件 `s-ynapse@1.0.2`（type `application`）。
+- **标准**：CycloneDX **1.5** JSON（ECMA-424）；`bomFormat/specVersion/serialNumber(urn:uuid)/version/metadata/components` 最小合法结构，根组件版本随 `package.json`（当前 `s-ynapse@1.1.0`，type `application`）。
 - **依赖映射**：读取 `package-lock.json`（lockfileVersion 3）非根条目，逐条输出 `type:"library"` + `name` + `version` + `purl`（作用域包按 purl 规范将 `@` 编码为 `%40`）+ 唯一 `bom-ref`；`integrity`（sha512 base64）转为 `hashes[{alg:"SHA-512",content:<hex>}]`，无 integrity 则省略；按 `name/version` 稳定排序，重复同版本以 `#2` 后缀去重。
 - **生成**：`npm run sbom` → `build-artifacts/sbom.cdx.json`（目录已加入 `.gitignore`，原子写入，不入库）；CI 在构建后生成并上传为 `sbom-cyclonedx` artifact（`if-no-files-found: error`）。
 

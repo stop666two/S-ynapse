@@ -240,3 +240,45 @@ npm run build -- --out .tmp-scripts/out/audit-build
 5. **search.matchTags/matchCategories**：接线将扩大搜索结果集合（默认 true 即启用），属行为变更，待确认后接线（当前已标注）。
 6. **通用名键盲区**：`enabled/height/size/count` 等无法被叶键名扫描覆盖，需后续引入基于属性访问路径的静态分析或人工巡检清单。
 7. 135 个预留键（`lightbox.openDurationMs`、`backToTop.scrollDurationMs`、`themeToggle.defaultTheme` 等）为功能未实现而不是硬编码漂移；如需要某键生效，建议单独立项实现并在本表更新状态。
+
+---
+
+## 九、第三轮闭环结果（2026-09-27 W1，15 项）
+
+> 目标：清理「重复/占位」键——能接线的一律真实可控，语义重复的一律删除并给出迁移说明。
+
+### 9.1 删除的重复键与迁移
+
+| 删除键 | 唯一来源（canonical） | 迁移说明 |
+|---|---|---|
+| `themeToggle.defaultTheme` / `rememberChoice` / `iconStyle` / `transitionAll` | `theme.json5 → darkMode.default/rememberChoice/iconStyle/transitionAll` | 值原样搬入 theme.darkMode 同名键；后三者为新增键，缺省即旧行为 |
+| `codeCopy.includeWindowBar` | `features.codeBlock.windowBar` | 改在 codeBlock.windowBar 配置；默认 true 行为不变 |
+| `listCover.aspectRatio` | `tuning.json5 → card.imageAspect` | 改 tuning.card.imageAspect；默认 16/10 行为不变 |
+| `mobileBottomNav.useSafeArea` | `features.mobile.safeAreaBottom` | 改 mobile.safeAreaBottom；默认 true 行为不变 |
+
+### 9.2 接线明细（键 → 消费点）
+
+| 键 | 消费点 | 说明 |
+|---|---|---|
+| `theme.darkMode.rememberChoice` | 模板早置脚本 + `js/domains/core/theme.js` | false=sessionStorage（当次会话），不再读取 localStorage 旧值 |
+| `theme.darkMode.iconStyle` | `templates/layout.ejs` + `site-css.ejs` | sun-moon（现行为）/single（单图标）/switch（CSS 滑块） |
+| `theme.darkMode.transitionAll` | `templates/layout.ejs` `a()` | true=加 `.theme-switching`；false=不加 |
+| `mobileBottomNav.onlyMobile` | `templates/layout.ejs` + `site-css.ejs` | `data-only-mobile="false"` 时桌面也显示 |
+| `readMode.focusOnlyContent` | `js/domains/core/reading-mode.js` + CSS | false=阅读模式保留侧栏（`data-reading-focus` 门控） |
+| `toc.defaultOpenLevel` | `js/domains/core/toc.js` + CSS | 0=全折叠；N≥1 可见到 minLevel+N-1 级 |
+| `searchHighlight.markClass` | `js/domains/features/search.js` + `templates/search.ejs` | `<mark>` 附加安全类名；默认 '' 不再输出旧值 |
+| `shortcuts.showHelpHint` | `templates/layout.ejs` + `shortcuts.js` | 页脚 `?` 按钮（native button + aria-expanded），文案 `ui-strings.toolbar.shortcutHint` 双语 |
+| `pinned.badgeText(_En)/badgeStyle/sortRule` | `scripts/build/articles.js` + 5 模板 | 配置文案优先于 ui-strings；none 不渲染；normal 按日期自然排序 |
+| `autoSummary.stripMarkdown` | `scripts/build/articles.js` | frontmatter excerpt 纯文本化 |
+| `pagefind.integrate` | `js/domains/features/search.js` + `templates/search.ejs` + `scripts/build/feeds.js` | false=回退本地搜索链路并同时产出 search-index.json |
+| `motion.revealStaggerMax` | `js/domains/core/motion.js` | 单项 delay=min(stagger, 剩余预算)，总附加延迟 ≤ 上限；默认值 80→500 |
+| `dailyQuote.widgetStyle` | `js/domains/features/daily-quote.js` + CSS | card（默认，旧值 sidebar 兼容）/plain |
+| `favorites.listIcon` | `js/domains/features/favorites.js` | /favorites 列表项 inline SVG 图标（aria-hidden） |
+| `cover.defaultPattern/preferImage` | `templates/post.ejs` + 新增 `js/domains/features/cover.js` | 默认 pattern initial active；preferImage=false 初始渲染 pattern 合成块；补齐此前无行为的样式选择器 |
+| `listCover.showOnArchive` | `templates/tag.ejs` | 标签归档列表封面显隐（/archive/ 年表页无封面）；默认 true=现行为 |
+
+### 9.3 验证证据
+
+- 单测 `scripts/config-wiring.test.js`：17 例（键注册/删除项/纯函数语义/边界）。
+- runner `.tmp-scripts/run-w1.js`：37 PASS / 0 FAIL（含配置拦截变体），0 控制台错误，端口 3325 释放校验；截图 `.tmp-scripts/out/w1-*.png` 3 张。
+- 门禁：`npm test` 396/396、`test:build` 2/2、`lint`/`typecheck` 0 错、`verify:config` PASS。

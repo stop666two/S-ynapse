@@ -1023,7 +1023,7 @@ listCover: {
 
 ## 12. compression.json5 — 构建产物压缩
 
-第 14 个配置文件。对 `dist/` 产物做可配置压缩：HTML/CSS/JS/JSON 单行化与去注释、CSS 同页 `<style>` 合并去重、可选 JS 混淆（默认关）；配套无头对比门禁与自动回退。加载与校验由 `scripts/lib/compression-config.js` 承担，压缩执行位于 `scripts/build/minify.js` 的压缩阶段（`scripts/compression-config.test.js` 覆盖默认合并/类型/枚举/glob 语义，`scripts/compression-pipeline.test.js` 覆盖增强步骤装配）。
+第 14 个配置文件。对 `dist/` 产物做可配置压缩：HTML/CSS/JS/JSON 单行化与去注释、CSS 同页 `<style>` 合并去重（C3 已实装）、可选 JS 混淆（C4 已实装，默认关）；无头对比门禁与自动回退为 C5 待实装。加载与校验由 `scripts/lib/compression-config.js` 承担，压缩执行位于 `scripts/build/minify.js` 的压缩阶段（`scripts/compression-config.test.js` 覆盖默认合并/类型/枚举/glob 语义，`scripts/compression-pipeline.test.js` 覆盖增强步骤装配，`scripts/css-merge.test.js` 与 `scripts/js-obfuscate.test.js` 覆盖 C3/C4 纯函数）。
 
 **生效范围（重要）**
 - 仅作用于 `dist/` 产物；`exclude` 命中的路径按原字节复制。
@@ -1036,8 +1036,9 @@ listCover: {
   - `html.aggressive=true`：minify-html 叠加真实支持的激进选项（省略可选闭合标签 `<html>/<head>` 无属性开标签、属性值去引号与属性间空格折叠、`minify_doctype`、移除 bangs/处理指令）。默认 false 时选项与基线逐字段一致（产物哈希可证明）；开启后需 C5 无头门禁裁决。
   - `html.removeComments=false`：保留 HTML 注释（压缩阶段的基线选项回退，仅 `enabled` 时生效；默认 true 与基线一致）。
   - `json.enabled=true`：`dist/**/*.json` 去空白（`JSON.parse → JSON.stringify`，键序保持、输出合法 JSON、Unicode 原样）。跳过：已是紧凑单行、`exclude` 命中项、`assets/config.<hash>.json`（文件名由内容哈希派生，是 HTML 的引用键；重写会破坏一致性——该文件写入时已紧凑，天然无需处理）。逐文件失败只告警并保留原文件。
-  - `css.mergeInlineStyles`/`css.dedupe`：**C3 预留接口**（本波只传递配置与计划标志，不执行合并/去重）。
-  - `js.obfuscate.*`：**C4 预留接口**（本波不引入混淆依赖；`obfuscate.enabled=true` 时构建输出 `[WARN]` 且不执行）。
+  - `css.mergeInlineStyles`（C3 已实装）：同页内联 `<style>` 安全合并——只合并「同组（nonce 与 media 一致）且中间无其它样式源」的相邻块，合并块落在首块位置并保留 nonce/media；SVG 与 `<noscript>` 内的 style、外链 `<link rel=stylesheet>` 一律视为截断源（不跨越，避免层叠顺序改变）；非 nonce/media 属性（如 `id=customCSS`）在合并时丢弃。因此数学页（正文含 KaTeX 外链）等被 stylesheet 截断的页面保持两块，这是顺序安全的必然结果。
+  - `css.dedupe`（C3 已实装）：保守去重——①同一规则内同属性且同 `!important` 状态的重复声明保留最后一条（重要性与普通混合时一律不动，避免破坏层叠）；②相邻（仅空白分隔）且完全相同的规则保留前一条；非相邻重复不折叠、`@keyframes` 内部与 at-rule 结构不动、规则顺序不动。作用于页面内联 style 与 dist 外链 CSS 文件（`assets/**` 不参与 cacheBust，外链 CSS 只改内容不改名，与基线 CleanCSS 行为一致）；解析异常（标签/括号/引号/注释不配平）跳过该文件并告警，不阻断构建。
+  - `js.obfuscate.enabled=true`（C4 已实装）：对**本轮 esbuild 产物** `app.<hash>.js` / `deferred.<hash>.js` 执行混淆，随后按混淆后字节重算文件名（md5-10）并同步改写全部 HTML 引用（app `src` 与 `window.__DEFERRED_URL__` 内联 URL），维持「文件名哈希=最终字节」。`runtime.<hash>.js` 因文件名哈希由源码派生、HTML 以该名引用（参与内容哈希引用），排除在混淆之外；vendor、`--no-bundle` 源码拷贝与增量残留旧文件永不命中（白名单=本轮 bundle 清单）。依赖 `javascript-obfuscator` 为 devDependency，仅在开关开启时惰性加载；单文件失败保留原名原文件并告警。
 - `html.collapseWhitespace=false` 暂不受支持：minify-html 恒折叠安全空白，配置为 false 时输出 `[WARN]` 并保持折叠。
 - `verify.headless`/`verify.fallbackOnFailure`：**C5 门禁参数**，本波仅进入增强计划，不执行无头对比。
 - 失败处理：配置加载/覆盖校验错误 → 记录构建失败 + 告警 + 降级内置默认值（不中止构建流程；`--allow-degraded` 可让退出码为 0）；逐文件压缩失败 → 告警 + 保留原文件 + 记录构建失败。
@@ -1051,17 +1052,24 @@ listCover: {
 | `html.collapseWhitespace` | bool | `true` | 折叠可安全移除的空白（minify-html 恒折叠，false 暂不受支持，输出告警） |
 | `html.aggressive` | bool | `false` | 实验性激进压缩（省略可选闭合标签/属性引号折叠等）；开启后需经无头门禁裁决 |
 | `css.enabled` | bool | `true` | 外链 CSS 压缩开关（增强步骤门；基线 CleanCSS 恒定执行） |
-| `css.mergeInlineStyles` | bool | `true` | 同一页面多段 `<style>` 合并为一段（C3 预留接口，本波未执行） |
-| `css.dedupe` | bool | `true` | 同一 CSS 文件内完全重复规则去重（C3 预留接口，本波未执行） |
+| `css.mergeInlineStyles` | bool | `true` | 同页内联 `<style>` 安全合并（C3 实装）：同组相邻块合并、保留 nonce/media、跨 link/SVG/noscript 不合并 |
+| `css.dedupe` | bool | `true` | 保守去重（C3 实装）：同规则同属性同 important 保留最后一条、相邻完全重复规则保留前一条、@keyframes 不动 |
 | `js.enabled` | bool | `true` | JS 压缩开关（vendor 与豁免名单始终排除） |
 | `js.minify` | bool | `true` | Terser 压缩（空白/注释/死代码/局部变量名） |
-| `js.obfuscate.enabled` | bool | `false` | JS 混淆开关（C4 预留接口，本波未执行；仅作用于自研 bundle） |
-| `js.obfuscate.preset` | string | `'medium'` | 混淆强度：`low` \| `medium` \| `high`（仅在 enabled=true 时生效） |
-| `js.obfuscate.seed` | number | `0` | 0 = 每次随机；填固定正整数可保证每次构建字节一致、内容哈希稳定 |
+| `js.obfuscate.enabled` | bool | `false` | JS 混淆开关（C4 实装）：仅本轮 app/deferred bundle，runtime/vendor 排除；混淆后重命名并更新 HTML 引用 |
+| `js.obfuscate.preset` | string | `'medium'` | 混淆强度：`low`（仅标识符重命名）/ `medium`（+stringArray base64）/ `high`（+控制流平坦化等）；代价见下 |
+| `js.obfuscate.seed` | number | `0` | 0 = 每次随机；固定正整数保证每次构建字节一致（同 seed 复跑已实测逐字节确定） |
 | `json.enabled` | bool | `true` | JSON 产物去空白（本波实装；跳过紧凑单行与 `assets/config.*.json`，输出始终合法） |
 | `exclude` | string[] | 见文件 | 相对 dist 根的 glob 豁免名单；整体替换（不与默认项合并） |
 | `verify.headless` | bool | `true` | 压缩后无头对比门禁（C5 预留接口，本波仅进入增强计划不执行） |
 | `verify.fallbackOnFailure` | bool | `true` | 门禁失败/压缩异常时回退未压缩产物并告警（C5 预留接口） |
+
+**C4 混淆代价与注意（2026-09-27 本机实测，medium 档 + seed=20260927）**
+- 体积：app + deferred 合计 raw 189.6KB → 253.3KB（+33.6%）、gzip 60.2KB → 96.3KB（+59.9%）；runtime 未混淆（3.7KB）。esbuild 已极致压缩，混淆器短名与包装代码会净增体积。
+- 加载与运行：本地 gzip 服务下 `/zh/` 首页 JS 传输 61.1KB → 97.2KB、load 中位 180ms → 327ms（单机对照，非生产基准，供 C8 评估）；官方参考低档运行时约 +10-20%、中档 +30-50%、高档 +50-80%。
+- 构建耗时：默认 4.75s → 混淆开启 7.46s（+2.7s，仍 < 8s 目标）。
+- 建议：仅在对代码保护有明确需求时开启；开启时固定 `seed` 保持内容寻址稳定；`medium`/`high` 增加首屏执行开销，移动端谨慎；`high` 档（控制流平坦化）体积约 +117%，默认不推荐。
+- `runtime.*.js` 排除理由：首屏引导脚本，文件名哈希基于源码且 HTML 以该名引用；混淆既破坏「哈希=最终字节」，又让最小引导文件承担执行风险。app/deferred 通过「混淆 → 按最终字节重命名 → 更新 HTML 引用」维持哈希语义。
 
 **`exclude` glob 语义**：`**` 跨目录（可匹配零层）、`*` 仅段内、`?` 单字符；大小写敏感（与线上 Cloudflare 文件系统语义一致）；分隔符用 `/`，反斜杠会归一化；不带 `**/` 的模式只匹配 dist 根位置。
 

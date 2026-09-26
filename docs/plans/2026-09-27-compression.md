@@ -44,8 +44,8 @@ compression: {
 
 - **C1 配置层** ✅ 已完成（2026-09-27）：`compression.json5` + `scripts/lib/compression-config.js`（默认值、深合并、枚举校验、exclude 归一化）+ 单测；`verify:config` 纳入第 10 个配置文件；`docs/config-reference.md` 新增章节。
 - **C2 压缩流水线** ✅ 已完成（2026-09-27，收口记录见「六、C2 进度与偏差」）：扩展 `scripts/build/minify.js` 为压缩阶段执行器：HTML（minify-html 选项化）、CSS（CleanCSS × 合并去重）、JS（Terser × 可选混淆）、JSON（去空白）；豁免名单生效；全程 `recordBuildFailure` 接线 + 失败不阻断（fallback 原样）。
-- **C3 CSS 合并去重**：抽取页面内多段 `<style>`（保留 nonce 与顺序）合并为单段；同文件内完全重复规则去重；跨文件不动；无头计算样式抽样对比。
-- **C4 JS 混淆**：`javascript-obfuscator` 预设（medium 档）+ 固定 seed；仅 `app.*.js`/`deferred.*.js`/`runtime.*.js`；输出体积与执行耗时记录；默认关。
+- **C3 CSS 合并去重** ✅ 已完成（2026-09-27，收口记录见「七、C3/C4 进度与偏差」）：`scripts/lib/css-merge.js` 纯函数（合并 + 保守去重）+ 增强阶段接线 + 36 例单测 + 冒烟断言。
+- **C4 JS 混淆** ✅ 已完成（2026-09-27，收口记录见「七、C3/C4 进度与偏差」）：`javascript-obfuscator` 5.8.0 惰性加载 + preset/seed 装配 + 白名单与内容寻址重命名 + 13 例单测 + 无头 runner（17 PASS）。
 - **C5 门禁与回退**：`compression.verify.headless` 时构建后跑关键页对比（压缩产物 vs 未压缩临时副本）：DOM 归一化哈希、采样元素计算样式、0 控制台错误、关键交互冒烟；不一致 → 用未压缩产物覆写 + `[WARN]` + 报告条目；`scripts/verify-compression.js` + CI 步骤。
 - **C6 WASM 评估**：`docs/wasm-eval.md`（基准表：CleanCSS vs lightningcss、Terser vs oxc-minify 的体积/耗时；结论与建议），不动生产依赖。
 - **C7 报告与文档**：`dist/report.txt`（构建时间、压缩前后体积对照 gzip/raw、节省率、告警、未达标项）+ CHANGELOG + README/架构文档更新。
@@ -76,3 +76,32 @@ compression: {
 - 偏差 2：`html.collapseWhitespace=false` 暂不受支持（minify-html 恒折叠安全空白且无对应配置项），配置为 false 时输出 `[WARN]` 并保持折叠；`html.enabled=false` 时不叠加 HTML 增强选项（注释移除回到基线行为）。
 - 偏差 3：配置加载错误采用「降级默认 + 记录构建失败 + 告警」而非中止（与 C1 校验层 `errors` 语义及计划「失败不阻断」一致）；仅 `--compression-override` 文件缺失/解析错误按 features/theme 覆盖同模式 `[FATAL]` 中止。
 - 验收对照（本波实测）：默认态与关闭态隔离构建——vendor 树跨态一致；84 个 HTML 页 nonce 归一化后 0 差异；`assets/config.*.json`、`search-index.json` 跨态一致；raw 总量默认态 −3.7KB（−0.021%）、gzip −80B（全部来自 2 份 feed.json 去空白）。C8 的 HTML gzip −10% / JS −20% 目标未在本波考核（基线压缩此前已达成主体收益；激进选项需 C5 裁决后放量）。
+
+## 七、C3/C4 进度与偏差
+
+**完成范围（2026-09-27）**
+
+- **C3**：新增纯函数库 `scripts/lib/css-merge.js`（`mergeStyleBlocks` / `dedupeStyleBlocks` / `dedupeCss`）并接入压缩增强阶段（HTML 内联样式合并 + 页面与外链 CSS 保守去重，逐文件异常跳过并告警）；`scripts/css-merge.test.js` 36 例；`scripts/build-smoke.test.js` 跨态断言适配（移除 style 块后逐字节一致 + 开启态块数不多于关闭态 + 首页合并为单块且保留原首尾规则片段）。
+- **C4**：`scripts/lib/compression-steps.js` 新增 `buildObfuscateOptions` / `selectObfuscationTargets`；`scripts/build/minify.js` 实装惰性混淆 + 按最终字节重命名 + HTML 引用改写；`build.js`/`context.js` 以活值注入本轮 bundle 白名单；`scripts/js-obfuscate.test.js` 13 例；无头 runner `.tmp-scripts/run-c4.js` 17 PASS / 0 FAIL（端口 3330，自收尾 + 释放校验）。
+- **文档**：`docs/config-reference.md` §12 C3/C4 实装语义与「混淆代价与注意」；CHANGELOG Added 两条；本计划勾选。
+
+**设计与偏差（相对任务书原文）**
+
+1. **合并比任务书更保守**：跨 `<link rel=stylesheet>`（如数学页的 KaTeX 外链）不合并，避免内联块相对外链的层叠顺序反转；SVG 与 `<noscript>` 内的 `<style>` 不外提；被合并块必须同 nonce+media。后果：84 页中 80 页合并（×96 块），4 页因外链截断保持多块；`id=customCSS` 等非 nonce/media 属性在合并时丢弃（全仓无该 id 的消费方，冒烟断言已同步）。
+2. **去重比任务书更保守**：「同属性重复保留最后一条」在 `!important` 与普通声明混合时会改变层叠结果（important 优先于顺序），因此仅对「同 important 状态」执行；非相邻重复、注释分隔的相邻重复、`@keyframes` 内部与 at-rule 结构一律不动。外链 CSS 也参与去重，但与基线 CleanCSS 语义一致只改内容不改名（`assets/**` 不参与 cacheBust）。
+3. **C4 增加内容寻址重命名**：任务书要求「文件名哈希=最终字节」，而 esbuild 的 `[hash]` 在混淆后失效，故混淆后以 md5-10 重命名并同步改写全部 HTML 引用（app `src` 与 `window.__DEFERRED_URL__`；本次 84 页）。单文件失败保留原名原文件并告警。
+4. **runtime 排除**（任务书第 4 条规则）：核实 `runtime.<source-sha1>.js` 不内联、以内容哈希命名并由 HTML 引用（参与内容哈希引用），混之违反哈希原则且让最小引导文件承担执行风险；故排除并在代码注释与 config-reference 记录理由。
+5. **目标白名单 = 本轮 bundle 清单**（不是目录扫描）：避免增量构建残留的旧 `app.*.js` 被二次混淆；`--no-bundle` 时清单为空、自动跳过。
+6. **medium 档实测代价**：app+deferred raw 189.6→253.3KB（+33.6%）、gzip 60.2→96.3KB（+59.9%）；构建 4.75→7.46s（<8s 目标）；本地 `/zh/` load 中位 180→327ms、JS 传输 61.1→97.2KB（供 C8 评估，非生产基准）。
+7. **C3-only 中间态独立提交**：C3 接线在临时移除 C4 代码后单独通过 `test:build`（3/3）再提交，随后恢复 C4 完整实现并再次全量门禁。
+
+**验收对照（本波实测）**
+
+- 4 次 `--out` 构建：默认态（CSS 合并开/混淆关）、CSS 关闭对照（`--compression-override`）、混淆开启（medium + seed=20260927）、混淆复跑（确定性）；产物核对 24/24（合并块数/跨态 style 外内容一致/哈希=字节/引用一致/runtime 原文）。
+- 门禁：`npm test` 545/545（93 suites）、`npm run test:build` 3/3、`npm run lint` 0 错、`npm run typecheck` 0 错、`verify:config` / `verify:config-refs` PASS。
+- runner：`.tmp-scripts/run-c4.js` 17 PASS / 0 FAIL（0 控制台错误、软导航无刷新、deferred 动态 import、同 seed 确定性、端口 3330 释放）。
+
+**未闭环（留待后续）**
+
+- C5 无头门禁与自动回退未实装：`verify.headless` / `verify.fallbackOnFailure` 仍只是增强计划字段与配置文档承诺；混淆/合并异常当前策略为「跳过 + 告警 + 记录构建失败」（不阻断、不自动回退）。
+- C7 报告未实装：C3/C4 统计输出在构建日志（合并块/去重/节省/混淆体积），尚未进入 `dist/report.txt`（该文件本身仍待 C7 创建）。

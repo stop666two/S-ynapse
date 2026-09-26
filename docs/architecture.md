@@ -77,7 +77,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | 层 | 机制 |
 |---|---|
 | 构建期 | sanitize-html 白名单（禁 `on*`/`style`/脚本类标签）、CJK 文本处理、媒体 URL 本地化、frontmatter / slug / 头值（RFC 7230 token、禁 CRLF）校验 |
-| 响应头 | CSP（`script-src` 与 `style-src` 共用每构建一次性 nonce，均无 `unsafe-inline`；内联 `style="..."` 属性由 `style-src-attr 'unsafe-inline'` 放行；`frame-ancestors 'none'` + XFO 双保险）、HSTS、Referrer-Policy 等 |
+| 响应头 | CSP（`script-src` 与 `style-src` 共用每构建一次性 nonce，均无 `unsafe-inline`；模板/产物无内联 `style="..."` 属性，不声明 `style-src-attr`，属性语境回退到同样拒绝内联的 `style-src`；`frame-ancestors 'none'` + XFO 双保险）、HSTS、Referrer-Policy 等 |
 | Worker | `CF-Connecting-IP` 单源信任、路径限制（解码 + 点段折叠）、限流（fail-closed；跨 isolate 局限见 SECURITY.md）、HTTPS 强制、维护模式、CSP 上报（限流 + 16KB 上限） |
 | 日志 | JSON Lines + `X-Request-Id`；IP 仅 HMAC 哈希（`LOG_IP_SECRET`；未配置时为固定盐，可枚举） |
 | 前端软防护 | accessGate 等 guard 模块仅防误入，可被绕过，不得作为访问控制（见 SECURITY.md） |
@@ -111,7 +111,7 @@ CI 顺序：check-agents → `npm ci` → audit → lint → typecheck → test 
 
 - `scripts/build.js` 已完成机械拆分（265 行编排器 + `scripts/build/` 工厂模块；等价护栏 `scripts/dist-hash-guard.js` + `.refactor-baseline.json`）。
 - `js/domains` 已按 core（14 关键）/features（21 延迟）/guard（11 防护）物理分层（`deferred.js` 统一注册表）。
-- `style-src` 已随 `<style>` nonce 注入消除 `'unsafe-inline'`；残余面为 `style-src-attr 'unsafe-inline'`（属性语境无法用 nonce，见 SECURITY.md）。Worker 无构建产物时的 FALLBACK 因无 nonce 可注入而保留 `style-src 'unsafe-inline'`，`script-src` 已同步收紧。
+- `style-src` 已随 `<style>` nonce 注入消除 `'unsafe-inline'`；模板与构建产物亦已清除全部内联 `style="..."` 属性（类 / 构建期 nonce `<style>` 规则 / CSSOM 三种手法），`style-src-attr` 不再声明，属性语境回退到 `style-src` 同样拒绝内联（见 SECURITY.md）。Worker 无构建产物时的 FALLBACK 因无 nonce 可注入而保留 `style-src 'unsafe-inline'`，`script-src` 已同步收紧。
 - 增量构建（`features.incrementalBuild`）为预留键位，未实现；方案见 `docs/incremental-build-design.md`。
 - accessGate 为软防护；`?key=`/`?guard=` 参数在判定/解锁读取完成后经 `history.replaceState` 从地址栏清理（保留其它查询串与 hash），但不改变其可被绕过的事实。
 - 开发服务器支持进程看门狗（`SYNAPSE_SERVE_PARENT_PID` / `SYNAPSE_SERVE_IDLE_MS`，`scripts/build/serve.js`），工具脚本退出即回收；兜底清理 `node .tmp-scripts/kill-orphans.js`。

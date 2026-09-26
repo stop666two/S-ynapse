@@ -80,8 +80,9 @@ function collectHtmlFiles(dir) {
 }
 
 // CSP 回归断言：_headers 中 script-src 与 style-src 携带同一枚构建期 nonce 且 elem 语境
-// 均无 'unsafe-inline'；style-src-attr 显式放行内联 style 属性（CSP 属性语境不支持 nonce）；
-// frame-ancestors 'none' 存在；dist 下所有内联 <style> 块都带有该 nonce（否则会被 CSP 拦截）。
+// 均无 'unsafe-inline'；不再声明 style-src-attr（模板/产物无内联 style 属性，属性语境按 CSP3
+// 回退到 style-src 同样拒绝内联）；frame-ancestors 'none' 存在；dist 下所有内联 <style> 块
+// 都带有该 nonce（否则会被 CSP 拦截），且所有 HTML 不含元素 style 属性。
 function verifyCspNonceCoverage() {
   const headersPath = path.join(ROOT, 'dist', '_headers');
   if (!fs.existsSync(headersPath)) fail('_headers not generated');
@@ -99,7 +100,7 @@ function verifyCspNonceCoverage() {
   if (scriptNonce[1] !== styleNonce[1]) fail('script-src and style-src must share the same build-time nonce');
   if (scriptSrc.includes("'unsafe-inline'")) fail("script-src must not allow 'unsafe-inline'");
   if (styleSrc.includes("'unsafe-inline'")) fail("style-src must not allow 'unsafe-inline' (element context)");
-  if (!styleAttr.includes("'unsafe-inline'")) fail("style-src-attr must allow 'unsafe-inline' for inline style attributes");
+  if (styleAttr.includes("'unsafe-inline'")) fail("style-src-attr must not allow 'unsafe-inline' (inline style attributes are eliminated)");
   if (!cspLine.includes("frame-ancestors 'none'")) fail("frame-ancestors 'none' missing in _headers CSP");
   let styleTags = 0;
   for (const file of collectHtmlFiles(path.join(ROOT, 'dist'))) {
@@ -114,6 +115,9 @@ function verifyCspNonceCoverage() {
       if (!match[1].includes(styleNonce[1])) {
         fail('inline <style> nonce mismatch in ' + path.relative(ROOT, file));
       }
+    }
+    if (/[\s"']style\s*=/.test(text)) {
+      fail('inline style attribute found (style-src-attr would block it): ' + path.relative(ROOT, file));
     }
   }
   if (styleTags === 0) fail('no inline <style> found in dist; nonce injection cannot be verified');

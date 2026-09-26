@@ -56,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **重复 Cache-Control 合并缺陷（S3 线上验证）**：Cloudflare 会把同一路径的所有匹配规则合并为逗号连接的单个 `Cache-Control`，原「`app/deferred/runtime.*.js` 专用规则 + `/assets/js/*` 兜底」叠加为非法双 `max-age`；改为按模式二选一：打包模式 `/assets/js/*` 整目录 immutable（该目录仅存哈希产物），`--no-bundle` 回退模式仍为 1 小时 + SWR — `scripts/build/security-files.js` + 冒烟断言 1 项
 
+### Security
+
+- **移除模板内联样式属性并收紧 CSP `style-src-attr`（反馈批次三 T3）**：模板 11 个文件约 42 处静态 `style="..."` 全部消除——重复样式归并为工具类（`.empty-state`/`.empty-hero`/`.btn-muted`/`.post-actions`/`.search-page-input` 等，含搜索页 JS 动态拼串）；配置驱动值改为构建期非ce `<style>` 规则（主题预设色板、公告进度时长、文末卡片配色、系列进度宽度、社交头像尺寸、logo 宽度、卡片分类色相）或 runtime CSSOM（`data-vt` → `view-transition-name`，软导航后经 `__SOFTNAV_HOOKS__` 重扫，新增 `js/domains/core/vt-names.js`）；`display:none` 改为 `hidden` 属性 + JS `el.hidden` 切换（外链提醒/联系弹窗）；Mermaid SSR 的 SVG 内联 `style` 与 `font-style` 表现属性统一搬入追加的 `#id#id` 高优先级规则（无 `!important`，mermaid 自身 `!important` 规则优先关系不变）；构建报告页同行内样式改类。`security.json5` 删除 `style-src-attr ['unsafe-inline']`（属性语境按 CSP3 回退到同样拒绝内联的 `style-src`），Worker FALLBACK 同步删除；回归断言扩展至构建产物全 HTML 无元素 `style` 属性（`npm run test:build`）与 `verify:security` 全量扫描；无头验证 6 代表页 0 CSP 违规、0 控制台错误，共享元素过渡/预设色板/灯箱/联系弹窗行为不变 — `templates/*.ejs` + `scripts/build/report.js` + `scripts/lib/mermaid-render.js` + `js/domains/core/{vt-names.js,external-link.js,main.js}` + `js/domains/features/{contact-popup.js,morphicons.js}` + `security.json5` + `workers/security-worker.js` + `scripts/{build-smoke.test,security-verify}.js` + `docs/{config-reference,architecture}.md` + `SECURITY.md`
+
 ### Added
 
 - **预算门禁收紧（T1.7）**：`features.perfBudget` 由 3 项扩为 5 项：`htmlKb 70→28`、新增 `htmlRawKb 50`（页面 raw 中位）与 `inlineConfigKb 2`（内联关键配置）、`jsKb 90→55`、`requests 18→12`；实测全绿（21.9 / 35.8 / 0.3 / 47.7 / 8）— `scripts/lib/perf-budget.js` + `scripts/build.js` + `features.json5` + 单测 2 项

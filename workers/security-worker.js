@@ -40,10 +40,7 @@ const FALLBACK = {
       // 兜底无 nonce 可注入 <style>，故 style-src 保留 'unsafe-inline' 保障降级页
       // （服务不可用/维护页）样式可读；正式产物由构建期 nonce 替换本项。
       "style-src": ["'self'", "'unsafe-inline'"],
-      // 内联 style 属性不受 nonce 约束（CSP 规范不支持），兜底与正式产物均需放行。
-      "style-src-attr": ["'unsafe-inline'"],
-      "img-src": ["'self'", "data:", "https:"],
-      "font-src": ["'self'", "https://fonts.gstatic.com"],
+      "img-src": ["'self'", "data:", "https:"],      "font-src": ["'self'", "https://fonts.gstatic.com"],
       "object-src": ["'none'"],
       "frame-src": ["https://giscus.app"]
     },

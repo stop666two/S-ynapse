@@ -29,7 +29,7 @@ function createRenderModule(ctx) {
 
   // 给最终 HTML 中所有内联 <style> 块注入与 <script> 同一枚构建期 nonce（已有 nonce 则跳过）。
   // 仅作用于内联 <style> 元素（style-src-elem 语境）；外链 <link rel="stylesheet"> 不在此列。
-  // 内联 style="..." 属性不受 nonce 约束（CSP 规范中属性不支持 nonce），由 style-src-attr 放行。
+  // 模板与产物已无内联 style="..." 属性；属性语境不支持 nonce，CSP 按回退规则由 style-src 拒绝。
   function injectStyleNonce(html) {
     if (!html || typeof html !== 'string') return html;
     return html.replace(/<style\b(?![^>]*\bnonce\s*=)[^>]*>/gi, function (tag) {

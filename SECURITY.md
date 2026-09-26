@@ -17,12 +17,12 @@ Pages `_headers` 与可选 `security-worker` 双层下发安全策略。本文�
   事件属性与 `javascript:`/`data:` 协议被剥离；SVG 走 `content-policy` 检测。
 - **CSP**：默认由 `_headers` 与 Worker 下发。`script-src` 与 `style-src` 均已移除
   `'unsafe-inline'`：构建期为所有内联 `<script>` 与 `<style>` 注入同一枚一次性 nonce
-  （HTML 与 CSP 同步），模板内联事件属性全部改为监听器；内联 `style="..."` 属性由
-  `style-src-attr 'unsafe-inline'` 放行（CSP 属性语境不支持 nonce，注入 style 属性无法
-  执行脚本，属已知残余面）。`frame-ancestors 'none'` 与 `X-Frame-Options: DENY` 双重
-  禁止页面被嵌入。未构建的原型部署（security-config.js 缺失）会用 Worker 内置 FALLBACK：
-  `script-src` 同步移除 `'unsafe-inline'`（fail-closed），`style-src` 因无构建期 nonce
-  可注入而保留 `'unsafe-inline'` 以保障降级页可读——正式产物会覆盖。
+  （HTML 与 CSP 同步），模板内联事件属性全部改为监听器；模板与构建产物已消除全部
+  内联 `style="..."` 属性（改为类、构建期 nonce `<style>` 规则或 CSSOM 写入），故不再
+  声明 `style-src-attr`，属性语境按 CSP3 回退到同样拒绝内联的 `style-src`。`frame-ancestors 'none'`
+  与 `X-Frame-Options: DENY` 双重禁止页面被嵌入。未构建的原型部署（security-config.js
+  缺失）会用 Worker 内置 FALLBACK：`script-src` 同步移除 `'unsafe-inline'`（fail-closed），
+  `style-src` 因无构建期 nonce 可注入而保留 `'unsafe-inline'` 以保障降级页可读——正式产物会覆盖。
 - **accessGate（`guard.json5`）是软防护，不是访问控制**：密码哈希与解锁码内联在
   前端产物中，`?guard=off` 与 localStorage 伪造均可绕过；关闭 JavaScript 或直接
   读取 HTML 也能看到内容。请勿用它保护机密数据——需要真实门禁请使用

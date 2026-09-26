@@ -27,7 +27,7 @@
    ```
    curl -sI https://<域名>/zh/ | findstr /I "content-security-policy x-frame-options cache-control"
    # 期望：script-src 与 style-src 含同一 'nonce-...' 且均无 'unsafe-inline'（elem 语境），
-   #       style-src-attr 含 'unsafe-inline'（放行内联 style 属性），frame-ancestors 'none' 存在
+   #       无 style-src-attr 'unsafe-inline'（模板/产物无内联 style 属性），frame-ancestors 'none' 存在
    curl -sI https://<域名>/assets/css/site.<hash>.css | findstr /I "cache-control"   # immutable 1 年
    ```
    另抽查首页/文章页/搜索 Console 无 CSP 违规、feed/sitemap 可访问。

@@ -90,9 +90,9 @@ function buildCspTrimContext(config) {
 
 // 把构建期 cspNonce 注入内存配置（幂等）：script-src 与 style-src 均移除 'unsafe-inline'，
 // 追加同一枚 'nonce-...'（script-src-elem / style-src-elem 未单独声明时回退到这两条）。
-// style-src-attr 不参与 nonce 注入：CSP 规范中内联 style 属性不支持 nonce，由配置显式
-// 保留 'unsafe-inline'（模板存在大量 style="..." 属性）。必须早于页面数据组装（meta CSP）、
-// generateSecurityHeaders() 与 Worker 配置生成，保证几处 directives 完全一致。
+// 不声明 style-src-attr：模板与产物已无内联 style 属性，属性语境按 CSP3 回退到 style-src，
+// 同样拒绝内联。必须早于页面数据组装（meta CSP）、generateSecurityHeaders() 与 Worker
+// 配置生成，保证几处 directives 完全一致。
 function applyCspNonce(config) {
   const csp = config && config.security && config.security.csp;
   if (!csp || !csp.directives) return;

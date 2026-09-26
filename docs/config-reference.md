@@ -726,7 +726,7 @@ sitemap: {
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `headers` | `{}` | 自定义响应头 |
-| `csp.enabled` / `directives` / `reportOnly` / `reportUri` | `false`/`{}`/`false`/`/csp-report` | Content-Security-Policy。构建期为 `script-src` 与 `style-src` 注入同一枚 `'nonce-...'`（内联 `<script>`/`<style>` 同步注入 nonce 属性），二者移除 `'unsafe-inline'`；内联 `style="..."` 属性由 `style-src-attr ['unsafe-inline']` 单独放行（CSP 属性语境不支持 nonce）；`frame-ancestors 'none'` 与 `X-Frame-Options: DENY` 双保险 |
+| `csp.enabled` / `directives` / `reportOnly` / `reportUri` | `false`/`{}`/`false`/`/csp-report` | Content-Security-Policy。构建期为 `script-src` 与 `style-src` 注入同一枚 `'nonce-...'`（内联 `<script>`/`<style>` 同步注入 nonce 属性），二者移除 `'unsafe-inline'`；模板与产物已无内联 `style="..."` 属性，故不再声明 `style-src-attr`（属性语境按 CSP3 回退到 `style-src`，同样拒绝内联）；`frame-ancestors 'none'` 与 `X-Frame-Options: DENY` 双保险 |
 | `csp.autoTrim` / `csp.metaEnabled` | `true`/`false` | 构建期按功能裁剪未用域名（giscus / jsdelivr / Google Fonts / Cloudflare 统计——统计域名仅在 site.webAnalytics 配置 token 时保留；在 Cloudflare 面板另开统计而未配 token 时请设 `false`）；`metaEnabled` 开启时额外输出 `<head>` meta CSP（与响应头使用同一裁剪结果，仅无响应头环境需要，默认关） |
 | `robots.enabled` / `rules[]` | `false`/`[]` | robots 规则 |
 | `rateLimiting.enabled` | `false` | Worker 限流(100 req/60s) |

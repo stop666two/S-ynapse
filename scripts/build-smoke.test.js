@@ -74,8 +74,24 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     assert.ok(!scriptSrc.includes("'unsafe-inline'"), "script-src must not allow 'unsafe-inline'");
     assert.ok(styleSrc.includes('nonce-'), 'style-src must carry the build-time nonce');
     assert.ok(!styleSrc.includes("'unsafe-inline'"), "style-src must not allow 'unsafe-inline' (element context)");
-    assert.ok(styleAttr.includes("'unsafe-inline'"), "style-src-attr must allow 'unsafe-inline' for inline style attributes");
+    assert.ok(!styleAttr || !styleAttr.includes("'unsafe-inline'"), "style-src-attr must not allow 'unsafe-inline' (inline style attributes eliminated)");
     assert.ok(cspLine.includes("frame-ancestors 'none'"), "frame-ancestors 'none' must be present");
+    // 内联 style 属性回归：模板/构建产物一律不得再出现元素 style 属性（CSP 属性语境无 nonce）。
+    // 正则兼容压缩后的 style=x 形式，且 [\s"'] 前缀不会误伤 <style> 标签与 --style / font-style 字样。
+    const htmlFiles = [];
+    (function walk(dir) {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(p);
+        else if (entry.name.endsWith('.html')) htmlFiles.push(p);
+      }
+    })(tmpDir);
+    assert.ok(htmlFiles.length > 0, 'build must emit HTML pages');
+    for (const file of htmlFiles) {
+      const text = fs.readFileSync(file, 'utf-8');
+      assert.ok(!/[\s"']style\s*=/.test(text), 'no inline style attributes in ' + path.relative(tmpDir, file));
+      assert.ok(!text.includes('font-style='), 'no font-style presentation attributes in ' + path.relative(tmpDir, file));
+    }
     const styleNonce = /'nonce-([^']+)'/.exec(styleSrc);
     assert.ok(styleNonce && styleNonce[1] === (/'nonce-([^']+)'/.exec(scriptSrc) || [])[1], 'script-src and style-src must share one nonce');
     const html = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');

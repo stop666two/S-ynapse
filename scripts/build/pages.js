@@ -63,6 +63,44 @@ function createPagesModule(ctx) {
     return `src="${escapeAttr(srcFinal)}" srcset="${srcset}" sizes="(max-width: 768px) 100vw, 640px"${dimSuffix}`;
   }
 
+  // 自动封面查询（features.listCover.autoGenerate 构建产物，key: '<lang>/<slug>'）。
+  // 映射由 scripts/build/auto-cover.js 生成、build.js 经 ctx.getAutoCovers 注入；
+  // 功能关闭/生成失败/文章不在映射中时返回 null（模板回退 pattern 或无图，行为同改造前）。
+  function getAutoCover(article) {
+    if (!article) return null;
+    const map = ctx.getAutoCovers && ctx.getAutoCovers();
+    return (map && map[(article.lang || 'zh') + '/' + article.slug]) || null;
+  }
+
+  // 卡片/文章头图实际使用的封面 URL：显式 featuredImage 始终优先；无封面时回退生成的自动封面。
+  function coverSrc(article) {
+    if (!article) return '';
+    if (article.featuredImage) return article.featuredImage;
+    const auto = getAutoCover(article);
+    return auto ? auto.url : '';
+  }
+
+  // 卡片图片属性：显式 featuredImage 走原 manifest 逻辑（srcset + width/height，行为不变）；
+  // 自动封面无 manifest 条目，直接输出 src + 已知宽高（构建期定尺寸，解码前预留空间防 CLS）。
+  function cardCoverAttrs(article) {
+    if (article && article.featuredImage) return buildCardImgAttrs(article.featuredImage);
+    const auto = getAutoCover(article);
+    if (!auto) return '';
+    return `src="${escapeAttr(auto.url)}" width="${auto.width}" height="${auto.height}"`;
+  }
+
+  // 文章页头图属性：显式 featuredImage 保持原输出（src + manifest 宽高，无 srcset）；
+  // 自动封面输出 src + 配置宽高。
+  function postCoverAttrs(article) {
+    if (article && article.featuredImage) {
+      const dims = imgDimsAttrs(article.featuredImage);
+      return `src="${escapeAttr(article.featuredImage)}"${dims ? ' ' + dims : ''}`;
+    }
+    const auto = getAutoCover(article);
+    if (!auto) return '';
+    return `src="${escapeAttr(auto.url)}" width="${auto.width}" height="${auto.height}"`;
+  }
+
   function buildSiteCss(config, baseData) {
     const b = config.site.build;
     SITE_CSS_HREF = '/' + b.cssOutDir + '/' + b.cssFileBase + '.css';
@@ -205,6 +243,10 @@ function createPagesModule(ctx) {
       Date: Date,
       cardImgAttrs: buildCardImgAttrs,
       imgDimsAttrs: imgDimsAttrs,
+      coverSrc: coverSrc,
+      cardCoverAttrs: cardCoverAttrs,
+      postCoverAttrs: postCoverAttrs,
+      autoCoverFor: getAutoCover,
       config,
       dailyQuotes: resolvedDailyQuotes || resolveDailyQuotes(config),
       faviconHtml: resolveFaviconHtml(config.site || {}, config.theme && config.theme.colors && config.theme.colors.secondary),
@@ -628,7 +670,7 @@ function createPagesModule(ctx) {
     }
   }
 
-  return { buildCardImgAttrs, imgDimsAttrs, buildSiteCss, buildRuntimePresets, writeRuntimeConfig, buildPageData, processCustomPages, localizeSidebar, localizeNav, localizeFooter, localizeSite, buildPaginationItems, generatePages };
+  return { buildCardImgAttrs, imgDimsAttrs, coverSrc, cardCoverAttrs, postCoverAttrs, getAutoCover, buildSiteCss, buildRuntimePresets, writeRuntimeConfig, buildPageData, processCustomPages, localizeSidebar, localizeNav, localizeFooter, localizeSite, buildPaginationItems, generatePages };
 }
 
 module.exports = { createPagesModule };

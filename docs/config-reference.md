@@ -645,7 +645,27 @@ sitemap: {
 
 ### 3.92 listCover — 列表封面
 
-`enabled true` / `showOnHome true`（首页卡片）/ `showOnArchive true`（归档列表）/ `fallback 'pattern'`（无封面文章的回退形态：`pattern` 渐变占位块显示标题文字（默认） / `none` 纯文字卡片不渲染占位块；`enabled=false` 时完全隐藏列表媒体区）/ `aspectRatio '21/9'`（列表封面宽高比）/ `lazy true`（懒加载）。与 `features.cover`（文章封面样式库）分工：此项控制列表页是否展示封面及其比例 — `templates/index.ejs` + `scripts/build/pages.js`。
+`enabled true` / `showOnHome true`（首页卡片）/ `showOnArchive true`（归档列表）/ `fallback 'pattern'`（无封面文章的回退形态：`pattern` 渐变占位块显示标题文字（默认） / `none` 纯文字卡片不渲染占位块；`enabled=false` 时完全隐藏列表媒体区）/ `aspectRatio '21/9'`（列表封面宽高比）/ `lazy true`（懒加载）/ `autoGenerate`（无封面文章构建期自动生成封面，见下）。与 `features.cover`（文章封面样式库）分工：此项控制列表页是否展示封面及其比例 — `templates/index.ejs` + `templates/tag.ejs` + `templates/post.ejs` + `scripts/build/pages.js`。
+
+**`autoGenerate` — 无封面文章自动封面**：文章 frontmatter 无 `featuredImage` 时，构建期为其生成列表卡片与文章页头图封面（主题色背景 + 自动换行标题 + 可选站点名/分类角标），输出到 `dist/og/cover-<slug>.<hash8>.<ext>`（hash = 标题 + 站点名 + 主题色 + 样式版本 + 宽高格式 + 样式开关；内容寻址命名，`/og/*` 已有 `_headers` 7 天缓存规则，且被 sitemap 与 cache-bust 忽略），缓存于 `.cache/covers/`（同输入二次构建命中直接复用，不重渲染）。**显式 `featuredImage` 始终优先（行为不变）；`enabled:false` 或单篇生成失败时回退上面的 `fallback` 形态（`pattern`/`none`），失败仅告警不阻断构建**。图片输出 `width`/`height` 属性（构建期定尺寸，防 CLS）。键位：`enabled true`（总开关）/ `width 1200` / `height 630`（64–4096，越界夹取）/ `format 'webp'`（`webp` | `jpeg`，`jpg` 同义；切换扩展名后旧产物下次构建清理）/ `backgroundStyle 'gradient'`（`gradient` 主→辅渐变 | `solid` 主色纯色）/ `showSiteName true`（左下角站点名，en 站取 `site.titleEn`）/ `showCategory false`（左上角分类/系列角标，取 `categories[0]`，缺省 `series`）。主题色取自 `theme.colors.primary/secondary` 与 `darkMode.colors.text`，缺失时跳过生成。
+
+**示例**（features.json5）：
+```json5
+listCover: {
+  enabled: true,
+  fallback: 'pattern',
+  autoGenerate: {
+    enabled: true,
+    width: 1200,
+    height: 630,
+    format: 'webp',
+    backgroundStyle: 'gradient',
+    showSiteName: true,
+    showCategory: false
+  }
+}
+```
+— `scripts/lib/auto-cover.js` + `scripts/build/auto-cover.js` + `scripts/build/pages.js`。
 
 ### 3.93 imageFallback — 图片兜底
 

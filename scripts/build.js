@@ -16,9 +16,11 @@ const { createBuildContext } = require('./build/context');
 // 编排器活值（build() 函数体直接读写；经 getter/setter 注入构建上下文，保持活值语义）：
 //   BUILD_ERRORS   构建错误收集器（build() 赋值；helpers 记录构建失败时读取）
 //   MEDIA_MANIFEST 媒体 manifest（build() 赋值；pages 生成卡片 srcset 时读取）
+//   AUTO_COVERS    自动封面映射（build() 赋值；pages 为无 featuredImage 文章回退封面时读取）
 //   inlineConfigKb 内联配置体积（KB；pages 写入，report 性能预算读取）
 let BUILD_ERRORS = null;
 let MEDIA_MANIFEST = null;
+let AUTO_COVERS = null;
 let inlineConfigKb = 0;
 
 // 构建上下文（scripts/build/context.js）：可选依赖加载、路径/标志计算与全部模块接线在工厂内完成，
@@ -28,6 +30,7 @@ const ctx = createBuildContext({
   argv: process.argv,
   getBuildErrors: () => BUILD_ERRORS,
   getMediaManifest: () => MEDIA_MANIFEST,
+  getAutoCovers: () => AUTO_COVERS,
   getInlineConfigKb: () => inlineConfigKb,
   setInlineConfigKb: (kb) => { inlineConfigKb = kb; }
 });
@@ -40,6 +43,7 @@ const {
   abortBuild, loadConfig, validateConfig, applyCspNonce,
   getPublished, resolveDailyQuotes, recordBuildFailure,
   setupDist, copyStatic, copyProtectedAssets, optimizeMedia,
+  generateAutoCovers,
   processPagesContent, preflightContent, processArticles,
   renderArticlesMermaid,
   collectTags, collectCategories,
@@ -119,6 +123,9 @@ async function build() {
     const mediaManifest = await optimizeMedia(config);
     MEDIA_MANIFEST = mediaManifest;
     const articles = await processArticles(config, mediaManifest, buildErrors);
+    // 无封面文章自动封面（features.listCover.autoGenerate）：须在页面生成前完成，
+    // 供 pages 为卡片/文章页头图回退；失败仅告警（模块内不 recordBuildFailure），不阻断构建。
+    AUTO_COVERS = await generateAutoCovers(config, articles);
     await renderArticlesMermaid(config, articles);
     if (articles.length === 0) console.log('  [WARN] No articles found');
     const scheduledCount = articles.filter(function(a) { return !a.draft && isScheduled(a, new Date()); }).length;

@@ -12,6 +12,7 @@ const { buildSitemapUrls } = require('../lib/robots');
 const { bundleEnabled, esbuildAvailable } = require('../lib/bundle');
 const { createMinifyModule } = require('./minify');
 const { createMediaModule } = require('./media');
+const { createAutoCoverModule } = require('./auto-cover');
 const { createFeedsModule } = require('./feeds');
 const { createReportModule } = require('./report');
 const { createRenderModule } = require('./render');
@@ -233,6 +234,18 @@ function createBuildContext(deps) {
     recordBuildFailure: helpers.recordBuildFailure
   });
 
+  // 自动封面模块（scripts/build/auto-cover.js）：为无 featuredImage 的已发布文章生成
+  // dist/og/cover-<slug>.<hash8>.<ext>（主题色 SVG → sharp），缓存 .cache/covers（不入库）。
+  // 产物映射经 deps.getAutoCovers 活值注入 pages（卡片/文章页封面回退）；失败仅告警不阻断。
+  const autoCover = createAutoCoverModule({
+    rootDir,
+    distDir: DIST_DIR,
+    cacheDir: path.join(rootDir, '.cache', 'covers'),
+    sharp,
+    getPublished: helpers.getPublished,
+    logger: console
+  });
+
   // 页面生成模块（scripts/build/pages.js）：注入产物/页面/模板目录、CSP nonce、模板渲染器、
   // 发布过滤器、收集器、页面状态读取器（媒体 manifest getter、内联配置体积 setter）与共享依赖。
   // 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
@@ -258,6 +271,7 @@ function createBuildContext(deps) {
     resolveFaviconHtml: helpers.resolveFaviconHtml,
     CleanCSS,
     getMediaManifest: deps.getMediaManifest,
+    getAutoCovers: deps.getAutoCovers,
     setInlineConfigKb: deps.setInlineConfigKb
   });
 
@@ -321,6 +335,7 @@ function createBuildContext(deps) {
     config,
     helpers,
     media,
+    autoCover,
     cjkFonts,
     articles,
     mermaidSsr,

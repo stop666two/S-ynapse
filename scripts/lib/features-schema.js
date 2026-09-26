@@ -271,7 +271,11 @@ const DEFAULT_FEATURES = {
   },
   listCover: {
     enabled: true, showOnHome: true, showOnArchive: true, fallback: 'pattern',
-    aspectRatio: '21/9', lazy: true
+    aspectRatio: '21/9', lazy: true,
+    autoGenerate: {
+      enabled: true, width: 1200, height: 630, format: 'webp',
+      backgroundStyle: 'gradient', showSiteName: true, showCategory: false
+    }
   },
   imageFallback: {
     enabled: true, fallbackImage: '', altText: '图片不可用', altTextEn: 'Image unavailable', showAlt: true
@@ -480,6 +484,7 @@ const ENUM_FIELDS = {
   viewTransition: { type: ['fade', 'slide'], reducedMotion: ['light', 'off', 'full'] },
   speculation: { mode: ['prefetch', 'prerender', 'both'], eagerness: ['moderate', 'eager', 'conservative'], delivery: ['inline', 'header', 'both'] },
   ogImage: { format: ['png', 'jpeg'] },
+  listCover: { 'autoGenerate.format': ['webp', 'jpeg'], 'autoGenerate.backgroundStyle': ['gradient', 'solid'] },
   ogImageStyle: { template: ['aurora', 'mesh', 'grid', 'paper', 'duotone'], palette: ['theme', 'hash'] },
   announcement: { tone: ['accent', 'solid', 'minimal', 'gradient'], transition: ['fade', 'slide'] },
   guards: { preset: ['off', 'soft', 'strict'] },

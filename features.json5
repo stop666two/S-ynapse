@@ -746,7 +746,52 @@
     // 封面图宽高比。
     aspectRatio: '21/9',
     // 封面懒加载。
-    lazy: true
+    lazy: true,
+
+    // 无封面文章自动生成封面（构建期 SVG → sharp 出图）。
+    // 作用: 文章 frontmatter 无 featuredImage 时，列表卡片与文章页头图改用自动生成的封面，
+    //       避免回退成渐变占位块；显式 featuredImage 始终优先，有封面的文章行为完全不变。
+    // 类型: object（子键见下）；关闭或单篇生成失败时回退上面的 fallback（'pattern'/'none'）。
+    // 产物: dist/og/cover-<slug>.<hash8>.<ext>（内容寻址命名；/og/* 已有 _headers 缓存规则）；
+    //       缓存于 .cache/covers/，同输入二次构建直接复用（命中不重渲染）。
+    // 推荐: 保持默认（enabled: true + 1200x630 + webp）。
+    autoGenerate: {
+      // 自动封面总开关。
+      // 类型: boolean | 可填: true(默认，开启) | false(关闭，页面回退 fallback 形态)
+      // 不可填: 其他类型(构建校验报错) | 推荐: true
+      // 注意: 关闭仅停止生成，已有 dist/og/cover-* 产物保留至下次清理，避免线上引用瞬间 404。
+      enabled: true,
+
+      // 自动封面输出宽度（px）。
+      // 类型: number | 可填: 64–4096 的整数(默认 1200) | 推荐: 1200(通用分享图/卡片比例)
+      // 不可填: 0、负数、非数字（回退默认 1200）；超过 4096 会被夹到 4096（防单图体积失控）。
+      width: 1200,
+
+      // 自动封面输出高度（px）。
+      // 类型: number | 可填: 64–4096 的整数(默认 630) | 推荐: 630(1200x630 通用分享比例)
+      // 不可填: 0、负数、非数字（回退默认 630）；超过 4096 会被夹到 4096。
+      height: 630,
+
+      // 自动封面输出格式。
+      // 类型: string | 可填: 'webp'(默认，体积小) | 'jpeg'(兼容性优先；'jpg' 视为同义)
+      // 不可填: 'png' 等其他值（回退 webp，构建校验会提示枚举非法） | 推荐: 'webp'
+      // 注意: 切换格式后扩展名变化(.webp/.jpg)，旧格式缓存与产物在下次构建自动清理。
+      format: 'webp',
+
+      // 背景填充样式。
+      // 类型: string | 可填: 'gradient'(默认，primary→secondary 135° 渐变) | 'solid'(primary 纯色)
+      // 不可填: 其他值（回退 gradient） | 推荐: 'gradient'
+      backgroundStyle: 'gradient',
+
+      // 是否在封面左下角显示站点名（en 站取 site.titleEn，缺失回退 site.title）。
+      // 类型: boolean | 可填: true(默认) | false(只显示标题) | 推荐: true
+      showSiteName: true,
+
+      // 是否在封面左上角显示分类/系列角标（取 categories[0]，缺省取 series）。
+      // 类型: boolean | 可填: true | false(默认，不显示)
+      // 推荐: false（标题较长时角标会占用标题排版空间）
+      showCategory: false
+    }
   },
 
   // ---------------------------------------------------------------------------

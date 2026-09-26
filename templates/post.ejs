@@ -40,8 +40,9 @@
     </div>
   </header>
 
-  <% if (article.featuredImage) { %>
-  <img src="<%= article.featuredImage %>" alt="<%= article.title %>"<% if(typeof imgDimsAttrs==='function'){ %> <%- imgDimsAttrs(article.featuredImage) %><% } %><% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-featured-image" loading="eager" fetchpriority="high">
+  <% var _postCoverSrc = (typeof coverSrc==='function') ? coverSrc(article) : (article.featuredImage || ''); %>
+  <% if (_postCoverSrc) { %>
+  <img <%- (typeof postCoverAttrs==='function') ? postCoverAttrs(article) : ('src="' + article.featuredImage + '"') %> alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-featured-image" loading="eager" fetchpriority="high">
   <% if(features.cover&&features.cover.enabled!==false&&article.featuredImage){ %>
   <div class="cover-strip cover-apply" data-article="<%= article.slug %>">
     <span class="cover-strip-label"><%= ui('post.coverStyle','封面样式') %></span>

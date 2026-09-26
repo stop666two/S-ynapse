@@ -30,9 +30,10 @@
 <% var _catCss = []; %>
 <% articles.forEach(function(article, _ai) { %>
 <article class="post-card<%= (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.hoverShine!==false)?' card-shine':'' %>">
-  <% if (article.featuredImage && listCoverEnabled) { %>
+  <% var _coverSrc = (typeof coverSrc==='function') ? coverSrc(article) : (article.featuredImage || ''); %>
+  <% if (_coverSrc && listCoverEnabled) { %>
   <a href="<%= article.url %>" class="card-media">
-    <img <%- cardImgAttrs(article.featuredImage) %> alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false) && !(_bentoOn && articles.indexOf(article)===0)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-card-image" loading="<%= _ai===0 ? 'eager' : 'lazy' %>"<% if (_ai===0) { %> fetchpriority="high"<% } %>>
+    <img <%- (typeof cardCoverAttrs==='function') ? cardCoverAttrs(article) : cardImgAttrs(article.featuredImage) %> alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false) && !(_bentoOn && articles.indexOf(article)===0)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-card-image" loading="<%= _ai===0 ? 'eager' : 'lazy' %>"<% if (_ai===0) { %> fetchpriority="high"<% } %>>
     <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.coverOverlay!==false) { %><span class="card-overlay" aria-hidden="true"></span><% } %>
     <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.categoryChip!==false&&article.categories&&article.categories.length) { _catCss.push('.card-cat-h'+_ai+'{--cat-h:'+categoryHue(article.categories[0])+'}'); %><span class="card-cat card-cat-h<%= _ai %>"><%= article.categories[0] %></span><% } %>
     <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.readTimeBadge!==false&&article.readTime) { %><span class="card-time"><%= ui('card.minute','{minutes} 分钟阅读').replace('{minutes}', article.readTime) %></span><% } %>

@@ -106,9 +106,10 @@ rss:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="
  image:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 15l-5-5-9 9"/></svg>'
 }; %>
         <ul class="nav-list">
+          <% var _navA=(typeof navActiveHref!=='undefined'&&navActiveHref)?navActiveHref:''; %>
           <% nav.menu.forEach(function(m){ %>
            <li class="nav-item">
-            <a href="<%=m.url%>" class="nav-link"<%- m.target?' target="'+m.target+'"':''%><%- m.rel?' rel="'+m.rel+'"':''%>><%- (m.icon&&NAV_ICONS[m.icon])||'' %><%- m.label%></a>
+            <a href="<%=m.url%>" class="nav-link<%= (_navA&&m.url===_navA)?' nav-active':'' %>"<%- m.target?' target="'+m.target+'"':''%><%- m.rel?' rel="'+m.rel+'"':''%><%- (_navA&&m.url===_navA)?' aria-current="page"':''%>><%- (m.icon&&NAV_ICONS[m.icon])||'' %><%- m.label%></a>
           </li>
           <% }) %>
            <% if(site.showRepoLink!==false&&site.repoUrl){ %><li class="nav-item"><a href="<%=site.repoUrl%>" class="nav-link" target="_blank" rel="noopener noreferrer"><%= ui('nav.project','项目') %></a></li><% } %>

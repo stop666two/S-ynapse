@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const ejs = require('ejs');
+const { findNavActiveHref } = require('../lib/nav-match');
 
 function createRenderModule(ctx) {
   // Read an EJS template file from templates/ directory. Returns raw string or null.
@@ -71,7 +72,11 @@ function createRenderModule(ctx) {
       const bodyContent = ejs.render(templateStr, data, { filename: path.join(ctx.templatesDir, templateName) });
       let result;
       if (layoutTemplate) {
-        result = ejs.render(layoutTemplate, { ...data, pageTitleFinal, body: bodyContent }, { filename: path.join(ctx.templatesDir, 'layout.ejs') });
+        // SSR 导航高亮：构建期按当前页 currentUrl 与菜单 href 计算唯一激活项（判定与运行时
+        // js/domains/core/nav-state.js 同源）。layout.ejs 用它输出 nav-active / aria-current，
+        // 保证 JS 不可用或 features.motion 关闭时导航高亮仍然正确。
+        const navActiveHref = findNavActiveHref(data.currentUrl, data.nav && data.nav.menu);
+        result = ejs.render(layoutTemplate, { ...data, pageTitleFinal, navActiveHref, body: bodyContent }, { filename: path.join(ctx.templatesDir, 'layout.ejs') });
       } else {
         result = bodyContent;
       }

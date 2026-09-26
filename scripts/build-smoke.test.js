@@ -34,6 +34,14 @@ function outputTail(err) {
   return text.length > 4000 ? '...(truncated)\n' + text.slice(-4000) : text;
 }
 
+// SSR 导航高亮提取：返回页面中 header 导航 nav-active 链接的数量与 href（属性可能被 minify 重排/去引号）。
+function navActiveInfo(html) {
+  const tags = html.match(/<a[^>]*class="[^"]*\bnav-active\b[^"]*"[^>]*>/g) || [];
+  const tag = tags[0] || '';
+  const m = tag.match(/href=(?:"([^"]+)"|([^\s>]+))/);
+  return { count: tags.length, href: m ? (m[1] || m[2]) : '' };
+}
+
 describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run test:build (integration, not the unit suite)' : false }, () => {
   before(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 's-ynapse-build-smoke-'));
@@ -116,6 +124,24 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       }
     }
     assert.ok(nonceCount > 0, 'built pages must carry CSP nonces');
+    // SSR 导航高亮（R1）：构建期输出 nav-active + aria-current="page"，JS 不可用或 features.motion
+    // 关闭时仍正确；每页至多 1 项，文章页不误高亮；判定与运行时 nav-state.js 同源（scripts/lib/nav-match.js）。
+    const navCases = [
+      ['zh/index.html', '/zh/'],
+      ['zh/archive/index.html', '/zh/archive'],
+      ['zh/tags/index.html', '/zh/tags'],
+      ['en/index.html', '/en/']
+    ];
+    for (const [rel, want] of navCases) {
+      const info = navActiveInfo(fs.readFileSync(path.join(tmpDir, rel), 'utf-8'));
+      assert.strictEqual(info.count, 1, rel + ' must have exactly one SSR nav-active link');
+      assert.strictEqual(info.href, want, rel + ' SSR nav-active href must be ' + want);
+    }
+    const ssrPostPage = path.join(tmpDir, 'zh', 'series-1', 'index.html');
+    if (fs.existsSync(ssrPostPage)) {
+      assert.strictEqual((fs.readFileSync(ssrPostPage, 'utf-8').match(/nav-active/g) || []).length, 0,
+        'article page must not SSR-highlight any nav item');
+    }
     const styleNonce = /'nonce-([^']+)'/.exec(styleSrc);
     assert.ok(styleNonce && styleNonce[1] === (/'nonce-([^']+)'/.exec(scriptSrc) || [])[1], 'script-src and style-src must share one nonce');
     const html = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');

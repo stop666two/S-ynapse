@@ -227,7 +227,7 @@ function createPagesModule(ctx) {
     // analytics：构建期归一化并生成引导脚本（injectAt 决定模板输出位置；token 已在 loadConfig 解析优先级）。
     const analyticsCfg = analyticsConfig(config.features);
     const analyticsTag = buildAnalyticsTag(analyticsCfg, (config.site.webAnalytics && config.site.webAnalytics.token) || '');
-    // W4 接线（lightbox/backToTop/heatmap/stats/mobile/contactPopup）：构建期归一化一次，供模板与 CSS 消费。
+    // 构建期归一化一次（lightbox/backToTop/heatmap/stats/mobile/contactPopup），供模板与 CSS 消费。
     const heatCfg = heatmapConfig(config.features);
     const heatPalette = resolveHeatmapPalette(heatCfg);
     if (heatPalette.warning) console.warn('  [WARN] ' + heatPalette.warning);

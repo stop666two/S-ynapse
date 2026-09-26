@@ -87,6 +87,7 @@
     <a href="<%= (typeof langPrefix!=='undefined' ? langPrefix : '/zh/') %>" class="site-logo"><% if(nav.navbar.logoImage){ %><img src="<%= nav.navbar.logoImage %>" alt="<%= _st() %>" class="site-logo-img"><% }else{ %><span class="site-logo-text"><%= (typeof lang!=='undefined'&&lang==='en'&&nav.navbar.logoTextEn)?nav.navbar.logoTextEn:(nav.navbar.logoText||site.title) %></span><% } %><% if(site.subtitle||site.subtitleEn){ %><span class="site-logo-sub"><%= (typeof lang!=='undefined'&&lang==='en'&&site.subtitleEn)?site.subtitleEn:site.subtitle %></span><% } %></a>
     <div class="nav-actions">
       <nav class="main-nav" id="mainNav">
+        <span class="nav-indicator" aria-hidden="true"></span>
 <% var NAV_ICONS = {
 home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
 archive:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',

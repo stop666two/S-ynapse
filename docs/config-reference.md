@@ -668,6 +668,7 @@ sitemap: {
 | `revealExemptFirstPaint` | `false` | 首屏媒体豁免入场隐藏态。首页第一张卡片（`.blog-grid>article:first-child` 及其 `.post-card-image`）不再等待 JS 添加 `.in`，文章头图 `.post-featured-image.js-img` 不再等待懒加载模块添加 `.loaded`——CSS 直接覆盖其初始 `opacity:0`。代价：首屏第一张卡片/头图不再播放入场淡入（第二张起不受影响） |
 | `asyncCjkFontCss` | `false` | CJK 字体 CSS 异步化：`cjk-fonts.css` 以 `media="print"` 低优先加载，加载完成后由 nonce 内联引导脚本翻回 `media="all"`（不依赖内联事件属性，兼容 CSP）。弱网下将该 23KB(gzip) 从渲染阻塞链移出、CJK 分片在首屏渲染后拉取。构建期字体管线失败剥离引用时脚本自动空转（回退系统字体）。代价：CJK 字形回退→自托管字体的切换时机后移（仍为 `font-display:swap` 语义，无空白期） |
 | `skipLatinFontPreloadOnCjk` | `false` | CJK 语言页（`lang != en`）跳过拉丁字体 preload：`theme.externalAssets.fontPreloads`（Inter 48KB）不再输出 `<link rel=preload as=font>`，字体仍由 `@font-face` 首次使用时拉取（`font-display:swap` 回退）。zh 页字形来自 CJK 子集，拉丁字体只承担数字/英文片段，preload 占用首屏带宽大于收益；en 页不受影响。`site.performance.preloadFonts=false` 时本键无实际效果。代价：zh 页少量拉丁字符的系统字体→Inter 切换时机后移 |
+| `contentVisibility` | `false` | 下折叠重型块跳过离屏渲染：文章页正文（`.post-content`）的直接子块——代码块 `pre` / `table` / Mermaid SSR `.mermaid` / `picture`——离屏时以 `content-visibility:auto` + `contain-intrinsic-size:auto <估算>` 占位（`auto` 记忆上次渲染尺寸），滚动接近时按真实尺寸渲染。收益：长文页首屏布局/样式计算量下降（A/B 中位 LCP 3576→2420ms、FCP 3044→2232ms）。**实测未达标、默认关闭**：估算总高与真实高度差约 1.5k px，冷锚点直达与首次滚动到未渲染区出现落点偏移与 CLS 恶化（冷锚点 0.38→0.68、滚动扫描 0.07→0.28）；TOC 高亮/返回顶部/软导航进出正常。回退即保持/置 `false`（条件 CSS 不输出），详见 CHANGELOG |
 
 实测前后对照与分相明细见 `docs/perf-baseline-local-lcp.md`；采集口径见 `scripts/perf-audit.js` 顶部注释 — `templates/layout.ejs` + `templates/site-css.ejs` + `scripts/lib/features-schema.js`。
 

@@ -2108,7 +2108,18 @@
     // 代价: zh 页少量拉丁字符(数字/英文标题)的字体切换时机后移(系统字体→Inter)。
     // 注意: en 页不受影响(仍 preload);site.performance.preloadFonts=false 时本键无意义。
     // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 保持旧行为)。
-    skipLatinFontPreloadOnCjk: true
+    skipLatinFontPreloadOnCjk: true,
+    // 下折叠重型块跳过离屏渲染(content-visibility:auto)。
+    // 作用: 文章页正文(.post-content)的直接子块——代码块(pre)/表格(table)/Mermaid SSR 图
+    //   (.mermaid)/图(picture)——离屏时跳过布局与绘制,contain-intrinsic-size 以 auto+估算值
+    //   占位,滚动接近时按真实尺寸渲染(auto 记忆上次尺寸,回滚不再重算估算)。
+    // 收益: 长文页首屏布局/样式计算量下降,缩短 FCP 与 LCP 渲染延迟(弱网实测见 CHANGELOG)。
+    // 代价: 未渲染块的初始占位高度为估算值,冷锚点直达/首次滚动到未渲染区会出现落点偏移
+    //   与布局偏移(估算总高与真实高度差可达千余 px);TOC 高亮/返回顶部/软导航不受影响。
+    // 实测(2026-09,见 CHANGELOG): CLS 显著恶化(冷锚点 0.38→0.68,滚动 0.07→0.28),按验收
+    //   标准「CLS 恶化或锚点/滚动异常则不启用」保持 false;收益备查(长文页 LCP −1.2s)。
+    // 类型: boolean | 可填: true/false | 默认 false(站点同样 false;回退=保持/置 false,条件 CSS 不输出)。
+    contentVisibility: false
   },
 
   // ---------------------------------------------------------------------------

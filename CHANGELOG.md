@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`--theme-override <path>` 构建参数**：与 `--features-override` 同模式（JSON5 深合并、数组替换语义、仍过 `validateConfig` 的 theme 校验；不写仓库配置文件），供隔离验证/预览构建生成第二态主题（如 `theme.darkMode.iconStyle=single`）；新增单测 `scripts/theme-override.test.js`（5 例，含 CLI 解析与缺失/解析错误路径）。
+- **隔离夹具验证闭环（runner `.tmp-scripts/run-w6.js`，28 PASS / 0 FAIL；夹具与覆盖文件运行时生成、不入库）**：`pinned.sortRule=normal` 真实排序（夹具含「置顶但较旧」与「未置顶但最新」）；未知双链 `unknownMode=link/hide` 构建期 SSR 产物 + HTTP 端到端；`--theme-override` 第二态 `iconStyle=single` 单图标；增量构建逐页证据（冷缓存全量 → 无变更全部跳过且 HTML mtime 不变 → 改单页 `pages/about.md` rebuilt=1、指纹仅目标页变化 → 改一篇文章仅该语言耦合页、另一语言跳过 → `--full` 强制全量重写）；端口 3329 三次串行复用并在关闭后校验释放。
 - **第七轮配置接线（W5 收尾波，2026-09-27）**：全部「⚠ 未接线（预留）」键收口（`features.json5` 标记清零），新增未接线静态守卫——
   - **增量构建（`incrementalBuild`）**：`enabled/watch/skipUnchanged/fullFlag/fingerprintHash` 全部接线。页面指纹 = `relPath + 模板目录摘要 + 页面数据稳定序列化`（对象键排序、跳过函数、CSP nonce 归一化）经所选算法（sha1/sha256/md5）散列，写入 `.build-cache.json → pages`；指纹一致且产物存在时跳过重新渲染并复用现有产物（日志 `[incremental] skipped N page(s), rebuilt M page(s)`）。触发：`--watch`（`watch=true`）或显式 `--incremental`；`--full`（或自定义 `fullFlag`）强制全量；增量模式在内存中暂时关闭 `cleanDist`（不写回配置），普通 `npm run build` 保持全量清理。删除内容后建议 `--full` 清理残留产物。新增纯函数库 `scripts/lib/incremental.js`（单测 8 例）。
   - **云统计（`analytics`）**：`injectAt`（`body`/`head`，非法回退 body）、`emitBeacon`（false = 脚本仍加载但不输出 `data-cf-beacon` JSON）、`siteTag` 接线；token 优先级 **`siteTag`（非空）> `site.webAnalytics.token` > 环境变量 `CF_WEB_ANALYTICS_TOKEN`**（`scripts/build/config.js`）；`features.analytics.enabled=false` 直接关闭注入。新增 `analyticsConfig`/`buildAnalyticsTag`（纯函数，含 `</script>` 转义）。
@@ -106,11 +108,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **增量构建被后续阶段抵消（`cacheBust` 非幂等，构建正确性）**：增量模式不清空 dist，上一轮已内容寻址的文件再次进入扫描时被重复追加哈希并连锁改写全部 HTML 引用（每次构建全量重写、文件名哈希层层累积）。现按「文件名已带本轮内容哈希」跳过；新增回归测试 `scripts/cache-bust.test.js`（3 例：首轮改名、二次幂等、内容变化单层新哈希）。
+- **增量指纹数据泄漏（改 `pages/*.md` 使全部页面失效）**：`customPages` 曾被整体注入 `baseData`（无任何模板消费点），且 `pagesContent` 以完整对象进入每页数据（实际仅 `templates/post.ejs` 文章页脚按 `theme.articleFooter.source` 取用）。现移除 `baseData.customPages` 注入、`pagesContent` 仅投影文章页脚所需单键——改单页只重建该页（runner 断言 rebuilt=1、mtime 与页面指纹仅目标页变化），全量产物与修复前逐字节等价。
 - **归档热力图图例显示字面 `{count} 文章`（用户可感知，W4 顺带修复）**：图例首项误用 `ui-strings archive.count`（`{count} 文章` 模板串）未做替换；现改用 `archive.textArticle`（文章 / articles）；见 `templates/archive.ejs`。
 - **返回顶部动画被 CSS 平滑二次接管（W4 实现中自检发现）**：`html{scroll-behavior:smooth}` 下 rAF 每帧 `window.scrollTo(0,y)` 会被浏览器再平滑一次导致动画失效/交错；改用 `behavior:'instant'` 逐帧定位（旧浏览器回退）。
 
 ### 验证与门禁
 
+- **残余验证闭环**：`npm test` 457/457（82 suites；新增 `scripts/theme-override.test.js` 5 例、`scripts/cache-bust.test.js` 3 例）、`npm run lint` 0 错、`npm run typecheck` 0 错；隔离夹具 runner `.tmp-scripts/run-w6.js` 28 PASS / 0 FAIL（pinned 3 / 双链 3 / theme-override 4 / 增量 9 / SSR HTTP 3 / 默认态与端口释放 6），端口 3329 全释放；全量构建产物与基线 200 文件归一化哈希等价（注释净化与两处修复均不改变正常构建产物）。
+- **残余说明**：`npm run verify:config-refs` 零未接线（`features.json5` 无剩余未接线键）；增量构建已知边界——修改一篇文章会重建该语言全部页面（文章列表参与每页指纹），按模板数据投影/步骤级增量见 `docs/incremental-build-design.md` 远期方案；JS 预算 60KB（超限仅告警）。
 - **第六轮（W4）**：`npm test` 432/432（82 suites；`scripts/config-wiring.test.js` 由 40 例扩至 53 例，`scripts/bundle.test.js` deferred 键数 23→24）、`npm run test:build` 2/2、`npm run lint` 0 错、`npm run typecheck` 0 错、`npm run verify:config` PASS（98 模块一致）。
 - **第六轮（W4）**：3 个隔离构建全部成功：默认 `.tmp-scripts/out/w4-build`、alt（灯箱 0 时长/70vw、返回顶部 0 时长+锚点回退、TTS name+段落高亮、打赏全禁用、非全屏搜索+gap 1rem+触屏关+横滚提示关、弹窗 320px+折叠、统计卡关）、archive（levels=3/无图例/无月份数字/自定义 tooltip/统计卡自定义文案+空跳转）；`--features-override` 未污染仓库配置；预算告警与基线同级（HTML 单页 gzip 最大 34.0KB、JS 合计 58.7KB，`perfBudget.warnOnly=true` 非阻断，W4 新增运行时约 +1.5KB）。
 - **第六轮（W4）**：无头 runner `.tmp-scripts/run-w4.js`（端口 3328，3 台静态服务器逐个启停 + 自收尾看门狗 + 端口释放校验）：**95 断言全绿**（静态 34：统计卡文案链/热力层级与图例/tooltip/宽度变量/门控 CSS/锚点回退；浏览器 61：灯箱 92vw/70vw 与 180/120ms/0ms/减少动效、返回顶部 450ms 动画中态与 0ms/reduce 瞬时、TTS 两策略语音选择与段落高亮切段/清理、打赏三路径开关两态、联系弹窗 400/320px 与折叠/展开/copyTextEn、移动端触屏回退/非全屏搜索/堆叠步进/横滚提示与自动隐藏/无控制台错误），0 失败。

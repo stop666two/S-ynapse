@@ -340,7 +340,31 @@ npm run build -- --out .tmp-scripts/out/audit-build
 
 ### 10.7 受约束项与已知盲区
 
-1. **`pinned.sortRule=normal` 的 runner 数据受限**：示例数据中置顶文章恰为最新，且约束不触碰 `articles/`，无法构造「置顶非最新」差异样例；排序语义由单测 `makeArticleComparator` 三态覆盖，runner 仅断言集合完整。
-2. **`theme.darkMode.iconStyle=single` 无法经 `--features-override` 覆盖**（属 `theme.json5`）：以默认态 DOM 双图标断言 + `layout.ejs` 门控源码断言 + 单测 `normalizeThemeDarkMode` 覆盖；如需 runner 强证，需后续支持 `--theme-override`。
+1. **`pinned.sortRule=normal` 的 runner 数据受限**：已闭环——新增隔离夹具（含「置顶但较旧」与「未置顶但最新」文章），runner 断言 normal=日期序、pinned-first=置顶优先，徽标在 normal 下仍渲染；详见 §11。
+2. **`theme.darkMode.iconStyle=single` 无法经 `--features-override` 覆盖**：已闭环——新增 `--theme-override <path>`（深合并 + `validateConfig` 校验 + 不写仓库配置），夹具第二态构建与 HTTP 断言单图标 + 早置脚本 `iconStyle=single`；详见 §11。
 3. **JS 预算**：58.8KB 按实测调至 60KB；压缩治理（跨模块工具去重、deferred 分包边界、预算分层口径）列入后续。
 4. **静态扫描已知盲区**：通用短键名（`enabled`/`size` 等）与运行时动态拼接键（`stats.label*En`）无法按名判定，分别由扫描口径声明与允许名单登记；后续可评估基于属性访问路径的静态分析。
+
+---
+
+## 十一、最终状态（残余验证闭环）
+
+> 结论：`features.json5` 无未接线键（`npm run verify:config-refs` exit 0）；残余三项验证均已闭环，另发现并修复两处阻塞增量按页复用的缺陷。
+
+| 项 | 状态 | 证据 |
+|---|---|---|
+| `pinned.sortRule=normal` 真实排序 | 已闭环 | 隔离夹具默认（pinned-first）= `pinned-old, fresh-top, wiki-demo, mid-article`；normal = 纯日期序 `fresh-top, wiki-demo, mid-article, pinned-old`；徽标仍渲染。runner 断言 + 构建产物卡片顺序解析 |
+| `theme.darkMode.iconStyle=single` 第二态 | 已闭环 | `--theme-override`（新增，与 `--features-override` 同模式）第二态构建：产物仅 `<svg id=moonI>`（无 sunI）、早置脚本 `iconStyle:'single'`；HTTP 端到端一致；单测 `scripts/theme-override.test.js` 5 例 |
+| 未知双链 `unknownMode=link/hide` | 已闭环 | 夹具文章含 `[[ghost-target]]`：text 默认降级纯文本；link 模式 SSR 产物与 HTTP 响应均含 `search/?q=ghost-target`；hide 模式整体移除；已知链接 `[[fresh-top]]` 三态均正确解析 |
+| `incrementalBuild` 逐页证据 | 已闭环（并修复两处缺陷） | 冷缓存首轮 rebuilt=33 → 无变更次轮 skipped=33/rebuilt=0（HTML mtime 不变）→ 改 `pages/about.md` rebuilt=1（mtime 与页面指纹仅目标页变化，另一语言同 slug 页复用）→ 改一篇文章 rebuilt=20/skipped=13（另一语言全部跳过，mtime/指纹不变）→ `--full` 强制全量重写 |
+| `heatmap.scaling=auto` 与 `palette` 组合边界 | 已覆盖 | `scripts/config-wiring.test.js → resolveHeatmapPalette`（auto 忽略 palette；fixed 长度不足回退自动色阶并告警；空/非字符串过滤） |
+| JS 预算 | 残余（非阻断） | 58.8KB 按实测调至 60KB（`warnOnly=true`）；压缩治理列入后续 |
+| 增量粒度边界 | 残余（设计约束） | 修改一篇文章仍重建该语言全部页面（文章列表进入每语言页面指纹）；按模板数据投影/步骤级增量见 `docs/incremental-build-design.md` 远期方案 |
+| 静态扫描盲区 | 残余（工具约束） | 通用短键名与运行时动态拼接键无法按名判定；允许名单登记 + 人工巡检 |
+
+**过程中修复的两个缺陷（均经全量产物 200 文件归一化哈希等价验证，正常构建零差异）**：
+
+1. **`cacheBust` 非幂等**：增量模式不清空 dist，上一轮内容寻址文件再次进入扫描时被重复追加哈希并连锁改写全部 HTML（每次构建全量重写、哈希层层累积）。现按「文件名已带本轮内容哈希」跳过；回归测试 `scripts/cache-bust.test.js` 3 例。
+2. **页面指纹数据泄漏**：`customPages` 被整体注入 `baseData`（无任何模板消费点）、`pagesContent` 以完整对象进入每页数据（实际仅文章页脚按 `articleFooter.source` 取用）。现移除前者、后者仅投影单键，使改单页 rebuilt=1。
+
+**夹具 runner 自收尾**：`.tmp-scripts/run-w6.js`（夹具与覆盖文件运行时生成、不入库）28 PASS / 0 FAIL；端口 3329 三次串行复用，每次关闭后校验释放；空闲/父进程看门狗；构建 spawnSync 300s 超时。

@@ -11,9 +11,29 @@ function createServeModule(ctx) {
   // Serves files from dist/ with basic MIME type detection.
   // Supports clean URLs (auto-appends index.html for directories, .html for missing files).
   // Falls back to 404.html when no match is found.
-  function startServer(config) {
+  // 本地保真（T5）：按 Accept-Encoding 对文本类 MIME 做 gzip（node:zlib），使本地采样接近
+  // 生产边缘压缩；请求未声明 gzip 时原样返回。可用 options.port 覆盖端口（0 = 随机端口，测试用）。
+  function startServer(config, options) {
     var http = require('http');
-    var PORT = parseInt(process.argv[process.argv.indexOf('--port') + 1]) || 3000;
+    var zlib = require('zlib');
+    var opts = options || {};
+    var argvPort = parseInt(process.argv[process.argv.indexOf('--port') + 1]);
+    var PORT = Number.isInteger(opts.port) ? opts.port : (argvPort || 3000);
+    // 可压缩的文本类 MIME（前缀匹配，忽略 charset 参数）；图片/字体/媒体等二进制不压缩。
+    var COMPRESSIBLE_PREFIXES = ['text/', 'application/javascript', 'application/json', 'application/manifest+json', 'image/svg+xml', 'application/xml'];
+    function acceptsGzip(header) {
+      var raw = String(header || '').toLowerCase();
+      if (raw.indexOf('gzip') === -1) return false;
+      var parts = raw.split(',');
+      for (var i = 0; i < parts.length; i++) {
+        var token = parts[i].trim();
+        if (token.indexOf('gzip') === 0) {
+          var q = token.match(/;\s*q=([0-9.]+)/);
+          return !q || parseFloat(q[1]) > 0;
+        }
+      }
+      return false;
+    }
     var MAINTENANCE = process.argv.indexOf('--maintenance') !== -1 || process.env.MAINTENANCE === '1';
     var MAINT_MSG = process.env.MAINTENANCE_MESSAGE || '本站正在维护中，请稍后再来。';
     var maintPage = '<!DOCTYPE html><html lang="' + config.site.language + '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ' + MAINT_MSG + '</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:' + config.theme.colors.background + ';color:' + config.theme.colors.text + '}p{color:' + config.theme.colors.textSecondary + '}</style></head><body><main><h1>维护中</h1><p>' + MAINT_MSG + '</p></main></body></html>';
@@ -84,13 +104,30 @@ function createServeModule(ctx) {
         }
         fs.readFile(filePath, function(err, data) {
           if (err) { res.writeHead(500); res.end('Server Error'); return; }
-          res.writeHead(isNotFound ? 404 : 200, { 'Content-Type': mime[ext] || 'application/octet-stream', 'ETag': etag, 'Last-Modified': lastMod, 'Cache-Control': 'no-cache' });
+          var contentType = mime[ext] || 'application/octet-stream';
+          var baseType = contentType.split(';')[0].trim().toLowerCase();
+          var compressible = COMPRESSIBLE_PREFIXES.some(function(p) { return baseType.indexOf(p) === 0; });
+          var headers = { 'Content-Type': contentType, 'ETag': etag, 'Last-Modified': lastMod, 'Cache-Control': 'no-cache', 'Vary': 'Accept-Encoding' };
+          var status = isNotFound ? 404 : 200;
+          if (compressible && acceptsGzip(req.headers['accept-encoding'])) {
+            zlib.gzip(data, function(zerr, zipped) {
+              if (zerr) { headers['Content-Length'] = data.length; res.writeHead(status, headers); res.end(data); return; }
+              headers['Content-Encoding'] = 'gzip';
+              headers['Content-Length'] = zipped.length;
+              res.writeHead(status, headers);
+              res.end(zipped);
+            });
+            return;
+          }
+          headers['Content-Length'] = data.length;
+          res.writeHead(status, headers);
           res.end(data);
         });
       });
     });
     server.listen(PORT, function() {
-      console.log('  Server: http://localhost:' + PORT + '/');
+      var actualPort = server.address() && server.address().port;
+      console.log('  Server: http://localhost:' + (actualPort || PORT) + '/');
       console.log('  (Press Ctrl+C to stop)');
     });
     // 自动退出看门狗（防孤儿进程）：环境变量 SYNAPSE_SERVE_PARENT_PID 指定父进程，父进程消失后 5 秒内自退；
@@ -115,6 +152,7 @@ function createServeModule(ctx) {
     ['SIGINT', 'SIGTERM'].forEach(function(sig) {
       process.on(sig, function() { tryClose('signal ' + sig); });
     });
+    return server;
   }
 
   return { startServer };

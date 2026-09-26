@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **第六轮配置接线（W4，2026-09-27）**：灯箱/返回顶部/朗读/打赏/热力图/统计/移动端/联系弹窗组「未接线」键全部真实可控或作为重复键删除——
+  - 灯箱（`lightbox`）：`maxWidthVw` 构建期归一为 CSS 变量 `--lightbox-maxWidthVw`（专键 > 兼容旧键 `imageFit.lightbox.maxWidthPct` > 92）；`openDurationMs`/`switchDurationMs` 接线为打开/切换透明度补间（WAAPI；专键 > 通用 `transitionDurationMs` > 220；0=瞬时；`prefers-reduced-motion: reduce` 不播放）。
+  - 返回顶部（`backToTop`）：`scrollDurationMs` 接线为 rAF + easeOutCubic 自定义滚动（`behavior:'instant'` 逐帧步进，避免与 CSS `scroll-behavior:smooth` 二次平滑打架；用户滚轮/触摸中断；`smoothScroll=false`/`__SB()==='auto'`/减少动效为瞬时；点击与快捷键共用；`readDock` 顶部按钮同源）；`htmlAnchorFallback=true` 输出 `<noscript>` 锚点链接（`href="#top"`，无 JS 可返回顶部，JS 可用时由 `#btt` 接管）。
+  - 朗读（`tts`）：`preferDefaultVoice`（命中语音按 `localService`/`default` 评分取最高；false=平台顺序首个；无命中回退浏览器默认）、`voiceBy`（`lang`=voice.lang 匹配；`name`=voice.name 含语言显示名匹配，无命中回退 lang）、`highlightParagraph`（逐段 utterance 朗读 + 当前段落 `highlightClass` 高亮，停止/切段清理，无 boundary 事件也可靠）。
+  - 打赏（`reward`）：`closeByBtn`/`closeByOverlay`/`closeByEsc` 三个关闭路径独立门控（默认 true=现行为）。
+  - 热力图（`heatmap`）：`levels`（2~7 钳制）生成 `l1..lN` 色阶（levels=5 逐字保持历史色阶）、`showLegend`、`legendLow(En)`/`legendHigh(En)`（链 `*En` > 中文 > `ui-strings.archive.legendLow/High` 新增双语）、`tooltipFormat(En)`（`{year}/{month}/{count}` 占位，空回退内置）、`showMonthNumbers`；图例示色层级随 levels 自适应。
+  - 统计（`stats`）：`showArchiveCards` 显隐统计卡网格；`labelPosts(En)/labelDays(En)/labelWords(En)/labelAvg(En)/labelAvgPerDay/labelTags(En)/labelCategories(En)` 标签文案链（`*En` > 中文 > `ui-strings.archive.stat*`；日均卡 `labelAvgPerDay > labelAvg > statAvg`）；`linkArchive` 卡片跳转目标（非空渲染为链接，空=纯文本卡）。
+  - 移动端（`mobile`）：`searchFullscreen=false` 时移动端搜索非全屏（透明遮罩 + 头部下方下拉面板）；`buttonStackGap` 接线 CSS 变量 `--mobile-buttonStackGap`（目录按钮底距 = `tuning.mobileToc.btnMobileBottom - 3.4rem + 本键`）；`touchFallback=true` 触屏设备点击/聚焦显形 hover-only 控件（新增 `js/domains/features/touch-fallback.js`，`html[data-touch-fallback]` + `.touch-reveal`；CSS 随配置门控输出）；`codeScrollHint=true` 超宽代码块显示「可横向滚动」提示（`ui-strings.toolbar.codeScrollHint` 新增双语，首次横滚自动隐藏，减少动效安全，CSS 随配置门控输出）。
+  - 联系弹窗（`contactPopup`）：`popupWidth` 构建期写入弹窗 `max-width`；`copyText(En)` 接线为值块复制按钮的 `title`/`aria-label`（值块补 `role=button` + `tabindex=0`，Enter/Space 可复制；链 `*En` > 中文 > `ui-strings.common.copy`）；`showAllItems=false` 超过 2 条折叠为「更多」展开器（`ui-strings.common.more` / `toolbar.collapseAll`）。
+  - 新增纯函数 `lightboxConfig` / `backToTopConfig` / `ttsConfig` / `pickTtsVoice` / `ttsLanguageNames` / `rewardCloseConfig` / `heatmapLevelCount` / `heatmapConfig` / `heatmapBucketLevel` / `heatmapPalette` / `heatmapLegendLevels` / `heatmapLegendText` / `heatmapTooltip` / `statsConfig` / `statsLabel` / `mobileConfig` / `contactPopupConfig` / `contactCopyText`（`scripts/lib/feature-wiring.js`）；`scripts/config-wiring.test.js` 单测由 40 例扩至 53 例。
 - **第五轮配置接线（W3，2026-09-27）**：数学/上下标/Mermaid/系列/相关推荐/字数/图库/图片尺寸组「未接线」键全部真实可控或作为无实现重复键删除——
   - 数学（`math`）：`autoDetect`（true 默认 = 解析配置定界符并保护数学段；false = 不自动解析，仅渲染 ` ```math ` 围栏块 → 构建期 `.math-block[data-tex]` 容器 + 客户端 KaTeX 渲染）、`inlineDelimiters`/`blockDelimiters`（数组、去空去重、正则转义；构建期 mathGuard 与客户端 auto-render 共用同一份配置）、`mathml`（true = KaTeX output `htmlAndMathml`，false = `html`）。KaTeX 按需加载 canonical `mathNeeded`（单 `$` 保持历史不单独触发口径；自定义定界符成对出现即触发）。
   - 上下标（`supSub`）：`supMarker`/`subMarker`（≥1 字符参数化，正则元字符按字面量）、`skipInsideMath`（true 默认 = 数学段内不处理；false = 段内也转换）、`preserveUnmatched`（false = 剥离孤立标记；`~~` 重复标记保留给删除线等语法）。
@@ -41,6 +51,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **第六轮配置闭环（W4）语义/默认值变更**：
+  - `mobile.buttonStackGap` 默认值 `4rem`→`3.4rem`：原默认与历史实现不符（实际堆叠步进 3.4rem，m-toc 底距 7.4rem），按「视觉不变」原则修正；新实现 m-toc 底距 = `tuning.mobileToc.btnMobileBottom(7.4rem) - 3.4rem + buttonStackGap`，默认渲染不变。
+  - `contactPopup.popupWidth` 默认值 `360px`→`400px`：原默认从未生效（模板恒 `max-width:400px`），按「视觉不变」原则对齐实现并接线。
+  - 灯箱打开/切换新增可见补间（默认 180/120ms 淡入）：此前打开/切换无可感知过渡（`display` 切换不受 transition 作用），本轮按 `openDurationMs`/`switchDurationMs` 接线；减少动效下仍为瞬时。
+  - 返回顶部点击/快捷键由原生 `scrollTo({behavior:smooth})` 改为 rAF 自定义缓动（默认 450ms）；`smoothScroll=false` 现在对点击路径同样即时生效（此前仅 hotkey 消费），语义统一。
+  - 归档统计卡在 `linkArchive` 非空（默认 `/archive/`）时渲染为 `<a class="stats-card">`（此前恒纯文本；空串关闭跳转）；样式等价（无下划线、色继承），归档页自身为同页链接。
+  - 归档热力图图例首项由 `archive.count` 原始模板串 `{count} 文章` 改为 `archive.textArticle`（文章 / articles）；`legendLow/High` 默认值（少/多）与 UI 词典同值，默认输出除缺陷修复外不变。
+  - 触屏设备（`touchFallback=true` 默认）新增 hover-only 控件替代交互与超宽代码块横滚提示（`codeScrollHint=true` 默认）——移动端新增可见提示 UI（首次横滚后自动隐藏）。
+  - `scripts/bundle.test.js` deferred 注册表键数断言 23→24（新增 touch-fallback）。
 - **第五轮配置闭环（W3）语义变更**：
   - 系列卡片徽标默认文案由 ui-strings 的「系列」改为 `features.series.badgeFormat` 默认模板「系列 · {name}」（带系列名）；系列导航面板新增可见标题（`panelTitle` 默认「本系列共 {total} 篇」）。
   - 文章页阅读时长默认显示由「N 分钟」变为「N 分钟阅读」（单一来源模板默认值与卡片一致；见上方缺陷修复）。
@@ -56,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- `features.backToTop.rightOffset` / `features.backToTop.bottomOffset`（第六轮，语义重复；返回顶部定位唯一来源 `tuning.json5 → backToTop.offsetSide/offsetBottom`，模板经 `var(--backToTop-offsetSide/offsetBottom, 2rem)` 消费。**迁移**：位置请改 tuning 同名键；原 features 默认值 `2rem`/`2rem` 与 tuning 同值，删除无行为变化）。
 - `features.gallery.incrementalByDefault`（第五轮，未接线；当前实现无图库增量清单缓存，该键无任何消费点与可观察差异。**迁移**：无需操作，删除无行为变化；未来实现增量构建时按 `docs/incremental-build-design.md` 新方案恢复）。
 - `features.search.placeholder` / `features.search.placeholderEn`（第四轮，语义重复；搜索框占位唯一来源 `navigation.json5 → search.placeholder/placeholderEn`（空回退 `ui-strings.search.placeholder`），模板 SSR 直接消费且实测生效。**迁移**：把值搬入 `navigation.json5` 同名键；默认 `搜索文章...` / `Search posts...` 行为不变）。
 - `features.search.pinyinFuzzy`（第四轮，未接线且零依赖无法实现真正 CJK→拼音映射，不得以子序列模糊冒名拼音。**迁移**：如需拼音检索，先引入拼音库并在 `features.search` 重新立项；当前检索仅支持子串匹配）。
@@ -66,8 +86,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `features.mobileBottomNav.useSafeArea`（第三轮，语义重复；安全区唯一来源 `features.mobile.safeAreaBottom`。**迁移**：改 `mobile.safeAreaBottom`，默认 true 行为不变）。
 - `features.themeToggle.animationMs`（未接线、语义重复；主题切换过渡统一由 `theme.animation.transitionDuration` → `tuning.motion.transitionDuration` 控制）。
 
+### Fixed
+
+- **归档热力图图例显示字面 `{count} 文章`（用户可感知，W4 顺带修复）**：图例首项误用 `ui-strings archive.count`（`{count} 文章` 模板串）未做替换；现改用 `archive.textArticle`（文章 / articles）；见 `templates/archive.ejs`。
+- **返回顶部动画被 CSS 平滑二次接管（W4 实现中自检发现）**：`html{scroll-behavior:smooth}` 下 rAF 每帧 `window.scrollTo(0,y)` 会被浏览器再平滑一次导致动画失效/交错；改用 `behavior:'instant'` 逐帧定位（旧浏览器回退）。
+
 ### 验证与门禁
 
+- **第六轮（W4）**：`npm test` 432/432（82 suites；`scripts/config-wiring.test.js` 由 40 例扩至 53 例，`scripts/bundle.test.js` deferred 键数 23→24）、`npm run test:build` 2/2、`npm run lint` 0 错、`npm run typecheck` 0 错、`npm run verify:config` PASS（98 模块一致）。
+- **第六轮（W4）**：3 个隔离构建全部成功：默认 `.tmp-scripts/out/w4-build`、alt（灯箱 0 时长/70vw、返回顶部 0 时长+锚点回退、TTS name+段落高亮、打赏全禁用、非全屏搜索+gap 1rem+触屏关+横滚提示关、弹窗 320px+折叠、统计卡关）、archive（levels=3/无图例/无月份数字/自定义 tooltip/统计卡自定义文案+空跳转）；`--features-override` 未污染仓库配置；预算告警与基线同级（HTML 单页 gzip 最大 34.0KB、JS 合计 58.7KB，`perfBudget.warnOnly=true` 非阻断，W4 新增运行时约 +1.5KB）。
+- **第六轮（W4）**：无头 runner `.tmp-scripts/run-w4.js`（端口 3328，3 台静态服务器逐个启停 + 自收尾看门狗 + 端口释放校验）：**95 断言全绿**（静态 34：统计卡文案链/热力层级与图例/tooltip/宽度变量/门控 CSS/锚点回退；浏览器 61：灯箱 92vw/70vw 与 180/120ms/0ms/减少动效、返回顶部 450ms 动画中态与 0ms/reduce 瞬时、TTS 两策略语音选择与段落高亮切段/清理、打赏三路径开关两态、联系弹窗 400/320px 与折叠/展开/copyTextEn、移动端触屏回退/非全屏搜索/堆叠步进/横滚提示与自动隐藏/无控制台错误），0 失败。
 - **第五轮（W3）**：`npm test` 419/419（82 suites；`scripts/config-wiring.test.js` 由 26 例扩至 40 例）、`npm run test:build` 2/2、`npm run lint` 0 错、`npm run typecheck` 0 错、`npm run verify:config` PASS（98 模块一致）。
 - **第五轮（W3）**：4 个隔离构建全部成功：默认 `.tmp-scripts/out/w3-build`（3.6s、81 页，预算告警与基线同级、`perfBudget.warnOnly=true` 非阻断）、alt（系列/字数/相关/图库/图片尺寸/数学/supSub 第二态）、mermaid-alt（`followTheme=false` + `copyAfterRender=true`）、nomermaid（`autoDetect=false`）；`--features-override` 未污染仓库配置。
 - **第五轮（W3）**：无头 runner `.tmp-scripts/run-w3.js`（端口 3327，4 台静态服务器逐个启停 + 自收尾看门狗 + 端口释放校验）：**41 断言全绿**（默认/alt 静态 24、mermaid 两态 9、浏览器运行时 7：KaTeX 渲染/mathml 节点/autoDetect=false 无渲染/复制按钮剪贴板=源码/followTheme=false 暗色可见/客户端回退 SVG、生命周期 1），0 失败。

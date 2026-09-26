@@ -280,33 +280,24 @@
 **双语约定（*En 字段）**:所有文案型字段均可追加同名 `En` 后缀（如 `reward.buttonTextEn`）提供英文站文案；类型与中文值一致，**空字符串 = en 站回退中文值**。共覆盖 60 键：search / codeBlock / externalLink / shortcuts / readingTime / codeCopy / readMode / readingPanel / mermaid / series / related / pinned / wordCount / share / reward / gallery / heatmap / stats / prevNext / maintenance / comments / contactPopup / hero / dailyQuote / favorites / subscribe。构建期模板按页面语言渲染 `*En`；运行时模块（`search.js`/`share.js`/`code-block.js`/`comments.js`/`contact-popup.js`/`favorites.js`）按当前页面语言（`data-lang`）取 `*En`。
 
 
-### 3.0 未接线键总表（预留状态；第二轮 + 第三轮 + 第四轮 + 第五轮配置闭环 2026-09-27）
+### 3.0 未接线键总表（预留状态；第二轮 + 第三轮 + 第四轮 + 第五轮 + 第六轮配置闭环 2026-09-27）
 
 > 状态口径：本节「已接线」= 代码读取且生效（见各模块小节说明）；「未接线（已标注）」= 功能未实现或实现固定，JSON5 对应键上方已加 `// ⚠ 未接线（预留）：…` 注释，**修改暂不生效**；「已实现」= 本轮新增实现（hotSearches 热门词、readingProgress 悬停气泡与 aria、readingTime.showInMeta、toc min/maxLevel、mobileToc overlayClose/lockScroll、readDock show*、externalLink showFullUrl/openInNewTab、share copiedShowMs/popupWidth/popupHeight/wechatText、tts.volume、comments.loadContainer、darkImageFilter.applyImages、mobileToc.autoClose、themePresets.showInNavbar/previewOnHover、themeSchedule.applyInstantly、shortcuts.helpTitle/showHelpTable、ogImage.useCover/gradientForNoCover、search.highlightMatches/closeOnOverlay/focusOnOpen、searchHighlight.enabled 门控）。
 > 第三轮闭环（2026-09-27 W1，15 项）已从本表移除并在各模块小节更新：`themeToggle.defaultTheme/rememberChoice/iconStyle/transitionAll`（删除重复键 → 唯一来源 `theme.darkMode.*`）、`shortcuts.showHelpHint`、`toc.defaultOpenLevel`、`autoSummary.stripMarkdown`、`codeCopy.includeWindowBar`（删除重复键 → `codeBlock.windowBar`）、`searchHighlight.markClass`、`listCover.showOnArchive`（接线）/`aspectRatio`（删除重复键 → `tuning.card.imageAspect`）、`mobileBottomNav.onlyMobile`（接线）/`useSafeArea`（删除重复键 → `mobile.safeAreaBottom`）、`readMode.focusOnlyContent`、`pinned.*`、`motion.revealStaggerMax`、`dailyQuote.widgetStyle`、`favorites.listIcon`、`cover.defaultPattern/preferImage`、`pagefind.integrate`。
 > 第四轮闭环（2026-09-27 W2）已从本表移除并在各模块小节更新：`search.emptyHint/emptyHintEn`（接线：空输入提示 + 无结果链首）、`search.showCount`、`search.matchTags/matchCategories`、`search.weightTitle/weightExcerpt/weightContent`、`externalLink.whitelistNewTab/copyButtonText/copyButtonTextEn`、`wikiLinks.unknownMode/unknownSuffix/caseInsensitive/allowCustomLabel`、`hero.searchPlaceholderEn`（接线）；`search.placeholder/placeholderEn`、`search.pinyinFuzzy`、`linkBehavior` 整个模块（删除，迁移见 CHANGELOG/§3.4/§3.36）。
 > 本表由审计脚本扫出（`js/templates/scripts` 对叶子键名的引用检测）；`enabled`、`height`、`size` 等通用名键不在机器扫描口径内，已按跨文件重复与抽样核验处理（见 `docs/config-audit-2026-09-27.md`「第二轮闭环结果」）。
 > 第五轮闭环（2026-09-27 W3，30 键 / 29 接线 + 1 删除）已从本表移除并在各模块小节更新：`imageLazy.preserveAspectRatio`；`supSub.supMarker/subMarker/skipInsideMath/preserveUnmatched`；`math.autoDetect/inlineDelimiters/blockDelimiters/mathml`；`mermaid.autoDetect/followTheme/copyAfterRender/errorTextEn`；`series.showBadge/badgeFormat/badgeFormatEn/sidebarWidget/panelTitle/panelTitleEn/showPosition`；`related.excludeCurrent`；`wordCount.onCards/textFormat/textFormatEn/readTimeFormat/readTimeFormatEn/countCjkChars/countDigits`；`gallery.collectFeatured`；`gallery.incrementalByDefault`（删除，无增量清单缓存实现，迁移见 §3.25/CHANGELOG）。
+> 第六轮闭环（2026-09-27 W4，31 键 / 29 接线 + 2 删除）已从本表移除并在各模块小节更新：`lightbox.maxWidthVw/openDurationMs/switchDurationMs`；`backToTop.rightOffset/bottomOffset`（删除重复键 → canonical `tuning.backToTop.offsetSide/offsetBottom`）、`backToTop.scrollDurationMs/htmlAnchorFallback`；`tts.preferDefaultVoice/voiceBy/highlightParagraph`；`reward.closeByBtn/closeByOverlay/closeByEsc`；`heatmap.levels/showLegend/legendLow/legendLowEn/legendHigh/legendHighEn/tooltipFormat/tooltipFormatEn/showMonthNumbers`；`stats.showArchiveCards/labelPosts(En)/labelDays(En)/labelWords(En)/labelAvg(En)/labelAvgPerDay/labelTags(En)/labelCategories(En)/linkArchive`；`mobile.searchFullscreen/buttonStackGap/touchFallback/codeScrollHint`；`contactPopup.popupWidth/showAllItems/copyTextEn`。默认值口径修正：`mobile.buttonStackGap` 4rem→3.4rem、`contactPopup.popupWidth` 360px→400px（均按「视觉不变」对齐历史实现，见 CHANGELOG Changed）。
 
 | 模块 | 未接线键（JSON5 已标注） | 原因 / 替代来源 |
 |---|---|---|
-| `lightbox` | `maxWidthVw` / `openDurationMs` / `switchDurationMs` | 灯箱打开/切换补间未实现；现由 CSS transition（transitionDurationMs）统一控制 |
-| `backToTop` | `rightOffset` / `bottomOffset` / `scrollDurationMs` / `htmlAnchorFallback` | 返回顶部用原生 scrollTo（smooth/auto 由 smoothScroll 控制<sup>①</sup>），自定义时长与无 JS 锚点回退未实现 |
 | `incrementalBuild` | `fullFlag` / `fingerprintHash` / `skipUnchanged` | 增量构建方案未实现（见 docs/incremental-build-design.md） |
-| `tts` | `preferDefaultVoice` / `voiceBy` / `highlightParagraph` | 语音选择与逐句高亮实现固定（highlightParagraph 与 highlightReading 重叠） |
-| `reward` | `closeByBtn` / `closeByOverlay` / `closeByEsc` | 弹窗固定支持按钮/遮罩/Esc 三种关闭方式（不可单独禁用） |
-| `heatmap` | `levels` / `showLegend` / `legendLow` / `legendLowEn` / `legendHigh` / `legendHighEn` / `tooltipFormat` / `tooltipFormatEn` / `showMonthNumbers` | 热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供 |
-| `stats` | `showArchiveCards` / `labelPosts` / `labelPostsEn` / `labelDays` / `labelDaysEn` / `labelWords` / `labelWordsEn` / `labelAvg` / `labelAvgEn` / `labelTags` / `labelTagsEn` / `labelCategories` / `labelCategoriesEn` / `linkArchive` | 归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/ |
 | `feed` | `rssEnabled` / `rssFullContent` / `rssMaxItems` / `jsonFeedPath` / `jsonFeedFullContent` / `jsonFeedMaxItems` / `injectHeadLinks` / `injectFooterLink` | 订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明） |
 | `analytics` | `injectAt` / `emitBeacon` / `siteTag` | 统计注入固定 body + beacon（域名随 CSP 自动裁剪） |
 | `redirects` | `generatePagesFile` / `applyInServe` / `invalidRule` | 重定向实现固定：恒生成 _redirects 并在 serve 应用（非法规则 abort） |
 | `maintenance` | `setRetryAfter` / `retryAfter` | 维护响应固定设置 Retry-After: 3600（Worker 侧） |
-| `mobile` | `searchFullscreen` / `buttonStackGap` / `touchFallback` / `codeScrollHint` | 搜索全屏/按钮堆叠由 tuning 位置控制；触屏悬停与滚动提示未实现 |
-| `contactPopup` | `copyTextEn` / `showAllItems` | 弹窗宽度模板固定 400px（与默认 360px 存在漂移，待统一）；复制文案由 ui-strings 提供；条目全量展示 |
 | `performance` | `warningJsKb` / `warningHtmlKb` / `warningImageKb` / `warningBuildMs` | 构建性能阈值未消费（预算门禁由 features.perfBudget 控制） |
 | `debug` | `verbose` / `listPages` / `dumpConfig` | 构建日志由 CLI 参数控制，未读取本组键 |
-
-> ①：`backToTop.rightOffset/bottomOffset` 与 `tuning.backToTop.offsetSide/offsetBottom` 同义，实际生效 tuning 值；`scrollDurationMs`/`htmlAnchorFallback` 未实现。
 
 ### 3.1 lightbox — 图片灯箱
 | 字段 | 默认 | 说明 |
@@ -324,16 +315,27 @@
 | `showCounter` | `true` | N / M 计数器 |
 | `counterFormat` | `{current} / {total}` | 计数模板 |
 | `maxWidthVw` / `maxSizePx` / `maxHeightVh` | `92`/`1600`/`82` | 图片约束 |
-| `openDurationMs` / `switchDurationMs` | `180`/`120` | 动画时长 |
+| `openDurationMs` / `switchDurationMs` | `180`/`120` | 打开/切换动画时长(ms;0=瞬时) |
 | `backdropOpacity` | `0.9` | 遮罩透明度 |
 | `preloadAdjacent` | `true` | 预载相邻图 |
 | `rememberPosition` | `false` | 记忆上次位置 |
+
+> **第六轮 W4 接线**：
+> - `maxWidthVw` = 灯箱图片最大宽度（vw）：构建期归一化为 CSS 变量 `--lightbox-maxWidthVw`（可被 customCSS 覆盖），专键优先；未设/非法时回退兼容旧键 `imageFit.lightbox.maxWidthPct`，再回退 92。默认两者同值（92），渲染不变。
+> - `openDurationMs` / `switchDurationMs` = 打开 / 切换（上一张/下一张）的轻量透明度补间（WAAPI）：**专键优先，未设回退通用 `transitionDurationMs`（再回退 220）**；0 = 瞬时。系统减少动效（`prefers-reduced-motion: reduce`）下不播放动画。此前打开/切换无可感知过渡，本轮起为默认 180/120ms 淡入（见 CHANGELOG Changed）。
+> - canonical：`scripts/lib/feature-wiring.js → lightboxConfig`（单测覆盖）。
 
 ### 3.2 readingProgress — 阅读进度条
 `enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500`(点击跳转后百分比气泡停留时长；悬停/聚焦期间常显，第二轮接线) / `updateThrottleMs 30` / `ariaAnnounce true`(进度条输出 `aria-valuenow`，屏幕阅读器可读；第二轮接线) / `topOffset 0` / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发)。点击跳转支持键盘（聚焦进度条后 ←/→ 步进 5%、Home/End 首尾）
 
 ### 3.3 backToTop — 返回顶部
-`enabled true` / `showAfterPx 400` / `rightOffset 2rem` / `bottomOffset 2rem` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false`
+`enabled true` / `showAfterPx 400` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false`
+
+> **第六轮 W4 闭环**：
+> - **已删除**：`rightOffset` / `bottomOffset`（与 `tuning.backToTop.offsetSide/offsetBottom` 重复且实际生效 tuning 值）。迁移：位置请改 `tuning.json5 → backToTop.offsetSide/offsetBottom`（模板经 `var(--backToTop-offsetSide/offsetBottom, 2rem)` 消费，桌面沿用；移动端底部固定 4rem 以配合按钮堆叠）。删除默认值原为 `2rem`/`2rem`，与 tuning 同值，无行为变化（见 CHANGELOG Removed）。
+> - `scrollDurationMs` = 点击按钮 / 快捷键的返回顶部动画时长（ms），实现为 rAF + easeOutCubic 逐帧步进（`behavior:'instant'` 绕过 CSS `scroll-behavior:smooth`，避免二次平滑）；`0` = 瞬时。`smoothScroll=false`、`window.__SB()==='auto'`（`scrollBehavior` 关闭 / behavior=auto / 系统减少动效且未豁免）或系统减少动效时均瞬时；用户滚轮/触摸即中断动画。默认 450ms。
+> - `htmlAnchorFallback=true` = 页面输出 `<noscript>` 内的锚点链接（`href="#top"`，复用 `.back-to-top` 样式与文案），无 JS 环境可返回顶部；JS 可用时该链接不渲染、由 `#btt` 接管。默认 false（不输出，保持历史 DOM）。
+> - canonical：`scripts/lib/feature-wiring.js → backToTopConfig`（单测覆盖）。
 
 ### 3.4 search — 客户端搜索
 `enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true`（与 `searchHighlight.enabled` 联动，任一 false 即不高亮） / `showCount true`（结果计数显隐：false 时浮层结果区与 /search 页均不显示；文案取 `ui-strings.search.foundCount`，`{count}` 占位，中英双语） / `emptyHint ''` / `emptyHintEn ''` / `noResultText 未找到匹配内容` / `noResultTextEn No matching content`(空回退中文链) / `excerptLength 120` / `includeContent true`(构建期生效:是否将正文写入 search-index.json) / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `closeOnOverlay true` / `focusOnOpen true` / `focusDelayMs 100`(打开搜索后延迟聚焦输入框 ms) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效) / `debounceMs 120` / `showHistoryOnFocus true` / `maxHistory 5`
@@ -378,6 +380,12 @@
 
 ### 3.14 tts — 朗读
 `enabled true` / `rate 0.5`(0.1~10) / `pitch 1` / `volume 1` / `preferDefaultVoice true` / `voiceBy lang` / `readSelector .post-content` / `icon speaker` / `highlightParagraph false` / `position toolbar` / `resumeIntervalMs 500`(Chromium 长文本自动暂停后的心跳恢复间隔 ms) / `resumeMaxTries 3`(心跳恢复最大次数，超过即结束朗读)
+
+> **第六轮 W4 接线（语音选择与段落高亮）**：
+> - `preferDefaultVoice=true`（默认）= 命中语音中按 `localService`(2 分) + `default`(1 分) 取最高分（稳定序）；`false` = 取平台返回顺序首个。无命中时不设置 `voice`，由浏览器默认语音朗读。
+> - `voiceBy`：`'lang'`（默认）= 按 `voice.lang` 精确匹配页面语言，再前缀匹配（如 `zh` 命中 `zh-CN`）；`'name'` = 按 `voice.name` 含语言显示名匹配（`Intl.DisplayNames` 英文名 + 页面语言名；兼容 lang 标签不可靠的平台），name 无命中自动回退 lang 策略。非法值回退 `'lang'`。
+> - `highlightParagraph=true` = 逐段朗读（每段一条 utterance）并把 `highlightClass`（默认 `tts-highlight`）加到当前段落；停止 / 切段自动清理，无 boundary 事件也可靠（接管高亮后不再叠加 `highlightReading` 的字级高亮）。默认 false = 历史单段朗读 + boundary 字级高亮。
+> - canonical：`scripts/lib/feature-wiring.js → ttsConfig/pickTtsVoice`（单测覆盖两策略与评分）；运行时 `js/domains/features/tts.js` 同源实现（runner 经 speechSynthesis 桩验证）。
 
 ### 3.15 wikiLinks — 双链
 `enabled true`(false = `[[...]]` 原样保留) / `unknownMode text`(`text`=未知目标降级纯文本（默认，历史行为）/`link`=渲染为站内搜索链接 `/{lang}/search/?q=<encodeURIComponent(目标)>`/`hide`=整体移除) / `unknownSuffix ''`(仅未知目标显示文本追加后缀；已知目标不加) / `openNewTab false` / `caseInsensitive true`(false = 按原始标题精确匹配；slug 始终精确匹配) / `allowCustomLabel true`(false = 忽略 `[[目标|自定义文本]]` 的 `|` 后文本，已知用规范标题、未知用目标、外链用 URL)
@@ -448,6 +456,8 @@
 ### 3.24 reward — 打赏前端
 `enabled false`(需 site.reward.enabled) / `buttonText 打赏` / `note 感谢支持` / `popupTitle 打赏支持` / `closeByBtn true` / `closeByOverlay true` / `closeByEsc true` / `qrSize 180px` / `maxWidth 560px` / `showNote true`(显示打赏说明文字) / `qrMaxWidth 180px`(二维码最大宽度 CSS) / `closeText 关闭`(关闭按钮文本) / `links []`(赞助平台链接数组,弹窗底部显示胶囊按钮,每项 `{label,url}`,新窗口 `noopener`;如 GitHub Sponsors / Ko-fi / 爱发电)。文案键均有同名 `*En`（`buttonTextEn`/`noteEn`/`popupTitleEn`/`closeTextEn`），空回退中文；弹窗内方式名称与说明优先取 `site.reward.*En`（见 §1）
 
+> **第六轮 W4 接线（关闭路径门控）**：`closeByBtn` / `closeByOverlay` / `closeByEsc` 分别控制关闭按钮、点击遮罩、Esc 三种关闭方式，默认 `true`（现行为）；显式 `false` 使对应路径失效（其余路径仍可关闭）。canonical：`scripts/lib/feature-wiring.js → rewardCloseConfig`（单测覆盖三态）。
+
 ### 3.25 gallery — 图库页
 `enabled true` / `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片`（`titleEn`/`descriptionEn`/`emptyTextEn` en 站文案，空回退中文） / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `order newest` / `maxItems 0`(0=不限) / `gap 12px`(瀑布流列间距 CSS) / `showCaption true`(图片下方显示来源说明) / `borderRadius 8px`(卡片圆角 CSS)
 
@@ -457,8 +467,22 @@
 ### 3.26 heatmap — 归档热力图
 `enabled true` / `levels 5`(2~7) / `scaling auto`(`auto|fixed`) / `palette []`(fixed 时色表) / `showLegend true` / `legendLow 少` / `legendHigh 多` / `tooltipFormat {year}-{month}: {count} 篇`（`legendLowEn`/`legendHighEn`/`tooltipFormatEn` en 站文案，空回退中文） / `showMonthNumbers true` / `gap 3px`(单元格间距) / `borderRadius 3px`(单元格圆角) / `cellSize 13px`(单元格尺寸,置空则撑满容器) / `emptyColor var(--color-border)`(空月份颜色)
 
+> **第六轮 W4 接线**：
+> - `levels`（2~7，越界钳制，非法回退 5）= 非空层级数：色阶 `l1..l(levels-1)` 由浅到深 + 顶层 `l(levels)` 为强调混色。`levels=5` 时逐字保持历史色阶（25/45/65% + 实色 + 强调混色），渲染不变；其他层数按 25%→100% 线性等分。分桶口径保留历史：`maxCount<=2` 用 `count+1` 阶梯，否则 `ceil(count/maxCount*levels)`。CSS 色阶由 `heatmapPalette(levels)` 生成。
+> - `showLegend=false` 不渲染图例；`legendLow(_En)`/`legendHigh(_En)` 为「少 → 多」两端文案，链为 `*En`(en 站) > 中文 > `ui-strings archive.legendLow/legendHigh`（新增双语）；图例示色层级随 `levels` 自适应（levels=5 → l0/l1/l2/l4，历史不变）。
+> - `tooltipFormat(_En)` = 单元格悬停提示模板，占位符 `{year}`/`{month}`/`{count}`；空串回退内置 `{year}-{month}: {count} <文章单位>`（单位取 `ui-strings archive.postUnit`）。默认模板与历史输出逐字一致。
+> - `showMonthNumbers=false` = 单元格不显示月份数字（仅保留色块与悬停提示）。
+> - **顺带修复**：图例首项此前渲染 `ui-strings archive.count` 的原始模板串（字面 `{count} 文章`），现改用 `archive.textArticle`（文章 / articles）；见 CHANGELOG Fixed。
+> - canonical：`scripts/lib/feature-wiring.js → heatmapConfig/heatmapBucketLevel/heatmapPalette/heatmapLegendLevels/heatmapLegendText/heatmapTooltip`（单测覆盖钳制/分桶/色阶/文案链）。
+
 ### 3.27 stats — 站点统计
-`enabled true` / `showArchiveCards true` / `labelPosts 文章总数` / `labelDays 发文天数` / `labelWords 总字数` / `labelAvg 日均篇数` / `labelAvgPerDay 日均`(归档页日均标签,运行时实际消费) / `labelTags 标签数` / `labelCategories 分类数`（以上标签均有同名 `*En`，空回退中文） / `cardColumns auto-fit`(统计卡列模式,也可固定列数) / `showSidebar true`(侧栏统计 widget 开关,sidebar.json5 需含 type=stats) / `linkArchive /archive/`
+`enabled true` / `showArchiveCards true` / `labelPosts 文章总数` / `labelDays 发文天数` / `labelWords 总字数` / `labelAvg 日均篇数` / `labelAvgPerDay 日均`(归档页日均标签,优先于 labelAvg) / `labelTags 标签数` / `labelCategories 分类数`（以上标签均有同名 `*En`，空回退中文） / `cardColumns auto-fit`(统计卡列模式,也可固定列数) / `showSidebar true`(侧栏统计 widget 开关,sidebar.json5 需含 type=stats) / `linkArchive /archive/`
+
+> **第六轮 W4 接线（归档页统计卡；侧栏统计 widget 不受影响）**：
+> - `showArchiveCards=false` 不渲染整个统计卡网格（归档页标题与列表保留）。
+> - 标签文案链：`*En`(en 站) > 中文配置 > `ui-strings.archive.stat*` 词典；日均卡文案链为 `labelAvgPerDay(En)` > `labelAvg(En)` > `archive.statAvg`。默认配置值与词典同值，渲染不变。
+> - `linkArchive` = 卡片跳转目标（非空时卡片渲染为 `<a class="stats-card">`，空串/空白 = 不跳转保持纯文本卡）。默认 `/archive/`：归档页自身为同页链接；改指向 `/` 或 `/tags/` 等可作导航入口。**默认渲染由纯文本变为链接**（见 CHANGELOG Changed）。
+> - canonical：`scripts/lib/feature-wiring.js → statsConfig/statsLabel`（单测覆盖文案链与空串回退）。
 
 ### 3.28 prevNext
 `enabled true` / `showLabels true` / `prevLabel 上一篇` / `nextLabel 下一篇`（`prevLabelEn`/`nextLabelEn` en 站文案，空回退中文；`site.prevPostLabel`/`nextPostLabel` 为中文次回退） / `hideWhenMissing false` / `showThumbnail false`(导航卡缩略图) / `labelPosition left`(`left|center|right`) / `scrollToTopOnClick true`(点击导航后滚回顶部)
@@ -478,13 +502,26 @@
 `enabled false` / `message 站点维护中，请稍后再来。`（`messageEn` en 站文案，空回退中文） / `status 503` / `setRetryAfter true` / `retryAfter 3600`
 
 ### 3.33 mobile
-`enabled true` / `searchFullscreen true` / `buttonStackGap 4rem` / `touchFallback true` / `codeScrollHint true` / `tocBreakpoint 768`(移动端 TOC 按钮断点 px) / `safeAreaBottom true`(底部安全区留白) / `tapHighlight false`(取消点击高亮)
+`enabled true` / `searchFullscreen true` / `buttonStackGap 3.4rem` / `touchFallback true` / `codeScrollHint true` / `tocBreakpoint 768`(移动端 TOC 按钮断点 px) / `safeAreaBottom true`(底部安全区留白) / `tapHighlight false`(取消点击高亮)
+
+> **第六轮 W4 接线**：
+> - `searchFullscreen=false` = 移动端（≤ mobileBreakpoint）搜索不再全屏：遮罩透明化 + 头部下方下拉面板（`pointer-events:none` 透传页面，弹层本体可交互；点遮罩关闭随之不可用，Esc / 关闭按钮保留）。`true`（默认）= 全屏遮罩层（现状）。
+> - `buttonStackGap` = 移动端目录按钮与返回顶部按钮的堆叠步进（CSS 变量 `--mobile-buttonStackGap`）：m-toc-btn 底距 = `tuning.mobileToc.btnMobileBottom - 3.4rem + 本键`；默认 `3.4rem`（原默认 `4rem` 与历史实现不符，按视觉不变修正为 3.4rem → 7.4rem，见 CHANGELOG Changed）。
+> - `touchFallback=true`（默认）= 触屏设备（`ontouchstart` / `maxTouchPoints` / `hover:none`）由 `js/domains/features/touch-fallback.js` 置 `html[data-touch-fallback]`，点击/聚焦 pre、标题（h2-h4）、Mermaid 容器时加 `.touch-reveal` 显形复制按钮/标题锚点/图表复制；卡片遮罩用 `:active`。`false` = 不注入任何触屏替代交互（CSS 规则亦不输出）。
+> - `codeScrollHint=true`（默认）= 超宽（scrollWidth 超出 8px 以上）代码块右下角显示「可横向滚动」提示（`ui-strings toolbar.codeScrollHint` 双语），首次横滚后加 `.code-scrolled` 自动隐藏；`prefers-reduced-motion: reduce` 下关闭过渡；`false` = 无提示且 CSS 不输出。
+> - canonical：`scripts/lib/feature-wiring.js → mobileConfig`（单测覆盖门控与默认值）。
 
 ### 3.34 comments 前端
 `enabled true` / `loadContainer true` / `renderPlaceholder true` / `placeholderText 评论加载中…`(占位文案;`placeholderTextEn` en 站) / `loadDelayMs 300`(占位显示时长 ms,过后无组件则显示 emptyText) / `emptyText 暂无评论`(无评论提示;`emptyTextEn` en 站，运行时按语言取) / `title 评论`（`titleEn` en 站；均空回退中文）
 
 ### 3.35 contactPopup
-`enabled true` / `title 联系方式` / `copyText 复制` / `copySuccessText ''`(复制成功提示,留空用内置双语文案)（`titleEn`/`copyTextEn`/`copySuccessTextEn` 为 en 站文案，空回退中文） / `popupWidth 360px` / `showAllItems true` / `showIcon true`(弹窗顶部图标) / `maxItems 4`(最多联系方式条目数,多行值按行截断)。弹窗实际标题/正文来自 `site.social.items[].popupTitle/popupContent`（en 站优先 `popupTitleEn`/`popupContentEn`，见 §1 site.social）
+`enabled true` / `title 联系方式` / `copyText 复制` / `copySuccessText ''`(复制成功提示,留空用内置双语文案)（`titleEn`/`copyTextEn`/`copySuccessTextEn` 为 en 站文案，空回退中文） / `popupWidth 400px` / `showAllItems true` / `showIcon true`(弹窗顶部图标) / `maxItems 4`(最多联系方式条目数,多行值按行截断)。弹窗实际标题/正文来自 `site.social.items[].popupTitle/popupContent`（en 站优先 `popupTitleEn`/`popupContentEn`，见 §1 site.social）
+
+> **第六轮 W4 接线**：
+> - `popupWidth` = 弹窗最大宽度（构建期写入 `.contact-popup-modal` 的 `max-width`）。**默认值由 `360px` 修正为 `400px`**（原默认从未生效，模板恒 400px；按「视觉不变」对齐实现，见 CHANGELOG Changed）。
+> - `copyText(_En)` = 值块「复制按钮」的 `title`/`aria-label`（值块为 `role=button` + `tabindex=0`，Enter/Space 可复制）；链为 `*En`(en 站) > 中文 > `ui-strings common.copy`（新增引用）。
+> - `showAllItems=false` = 条目超过 2 条时折叠为前 2 条 + 「更多」展开器（展开后显示全部至 `maxItems`，按钮切换为「收起」；文案取 `ui-strings common.more` / `toolbar.collapseAll`）。默认 `true` = 全量展示。
+> - canonical：`scripts/lib/feature-wiring.js → contactPopupConfig/contactCopyText`（单测覆盖宽度默认与文案链）。
 
 ### 3.36 linkBehavior（已删除，2026-09-27 第四轮 W2）
 

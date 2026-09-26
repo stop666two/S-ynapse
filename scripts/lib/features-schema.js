@@ -317,7 +317,7 @@ const DEFAULT_FEATURES = {
     caseInsensitive: true, allowCustomLabel: true
   },
   supSub: {
-    enabled: true, supMarker: '^', subMarker: '~', skipInsideMath: false,
+    enabled: true, supMarker: '^', subMarker: '~', skipInsideMath: true,
     preserveUnmatched: true
   },
   math: {
@@ -353,7 +353,7 @@ const DEFAULT_FEATURES = {
   },
   wordCount: {
     enabled: true, onCards: true, inArticle: true, textFormat: '{count} 字', textFormatEn: '{count} words',
-    readTimeFormat: '{minutes} 分钟阅读', readTimeFormatEn: '{minutes} min read', wpm: 265, countCjkChars: true, countDigits: false
+    readTimeFormat: '{minutes} 分钟阅读', readTimeFormatEn: '{minutes} min read', wpm: 265, countCjkChars: true, countDigits: true
   },
   share: {
     enabled: true, order: ['weibo', 'qq', 'wechat', 'x', 'facebook', 'mail', 'copy'],
@@ -371,7 +371,7 @@ const DEFAULT_FEATURES = {
   gallery: {
     enabled: true, title: '图库', titleEn: 'Gallery', description: '站内图片集，点击查看大图。', descriptionEn: 'In-site image gallery. Click to view full size.',
     emptyText: '暂无图片', emptyTextEn: 'No images', columns: 4, columnMin: '220px', showSource: true,
-    collectFeatured: true, order: 'newest', incrementalByDefault: true, maxItems: 0,
+    collectFeatured: true, order: 'newest', maxItems: 0,
     gap: '12px', showCaption: true, borderRadius: '8px'
   },
   heatmap: {

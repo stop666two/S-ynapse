@@ -236,6 +236,370 @@ function heroSearchPlaceholder(features, lang) {
   return raw == null ? '' : String(raw);
 }
 
+// ---------------------------------------------------------------------------
+// 第五轮 W3（2026-09-27）：supSub / math / mermaid / series / related / wordCount /
+// gallery / imageLazy 配置接线纯函数（构建期与模板共用；默认值 = 历史行为）。
+// ---------------------------------------------------------------------------
+
+// 正则元字符转义（定界符/标记可作为正则字面量安全使用）。
+function escapeRegExp(str) {
+  return String(str == null ? '' : str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// 文案模板替换：{name} 等具名占位符，未提供的占位符保持原样（含大小写敏感匹配）。
+function applyTemplate(tpl, vars) {
+  return String(tpl == null ? '' : tpl).replace(/\{([A-Za-z0-9_]+)\}/g, function (m, key) {
+    return Object.prototype.hasOwnProperty.call(vars || {}, key) ? String(vars[key]) : m;
+  });
+}
+
+// supSub 配置归一化：
+//   supMarker/subMarker 取非空字符串（缺省 ^ / ~，≥1 字符，正则元字符按字面量匹配）；
+//   skipInsideMath 默认 true = 历史行为（数学段内不处理上下标；false 时数学段内也解析）；
+//   preserveUnmatched 默认 true = 孤立标记保持原文（false = 剥离标记字符）。
+function supSubConfig(features) {
+  const s = (features && features.supSub) || {};
+  const marker = function (raw, dflt) {
+    const v = raw == null ? '' : String(raw);
+    return v.length ? v : dflt;
+  };
+  return {
+    enabled: s.enabled !== false,
+    supMarker: marker(s.supMarker, '^'),
+    subMarker: marker(s.subMarker, '~'),
+    skipInsideMath: s.skipInsideMath !== false,
+    preserveUnmatched: s.preserveUnmatched !== false
+  };
+}
+
+// supSub 标记匹配表（顺序：上标优先；两标记相同时以上标记优先，避免同一字符双重语义）。
+function supSubMatchers(cfg) {
+  const list = [];
+  if (cfg.supMarker) list.push({ marker: cfg.supMarker, up: true });
+  if (cfg.subMarker && cfg.subMarker !== cfg.supMarker) list.push({ marker: cfg.subMarker, up: false });
+  return list;
+}
+
+// 定位 src 起始处的 supSub 段：返回 { raw, text, up } 或 null。
+// 规则与历史正则 `^([~^])([^~^\n]+?)\1` 等价：内容非空、不跨行、不含任一标记（含自身）。
+function matchSupSub(src, matchers) {
+  const input = String(src == null ? '' : src);
+  for (const mk of matchers) {
+    if (!input.startsWith(mk.marker)) continue;
+    const bodyStart = mk.marker.length;
+    let i = bodyStart;
+    while (i <= input.length) {
+      if (i >= input.length || input[i] === '\n') break;
+      let isMarker = false;
+      for (const other of matchers) {
+        if (input.startsWith(other.marker, i)) { isMarker = true; break; }
+      }
+      if (isMarker) {
+        if (i > bodyStart && input.startsWith(mk.marker, i)) {
+          return { raw: input.slice(0, i + mk.marker.length), text: input.slice(bodyStart, i), up: mk.up };
+        }
+        break;
+      }
+      i++;
+    }
+  }
+  return null;
+}
+
+// 数学段内 supSub 转换（仅在 supSub.skipInsideMath=false 且 math.autoDetect=true 时使用）：
+// 对定界符（block 优先、其后 inline）内部应用上下标替换，外部保持原样；不成对标记按
+// preserveUnmatched 处理（保持或剥离）。delimiters 形如 { block: ['$$'], inline: ['$'] }。
+function transformSupSubInMathRaw(raw, matchers, preserveUnmatched, delimiters) {
+  const input = String(raw == null ? '' : raw);
+  const d = delimiters || {};
+  const pairs = [];
+  for (const open of (Array.isArray(d.block) ? d.block : ['$$'])) pairs.push([open, open]);
+  for (const open of (Array.isArray(d.inline) ? d.inline : ['$'])) pairs.push([open, open]);
+  for (const pair of pairs) {
+    const [open, close] = pair;
+    if (!input.startsWith(open) || !input.endsWith(close) || input.length <= open.length + close.length) continue;
+    const inner = input.slice(open.length, input.length - close.length);
+    return open + transformSupSubText(inner, matchers, preserveUnmatched) + close;
+  }
+  return input;
+}
+
+// 纯文本 supSub 转换（escapeHtml 由调用方保证：本函数输出 HTML，正文由 marked 转义后再调用时需注意）。
+function transformSupSubText(text, matchers, preserveUnmatched) {
+  const input = String(text == null ? '' : text);
+  let out = '';
+  let i = 0;
+  while (i < input.length) {
+    // 标记重复（如 `~~`）可能是删除线等其它语法：整体保留、不作上下标解析
+    let doubled = false;
+    for (const mk of matchers) {
+      if (input.startsWith(mk.marker + mk.marker, i)) {
+        out += mk.marker + mk.marker;
+        i += mk.marker.length * 2;
+        doubled = true;
+        break;
+      }
+    }
+    if (doubled) continue;
+    const hit = matchSupSub(input.slice(i), matchers);
+    if (hit) {
+      const body = hit.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      out += hit.up ? '<sup>' + body + '</sup>' : '<sub>' + body + '</sub>';
+      i += hit.raw.length;
+      continue;
+    }
+    let stripped = false;
+    if (!preserveUnmatched) {
+      for (const mk of matchers) {
+        if (!input.startsWith(mk.marker, i)) continue;
+        i += mk.marker.length;
+        stripped = true;
+        break;
+      }
+    }
+    if (stripped) continue;
+    out += input[i];
+    i++;
+  }
+  return out;
+}
+
+// math 配置归一化：
+//   autoDetect 默认 true（自动解析定界符并保护数学段；false = 不自动解析，仅渲染 ```math 围栏块）；
+//   inlineDelimiters/blockDelimiters 取非空字符串数组（去空去重；缺省 ['$'] / ['$$']）；
+//   mathml 默认 true（KaTeX output='htmlAndMathml'；false = 'html'）。
+function mathConfig(features) {
+  const m = (features && features.math) || {};
+  const arr = function (raw, dflt) {
+    if (!Array.isArray(raw)) return dflt.slice();
+    const out = [];
+    for (const item of raw) {
+      const v = item == null ? '' : String(item);
+      if (v && !out.includes(v)) out.push(v);
+    }
+    return out.length ? out : dflt.slice();
+  };
+  const strict = m.strict === 'warn' || m.strict === 'error' || m.strict === true ? m.strict : false;
+  return {
+    enabled: m.enabled !== false,
+    autoDetect: m.autoDetect !== false,
+    inlineDelimiters: arr(m.inlineDelimiters, ['$']),
+    blockDelimiters: arr(m.blockDelimiters, ['$$']),
+    renderRoundParens: m.renderRoundParens !== false,
+    renderSquareBrackets: m.renderSquareBrackets !== false,
+    mathml: m.mathml !== false,
+    throwOnError: m.throwOnError === true,
+    strict: strict
+  };
+}
+
+// 构建期 mathGuard 正则集（全部经正则转义，支持 ≥1 字符定界符）：
+//   blockStart  行首块定界符探测（用于 marked start()）
+//   blockToken  完整块（可跨行）
+//   inlineToken 完整行内段（块定界符同行形态 + 单字符对称定界符 + \( 与 \[）
+//   inlineStart 行内定界符首字符集合（不含反引号，反引号跳过逻辑在调用方）
+function buildMathGuardPatterns(cfg) {
+  const c = cfg || {};
+  const inline = (Array.isArray(c.inlineDelimiters) && c.inlineDelimiters.length) ? c.inlineDelimiters : ['$'];
+  const block = (Array.isArray(c.blockDelimiters) && c.blockDelimiters.length) ? c.blockDelimiters : ['$$'];
+  const blockParts = [];
+  const blockStartParts = [];
+  for (const d of block) {
+    const e = escapeRegExp(d);
+    blockParts.push(e + '[\\s\\S]*?' + e);
+    blockStartParts.push(e);
+  }
+  const inlineParts = [];
+  const startChars = new Set();
+  for (const d of block) {
+    const e = escapeRegExp(d);
+    inlineParts.push(e + '(?!\\s)[^\\n]*?' + e);
+    startChars.add(d.charAt(0));
+  }
+  for (const d of inline) {
+    const e = escapeRegExp(d);
+    startChars.add(d.charAt(0));
+    if (d.length > 1) {
+      inlineParts.push(e + '[\\s\\S]*?' + e);
+    } else {
+      const notSame = '(?!' + e + ')';
+      const notDigit = d === '$' ? '(?!\\d)' : '';
+      inlineParts.push(e + notSame + '(?:\\\\.|[^' + e + '\\\\\\n])+' + e + notDigit);
+    }
+  }
+  if (c.renderRoundParens !== false) {
+    inlineParts.push('\\\\\\([\\s\\S]*?\\\\\\)');
+    startChars.add('\\');
+  }
+  if (c.renderSquareBrackets !== false) {
+    inlineParts.push('\\\\\\[[\\s\\S]*?\\\\\\]');
+    startChars.add('\\');
+  }
+  return {
+    blockStart: new RegExp('^(?:' + blockStartParts.join('|') + ')', 'm'),
+    blockToken: new RegExp('^(?:' + blockParts.join('|') + ')'),
+    inlineToken: new RegExp('^(?:' + inlineParts.join('|') + ')'),
+    inlineStartChars: Array.from(startChars)
+  };
+}
+
+// 配置定界符的自定义检测（单 $ 保持历史口径不单独触发 KaTeX 按需加载）：
+// 非默认项（inline 非 '$' / block 非 '$$'）成对出现即视为存在数学。
+function hasCustomMathDelimiters(content, cfg) {
+  const text = String(content == null ? '' : content);
+  const inline = (cfg && Array.isArray(cfg.inlineDelimiters)) ? cfg.inlineDelimiters : ['$'];
+  const block = (cfg && Array.isArray(cfg.blockDelimiters)) ? cfg.blockDelimiters : ['$$'];
+  for (const d of block) {
+    if (d === '$$') continue;
+    const e = escapeRegExp(d);
+    if (new RegExp(e + '[\\s\\S]*?' + e).test(text)) return true;
+  }
+  for (const d of inline) {
+    if (d === '$') continue;
+    const e = escapeRegExp(d);
+    if (new RegExp(e + '[^\\n]*?' + e).test(text)) return true;
+  }
+  return false;
+}
+
+// KaTeX 按需加载判定（canonical；articles.js 的 hasMath 与模板共用同一语义）：
+//   math.enabled=false → 不加载；
+//   autoDetect=true → 历史口径（$$ / \( / \[）+ 自定义定界符成对检测；
+//   autoDetect=false → 仅 ```math 围栏块触发（客户端渲染 .math-block[data-tex]）。
+function mathNeeded(content, cfg) {
+  const text = String(content == null ? '' : content);
+  const c = cfg || {};
+  if (c.enabled === false) return false;
+  if (c.autoDetect !== false) {
+    return /(\$\$[\s\S]+?\$\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/.test(text) || hasCustomMathDelimiters(text, c);
+  }
+  return /```[ \t]*math\b/i.test(text);
+}
+
+// mermaid 配置归一化：
+//   autoDetect 默认 true（构建期 SSR；false = 构建期不渲染回退客户端，仍仅识别显式 ```mermaid 围栏）；
+//   followTheme 默认 true（SSR 跟随站点主题生成明/暗双份；false = 仅明色，暗色沿用）；
+//   copyAfterRender 默认 false（true = 每张已渲染图附复制原始代码按钮，源码经 data-mm-code 保留）；
+//   errorText/errorTextEn：渲染失败占位（en 空回退中文）。
+function mermaidConfig(features) {
+  const m = (features && features.mermaid) || {};
+  return {
+    enabled: m.enabled !== false,
+    autoDetect: m.autoDetect !== false,
+    followTheme: m.followTheme !== false,
+    copyAfterRender: m.copyAfterRender === true,
+    errorText: m.errorText == null ? '' : String(m.errorText),
+    errorTextEn: m.errorTextEn == null ? '' : String(m.errorTextEn)
+  };
+}
+
+// mermaid 失败占位文案（按语言；en 空回退中文；均空回退内置英文兜底）。
+function mermaidErrorText(cfg, lang) {
+  const c = cfg || {};
+  const zh = c.errorText || '';
+  const en = c.errorTextEn || zh;
+  const pick = String(lang || '') === 'en' ? (en || zh) : zh;
+  return pick || '';
+}
+
+// series 配置归一化（文案键：未设置 = 默认模板；显式空串 = 交由模板回退词典）。
+function seriesConfig(features) {
+  const s = (features && features.series) || {};
+  const str = function (v, dflt) { return v == null ? dflt : String(v); };
+  return {
+    enabled: s.enabled !== false,
+    showBadge: s.showBadge !== false,
+    badgeFormat: str(s.badgeFormat, '系列 · {name}'),
+    badgeFormatEn: str(s.badgeFormatEn, 'Series · {name}'),
+    showNavPanel: s.showNavPanel !== false,
+    sidebarWidget: s.sidebarWidget !== false,
+    order: s.order === 'desc' ? 'desc' : 'asc',
+    panelTitle: str(s.panelTitle, '本系列共 {total} 篇'),
+    panelTitleEn: str(s.panelTitleEn, '{total} posts in this series'),
+    showPosition: s.showPosition !== false,
+    defaultWidgetCount: parseInt(s.defaultWidgetCount, 10) > 0 ? parseInt(s.defaultWidgetCount, 10) : 8,
+    progressLabel: str(s.progressLabel, '{index} / {total}') || '{index} / {total}'
+  };
+}
+
+// 语言模板解析（W3 文案键统一链）：未设置 = 默认模板；显式空串 = 回退词典；
+// en 站优先 *En（空串回退中文模板，中文模板缺省时用默认中文模板）。
+function resolveTemplate(cfg, lang, zhKey, enKey, defZh) {
+  const c = cfg || {};
+  const zh = c[zhKey] == null ? (defZh == null ? '' : defZh) : String(c[zhKey]);
+  const en = c[enKey] == null ? null : String(c[enKey]);
+  if (String(lang || '') === 'en') return en || zh;
+  return zh;
+}
+
+// 系列徽标文案：模板（en 空回退中文） → ui-strings 词典；{name} 替换系列名。
+function seriesBadgeText(cfg, lang, name, dictZh, dictEn) {
+  const tpl = resolveTemplate(cfg, lang, 'badgeFormat', 'badgeFormatEn', '系列 · {name}');
+  if (tpl) return applyTemplate(tpl, { name: name == null ? '' : name });
+  return String(lang || '') === 'en' ? (dictEn || dictZh || '') : (dictZh || '');
+}
+
+// 系列导航面板标题：模板（en 空回退中文） → ui-strings 词典；{total} 替换总篇数。
+function seriesPanelTitle(cfg, lang, total, dictZh, dictEn) {
+  const tpl = resolveTemplate(cfg, lang, 'panelTitle', 'panelTitleEn', '本系列共 {total} 篇');
+  if (tpl) return applyTemplate(tpl, { total: total == null ? '' : total });
+  return String(lang || '') === 'en' ? (dictEn || dictZh || '') : (dictZh || '');
+}
+
+// related 配置归一化：excludeCurrent 默认 true（相关推荐排除当前文章，历史行为）。
+function relatedConfig(features) {
+  const r = (features && features.related) || {};
+  return { excludeCurrent: r.excludeCurrent !== false };
+}
+
+// wordCount 配置归一化：
+//   onCards/inArticle 默认 true（卡片/正文尾部显示字数）；
+//   textFormat/readTimeFormat 语言模板（en 空回退中文；空模板回退词典）；
+//   countCjkChars 默认 true（CJK 逐字计数）；countDigits 默认 true（数字作为拉丁词参与计数，历史行为）。
+function wordCountConfig(features) {
+  const w = (features && features.wordCount) || {};
+  const str = function (v, dflt) { return v == null ? dflt : String(v); };
+  const wpm = isNaN(+w.wpm) || +w.wpm <= 0 ? 265 : +w.wpm;
+  return {
+    enabled: w.enabled !== false,
+    onCards: w.onCards !== false,
+    inArticle: w.inArticle !== false,
+    textFormat: str(w.textFormat, '{count} 字'),
+    textFormatEn: str(w.textFormatEn, '{count} words'),
+    readTimeFormat: str(w.readTimeFormat, '{minutes} 分钟阅读'),
+    readTimeFormatEn: str(w.readTimeFormatEn, '{minutes} min read'),
+    wpm: wpm,
+    countCjkChars: w.countCjkChars !== false,
+    countDigits: w.countDigits !== false
+  };
+}
+
+// 字数文案：模板（en 空回退中文） → ui-strings 词典；{count} 替换计数值。
+function wordCountText(cfg, lang, count, dictZh, dictEn) {
+  const tpl = resolveTemplate(cfg, lang, 'textFormat', 'textFormatEn', '{count} 字');
+  if (tpl) return applyTemplate(tpl, { count: count == null ? '' : count });
+  return String(lang || '') === 'en' ? (dictEn || dictZh || '') : (dictZh || '');
+}
+
+// 阅读时长文案：模板（en 空回退中文） → ui-strings 词典；{minutes} 替换分钟数。
+function readTimeText(cfg, lang, minutes, dictZh, dictEn) {
+  const tpl = resolveTemplate(cfg, lang, 'readTimeFormat', 'readTimeFormatEn', '{minutes} 分钟阅读');
+  if (tpl) return applyTemplate(tpl, { minutes: minutes == null ? '' : minutes });
+  return String(lang || '') === 'en' ? (dictEn || dictZh || '') : (dictZh || '');
+}
+
+// gallery 配置归一化：collectFeatured 默认 true（图库收集文章封面；false = 仅正文图片）。
+function galleryCollectFeatured(features) {
+  const g = (features && features.gallery) || {};
+  return g.collectFeatured !== false;
+}
+
+// imageLazy.preserveAspectRatio 默认 true（构建期输出 width/height 防 CLS；false = 不输出，交由 CSS 自适应）。
+function imagePreserveAspectRatio(features) {
+  const il = (features && features.imageLazy) || {};
+  return il.preserveAspectRatio !== false;
+}
+
 module.exports = {
   normalizeThemeDarkMode,
   normalizeMarkClass,
@@ -255,5 +619,27 @@ module.exports = {
   searchEmptyText,
   rankSearchEntries,
   wikiLinkConfig,
-  heroSearchPlaceholder
+  heroSearchPlaceholder,
+  escapeRegExp,
+  applyTemplate,
+  supSubConfig,
+  supSubMatchers,
+  matchSupSub,
+  transformSupSubInMathRaw,
+  transformSupSubText,
+  mathConfig,
+  buildMathGuardPatterns,
+  hasCustomMathDelimiters,
+  mathNeeded,
+  mermaidConfig,
+  mermaidErrorText,
+  seriesConfig,
+  seriesBadgeText,
+  seriesPanelTitle,
+  relatedConfig,
+  wordCountConfig,
+  wordCountText,
+  readTimeText,
+  galleryCollectFeatured,
+  imagePreserveAspectRatio
 };

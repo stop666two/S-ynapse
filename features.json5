@@ -241,7 +241,7 @@
     // 前 N 张图片立即加载(视口顶部),不做懒加载。
     eagerFirst: 3,
     // 是否保留 width/height 防止布局抖动。
-    // ⚠ 未接线（预留）：构建期已恒输出 width/height 防抖；关闭需改构建模板，未接线。
+    // true(默认，历史行为) = 构建期输出 width/height（CLS 保护）；false = 不输出，交由 CSS 自适应。
     preserveAspectRatio: true,
     // 构建期生成 LQIP 模糊占位(内联 base64 背景;图片加载时先模糊后清晰,推荐)。
     lqip: true,
@@ -1013,17 +1013,17 @@
   supSub: {
     // 启用 ^x^ 与 ~x~ 语法。
     enabled: true,
-    // 上标字符标记。
-    // ⚠ 未接线（预留）：上下标标记固定为 ^/~，构建期正则未做动态标记。
+    // 上标字符标记（≥1 字符；正则元字符按字面量匹配）。
+    // 类型: string(非空) | 推荐: '^'
     supMarker: '^',
-    // 下标字符标记。
-    // ⚠ 未接线（预留）：上下标标记固定为 ^/~，构建期正则未做动态标记。
+    // 下标字符标记（≥1 字符；与 supMarker 相同则以上标优先）。
+    // 类型: string(非空) | 推荐: '~'
     subMarker: '~',
-    // 冲突检测:在 $...$ 公式内自动跳过(需开启)。
-    // ⚠ 未接线（预留）：上下标标记固定为 ^/~，构建期正则未做动态标记。
-    skipInsideMath: false,
+    // 数学段内是否跳过上下标解析（仅 math.autoDetect=true 时有效）。
+    // true(默认，历史行为) = 数学段内不处理；false = 段内也解析（可能破坏公式，谨慎）。
+    skipInsideMath: true,
     // 包裹不匹配时是否保留原样。
-    // ⚠ 未接线（预留）：上下标标记固定为 ^/~，构建期正则未做动态标记。
+    // true(默认) = 孤立标记保持原文；false = 剥离孤立标记字符。
     preserveUnmatched: true
   },
 
@@ -1033,16 +1033,17 @@
   math: {
     // 启用数学公式渲染(KaTeX,按需加载)。
     enabled: true,
-    // 自动检测 $..$ / $$..$$ 公式并按需加载 KaTeX。
-    // ⚠ 未接线（预留）：定界符固定为 $/$$；MathML 输出恒开。
+    // 自动检测公式定界符并按需加载 KaTeX。
+    // true(默认) = 解析 inlineDelimiters/blockDelimiters 与 \( \) \[ \]；false = 不自动解析，
+    // 仅渲染 ```math 围栏块（构建期输出 .math-block[data-tex] 容器，客户端 KaTeX 渲染）。
     autoDetect: true,
     // CDN 版本。
     version: '0.16.22',
-    // 行内定界符。
-    // ⚠ 未接线（预留）：定界符固定为 $/$$；MathML 输出恒开。
+    // 行内定界符（数组，≥1 项，正则元字符按字面量匹配；对称闭合、不跨行）。
+    // 类型: string[] | 默认: ['$'] | 示例: ['$'] / ['%'] / ['$$']
     inlineDelimiters: ['$'],
-    // 块级定界符。
-    // ⚠ 未接线（预留）：定界符固定为 $/$$；MathML 输出恒开。
+    // 块级定界符（数组，≥1 项；对称闭合、可跨行、须位于行首）。
+    // 类型: string[] | 默认: ['$$'] | 示例: ['$$'] / ['%%']
     blockDelimiters: ['$$'],
     // 渲染错误时不抛出。
     throwOnError: false,
@@ -1055,7 +1056,7 @@
     // 公式区域选择器。
     selector: '.post-content',
     // 是否包含浏览器原生 MathML 输出。
-    // ⚠ 未接线（预留）：定界符固定为 $/$$；MathML 输出恒开。
+    // true(默认) = KaTeX output='htmlAndMathml'；false = 仅 'html'。
     mathml: true
   },
 
@@ -1066,12 +1067,13 @@
     // 启用 Mermaid 图表渲染。
     enabled: true,
     // 自动检测 ```mermaid 代码块并按需加载 Mermaid。
-    // ⚠ 未接线（预留）：图表检测/主题跟随实现固定（构建期 SSR）。
+    // true(默认) = 构建期 SSR（识别显式 ```mermaid 围栏）；false = 构建期不渲染、保留围栏回退客户端渲染
+    //（仍仅识别显式 ```mermaid 标注，不扫描普通文本）。
     autoDetect: true,
     // CDN 版本。
     version: '11.4.1',
-    // 渲染主题:default/dark/neutral/base 或跟随站点主题。
-    // ⚠ 未接线（预留）：图表检测/主题跟随实现固定（构建期 SSR）。
+    // 图表主题是否跟随站点主题。
+    // true(默认) = 明/暗双主题（受 darkMode 控制）；false = 仅明色主题，暗色沿用同一张图。
     followTheme: true,
     // 明色主题名。
     lightTheme: 'default',
@@ -1106,13 +1108,12 @@
     // 构建期单块渲染超时(ms;无头浏览器渲染 Mermaid,超时按失败回退客户端)。
     // 类型: number(ms) | 推荐: 5000-30000
     renderTimeoutMs: 10000,
-    // 是否显示流程图内文本的复制按钮。
-    // ⚠ 未接线（预留）：图表检测/主题跟随实现固定（构建期 SSR）。
+    // 渲染完成后是否显示「复制图表代码」按钮(复制原始 mermaid 源码;源码经 data-mm-code 保留)。
+    // 类型: boolean | 默认: false
     copyAfterRender: false,
     // 渲染失败占位文本。
     errorText: '[图表渲染失败]',
     // 渲染失败占位文本（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：图表检测/主题跟随实现固定（构建期 SSR）。
     errorTextEn: '[Diagram failed to render]',
     // 图表尺寸(全局默认;单图可在代码块 info 覆盖,写法 ```mermaid w=900 h=520)
     // 子键类型均为 string(CSS 长度)或 'none':
@@ -1140,30 +1141,27 @@
   series: {
     // 启用系列功能。
     enabled: true,
-    // 文章卡片显示系列徽标。
-    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
+    // 文章卡片显示系列徽标（文案见 badgeFormat；false = 不渲染徽标）。
     showBadge: true,
     // 徽标文本模板:{name} 系列名。
-    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
+    // 类型: string(非空优先;空回退 ui-strings.card.series) | 推荐: '系列 · {name}'
     badgeFormat: '系列 · {name}',
     // 徽标文本模板（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
     badgeFormatEn: 'Series · {name}',
     // 文章底部显示系列导航面板。
     showNavPanel: true,
     // 侧栏系列 widget(与 sidebar.json5 widgets 联动)。
-    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
+    // false = 不渲染侧栏系列 widget。
     sidebarWidget: true,
     // 系列排序:asc(时间旧→新)/desc。
     order: 'asc',
-    // 导航面板标题模板。
-    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
+    // 导航面板标题模板:{total} 总篇数。
+    // 类型: string(非空优先;空回退 ui-strings.post.seriesLabel) | 推荐: '本系列共 {total} 篇'
     panelTitle: '本系列共 {total} 篇',
     // 导航面板标题模板（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
     panelTitleEn: '{total} posts in this series',
-    // 系列文章前缀(自动标注,如 '第 1/3 篇')。
-    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
+    // 面板显示「第 N / 共 M」位置进度(progressLabel 输出)。
+    // true(默认) = 显示；false = 隐藏。
     showPosition: true,
     // 侧栏系列 widget 默认展示条数(超出截断)。
     // 类型: number(整数) | 可填: 1–20 | 推荐: 8
@@ -1199,7 +1197,7 @@
     // 最小得分(低于此不重复展示)。
     minScore: 2,
     // 是否排除当前文章。
-    // ⚠ 未接线（预留）：相关推荐恒排除当前文章。
+    // true(默认) = 相关推荐排除当前文章；false = 允许包含当前文章（自引用）。
     excludeCurrent: true,
     // 推荐区标题。
     title: '相关推荐',
@@ -1235,31 +1233,28 @@
   wordCount: {
     // 启用字数统计。
     enabled: true,
-    // 卡片显示字数。
-    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
+    // 卡片显示字数（theme.card.showWordCount 亦须为真）。
     onCards: true,
     // 文章正文尾部显示字数。
     inArticle: true,
     // 文本模板:{count} 字数。
-    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
+    // 类型: string(非空优先;空回退 ui-strings.card.wordUnit) | 推荐: '{count} 字'
     textFormat: '{count} 字',
     // 字数模板（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
     textFormatEn: '{count} words',
     // 阅读时长文本:{minutes} 分钟。
-    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
+    // 类型: string(非空优先;空回退 ui-strings.card.minute) | 推荐: '{minutes} 分钟阅读'
     readTimeFormat: '{minutes} 分钟阅读',
     // 阅读时长模板（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
     readTimeFormatEn: '{minutes} min read',
     // 每分钟阅读字数(中文字数计算基准)。
     wpm: 265,
     // 中文英文字数合并统计视读方式。
-    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
+    // true(默认) = CJK 字符逐字计数；false = CJK 不计入总数（拉丁词照计）。
     countCjkChars: true,
     // 是否统计数字。
-    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
-    countDigits: false
+    // true(默认，历史行为) = 数字作为普通拉丁词计数（"123" 计 1）；false = 纯数字 token 不计。
+    countDigits: true
   },
 
   // ---------------------------------------------------------------------------
@@ -1367,13 +1362,10 @@
     // 卡片是否显示来源文章名。
     showSource: true,
     // 是否收集文章封面图。
-    // ⚠ 未接线（预留）：图库恒收集文章封面且始终增量收集。
+    // true(默认) = 收集文章封面 + 正文图片；false = 仅收集正文图片。
     collectFeatured: true,
     // 收集排序:newest/longest。
     order: 'newest',
-    // 是否包含 404 前后的图(增量,始终 true)。
-    // ⚠ 未接线（预留）：图库恒收集文章封面且始终增量收集。
-    incrementalByDefault: true,
     // 单页图片数上限(0=不限)。
     maxItems: 0,
     // 瀑布流列间距 CSS(column-gap)。

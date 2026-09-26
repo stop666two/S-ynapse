@@ -80,16 +80,27 @@ const CJK_RX = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7
 // Count words split by script: CJK chars count as one word each, Latin/CJK-mixed
 // text splits on whitespace. Used for per-script reading-speed calculation
 // (features.readingTime.wordsPerMinuteCJK / wordsPerMinuteLatin).
-function countWordsDetail(text) {
+// options（features.wordCount 接线，缺省 = 历史口径）：
+//   countCjkChars = true   CJK 字符逐字计数；false 时 CJK 不计入 total（latin 部分照计）
+//   countDigits   = true   数字作为普通拉丁词计数（"123" 计 1，历史行为）；
+//                          false 时纯数字 token 不计（"abc123" 等混合 token 仍计 1，不拆分单词）
+function countWordsDetail(text, options) {
   if (typeof text !== 'string') return { cjk: 0, latin: 0, total: 0 };
+  const opts = options || {};
+  const countCjk = opts.countCjkChars !== false;
+  const countDigits = opts.countDigits !== false;
   const cjk = (text.match(CJK_RX) || []).length;
-  const latin = text.replace(CJK_RX, ' ').split(/\s+/).filter(Boolean).length;
-  return { cjk, latin, total: cjk + latin };
+  const latinTokens = text.replace(CJK_RX, ' ').split(/\s+/).filter(Boolean);
+  const latin = latinTokens.filter(function (tok) {
+    return countDigits || !/^[0-9]+$/.test(tok);
+  }).length;
+  const cjkPart = countCjk ? cjk : 0;
+  return { cjk: cjkPart, latin, total: cjkPart + latin };
 }
 
 // Count words: total of CJK characters and whitespace-separated Latin tokens.
-function countWords(text) {
-  return countWordsDetail(text).total;
+function countWords(text, options) {
+  return countWordsDetail(text, options).total;
 }
 
 // Insert thin spaces (\u2009) at CJK/Latin boundaries for proper typographic spacing.

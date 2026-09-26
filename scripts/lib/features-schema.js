@@ -61,7 +61,7 @@ const DEFAULT_FEATURES = {
   },
   themeToggle: {
     enabled: true, defaultTheme: 'system', rememberChoice: true,
-    animationMs: 250, iconStyle: 'sun-moon', transitionAll: true,
+    iconStyle: 'sun-moon', transitionAll: true,
     persistKey: 'ss-theme', toggleIconSwap: true, zIndex: 100
   },
   themePresets: {

@@ -82,3 +82,18 @@
 - **部署**：real-site 三方合并同步（`git merge-file --ours` 保留真实值：ogImageStyle×3 / announcement / bio 等）；门禁 313/313 + smoke 2/2 + verify:config（10 处真实覆盖）/verify:security/build 全过；**生产版本 `5167ec62-fb9f-4ed7-84d3-c784b88627e5`**，回滚点 `cd4a01dd-330c-4279-a583-c306e7daed2c`（`npx wrangler rollback`）。
 - **线上验证**：softnav ALL PASS（无刷新、TOC/进度条、0 错误）；CSP `script-src`/`style-src` 均 nonce 且无 unsafe-inline、`style-src-attr` 保留、`frame-ancestors 'none'`；`cjk-fonts.css` 与 woff2 皆 `immutable` 200；`/admin/` 403。
 - **已知残余**：LCP 未达 1.2s 目标（历史遗留，生产 3 次中位约 3.8s，波动大）；`style-src-attr` unsafe-inline；popupNotice 生产默认关闭（待用户启用）；推送/tag 未执行。
+
+## 8. 反馈批次三（2026-09-26 ~ 27，含用户验收报告修复，已部署）
+
+- **OG 尺寸自适应**（`f96634c`）：`features.ogImage.autoSize/maxDimension(2560)/coverFit/overlay`；单封面取该图尺寸、多封面取面积最大、显式配置优先；覆盖图变更纳入缓存键；`features.listCover.fallback('pattern'|'none')` 接线。
+- **模板内联样式清零 + CSP 收紧**（`d98cdea`/`eac83b0`/`c4e6da2`）：11 模板 42 处 `style=` 改类/构建期 nonce 样式/CSSOM（新增 `vt-names.js` 处理 `data-vt`）；Mermaid SSR 内联样式搬入类规则；删除 `style-src-attr 'unsafe-inline'`；`run-csp-clean.js` 31/31。
+- **i18n 残余**（`1a95624`/`7e0b231`）：site `*En`/bio、英文页日期格式、404/guard 锁屏文案；`run-t4-i18n.js` 17/17；guard 锁屏真实弹窗由 `run-guard-lock.js` 18/18 补齐。
+- **LCP 治理**（`f155d24`~`c5efd81`）：perf-audit 增 LCP 元素/四段分相/首屏请求；serve gzip；`features.lcpOptimize`（reveal 豁免/异步 CJK CSS/跳过拉丁字体预载）；本地 LCP 2056→1852ms、TBT 1018→92ms。
+- **下折叠 content-visibility**（`6e887e9`）：开关默认 false（A/B 收益大但 CLS 恶化，实测否决）。
+- **CLS 治理（用户「卡一下」根因）**（`ab854a5`）：图片构建期 width/height（正文/头图/卡片/画廊）+ `features.anchorStabilize`；冷锚点 CLS 0.5367→0.0011、滚动增量 0.0240→0.0002、落点误差 1431px→9.9px（<0.1% 页面高）。
+- **搜索入口失效修复**（`9c1b5f3`，验收报告第 1 类问题的本机同族缺陷）：搜索入口改文档级事件委托 + 加载前排队；`run-search-entry.js` 9/9。
+- **搜索页计数与根 404 语言自适应**（`d59881c`/`61875dd`）：`{count}` 占位符消除；根 404 en 访客跳 `/en/404.html`（尊重语言锁）。
+- **CSP nonce 线上事故（本轮最严重，已修复）**：`test:build` 的 `--out` 构建把 `workers/security-config.js` 写回仓库（另一枚 nonce），导致部署后 dist HTML（旧 nonce）与 Worker CSP（新 nonce）错位，线上所有内联脚本/样式被整批拦截；另根 404 重定向脚本漏 nonce。修复（`deaaf5c`）：`--out` 构建跳过 Worker 配置写入；根 404 脚本显式携带构建 nonce；smoke 新增「全站 HTML nonce 与 `_headers` 同源 + 根 404 脚本带 nonce」回归断言。
+- **softnav 连续链路验收**（`run-softnav-chain.js`）：home→文A→标签→home→文B→归档→后退 全程无整页刷新、0 控制台错误（验收报告「第二次打不开」问题在当前代码不可复现，判定为旧生产版本缺陷）。
+- **最终部署**：生产版本 **`cbc4945d-2501-45f3-8123-649e4054f04a`**；回滚点 `a2ab26b2-a6f0-4b6d-a961-0175314de43e`（更早 `5167ec62`）；线上复测：`probe-live-csp.js` **0 CSP 违规**（唯一无 nonce 为 `type=speculationrules`，由 `'inline-speculation-rules'` 合法放行）、`verify-live-softnav.js` **ALL PASS**、`/admin` 403、CJK 字体 immutable、CSP 无 `unsafe-inline`/无 `style-src-attr`。
+- **残余（低）**：公告条「自动关闭」系按语言关闭记忆生效（正常行为，改文案或清 `s-announce-dismissed` 即重现）；生产 LCP 未达标（待稳定网络复测）；Node 20.19 由 CI `compat-node20` 验证（待推送）；推送/tag 未执行。

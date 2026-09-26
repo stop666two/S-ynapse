@@ -1,33 +1,50 @@
 'use strict';
 // 构建产物压缩与缓存指纹（自 scripts/build.js 机械拆分；仅移动函数与依赖接线，不含逻辑变更）。
 // 编排器通过 createMinifyModule(ctx) 注入路径、开关与共享依赖，避免模块间隐式全局。
+// 压缩阶段分两层：基线压缩（minify-html / CleanCSS / Terser 的既有行为，恒定执行）与增强步骤
+// （compression.json5 控制：HTML 激进选项、JSON 去空白；CSS/JS 接口预留给后续实现），
+// 增强步骤全部位于 cacheBust 之前，保证文件名哈希对应最终字节。
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
+const { isExcluded } = require('../lib/compression-config');
+const {
+  buildHtmlMinifyOptions,
+  compactJsonText,
+  compressionEnhancementPlan,
+  jsonSkipReason
+} = require('../lib/compression-steps');
 
 function createMinifyModule(ctx) {
   const { minifyHtmlNode, CleanCSS, terser } = ctx;
+
+  // 压缩配置与增强计划（context.js 注入）：config 为合并后的 compression.json5，
+  // active 为 compressionActive() 的结果（serve/watch 强制 false），errors/warnings 来自加载与覆盖校验。
+  const compressionState = ctx.compression || { config: {}, active: false, errors: [], warnings: [], override: '' };
+  const compressionConfig = compressionState.config || {};
+  const compressionPlan = compressionEnhancementPlan(compressionConfig, compressionState.active);
+
+  function distRel(file) {
+    return path.relative(ctx.distDir, file).split(path.sep).join('/');
+  }
 
   // Minify all HTML files in a directory tree using @minify-html/node.
   // Only runs when site.build.minifyHTML is enabled and the package is installed.
   // minify_js / minify_css also compress inline <script>/<style> content
   // (comments and whitespace inside inline code are removed here).
+  // 增强：html.aggressive 时对未豁免文件叠加激进选项（可选闭合标签/属性引号折叠等）。
   async function minifyHTMLInDir(dir, config) {
     if (!config.site.build.minifyHTML || !minifyHtmlNode) return;
     const files = ctx.getAllFiles(dir).filter(f => /\.html?$/i.test(f));
     for (const file of files) {
       try {
         const content = fs.readFileSync(file, 'utf-8');
-        const minified = minifyHtmlNode.minify(Buffer.from(content, 'utf-8'), {
-          keep_comments: false,
-          minify_js: true,
-          minify_css: true,
-          minify_doctype: false,
-          keep_html_and_head_opening_tags: true,
-          keep_closing_tags: true,
-          preserve_brace_template_syntax: true
-        }).toString('utf-8');
+        const aggressive = compressionPlan.htmlAggressive && !isExcluded(distRel(file), compressionPlan.exclude);
+        const minified = minifyHtmlNode.minify(Buffer.from(content, 'utf-8'), buildHtmlMinifyOptions({
+          aggressive,
+          removeComments: compressionPlan.active ? compressionPlan.htmlRemoveComments : true
+        })).toString('utf-8');
         if (minified.length < content.length) {
           writeFileAtomicSync(file, minified, 'utf-8');
         }
@@ -114,14 +131,71 @@ function createMinifyModule(ctx) {
     }
   }
 
+  // JSON 去空白（增强步骤）：扫描 dist 全部 *.json，仅重写「含换行/缩进」的文件；
+  // 豁免名单（vendor/media/报告等）与内容寻址的 assets/config.<hash>.json 先行跳过。
+  // 单文件失败只告警并保留原文件（recordBuildFailure 记录，压缩阶段不中断）。
+  async function compactJsonInDir(dir) {
+    const files = ctx.getAllFiles(dir).filter(f => /\.json$/i.test(f));
+    let compacted = 0;
+    for (const file of files) {
+      const rel = distRel(file);
+      if (jsonSkipReason(rel, compressionPlan.exclude)) continue;
+      try {
+        const content = fs.readFileSync(file, 'utf-8');
+        const result = compactJsonText(content);
+        if (result.changed) {
+          writeFileAtomicSync(file, result.text, 'utf-8');
+          compacted += 1;
+        }
+      } catch (err) {
+        console.warn(`  [WARN] JSON 压缩失败，保留原文件 ${rel}: ${err.message}`);
+        ctx.recordBuildFailure('compression', `JSON ${rel}: ${err.message}`);
+      }
+    }
+    return compacted;
+  }
+
+  // 压缩配置加载/覆盖校验问题集中上报：warnings 打日志，errors 记录构建失败（不中止构建流程）。
+  function reportCompressionIssues() {
+    for (const message of compressionState.warnings) console.warn('  [WARN] ' + message);
+    for (const message of compressionState.errors) {
+      console.error('  [ERROR] compression: ' + message);
+      ctx.recordBuildFailure('compression', message);
+    }
+  }
+
+  // 执行增强步骤。compressionActive=false（serve/watch 或 enabled=false）时全部跳过，仅保留基线压缩。
+  async function runCompressionEnhancements() {
+    if (!compressionPlan.active) {
+      console.log('  [compression] 增强步骤已跳过（serve/watch 或 compression.enabled=false）；基线压缩照常');
+      return;
+    }
+    if (compressionState.override) console.log('  [compression] override: ' + compressionState.override);
+    if (compressionConfig.html && compressionConfig.html.enabled !== false && compressionConfig.html.collapseWhitespace === false) {
+      console.warn('  [WARN] compression.html.collapseWhitespace=false 不受支持：minify-html 始终折叠安全空白，本次构建保持折叠');
+    }
+    const steps = [];
+    if (compressionPlan.htmlAggressive) steps.push('HTML 激进选项');
+    if (compressionPlan.jsonCompact) {
+      const count = await compactJsonInDir(ctx.distDir);
+      if (count > 0) steps.push('JSON 去空白 ×' + count);
+    }
+    if (compressionPlan.jsObfuscate) {
+      console.warn('  [WARN] compression.js.obfuscate.enabled=true 暂未接入，本次构建未执行混淆');
+    }
+    console.log('  [compression] ' + (steps.length ? '已执行增强: ' + steps.join('、') : '无增强步骤执行（基线压缩已完成）'));
+  }
+
   // Run all three minifiers (HTML, CSS, JS) across the dist/ directory.
   // Each skips gracefully if its package is missing or the feature is disabled.
   async function minifyAll(config) {
     console.log('[11/14] Minifying assets...');
+    reportCompressionIssues();
     await minifyHTMLInDir(ctx.distDir, config);
     await minifyInlineStylesInDir(ctx.distDir, config);
     await minifyCSSInDir(ctx.distDir, config);
     if (!ctx.bundleActive) await minifyJSInDir(path.join(ctx.distDir, 'assets', 'js'), config);
+    await runCompressionEnhancements();
     const types = [];
     if (config.site.build.minifyHTML) types.push('HTML');
     if (config.site.build.minifyCSS) types.push('CSS');

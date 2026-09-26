@@ -179,8 +179,6 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       assert.ok(featuredImg, 'article page must render the featured image');
       assert.ok(/\bwidth="?\d+/.test(featuredImg[0]) && /\bheight="?\d+/.test(featuredImg[0]),
         'featured image must carry build-time width/height (CLS fix): ' + featuredImg[0].slice(0, 160));
-    } else {
-      t.diagnostic('此站点无 long-stress/code-showcase 演示文章（如 real-site 真实内容），跳过正文/头图图片尺寸断言');
     }
     const cardHtml = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');
     const cardImg = cardHtml.match(/<img[^>]*post-card-image[^>]*>/);

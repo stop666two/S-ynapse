@@ -20,7 +20,7 @@ const ROOT = path.resolve(__dirname, '..');
 const CONFIG_FILES = [
   'features.json5', 'site.json5', 'theme.json5', 'navigation.json5', 'sidebar.json5',
   'footer.json5', 'security.json5', 'tuning.json5', 'guard.json5', 'ui-strings.json5',
-  'tag-aliases.json5', 'friends.json5', 'content-policy.json5'
+  'tag-aliases.json5', 'friends.json5', 'content-policy.json5', 'compression.json5'
 ];
 const SCAN_DIRS = ['js', 'templates', 'scripts', 'workers'];
 const EXCLUDE_DIRS = new Set(['node_modules', '.git', 'dist', 'real-site', '.tmp-scripts', '.cache', 'build-artifacts', '.playwright-mcp']);

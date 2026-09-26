@@ -11,6 +11,12 @@ const crypto = require('crypto');
 const { buildSitemapUrls } = require('../lib/robots');
 const { bundleEnabled, esbuildAvailable } = require('../lib/bundle');
 const { createMinifyModule } = require('./minify');
+const {
+  DEFAULT_COMPRESSION,
+  compressionActive,
+  loadCompressionConfig,
+  mergeCompressionOverride
+} = require('../lib/compression-config');
 const { createMediaModule } = require('./media');
 const { createAutoCoverModule } = require('./auto-cover');
 const { createFeedsModule } = require('./feeds');
@@ -127,6 +133,16 @@ function createBuildContext(deps) {
     return path.isAbsolute(value) ? value : path.resolve(rootDir, value);
   })();
 
+  // compression 覆盖文件（`--compression-override <file>`）：仅用于隔离验证/预览构建的
+  // compression 深合并覆盖（例如第二态构建关闭压缩），不写回仓库 compression.json5；
+  // 合并结果仍经 validateCompression 校验（类型/枚举/exclude 结构）。
+  const COMPRESSION_OVERRIDE_PATH = (() => {
+    const idx = argv.indexOf('--compression-override');
+    const value = (idx !== -1 && argv[idx + 1] && argv[idx + 1].charAt(0) !== '-') ? argv[idx + 1] : '';
+    if (!value) return '';
+    return path.isAbsolute(value) ? value : path.resolve(rootDir, value);
+  })();
+
   // CLI flags parsed from argv
   const WATCH_MODE = argv.includes('--watch');        // Rebuild on file changes
   const SERVE_MODE = argv.includes('--serve');        // Start dev HTTP server after build
@@ -194,6 +210,46 @@ function createBuildContext(deps) {
     getVendorFonts: () => assets.VENDOR_FONTS,
     buildCspTrimContext: (cfg) => securityFiles.buildCspTrimContext(cfg)
   });
+
+  // 压缩配置（第 14 个配置文件 compression.json5）：独立顶层模块，不进入主配置族。
+  // 加载/覆盖校验失败 → 记录构建失败 + 告警 + 降级为内置默认值（不中止构建流程）；
+  // serve / watch 下 active=false（增强步骤整体跳过，基线压缩行为不变）。
+  const compression = (() => {
+    const loaded = loadCompressionConfig(rootDir);
+    const errors = loaded.errors.slice();
+    const warnings = loaded.warnings.slice();
+    let effective = loaded.config;
+    if (COMPRESSION_OVERRIDE_PATH) {
+      if (!fs.existsSync(COMPRESSION_OVERRIDE_PATH)) {
+        config.abortBuild('\n[FATAL] --compression-override file not found: ' + COMPRESSION_OVERRIDE_PATH + '\n');
+      }
+      let overrideRaw = fs.readFileSync(COMPRESSION_OVERRIDE_PATH, 'utf-8');
+      if (overrideRaw.charCodeAt(0) === 0xFEFF) overrideRaw = overrideRaw.slice(1);
+      let overrideObj;
+      try {
+        overrideObj = json5.parse(overrideRaw.replace(/\r\n/g, '\n'));
+      } catch (err) {
+        config.abortBuild('\n[FATAL] --compression-override parse error in ' + COMPRESSION_OVERRIDE_PATH + ': ' + err.message + '\n');
+      }
+      const merged = mergeCompressionOverride(effective, overrideObj);
+      effective = merged.config;
+      errors.push(...merged.errors);
+      warnings.push(...merged.warnings);
+    }
+    if (errors.length > 0) {
+      effective = JSON.parse(JSON.stringify(DEFAULT_COMPRESSION));
+      warnings.push('compression 配置存在 ' + errors.length + ' 项错误，已降级为内置默认值（构建继续，详见构建失败记录）');
+    }
+    return {
+      config: effective,
+      errors,
+      warnings,
+      active: compressionActive(effective, { serve: SERVE_MODE, watch: WATCH_MODE }),
+      override: COMPRESSION_OVERRIDE_PATH
+        ? path.relative(rootDir, COMPRESSION_OVERRIDE_PATH).split(path.sep).join('/')
+        : ''
+    };
+  })();
 
   // 媒体与静态资产模块（scripts/build/media.js）：路径、缓存加载器与错误收集器通过 ctx 注入。
   // 机械拆分 2/N —— 函数体原样搬移；getAllFiles 移至 scripts/build/fs-utils.js 供跨模块复用。
@@ -315,9 +371,11 @@ function createBuildContext(deps) {
 
   // 构建报告与性能预算模块（scripts/build/report.js）：注入产物目录、发布过滤器、内联配置体积读取器与构建错误收集器。
   // 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
+  // compression 注入供后续报告阶段输出压缩对照（当前模块暂未消费，接口先行）。
   const report = createReportModule({
     distDir: DIST_DIR,
     cspNonce: CSP_NONCE,
+    compression,
     getPublished: helpers.getPublished,
     getInlineConfigKb: deps.getInlineConfigKb,
     recordBuildFailure: helpers.recordBuildFailure
@@ -329,6 +387,7 @@ function createBuildContext(deps) {
     distDir: DIST_DIR,
     cacheBustManifestPath: CACHE_BUST_MANIFEST_PATH,
     bundleActive: BUNDLE_ACTIVE,
+    compression,
     getAllFiles,
     recordBuildFailure: helpers.recordBuildFailure,
     minifyHtmlNode,
@@ -353,6 +412,8 @@ function createBuildContext(deps) {
       outputDirResolved: OUTPUT_DIR_RESOLVED,
       cspNonce: CSP_NONCE,
       pkgVersion: PKG_VERSION,
+      compression,
+      compressionActive: compression.active,
       json5,
       chokidar,
       hooks,

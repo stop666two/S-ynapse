@@ -175,6 +175,28 @@ function loadCompressionConfig(root) {
   return { config, errors, warnings };
 }
 
+/**
+ * 把 `--compression-override` 的覆盖对象深合并进已加载的压缩配置并重新校验。
+ * 与 features/theme 覆盖同模式：深合并（数组与标量整体替换）、不写回仓库配置文件。
+ * 校验错误不在此处终止流程，由调用方按「降级为内置默认值」处理。
+ * @param {object} config 已与默认值合并的基础配置
+ * @param {object} overrideObj 覆盖对象（JSON5 解析结果）
+ * @returns {{ config: object, errors: string[], warnings: string[] }}
+ */
+function mergeCompressionOverride(config, overrideObj) {
+  const errors = [];
+  const warnings = [];
+  if (!isPlainObject(overrideObj)) {
+    errors.push('--compression-override 顶层必须是对象');
+    return { config: isPlainObject(config) ? config : cloneDefaults(), errors, warnings };
+  }
+  const merged = deepMerge(config, overrideObj);
+  const result = validateCompression(merged, 'compression-override');
+  errors.push(...result.errors);
+  warnings.push(...result.warnings);
+  return { config: merged, errors, warnings };
+}
+
 // 路径归一化：统一 / 分隔、去掉开头的 ./ 与 /，保证 Windows 与产物发布路径语义一致。
 function normalizePath(value) {
   return String(value == null ? '' : value)
@@ -257,6 +279,8 @@ module.exports = {
   OBFUSCATE_PRESETS,
   loadCompressionConfig,
   validateCompression,
+  mergeCompressionOverride,
   isExcluded,
-  compressionActive
+  compressionActive,
+  normalizePath
 };

@@ -600,6 +600,271 @@ function imagePreserveAspectRatio(features) {
   return il.preserveAspectRatio !== false;
 }
 
+// ---------------------------------------------------------------------------
+// 第六轮 W4（2026-09-27）：lightbox / backToTop / tts / reward / heatmap / stats /
+// mobile / contactPopup 接线。以下纯函数为构建期与测试的 canonical 语义。
+// ---------------------------------------------------------------------------
+
+// 非负数值解析：null/undefined/空串/非法/负数回退 fallback；0 合法（表示瞬时/不限制）。
+function pickNonNegative(raw, fallback) {
+  const n = parseFloat(raw);
+  return isNaN(n) || n < 0 ? fallback : n;
+}
+
+// lightbox 时长与宽度归一化：
+//   maxWidthVw：专键 features.lightbox.maxWidthVw > 兼容旧键 features.imageFit.lightbox.maxWidthPct > 92；
+//   openDurationMs / switchDurationMs：专键 > 通用 transitionDurationMs > 220；0 = 瞬时（不做动画）。
+function lightboxConfig(features) {
+  const L = (features && features.lightbox) || {};
+  const IF = (features && features.imageFit && features.imageFit.lightbox) || {};
+  const trans = pickNonNegative(L.transitionDurationMs, 220);
+  return {
+    maxWidthVw: pickNonNegative(L.maxWidthVw, pickNonNegative(IF.maxWidthPct, 92)),
+    openDurationMs: pickNonNegative(L.openDurationMs, trans),
+    switchDurationMs: pickNonNegative(L.switchDurationMs, trans),
+    transitionDurationMs: trans
+  };
+}
+
+// backToTop 运行时归一化：
+//   scrollDurationMs 默认 450（0 = 瞬时）；smoothScroll 默认 true（false = 瞬时，与 hotkey 现语义统一）；
+//   htmlAnchorFallback 默认 false（true = 模板输出 <noscript> 锚点链接）。
+function backToTopConfig(features) {
+  const B = (features && features.backToTop) || {};
+  return {
+    scrollDurationMs: pickNonNegative(B.scrollDurationMs, 450),
+    smoothScroll: B.smoothScroll !== false,
+    htmlAnchorFallback: B.htmlAnchorFallback === true
+  };
+}
+
+// tts 运行时候选语音选择（与 js/domains/features/tts.js 的运行时算法同源）：
+//   voiceBy='lang'（默认）= voice.lang 精确/前缀匹配页面语言；voiceBy='name' = voice.name 含语言显示名
+//   （Intl.DisplayNames 的英文名与页面语言名，兼容 lang 标签不可靠的平台），name 无命中回退 lang；
+//   preferDefaultVoice 默认 true = 命中集合内按 localService(2 分)/default(1 分) 取最高分（稳定序）；
+//   false = 取平台返回顺序首个；整体无命中返回 null（由调用方回退浏览器默认语音）。
+function ttsLanguageNames(lang) {
+  const base = String(lang == null ? '' : lang).toLowerCase().split(/[-_]/)[0];
+  if (!base) return [];
+  const out = [];
+  ['en', base].forEach(function (loc) {
+    try {
+      const display = new Intl.DisplayNames([loc], { type: 'language' });
+      const name = display.of(base);
+      if (name) {
+        const v = String(name).toLowerCase();
+        if (out.indexOf(v) === -1) out.push(v);
+      }
+    } catch (e) { /* 忽略：环境无 Intl.DisplayNames 时该语言名不参与匹配 */ }
+  });
+  return out;
+}
+
+function pickTtsVoice(voices, lang, cfg) {
+  const list = Array.isArray(voices) ? voices.filter(function (v) { return v && typeof v === 'object'; }) : [];
+  if (!list.length) return null;
+  const c = cfg || {};
+  const exact = String(lang == null ? '' : lang).toLowerCase();
+  const base = exact.split(/[-_]/)[0];
+  let matched = [];
+  if (c.voiceBy === 'name') {
+    const names = ttsLanguageNames(lang);
+    if (names.length) {
+      matched = list.filter(function (v) {
+        const n = String(v.name || '').toLowerCase();
+        return names.some(function (x) { return n.indexOf(x) > -1; });
+      });
+    }
+  }
+  if (!matched.length) {
+    matched = list.filter(function (v) { return String(v.lang || '').toLowerCase() === exact; });
+    if (!matched.length && base) {
+      matched = list.filter(function (v) {
+        const vl = String(v.lang || '').toLowerCase();
+        return vl === base || vl.indexOf(base + '-') === 0;
+      });
+    }
+  }
+  if (!matched.length) return null;
+  if (c.preferDefaultVoice === false) return matched[0];
+  let best = matched[0], bestScore = -1;
+  matched.forEach(function (v) {
+    const score = (v.localService === true ? 2 : 0) + (v.default === true ? 1 : 0);
+    if (score > bestScore) { bestScore = score; best = v; }
+  });
+  return best;
+}
+
+// tts 配置归一化：preferDefaultVoice 默认 true；voiceBy 仅接受 lang|name（其余回退 lang）；highlightParagraph 默认 false。
+function ttsConfig(features) {
+  const T = (features && features.tts) || {};
+  return {
+    preferDefaultVoice: T.preferDefaultVoice !== false,
+    voiceBy: T.voiceBy === 'name' ? 'name' : 'lang',
+    highlightParagraph: T.highlightParagraph === true
+  };
+}
+
+// reward 关闭路径门控：默认三者皆 true（现行为）；false = 对应关闭方式失效。
+function rewardCloseConfig(features) {
+  const R = (features && features.reward) || {};
+  return {
+    byBtn: R.closeByBtn !== false,
+    byOverlay: R.closeByOverlay !== false,
+    byEsc: R.closeByEsc !== false
+  };
+}
+
+// heatmap 层数钳制（2~7；非法回退 5）。
+const HEATMAP_LEVEL_MIN = 2;
+const HEATMAP_LEVEL_MAX = 7;
+function heatmapLevelCount(raw) {
+  const n = parseInt(raw, 10);
+  if (isNaN(n)) return 5;
+  return Math.min(HEATMAP_LEVEL_MAX, Math.max(HEATMAP_LEVEL_MIN, n));
+}
+
+// heatmap 配置归一化：levels 钳制 2~7；showLegend/showMonthNumbers 默认 true；文案键保留原值（空串交由回退链）。
+function heatmapConfig(features) {
+  const H = (features && features.heatmap) || {};
+  const str = function (v) { return v == null ? '' : String(v); };
+  return {
+    enabled: H.enabled !== false,
+    levels: heatmapLevelCount(H.levels),
+    showLegend: H.showLegend !== false,
+    legendLow: str(H.legendLow),
+    legendLowEn: str(H.legendLowEn),
+    legendHigh: str(H.legendHigh),
+    legendHighEn: str(H.legendHighEn),
+    tooltipFormat: str(H.tooltipFormat),
+    tooltipFormatEn: str(H.tooltipFormatEn),
+    showMonthNumbers: H.showMonthNumbers !== false
+  };
+}
+
+// 月度文章数 → 热力层级（0 = 空月；1..levels）。
+// 历史口径保留：maxCount<=2 时用 count+1 阶梯（含 levels 上限）；否则 ceil(count/maxCount*levels) 线性分桶。
+function heatmapBucketLevel(count, maxCount, levels) {
+  const c = Math.max(0, Math.floor(+count) || 0);
+  if (c <= 0) return 0;
+  const n = heatmapLevelCount(levels);
+  const m = Math.max(1, Math.floor(+maxCount) || 1);
+  if (m <= 2) return Math.min(c + 1, n);
+  return Math.max(1, Math.min(n, Math.ceil(c / m * n)));
+}
+
+// 热力色阶（l1..l(levels-1) 由浅到深，顶层为强调混色）：
+//   levels=5 时逐字保持历史色阶（25/45/65% + 实色 + 强调）；其余层数按 25%→100% 线性等分。
+function heatmapPalette(levels) {
+  const n = heatmapLevelCount(levels);
+  if (n === 5) {
+    return [
+      'color-mix(in srgb,var(--color-s) 25%,var(--color-surface))',
+      'color-mix(in srgb,var(--color-s) 45%,var(--color-surface))',
+      'color-mix(in srgb,var(--color-s) 65%,var(--color-surface))',
+      'var(--color-s)',
+      'color-mix(in srgb,var(--color-s) 40%,var(--color-a))'
+    ];
+  }
+  const out = [];
+  for (let i = 1; i < n; i++) {
+    if (i === n - 1) out.push('var(--color-s)');
+    else {
+      const pct = Math.round(25 + (i - 1) * (100 - 25) / (n - 2));
+      out.push('color-mix(in srgb,var(--color-s) ' + pct + '%,var(--color-surface))');
+    }
+  }
+  out.push('color-mix(in srgb,var(--color-s) 40%,var(--color-a))');
+  return out;
+}
+
+// 图例示色层级（不含 l0 空色）：[1, 中位, 顶层下一级] 去重。levels=5 → [1,2,4]（历史图例）。
+function heatmapLegendLevels(levels) {
+  const n = heatmapLevelCount(levels);
+  const arr = [1, Math.ceil((n - 1) / 2), n - 1];
+  return arr.filter(function (v, i) { return v >= 1 && arr.indexOf(v) === i; });
+}
+
+// 图例低/高文案链：*En（en 站）> 中文 > ui-strings 词典（dict 已按语言解析）。
+function heatmapLegendText(cfg, lang, which, dict) {
+  const c = cfg || {};
+  const en = String(lang || '') === 'en';
+  const zhKey = which === 'high' ? 'legendHigh' : 'legendLow';
+  const enKey = zhKey + 'En';
+  const v = en ? (c[enKey] || c[zhKey]) : c[zhKey];
+  return v || (dict == null ? '' : String(dict));
+}
+
+// 热力 tooltip 模板链：*En（en 站）> 中文 > 内置 `{year}-{month}: {count} <单位>`；{year}/{month}/{count} 替换。
+function heatmapTooltip(cfg, lang, year, month, count, unitZh, unitEn) {
+  const c = cfg || {};
+  const en = String(lang || '') === 'en';
+  const tpl = en ? (c.tooltipFormatEn || c.tooltipFormat) : c.tooltipFormat;
+  if (tpl) return applyTemplate(tpl, { year: year, month: month, count: count });
+  const unit = en ? (unitEn || 'posts') : (unitZh || '篇');
+  return String(year) + '-' + String(month) + ': ' + String(count) + ' ' + unit;
+}
+
+// stats 配置归一化：showArchiveCards 默认 true；linkArchive 默认 /archive/（空串 = 卡片不跳转）。
+function statsConfig(features) {
+  const s = (features && features.stats) || {};
+  const link = s.linkArchive == null ? '/archive/' : String(s.linkArchive).trim();
+  return {
+    enabled: s.enabled !== false,
+    showArchiveCards: s.showArchiveCards !== false,
+    linkArchive: link
+  };
+}
+
+// 统计标签文案链：*En（en 站）> 中文配置 > [fallbackKey 同链] > ui-strings 词典（dict 已按语言解析）。
+function statsLabel(statsRaw, lang, key, dict, fallbackKey) {
+  const cfg = statsRaw || {};
+  const en = String(lang || '') === 'en';
+  const chain = function (k) {
+    const zh = cfg[k];
+    const enVal = cfg[k + 'En'];
+    const v = en ? (enVal || zh) : zh;
+    return v == null ? '' : String(v);
+  };
+  let v = chain(key);
+  if (!v && fallbackKey) v = chain(fallbackKey);
+  return v || (dict == null ? '' : String(dict));
+}
+
+// mobile 配置归一化：searchFullscreen/touchFallback/codeScrollHint 默认 true；
+// buttonStackGap 默认 3.4rem（与历史移动端按钮堆叠步进一致，视觉不变）。
+function mobileConfig(features) {
+  const m = (features && features.mobile) || {};
+  const gap = m.buttonStackGap == null ? '' : String(m.buttonStackGap).trim();
+  return {
+    enabled: m.enabled !== false,
+    searchFullscreen: m.searchFullscreen !== false,
+    buttonStackGap: gap || '3.4rem',
+    touchFallback: m.touchFallback !== false,
+    codeScrollHint: m.codeScrollHint !== false
+  };
+}
+
+// contactPopup 配置归一化：popupWidth 默认 400px（与模板历史 max-width 一致，修复 360/400 漂移）；
+// showAllItems 默认 true（全量展示；false = 折叠到「更多」展开器）。
+function contactPopupConfig(features) {
+  const c = (features && features.contactPopup) || {};
+  const width = c.popupWidth == null ? '' : String(c.popupWidth).trim();
+  return {
+    enabled: c.enabled !== false,
+    popupWidth: width || '400px',
+    showAllItems: c.showAllItems !== false
+  };
+}
+
+// 联系弹窗复制按钮文案链：*En（en 站）> 中文 > ui-strings 词典。
+function contactCopyText(features, lang, dict) {
+  const c = (features && features.contactPopup) || {};
+  const en = String(lang || '') === 'en';
+  const v = en ? (c.copyTextEn || c.copyText) : c.copyText;
+  return v || (dict == null ? '' : String(dict));
+}
+
 module.exports = {
   normalizeThemeDarkMode,
   normalizeMarkClass,
@@ -641,5 +906,24 @@ module.exports = {
   wordCountText,
   readTimeText,
   galleryCollectFeatured,
-  imagePreserveAspectRatio
+  imagePreserveAspectRatio,
+  pickNonNegative,
+  lightboxConfig,
+  backToTopConfig,
+  ttsLanguageNames,
+  pickTtsVoice,
+  ttsConfig,
+  rewardCloseConfig,
+  heatmapLevelCount,
+  heatmapConfig,
+  heatmapBucketLevel,
+  heatmapPalette,
+  heatmapLegendLevels,
+  heatmapLegendText,
+  heatmapTooltip,
+  statsConfig,
+  statsLabel,
+  mobileConfig,
+  contactPopupConfig,
+  contactCopyText
 };

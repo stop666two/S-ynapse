@@ -26,7 +26,7 @@ const DEFAULT_FEATURES = {
     rememberPosition: true, rememberPositionMaxAgeHours: 72
   },
   backToTop: {
-    enabled: true, showAfterPx: 400, rightOffset: '2rem', bottomOffset: '2rem',
+    enabled: true, showAfterPx: 400,
     size: '44px', scrollDurationMs: 450, smoothScroll: true, hotkey: '',
     htmlAnchorFallback: false, zIndex: 999
   },
@@ -413,7 +413,7 @@ const DEFAULT_FEATURES = {
     setRetryAfter: true, retryAfter: 3600
   },
   mobile: {
-    enabled: true, searchFullscreen: true, buttonStackGap: '4rem',
+    enabled: true, searchFullscreen: true, buttonStackGap: '3.4rem',
     touchFallback: true, codeScrollHint: true,
     tocBreakpoint: 900, safeAreaBottom: true, tapHighlight: false
   },
@@ -423,7 +423,7 @@ const DEFAULT_FEATURES = {
   },
   contactPopup: {
     enabled: true, title: '联系方式', titleEn: 'Contact', copyText: '复制', copyTextEn: 'Copy',
-    popupWidth: '360px', showAllItems: true,
+    popupWidth: '400px', showAllItems: true,
     showIcon: true, copySuccessText: '', copySuccessTextEn: '', maxItems: 4
   },
   performance: { warningJsKb: 80, warningHtmlKb: 400, warningImageKb: 300, warningBuildMs: 30000 },

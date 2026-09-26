@@ -66,17 +66,17 @@
     // 计数器文本模板。{current} 当前索引,{total} 总数。
     counterFormat: '{current} / {total}',
     // 图片最大宽度(占视口百分比)。
-    // ⚠ 未接线（预留）：与 features.imageFit.lightbox.maxWidthPct 同义（实际生效 imageFit，保留兼容）。
+    // 专键优先；未设/非法回退兼容旧键 features.imageFit.lightbox.maxWidthPct，再回退 92。
     maxWidthVw: '92',
     // 图片最大尺寸上限(px)。
     maxSizePx: '1600',
     // 图片最大高度(占视口百分比)。
     maxHeightVh: '82',
-    // 打开动画时长(ms)。
-    // ⚠ 未接线（预留）：灯箱打开/切换动画由 CSS transition（features.lightbox.transitionDurationMs）统一控制，独立补间未实现。
+    // 打开动画时长(ms;0=瞬时)。
+    // 专键优先；未设回退通用 transitionDurationMs，再回退 220；尊重系统减少动效。
     openDurationMs: 180,
-    // 切换动画时长(ms)。
-    // ⚠ 未接线（预留）：灯箱打开/切换动画由 CSS transition（features.lightbox.transitionDurationMs）统一控制，独立补间未实现。
+    // 切换动画时长(ms;0=瞬时)。
+    // 专键优先；未设回退通用 transitionDurationMs，再回退 220；尊重系统减少动效。
     switchDurationMs: 120,
     // 遮罩背景透明度(0~1)。
     backdropOpacity: '0.9',
@@ -140,16 +140,12 @@
     enabled: true,
     // 滚动多少像素后显示按钮。
     showAfterPx: 400,
-    // 距右边缘距离。
-    // ⚠ 未接线（预留）：与 tuning.backToTop.offsetSide 同义（实际生效 tuning，保留兼容）。
-    rightOffset: '2rem',
-    // 距底边距离。
-    // ⚠ 未接线（预留）：与 tuning.backToTop.offsetBottom 同义（实际生效 tuning，保留兼容）。
-    bottomOffset: '2rem',
+    // 距右边缘距离与距底边距离：唯一来源为 tuning.backToTop.offsetSide / offsetBottom。
+    // （原 features.backToTop.rightOffset/bottomOffset 重复键已于 2026-09-27 第六轮删除，迁移见 CHANGELOG。）
     // 按钮尺寸(px)。
     size: '44px',
-    // 滚动回顶部动画时长(ms)。
-    // ⚠ 未接线（预留）：返回顶部用原生 scrollTo（smooth/auto 由 smoothScroll 控制），自定义时长与无 JS 锚点回退未实现。
+    // 滚动回顶部动画时长(ms;0=瞬时;rAF 缓动实现)。
+    // 尊重 smoothScroll=false（瞬时）与系统减少动效；点击按钮与快捷键共用。
     scrollDurationMs: 450,
     // 是否平滑滚动。
     smoothScroll: true,
@@ -157,7 +153,7 @@
     // 仅在非输入框且无 Ctrl/Cmd/Alt 修饰键时生效。
     hotkey: '',
     // 无 JS 时的 HTML 锚点按钮(向后兼容)。
-    // ⚠ 未接线（预留）：返回顶部用原生 scrollTo（smooth/auto 由 smoothScroll 控制），自定义时长与无 JS 锚点回退未实现。
+    // true = 页面输出 <noscript> 锚点链接（#top，样式与返回顶部按钮一致）；JS 可用时由 #btt 接管。
     htmlAnchorFallback: false,
     // 按钮层叠顺序(z-index)。与其他浮层冲突时调大。
     zIndex: 999
@@ -960,18 +956,18 @@
     pitch: 1,
     // 音量。
     volume: 1,
-    // 是否使用系统首选语音。
-    // ⚠ 未接线（预留）：语音选择与逐句高亮实现固定（highlightParagraph 与 highlightReading 重叠）。
+    // 是否优先本地服务/系统默认语音：true = 命中语音中按 localService(优先)/default 评分取最高；
+    // false = 取平台返回顺序首个。无命中时回退浏览器默认语音。
     preferDefaultVoice: true,
-    // 语音选择依据:auto/lang。
-    // ⚠ 未接线（预留）：语音选择与逐句高亮实现固定（highlightParagraph 与 highlightReading 重叠）。
+    // 语音选择依据：'lang' = 按 voice.lang 匹配页面语言；'name' = 按 voice.name 含语言显示名匹配
+    // （兼容 lang 标签不可靠的平台），无命中自动回退 'lang' 策略。
     voiceBy: 'lang',
     // 朗读区域选择器。
     readSelector: '.post-content',
     // 按钮图标:speaker/book。
     icon: 'speaker',
-    // 是否高亮正在朗读段落(实验性)。
-    // ⚠ 未接线（预留）：语音选择与逐句高亮实现固定（highlightParagraph 与 highlightReading 重叠）。
+    // 是否高亮正在朗读段落(实验性)：true = 逐段朗读并给当前段落加 highlightClass，
+    // 停止/切段自动清理；接管高亮后 highlightReading 的字级边界高亮不再叠加。
     highlightParagraph: false,
     // 朗读时逐句高亮当前句子(需浏览器支持 utterance boundary 事件)。
     highlightReading: true,
@@ -1311,14 +1307,11 @@
     popupTitle: '打赏支持',
     // 弹窗标题（en 站；空 = 回退中文）。
     popupTitleEn: 'Support this site',
-    // 弹窗关闭方式:按钮。
-    // ⚠ 未接线（预留）：弹窗固定支持按钮/遮罩/Esc 三种关闭方式（不可单独禁用）。
+    // 弹窗关闭方式:按钮(false = 关闭按钮失效)。
     closeByBtn: true,
-    // 弹窗关闭方式:点击遮罩。
-    // ⚠ 未接线（预留）：弹窗固定支持按钮/遮罩/Esc 三种关闭方式（不可单独禁用）。
+    // 弹窗关闭方式:点击遮罩(false = 点遮罩不关闭)。
     closeByOverlay: true,
-    // 弹窗关闭方式:Esc 键。
-    // ⚠ 未接线（预留）：弹窗固定支持按钮/遮罩/Esc 三种关闭方式（不可单独禁用）。
+    // 弹窗关闭方式:Esc 键(false = Esc 不关闭)。
     closeByEsc: true,
     // 二维码尺寸(px)。
     qrSize: '180px',
@@ -1413,36 +1406,28 @@
   heatmap: {
     // 启用归档页年历热力图。
     enabled: true,
-    // 热力层级数(2~7)。
-    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
+    // 热力层级数(2~7；越界钳制；非法回退 5)。
     levels: 5,
     // 层数配色模式:auto(按最大月文章数分级)/fixed(自定义色表)。
     scaling: 'auto',
     // 自定义色表(从低到高,仅 scaling=fixed 有效,可为 CSS 颜色数组)。
     palette: [],
     // 是否显示图例(少→多)。
-    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     showLegend: true,
-    // 图例低值文字。
-    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
+    // 图例低值文字（en 站空 = 回退中文；两者皆空回退 ui-strings archive.legendLow）。
     legendLow: '少',
     // 图例低值文字（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     legendLowEn: 'Less',
-    // 图例高值文字。
-    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
+    // 图例高值文字（en 站空 = 回退中文；两者皆空回退 ui-strings archive.legendHigh）。
     legendHigh: '多',
     // 图例高值文字（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     legendHighEn: 'More',
-    // 悬停提示模板:{year}-{month}: {count} 篇。
-    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
+    // 悬停提示模板:{year}-{month}: {count} 篇（占位符 {year}/{month}/{count}）。
+    // 空 = 回退内置 `{year}-{month}: {count} <文章单位>`（单位取 ui-strings archive.postUnit）。
     tooltipFormat: '{year}-{month}: {count} 篇',
     // 悬停提示模板（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     tooltipFormatEn: '{year}-{month}: {count} posts',
-    // 是否显示每月数字。
-    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
+    // 是否显示每月数字（false = 单元格仅保留色块与悬停提示）。
     showMonthNumbers: true,
     // 单元格间距(px,热力图 12 列之间的 gap)。
     gap: '3px',
@@ -1460,55 +1445,42 @@
   stats: {
     // 启用站点统计。
     enabled: true,
-    // 归档页显示统计卡片。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
+    // 归档页显示统计卡片(false = 不渲染整个统计卡网格)。
     showArchiveCards: true,
     // 统计标签文案(顺序:文章/天数/字数/日均/标签/分类)。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
+    // 文案链:*En(en 站)> 中文配置 > ui-strings.archive.stat*(词典)。
     labelPosts: '文章总数',
     // 文章总数标签（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelPostsEn: 'Posts',
     // 发文天数标签。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelDays: '发文天数',
     // 发文天数标签（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelDaysEn: 'Days',
     // 总字数标签。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelWords: '总字数',
     // 总字数标签（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelWordsEn: 'Words',
-    // 日均篇数标签。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
+    // 日均篇数标签(归档卡第 4 项次回退)。
     labelAvg: '日均篇数',
     // 日均篇数标签（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelAvgEn: 'Avg/Day',
-    // 归档页日均标签(archive 统计卡专用)。
+    // 归档页日均标签(archive 统计卡专用,优先于 labelAvg)。
     labelAvgPerDay: '日均',
     // 归档页日均标签（en 站；空 = 回退中文）。
     labelAvgPerDayEn: 'Avg/Day',
     // 标签数标签。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelTags: '标签数',
     // 标签数标签（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelTagsEn: 'Tags',
     // 分类数标签。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelCategories: '分类数',
     // 分类数标签（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelCategoriesEn: 'Categories',
     // 统计卡网格列模式(auto-fit 自适应列数;也可填固定列数如 3)。
     cardColumns: 'auto-fit',
     // 侧栏统计 widget 总开关(sidebar.json5 需含 type=stats 的 widget)。
     showSidebar: true,
-    // 卡片点击跳转(空=不跳)。
-    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
+    // 卡片点击跳转目标(空 = 卡片不跳转)。
     linkArchive: '/archive/'
   },
 
@@ -1638,17 +1610,14 @@
   mobile: {
     // 启用移动端交互优化(抽屉关闭等)。
     enabled: true,
-    // 移动端搜索是否改为全屏。
-    // ⚠ 未接线（预留）：移动端细节实现固定（搜索全屏/按钮堆叠由 tuning 位置控制；触屏悬停与滚动提示未实现）。
+    // 移动端搜索是否全屏模式：true(默认)=全屏遮罩层(现状)；false=非全屏（透明遮罩 + 头部下方下拉面板）。
     searchFullscreen: true,
-    // 移动端目录按钮与返回顶部间距(px)。
-    // ⚠ 未接线（预留）：移动端细节实现固定（搜索全屏/按钮堆叠由 tuning 位置控制；触屏悬停与滚动提示未实现）。
-    buttonStackGap: '4rem',
-    // 触摸屏悬停菜单自动展开。
-    // ⚠ 未接线（预留）：移动端细节实现固定（搜索全屏/按钮堆叠由 tuning 位置控制；触屏悬停与滚动提示未实现）。
+    // 移动端目录按钮与返回顶部按钮的堆叠步进（相对 tuning.mobileToc.btnMobileBottom 基准调整）。
+    // 默认 3.4rem = 历史步进（视觉不变）；调大上移目录按钮。
+    buttonStackGap: '3.4rem',
+    // 触摸屏 hover-only 控件替代交互：true = 触屏设备点击/聚焦显形（pre 复制、标题锚点、Mermaid 复制、卡片遮罩）。
     touchFallback: true,
-    // 移动端代码块横向滚动提示。
-    // ⚠ 未接线（预留）：移动端细节实现固定（搜索全屏/按钮堆叠由 tuning 位置控制；触屏悬停与滚动提示未实现）。
+    // 超宽代码块横向滚动提示：true = 可滚动代码块显示「可横向滚动」提示，首次横滚后自动隐藏（减少动效安全）。
     codeScrollHint: true,
     // 移动端 TOC 按钮断点(px,≤ 该宽度显示按钮)。
     tocBreakpoint: 900,
@@ -1694,19 +1663,19 @@
     title: '联系方式',
     // 弹窗标题（en 站；空 = 回退中文）。
     titleEn: 'Contact',
-    // 复制按钮文本。
+    // 复制按钮文本(值块 title/aria 与键盘复制提示)。
+    // 文案链:*En(en 站)> 中文 > ui-strings.common.copy。
     copyText: '复制',
     // 复制按钮文本（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：弹窗宽度模板固定 400px（与默认 360px 存在漂移，待统一）；复制文案由 ui-strings 提供；条目全量展示。
     copyTextEn: 'Copy',
     // 复制成功提示(留空则用内置双语文案 toolbar.copyDoneToast)。
     copySuccessText: '',
     // 复制成功提示英文（en 站；空 = 回退内置双语 toast）。
     copySuccessTextEn: '',
     // 弹窗宽度(px)。
-    popupWidth: '360px',
-    // 显示社交项(CG 配置社交链接中带弹窗样式)。
-    // ⚠ 未接线（预留）：弹窗宽度模板固定 400px（与默认 360px 存在漂移，待统一）；复制文案由 ui-strings 提供；条目全量展示。
+    // 默认 400px（与模板历史 max-width 一致；原 360px 默认值从未生效，第六轮按视觉不变修正）。
+    popupWidth: '400px',
+    // 是否全量展示条目：false = 超过 2 条折叠为「更多」展开器（默认 true = 全部展示）。
     showAllItems: true,
     // 弹窗顶部是否显示图标。
     showIcon: true,

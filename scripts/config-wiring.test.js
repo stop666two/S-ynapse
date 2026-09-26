@@ -560,3 +560,201 @@ test('collectGalleryImages：collectFeatured 两态（含封面 / 仅正文图�
   const off = mod.collectGalleryImages(articles, { collectFeatured: false }).map(i => i.src);
   assert.deepStrictEqual(off, ['/media/inline.jpg'], '关闭封面收集');
 });
+
+// ---------------------------------------------------------------------------
+// 第六轮 W4（2026-09-27）：lightbox / backToTop / tts / reward / heatmap / stats /
+// mobile / contactPopup 接线（含 backToTop 重复键删除与默认值口径修正）。
+// ---------------------------------------------------------------------------
+test('features.json5：第六轮删除项与默认值口径（backToTop 重复键 / buttonStackGap / popupWidth）', () => {
+  assert.ok(!('rightOffset' in features.backToTop), 'features.backToTop.rightOffset 应已删除（canonical: tuning.backToTop.offsetSide）');
+  assert.ok(!('bottomOffset' in features.backToTop), 'features.backToTop.bottomOffset 应已删除（canonical: tuning.backToTop.offsetBottom）');
+  assert.ok(!('rightOffset' in DEFAULT_FEATURES.backToTop), 'schema backToTop.rightOffset 应已删除');
+  assert.ok(!('bottomOffset' in DEFAULT_FEATURES.backToTop), 'schema backToTop.bottomOffset 应已删除');
+  assert.strictEqual(features.mobile.buttonStackGap, '3.4rem', 'buttonStackGap 默认对齐历史堆叠步进（视觉不变）');
+  assert.strictEqual(DEFAULT_FEATURES.mobile.buttonStackGap, '3.4rem');
+  assert.strictEqual(features.contactPopup.popupWidth, '400px', 'popupWidth 默认对齐模板历史 400px（修复 360/400 漂移）');
+  assert.strictEqual(DEFAULT_FEATURES.contactPopup.popupWidth, '400px');
+  assert.strictEqual(features.lightbox.maxWidthVw, '92');
+  assert.strictEqual(features.lightbox.openDurationMs, 180);
+  assert.strictEqual(features.lightbox.switchDurationMs, 120);
+  assert.strictEqual(features.backToTop.scrollDurationMs, 450);
+  assert.strictEqual(features.backToTop.htmlAnchorFallback, false);
+  assert.strictEqual(features.tts.preferDefaultVoice, true);
+  assert.strictEqual(features.tts.voiceBy, 'lang');
+  assert.strictEqual(features.tts.highlightParagraph, false);
+  assert.strictEqual(features.reward.closeByBtn, true);
+  assert.strictEqual(features.reward.closeByOverlay, true);
+  assert.strictEqual(features.reward.closeByEsc, true);
+  assert.strictEqual(features.heatmap.levels, 5);
+  assert.strictEqual(features.heatmap.showLegend, true);
+  assert.strictEqual(features.heatmap.showMonthNumbers, true);
+  assert.strictEqual(features.stats.showArchiveCards, true);
+  assert.strictEqual(features.stats.linkArchive, '/archive/');
+});
+
+test('lightboxConfig：专键 > 兼容旧键/通用键 > 默认；0 = 瞬时保留', () => {
+  const def = w.lightboxConfig({});
+  assert.deepStrictEqual([def.maxWidthVw, def.openDurationMs, def.switchDurationMs, def.transitionDurationMs], [92, 220, 220, 220], '缺省时分别回退 92 与通用 220');
+  const full = w.lightboxConfig(features);
+  assert.deepStrictEqual([full.maxWidthVw, full.openDurationMs, full.switchDurationMs], [92, 180, 120], '完整配置使用专键默认 180/120');
+  const custom = w.lightboxConfig({ lightbox: { maxWidthVw: '70', openDurationMs: 0, switchDurationMs: 40, transitionDurationMs: 300 } });
+  assert.deepStrictEqual([custom.maxWidthVw, custom.openDurationMs, custom.switchDurationMs], [70, 0, 40]);
+  const fbWidth = w.lightboxConfig({ imageFit: { lightbox: { maxWidthPct: 80 } } });
+  assert.strictEqual(fbWidth.maxWidthVw, 80, '未设 maxWidthVw 回退 imageFit.lightbox.maxWidthPct');
+  const fbBoth = w.lightboxConfig({ lightbox: { maxWidthVw: '', transitionDurationMs: 300 } });
+  assert.strictEqual(fbBoth.maxWidthVw, 92, '空串回退默认');
+  assert.deepStrictEqual([fbBoth.openDurationMs, fbBoth.switchDurationMs], [300, 300], '未设时长回退通用 transitionDurationMs');
+  assert.strictEqual(w.lightboxConfig({ lightbox: { openDurationMs: -5 } }).openDurationMs, 220, '负数回退');
+});
+
+test('backToTopConfig：scrollDurationMs 0=瞬时 / htmlAnchorFallback 门控 / 非负回退', () => {
+  assert.deepStrictEqual(w.backToTopConfig({}), { scrollDurationMs: 450, smoothScroll: true, htmlAnchorFallback: false });
+  const c = w.backToTopConfig({ backToTop: { scrollDurationMs: 0, smoothScroll: false, htmlAnchorFallback: true } });
+  assert.deepStrictEqual(c, { scrollDurationMs: 0, smoothScroll: false, htmlAnchorFallback: true });
+  assert.strictEqual(w.backToTopConfig({ backToTop: { scrollDurationMs: 'abc' } }).scrollDurationMs, 450);
+  assert.strictEqual(w.backToTopConfig({ backToTop: { htmlAnchorFallback: 'yes' } }).htmlAnchorFallback, false);
+});
+
+test('ttsConfig / pickTtsVoice：voiceBy 策略、preferDefaultVoice 评分、无命中回退 null', () => {
+  const def = w.ttsConfig({});
+  assert.deepStrictEqual(def, { preferDefaultVoice: true, voiceBy: 'lang', highlightParagraph: false });
+  assert.strictEqual(w.ttsConfig({ tts: { voiceBy: 'bogus' } }).voiceBy, 'lang');
+  assert.strictEqual(w.ttsConfig({ tts: { voiceBy: 'name', highlightParagraph: true, preferDefaultVoice: false } }).highlightParagraph, true);
+
+  const voices = [
+    { name: 'Wrong Tag Voice', lang: 'zh-CN', default: false, localService: false },
+    { name: 'Local Default Voice', lang: 'zh-CN', default: true, localService: true },
+    { name: 'Chinese Voice', lang: 'en-US', default: false, localService: true },
+    { name: 'Unrelated', lang: 'fr-FR', default: true, localService: true }
+  ];
+  const byLang = w.pickTtsVoice(voices, 'zh-CN', { preferDefaultVoice: true, voiceBy: 'lang' });
+  assert.strictEqual(byLang.name, 'Local Default Voice', 'lang 策略命中 zh-CN 且 localService/default 评分最高');
+  const byLangFirst = w.pickTtsVoice(voices, 'zh-CN', { preferDefaultVoice: false, voiceBy: 'lang' });
+  assert.strictEqual(byLangFirst.name, 'Wrong Tag Voice', 'preferDefaultVoice=false 取平台顺序首个');
+  const byName = w.pickTtsVoice(voices, 'zh-CN', { preferDefaultVoice: true, voiceBy: 'name' });
+  assert.strictEqual(byName.name, 'Chinese Voice', 'name 策略命中语言显示名（lang 标签不可靠时）');
+  assert.strictEqual(w.pickTtsVoice(voices, 'de-DE', { preferDefaultVoice: true, voiceBy: 'lang' }), null, '无命中回退 null');
+  assert.strictEqual(w.pickTtsVoice([], 'zh-CN', { voiceBy: 'lang' }), null);
+  assert.strictEqual(w.pickTtsVoice(undefined, 'zh-CN', {}), null);
+  assert.strictEqual(w.pickTtsVoice(voices, 'zh', { preferDefaultVoice: true, voiceBy: 'lang' }).name, 'Local Default Voice', '前缀匹配 zh');
+});
+
+test('rewardCloseConfig：默认三者 true；显式 false 各自门控', () => {
+  assert.deepStrictEqual(w.rewardCloseConfig({}), { byBtn: true, byOverlay: true, byEsc: true });
+  assert.deepStrictEqual(
+    w.rewardCloseConfig({ reward: { closeByBtn: false, closeByOverlay: false, closeByEsc: false } }),
+    { byBtn: false, byOverlay: false, byEsc: false }
+  );
+  assert.strictEqual(w.rewardCloseConfig({ reward: { closeByBtn: 0 } }).byBtn, true, '仅显式 false 才关闭');
+});
+
+test('heatmapLevelCount / heatmapBucketLevel：2~7 钳制与历史分桶口径', () => {
+  assert.strictEqual(w.heatmapLevelCount(5), 5);
+  assert.strictEqual(w.heatmapLevelCount(1), 2, '下界钳制 2');
+  assert.strictEqual(w.heatmapLevelCount(9), 7, '上界钳制 7');
+  assert.strictEqual(w.heatmapLevelCount('abc'), 5, '非法回退 5');
+  assert.strictEqual(w.heatmapLevelCount(3.9), 3, '取整');
+
+  assert.strictEqual(w.heatmapBucketLevel(0, 10, 5), 0);
+  assert.strictEqual(w.heatmapBucketLevel(10, 10, 5), 5);
+  assert.strictEqual(w.heatmapBucketLevel(1, 10, 5), 1);
+  assert.strictEqual(w.heatmapBucketLevel(6, 10, 5), 3);
+  assert.strictEqual(w.heatmapBucketLevel(1, 1, 5), 2, 'maxCount<=2 历史阶梯 count+1');
+  assert.strictEqual(w.heatmapBucketLevel(2, 2, 5), 3);
+  assert.strictEqual(w.heatmapBucketLevel(1, 2, 3), 2);
+  assert.strictEqual(w.heatmapBucketLevel(5, 2, 5), 5, '阶梯不超层数');
+  assert.strictEqual(w.heatmapBucketLevel(4, 4, 3), 3);
+});
+
+test('heatmapPalette / heatmapLegendLevels：levels=5 逐字保持历史，其他层数线性等分', () => {
+  assert.deepStrictEqual(w.heatmapPalette(5), [
+    'color-mix(in srgb,var(--color-s) 25%,var(--color-surface))',
+    'color-mix(in srgb,var(--color-s) 45%,var(--color-surface))',
+    'color-mix(in srgb,var(--color-s) 65%,var(--color-surface))',
+    'var(--color-s)',
+    'color-mix(in srgb,var(--color-s) 40%,var(--color-a))'
+  ]);
+  assert.strictEqual(w.heatmapPalette(3).length, 3);
+  assert.strictEqual(w.heatmapPalette(3)[1], 'var(--color-s)');
+  assert.strictEqual(w.heatmapPalette(3)[2], 'color-mix(in srgb,var(--color-s) 40%,var(--color-a))');
+  assert.strictEqual(w.heatmapPalette(7).length, 7);
+  assert.strictEqual(w.heatmapPalette(2).length, 2);
+  assert.deepStrictEqual(w.heatmapLegendLevels(5), [1, 2, 4], '历史图例 l1/l2/l4');
+  assert.deepStrictEqual(w.heatmapLegendLevels(7), [1, 3, 6]);
+  assert.deepStrictEqual(w.heatmapLegendLevels(2), [1]);
+});
+
+test('heatmapLegendText / heatmapTooltip：文案链与占位符替换', () => {
+  const cfg = w.heatmapConfig(features);
+  assert.strictEqual(w.heatmapLegendText(cfg, 'zh', 'low', '词典'), '少');
+  assert.strictEqual(w.heatmapLegendText(cfg, 'en', 'low', 'Dict'), 'Less');
+  assert.strictEqual(w.heatmapLegendText({ legendLowEn: '' }, 'en', 'low', 'Dict'), 'Dict', 'en 空串回退词典（无中文配置时不返回空）');
+  assert.strictEqual(w.heatmapLegendText({ legendLow: '', legendLowEn: '' }, 'en', 'low', 'Dict'), 'Dict');
+  assert.strictEqual(w.heatmapTooltip(cfg, 'zh', 2026, 1, 3, '篇', 'posts'), '2026-1: 3 篇');
+  assert.strictEqual(w.heatmapTooltip(cfg, 'en', 2026, 1, 3, '篇', 'posts'), '2026-1: 3 posts');
+  assert.strictEqual(w.heatmapTooltip({ tooltipFormat: '{year}/{month}·{count}' }, 'zh', 2026, 2, 0, '篇', 'posts'), '2026/2·0');
+  assert.strictEqual(w.heatmapTooltip({ tooltipFormat: '', tooltipFormatEn: '' }, 'zh', 2026, 2, 0, '篇', 'posts'), '2026-2: 0 篇', '空模板回退内置');
+  assert.strictEqual(w.heatmapTooltip({}, 'en', 2026, 2, 7, '篇', 'posts'), '2026-2: 7 posts');
+});
+
+test('statsConfig / statsLabel：卡片开关、跳转目标与 *En > 中文 > 词典链', () => {
+  assert.deepStrictEqual(w.statsConfig({}), { enabled: true, showArchiveCards: true, linkArchive: '/archive/' });
+  assert.strictEqual(w.statsConfig({ stats: { showArchiveCards: false, linkArchive: '' } }).showArchiveCards, false);
+  assert.strictEqual(w.statsConfig({ stats: { linkArchive: '  ' } }).linkArchive, '', '空白串视为不跳转');
+  const raw = { labelPosts: '文章', labelPostsEn: 'Articles', labelTags: '', labelTagsEn: '' };
+  assert.strictEqual(w.statsLabel(raw, 'zh', 'labelPosts', '词典'), '文章');
+  assert.strictEqual(w.statsLabel(raw, 'en', 'labelPosts', 'Dict'), 'Articles');
+  assert.strictEqual(w.statsLabel(raw, 'en', 'labelTags', 'Dict'), 'Dict', '配置空串回退词典');
+  assert.strictEqual(w.statsLabel({ labelPostsEn: 'OnlyEn' }, 'en', 'labelPosts', 'Dict'), 'OnlyEn');
+  assert.strictEqual(w.statsLabel({ labelPostsEn: 'OnlyEn' }, 'zh', 'labelPosts', '词典'), '词典', 'zh 站不使用 *En');
+  assert.strictEqual(w.statsLabel({}, 'zh', 'labelAvgPerDay', '词典', 'labelAvg'), '词典');
+  assert.strictEqual(w.statsLabel({ labelAvg: '日均篇数' }, 'zh', 'labelAvgPerDay', '词典', 'labelAvg'), '日均篇数', 'fallbackKey 链');
+  assert.strictEqual(w.statsLabel({ labelAvgPerDayEn: '' , labelAvgEn: ''}, 'en', 'labelAvgPerDay', 'Dict', 'labelAvg'), 'Dict');
+});
+
+test('mobileConfig：searchFullscreen/touchFallback/codeScrollHint 门控与 gap 默认', () => {
+  assert.deepStrictEqual(w.mobileConfig({}), { enabled: true, searchFullscreen: true, buttonStackGap: '3.4rem', touchFallback: true, codeScrollHint: true });
+  const off = w.mobileConfig({ mobile: { searchFullscreen: false, touchFallback: false, codeScrollHint: false, buttonStackGap: '1rem' } });
+  assert.deepStrictEqual([off.searchFullscreen, off.touchFallback, off.codeScrollHint, off.buttonStackGap], [false, false, false, '1rem']);
+  assert.strictEqual(w.mobileConfig({ mobile: { buttonStackGap: '  ' } }).buttonStackGap, '3.4rem');
+});
+
+test('contactPopupConfig / contactCopyText：宽度漂移修正与复制文案链', () => {
+  assert.deepStrictEqual(w.contactPopupConfig({}), { enabled: true, popupWidth: '400px', showAllItems: true });
+  const off = w.contactPopupConfig({ contactPopup: { popupWidth: '320px', showAllItems: false } });
+  assert.strictEqual(off.popupWidth, '320px');
+  assert.strictEqual(off.showAllItems, false);
+  assert.strictEqual(w.contactPopupConfig({ contactPopup: { popupWidth: '' } }).popupWidth, '400px');
+  assert.strictEqual(w.contactCopyText({}, 'zh', '复制'), '复制');
+  assert.strictEqual(w.contactCopyText({ contactPopup: { copyText: '复制', copyTextEn: 'Copy it' } }, 'en', 'Copy'), 'Copy it');
+  assert.strictEqual(w.contactCopyText({ contactPopup: { copyText: '复制', copyTextEn: '' } }, 'en', 'Copy'), '复制');
+  assert.strictEqual(w.contactCopyText({}, 'en', 'Copy'), 'Copy');
+});
+
+test('ui-strings.json5：W4 新增词典键双语齐全（codeScrollHint / legendLow / legendHigh）', () => {
+  assert.ok(uiStrings.toolbar.codeScrollHint, 'zh toolbar.codeScrollHint 缺失');
+  assert.ok(uiStrings.en.toolbar.codeScrollHint, 'en toolbar.codeScrollHint 缺失');
+  assert.ok(uiStrings.archive.legendLow && uiStrings.archive.legendHigh, 'zh archive.legendLow/High 缺失');
+  assert.ok(uiStrings.en.archive.legendLow && uiStrings.en.archive.legendHigh, 'en archive.legendLow/High 缺失');
+});
+
+test('删除键无残留引用（W4：backToTop 重复键源码扫描）', () => {
+  function walk(dir, out) {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (['node_modules', '.git', 'dist', 'real-site', '.tmp-scripts'].includes(e.name)) continue;
+        walk(p, out);
+      } else out.push(p);
+    }
+    return out;
+  }
+  const pats = [/backToTop\.(rightOffset|bottomOffset)/];
+  const offenders = [];
+  for (const f of walk(ROOT, [])) {
+    if (!/\.(js|ejs)$/.test(f) || f.endsWith('.test.js')) continue;
+    const src = fs.readFileSync(f, 'utf-8');
+    for (const p of pats) if (p.test(src)) offenders.push(path.relative(ROOT, f) + ' :: ' + p);
+  }
+  assert.deepStrictEqual(offenders, []);
+});

@@ -119,6 +119,8 @@
     copyAllCode: '复制全部代码', copyFailed: '复制失败',
     expandAll: '展开全文', collapseAll: '收起',
     copyDoneToast: '已复制到剪贴板',
+    // 超宽代码块横向滚动提示（features.mobile.codeScrollHint；首次横滚后自动隐藏）
+    codeScrollHint: '可横向滚动',
     // 外链提醒浮层复制按钮（features.externalLink.copyButtonText 为空时的回退文案）
     copyLink: '复制链接',
     linkBlocked: '该链接被站点屏蔽',
@@ -130,6 +132,7 @@
   // 归档页
   archive: {
     title: '归档', statPosts: '文章总数', statDays: '发文天数', postUnit: '篇', legend: '少 → 多',
+    legendLow: '少', legendHigh: '多',
     statWords: '总字数', statAvg: '日均篇数', statTags: '标签数',
     statCats: '分类数', heatmap: '年每月文章数热力图', textArticle: '文章', heatmapSuffix: '热力图',
     empty: '暂无归档', count: '{count} 文章',
@@ -372,6 +375,7 @@
       copyAllCode: 'Copy all code', copyFailed: 'Copy failed',
       downloadCode: 'Download code', expandAll: 'Expand all', collapseAll: 'Collapse',
       copyDoneToast: 'Copied to clipboard',
+      codeScrollHint: 'Scroll horizontally',
       copyLink: 'Copy link',
       linkBlocked: 'Link blocked',
       extLinkBlocked: 'External links are blocked by site policy',
@@ -379,6 +383,7 @@
     },
     archive: {
       title: 'Archive', statPosts: 'Posts', statDays: 'Days', postUnit: 'posts', legend: 'Less → More',
+      legendLow: 'Less', legendHigh: 'More',
       statWords: 'Words', statAvg: 'Avg/Day', statTags: 'Tags',
       statCats: 'Categories', heatmap: 'Monthly post heatmap', textArticle: 'articles', heatmapSuffix: 'heatmap',
       empty: 'No archives', count: '{count} posts',

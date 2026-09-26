@@ -7,13 +7,14 @@ export function init() {
     var url = window.location.href, title = document.title || '';
     var SH = window.__FEATURES__ && window.__FEATURES__.share || {};
     var __en = (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
-    var showCopied = function () { if (window.__toast) window.__toast(__en ? (SH.copiedTextEn || SH.copiedText || __T('post.linkCopied', '链接已复制')) : (SH.copiedText || __T('post.linkCopied', '链接已复制')), { type: 'success' }); };
+    var showCopied = function () { var ms = +SH.copiedShowMs; if (window.__toast) window.__toast(__en ? (SH.copiedTextEn || SH.copiedText || __T('post.linkCopied', '链接已复制')) : (SH.copiedText || __T('post.linkCopied', '链接已复制')), { type: 'success', duration: isNaN(ms) ? undefined : ms }); };
     if (SH.useNativeShare && navigator.share && kind !== 'copy' && kind !== 'wechat') {
       navigator.share({ title: title, url: url }).catch(function () {});
       return;
     }
     if (kind === 'copy' || kind === 'wechat') {
-      var txt = (kind === 'wechat' ? title + '\n' : '') + url;
+      var tpl = (__en && SH.wechatTextEn) ? SH.wechatTextEn : SH.wechatText;
+      var txt = (kind === 'wechat' && tpl) ? String(tpl).replace(/\{title\}/g, title).replace(/\{url\}/g, url) : ((kind === 'wechat' ? title + '\n' : '') + url);
       var legacyCopy = function () {
         var ta = document.createElement('textarea');
         ta.value = txt;
@@ -39,6 +40,6 @@ export function init() {
     else if (kind === 'x') href = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(title);
     else if (kind === 'facebook') href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
     else if (kind === 'mail') href = 'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(url);
-    window.open(href, '_blank', 'noopener,width=640,height=520');
+    window.open(href, '_blank', 'noopener,width=' + (isNaN(+SH.popupWidth) ? 640 : +SH.popupWidth) + ',height=' + (isNaN(+SH.popupHeight) ? 520 : +SH.popupHeight));
   });
 }

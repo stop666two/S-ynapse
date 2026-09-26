@@ -112,9 +112,13 @@ function applyCjkSpacingToHtml(html) {
 
 // Extract table of contents from rendered HTML by finding h2-h4 elements
 // that have heading-anchor links. Returns array of {level, id, text} sorted by DOM order.
-function extractToc(html) {
+function extractToc(html, minLevel, maxLevel) {
+  // TOC 层级来自 features.toc.minLevel/maxLevel；正文标题锚点由 markdown.js 仅对 h2–h4 生成，
+  // 故本函数将层级收敛到受支持的 2–4（minLevel 默认 2，maxLevel 默认 4）。
+  const lo = Math.min(4, Math.max(2, parseInt(minLevel, 10) || 2));
+  const hi = Math.max(lo, Math.min(4, parseInt(maxLevel, 10) || 4));
   const toc = [];
-  const regex = /<h([2-4])\s+id="([^"]+)"[^>]*>.*?<a[^>]*class="heading-anchor"[^>]*>#<\/a>(.*?)<\/h\1>/gi;
+  const regex = new RegExp('<h([' + lo + '-' + hi + '])\\s+id="([^"]+)"[^>]*>.*?<a[^>]*class="heading-anchor"[^>]*>#<\\/a>(.*?)<\\/h\\1>', 'gi');
   let match;
   while ((match = regex.exec(html)) !== null) {
     toc.push({

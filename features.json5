@@ -66,14 +66,17 @@
     // 计数器文本模板。{current} 当前索引,{total} 总数。
     counterFormat: '{current} / {total}',
     // 图片最大宽度(占视口百分比)。
+    // ⚠ 未接线（预留）：与 features.imageFit.lightbox.maxWidthPct 同义（实际生效 imageFit，保留兼容）。
     maxWidthVw: '92',
     // 图片最大尺寸上限(px)。
     maxSizePx: '1600',
     // 图片最大高度(占视口百分比)。
     maxHeightVh: '82',
     // 打开动画时长(ms)。
+    // ⚠ 未接线（预留）：灯箱打开/切换动画由 CSS transition（features.lightbox.transitionDurationMs）统一控制，独立补间未实现。
     openDurationMs: 180,
     // 切换动画时长(ms)。
+    // ⚠ 未接线（预留）：灯箱打开/切换动画由 CSS transition（features.lightbox.transitionDurationMs）统一控制，独立补间未实现。
     switchDurationMs: 120,
     // 遮罩背景透明度(0~1)。
     backdropOpacity: '0.9',
@@ -138,12 +141,15 @@
     // 滚动多少像素后显示按钮。
     showAfterPx: 400,
     // 距右边缘距离。
+    // ⚠ 未接线（预留）：与 tuning.backToTop.offsetSide 同义（实际生效 tuning，保留兼容）。
     rightOffset: '2rem',
     // 距底边距离。
+    // ⚠ 未接线（预留）：与 tuning.backToTop.offsetBottom 同义（实际生效 tuning，保留兼容）。
     bottomOffset: '2rem',
     // 按钮尺寸(px)。
     size: '44px',
     // 滚动回顶部动画时长(ms)。
+    // ⚠ 未接线（预留）：返回顶部用原生 scrollTo（smooth/auto 由 smoothScroll 控制），自定义时长与无 JS 锚点回退未实现。
     scrollDurationMs: 450,
     // 是否平滑滚动。
     smoothScroll: true,
@@ -151,6 +157,7 @@
     // 仅在非输入框且无 Ctrl/Cmd/Alt 修饰键时生效。
     hotkey: '',
     // 无 JS 时的 HTML 锚点按钮(向后兼容)。
+    // ⚠ 未接线（预留）：返回顶部用原生 scrollTo（smooth/auto 由 smoothScroll 控制），自定义时长与无 JS 锚点回退未实现。
     htmlAnchorFallback: false,
     // 按钮层叠顺序(z-index)。与其他浮层冲突时调大。
     zIndex: 999
@@ -167,7 +174,7 @@
     // 搜索结果数量上限。
     maxResults: 30,
     // 是否高亮命中词。
-    // 预留: 当前命中高亮由 features.searchHighlight.enabled / maxMatches 控制，本键未接线。
+    // 说明: 与 features.searchHighlight 联动——两者任一为 false 即不高亮（maxMatches 仍由 searchHighlight 控制）。
     highlightMatches: true,
     // 是否显示文章总数提示。
     // 预留: 当前搜索结果数恒显示，未按下述开关门控，本键未接线。
@@ -206,16 +213,15 @@
     // 正文匹配权重。
     // 预留: 当前前端无加权排序算法，本键未接线。
     weightContent: 1,
-    // 关闭方式:点击遮罩。
-    // 预留: 当前“点击遮罩关闭”固定生效，未受本键控制，本键未接线。
+    // 关闭方式:点击遮罩（false = 点击遮罩不关闭）。
     closeOnOverlay: true,
-    // 打开后是否自动聚焦输入框。
-    // 预留: 当前打开后恒自动聚焦，本键未接线。
+    // 打开后是否自动聚焦输入框（false = 需手动点击输入框）。
     focusOnOpen: true,
     // 打开动画方式。
     // 类型: string | 可填: 'fade'(默认,弹层淡入)/'slide'(自下而上滑入)
     openAnimation: 'fade',
     // 是否支持拼音首字母匹配(实验)。
+    // ⚠ 未接线（预留）：前端检索实现固定（仅标题/摘要/正文子串匹配，无加权与拼音）；文案由 navigation/ui-strings 提供。
     pinyinFuzzy: false,
     // 输入防抖间隔(ms)。停止输入该时长后才执行检索,减少频繁重查。
     debounceMs: 120,
@@ -247,6 +253,7 @@
     // 前 N 张图片立即加载(视口顶部),不做懒加载。
     eagerFirst: 3,
     // 是否保留 width/height 防止布局抖动。
+    // ⚠ 未接线（预留）：构建期已恒输出 width/height 防抖；关闭需改构建模板，未接线。
     preserveAspectRatio: true,
     // 构建期生成 LQIP 模糊占位(内联 base64 背景;图片加载时先模糊后清晰,推荐)。
     lqip: true,
@@ -341,10 +348,13 @@
     // 是否默认 target=_blank。
     openInNewTab: true,
     // 白名单链接是否也加 target。
+    // ⚠ 未接线（预留）：白名单链路不做 target 改写；联系弹窗为图标点击复制，无按钮文案位。
     whitelistNewTab: false,
     // 联系/社交弹窗复制按钮文本。
+    // ⚠ 未接线（预留）：白名单链路不做 target 改写；联系弹窗为图标点击复制，无按钮文案位。
     copyButtonText: '复制',
     // 复制按钮文本（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：白名单链路不做 target 改写；联系弹窗为图标点击复制，无按钮文案位。
     copyButtonTextEn: 'Copy'
   },
 
@@ -355,14 +365,16 @@
     // 启用明暗切换按钮(需 theme.json5 darkMode.enabled)。
     enabled: true,
     // 默认主题:light/dark/system。
+    // ⚠ 未接线（预留）：实际由 theme.darkMode.default 与模板固定行为控制（同义键，保留兼容）。
     defaultTheme: 'system',
     // 是否记住用户选择(localStorage)。
+    // ⚠ 未接线（预留）：实际由 theme.darkMode.default 与模板固定行为控制（同义键，保留兼容）。
     rememberChoice: true,
-    // 切换动画时长(ms)。
-    animationMs: 250,
     // 按钮图标:auto/sun-moon/toggle。
+    // ⚠ 未接线（预留）：实际由 theme.darkMode.default 与模板固定行为控制（同义键，保留兼容）。
     iconStyle: 'sun-moon',
     // 切换时过渡所有元素(否则仅 body)。
+    // ⚠ 未接线（预留）：实际由 theme.darkMode.default 与模板固定行为控制（同义键，保留兼容）。
     transitionAll: true,
     // 主题选择的 localStorage 键名。
     persistKey: 'ss-theme',
@@ -429,6 +441,7 @@
     // 关闭弹窗/抽屉(通用)。
     close: 'Escape',
     // 显示帮助提示按钮。
+    // ⚠ 未接线（预留）：帮助提示按钮未实现（快捷键 ? 恒可开帮助面板）。
     showHelpHint: true,
     // 帮助面板标题。
     helpTitle: '快捷键一览',
@@ -454,6 +467,7 @@
     // 是否折叠子级。
     collapsible: true,
     // 默认展开层级。
+    // ⚠ 未接线（预留）：默认展开层级未实现（折叠由 collapsible + tuning.toc.collapsedByDefault 控制）。
     defaultOpenLevel: 2,
     // 高亮当前阅读章节。
     highlightActive: true,
@@ -554,6 +568,7 @@
     // 回退策略:firstParagraph(取正文首段)。
     fallback: 'firstParagraph',
     // 是否剥离 Markdown 语法(链接/强调标记等)。
+    // ⚠ 未接线（预留）：摘要由渲染后 HTML 去标签生成，Markdown 已天然剥离；frontmatter excerpt 原样使用。
     stripMarkdown: true,
     // 截断时的省略号。
     ellipsis: '…'
@@ -659,18 +674,17 @@
 
   // ---------------------------------------------------------------------------
   hotSearches: {
-    // 本地记录搜索词,搜索框下拉显示（当前生效键仅 enabled 与 storageKey：
-    // 下拉实际展示「最近搜索」，由 renderHistory 渲染；
-    // top/showInDropdown/showClear 为预留键，暂无消费方——热门词列表 UI 尚未实现，
-    // 文档同步标注见 docs/config-reference.md §3.4「未接线预留键」）
+    // 本地记录搜索词并按词频生成「热门搜索」，搜索框下拉展示。
+    // 实现: 最近搜索存 storageKey（数组），词频存 storageKey+':hot'（对象，最多 50 词）；
+    //       空输入/聚焦时渲染「热门搜索」（top 条）+「最近搜索」，showClear 提供清空热门词按钮。
     enabled: true,
-    // 显示条数。
+    // 热门搜索显示条数。
     top: 5,
-    // localStorage 存储键。
+    // localStorage 存储键（词频键为 storageKey + ':hot'）。
     storageKey: 's-hotSearches',
-    // 是否在搜索下拉中展示。
+    // 是否在搜索下拉中展示热门搜索（false = 仅显示最近搜索）。
     showInDropdown: true,
-    // 是否提供清空按钮。
+    // 是否提供清空热门词的按钮。
     showClear: true
   },
 
@@ -709,6 +723,7 @@
     // 是否显示行号。
     showLineNumbers: false,
     // 是否复用代码窗栏(主题切换器按钮共用)。
+    // ⚠ 未接线（预留）：代码窗栏复用由 features.codeBlock.windowBar 控制（同义键）。
     includeWindowBar: true
   },
 
@@ -729,6 +744,7 @@
     // 搜索结果关键词高亮。
     enabled: true,
     // 高亮 span 类名。
+    // ⚠ 未接线（预留）：高亮使用内置 <mark> 标签，未附加自定义类名。
     markClass: 'search-hit',
     // 每篇结果最大高亮次数(防止长文爆量)。
     maxMatches: 20
@@ -753,12 +769,14 @@
     // 首页生效。
     showOnHome: true,
     // 归档页生效。
+    // ⚠ 未接线（预留）：归档页封面与卡片比例由 theme.card / tuning.card.imageAspect 控制（近似同义键）。
     showOnArchive: true,
     // 无封面时的回退形态。
     // 类型: string | 可填: 'pattern'(渐变占位块,显示标题文字,默认) | 'none'(纯文字卡片,不渲染占位块)
     // 推荐: 'pattern'
     fallback: 'pattern',
     // 封面图宽高比。
+    // ⚠ 未接线（预留）：归档页封面与卡片比例由 theme.card / tuning.card.imageAspect 控制（近似同义键）。
     aspectRatio: '21/9',
     // 封面懒加载。
     lazy: true,
@@ -826,8 +844,10 @@
     // 按钮顺序:home/archive/search/theme（可加 top）。
     items: ['home', 'archive', 'search', 'theme'],
     // 是否仅移动端显示。
+    // ⚠ 未接线（预留）：CSS 恒仅移动端显示；安全区由 features.mobile.safeAreaBottom 控制。
     onlyMobile: true,
     // 是否适配 iOS 安全区(safe-area-inset-bottom)。
+    // ⚠ 未接线（预留）：CSS 恒仅移动端显示；安全区由 features.mobile.safeAreaBottom 控制。
     useSafeArea: true,
     // 以下标签为空 = 走 ui-strings.json5 的 bottomNav.* 双语词典（推荐保持空）。
     // 标签覆盖:首页。
@@ -847,12 +867,15 @@
     // 增量构建:源文件未变化时跳过页面重渲染。
     enabled: true,
     // 强制全量构建的参数。
+    // ⚠ 未接线（预留）：预留：增量构建方案未实现（见 docs/incremental-build-design.md）。
     fullFlag: '--full',
     // 是否允许 --watch 时增量。
     watch: true,
     // 指纹算法。
+    // ⚠ 未接线（预留）：预留：增量构建方案未实现（见 docs/incremental-build-design.md）。
     fingerprintHash: 'sha1',
     // 指纹一致时跳过该页。
+    // ⚠ 未接线（预留）：预留：增量构建方案未实现（见 docs/incremental-build-design.md）。
     skipUnchanged: true
   },
 
@@ -902,6 +925,7 @@
     // 按钮文本（en 站；空 = 回退中文）。
     labelEn: 'Reading Mode',
     // 进入阅读模式后隐藏侧栏/目录(仅保留正文)。
+    // ⚠ 未接线（预留）：阅读模式 CSS 恒仅保留正文（data-reading）。
     focusOnlyContent: true,
     // 字号倍率(1=正常)。
     fontScale: 1
@@ -965,14 +989,17 @@
     // 音量。
     volume: 1,
     // 是否使用系统首选语音。
+    // ⚠ 未接线（预留）：语音选择与逐句高亮实现固定（highlightParagraph 与 highlightReading 重叠）。
     preferDefaultVoice: true,
     // 语音选择依据:auto/lang。
+    // ⚠ 未接线（预留）：语音选择与逐句高亮实现固定（highlightParagraph 与 highlightReading 重叠）。
     voiceBy: 'lang',
     // 朗读区域选择器。
     readSelector: '.post-content',
     // 按钮图标:speaker/book。
     icon: 'speaker',
     // 是否高亮正在朗读段落(实验性)。
+    // ⚠ 未接线（预留）：语音选择与逐句高亮实现固定（highlightParagraph 与 highlightReading 重叠）。
     highlightParagraph: false,
     // 朗读时逐句高亮当前句子(需浏览器支持 utterance boundary 事件)。
     highlightReading: true,
@@ -997,14 +1024,18 @@
     // 启用双链解析。
     enabled: true,
     // 未知目标显示方式:text(纯文本)/link(死链可点)/hide(隐藏)。
+    // ⚠ 未接线（预留）：双链解析实现固定（未知目标按纯文本、区分大小写、支持自定义标签）。
     unknownMode: 'text',
     // 未知目标附加后缀文本(例如 ⚠)。
+    // ⚠ 未接线（预留）：双链解析实现固定（未知目标按纯文本、区分大小写、支持自定义标签）。
     unknownSuffix: '',
     // 站内链接是否新页打开。
     openNewTab: false,
     // 是否忽略大小写匹配标题。
+    // ⚠ 未接线（预留）：双链解析实现固定（未知目标按纯文本、区分大小写、支持自定义标签）。
     caseInsensitive: true,
     // 自定义文本优先级:使用标签可覆盖。
+    // ⚠ 未接线（预留）：双链解析实现固定（未知目标按纯文本、区分大小写、支持自定义标签）。
     allowCustomLabel: true
   },
 
@@ -1015,12 +1046,16 @@
     // 启用 ^x^ 与 ~x~ 语法。
     enabled: true,
     // 上标字符标记。
+    // ⚠ 未接线（预留）：上下标标记固定为 ^/~，构建期正则未做动态标记。
     supMarker: '^',
     // 下标字符标记。
+    // ⚠ 未接线（预留）：上下标标记固定为 ^/~，构建期正则未做动态标记。
     subMarker: '~',
     // 冲突检测:在 $...$ 公式内自动跳过(需开启)。
+    // ⚠ 未接线（预留）：上下标标记固定为 ^/~，构建期正则未做动态标记。
     skipInsideMath: false,
     // 包裹不匹配时是否保留原样。
+    // ⚠ 未接线（预留）：上下标标记固定为 ^/~，构建期正则未做动态标记。
     preserveUnmatched: true
   },
 
@@ -1031,12 +1066,15 @@
     // 启用数学公式渲染(KaTeX,按需加载)。
     enabled: true,
     // 自动检测 $..$ / $$..$$ 公式并按需加载 KaTeX。
+    // ⚠ 未接线（预留）：定界符固定为 $/$$；MathML 输出恒开。
     autoDetect: true,
     // CDN 版本。
     version: '0.16.22',
     // 行内定界符。
+    // ⚠ 未接线（预留）：定界符固定为 $/$$；MathML 输出恒开。
     inlineDelimiters: ['$'],
     // 块级定界符。
+    // ⚠ 未接线（预留）：定界符固定为 $/$$；MathML 输出恒开。
     blockDelimiters: ['$$'],
     // 渲染错误时不抛出。
     throwOnError: false,
@@ -1049,6 +1087,7 @@
     // 公式区域选择器。
     selector: '.post-content',
     // 是否包含浏览器原生 MathML 输出。
+    // ⚠ 未接线（预留）：定界符固定为 $/$$；MathML 输出恒开。
     mathml: true
   },
 
@@ -1059,10 +1098,12 @@
     // 启用 Mermaid 图表渲染。
     enabled: true,
     // 自动检测 ```mermaid 代码块并按需加载 Mermaid。
+    // ⚠ 未接线（预留）：图表检测/主题跟随实现固定（构建期 SSR）。
     autoDetect: true,
     // CDN 版本。
     version: '11.4.1',
     // 渲染主题:default/dark/neutral/base 或跟随站点主题。
+    // ⚠ 未接线（预留）：图表检测/主题跟随实现固定（构建期 SSR）。
     followTheme: true,
     // 明色主题名。
     lightTheme: 'default',
@@ -1098,10 +1139,12 @@
     // 类型: number(ms) | 推荐: 5000-30000
     renderTimeoutMs: 10000,
     // 是否显示流程图内文本的复制按钮。
+    // ⚠ 未接线（预留）：图表检测/主题跟随实现固定（构建期 SSR）。
     copyAfterRender: false,
     // 渲染失败占位文本。
     errorText: '[图表渲染失败]',
     // 渲染失败占位文本（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：图表检测/主题跟随实现固定（构建期 SSR）。
     errorTextEn: '[Diagram failed to render]',
     // 图表尺寸(全局默认;单图可在代码块 info 覆盖,写法 ```mermaid w=900 h=520)
     // 子键类型均为 string(CSS 长度)或 'none':
@@ -1130,22 +1173,29 @@
     // 启用系列功能。
     enabled: true,
     // 文章卡片显示系列徽标。
+    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
     showBadge: true,
     // 徽标文本模板:{name} 系列名。
+    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
     badgeFormat: '系列 · {name}',
     // 徽标文本模板（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
     badgeFormatEn: 'Series · {name}',
     // 文章底部显示系列导航面板。
     showNavPanel: true,
     // 侧栏系列 widget(与 sidebar.json5 widgets 联动)。
+    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
     sidebarWidget: true,
     // 系列排序:asc(时间旧→新)/desc。
     order: 'asc',
     // 导航面板标题模板。
+    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
     panelTitle: '本系列共 {total} 篇',
     // 导航面板标题模板（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
     panelTitleEn: '{total} posts in this series',
     // 系列文章前缀(自动标注,如 '第 1/3 篇')。
+    // ⚠ 未接线（预留）：模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供。
     showPosition: true,
     // 侧栏系列 widget 默认展示条数(超出截断)。
     // 类型: number(整数) | 可填: 1–20 | 推荐: 8
@@ -1181,6 +1231,7 @@
     // 最小得分(低于此不重复展示)。
     minScore: 2,
     // 是否排除当前文章。
+    // ⚠ 未接线（预留）：相关推荐恒排除当前文章。
     excludeCurrent: true,
     // 推荐区标题。
     title: '相关推荐',
@@ -1201,12 +1252,16 @@
     // 启用置顶。
     enabled: true,
     // 置顶徽标文本。
+    // ⚠ 未接线（预留）：徽标文案由 ui-strings.card.pinned 提供；样式/排序固定 pill/pinned-first。
     badgeText: '置顶',
     // 置顶徽标文本（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：徽标文案由 ui-strings.card.pinned 提供；样式/排序固定 pill/pinned-first。
     badgeTextEn: 'Pinned',
     // 置顶徽标样式:pill/corner/none。
+    // ⚠ 未接线（预留）：徽标文案由 ui-strings.card.pinned 提供；样式/排序固定 pill/pinned-first。
     badgeStyle: 'pill',
     // 置顶排序规则:pinned-first(置顶前)/normal(仅标记不重排)。
+    // ⚠ 未接线（预留）：徽标文案由 ui-strings.card.pinned 提供；样式/排序固定 pill/pinned-first。
     sortRule: 'pinned-first'
   },
 
@@ -1217,22 +1272,29 @@
     // 启用字数统计。
     enabled: true,
     // 卡片显示字数。
+    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
     onCards: true,
     // 文章正文尾部显示字数。
     inArticle: true,
     // 文本模板:{count} 字数。
+    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
     textFormat: '{count} 字',
     // 字数模板（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
     textFormatEn: '{count} words',
     // 阅读时长文本:{minutes} 分钟。
+    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
     readTimeFormat: '{minutes} 分钟阅读',
     // 阅读时长模板（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
     readTimeFormatEn: '{minutes} min read',
     // 每分钟阅读字数(中文字数计算基准)。
     wpm: 265,
     // 中文英文字数合并统计视读方式。
+    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
     countCjkChars: true,
     // 是否统计数字。
+    // ⚠ 未接线（预留）：卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定。
     countDigits: false
   },
 
@@ -1291,10 +1353,13 @@
     // 弹窗标题（en 站；空 = 回退中文）。
     popupTitleEn: 'Support this site',
     // 弹窗关闭方式:按钮。
+    // ⚠ 未接线（预留）：弹窗固定支持按钮/遮罩/Esc 三种关闭方式（不可单独禁用）。
     closeByBtn: true,
     // 弹窗关闭方式:点击遮罩。
+    // ⚠ 未接线（预留）：弹窗固定支持按钮/遮罩/Esc 三种关闭方式（不可单独禁用）。
     closeByOverlay: true,
     // 弹窗关闭方式:Esc 键。
+    // ⚠ 未接线（预留）：弹窗固定支持按钮/遮罩/Esc 三种关闭方式（不可单独禁用）。
     closeByEsc: true,
     // 二维码尺寸(px)。
     qrSize: '180px',
@@ -1338,10 +1403,12 @@
     // 卡片是否显示来源文章名。
     showSource: true,
     // 是否收集文章封面图。
+    // ⚠ 未接线（预留）：图库恒收集文章封面且始终增量收集。
     collectFeatured: true,
     // 收集排序:newest/longest。
     order: 'newest',
     // 是否包含 404 前后的图(增量,始终 true)。
+    // ⚠ 未接线（预留）：图库恒收集文章封面且始终增量收集。
     incrementalByDefault: true,
     // 单页图片数上限(0=不限)。
     maxItems: 0,
@@ -1391,26 +1458,35 @@
     // 启用归档页年历热力图。
     enabled: true,
     // 热力层级数(2~7)。
+    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     levels: 5,
     // 层数配色模式:auto(按最大月文章数分级)/fixed(自定义色表)。
     scaling: 'auto',
     // 自定义色表(从低到高,仅 scaling=fixed 有效,可为 CSS 颜色数组)。
     palette: [],
     // 是否显示图例(少→多)。
+    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     showLegend: true,
     // 图例低值文字。
+    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     legendLow: '少',
     // 图例低值文字（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     legendLowEn: 'Less',
     // 图例高值文字。
+    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     legendHigh: '多',
     // 图例高值文字（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     legendHighEn: 'More',
     // 悬停提示模板:{year}-{month}: {count} 篇。
+    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     tooltipFormat: '{year}-{month}: {count} 篇',
     // 悬停提示模板（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     tooltipFormatEn: '{year}-{month}: {count} posts',
     // 是否显示每月数字。
+    // ⚠ 未接线（预留）：热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供。
     showMonthNumbers: true,
     // 单元格间距(px,热力图 12 列之间的 gap)。
     gap: '3px',
@@ -1429,40 +1505,54 @@
     // 启用站点统计。
     enabled: true,
     // 归档页显示统计卡片。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     showArchiveCards: true,
     // 统计标签文案(顺序:文章/天数/字数/日均/标签/分类)。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelPosts: '文章总数',
     // 文章总数标签（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelPostsEn: 'Posts',
     // 发文天数标签。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelDays: '发文天数',
     // 发文天数标签（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelDaysEn: 'Days',
     // 总字数标签。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelWords: '总字数',
     // 总字数标签（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelWordsEn: 'Words',
     // 日均篇数标签。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelAvg: '日均篇数',
     // 日均篇数标签（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelAvgEn: 'Avg/Day',
     // 归档页日均标签(archive 统计卡专用)。
     labelAvgPerDay: '日均',
     // 归档页日均标签（en 站；空 = 回退中文）。
     labelAvgPerDayEn: 'Avg/Day',
     // 标签数标签。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelTags: '标签数',
     // 标签数标签（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelTagsEn: 'Tags',
     // 分类数标签。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelCategories: '分类数',
     // 分类数标签（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     labelCategoriesEn: 'Categories',
     // 统计卡网格列模式(auto-fit 自适应列数;也可填固定列数如 3)。
     cardColumns: 'auto-fit',
     // 侧栏统计 widget 总开关(sidebar.json5 需含 type=stats 的 widget)。
     showSidebar: true,
     // 卡片点击跳转(空=不跳)。
+    // ⚠ 未接线（预留）：归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/。
     linkArchive: '/archive/'
   },
 
@@ -1499,22 +1589,30 @@
   // ---------------------------------------------------------------------------
   feed: {
     // 预留: RSS 总开关。当前以 site.json5 rss.enabled 为准，本键暂未被消费。
+    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
     rssEnabled: true,
     // 预留: RSS 输出路径。当前以 site.json5 rss.path 为准，本键暂未被消费。
     rssPath: '/feed.xml',
     // 预留: RSS 是否输出全文。当前以 site.json5 rss.fullContent 为准，本键暂未被消费。
+    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
     rssFullContent: true,
     // 预留: RSS 条目上限。当前以 site.json5 rss.maxItems 为准，本键暂未被消费。
+    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
     rssMaxItems: 50,
     // 预留: JSON Feed 输出路径。当前以 site.json5 rss.jsonFeed.path 为准，本键暂未被消费。
+    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
     jsonFeedPath: '/feed.json',
     // 预留: JSON Feed 是否输出全文。当前以 site.json5 rss.jsonFeed.fullContent 为准，本键暂未被消费。
+    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
     jsonFeedFullContent: false,
     // 预留: JSON Feed 条目上限。当前以 site.json5 rss.jsonFeed.maxItems 为准，本键暂未被消费。
+    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
     jsonFeedMaxItems: 20,
     // 预留: <head> 订阅链接开关。当前 head 链接恒随 site.rss 配置输出，本键暂未被消费。
+    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
     injectHeadLinks: true,
     // 预留: 页脚订阅链接开关。当前由 features.subscribe / footer.json5 控制，本键暂未被消费。
+    // ⚠ 未接线（预留）：订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明）。
     injectFooterLink: false
   },
 
@@ -1529,10 +1627,13 @@
     // 输出位置
     // 类型: string(枚举) | 可填: 'body'(</body> 前,推荐)/'head'
     // 不可填: 'end-of-body' 等描述性写法(构建校验会拒绝)
+    // ⚠ 未接线（预留）：统计注入固定 body + beacon（域名随 CSP 自动裁剪）。
     injectAt: 'body',
     // 是否输出 data-cf-beacon JSON。
+    // ⚠ 未接线（预留）：统计注入固定 body + beacon（域名随 CSP 自动裁剪）。
     emitBeacon: true,
     // 站点标签(可选显示)。
+    // ⚠ 未接线（预留）：统计注入固定 body + beacon（域名随 CSP 自动裁剪）。
     siteTag: ''
   },
 
@@ -1543,10 +1644,13 @@
     // 启用重定向系统(规则来自 site.json5 redirects 数组)。
     enabled: false,
     // 生成 CF Pages _redirects 文件。
+    // ⚠ 未接线（预留）：重定向实现固定：恒生成 _redirects 并在 serve 应用（非法规则 abort）。
     generatePagesFile: true,
     // 本地 serve 是否应用重定向。
+    // ⚠ 未接线（预留）：重定向实现固定：恒生成 _redirects 并在 serve 应用（非法规则 abort）。
     applyInServe: true,
     // 非法规则处理:warn-only/abort。
+    // ⚠ 未接线（预留）：重定向实现固定：恒生成 _redirects 并在 serve 应用（非法规则 abort）。
     invalidRule: 'abort'
   },
 
@@ -1565,8 +1669,10 @@
     // 不可填: 200/301 等成功或跳转状态
     status: 503,
     // 是否设置 Retry-After。
+    // ⚠ 未接线（预留）：维护响应固定设置 Retry-After: 3600（Worker 侧）。
     setRetryAfter: true,
     // Retry-After 秒数。
+    // ⚠ 未接线（预留）：维护响应固定设置 Retry-After: 3600（Worker 侧）。
     retryAfter: 3600
   },
 
@@ -1577,12 +1683,16 @@
     // 启用移动端交互优化(抽屉关闭等)。
     enabled: true,
     // 移动端搜索是否改为全屏。
+    // ⚠ 未接线（预留）：移动端细节实现固定（搜索全屏/按钮堆叠由 tuning 位置控制；触屏悬停与滚动提示未实现）。
     searchFullscreen: true,
     // 移动端目录按钮与返回顶部间距(px)。
+    // ⚠ 未接线（预留）：移动端细节实现固定（搜索全屏/按钮堆叠由 tuning 位置控制；触屏悬停与滚动提示未实现）。
     buttonStackGap: '4rem',
     // 触摸屏悬停菜单自动展开。
+    // ⚠ 未接线（预留）：移动端细节实现固定（搜索全屏/按钮堆叠由 tuning 位置控制；触屏悬停与滚动提示未实现）。
     touchFallback: true,
     // 移动端代码块横向滚动提示。
+    // ⚠ 未接线（预留）：移动端细节实现固定（搜索全屏/按钮堆叠由 tuning 位置控制；触屏悬停与滚动提示未实现）。
     codeScrollHint: true,
     // 移动端 TOC 按钮断点(px,≤ 该宽度显示按钮)。
     tocBreakpoint: 900,
@@ -1631,6 +1741,7 @@
     // 复制按钮文本。
     copyText: '复制',
     // 复制按钮文本（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：弹窗宽度模板固定 400px（与默认 360px 存在漂移，待统一）；复制文案由 ui-strings 提供；条目全量展示。
     copyTextEn: 'Copy',
     // 复制成功提示(留空则用内置双语文案 toolbar.copyDoneToast)。
     copySuccessText: '',
@@ -1639,6 +1750,7 @@
     // 弹窗宽度(px)。
     popupWidth: '360px',
     // 显示社交项(CG 配置社交链接中带弹窗样式)。
+    // ⚠ 未接线（预留）：弹窗宽度模板固定 400px（与默认 360px 存在漂移，待统一）；复制文案由 ui-strings 提供；条目全量展示。
     showAllItems: true,
     // 弹窗顶部是否显示图标。
     showIcon: true,
@@ -1652,12 +1764,16 @@
   // 注: externalLink 已覆盖,以下为扩展行为
   linkBehavior: {
     // 域名白名单自动识别(匹配 hostname 或 hostname+path)。
+    // ⚠ 未接线（预留）：模块未接入 external-link 链路（外链行为由 features.externalLink 控制）。
     matchMode: 'hostname',
     // 忽略站内相对链接。
+    // ⚠ 未接线（预留）：模块未接入 external-link 链路（外链行为由 features.externalLink 控制）。
     skipInternal: true,
     // 邮箱块 mailto 处理:leave/confirm。
+    // ⚠ 未接线（预留）：模块未接入 external-link 链路（外链行为由 features.externalLink 控制）。
     mailtoMode: 'leave',
     // 二维码批量匹配(未来)。
+    // ⚠ 未接线（预留）：模块未接入 external-link 链路（外链行为由 features.externalLink 控制）。
     lateTargeted: false
   },
 
@@ -1666,12 +1782,16 @@
   // ---------------------------------------------------------------------------
   performance: {
     // 首页 JS 体量上限警告(kB)。
+    // ⚠ 未接线（预留）：构建性能阈值未消费（预算门禁由 features.perfBudget 控制）。
     warningJsKb: 80,
     // 首页 HTML 体量上限警告(kB)。
+    // ⚠ 未接线（预留）：构建性能阈值未消费（预算门禁由 features.perfBudget 控制）。
     warningHtmlKb: 400,
     // 图片未压缩告警阈值(kB)。
+    // ⚠ 未接线（预留）：构建性能阈值未消费（预算门禁由 features.perfBudget 控制）。
     warningImageKb: 300,
     // 构建耗时阈值(ms)超时给出提示。
+    // ⚠ 未接线（预留）：构建性能阈值未消费（预算门禁由 features.perfBudget 控制）。
     warningBuildMs: 30000
   },
 
@@ -1680,10 +1800,13 @@
   // ---------------------------------------------------------------------------
   debug: {
     // 输出构建明细日志。
+    // ⚠ 未接线（预留）：构建日志由 CLI 参数控制，未读取本组键。
     verbose: false,
     // 输出渲染页面列表。
+    // ⚠ 未接线（预留）：构建日志由 CLI 参数控制，未读取本组键。
     listPages: false,
     // 输出配置中心(校验合并结果)。
+    // ⚠ 未接线（预留）：构建日志由 CLI 参数控制，未读取本组键。
     dumpConfig: false
   },
 
@@ -1709,6 +1832,7 @@
     // 搜索按钮占位文字。
     searchPlaceholder: '搜索文章…',
     // 搜索按钮占位文字（en 站；空 = 回退中文）。
+    // ⚠ 未接线（预留）：Hero 搜索占位由 ui-strings.toolbar.searchPlaceholder 提供（en 站同源双语）。
     searchPlaceholderEn: 'Search posts…',
     // Hero 是否显示日期(最新文章日期)。
     showDate: false,
@@ -1789,6 +1913,7 @@
     // 同屏多个元素连续渐入时相邻延迟(ms)。
     revealDelayMs: 0,
     // 同屏元素错峰总时间上限(ms),超过不再累加,避免长页面等待过久。
+    // ⚠ 未接线（预留）：错峰总时长上限未实现（motion.js 未做 revealStaggerMax）。
     revealStaggerMax: 80,
     // 渐入起点位移(px)。
     revealOffset: '10px',
@@ -1804,6 +1929,7 @@
     // 开启每日一言(侧栏 widget + 文章页引用)。
     enabled: true,
     // 数据显示于侧栏还是正文顶部,若为 false 则显示在文章内容开头。
+    // ⚠ 未接线（预留）：每日一言恒渲染在侧栏/文章引用位（widgetStyle 未分流）。
     widgetStyle: 'sidebar',
     // 题目标签。
     label: '每日一言',
@@ -1832,6 +1958,7 @@
     // 按钮标签（en 站；空 = 回退中文）。
     labelEn: 'Favorite',
     // 文章列表是否显示右侧收藏 icon。
+    // ⚠ 未接线（预留）：列表页收藏图标未实现（仅文章页按钮与 /favorites 页）。
     listIcon: true,
     // 未收藏状态文案。
     notText: '收藏',
@@ -1855,10 +1982,12 @@
     // 可选样式集合。
     patterns: ['gradient', 'stripes', 'dots', 'blob', 'mesh'],
     // 首篇文章默认 pattern。
+    // ⚠ 未接线（预留）：封面样式选择器已渲染（cover.enabled/patterns）；默认 pattern 与「图片优先」行为固定为 gradient/优先图片，未读取本键。
     defaultPattern: 'gradient',
     // 在线预览(悬浮缩略图)。
     preview: true,
     // 图片链接若存在是否优先使用(否则用 pattern 合成)。
+    // ⚠ 未接线（预留）：封面样式选择器已渲染（cover.enabled/patterns）；默认 pattern 与「图片优先」行为固定为 gradient/优先图片，未读取本键。
     preferImage: true
   },
   // ---------------------------------------------------------------------------
@@ -1881,6 +2010,7 @@
     // index 目录。
     indexPath: '/pagefind',
     // 是否集成到现有 search 覆盖层。
+    // ⚠ 未接线（预留）：Pagefind 集成恒开（provider=pagefind 时直接接入浮层）。
     integrate: true
   },
   // ---------------------------------------------------------------------------

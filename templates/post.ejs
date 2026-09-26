@@ -15,7 +15,7 @@
       <% if (article.date) { %>
       <span><%= article.formattedDate || article.date %></span>
       <% } %>
-      <% if (features.readingTime && features.readingTime.enabled !== false && article.readTime) { %><span class="post-reading-time"><%= features.readingTime.labelBefore || '' %><%= article.readTime %><%= (typeof lang!=='undefined'&&lang==='en') ? (features.readingTime.labelAfterEn || features.readingTime.labelAfter || ' min read') : (features.readingTime.labelAfter || ' 分钟') %></span><% } %>
+      <% if (features.readingTime && features.readingTime.enabled !== false && features.readingTime.showInMeta !== false && article.readTime) { %><span class="post-reading-time"><%= features.readingTime.labelBefore || '' %><%= article.readTime %><%= (typeof lang!=='undefined'&&lang==='en') ? (features.readingTime.labelAfterEn || features.readingTime.labelAfter || ' min read') : (features.readingTime.labelAfter || ' 分钟') %></span><% } %>
       <% if (article.categories && article.categories.length) { %>
       <span>
         <% article.categories.forEach(function(cat, i) { %>
@@ -26,7 +26,7 @@
       <% if (article.wordCount && features.wordCount && features.wordCount.enabled!==false && features.wordCount.inArticle!==false) { %>
       <span><%= article.wordCount %> <span data-i18n="post.words"><%= ui('post.words','字') %></span></span>
       <% } %>
-      <% if (article.readTime) { %>
+      <% if (features.readingTime && features.readingTime.enabled !== false && features.readingTime.showInMeta !== false && article.readTime) { %>
       <span><%= article.readTime %> <span data-i18n="post.readMinutes"><%= ui('post.readMinutes','分钟阅读') %></span></span>
       <% } %>
       <% if (article.tags && article.tags.length) { %>
@@ -96,7 +96,7 @@
 <% } %>
 
 <%# Comments section — supports Giscus (GitHub Discussions), Utterances (GitHub Issues), or Disqus. %>
-<% if (site.comments && site.comments.enabled && features.comments && features.comments.enabled!==false) { %>
+<% if (site.comments && site.comments.enabled && features.comments && features.comments.enabled!==false && features.comments.loadContainer!==false) { %>
 <section class="comments-section">
 <div class="comments-head" aria-hidden="true"><span class="comments-avatar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span></div>
   <% if (site.comments.provider === 'giscus') { %>

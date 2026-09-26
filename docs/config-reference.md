@@ -276,6 +276,60 @@
 **校验**:每个模块必须是对象;enabled 必须是布尔;枚举字段(如 heatmap.scaling)非法值直接报错终止构建。
 **双语约定（*En 字段）**:所有文案型字段均可追加同名 `En` 后缀（如 `reward.buttonTextEn`）提供英文站文案；类型与中文值一致，**空字符串 = en 站回退中文值**。共覆盖 60 键：search / codeBlock / externalLink / shortcuts / readingTime / codeCopy / readMode / readingPanel / mermaid / series / related / pinned / wordCount / share / reward / gallery / heatmap / stats / prevNext / maintenance / comments / contactPopup / hero / dailyQuote / favorites / subscribe。构建期模板按页面语言渲染 `*En`；运行时模块（`search.js`/`share.js`/`code-block.js`/`comments.js`/`contact-popup.js`/`favorites.js`）按当前页面语言（`data-lang`）取 `*En`。
 
+
+### 3.0 未接线键总表（预留状态；第二轮配置闭环 2026-09-27）
+
+> 状态口径：本轮「已接线」= 代码读取且生效（见各模块小节说明）；「未接线（已标注）」= 功能未实现或实现固定，JSON5 对应键上方已加 `// ⚠ 未接线（预留）：…` 注释，**修改暂不生效**；「已实现」= 本轮新增实现（hotSearches 热门词、readingProgress 悬停气泡与 aria、readingTime.showInMeta、toc min/maxLevel、mobileToc overlayClose/lockScroll、readDock show*、externalLink showFullUrl/openInNewTab、share copiedShowMs/popupWidth/popupHeight/wechatText、tts.volume、comments.loadContainer、darkImageFilter.applyImages、mobileToc.autoClose、themePresets.showInNavbar/previewOnHover、themeSchedule.applyInstantly、shortcuts.helpTitle/showHelpTable、ogImage.useCover/gradientForNoCover、search.highlightMatches/closeOnOverlay/focusOnOpen、searchHighlight.enabled 门控）。
+> 本表由审计脚本扫出（`js/templates/scripts` 对叶子键名的引用检测）；`enabled`、`height`、`size` 等通用名键不在机器扫描口径内，已按跨文件重复与抽样核验处理（见 `docs/config-audit-2026-09-27.md`「第二轮闭环结果」）。
+
+| 模块 | 未接线键（JSON5 已标注） | 原因 / 替代来源 |
+|---|---|---|
+| `lightbox` | `maxWidthVw` / `openDurationMs` / `switchDurationMs` | 灯箱打开/切换补间未实现；现由 CSS transition（transitionDurationMs）统一控制 |
+| `backToTop` | `rightOffset` / `bottomOffset` / `scrollDurationMs` / `htmlAnchorFallback` | 返回顶部用原生 scrollTo（smooth/auto 由 smoothScroll 控制<sup>①</sup>），自定义时长与无 JS 锚点回退未实现 |
+| `search` | `emptyHint` / `emptyHintEn` / `matchTags` / `matchCategories` / `weightTitle` / `weightExcerpt` / `weightContent` / `pinyinFuzzy` | 前端检索实现固定（仅标题/摘要/正文子串匹配，无加权与拼音）；文案由 navigation/ui-strings 提供 |
+| `imageLazy` | `preserveAspectRatio` | 构建期已恒输出 width/height 防抖；关闭需改构建模板 |
+| `externalLink` | `whitelistNewTab` / `copyButtonText` / `copyButtonTextEn` | 白名单链路不做 target 改写；联系弹窗为图标点击复制，无按钮文案位 |
+| `themeToggle` | `defaultTheme` / `rememberChoice` / `iconStyle` / `transitionAll` | 实际由 theme.darkMode.default 与模板固定行为控制（同义键，保留兼容） |
+| `shortcuts` | `showHelpHint` | 帮助提示按钮未实现（快捷键 ? 恒可开帮助面板） |
+| `toc` | `defaultOpenLevel` | 默认展开层级未实现（折叠由 collapsible + tuning.toc.collapsedByDefault 控制） |
+| `autoSummary` | `stripMarkdown` | 摘要由渲染后 HTML 去标签生成，Markdown 已天然剥离；frontmatter excerpt 原样使用 |
+| `codeCopy` | `includeWindowBar` | 代码窗栏复用由 features.codeBlock.windowBar 控制（同义键） |
+| `searchHighlight` | `markClass` | 高亮使用内置 `<mark>` 标签，未附加自定义类名 |
+| `listCover` | `showOnArchive` / `aspectRatio` | 归档页封面与卡片比例由 theme.card / tuning.card.imageAspect 控制（近似同义键） |
+| `mobileBottomNav` | `onlyMobile` / `useSafeArea` | CSS 恒仅移动端显示；安全区由 features.mobile.safeAreaBottom 控制 |
+| `incrementalBuild` | `fullFlag` / `fingerprintHash` / `skipUnchanged` | 增量构建方案未实现（见 docs/incremental-build-design.md） |
+| `readMode` | `focusOnlyContent` | 阅读模式 CSS 恒仅保留正文（data-reading） |
+| `tts` | `preferDefaultVoice` / `voiceBy` / `highlightParagraph` | 语音选择与逐句高亮实现固定（highlightParagraph 与 highlightReading 重叠） |
+| `wikiLinks` | `unknownMode` / `unknownSuffix` / `caseInsensitive` / `allowCustomLabel` | 双链解析实现固定（未知目标按纯文本、区分大小写、支持自定义标签） |
+| `supSub` | `supMarker` / `subMarker` / `skipInsideMath` / `preserveUnmatched` | 上下标标记固定为 ^/~，构建期正则未做动态标记 |
+| `math` | `autoDetect` / `inlineDelimiters` / `blockDelimiters` / `mathml` | 定界符固定为 $/$$；MathML 输出恒开 |
+| `mermaid` | `autoDetect` / `followTheme` / `copyAfterRender` / `errorTextEn` | 图表检测/主题跟随实现固定（构建期 SSR） |
+| `series` | `showBadge` / `badgeFormat` / `badgeFormatEn` / `sidebarWidget` / `panelTitle` / `panelTitleEn` / `showPosition` | 模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供 |
+| `related` | `excludeCurrent` | 相关推荐恒排除当前文章 |
+| `pinned` | `badgeText` / `badgeTextEn` / `badgeStyle` / `sortRule` | 徽标文案由 ui-strings.card.pinned 提供；样式/排序固定 pill/pinned-first |
+| `wordCount` | `onCards` / `textFormat` / `textFormatEn` / `readTimeFormat` / `readTimeFormatEn` / `countCjkChars` / `countDigits` | 卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定 |
+| `reward` | `closeByBtn` / `closeByOverlay` / `closeByEsc` | 弹窗固定支持按钮/遮罩/Esc 三种关闭方式（不可单独禁用） |
+| `gallery` | `collectFeatured` / `incrementalByDefault` | 图库恒收集文章封面且始终增量收集 |
+| `heatmap` | `levels` / `showLegend` / `legendLow` / `legendLowEn` / `legendHigh` / `legendHighEn` / `tooltipFormat` / `tooltipFormatEn` / `showMonthNumbers` | 热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供 |
+| `stats` | `showArchiveCards` / `labelPosts` / `labelPostsEn` / `labelDays` / `labelDaysEn` / `labelWords` / `labelWordsEn` / `labelAvg` / `labelAvgEn` / `labelTags` / `labelTagsEn` / `labelCategories` / `labelCategoriesEn` / `linkArchive` | 归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/ |
+| `feed` | `rssEnabled` / `rssFullContent` / `rssMaxItems` / `jsonFeedPath` / `jsonFeedFullContent` / `jsonFeedMaxItems` / `injectHeadLinks` / `injectFooterLink` | 订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明） |
+| `analytics` | `injectAt` / `emitBeacon` / `siteTag` | 统计注入固定 body + beacon（域名随 CSP 自动裁剪） |
+| `redirects` | `generatePagesFile` / `applyInServe` / `invalidRule` | 重定向实现固定：恒生成 _redirects 并在 serve 应用（非法规则 abort） |
+| `maintenance` | `setRetryAfter` / `retryAfter` | 维护响应固定设置 Retry-After: 3600（Worker 侧） |
+| `mobile` | `searchFullscreen` / `buttonStackGap` / `touchFallback` / `codeScrollHint` | 搜索全屏/按钮堆叠由 tuning 位置控制；触屏悬停与滚动提示未实现 |
+| `contactPopup` | `copyTextEn` / `showAllItems` | 弹窗宽度模板固定 400px（与默认 360px 存在漂移，待统一）；复制文案由 ui-strings 提供；条目全量展示 |
+| `linkBehavior` | `matchMode` / `skipInternal` / `mailtoMode` / `lateTargeted` | 模块未接入 external-link 链路（外链行为由 features.externalLink 控制） |
+| `performance` | `warningJsKb` / `warningHtmlKb` / `warningImageKb` / `warningBuildMs` | 构建性能阈值未消费（预算门禁由 features.perfBudget 控制） |
+| `debug` | `verbose` / `listPages` / `dumpConfig` | 构建日志由 CLI 参数控制，未读取本组键 |
+| `hero` | `searchPlaceholderEn` | Hero 搜索占位由 ui-strings.toolbar.searchPlaceholder 提供（en 站同源双语） |
+| `motion` | `revealStaggerMax` | 错峰总时长上限未实现（motion.js 未做 revealStaggerMax） |
+| `dailyQuote` | `widgetStyle` | 每日一言恒渲染在侧栏/文章引用位（widgetStyle 未分流） |
+| `favorites` | `listIcon` | 列表页收藏图标未实现（仅文章页按钮与 /favorites 页） |
+| \`cover\` | \`defaultPattern\` / \`preferImage\` | 封面样式选择器已渲染（\`enabled\`/\`patterns\`）；默认 pattern 与「图片优先」行为固定为 gradient/优先图片，未读取本键 |
+| `pagefind` | `integrate` | Pagefind 集成恒开（provider=pagefind 时直接接入浮层） |
+
+> ①：`backToTop.rightOffset/bottomOffset` 与 `tuning.backToTop.offsetSide/offsetBottom` 同义，实际生效 tuning 值；`scrollDurationMs`/`htmlAnchorFallback` 未实现。
+
 ### 3.1 lightbox — 图片灯箱
 | 字段 | 默认 | 说明 |
 |---|---|---|
@@ -298,7 +352,7 @@
 | `rememberPosition` | `false` | 记忆上次位置 |
 
 ### 3.2 readingProgress — 阅读进度条
-`enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500` / `updateThrottleMs 30` / `ariaAnnounce true` / `topOffset 0` / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发)
+`enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500`(点击跳转后百分比气泡停留时长；悬停/聚焦期间常显，第二轮接线) / `updateThrottleMs 30` / `ariaAnnounce true`(进度条输出 `aria-valuenow`，屏幕阅读器可读；第二轮接线) / `topOffset 0` / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发)。点击跳转支持键盘（聚焦进度条后 ←/→ 步进 5%、Home/End 首尾）
 
 ### 3.3 backToTop — 返回顶部
 `enabled true` / `showAfterPx 400` / `rightOffset 2rem` / `bottomOffset 2rem` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false`
@@ -306,7 +360,7 @@
 ### 3.4 search — 客户端搜索
 `enabled true` / `minChars 1` / `maxResults 30` / `noResultText 未找到匹配内容`（`noResultTextEn` 为 en 站文案，空回退中文；`tuning.search.emptyTextEn` 优先于它） / `excerptLength 120` / `includeContent true`(构建期生效:是否将正文写入 search-index.json) / `focusDelayMs 100`(打开搜索后延迟聚焦输入框 ms) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效)
 
-> 未接线预留键（当前修改不生效）: `highlightMatches`(由 3.35 searchHighlight 控制) / `showCount` / `placeholder`（实际使用 navigation.json5 search.placeholder / search.placeholderEn） / `emptyHint`（`emptyHintEn` 同步预留） / `matchTags` / `matchCategories` / `weightTitle` / `weightExcerpt` / `weightContent`(前端无加权排序) / `closeOnOverlay`(点击遮罩关闭固定生效) / `focusOnOpen`(打开后恒自动聚焦) / `pinyinFuzzy`(拼音首字母匹配未实现) / `hotSearches.top`·`showInDropdown`·`showClear`（热门词列表 UI 未实现；下拉当前展示「最近搜索」，由 `hotSearches.enabled`+`storageKey` 驱动；`tuning.hotCount` 同属预留）。
+> 未接线预留键（当前修改不生效，JSON5 已加 ⚠ 注释）: `showCount` / `placeholder`（实际使用 navigation.json5 search.placeholder / search.placeholderEn） / `emptyHint`（`emptyHintEn` 同步预留） / `matchTags` / `matchCategories` / `weightTitle` / `weightExcerpt` / `weightContent`(前端无加权排序) / `pinyinFuzzy`(拼音首字母匹配未实现)。`highlightMatches`/`closeOnOverlay`/`focusOnOpen` 已于第二轮接线生效（与 `searchHighlight.enabled` 联动；`tuning.hotCount` 为预留，热门词条数实际读 `hotSearches.top`）。
 
 ### 3.5 imageLazy — 懒加载
 `enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
@@ -320,13 +374,13 @@
 `enabled true`(需 site.externalLinkWarning.enabled 同真) / `whitelist []` / `blacklist []` / `mode warn`(`warn|prohibit|hint`) / `message 即将离开本站,前往外部链接：` / `messageEn ''`(en 站提示文案,空回退中文) / `confirmText 继续访问` / `confirmTextEn ''` / `cancelText 返回` / `cancelTextEn ''` / `copyButtonText 复制` / `copyButtonTextEn ''` / `showFullUrl true` / `openInNewTab true` / `whitelistNewTab false`
 
 ### 3.8 themeToggle
-`enabled true` / `defaultTheme system` / `rememberChoice true` / `animationMs 250` / `iconStyle sun-moon` / `transitionAll true` / `persistKey ss-theme`(主题选择的 localStorage 键) / `toggleIconSwap true`(切换时交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)
+`enabled true` / `defaultTheme system` / `rememberChoice true` / `iconStyle sun-moon` / `transitionAll true` / `persistKey ss-theme`(主题选择的 localStorage 键) / `toggleIconSwap true`(切换时交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)。**主题切换过渡时长唯一来源为 `theme.animation.transitionDuration`（经 `tuning.motion.transitionDuration` 覆盖）；原 `themeToggle.animationMs` 语义重复，已删除（2026-09-27 第二轮配置闭环）。**`defaultTheme` / `rememberChoice` / `iconStyle` / `transitionAll` / `toggleIconSwap` 未接线（实际由 `theme.darkMode.default` 与模板固定行为控制，见 3.0 总表）。
 
 ### 3.9 shortcuts — 快捷键
-`enabled true` / `openSearch /`(空=禁用,下同) / `toggleTheme d` / `prevPost k` / `nextPost j` / `help ?` / `close Escape` / `showHelpHint true` / `helpTitle 快捷键一览` / `showHelpTable true`(快捷键帮助表按本组键位动态渲染) / `ignoreInInputs true`(true=输入框内按键不触发快捷键;false=输入框内也触发)
+`enabled true` / `openSearch /`(空=禁用,下同) / `toggleTheme d` / `prevPost k` / `nextPost j` / `help ?` / `close Escape` / `showHelpHint true`(未接线，见 3.0) / `helpTitle 快捷键一览`（`helpTitleEn` en 站；第二轮接线为帮助面板 `aria-label`，空回退 ui-strings） / `showHelpTable true`(false 时不渲染快捷键表；第二轮接线) / `ignoreInInputs true`(true=输入框内按键不触发快捷键;false=输入框内也触发)
 
 ### 3.10 toc — 目录(桌面侧)
-`enabled true` / `minLevel 2` / `maxLevel 4` / `collapsible true` / `defaultOpenLevel 2` / `highlightActive true` / `activeOffset 120` / `groupCollapse true`(二级项带折叠箭头,可收起其下三级项)
+`enabled true` / `minLevel 2` / `maxLevel 4`（两者第二轮接线到构建期 TOC 提取；受正文标题锚点限制收敛到 2–4，minLevel=3 可只收 h3 及以下） / `collapsible true` / `defaultOpenLevel 2`（未接线，见 3.0） / `highlightActive true`(false = 关闭当前章节高亮；第二轮接线) / `activeOffset 120` / `groupCollapse true`(二级项带折叠箭头,可收起其下三级项)
 
 ### 3.11 mobileToc — 移动目录抽屉
 `enabled true` / `borderRadius 1rem` / `maxHeightVh 70` / `autoClose true` / `overlayClose true` / `lockScroll true` / `position right` / `showCurrent true`(胶囊按钮显示当前章节名与进度百分比)。移动端目录抽屉;显示断点由 `mobile.tocBreakpoint` 控制。
@@ -372,7 +426,7 @@
 `enabled true` / `onCards true` / `inArticle true` / `textFormat {count} 字` / `readTimeFormat {minutes} 分钟阅读`（`textFormatEn`/`readTimeFormatEn` en 站模板，空回退中文） / `wpm 265` / `countCjkChars true` / `countDigits false`
 
 ### 3.23 share — 分享
-`enabled true` / `order ['weibo','qq','wechat','x','facebook','mail','copy']`(顺序即显示顺序) / `position toolbar` / `popupWidth 640` / `popupHeight 520` / `wechatText {title} 分享自 {url}` / `wechatTextEn ''`(en 站模板,空回退中文) / `copiedText 链接已复制` / `copiedTextEn ''` / `copiedShowMs 2500` / `showLabel false` / `label 分享文章` / `labelEn ''` / `useNativeShare false`(支持 navigator.share 时优先原生分享) / `copyFallback true`(剪贴板 API 不可用时 textarea 回退)。运行时复制成功提示按页面语言取 `copiedTextEn` — `js/domains/features/share.js`
+`enabled true` / `order ['weibo','qq','wechat','x','facebook','mail','copy']`(顺序即显示顺序) / `position toolbar` / `popupWidth 640` / `popupHeight 520`（弹窗尺寸，第二轮接线到 `window.open` features 串） / `wechatText {title} 分享自 {url}` / `wechatTextEn ''`(en 站模板,空回退中文；微信复制按模板替换 `{title}`/`{url}`，第二轮接线) / `copiedText 链接已复制` / `copiedTextEn ''` / `copiedShowMs 2500`(复制成功 toast 时长，第二轮接线) / `showLabel false` / `label 分享文章` / `labelEn ''` / `useNativeShare false`(支持 navigator.share 时优先原生分享) / `copyFallback true`(剪贴板 API 不可用时 textarea 回退)。运行时复制成功提示按页面语言取 `copiedTextEn` — `js/domains/features/share.js`
 
 ### 3.24 reward — 打赏前端
 `enabled false`(需 site.reward.enabled) / `buttonText 打赏` / `note 感谢支持` / `popupTitle 打赏支持` / `closeByBtn true` / `closeByOverlay true` / `closeByEsc true` / `qrSize 180px` / `maxWidth 560px` / `showNote true`(显示打赏说明文字) / `qrMaxWidth 180px`(二维码最大宽度 CSS) / `closeText 关闭`(关闭按钮文本) / `links []`(赞助平台链接数组,弹窗底部显示胶囊按钮,每项 `{label,url}`,新窗口 `noopener`;如 GitHub Sponsors / Ko-fi / 爱发电)。文案键均有同名 `*En`（`buttonTextEn`/`noteEn`/`popupTitleEn`/`closeTextEn`），空回退中文；弹窗内方式名称与说明优先取 `site.reward.*En`（见 §1）
@@ -457,7 +511,7 @@ sitemap: {
 `enabled false`(默认关) / `darkFrom '22:00'` / `lightFrom '06:00'` / `respectManualOverride true` / `applyInstantly true` / `checkIntervalMs 60000` / `smoothTransitionMs 350`(平滑过渡时长 ms) / `smoothTransition true`。按固定每日时段自动切主题,检查周期以毫秒计(默认 60000 = 每分钟);smoothTransition 开启时切换瞬间给 html 加 `theme-switching` 类,按 `smoothTransitionMs` 过渡。
 
 ### 3.42 readDock — 移动端阅读侧栏
-`enabled true` / `showProgressRing true` / `showTocButton true` / `showTopButton true` / `hideOnScrollDown true` / `position right`。移动端右下角的进度环 + 回目录 + 回顶按钮。
+`enabled true` / `showProgressRing true` / `showTocButton true` / `showTopButton true`（三者 false 逐项隐藏；全 false 时整个坞不渲染；第二轮接线） / `hideOnScrollDown true` / `position right`。移动端右下角的进度环 + 回目录 + 回顶按钮。
 
 ### 3.43 sidebarDrag — 侧栏拖拽重排
 `enabled true` / `persistOrder true` / `storageKey 's-sidebarOrder'` / `touchLongPress true` / `touchLongPressMs 500`(长按判定时长 ms) / `showHandleOnHover true` / `resetOnLoadFail true`。用户可拖拽侧栏 widget 重排顺序,存储于 localStorage;移动端长按 `touchLongPressMs`(默认 500ms) 触发。
@@ -621,11 +675,11 @@ sitemap: {
 
 ### 3.86 hotSearches — 热门搜索
 
-`enabled true` / `top 5`（展示条数）/ `storageKey 's-hotSearches'`（localStorage 键，修改会丢弃旧记录）/ `showInDropdown true`（搜索下拉中展示）/ `showClear true`（提供清空按钮）。数据源为本地搜索历史，纯前端、无服务端 — `js/domains/features/search.js`。
+`enabled true` / `top 5`（热门搜索展示条数）/ `storageKey 's-hotSearches'`（最近搜索数组；词频存 `storageKey + ':hot'` 对象，最多保留 50 词）/ `showInDropdown true`（搜索下拉展示「热门搜索」分组；false = 仅最近搜索）/ `showClear true`（提供清空热门词按钮）。数据源为本地搜索历史词频，纯前端、无服务端；搜索时 `saveHistory` 同步累加词频，聚焦/空输入时渲染热门（按词频降序，`__T('search.hot')` 分组标题）— `js/domains/features/search.js`。
 
 ### 3.87 readingTime — 阅读时长
 
-`enabled true` / `wordsPerMinuteCJK 250`（中文每分钟字数）/ `wordsPerMinuteLatin 200`（拉丁文每分钟词数）/ `showInMeta true`（文章元信息区展示）/ `labelBefore ''` / `labelAfter '阅读约需'`（`labelAfterEn` 为 en 站后缀「 min read」，空回退中文；前/后缀空则回退 `ui-strings` 词典）。CJK 与拉丁字符分别按各自速率估算后相加 — `templates/post.ejs`。
+`enabled true` / `wordsPerMinuteCJK 250`（中文每分钟字数）/ `wordsPerMinuteLatin 200`（拉丁文每分钟词数）/ `showInMeta true`（文章元信息区展示；false 同时隐藏配置文案与模板内置「分钟阅读」两处，第二轮接线）/ `labelBefore ''` / `labelAfter '阅读约需'`（`labelAfterEn` 为 en 站后缀「 min read」，空回退中文；前/后缀空则回退 `ui-strings` 词典）。CJK 与拉丁字符分别按各自速率估算后相加 — `templates/post.ejs`。
 
 ### 3.88 codeCopy — 代码块复制按钮
 
@@ -637,7 +691,7 @@ sitemap: {
 
 ### 3.90 searchHighlight — 搜索结果高亮
 
-`enabled true` / `markClass 'search-hit'`（高亮标记类名）/ `maxMatches 20`（单页最多高亮处数，防止超长文渲染卡顿）。命中片段在结果列表与正文内以该样式标注 — `js/domains/features/search.js`。
+`enabled true` / `markClass 'search-hit'`（高亮标记类名；未接线，见 3.0） / `maxMatches 20`（单页最多高亮处数，防止超长文渲染卡顿）。命中片段在结果列表与正文内以 `<mark>` 标注；`enabled=false` 或 `features.search.highlightMatches=false` 均关闭高亮（第二轮接线） — `js/domains/features/search.js`。
 
 ### 3.91 darkImageFilter — 暗色图片滤镜
 
@@ -825,13 +879,13 @@ listCover: {
 
 ## 10. tuning.json5 — UI 微调参数层
 
-独立 UI 参数文件(33 分类 / 237 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
+独立 UI 参数文件(37 分类 / 268 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
 **优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已在「tuning 收尾」中全部清理(单一入口归各自模块配置);10 项原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
 
-**分类(33)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / icons / morphicons / magazine / commandPalette / announcement / guard / loading / zIndex。
+**分类(37)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / icons / morphicons / magazine / commandPalette / announcement / guard / loading / mobileToc / ui / lightbox / toast / zIndex。
 
-**已绑定示例(118 项 CSS + 19 项行为)**:`--hero-maxWidth`、`--zIndex-*`(全站浮层层级,30 项:header/mobileNav/announcement/mobileBottomNav/readingDock/readingGear/readerPanel/mobileToc/mobileTocDrawer/kbdHelp/searchOverlay/navBoostPanel/presetPop/toast/scrollIndicator/readingTip/lightbox/reward/linkWarning/contactPopup/pwaInstall/softnavBusy/grain/guardMenu/guardFlash/guardCurtain/guardLock/guardGate/guardWmOverLightbox/popupNotice；模板以 `var(--zIndex-键, 原值)` 消费)、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`/`gridCollapseBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`、`--header-scrolledHeight/hairlineStrength`、`--code-borderWidth/borderMix`、`--texture-noiseOpacity`、`--glow-heroStrength`、`--card-imageHoverScale/excerptLines/gridGap`、`--motion-transitionTiming/buttonPressScale`、`--reading-quoteTint/imageHoverScale/h2AccentWidth/Height`;行为侧:search 历史/热词/去抖/结果上限/空文案(`search.emptyTextEn` 为 en 站空结果文案,空回退 `emptyText`)、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进、morphicons 弹簧刚度/阻尼/轻量版弹簧。
+**已绑定示例(149 项 CSS + 19 项行为)**:`--hero-maxWidth`、`--zIndex-*`(全站浮层层级,30 项:header/mobileNav/announcement/mobileBottomNav/readingDock/readingGear/readerPanel/mobileToc/mobileTocDrawer/kbdHelp/searchOverlay/navBoostPanel/presetPop/toast/scrollIndicator/readingTip/lightbox/reward/linkWarning/contactPopup/pwaInstall/softnavBusy/grain/guardMenu/guardFlash/guardCurtain/guardLock/guardGate/guardWmOverLightbox/popupNotice；模板以 `var(--zIndex-键, 原值)` 消费)、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`/`gridCollapseBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius/maxWidth`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`、`--header-scrolledHeight/hairlineStrength`、`--code-borderWidth/borderMix/windowDotSize`、`--texture-noiseOpacity`、`--glow-heroStrength`、`--card-imageHoverScale/excerptLines/gridGap`、`--motion-transitionTiming/buttonPressScale`、`--reading-quoteTint/imageHoverScale/h2AccentWidth/Height/dockRight/dockBtnSize/dockRightTablet/dockBottomTablet/gearBottom/gearMobileBottom/panelBottom/panelWidth/dockMobileBottom`、`--search-overlayPadding/modalPadding/modalMaxHeight/closeBtnSize`、`--mobileToc-btnBottom/btnRight/btnMobileBottom/btnMaxWidth/labelMaxWidth`、`--ui-errorSvgMaxWidth/errorSuggestMaxWidth/errorCodeFontSize`、`--lightbox-btnSize/btnOffset`、`--pagination-btnMinWidth/btnHeight`、`--backToTop-hiddenOffset`、`--commandPalette-listMaxHeight`、`--layout-articlePadding`;行为侧:search 历史/热词/去抖/结果上限/空文案(`search.emptyTextEn` 为 en 站空结果文案,空回退 `emptyText`)、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进、morphicons 弹簧刚度/阻尼/轻量版弹簧。
 
 **注意**:绑定值均已对齐现有视觉(如 toast.radius=999px 对应胶囊形),修改前建议先在浏览器 DevTools 中试值。
 

@@ -530,7 +530,7 @@ async function main() {
     let pendingTmp = null;
     try {
       let img;
-      if (cover) {
+      if (cover && ogCfg.useCover !== false) {
         try {
           const coverBuf = await loadCoverBuffer(cover);
           if (coverBuf) {
@@ -562,7 +562,7 @@ async function main() {
         const maxLines = Math.min(4, Math.max(1, +styleCfg.maxLines || 2));
         const size = Math.round((+styleCfg.fontSizeBase || 64) * ogFontScale);
         const lh = Math.round(size * 1.2);
-        const svg = Buffer.from(renderCover({ template: styleCfg.template || 'aurora', siteTitle, siteUrl, lines: fitLines(wrapTitle(title, chars), maxLines), size, lineHeight: lh, from: palFrom, to: palTo, style: styleCfg, category: catOf(catRaw), palette }));
+        const svg = Buffer.from(renderCover({ template: styleCfg.template || 'aurora', siteTitle, siteUrl, lines: fitLines(wrapTitle(title, chars), maxLines), size, lineHeight: lh, from: palFrom, to: palTo, style: (ogCfg.gradientForNoCover === false ? Object.assign({}, styleCfg, { useGradient: false }) : styleCfg), category: catOf(catRaw), palette }));
         const svgPipe = sharp(svg);
         pendingTmp = atomicTempPath(outPath);
         await (ogFmt.format === 'jpeg'

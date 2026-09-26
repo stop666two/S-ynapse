@@ -16,9 +16,10 @@ function update() {
   var y = window.scrollY;
   var pct0 = sh0 > 0 ? Math.min(1, y / sh0) : 0;
   var cls = S.TSS.activeClass || 'active';
+  var hl = S.T.highlightActive !== false;
   S.links.forEach(function (l) {
     var h = l.getAttribute('href');
-    l.classList.toggle(cls, h === '#' + cur);
+    l.classList.toggle(cls, hl && h === '#' + cur);
     if (S.T.visitedFade !== false) l.classList.toggle('visited', h !== '#' + cur && h !== '#' + S.ids[0] && l.hasAttribute('data-seen'));
   });
   if (S.mgLabel && S.MT.showCurrent !== false) {
@@ -103,12 +104,13 @@ function bind() {
   // 移动端抽屉与快捷键帮助（元素可能不在本页，按 id 取到则绑定）
   var h = document.getElementById('kbdHelp'), btn = document.getElementById('mTocBtn'), dr = document.getElementById('mTocDrawer');
   if (btn && dr) {
-    function open() { dr.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); btn.classList.add('open'); }
-    function close() { dr.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('open'); }
+    function open() { dr.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); btn.classList.add('open'); if (S.MT.lockScroll !== false) document.body.style.overflow = 'hidden'; }
+    function close() { dr.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('open'); if (S.MT.lockScroll !== false) document.body.style.overflow = ''; }
+    S.mtClose = close;
     btn.onclick = function () { dr.classList.contains('open') ? close() : open(); };
     var mc = document.getElementById('mTocClose');
     if (mc) mc.onclick = close;
-    dr.addEventListener('click', function (e) { if (e.target.closest('a')) close(); });
+    dr.addEventListener('click', function (e) { if (S.MT.autoClose !== false && e.target.closest('a')) close(); });
   }
   if (h) {
     h.dataset.tocBound = '1';
@@ -126,13 +128,21 @@ function bindGlobals() {
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
     var dr = document.getElementById('mTocDrawer'), h = document.getElementById('kbdHelp'), btn = document.getElementById('mTocBtn');
-    if (dr) dr.classList.remove('open');
+    if (dr && dr.classList.contains('open')) { dr.classList.remove('open'); if (S.MT.lockScroll !== false) document.body.style.overflow = ''; }
     if (h) h.classList.remove('open');
     if (btn) btn.classList.remove('open');
   });
   document.addEventListener('click', function (e) {
     var h = document.getElementById('kbdHelp');
     if (h && h.classList.contains('open') && !e.target.closest('#kbdHelp')) h.classList.remove('open');
+    var dr = document.getElementById('mTocDrawer');
+    if (!dr || !dr.classList.contains('open')) return;
+    if (S.MT.overlayClose === false) return;
+    if (e.target.closest('.m-toc-drawer') || e.target.closest('#mTocBtn')) return;
+    dr.classList.remove('open');
+    var btn = document.getElementById('mTocBtn');
+    if (btn) { btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('open'); }
+    if (S.MT.lockScroll !== false) document.body.style.overflow = '';
   });
 }
 

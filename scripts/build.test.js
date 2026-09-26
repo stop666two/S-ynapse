@@ -198,6 +198,17 @@ describe('extractToc', () => {
   it('returns empty array for no headings', () => {
     assert.deepStrictEqual(extractToc('<p>No headings</p>'), []);
   });
+  it('honors features.toc.minLevel (excludes shallower headings)', () => {
+    const html = '<h2 id="a"><a href="#a" class="heading-anchor">#</a>A</h2><h3 id="b"><a href="#b" class="heading-anchor">#</a>B</h3>';
+    const toc = extractToc(html, 3, 4);
+    assert.deepStrictEqual(toc.map(t => t.level), [3]);
+  });
+  it('honors features.toc.maxLevel and clamps to the anchor-supported range', () => {
+    const html = '<h2 id="a"><a href="#a" class="heading-anchor">#</a>A</h2><h3 id="b"><a href="#b" class="heading-anchor">#</a>B</h3><h4 id="c"><a href="#c" class="heading-anchor">#</a>C</h4>';
+    assert.deepStrictEqual(extractToc(html, 2, 2).map(t => t.level), [2]);
+    assert.deepStrictEqual(extractToc(html, 2, 6).map(t => t.level), [2, 3, 4]);
+    assert.deepStrictEqual(extractToc(html, 1, 1).map(t => t.level), [2]);
+  });
 });
 
 describe('sanitizeHtml', () => {

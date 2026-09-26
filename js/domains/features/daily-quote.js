@@ -13,6 +13,7 @@ export function init() {
     var k = String(TNQ.refreshDaily) === 'false' ? Math.floor(Math.random() * n) : (d.getDate() * 7 + d.getMonth() * 3 + d.getFullYear()) % (n || 1);
     var pick = qs[k % n];
     qt.textContent = pick.text || '';
+    if (Q.quoteColor) qt.style.color = String(Q.quoteColor);
     if (qa && pick.author && String(TNQ.showAuthor) !== 'false') qa.textContent = '— ' + pick.author;
   })();
 }

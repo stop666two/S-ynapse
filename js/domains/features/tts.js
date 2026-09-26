@@ -52,6 +52,7 @@ function bind() {
     var TNR = (window.__TUNING__ || {}).reading || {};
     u.rate = isNaN(+TNR.ttsRate) ? (parseFloat(b.getAttribute('data-rate')) || 1) : +TNR.ttsRate;
     u.pitch = isNaN(+TNR.ttsPitch) ? 1 : +TNR.ttsPitch;
+    u.volume = isNaN(+TS.volume) ? 1 : Math.min(1, Math.max(0, +TS.volume));
     u.onboundary = function (e) { if (e && typeof e.charIndex === 'number') hlAt(e.charIndex); };
     /* Chromium 长文本会自动暂停卡死状态：短暂停心跳 resume，恢复或结束即清理 */
     // 兜底值与 features-schema.js → DEFAULT_FEATURES.tts 同值；仅在配置缺失/非法时生效。

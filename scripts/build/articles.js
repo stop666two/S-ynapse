@@ -258,7 +258,8 @@ function createArticlesModule(ctx) {
             readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
           }
         }
-        const toc = extractToc(htmlContent);
+        const tocCfg = (config.features && config.features.toc) || {};
+        const toc = extractToc(htmlContent, tocCfg.minLevel, tocCfg.maxLevel);
         // Auto OG image handled by scripts/generate-og.js (per-language PNG pipeline).
 
         articles.push({

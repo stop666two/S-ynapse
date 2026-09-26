@@ -132,6 +132,7 @@ rss:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="
     <div class="link-warning-header"><%= (typeof lang!=='undefined'&&lang==='en'&&site.externalLinkWarning.titleEn)?site.externalLinkWarning.titleEn:(site.externalLinkWarning.title||ui('toolbar.extLinkBlocked','安全提醒')) %></div>
     <div class="link-warning-body" id="linkWarningBody"></div>
     <div class="link-warning-footer">
+      <button class="btn btn-muted" id="linkWarningCopy" type="button"><%= (typeof lang!=='undefined'&&lang==='en'&&features.externalLink&&features.externalLink.copyButtonTextEn)?features.externalLink.copyButtonTextEn:((features.externalLink&&features.externalLink.copyButtonText)||ui('toolbar.copyLink','复制链接')) %></button>
       <button class="btn btn-primary" id="linkWarningConfirm"><%= (typeof lang!=='undefined'&&lang==='en'&&site.externalLinkWarning.confirmTextEn)?site.externalLinkWarning.confirmTextEn:(site.externalLinkWarning.confirmText||'继续访问') %></button>
       <button class="btn btn-muted link-warning-cancel" id="linkWarningCancel"><%= (typeof lang!=='undefined'&&lang==='en'&&site.externalLinkWarning.cancelTextEn)?site.externalLinkWarning.cancelTextEn:(site.externalLinkWarning.cancelText||'取消返回') %></button>
     </div>

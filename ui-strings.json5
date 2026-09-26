@@ -119,6 +119,8 @@
     copyAllCode: '复制全部代码', copyFailed: '复制失败',
     expandAll: '展开全文', collapseAll: '收起',
     copyDoneToast: '已复制到剪贴板',
+    // 外链提醒浮层复制按钮（features.externalLink.copyButtonText 为空时的回退文案）
+    copyLink: '复制链接',
     linkBlocked: '该链接被站点屏蔽',
     extLinkBlocked: '外部链接已被站点策略阻止',
     okay: '我知道了',
@@ -370,6 +372,7 @@
       copyAllCode: 'Copy all code', copyFailed: 'Copy failed',
       downloadCode: 'Download code', expandAll: 'Expand all', collapseAll: 'Collapse',
       copyDoneToast: 'Copied to clipboard',
+      copyLink: 'Copy link',
       linkBlocked: 'Link blocked',
       extLinkBlocked: 'External links are blocked by site policy',
       okay: 'Got it', dragSort: 'Drag to reorder',

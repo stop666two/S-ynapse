@@ -13,7 +13,7 @@ const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
-const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint } = require('../lib/feature-wiring');
+const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder } = require('../lib/feature-wiring');
 
 function createPagesModule(ctx) {
   const { getTemplate, renderPage, getPublished, recordBuildFailure, collectFriends, collectSeries, collectGalleryImages, collectSiteStats, collectTags, collectCategories, collectTopTags, groupByYearMonth, categoryHue, resolveDailyQuotes, resolveFaviconHtml, CleanCSS } = ctx;
@@ -516,6 +516,7 @@ function createPagesModule(ctx) {
               showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
               ctaLabel: lang === 'en' ? (config.site.hero.ctaLabelEn || f.hero.ctaLabelEn) : (config.site.hero.ctaLabel || f.hero.ctaLabel),
               ctaUrl: config.site.hero.ctaUrl || f.hero.ctaUrl,
+              searchPlaceholder: heroSearchPlaceholder(f, lang),
               showDate: f.hero.showDate === true,
               date: (langPublished[0] && langPublished[0].formattedDate) || '',
               tagCount: config.site.hero.tagCount || f.hero.tagCount,
@@ -675,6 +676,7 @@ function createPagesModule(ctx) {
           showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
           ctaLabel: config.site.hero.ctaLabel || f.hero.ctaLabel,
           ctaUrl: config.site.hero.ctaUrl || f.hero.ctaUrl,
+          searchPlaceholder: heroSearchPlaceholder(f, rootLang),
           showDate: f.hero.showDate === true,
           date: (rp[0] && rp[0].formattedDate) || '',
           tagCount: config.site.hero.tagCount || f.hero.tagCount,

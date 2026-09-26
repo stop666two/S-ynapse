@@ -147,6 +147,95 @@ function stripMarkdownText(text) {
     .trim();
 }
 
+// features.search 检索参数归一化（第四轮 W2 接线）。
+//   showCount/matchTags/matchCategories 默认 true（= 历史行为）；
+//   weightTitle/weightExcerpt/weightContent 默认 5/2/1（与 features-schema.js → DEFAULT_FEATURES.search 同值）；
+//   权重为 0 = 该字段不参与匹配与计分；负数/空值回退默认。
+function normalizeSearchConfig(features) {
+  const s = (features && features.search) || {};
+  const weight = function (raw, dflt) {
+    return (raw === '' || raw == null || isNaN(+raw)) ? dflt : Math.max(0, +raw);
+  };
+  return {
+    showCount: s.showCount !== false,
+    matchTags: s.matchTags !== false,
+    matchCategories: s.matchCategories !== false,
+    weightTitle: weight(s.weightTitle, 5),
+    weightExcerpt: weight(s.weightExcerpt, 2),
+    weightContent: weight(s.weightContent, 1)
+  };
+}
+
+// 无结果文案优先级链（浮层搜索）：
+//   zh: features.search.emptyHint > noResultText > tuning.search.emptyText > 调用方内置兜底
+//   en: features.search.emptyHintEn > noResultTextEn > tuning.search.emptyTextEn > 调用方内置兜底
+// 空串/未设置视为「未提供」，逐级回退；全空返回 ''（由消费方决定最终内置文案）。
+function searchEmptyText(features, tuning, lang) {
+  const s = (features && features.search) || {};
+  const t = (tuning && tuning.search) || {};
+  const chain = String(lang || '') === 'en'
+    ? [s.emptyHintEn, s.noResultTextEn, t.emptyTextEn]
+    : [s.emptyHint, s.noResultText, t.emptyText];
+  for (let i = 0; i < chain.length; i++) {
+    if (chain[i]) return String(chain[i]);
+  }
+  return '';
+}
+
+// 加权检索（canonical 语义，前端 js/domains/features/search.js 与 /search 页镜像实现）。
+//   - 命中字段得分 = 字段权重 × 命中出现次数（线性计数）；
+//   - 权重为 0 的字段既不参与匹配也不参与计分；
+//   - tags/categories 仅参与「是否命中」（无独立权重键，计 0 分），受 matchTags/matchCategories 门控；
+//   - 按总分降序；同分保持输入顺序（索引/列表本身按日期倒序生成）→ 等价「同分按日期」。
+function rankSearchEntries(entries, query, features) {
+  const c = normalizeSearchConfig(features);
+  const q = String(query == null ? '' : query).toLowerCase();
+  const list = Array.isArray(entries) ? entries : [];
+  if (!q) return [];
+  function count(text) {
+    if (!text) return 0;
+    const hay = String(text).toLowerCase();
+    let n = 0, i = 0;
+    while ((i = hay.indexOf(q, i)) !== -1) { n++; i += q.length; }
+    return n;
+  }
+  function hasAny(values) {
+    return Array.isArray(values) && values.some(function (v) { return String(v).toLowerCase().indexOf(q) !== -1; });
+  }
+  const scored = [];
+  for (let idx = 0; idx < list.length; idx++) {
+    const e = list[idx] || {};
+    let score = 0, hit = false;
+    if (c.weightTitle > 0) { const n = count(e.title); if (n) { score += n * c.weightTitle; hit = true; } }
+    if (c.weightExcerpt > 0) { const n = count(e.excerpt); if (n) { score += n * c.weightExcerpt; hit = true; } }
+    if (c.weightContent > 0) { const n = count(e.content); if (n) { score += n * c.weightContent; hit = true; } }
+    if (c.matchTags && hasAny(e.tags)) hit = true;
+    if (c.matchCategories && hasAny(e.categories)) hit = true;
+    if (hit) scored.push({ entry: e, score: score, index: idx });
+  }
+  scored.sort(function (a, b) { return (b.score - a.score) || (a.index - b.index); });
+  return scored.map(function (x) { return x.entry; });
+}
+
+// wikiLinks 构建期解析参数归一化（默认值与历史固定行为一致：text / 区分大小写关闭时保持原行为 / 支持自定义标签）。
+function wikiLinkConfig(features) {
+  const wl = (features && features.wikiLinks) || {};
+  return {
+    enabled: wl.enabled !== false,
+    unknownMode: ['text', 'link', 'hide'].includes(wl.unknownMode) ? wl.unknownMode : 'text',
+    unknownSuffix: wl.unknownSuffix == null ? '' : String(wl.unknownSuffix),
+    caseInsensitive: wl.caseInsensitive !== false,
+    allowCustomLabel: wl.allowCustomLabel !== false
+  };
+}
+
+// Hero 搜索占位（构建期 SSR）：hero 键按语言取值；空串 = 交由模板回退 ui-strings.toolbar.searchPlaceholder(En)。
+function heroSearchPlaceholder(features, lang) {
+  const h = (features && features.hero) || {};
+  const raw = String(lang || '') === 'en' ? h.searchPlaceholderEn : h.searchPlaceholder;
+  return raw == null ? '' : String(raw);
+}
+
 module.exports = {
   normalizeThemeDarkMode,
   normalizeMarkClass,
@@ -161,5 +250,10 @@ module.exports = {
   pagefindIntegrated,
   localSearchIndexNeeded,
   showHelpHint,
-  stripMarkdownText
+  stripMarkdownText,
+  normalizeSearchConfig,
+  searchEmptyText,
+  rankSearchEntries,
+  wikiLinkConfig,
+  heroSearchPlaceholder
 };

@@ -23,6 +23,8 @@ const FIXTURE = {
     reportUri: '/csp-report'
   },
   pathRestrictions: [{ path: '/admin/*', requireAuth: true, allowedIPs: ['192.168.1.0/24'] }],
+  // features.maintenance 经构建期写入：false 时维护响应不输出 Retry-After（本 fixture 验证关闭态）。
+  maintenance: { setRetryAfter: false, retryAfter: 120 },
   forceHttps: true,
   headers: {
     'X-Frame-Options': 'DENY',
@@ -249,6 +251,12 @@ describe('security-worker integration (fixture config)', () => {
     assert.ok(zhBody.includes('lang="zh-CN"'), 'zh-CN 维护页 lang 应为 zh-CN');
     assert.ok(zhBody.includes('本站正在维护中，请稍后再来。'), 'zh-CN 应返回中文默认文案');
     assert.ok(zhBody.includes('<h1>维护中</h1>'), 'zh-CN 标题应为中文');
+  });
+
+  it('maintenance setRetryAfter=false omits Retry-After (features.maintenance)', async () => {
+    const res = await worker.fetch(req('https://example.com/zh/', {}, '203.0.113.63'), makeEnv({ MAINTENANCE: '1' }));
+    assert.strictEqual(res.status, 503);
+    assert.strictEqual(res.headers.get('Retry-After'), null, 'setRetryAfter=false 时不得输出 Retry-After');
   });
 
   it('adds CSP + security headers on normal responses', async () => {

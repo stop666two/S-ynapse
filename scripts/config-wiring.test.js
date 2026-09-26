@@ -758,3 +758,124 @@ test('删除键无残留引用（W4：backToTop 重复键源码扫描）', () =>
   }
   assert.deepStrictEqual(offenders, []);
 });
+
+// ---------------------------------------------------------------------------
+// 第七轮配置闭环：feed 合并删除、analytics/redirects/maintenance/performance/debug 接线、heatmap.palette。
+// ---------------------------------------------------------------------------
+test('features.json5：feed 模块已删除且 schema/site-defaults 同步（唯一来源 site.rss/subscribe）', () => {
+  assert.ok(!('feed' in features), 'features.feed 应已删除');
+  assert.ok(!('feed' in DEFAULT_FEATURES), 'schema feed 应已删除');
+  const { DEFAULT_CONFIG } = require('./lib/site-defaults.js');
+  assert.strictEqual(DEFAULT_CONFIG.site.rss.injectHeadLinks, true, 'site.rss.injectHeadLinks 默认 true');
+});
+
+test('analyticsConfig / buildAnalyticsTag：注入位置/beacon 开关/scriptSrc/siteTag 覆盖', () => {
+  const def = w.analyticsConfig({});
+  assert.deepStrictEqual(def, {
+    enabled: true,
+    scriptSrc: 'https://static.cloudflareinsights.com/beacon.min.js',
+    injectAt: 'body',
+    emitBeacon: true,
+    siteTag: ''
+  });
+  assert.strictEqual(w.analyticsConfig({ analytics: { injectAt: 'head' } }).injectAt, 'head');
+  assert.strictEqual(w.analyticsConfig({ analytics: { injectAt: 'bogus' } }).injectAt, 'body');
+  assert.strictEqual(w.analyticsConfig({ analytics: { emitBeacon: false } }).emitBeacon, false);
+  assert.strictEqual(w.analyticsConfig({ analytics: { siteTag: ' tag-x ' } }).siteTag, 'tag-x');
+  assert.strictEqual(w.analyticsConfig({ analytics: { scriptSrc: '  ' } }).scriptSrc, 'https://static.cloudflareinsights.com/beacon.min.js');
+  assert.strictEqual(w.buildAnalyticsTag(def, ''), '', '无 token 不输出脚本');
+  assert.strictEqual(w.buildAnalyticsTag({ enabled: false }, 'tok'), '', 'enabled=false 不输出脚本');
+  const tag = w.buildAnalyticsTag(def, 'tok"</script>');
+  assert.ok(tag.startsWith('<script>') && tag.includes('data-cf-beacon'), tag);
+  assert.ok(tag.includes('\\u003c/script>'), 'token 中的 </script> 必须转义');
+  assert.ok(!tag.includes('tok"</script>'), '原始危险串不得出现');
+  const noBeacon = w.buildAnalyticsTag(w.analyticsConfig({ analytics: { emitBeacon: false, scriptSrc: 'https://cdn.example/beacon.js' } }), 'tok');
+  assert.ok(!noBeacon.includes('data-cf-beacon'), noBeacon);
+  assert.ok(noBeacon.includes('https://cdn.example/beacon.js'), 'scriptSrc 生效');
+});
+
+test('normalizeRedirectRules：有效/清洗/非法与 warn-only|abort 两种策略', () => {
+  const { normalizeRedirectRules } = require('./lib/redirect-rules');
+  const ok = normalizeRedirectRules([
+    { from: '/a/', to: '/b/', permanent: true },
+    { from: '/old', to: '/new', permanent: false },
+    { from: '/x', to: 'https://example.com/y' }
+  ], 'abort');
+  assert.deepStrictEqual(ok.valid.map(r => [r.from, r.to, r.status]), [['/a/', '/b/', 301], ['/old', '/new', 302], ['/x', 'https://example.com/y', 301]]);
+  assert.strictEqual(ok.abortOnInvalid, true);
+  const cleaned = normalizeRedirectRules([{ from: '/b\u0000ad', to: '/o\tk' }], 'warn-only');
+  assert.strictEqual(cleaned.valid[0].from, '/bad');
+  assert.strictEqual(cleaned.valid[0].to, '/ok');
+  const invalid = normalizeRedirectRules([null, { from: 'no-slash', to: '/x' }, { from: '/a', to: 'javascript:alert(1)' }], 'warn-only');
+  assert.strictEqual(invalid.valid.length, 0);
+  assert.strictEqual(invalid.invalid.length, 3);
+  assert.strictEqual(invalid.abortOnInvalid, false);
+  assert.strictEqual(normalizeRedirectRules([{ from: 'x' }], 'abort').abortOnInvalid, true);
+  assert.strictEqual(normalizeRedirectRules([], undefined).abortOnInvalid, true, '缺省策略为 abort');
+});
+
+test('resolveHeatmapPalette：fixed+足量色表 / 不足回退 auto / auto 忽略 palette', () => {
+  const fixed = w.resolveHeatmapPalette(w.heatmapConfig({ heatmap: { levels: 3, scaling: 'fixed', palette: ['#1', '#2', '#3', '#4'] } }));
+  assert.deepStrictEqual(fixed.colors, ['#1', '#2', '#3']);
+  assert.strictEqual(fixed.warning, '');
+  const short = w.resolveHeatmapPalette(w.heatmapConfig({ heatmap: { levels: 3, scaling: 'fixed', palette: ['#1'] } }));
+  assert.ok(short.warning.length > 0, '不足色表应给出提示');
+  assert.deepStrictEqual(short.colors, w.heatmapPalette(3));
+  const auto = w.resolveHeatmapPalette(w.heatmapConfig({ heatmap: { levels: 5, scaling: 'auto', palette: ['#1', '#2', '#3', '#4', '#5'] } }));
+  assert.deepStrictEqual(auto.colors, w.heatmapPalette(5));
+  assert.strictEqual(auto.warning, '');
+  assert.deepStrictEqual(w.heatmapConfig({ heatmap: { palette: [' #a ', '', 7] } }).palette, ['#a']);
+});
+
+test('performanceWarnings：超限逐项输出、缺省/非法阈值不告警（不阻断）', () => {
+  const stats = { jsKb: 60, htmlRawMaxKb: 500, largeImages: [{ path: '/media/big.png', kb: 400 }] };
+  const out = w.performanceWarnings({ warningJsKb: 55, warningHtmlKb: 400, warningImageKb: 300, warningBuildMs: 30000 }, stats, 31000);
+  assert.strictEqual(out.length, 4);
+  assert.ok(out[0].includes('JS 体积'));
+  assert.ok(out.some(l => l.includes('big.png')));
+  assert.ok(out[3].includes('构建耗时'));
+  assert.deepStrictEqual(w.performanceWarnings({}, stats, 99999), [], '缺省阈值不告警');
+  assert.deepStrictEqual(w.performanceWarnings({ warningJsKb: 0, warningHtmlKb: -1 }, stats, 0), []);
+});
+
+test('maintenanceWorkerConfig：setRetryAfter/retryAfter 归一化（Worker 链）', () => {
+  const { maintenanceWorkerConfig } = require('./generate-security-config.js');
+  assert.deepStrictEqual(maintenanceWorkerConfig({}), { setRetryAfter: true, retryAfter: 3600 });
+  assert.deepStrictEqual(maintenanceWorkerConfig({ maintenance: { setRetryAfter: false, retryAfter: 120 } }), { setRetryAfter: false, retryAfter: 120 });
+  assert.deepStrictEqual(maintenanceWorkerConfig({ maintenance: { retryAfter: '60' } }), { setRetryAfter: true, retryAfter: 60 });
+  assert.strictEqual(maintenanceWorkerConfig({ maintenance: { retryAfter: -5 } }).retryAfter, 3600);
+  assert.strictEqual(maintenanceWorkerConfig({ maintenance: { retryAfter: 'abc' } }).retryAfter, 3600);
+  const { extractWorkerSecurity } = require('./generate-security-config.js');
+  const extracted = extractWorkerSecurity({ headers: {} }, null, { maintenance: { setRetryAfter: false, retryAfter: 90 } });
+  assert.deepStrictEqual(extracted.maintenance, { setRetryAfter: false, retryAfter: 90 });
+});
+
+test('debugConfig / configSummary：默认关闭、摘要脱敏', () => {
+  assert.deepStrictEqual(w.debugConfig({}), { verbose: false, listPages: false, dumpConfig: false });
+  assert.deepStrictEqual(w.debugConfig({ debug: { verbose: true, listPages: true, dumpConfig: true } }), { verbose: true, listPages: true, dumpConfig: true });
+  const summary = w.configSummary({ site: { url: 'https://x.dev' }, features: { a: 1, b: 2 }, security: { csp: { enabled: true }, token: 'supersecret' } });
+  assert.ok(summary.some(l => l.startsWith('features = 2')), summary.join(' | '));
+  assert.ok(!summary.join('|').includes('supersecret'), '敏感值不得出现在摘要');
+  assert.ok(summary.join('|').includes('token=***'));
+});
+
+test('删除模块无残留引用（feed：js/templates/scripts 源码扫描）', () => {
+  function walk(dir, out) {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (['node_modules', '.git', 'dist', 'real-site', '.tmp-scripts'].includes(e.name)) continue;
+        walk(p, out);
+      } else out.push(p);
+    }
+    return out;
+  }
+  const pats = [/\bfeatures\.feed\b/, /\bfeed:\s*\{[^}]*rssEnabled/];
+  const offenders = [];
+  for (const f of walk(ROOT, [])) {
+    if (!/\.(js|ejs)$/.test(f) || f.endsWith('.test.js')) continue;
+    const src = fs.readFileSync(f, 'utf-8');
+    for (const p of pats) if (p.test(src)) offenders.push(path.relative(ROOT, f) + ' :: ' + p);
+  }
+  assert.deepStrictEqual(offenders, []);
+});

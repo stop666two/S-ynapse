@@ -170,3 +170,147 @@ test('schema 枚举：dailyQuote.widgetStyle 受控；themeToggle 枚举残留�
   const good = validateFeatures({ dailyQuote: { enabled: true, widgetStyle: 'plain' } }, 'features');
   assert.deepStrictEqual(good.errors, []);
 });
+
+// ---------------------------------------------------------------------------
+// 第四轮 W2（2026-09-27）：搜索加权/标签分类/计数/空结果、外链新标签与复制、双链参数化、删除重复键。
+// ---------------------------------------------------------------------------
+test('features.json5：第四轮删除项与 schema 同步（pinyinFuzzy/placeholder/linkBehavior）', () => {
+  assert.ok(!('pinyinFuzzy' in features.search), 'features.search.pinyinFuzzy 应已删除');
+  assert.ok(!('pinyinFuzzy' in DEFAULT_FEATURES.search), 'schema search.pinyinFuzzy 应已删除');
+  assert.ok(!('placeholder' in features.search), 'features.search.placeholder 应已删除（canonical: navigation.search.placeholder）');
+  assert.ok(!('placeholder' in DEFAULT_FEATURES.search), 'schema search.placeholder 应已删除');
+  assert.ok(!('placeholderEn' in features.search), 'features.search.placeholderEn 应已删除');
+  assert.ok(!('placeholderEn' in DEFAULT_FEATURES.search), 'schema search.placeholderEn 应已删除');
+  assert.ok(!('linkBehavior' in features), 'features.linkBehavior 模块应已删除（外链行为唯一来源 features.externalLink）');
+  assert.ok(!('linkBehavior' in DEFAULT_FEATURES), 'schema linkBehavior 模块应已删除');
+  // 已接线的搜索键默认值保持历史输出：emptyHint 空串（沿用 noResultText），权重 5/2/1。
+  assert.strictEqual(features.search.emptyHint, '');
+  assert.strictEqual(features.search.emptyHintEn, '');
+  assert.strictEqual(features.search.noResultText, '未找到匹配内容');
+  assert.strictEqual(features.search.weightTitle, 5);
+  assert.strictEqual(features.search.weightExcerpt, 2);
+  assert.strictEqual(features.search.weightContent, 1);
+  assert.strictEqual(features.search.showCount, true);
+  assert.strictEqual(features.search.matchTags, true);
+  assert.strictEqual(features.search.matchCategories, true);
+});
+
+test('hero/wikiLinks/externalLink 接线键默认值', () => {
+  assert.strictEqual(features.hero.searchPlaceholder, '搜索文章…');
+  assert.strictEqual(features.hero.searchPlaceholderEn, 'Search posts…');
+  assert.strictEqual(features.wikiLinks.unknownMode, 'text');
+  assert.strictEqual(features.wikiLinks.unknownSuffix, '');
+  assert.strictEqual(features.wikiLinks.caseInsensitive, true);
+  assert.strictEqual(features.wikiLinks.allowCustomLabel, true);
+  assert.ok(uiStrings.toolbar.copyLink && uiStrings.en.toolbar.copyLink, 'ui-strings toolbar.copyLink 双语缺失');
+  assert.strictEqual(features.externalLink.whitelistNewTab, false);
+  assert.strictEqual(features.externalLink.copyButtonText, '复制');
+  assert.strictEqual(features.externalLink.copyButtonTextEn, 'Copy');
+});
+
+test('normalizeSearchConfig：默认值与权重 0/非法值边界', () => {
+  assert.deepStrictEqual(w.normalizeSearchConfig({}), { showCount: true, matchTags: true, matchCategories: true, weightTitle: 5, weightExcerpt: 2, weightContent: 1 });
+  const off = w.normalizeSearchConfig({ search: { showCount: false, matchTags: false, matchCategories: false, weightTitle: 0, weightExcerpt: '', weightContent: -3 } });
+  assert.deepStrictEqual(off, { showCount: false, matchTags: false, matchCategories: false, weightTitle: 0, weightExcerpt: 2, weightContent: 0 });
+  assert.strictEqual(w.normalizeSearchConfig({ search: { weightTitle: '7' } }).weightTitle, 7);
+});
+
+test('searchEmptyText：emptyHint > noResultText > tuning.emptyText(En) 优先级链', () => {
+  const t = { search: { emptyText: 'T', emptyTextEn: 'TE' } };
+  assert.strictEqual(w.searchEmptyText({ search: { emptyHint: 'H', noResultText: 'N' } }, t, 'zh'), 'H');
+  assert.strictEqual(w.searchEmptyText({ search: { emptyHint: '', noResultText: 'N' } }, t, 'zh'), 'N');
+  assert.strictEqual(w.searchEmptyText({ search: { emptyHintEn: 'HE', noResultTextEn: 'NE' } }, t, 'en'), 'HE');
+  assert.strictEqual(w.searchEmptyText({ search: { emptyHintEn: '', noResultTextEn: 'NE' } }, t, 'en'), 'NE');
+  assert.strictEqual(w.searchEmptyText({ search: {} }, t, 'zh'), 'T');
+  assert.strictEqual(w.searchEmptyText({ search: { noResultTextEn: '' } }, t, 'en'), 'TE');
+  assert.strictEqual(w.searchEmptyText({}, {}, 'zh'), '');
+});
+
+test('rankSearchEntries：加权排序/同分稳定/权重 0 不参与/标签分类计 0 分', () => {
+  const idx = [
+    { title: 'alpha', excerpt: '', content: '', tags: [], categories: [] },
+    { title: 'other', excerpt: 'alpha', content: '', tags: [], categories: [] },
+    { title: 'other2', excerpt: '', content: 'alpha alpha alpha', tags: [], categories: [] },
+    { title: 'tagged', excerpt: '', content: '', tags: ['Alpha'], categories: [] },
+    { title: 'catted', excerpt: '', content: '', tags: [], categories: ['alpha'] }
+  ];
+  const def = w.rankSearchEntries(idx, 'alpha', {});
+  assert.deepStrictEqual(def.map(e => e.title), ['alpha', 'other2', 'other', 'tagged', 'catted']);
+  const noTitle = w.rankSearchEntries(idx, 'alpha', { search: { weightTitle: 0 } }).map(e => e.title);
+  assert.ok(!noTitle.includes('alpha'), '权重 0 的标题字段不得参与匹配');
+  assert.ok(!w.rankSearchEntries(idx, 'alpha', { search: { weightContent: 0 } }).map(e => e.title).includes('other2'));
+  assert.ok(!w.rankSearchEntries(idx, 'alpha', { search: { matchTags: false } }).map(e => e.title).includes('tagged'));
+  assert.ok(!w.rankSearchEntries(idx, 'alpha', { search: { matchCategories: false } }).map(e => e.title).includes('catted'));
+  assert.deepStrictEqual(w.rankSearchEntries(idx, '', {}), []);
+  const tie = w.rankSearchEntries([{ title: 'q' }, { title: 'q' }], 'q', {}).map(e => e.title);
+  assert.deepStrictEqual(tie, ['q', 'q'], '同分保持原索引顺序');
+});
+
+test('wikiLinkConfig：默认值/枚举与布尔回退', () => {
+  assert.deepStrictEqual(w.wikiLinkConfig({}), { enabled: true, unknownMode: 'text', unknownSuffix: '', caseInsensitive: true, allowCustomLabel: true });
+  const c = w.wikiLinkConfig({ wikiLinks: { enabled: false, unknownMode: 'bogus', unknownSuffix: 7, caseInsensitive: false, allowCustomLabel: false } });
+  assert.deepStrictEqual(c, { enabled: false, unknownMode: 'text', unknownSuffix: '7', caseInsensitive: false, allowCustomLabel: false });
+  assert.strictEqual(w.wikiLinkConfig({ wikiLinks: { unknownMode: 'link' } }).unknownMode, 'link');
+});
+
+test('heroSearchPlaceholder：按语言取 hero 键；空串交由模板回退 ui-strings', () => {
+  assert.strictEqual(w.heroSearchPlaceholder({ hero: { searchPlaceholder: '搜', searchPlaceholderEn: 'Go' } }, 'zh'), '搜');
+  assert.strictEqual(w.heroSearchPlaceholder({ hero: { searchPlaceholder: '搜', searchPlaceholderEn: 'Go' } }, 'en'), 'Go');
+  assert.strictEqual(w.heroSearchPlaceholder({}, 'en'), '');
+});
+
+test('resolveWikiLinks：unknownMode text/link/hide + suffix + 大小写 + 自定义标签', () => {
+  const { resolveWikiLinks } = require('./lib/utils.js');
+  const entry = { title: '图表与数学公式', url: '/zh/charts/' };
+  const entryEn = { title: 'Math Guide', url: '/en/math-guide/' };
+  const lookup = {
+    titles: new Map([['图表与数学公式', entry], ['math guide', entryEn]]),
+    titlesExact: new Map([['图表与数学公式', entry], ['Math Guide', entryEn]]),
+    slugs: new Map([['math-guide', entryEn]])
+  };
+  assert.strictEqual(resolveWikiLinks('[[图表与数学公式]]', lookup), '[图表与数学公式](/zh/charts/)');
+  assert.strictEqual(resolveWikiLinks('[[math-guide]]', lookup), '[Math Guide](/en/math-guide/)');
+  assert.strictEqual(resolveWikiLinks('[[不存在]]', lookup), '不存在');
+  assert.strictEqual(resolveWikiLinks('[[不存在|别名]]', lookup), '别名');
+  assert.strictEqual(resolveWikiLinks('[[不存在]]', lookup, { unknownSuffix: '⚠' }), '不存在⚠');
+  assert.strictEqual(resolveWikiLinks('[[图表与数学公式]]', lookup, { unknownSuffix: '⚠' }), '[图表与数学公式](/zh/charts/)');
+  assert.strictEqual(resolveWikiLinks('[[不存在]]', lookup, { unknownMode: 'link', lang: 'zh' }), '[不存在](/zh/search/?q=%E4%B8%8D%E5%AD%98%E5%9C%A8)');
+  assert.strictEqual(resolveWikiLinks('[[不存在|别名]]', lookup, { unknownMode: 'link', lang: 'en' }), '[别名](/en/search/?q=%E4%B8%8D%E5%AD%98%E5%9C%A8)');
+  assert.strictEqual(resolveWikiLinks('前[[不存在]]后', lookup, { unknownMode: 'hide' }), '前后');
+  assert.strictEqual(resolveWikiLinks('[[Math Guide]]', lookup, { caseInsensitive: false }), '[Math Guide](/en/math-guide/)');
+  assert.strictEqual(resolveWikiLinks('[[MATH GUIDE]]', lookup, { caseInsensitive: false }), 'MATH GUIDE');
+  assert.strictEqual(resolveWikiLinks('[[MATH GUIDE]]', lookup, { caseInsensitive: true }), '[Math Guide](/en/math-guide/)');
+  assert.strictEqual(resolveWikiLinks('[[图表与数学公式|查看图表]]', lookup, { allowCustomLabel: false }), '[图表与数学公式](/zh/charts/)');
+  assert.strictEqual(resolveWikiLinks('[[不存在|别名]]', lookup, { allowCustomLabel: false }), '不存在');
+  assert.strictEqual(resolveWikiLinks('[[https://example.com|外站]]', lookup, { allowCustomLabel: false }), '[https://example.com](https://example.com)');
+  assert.strictEqual(resolveWikiLinks('[[https://example.com|外站]]', lookup), '[外站](https://example.com)');
+  assert.strictEqual(resolveWikiLinks(undefined, lookup), undefined);
+});
+
+test('删除键无残留引用（W1+W2：js/templates/scripts 源码扫描）', () => {
+  function walk(dir, out) {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (['node_modules', '.git', 'dist', 'real-site', '.tmp-scripts'].includes(e.name)) continue;
+        walk(p, out);
+      } else out.push(p);
+    }
+    return out;
+  }
+  const pats = [
+    /themeToggle\.(defaultTheme|rememberChoice|iconStyle|transitionAll)/,
+    /listCover\.aspectRatio/,
+    /mobileBottomNav\.useSafeArea/,
+    /codeCopy\.includeWindowBar/,
+    /\bpinyinFuzzy\b/,
+    /\blinkBehavior\b/
+  ];
+  const offenders = [];
+  for (const f of walk(ROOT, [])) {
+    if (!/\.(js|ejs)$/.test(f) || f.endsWith('.test.js')) continue;
+    const src = fs.readFileSync(f, 'utf-8');
+    for (const p of pats) if (p.test(src)) offenders.push(path.relative(ROOT, f) + ' :: ' + p);
+  }
+  assert.deepStrictEqual(offenders, []);
+});

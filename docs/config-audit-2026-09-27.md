@@ -228,7 +228,8 @@ npm run build -- --out .tmp-scripts/out/audit-build
 | `13cd0f2` | refactor(ai): 删除重复键 themeToggle.animationMs（W3） |
 | `e192443` | feat(ai): 接线 35 项预留配置并按键补全 ⚠ 未接线标注（W2） |
 | `fe0e022` | feat(ai): 热门搜索与阅读进度气泡（W4） |
-| `docs(ai)`（本提交） | CHANGELOG 与第二轮闭环结果 |
+| `649e8b8` | docs(ai): 记录第二轮配置闭环结果与 CHANGELOG |
+| `b30d09b` | docs(ai): 修正 tuning 计数（37 分类/269 项；W1 实际 32 键） |
 
 ### 8.7 仍未闭环项（新发现 / 需用户决策）
 

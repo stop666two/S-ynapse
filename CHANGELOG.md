@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **第三轮配置接线（W1，15 项，2026-09-27）**：全部「未接线（预留）」键真实可控或作为重复键删除——
+  - 主题：`theme.darkMode.rememberChoice`（false=偏好仅存 sessionStorage）、`theme.darkMode.iconStyle`（`sun-moon`/`single`/`switch` 三种按钮形态）、`theme.darkMode.transitionAll`（true=切换加 `.theme-switching`，false=瞬时）；运行时经外置配置 `window.__THEME__.darkMode` 读取。
+  - 导航/阅读：`mobileBottomNav.onlyMobile`（false=桌面端也显示底部导航）、`readMode.focusOnlyContent`（false=阅读模式保留侧栏）、`toc.defaultOpenLevel`（0=全折叠；N≥1 展开到 minLevel+N-1 级，默认 2 → h4 初始折叠）。
+  - 检索/文案：`searchHighlight.markClass`（`<mark>` 附加类名，空=不附加）、`shortcuts.showHelpHint`（页脚 `?` 提示按钮，可键盘聚焦，点击开关帮助面板；文案 `ui-strings.toolbar.shortcutHint` 双语）、`pinned.badgeText(_En)/badgeStyle(pill|corner|none)/sortRule(pinned-first|normal)`（构建期排序与模板徽标）、`autoSummary.stripMarkdown`（frontmatter excerpt 剥离 Markdown 标记）、`pagefind.integrate`（false=回退内置搜索链路，构建期同时产出 search-index.json）。
+  - 媒体/动效：`motion.revealStaggerMax`（错峰总附加延迟上限，单项 delay=min(revealDelayMs, 剩余预算)）、`dailyQuote.widgetStyle`（`card` 默认/`plain`）、`favorites.listIcon`（/favorites 列表项图标）、`cover.defaultPattern/preferImage`（默认样式选择与「图片优先」；封面样式选择器此前无运行时，本轮补齐 `js/domains/features/cover.js`）、`listCover.showOnArchive`（标签归档列表封面显隐）。
+  - 新增纯函数库 `scripts/lib/feature-wiring.js`（归一化/排序比较器/错峰预算/纯文本化等，供构建期与单测复用）与门禁单测 `scripts/config-wiring.test.js`（17 例）。
 - **热门搜索（用户可感知）**：`features.hotSearches.top/showInDropdown/showClear` 全部接线——搜索词按本地词频（`s-hotSearches:hot`，最多 50 词）累计，搜索下拉展示「热门搜索」分组（按词频降序取 `top` 条）+「最近搜索」；`showClear` 提供清空按钮（原生 button + aria-label，键盘可操作）；文案新增 `ui-strings.search.hot/clear/clearHot` 双语。配置文件键：`hotSearches.top`（默认 5，展示条数）/ `showInDropdown`（默认 true）/ `showClear`（默认 true）；完整中文注释与 schema/defaults/docs 同步。
 - **阅读进度气泡与无障碍（用户可感知）**：`features.readingProgress.tipDisplayMs`（默认 500ms）接线——点击跳转后百分比气泡停留该时长，悬停/聚焦期间常显；`ariaAnnounce`（默认 true）接线——进度条实时输出 `aria-valuenow`（`role=progressbar` 已有）；进度条新增 `tabindex=0` 与键盘操作（←/→ 步进 5%、Home/End 首尾，点击坐标跳转不受影响；`prefers-reduced-motion` 下由 `window.__SB()` 自动降级）。
 - **第二轮配置接线批（W2）**：`readingTime.showInMeta`（默认 true，false 同时隐藏两处元信息阅读时长）、`toc.minLevel/maxLevel`（构建期 TOC 提取，收敛 2–4 级并经单测）、`toc.highlightActive`、`mobileToc.overlayClose/lockScroll/autoClose`（含 Esc/外点关闭与滚动恢复）、`readDock.showProgressRing/showTocButton/showTopButton`（全 false 时整坞不渲染）、`externalLink.showFullUrl/openInNewTab`、`themePresets.showInNavbar/previewOnHover`（SSR 门控与 title 输出）、`themeSchedule.applyInstantly`、`dailyQuote.quoteColor`、`share.copiedShowMs/popupWidth/popupHeight/wechatText(_En)`（微信复制按 `{title}/{url}` 模板）、`tts.volume`、`comments.loadContainer`、`darkImageFilter.applyImages`、`shortcuts.helpTitle(_En)/showHelpTable`、`ogImage.useCover/gradientForNoCover`、`search.highlightMatches/closeOnOverlay/focusOnOpen`、`searchHighlight.enabled` 门控、`mobileToc.maxHeightVh/borderRadius`（改为读取 features，消除 CSS 硬编码）、`readingTime` 元信息防重复/`hotSearches` 词频（见上）。
@@ -16,17 +22,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **第三轮配置闭环（2026-09-27 W1）语义/来源变更**：`themeToggle.defaultTheme/rememberChoice/iconStyle/transitionAll` 唯一来源迁移至 `theme.json5 → darkMode.*`（原键删除，`themeToggle` 仅保留 `enabled/persistKey/toggleIconSwap/zIndex`）；`listCover.showOnArchive` 由未接线转为生效（标签归档列表 `/tags/<tag>/` 封面显隐，默认 true=现行为；/archive/ 年表页保持纯文字列表）；`dailyQuote.widgetStyle` 取值语义改为 `card`（默认，等同旧值 `sidebar`）/`plain`；`motion.revealStaggerMax` 默认值由 80 调整为 500（仅在 `revealDelayMs>0` 时产生错峰，默认 `revealDelayMs=0` 行为不变）；`searchHighlight.markClass` 默认由 `'search-hit'` 调整为 `''`（代码此前恒输出裸 `<mark>`，默认行为不变）。
 - **未接线预留键全量标注（W2）**：对 features.json5 中机器扫描确认无消费方的 142 个叶子键逐键加 `⚠ 未接线（预留）：<原因/替代> ` 注释，并在 `docs/config-reference.md` 新增「3.0 未接线键总表」（43 个模块分组，状态/原因/替代来源）；本轮接线 20+ 键后剩余 135 个预留键全部可审计，不再存在「看起来能调、实际无效且无标注」的键。
 - **跨文件语义重复清理（W3）**：`features.themeToggle.animationMs`（250）与 `theme.animation.transitionDuration`（0.25s）语义重叠、实际生效后者，已删除前者（features.json5/schema/config-reference 同步）；其余重复项结论见 `docs/config-audit-2026-09-27.md`（backToTop 偏移与 tuning 同义、lightbox.maxWidthVw 与 imageFit.lightbox.maxWidthPct 同义、contactPopup.popupWidth 360px 与模板 400px 漂移等，已在 JSON5 标注）。
 - **文档同步**：`docs/config-reference.md` §3.2/3.4/3.9/3.10/3.23/3.42/3.86/3.90/10 更新为接线后语义与新 tuning 分类（37 分类 / 269 项）。
 
 ### Removed
 
+- `features.themeToggle.defaultTheme` / `rememberChoice` / `iconStyle` / `transitionAll`（第三轮，语义重复；唯一来源 `theme.json5 → darkMode.default/rememberChoice/iconStyle/transitionAll`。**迁移**：将这 4 个键的值原样写入 `theme.json5` 的 `darkMode` 同名键即可；`rememberChoice`/`iconStyle`/`transitionAll` 为新增键，缺省即旧行为）。
+- `features.codeCopy.includeWindowBar`（第三轮，语义重复；代码窗栏唯一来源 `features.codeBlock.windowBar`（`js/domains/core/code-block.js` 消费）。**迁移**：使用 `includeWindowBar` 的站点改在 `codeBlock.windowBar` 配置，默认 true 行为不变）。
+- `features.listCover.aspectRatio`（第三轮，语义重复；封面宽高比唯一来源 `tuning.json5 → card.imageAspect`（CSS 变量 `--card-imageAspect`）。**迁移**：改 `tuning.card.imageAspect`，默认 `16/10` 行为不变）。
+- `features.mobileBottomNav.useSafeArea`（第三轮，语义重复；安全区唯一来源 `features.mobile.safeAreaBottom`。**迁移**：改 `mobile.safeAreaBottom`，默认 true 行为不变）。
 - `features.themeToggle.animationMs`（未接线、语义重复；主题切换过渡统一由 `theme.animation.transitionDuration` → `tuning.motion.transitionDuration` 控制）。
 
 ### 验证与门禁
 
-- `npm test` 379/379、`npm run test:build` 2/2、`npm run lint` 0 错、`npm run typecheck` 0 错、`npm run verify:config` PASS。
+- **第三轮（W1）**：`npm test` 396/396（82 suites，含新增 `scripts/config-wiring.test.js` 17 例）、`npm run test:build` 2/2、`npm run lint` 0 错、`npm run typecheck` 0 错、`npm run verify:config` PASS（99 模块一致）。
+- **第三轮（W1）**：构建 `.tmp-scripts/out/w1-build` 成功（3.6s，81 页）；预算告警与基线持平（HTML 单页 gzip 最大 33.7KB / JS 合计 56.4KB，`perfBudget.warnOnly=true` 非阻断）。
+- **第三轮（W1）**：无头 runner `.tmp-scripts/run-w1.js`：**37 断言全绿**（theme 7 / mobileBottomNav 3 / shortcuts 1 / searchHighlight 2 / pagefind 2 / dailyQuote 1 / motion 2 / toc 3 / readMode 2 / cover 3 / favorites 2 / pinned 2 / listCover 1 / SSR+bundle 4 / 门禁 1，另含配置拦截变体：toc=1/0、cover.preferImage=false），0 控制台错误，父死/空闲看门狗与端口 3325 释放校验通过；截图 3 张存 `.tmp-scripts/out/w1-*.png`。
+- `npm test` 379/379、`npm run test:build` 2/2、`npm run lint` 0 错、`npm run typecheck` 0 错、`npm run verify:config` PASS（第二轮记录）。
 - 构建 `.tmp-scripts/out/round2-build`（6.9s）：产物页面 gzip 对比 audit-build 中位 −5B、超 28KB 预算页数 2→2 持平；assets/js gzip 55.4KB→56.7KB（+1.3KB，超 55KB 上限告警，`perfBudget.warnOnly=true` 非阻断，见报告）。
 - 无头 runner `.tmp-scripts/run-round2.js`：55 断言全绿（W1 计算样式/CSS 变量 31 项、W2 运行时门控 10 项、W4 热门搜索/阅读气泡 14 项），0 控制台错误，自收尾并校验端口 3324 释放；截图 4 张存 `.tmp-scripts/out/round2-*.png`。
 

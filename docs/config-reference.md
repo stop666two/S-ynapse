@@ -20,6 +20,7 @@
 9. [tag-aliases.json5 / friends.json5 — 可选数据文件](#9-tag-aliasesjson--friendsjson--可选数据文件)
 10. [tuning.json5 — UI 微调参数层](#10-tuningjson5--ui-微调参数层)
 11. [guard.json5 — 防护与交互控制域](#11-guardjson5--防护与交互控制域)
+12. [compression.json5 — 构建产物压缩](#12-compressionjson5--构建产物压缩)
 
 ---
 
@@ -1017,6 +1018,46 @@ listCover: {
 - `accessGate`（12 项，**默认关**）：`password.enabled|hash|salt|rememberHours|title|placeholder|errorText`（SHA-256(salt+密码) 十六进制，`crypto.subtle` 校验）/ `focusDelayMs 50`(解锁后聚焦密码框延迟 ms)/ `paths[]`（路径前缀，空=全站）/ `viewsPerDay|viewsAction`（本地限次，`toast`|`lock`）/ `unlockCodes[]`（`?key=` 永久解锁本机；解锁逻辑读取完成后 `history.replaceState` 清除地址栏参数，保留其它查询串与 hash）/ `logDetect`。诚实声明：静态站密码为软防护（哈希在前端源码中可离线分析），敏感内容请用 Cloudflare Access 等后端方案。
 
 **测试**：`.tmp-scripts/verify-guard-p1.js` 17 项 + `verify-guard-p2.js` 20 项 + `verify-guard-p3.js` 11 项 + `verify-guard-p4.js` 13 项断言（P1：原生菜单拦截、菜单项与上下文匹配、Esc/输入框豁免、复制署名改写、代码块放行、`?guard=off` 完全绕过、block 拦截+toast；P2：选择拦截/代码放行/可编辑豁免、F12 与 Ctrl+Shift+I 拦截+提示、Ctrl+A 保留、水印三模式与默认关反例；P3：检测提示/锁屏与关闭键、控制台静音（页面脚本无输出）、隐私帘显示/恢复与默认关反例；P4：门槛显示/错误提示/正确解锁与会话记忆/解锁码/限次锁定、脚本注入与关键节点缺失提示、默认关反例）；界面截图已目检（明暗菜单、拦截提示、对角/固定角水印、锁屏、隐私帘、访问门槛） — `js/domains/guard/{core,context-menu,copy-guard,selection-guard,hotkey-guard,watermark,devtools-detect,console-guard,privacy-curtain,tamper-watch,access-gate}.js`。
+
+---
+
+## 12. compression.json5 — 构建产物压缩
+
+第 14 个配置文件。对 `dist/` 产物做可配置压缩：HTML/CSS/JS/JSON 单行化与去注释、CSS 同页 `<style>` 合并去重、可选 JS 混淆（默认关）；配套无头对比门禁与自动回退。加载与校验由 `scripts/lib/compression-config.js` 承担，压缩执行位于 `scripts/build/minify.js` 的压缩阶段（`scripts/compression-config.test.js` 覆盖默认合并/类型/枚举/glob 语义）。
+
+**生效范围（重要）**
+- 仅作用于 `dist/` 产物；`exclude` 命中的路径按原字节复制。
+- `--serve` / `--watch` 自动关闭：本地调试所见即未压缩产物，无需改配置。
+- 压缩发生在内容哈希（cacheBust）之前：文件名哈希对应压缩后的最终字节；改配置 → 产物字节变化 → 哈希换代，不会出现「哈希未变、内容已变」的脏缓存。
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `enabled` | bool | `true` | 压缩总开关；false = 整个压缩阶段跳过（serve/watch 下强制 false，配置无法覆盖） |
+| `html.enabled` | bool | `true` | HTML 压缩开关（与 `site.build.minifyHTML` 相互独立） |
+| `html.removeComments` | bool | `true` | 移除 `<!-- -->` 注释；条件注释等特殊注释不保证保留 |
+| `html.collapseWhitespace` | bool | `true` | 折叠可安全移除的空白；`<pre>`/`<textarea>` 与元素间必要空格自动保留 |
+| `html.aggressive` | bool | `false` | 实验性激进压缩；开启后需经无头门禁裁决，失败回退未压缩产物 |
+| `css.enabled` | bool | `true` | 外链 CSS 压缩开关 |
+| `css.mergeInlineStyles` | bool | `true` | 同一页面多段 `<style>` 合并为一段（保留 nonce 与层叠顺序；跨文件不合并） |
+| `css.dedupe` | bool | `true` | 同一 CSS 文件内完全重复规则去重（不做语义级合并） |
+| `js.enabled` | bool | `true` | JS 压缩开关（vendor 与豁免名单始终排除） |
+| `js.minify` | bool | `true` | Terser 压缩（空白/注释/死代码/局部变量名） |
+| `js.obfuscate.enabled` | bool | `false` | JS 混淆开关；仅作用于自研 bundle，开启会明显增加构建耗时 |
+| `js.obfuscate.preset` | string | `'medium'` | 混淆强度：`low` \| `medium` \| `high`（仅在 enabled=true 时生效） |
+| `js.obfuscate.seed` | number | `0` | 0 = 每次随机；填固定正整数可保证每次构建字节一致、内容哈希稳定 |
+| `json.enabled` | bool | `true` | JSON 产物去空白（search-index/config/feed 等），输出始终是合法 JSON |
+| `exclude` | string[] | 见文件 | 相对 dist 根的 glob 豁免名单；整体替换（不与默认项合并） |
+| `verify.headless` | bool | `true` | 压缩后无头对比门禁（DOM、采样计算样式、控制台错误、关键交互） |
+| `verify.fallbackOnFailure` | bool | `true` | 门禁失败/压缩异常时回退未压缩产物并告警；false = 门禁失败即构建失败 |
+
+**`exclude` glob 语义**：`**` 跨目录（可匹配零层）、`*` 仅段内、`?` 单字符；大小写敏感（与线上 Cloudflare 文件系统语义一致）；分隔符用 `/`，反斜杠会归一化；不带 `**/` 的模式只匹配 dist 根位置。
+
+**默认豁免与理由**
+- `assets/vendor/**`：第三方库/字体/图标已自带压缩版，二次压缩收益小且易破坏 source map；`assets/fonts/**` 同属二进制或已子集化资源。
+- `media/**`、`og/**` 与 `**/*.woff2|avif|webp|png|jpg|svg`：二进制或被外部按原字节引用的资源，压缩无收益且可能损坏。
+- `report.txt` / `build-report.html`：构建报告必须保持人类可读（报告阶段生成，天然不经过压缩阶段）。
+
+**与 perfBudget（`features.perfBudget`）的关系**：两者独立——perfBudget 是**结果口径**的体积门禁（统计压缩后的 dist 产物，超预算按 `warnOnly` 提醒或阻断构建），compression.json5 是**达成手段**（决定压缩开关与豁免范围）。关闭压缩或扩大豁免会让预算更易超线；预算数值本身不在本文件配置，HTML gzip 体积与请求数仍以 perfBudget 的实测为准。
 
 ## 校验与错误上报行为
 1. **配置错误 → 立即终止**:缺逗号/引号未闭合/非法字符 → `[FATAL]` + 文件名、行列、上下文(带 `^` 定位)、原因、中文修复提示。

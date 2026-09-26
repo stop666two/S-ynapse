@@ -179,6 +179,23 @@ describe('replaceMermaidBlocks', () => {
     assert.ok(out.includes('#m1-0') && out.includes('#m1-1'), 'style 选择器须跟随 id 重写');
     assert.ok(!out.includes('id="m1"'), '不得残留未重写的裸 id');
   });
+
+  it('SVG 内联 style / font-style 搬入追加规则，属性语境清零且 nonce 注入', () => {
+    const svg = '<svg id="s1" width="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" style="min-width:320px">'
+      + '<style>#s1 .n{fill:#333}</style>'
+      + '<g class="n" style="stroke:none"><text style="font-size:16px" font-style="italic">A</text><text font-style="normal">B</text></g>'
+      + '</svg>';
+    const html = '<pre data-language="mermaid"><code class="language-mermaid">graph TD</code></pre>';
+    const out = replaceMermaidBlocks(html, [{ svg }], { size: {} });
+    assert.ok(!/[\s"']style\s*=/.test(out), '不得残留 style 属性');
+    assert.ok(!out.includes('font-style='), '不得残留 font-style 表现属性');
+    assert.ok(out.includes('#s1-0#s1-0{'), '根尺寸规则以 #id#id 提升优先级');
+    assert.ok(/#s1-0#s1-0 \.mm-si-0-l-\d+\{stroke:none\}/.test(out), '后代声明进入类规则（descendant 选择器）');
+    assert.ok(/#s1-0#s1-0 \.mm-si-0-l-\d+\{font-size:16px;font-style:italic\}/.test(out), 'font-style 非 normal 值随类规则保留');
+    assert.ok(!out.includes('font-style:normal'), 'font-style=normal 为初始值，直接丢弃');
+    const withNonce = replaceMermaidBlocks(html, [{ svg }], { size: {}, nonce: 'N0NCE' });
+    assert.ok(withNonce.includes('<style nonce="N0NCE">'), '追加样式块必须携带 CSP nonce');
+  });
 });
 
 describe('resolveChromePath', () => {

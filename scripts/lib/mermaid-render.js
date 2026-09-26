@@ -97,7 +97,7 @@ function extractMermaidBlocks(html) {
   return out;
 }
 
-// 将渲染结果的 SVG 压进容器：消毒 → 尺寸 → id 去重 → CSP nonce；任一步失败返回 null（调用方回退）。
+// 将渲染结果的 SVG 压进容器：消毒 → 尺寸 → id 去重 → 内联样式类化 → CSP nonce；任一步失败返回 null（调用方回退）。
 function prepareSvg(rawSvg, options, block, cls, uid) {
   const sanitized = sanitizeSvg(rawSvg);
   if (!sanitized.safe || !sanitized.content) return null;
@@ -109,8 +109,88 @@ function prepareSvg(rawSvg, options, block, cls, uid) {
       : tag.replace(/^<svg\b/i, '<svg class="' + cls + '"');
     return withClass;
   });
+  svg = stylesToClasses(svg, uid, cls);
   if (options.nonce) return svg.replace(/<style\b/gi, '<style nonce="' + String(options.nonce).replace(/"/g, '&quot;') + '"');
   return svg;
+}
+
+// 把 SVG 内全部内联 style 属性（含 font-style 表现属性）搬进追加在末尾的 <style> 规则：
+// CSP style-src-attr 收紧后属性语境不再放行；类规则以 #id#id 前缀提升优先级（高于 mermaid
+// 自带的 #id .class 规则，语义上最接近原内联，且不使用 !important——mermaid 自身的
+// !important 规则优先关系不变）。font-style="normal" 为 CSS 初始值且表现属性本就低于样式表，
+// 直接移除不改变渲染，仅保留非 normal 值。
+function stylesToClasses(svg, uid, cls) {
+  const theme = /mm-dark/.test(String(cls || '')) ? 'd' : 'l';
+  const idMatch = /<svg\b[^>]*\bid="([^"]+)"[^>]*>/i.exec(svg);
+  const rootId = idMatch ? idMatch[1] : '';
+  const prefix = rootId ? '#' + cssIdentEscape(rootId) + '#' + cssIdentEscape(rootId) : '';
+  const token = uid == null ? 'x' : String(uid);
+  const rules = [];
+  let out = svg;
+  // 根 <svg> 已带 id：尺寸直接生成 #id#id 规则并移除属性，避免改动 mm-light/mm-dark 类串。
+  const rootTag = SVGS_PUBLIC.exec(out);
+  if (rootTag) {
+    const stripped = stripInlineStyleDecls(rootTag[0]);
+    if (stripped.decls) {
+      let rootStripped = stripped.tag;
+      if (rootId) {
+        rules.push(prefix + '{' + stripped.decls + '}');
+      } else {
+        const className = 'mm-si-' + token + '-' + theme + '-' + rules.length;
+        rules.push('.' + className + '{' + stripped.decls + '}');
+        rootStripped = addClass(rootStripped, className);
+      }
+      out = out.slice(0, rootTag.index) + rootStripped + out.slice(rootTag.index + rootTag[0].length);
+    }
+  }
+  out = out.replace(/<[a-zA-Z][^>]*>/g, (tag) => {
+    const stripped = stripInlineStyleDecls(tag);
+    if (!stripped.decls) return stripped.tag;
+    const className = 'mm-si-' + token + '-' + theme + '-' + rules.length;
+    rules.push((rootId ? prefix + ' .' + className : '.' + className) + '{' + stripped.decls + '}');
+    return addClass(stripped.tag, className);
+  });
+  if (!rules.length) return out;
+  const styleTag = '<style>' + rules.join('') + '</style>';
+  const close = out.lastIndexOf('</svg>');
+  if (close === -1) return out;
+  return out.slice(0, close) + styleTag + out.slice(close);
+}
+
+// 给标签追加类名（已有 class 则合并，否则新插入）。
+function addClass(tag, className) {
+  if (/\bclass\s*=/i.test(tag)) {
+    return tag.replace(/\bclass\s*=\s*("([^"]*)"|'([^']*)')/i, (m, _q, dq, sq) => {
+      const value = dq !== undefined ? dq : sq;
+      return 'class="' + value + ' ' + className + '"';
+    });
+  }
+  return tag.replace(/^<([a-zA-Z][^\s/>]*)/, '<$1 class="' + className + '"');
+}
+
+// 抽取标签上的 style / font-style（非 normal）声明并移除对应属性，返回 { tag, decls }。
+function stripInlineStyleDecls(tag) {
+  let next = String(tag);
+  let decls = '';
+  const styleMatch = next.match(/\sstyle\s*=\s*("([^"]*)"|'([^']*)')/);
+  if (styleMatch) {
+    decls += styleMatch[2] !== undefined ? styleMatch[2] : styleMatch[3];
+    next = next.replace(styleMatch[0], '');
+  }
+  const fsMatch = next.match(/\sfont-style\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/i);
+  if (fsMatch) {
+    const raw = fsMatch[2] !== undefined ? fsMatch[2] : (fsMatch[3] !== undefined ? fsMatch[3] : fsMatch[4]);
+    if (String(raw).toLowerCase() !== 'normal') {
+      decls += (decls && !/;\s*$/.test(decls) ? ';' : '') + 'font-style:' + raw;
+    }
+    next = next.replace(fsMatch[0], '');
+  }
+  return { tag: next, decls };
+}
+
+// CSS 标识符转义：仅保留 [A-Za-z0-9_-]，其余字符以反斜杠转义（id 理论可来自第三方 SVG）。
+function cssIdentEscape(value) {
+  return String(value).replace(/[^A-Za-z0-9_-]/g, (ch) => '\\' + ch);
 }
 
 // 同一页内重复图表会复用同一份缓存 SVG（id 相同）；按块序号重写 id 及其 style/url 引用，

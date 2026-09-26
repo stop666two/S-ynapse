@@ -94,10 +94,11 @@ export function init(ctx) {
     if (sel && showOn.selection !== false) {
       if (builtin.searchSelected !== false) list.push(item(t('searchSelected', 'Search "{text}"', { text: sel.length > 12 ? sel.slice(0, 12) + '…' : sel }), 'search', function () {
         if (typeof window.openSearch === 'function') window.openSearch();
+        // 延迟来自 guard.contextMenu.searchFocusDelayMs；兜底值与 scripts/lib/guard-defaults.js 同值。
         setTimeout(function () {
           const input = document.querySelector('.search-modal input, #searchModal input, input[type="search"]');
           if (input) { input.value = sel; input.dispatchEvent(new Event('input', { bubbles: true })); input.focus(); }
-        }, 60);
+        }, parseInt(cfg.searchFocusDelayMs, 10) || 60);
       }));
       if (builtin.translate !== false) list.push(item(t('translate', 'Translate selection'), 'translate', function () {
         const tl = (document.documentElement.lang || 'zh').startsWith('en') ? 'zh-CN' : 'en';

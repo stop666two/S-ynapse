@@ -41,7 +41,9 @@ function createMermaidModule(ctx) {
     const renderer = createMermaidRenderer({
       cacheDir: path.join(ctx.rootDir, '.cache', 'mermaid'),
       logger: console,
-      chromePath: cfg.chromePath || ''
+      chromePath: cfg.chromePath || '',
+      // 单块渲染超时来自 features.mermaid.renderTimeoutMs；缺省时回退 lib 内置默认（与 schema 同值）。
+      timeoutMs: cfg.renderTimeoutMs
     });
     const results = await renderer.renderBatch(batch);
 

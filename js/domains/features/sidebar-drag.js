@@ -89,7 +89,11 @@ function rebind() {
   if (!aside) return;
   var widgets = aside.querySelectorAll('.sidebar-widget');
   if (widgets.length < 2) return;
-  var lpDelay = typeof SB.touchLongPress === 'number' && SB.touchLongPress > 0 ? +SB.touchLongPress : 500;
+  // 长按判定：兼容历史数字写法（touchLongPress=数字）与新键 touchLongPressMs；
+  // 兜底值与 features-schema.js → DEFAULT_FEATURES.sidebarDrag 同值，仅在配置缺失/非法时生效。
+  var lpDelay = typeof SB.touchLongPress === 'number' && SB.touchLongPress > 0
+    ? +SB.touchLongPress
+    : (isNaN(+SB.touchLongPressMs) ? 500 : Math.max(0, +SB.touchLongPressMs));
   Array.prototype.forEach.call(widgets, function (w) {
     if (w.getAttribute('data-sb-drag-bound') === '1') return;
     w.setAttribute('data-sb-drag-bound', '1');

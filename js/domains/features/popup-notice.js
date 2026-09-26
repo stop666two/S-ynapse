@@ -68,7 +68,8 @@ function build(cfg, lang, content, persist) {
     closed = true;
     document.removeEventListener('keydown', onKey, true);
     overlay.classList.remove('on');
-    setTimeout(function () { overlay.remove(); }, 240);
+    // 兜底值与 features-schema.js → DEFAULT_FEATURES.popupNotice 同值；仅在配置缺失/非法时生效。
+    setTimeout(function () { overlay.remove(); }, isNaN(+cfg.removeDelayMs) ? 240 : Math.max(0, +cfg.removeDelayMs));
     try { if (prevFocus && prevFocus.focus) prevFocus.focus(); } catch (e) { /* 忽略：焦点恢复失败不影响关闭 */ }
     persist();
   }

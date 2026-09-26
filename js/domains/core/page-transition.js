@@ -12,9 +12,10 @@ export function init() {
     var _eff = _sysR ? RM : 'full';
     if (_eff === 'off') return;
     var OUT = isNaN(+PT.outDurationMs) ? 120 : +PT.outDurationMs;
-    // 导航失败兜底观察窗口（OUT 之后仍可见即视为导航未发生，移除离开态）
-    var LEAVE_GUARD_MS = 2500;
-    if (_eff === 'light') { document.documentElement.classList.add('pt-light'); OUT = Math.min(OUT, 70); }
+    // 导航失败兜底观察窗口（OUT 之后仍可见即视为导航未发生，移除离开态）；
+    // 兜底值与 features-schema.js → DEFAULT_FEATURES.pageTransition 同值，仅在配置缺失/非法时生效。
+    var LEAVE_GUARD_MS = isNaN(+PT.leaveGuardMs) ? 2500 : Math.max(0, +PT.leaveGuardMs);
+    if (_eff === 'light') { document.documentElement.classList.add('pt-light'); OUT = Math.min(OUT, isNaN(+PT.reducedDurationMs) ? 70 : Math.max(0, +PT.reducedDurationMs)); }
     var EX = PT.excludeSelector || '[data-no-transition]';
     // 统一清理离开态：bfcache 返回（pageshow，含首次加载）时若仍带 page-leaving，
     // 页面会停留在淡出/遮罩状态——此处无条件移除，保证返回后立即可交互。

@@ -69,6 +69,8 @@ export async function boot(queues) {
   const F = window.__FEATURES__ || {};
   L = F.loading || {};
   B = F.boot || {};
+  // 说明：本文件各 parseInt(...) || 数字 的兜底值与 scripts/lib/features-schema.js →
+  // DEFAULT_FEATURES.loading / boot 同值，仅在配置缺失或非法时生效（正常构建始终注入合并后的完整 features）。
   const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const loaderOn = L.enabled !== false && !(reduced && (L.reducedMotion || 'skip') === 'skip');
   let overlay = null, shownAt = 0, showTimer = null, failsafeTimer = null;
@@ -113,7 +115,8 @@ export async function boot(queues) {
     }
     const m = parseInt(L.maxShowMs, 10);
     const maxMs = isNaN(m) ? 2000 : Math.max(300, m);
-    failsafeTimer = setTimeout(function () { if (overlay) hideOverlay(); }, maxMs + 60);
+    const bm = parseInt(L.failsafeBufferMs, 10);
+    failsafeTimer = setTimeout(function () { if (overlay) hideOverlay(); }, maxMs + (isNaN(bm) ? 60 : Math.max(0, bm)));
     if (L.ariaBusy !== false && document.body) document.body.setAttribute('aria-busy', 'true');
   }
 

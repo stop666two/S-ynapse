@@ -35,6 +35,27 @@ function pickLargest(covers) {
   return best;
 }
 
+// collectCoverSizesFromManifest：从已解析文章列表 + 媒体 manifest 提取显式封面尺寸，
+// 供构建期 resolveOgSize 使用。口径与 generate-og.js 的 collectCoverSizes 一致：
+// 跳过草稿与无封面项，同一路径只计一次，manifest 缺失尺寸的条目跳过。
+function collectCoverSizesFromManifest(articles, manifest) {
+  const sizes = [];
+  const seen = new Set();
+  for (const article of Array.isArray(articles) ? articles : []) {
+    if (!article || article.draft) continue;
+    const cover = String(article.featuredImage || '').trim();
+    if (!cover) continue;
+    const key = cover.replace(/^\//, '');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const entry = manifest && manifest[key];
+    const width = entry ? Math.round(+entry.width) : 0;
+    const height = entry ? Math.round(+entry.height) : 0;
+    if (width > 0 && height > 0) sizes.push({ width, height });
+  }
+  return sizes;
+}
+
 function resolveOgSize(options = {}) {
   const explicitWidth = options.explicitWidth;
   const explicitHeight = options.explicitHeight;
@@ -65,4 +86,4 @@ function resolveOgSize(options = {}) {
   };
 }
 
-module.exports = { resolveOgSize, DEFAULT_OG_SIZE, MAX_OG_DIMENSION };
+module.exports = { resolveOgSize, collectCoverSizesFromManifest, DEFAULT_OG_SIZE, MAX_OG_DIMENSION };

@@ -54,13 +54,15 @@ function bind() {
     u.pitch = isNaN(+TNR.ttsPitch) ? 1 : +TNR.ttsPitch;
     u.onboundary = function (e) { if (e && typeof e.charIndex === 'number') hlAt(e.charIndex); };
     /* Chromium 长文本会自动暂停卡死状态：短暂停心跳 resume，恢复或结束即清理 */
+    // 兜底值与 features-schema.js → DEFAULT_FEATURES.tts 同值；仅在配置缺失/非法时生效。
+    var hbMs = +TS.resumeIntervalMs || 500, hbMax = +TS.resumeMaxTries || 3;
     u.onpause = function () {
       if (hb || !speechSynthesis.paused) return;
       hb = setInterval(function () {
         if (!speechSynthesis.paused) { stopHB(); return; }
-        if (++resumeTries > 3) { finish(); speechSynthesis.cancel(); u = null; return; }
+        if (++resumeTries > hbMax) { finish(); speechSynthesis.cancel(); u = null; return; }
         speechSynthesis.resume();
-      }, 500);
+      }, hbMs);
     };
     u.onend = finish;
     u.onerror = finish;

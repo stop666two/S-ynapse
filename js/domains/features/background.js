@@ -6,11 +6,12 @@ export function init() {
     if (!b || !b.classList.contains('bg-particles')) return;
     var cv = document.getElementById('bgFx');
     if (!cv) return;
-    if (G.autoDisableMobile && (window.matchMedia('(pointer:coarse)').matches || window.innerWidth < 640)) return;
+    if (G.autoDisableMobile && (window.matchMedia('(pointer:coarse)').matches || window.innerWidth < (+G.mobileMaxWidth || 640))) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var ctx = cv.getContext('2d');
     if (!ctx) return;
-    var N = Math.max(10, Math.min(120, parseInt(G.count) || 55)), R = parseFloat(G.speed) || 0.5, link = +(G.linkDistance || 120), opa = G.opacity || 0.6;
+    // 兜底数字与 features-schema.js → DEFAULT_FEATURES.background.particles 同值；仅在配置缺失/非法时生效。
+    var N = Math.max(10, Math.min(120, parseInt(G.count) || 72)), R = parseFloat(G.speed) || 0.5, link = +(G.linkDistance || 120), opa = G.opacity || 0.7;
     var dotrgb = '139,153,168';
     try {
       var c = getComputedStyle(document.body).getPropertyValue('--color-s').trim();

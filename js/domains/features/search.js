@@ -115,7 +115,9 @@ export function init() {
     o.classList.add('open');
     if (isPagefind()) { ensurePagefind(); return; }
     ensureData();
-    setTimeout(function () { var i = document.getElementById('searchInput'); if (i) i.focus(); }, 100);
+    // 聚焦延迟来自 features.search.focusDelayMs；兜底值与 features-schema.js → DEFAULT_FEATURES.search 同值。
+    var _scf = (window.__FEATURES__ || {}).search || {};
+    setTimeout(function () { var i = document.getElementById('searchInput'); if (i) i.focus(); }, isNaN(+_scf.focusDelayMs) ? 100 : Math.max(0, +_scf.focusDelayMs));
   }
   function closeSearch() {
     var o = document.getElementById('searchOverlay');

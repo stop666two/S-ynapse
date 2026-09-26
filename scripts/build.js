@@ -8,6 +8,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { createBuildErrorCollector, resolveExitCode, formatFailures } = require('./lib/build-errors');
 const { isScheduled } = require('./lib/publish-window');
+const { resolveOgSize, collectCoverSizesFromManifest } = require('./lib/og-size');
 const { buildBundles } = require('./lib/bundle');
 const { computeRelatedArticles } = require('./lib/related');
 const { getAllFiles } = require('./build/fs-utils');
@@ -141,6 +142,17 @@ async function build() {
     }
     const dailyQuotes = resolveDailyQuotes(config);
     const baseData = buildPageData(config, articles, tags, categories, dailyQuotes);
+    // OG meta 尺寸：与 scripts/generate-og.js 共用 lib/og-size.js 解析（显式配置 > 封面统计 > 默认），
+    // 注入模板使 og:image:width/height 与实际产图一致（此前模板硬编码 1200x630）。
+    const ogCfg = (config.features && config.features.ogImage) || {};
+    const ogAuto = ogCfg.autoSize || {};
+    baseData.ogImageSize = resolveOgSize({
+      explicitWidth: ogCfg.width,
+      explicitHeight: ogCfg.height,
+      covers: collectCoverSizesFromManifest(getPublished(articles), mediaManifest),
+      maxDimension: ogAuto.maxDimension,
+      autoSize: ogAuto.enabled !== false
+    });
     if (pagesContent) baseData.pagesContent = pagesContent;
     baseData.siteCssHref = buildSiteCss(config, baseData);
     const runtimeConfig = writeRuntimeConfig(config, baseData.presets, dailyQuotes);

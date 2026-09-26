@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { resolveOgSize, DEFAULT_OG_SIZE, MAX_OG_DIMENSION } = require('./lib/og-size');
+const { resolveOgSize, collectCoverSizesFromManifest, DEFAULT_OG_SIZE, MAX_OG_DIMENSION } = require('./lib/og-size');
 
 test('无封面无显式配置时回退默认 1200x630', () => {
   const r = resolveOgSize({ covers: [] });
@@ -63,4 +63,33 @@ test('maxDimension 可配置且非法值回退 2560', () => {
   assert.deepStrictEqual(r, { width: 2000, height: 1000, source: 'single', scaled: true });
   const bad = resolveOgSize({ covers: [{ width: 3000, height: 1500 }], maxDimension: -1 });
   assert.strictEqual(bad.width, 2560);
+});
+
+test('collectCoverSizesFromManifest：跳过草稿/无封面/manifest 缺失项', () => {
+  const manifest = {
+    'media/a.jpg': { width: 1600, height: 900 },
+    'media/no-dims.jpg': {}
+  };
+  const articles = [
+    { featuredImage: '/media/a.jpg' },
+    { featuredImage: '/media/a.jpg' },
+    { featuredImage: '/media/no-dims.jpg' },
+    { featuredImage: '/media/missing.jpg' },
+    { featuredImage: '' },
+    { draft: true, featuredImage: '/media/a.jpg' }
+  ];
+  const sizes = collectCoverSizesFromManifest(articles, manifest);
+  assert.deepStrictEqual(sizes, [{ width: 1600, height: 900 }]);
+});
+
+test('collectCoverSizesFromManifest：入参非法时返回空数组', () => {
+  assert.deepStrictEqual(collectCoverSizesFromManifest(null, {}), []);
+  assert.deepStrictEqual(collectCoverSizesFromManifest([], null), []);
+});
+
+test('collectCoverSizesFromManifest + resolveOgSize：端到端口径与 generate-og 一致', () => {
+  const manifest = { 'media/a.jpg': { width: 1920, height: 1080 } };
+  const covers = collectCoverSizesFromManifest([{ featuredImage: '/media/a.jpg' }], manifest);
+  const r = resolveOgSize({ covers });
+  assert.deepStrictEqual(r, { width: 1920, height: 1080, source: 'single', scaled: false });
 });

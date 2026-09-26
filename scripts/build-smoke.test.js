@@ -62,6 +62,11 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     for (const file of required) {
       assert.ok(fs.existsSync(file), 'missing artifact: ' + path.relative(tmpDir, file));
     }
+    const root404 = fs.readFileSync(path.join(tmpDir, '404.html'), 'utf-8');
+    assert.ok(root404.includes('S-LANG-REDIRECT-404'), 'root 404 must carry the language redirect hook');
+    assert.ok(root404.includes('/en/404.html'), 'root 404 must route en visitors to the localized page');
+    const redirects = fs.readFileSync(path.join(tmpDir, '_redirects'), 'utf-8');
+    assert.ok(!/^\/404\.html\s/m.test(redirects), 'root 404 must not be server-redirected to the zh page');
     const headers = fs.readFileSync(path.join(tmpDir, '_headers'), 'utf-8');
     const jsRule = headers.split('\n\n').find((section) => section.startsWith('/assets/js/*'));
     assert.ok(jsRule && jsRule.includes('max-age=31536000'), 'hashed JS bundle path must be immutable in bundle mode (single merged Cache-Control)');

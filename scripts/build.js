@@ -155,9 +155,18 @@ async function build() {
     if (generatedHtmlCount === 0) {
       throw new Error('页面生成结果为空：dist/ 下没有产出任何 HTML（模板渲染可能整体失败，请检查 templates/*.ejs 的语法与变量）');
     }
+    // 根 404：以中文 404 为基底；若存在英文 404 页，则注入语言自适应跳转（en 访客 → /en/404.html）。
+    // 内联脚本不带 nonce，构建尾段的 applyCspNonce 会统一补齐（与页面内联脚本同机制）。
     const zh404 = path.join(DIST_DIR, 'zh', '404.html');
     if (fs.existsSync(zh404)) {
-      fs.copyFileSync(zh404, path.join(DIST_DIR, '404.html'));
+      const en404 = path.join(DIST_DIR, 'en', '404.html');
+      let root404Html = fs.readFileSync(zh404, 'utf-8');
+      if (fs.existsSync(en404)) {
+        const redirect404 = '<script>/*S-LANG-REDIRECT-404*/(function(){try{if(navigator.language&&/^en([-]|$)/i.test(navigator.language)&&!localStorage.getItem("s-ss-lang")){location.replace("/en/404.html");return}}catch(e){}})();</script>';
+        const withScript = root404Html.replace('</head>', redirect404 + '</head>');
+        root404Html = withScript !== root404Html ? withScript : root404Html + redirect404;
+      }
+      fs.writeFileSync(path.join(DIST_DIR, '404.html'), root404Html);
     }
     // CJK 子集化（须在 minify/cacheBust 前）：扫描页面与配置 JSON 实际用字 → 写字体分片与 @font-face；
     // 失败仅告警降级（剥离样式引用），不阻断构建。

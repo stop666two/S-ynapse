@@ -49,7 +49,9 @@ function generateRedirects(config, customPages) {
   for (const l of langs) {
     const pf = '/' + l;
     // manifest 由 PWA 步骤直接产出在根目录（关闭时不产出），不设语言别名，避免 302 到不存在的文件
-    const rootAliases = ['/search-index.json', '/feed.xml', '/404.html'];
+    // 根 404 不做服务端重定向：dist/404.html 由构建期注入语言自适应逻辑（en 访客跳本地化 404），
+  // 交由根页脚本判断，避免所有语言一律 302 到 /zh/404.html。
+  const rootAliases = ['/search-index.json', '/feed.xml'];
     for (const alias of rootAliases) {
       if (!lines.some(x => x.startsWith(alias + ' '))) {
         lines.push(`${alias} ${pf}${alias} 302`);

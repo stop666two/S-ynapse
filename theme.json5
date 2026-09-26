@@ -544,8 +544,8 @@
     // 类型: string（CSS padding 简写） | 可填: "0.5rem 1.5rem" 等 | 推荐: 保持默认
     "padding": "0.5rem 1.5rem",
     // 主按钮背景色
-    // 类型: CSS 颜色 | 推荐: 与辅色系一致 | 注意: 留空回退 --color-s
-    "primaryBackground": "#4a90d9",
+    // 类型: CSS 颜色 | 推荐: 与辅色系一致（#2563eb 配白字 5.17:1） | 注意: 留空回退 --color-s；必须与 primaryText 对比 ≥ 4.5:1，否则 WCAG 2.2 AA 审计不通过
+    "primaryBackground": "#2563eb",
     // 主按钮文字色
     // 类型: CSS 颜色 | 推荐: "#ffffff" | 注意: 需与背景对比 ≥ 4.5:1
     "primaryText": "#ffffff",

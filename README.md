@@ -13,6 +13,7 @@
 | 文档 | 用途 |
 | --- | --- |
 | [配置参考](docs/config-reference.md) | 全部 13 个配置文件（site/theme/tuning/navigation/sidebar/footer/security/features/ui-strings/content-policy/tag-aliases/friends/guard）的逐字段权威说明：每个配置项的含义、可填值、推荐值与默认值，以及值域校验、环境变量、重定向/友链/标签别名示例 |
+| [移动端真机点检清单](docs/mobile-checklist.md) | iOS Safari / Android Chrome 各 15 项发布前真机点检：安全区、软导航、TOC 抽屉、弹窗公告、CJK 字体、暗色、横屏、双击缩放、滚动性能、分享/TTS 权限等，含预期结果与问题记录表 |
 | [变更日志](CHANGELOG.md) | 按版本号记录本项目的全部变更：安全修复、新增功能、配置项变化，遵循 Keep a Changelog 格式，每个条目注明涉及的源文件 |
 | [增量构建设计](docs/incremental-build-design.md) | 增量构建（`--watch`）的架构设计文档：哈希指纹缓存、按页面拆分构建、默认跳过未变化源的完整方案 |
 
@@ -490,7 +491,7 @@ npm test            # 313 项 / 70 组，全部通过
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
 npm run typecheck   # TypeScript checkJs（scripts/lib，渐进引入）
-npm run audit:a11y  # WCAG 2.x 无障碍审计（需先在另一终端 `npm run serve -- --port 3224`；页面列表自动从 dist 派生；也可用 `node scripts/a11y-audit.js <baseUrl>` 或 A11Y_BASE 环境变量指定地址；Chrome 路径用 CHROME_PATH 覆盖；0 critical/serious/HTTP 失败门禁）
+npm run audit:a11y  # WCAG 2.0/2.1/2.2 A+AA 全页无障碍审计：自动构建并自起 serve（端口自动取空闲），扫描 dist 全部 HTML（中英首页/文章/归档/标签/分类/搜索/画廊/系列/收藏/友链/404，排除内部构建报告），逐页 HTTP 2xx 校验，明暗双主题各跑一次 axe（wcag22aa），critical/serious/HTTP 失败即阻断；已有 serve 时用 `node scripts/a11y-audit.js <baseUrl>` 或 A11Y_BASE 复用；Chrome 路径用 CHROME_PATH 覆盖。真机点检见 docs/mobile-checklist.md
 npm run verify:security   # 集成安全回归
 ```
 

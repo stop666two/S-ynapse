@@ -120,7 +120,7 @@ const DEFAULT_CONFIG = {
       layout: { headerStyle: 'fixed', headerHeight: '60px', footerStyle: 'simple', sidebarPosition: 'right', contentWidth: 'main', postLayout: 'standard', archiveLayout: 'list' },
       animation: { enable: true, transitionDuration: '0.3s', transitionTiming: 'ease-in-out' },
       card: { showDate: true, showTags: true, showCategories: true, showExcerpt: true, excerptLength: 150, showReadTime: true, readTimeSpeed: 265, showWordCount: true },
-      button: { radius: '0.25rem', padding: '0.5rem 1.5rem', primaryBackground: '#4a90d9', primaryText: '#ffffff', hoverScale: 1.02 },
+      button: { radius: '0.25rem', padding: '0.5rem 1.5rem', primaryBackground: '#2563eb', primaryText: '#ffffff', hoverScale: 1.02 },
       externalAssets: { styles: [], scripts: [] },
       contentOffset: 0, headerContentGap: 0, tocWidth: '200px', sidebarWidth: '280px', tocMinLeft: '10px', sidebarMinRight: '10px'
     },

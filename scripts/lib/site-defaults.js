@@ -23,6 +23,7 @@ const DEFAULT_CONFIG = {
       email: '',
       url: 'http://localhost',
       language: 'en',
+      languageEn: '',
       timezone: 'UTC',
       dateFormat: 'YYYY-MM-DD',
       copyright: '',
@@ -33,7 +34,7 @@ const DEFAULT_CONFIG = {
       nextPostLabel: '下一篇',
       rss: { enabled: false, path: '/feed.xml', fullContent: true, maxItems: 50, jsonFeed: { enabled: false, path: '/feed.json', fullContent: false, maxItems: 20 } },
       seo: {
-        metaKeywords: [], metaRobots: 'index, follow',
+        metaKeywords: [], metaKeywordsEn: [], metaRobots: 'index, follow',
         ogImage: '', ogType: 'website',
         twitterCard: 'summary_large_image', twitterSite: '',
         canonicalURL: false,
@@ -71,7 +72,7 @@ const DEFAULT_CONFIG = {
       customHead: '',
       customBodyStart: '',
       customBodyEnd: '',
-      authorProfile: { name: '', avatar: '', bio: '', skills: [], timeline: [], socials: [] },
+      authorProfile: { name: '', avatar: '', bio: '', bioEn: '', skills: [], timeline: [], socials: [] },
       hero: {
         enabled: true, title: '', titleEn: '', subtitle: '', subtitleEn: '',
         showSearch: true, showTags: true, showCta: true,

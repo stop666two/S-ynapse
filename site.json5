@@ -55,6 +55,14 @@
   // 推荐: "个人技术博客，记录编程与生活"
   "description": "个人技术博客，记录编程与生活",
 
+  // 站点描述（英文站）
+  // 作用: en 语言页面的 meta description/og:description/JSON-LD、RSS/JSON Feed description
+  // 类型: string
+  // 可填: 60–160 字符英文简介
+  // 不可填: 空字符串——缺失时回退 description,英文页 meta 会出现中文描述
+  // 推荐: "A personal tech blog about programming and life"
+  "descriptionEn": "A personal tech blog about programming and life",
+
   // 作者名
   // 作用: 文章 meta（作者行）、结构化数据 author.name、默认版权署名
   // 类型: string
@@ -80,7 +88,12 @@
 
     // 一句话简介
     // 类型: string(1-2 句) | 推荐: 25-60 字
-    "bio": "",
+    "bio": "全栈开发者，关注 Web 性能与开源工具；这里记录技术笔记与日常思考。",
+
+    // 一句话简介（英文站）
+    // 作用: en 语言页面作者卡简介（原 bio 字段则服务中文页）
+    // 类型: string(1-2 句) | 空 = 回退 bio（英文页会显示中文简介）
+    "bioEn": "Full-stack developer focused on web performance and open source. Notes on code and everyday thinking.",
 
     // 技能/兴趣标签
     // 类型: string[] | 可填: 任意短标签 | 推荐: 4-8 个
@@ -122,6 +135,14 @@
   // 不可填: 非标准缩写（如 "cn"）——会导致部分解析器识别失败
   // 推荐: "zh-CN"
   "language": "zh-CN",
+
+  // 站点主语言（英文站）
+  // 作用: en 语言页面的 <html lang>、侧栏"最近文章"日期本地化、语言标签回退
+  // 类型: string（BCP 47 语言标签）
+  // 可填: "en-US"/"en-GB"/"en" 等标准标签
+  // 不可填: 非标准写法（如 "english"）——会破坏日期本地化
+  // 推荐: "en-US"；留空回退内置 "en-US"
+  "languageEn": "en-US",
 
   // 时区
   // 作用: 文章日期渲染/相对时间/构建报告的时间基准（IANA 时区名）
@@ -311,6 +332,17 @@
       "博客",
       "技术",
       "编程"
+    ],
+
+    // 全局 meta keywords（英文站）
+    // 作用: en 语言页面 <meta name="keywords">；与 metaKeywords 同逻辑,按语言取用
+    // 类型: string[]（关键词数组） | 可填: 3–10 个英文词
+    // 不可填: 空数组——留空时回退 metaKeywords（中文关键词会出现在英文页）
+    // 推荐: ["blog","technology","programming"]
+    "metaKeywordsEn": [
+      "blog",
+      "technology",
+      "programming"
     ],
 
     // Robots 指令

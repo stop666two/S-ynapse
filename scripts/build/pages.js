@@ -263,6 +263,27 @@ function createPagesModule(ctx) {
     return copy;
   }
 
+  // 按语言本地化站点级文案（仅 en 生效；对应 *En 字段缺失/为空时保持原值，
+  // 未配置英文的站点行为与改造前一致）。覆盖:
+  //   description → descriptionEn（meta/og/JSON-LD/RSS 共用）
+  //   language → languageEn（html lang 与侧栏日期本地化；留空回退 en-US）
+  //   seo.metaKeywords → seo.metaKeywordsEn
+  //   authorProfile.bio → authorProfile.bioEn（作者卡介绍）
+  function localizeSite(site, lang) {
+    if (!site || lang !== 'en') return site;
+    const out = { ...site };
+    if (site.descriptionEn) out.description = site.descriptionEn;
+    out.language = site.languageEn || 'en-US';
+    if (site.seo) {
+      const kwEn = site.seo.metaKeywordsEn;
+      if (Array.isArray(kwEn) && kwEn.length) out.seo = { ...site.seo, metaKeywords: kwEn };
+    }
+    if (site.authorProfile && site.authorProfile.bioEn) {
+      out.authorProfile = { ...site.authorProfile, bio: site.authorProfile.bioEn };
+    }
+    return out;
+  }
+
   function localizeNav(nav, pf, lang) {
     if (!nav || !nav.menu) return nav;
     const copy = JSON.parse(JSON.stringify(nav));
@@ -354,6 +375,7 @@ function createPagesModule(ctx) {
         ...baseData,
         lang,
         langPrefix: pf,
+        site: localizeSite(baseData.site, lang),
         title: lang === 'en' ? (config.site.titleEn || config.site.title) : config.site.title,
         articleTitle: null,
         ui: (path, fallback) => {
@@ -511,10 +533,16 @@ function createPagesModule(ctx) {
       if (customPages && customPages.length) {
         for (const cp of customPages) {
           const ov = (cp.langs && cp.langs[lang]) || cp.default;
+          // 页面自身未写 description 时，parseOne 会固化为站点描述（中文）；
+          // 此处按语言取本地化后的站点描述，避免 en 页继承中文回退值。
+          // 页面自带描述（与 site.description 不同）视为作者文案，原样保留。
+          const pageDescription = (ov.description && ov.description !== config.site.description)
+            ? ov.description
+            : langData.site.description;
           const pageData = {
             ...langData,
             title: ov.title,
-            description: ov.description,
+            description: pageDescription,
             pageTitle: ov.title,
             pageContent: ov.content,
             hasCode: typeof ov.hasCode === 'boolean' ? ov.hasCode : hasHighlightableCode(ov.content),
@@ -579,7 +607,7 @@ function createPagesModule(ctx) {
     }
   }
 
-  return { buildCardImgAttrs, buildSiteCss, buildRuntimePresets, writeRuntimeConfig, buildPageData, processCustomPages, localizeSidebar, localizeNav, localizeFooter, buildPaginationItems, generatePages };
+  return { buildCardImgAttrs, buildSiteCss, buildRuntimePresets, writeRuntimeConfig, buildPageData, processCustomPages, localizeSidebar, localizeNav, localizeFooter, localizeSite, buildPaginationItems, generatePages };
 }
 
 module.exports = { createPagesModule };

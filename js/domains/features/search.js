@@ -72,9 +72,10 @@ export function init() {
     var wrap = document.getElementById('pfWrap');
     if (wrap) wrap.hidden = true;
   }
-  function ensurePagefind() {
-    if (window.__pfReady__) { focusPagefind(); return; }
-    if (window.__pfLoading__) { window.__pfLoading__.then(focusPagefind); return; }
+  function ensurePagefind(wantFocus) {
+    var focus = wantFocus !== false;
+    if (window.__pfReady__) { if (focus) focusPagefind(); return; }
+    if (window.__pfLoading__) { if (focus) window.__pfLoading__.then(focusPagefind); return; }
     var base = window.__SEARCH_PROVIDER_PATH__;
     window.__pfLoading__ = new Promise(function (resolve) {
       var css = document.createElement('link');
@@ -107,16 +108,18 @@ export function init() {
       s.onerror = function () { restoreLocalSearch(); resolve(); };
       document.body.appendChild(s);
     });
-    window.__pfLoading__.then(focusPagefind);
+    if (focus) window.__pfLoading__.then(focusPagefind);
   }
   function openSearch() {
     var o = document.getElementById('searchOverlay');
     if (!o) return;
     o.classList.add('open');
-    if (isPagefind()) { ensurePagefind(); return; }
-    ensureData();
-    // 聚焦延迟来自 features.search.focusDelayMs；兜底值与 features-schema.js → DEFAULT_FEATURES.search 同值。
+    // 聚焦开关与延迟来自 features.search.focusOnOpen / focusDelayMs；兜底值与 features-schema.js → DEFAULT_FEATURES.search 同值。
     var _scf = (window.__FEATURES__ || {}).search || {};
+    var _focus = _scf.focusOnOpen !== false;
+    if (isPagefind()) { ensurePagefind(_focus); return; }
+    ensureData();
+    if (!_focus) return;
     setTimeout(function () { var i = document.getElementById('searchInput'); if (i) i.focus(); }, isNaN(+_scf.focusDelayMs) ? 100 : Math.max(0, +_scf.focusDelayMs));
   }
   function closeSearch() {
@@ -195,8 +198,10 @@ export function init() {
     var el = isNaN(+TNS.excerptLength) ? (isNaN(+SC.excerptLength) ? 120 : +SC.excerptLength) : +TNS.excerptLength;
     var shl = (F && F.searchHighlight) || {};
     var mm = isNaN(+shl.maxMatches) ? 20 : +shl.maxMatches;
+    var hlOn = shl.enabled !== false && SC.highlightMatches !== false;
     function hl(sx, qq) {
       var esc = sx.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (!hlOn) return esc;
       var re;
       try { re = new RegExp('(' + qq.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'); }
       catch (e) { return esc; }
@@ -252,7 +257,6 @@ export function init() {
         });
       });
       if (cnt) cnt.textContent = r.length + ' ' + __T('search.foundText', '个结果');
-      saveHistory(q);
     } else {
       d.classList.remove('has-results');
       d.innerHTML = '';
@@ -295,19 +299,70 @@ export function init() {
     h.unshift(q);
     h = h.slice(0, mx);
     try { localStorage.setItem(__HSK, JSON.stringify(h)); } catch (e) { /* 忽略：存储不可用时历史仅当次会话有效 */ }
+    bumpHot(q);
+  }
+  var HOT_SUFFIX = ':hot';
+  function readHot() {
+    __hs();
+    try {
+      var o = JSON.parse(localStorage.getItem(__HSK + HOT_SUFFIX) || '{}');
+      return o && typeof o === 'object' && !Array.isArray(o) ? o : {};
+    } catch (e) { return {}; }
+  }
+  function bumpHot(q) {
+    var F3 = window.__FEATURES__ || {}, HS = (F3 && F3.hotSearches) || {};
+    if (HS.enabled === false || HS.showInDropdown === false || !q) return;
+    var hot = readHot();
+    hot[q] = (+hot[q] || 0) + 1;
+    var keys = Object.keys(hot);
+    if (keys.length > 50) {
+      keys.sort(function (a, b) { return hot[b] - hot[a]; });
+      var pruned = {};
+      keys.slice(0, 50).forEach(function (k) { pruned[k] = hot[k]; });
+      hot = pruned;
+    }
+    try { localStorage.setItem(__HSK + HOT_SUFFIX, JSON.stringify(hot)); } catch (e) { /* 忽略：存储不可用时热门词不记录 */ }
+  }
+  function clearHot() {
+    __hs();
+    try { localStorage.removeItem(__HSK + HOT_SUFFIX); } catch (e) { /* 忽略：存储不可用时无需清理 */ }
+    renderHistory();
+  }
+  function escWord(x) {
+    return String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
   function renderHistory() {
     var hist = document.getElementById('searchHistory');
     if (!hist) return;
+    var FH = window.__FEATURES__ || {}, HS = (FH && FH.hotSearches) || {};
     var h = getHistory();
-    if (!h.length) { hist.hidden = true; return; }
-    var html = '<div class="search-history-title">' + __T('search.recent', '最近搜索') + '</div>';
-    h.forEach(function (x) {
-      var _hw = String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-      html += '<button type="button" class="search-history-item" data-word="' + _hw + '">' + _hw + '</button>';
-    });
+    var hotArr = [];
+    if (HS.enabled !== false && HS.showInDropdown !== false) {
+      var hot = readHot();
+      hotArr = Object.keys(hot).filter(function (k) { return k && hot[k] > 0; })
+        .sort(function (a, b) { return (hot[b] - hot[a]) || (a < b ? -1 : 1); })
+        .slice(0, isNaN(+HS.top) ? 5 : Math.max(0, +HS.top));
+    }
+    if (!h.length && !hotArr.length) { hist.hidden = true; return; }
+    var html = '';
+    if (hotArr.length) {
+      html += '<div class="search-history-title">' + __T('search.hot', '热门搜索')
+        + (HS.showClear !== false ? '<button type="button" class="search-history-clear" data-hot-clear aria-label="' + escWord(__T('search.clearHot', '清空热门搜索')) + '">' + escWord(__T('search.clear', '清空')) + '</button>' : '')
+        + '</div>';
+      hotArr.forEach(function (x) {
+        html += '<button type="button" class="search-history-item" data-word="' + escWord(x) + '">' + escWord(x) + '</button>';
+      });
+    }
+    if (h.length) {
+      html += '<div class="search-history-title">' + __T('search.recent', '最近搜索') + '</div>';
+      h.forEach(function (x) {
+        html += '<button type="button" class="search-history-item" data-word="' + escWord(x) + '">' + escWord(x) + '</button>';
+      });
+    }
     hist.innerHTML = html;
     hist.hidden = false;
+    var clr = hist.querySelector('[data-hot-clear]');
+    if (clr) clr.addEventListener('click', function (e) { e.preventDefault(); clearHot(); });
     hist.querySelectorAll('.search-history-item').forEach(function (b) {
       b.addEventListener('click', function () {
         var i = document.getElementById('searchInput');
@@ -316,7 +371,11 @@ export function init() {
     });
   }
   var ov = document.getElementById('searchOverlay');
-  if (ov) ov.addEventListener('click', function (e) { if (e.target === ov) closeSearch(); });
+  if (ov) ov.addEventListener('click', function (e) {
+    if (e.target !== ov) return;
+    var SC2 = (window.__FEATURES__ || {}).search || {};
+    if (SC2.closeOnOverlay !== false) closeSearch();
+  });
   var sc = document.querySelector('.search-close');
   if (sc) sc.addEventListener('click', function () { closeSearch(); });
   var si = document.getElementById('searchInput');

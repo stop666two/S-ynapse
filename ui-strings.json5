@@ -42,6 +42,10 @@
     foundCount: '找到 {count} 个结果',
     foundText: '个结果',
     recent: '最近搜索',
+    // 热门搜索分组标题与清空按钮（features.hotSearches；本地词频统计）
+    hot: '热门搜索',
+    clear: '清空',
+    clearHot: '清空热门搜索',
     notFound: '未找到相关文章',
     loadError: '搜索索引加载失败，请检查网络后重试',
     retry: '重试',
@@ -300,6 +304,10 @@
       widgetPlaceholder: 'Type a keyword…',
       foundCount: '{count} results found', foundText: 'results',
       recent: 'Recent searches',
+      // Hot searches heading and clear button (features.hotSearches; local term frequency)
+      hot: 'Trending searches',
+      clear: 'Clear',
+      clearHot: 'Clear trending searches',
       notFound: 'No matching articles',
       loadError: 'Failed to load the search index. Check your network and retry.',
       retry: 'Retry',

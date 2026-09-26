@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **热门搜索（用户可感知）**：`features.hotSearches.top/showInDropdown/showClear` 全部接线——搜索词按本地词频（`s-hotSearches:hot`，最多 50 词）累计，搜索下拉展示「热门搜索」分组（按词频降序取 `top` 条）+「最近搜索」；`showClear` 提供清空按钮（原生 button + aria-label，键盘可操作）；文案新增 `ui-strings.search.hot/clear/clearHot` 双语。配置文件键：`hotSearches.top`（默认 5，展示条数）/ `showInDropdown`（默认 true）/ `showClear`（默认 true）；完整中文注释与 schema/defaults/docs 同步。
+- **阅读进度气泡与无障碍（用户可感知）**：`features.readingProgress.tipDisplayMs`（默认 500ms）接线——点击跳转后百分比气泡停留该时长，悬停/聚焦期间常显；`ariaAnnounce`（默认 true）接线——进度条实时输出 `aria-valuenow`（`role=progressbar` 已有）；进度条新增 `tabindex=0` 与键盘操作（←/→ 步进 5%、Home/End 首尾，点击坐标跳转不受影响；`prefers-reduced-motion` 下由 `window.__SB()` 自动降级）。
+- **第二轮配置接线批（W2）**：`readingTime.showInMeta`（默认 true，false 同时隐藏两处元信息阅读时长）、`toc.minLevel/maxLevel`（构建期 TOC 提取，收敛 2–4 级并经单测）、`toc.highlightActive`、`mobileToc.overlayClose/lockScroll/autoClose`（含 Esc/外点关闭与滚动恢复）、`readDock.showProgressRing/showTocButton/showTopButton`（全 false 时整坞不渲染）、`externalLink.showFullUrl/openInNewTab`、`themePresets.showInNavbar/previewOnHover`（SSR 门控与 title 输出）、`themeSchedule.applyInstantly`、`dailyQuote.quoteColor`、`share.copiedShowMs/popupWidth/popupHeight/wechatText(_En)`（微信复制按 `{title}/{url}` 模板）、`tts.volume`、`comments.loadContainer`、`darkImageFilter.applyImages`、`shortcuts.helpTitle(_En)/showHelpTable`、`ogImage.useCover/gradientForNoCover`、`search.highlightMatches/closeOnOverlay/focusOnOpen`、`searchHighlight.enabled` 门控、`mobileToc.maxHeightVh/borderRadius`（改为读取 features，消除 CSS 硬编码）、`readingTime` 元信息防重复/`hotSearches` 词频（见上）。
+- **tuning 设计尺寸迁移第二批（W1，32 项）**：search（overlayPadding 12vh/1rem/2rem、modalPadding、modalMaxHeight 78vh、closeBtnSize 36px）、reading（dockRight 1.35rem、dockBtnSize 40px、dockRightTablet 1rem、dockBottomTablet 6.4rem、gearBottom 14.6rem、gearMobileBottom 10.8rem、panelBottom 13.2rem、panelWidth 280px、dockMobileBottom 14.2rem）、mobileToc（btnBottom 6rem、btnRight 2rem、btnMobileBottom 7.4rem、btnMaxWidth 340px、labelMaxWidth 9.5rem）、ui（errorSvgMaxWidth 460px、errorSuggestMaxWidth 560px、errorCodeFontSize 7rem）、lightbox（btnSize 44px、btnOffset 14px）、toast（maxWidth 420px、radius 999px、offsetBottom 2rem）、pagination（btnMinWidth/btnHeight 40px）、backToTop.hiddenOffset 20px、commandPalette.listMaxHeight 420px、code.windowDotSize 11px、layout.articlePadding 2rem。全部默认值与迁移前逐字一致，模板以 `var(--分类-键, 原值)` 消费；`scripts/lib/tuning-defaults.js` 与 `docs/config-reference.md` 同步。
+
+### Changed
+
+- **未接线预留键全量标注（W2）**：对 features.json5 中机器扫描确认无消费方的 142 个叶子键逐键加 `⚠ 未接线（预留）：<原因/替代> ` 注释，并在 `docs/config-reference.md` 新增「3.0 未接线键总表」（43 个模块分组，状态/原因/替代来源）；本轮接线 20+ 键后剩余 135 个预留键全部可审计，不再存在「看起来能调、实际无效且无标注」的键。
+- **跨文件语义重复清理（W3）**：`features.themeToggle.animationMs`（250）与 `theme.animation.transitionDuration`（0.25s）语义重叠、实际生效后者，已删除前者（features.json5/schema/config-reference 同步）；其余重复项结论见 `docs/config-audit-2026-09-27.md`（backToTop 偏移与 tuning 同义、lightbox.maxWidthVw 与 imageFit.lightbox.maxWidthPct 同义、contactPopup.popupWidth 360px 与模板 400px 漂移等，已在 JSON5 标注）。
+- **文档同步**：`docs/config-reference.md` §3.2/3.4/3.9/3.10/3.23/3.42/3.86/3.90/10 更新为接线后语义与新 tuning 分类（37 分类 / 269 项）。
+
+### Removed
+
+- `features.themeToggle.animationMs`（未接线、语义重复；主题切换过渡统一由 `theme.animation.transitionDuration` → `tuning.motion.transitionDuration` 控制）。
+
+### 验证与门禁
+
+- `npm test` 379/379、`npm run test:build` 2/2、`npm run lint` 0 错、`npm run typecheck` 0 错、`npm run verify:config` PASS。
+- 构建 `.tmp-scripts/out/round2-build`（6.9s）：产物页面 gzip 对比 audit-build 中位 −5B、超 28KB 预算页数 2→2 持平；assets/js gzip 55.4KB→56.7KB（+1.3KB，超 55KB 上限告警，`perfBudget.warnOnly=true` 非阻断，见报告）。
+- 无头 runner `.tmp-scripts/run-round2.js`：55 断言全绿（W1 计算样式/CSS 变量 31 项、W2 运行时门控 10 项、W4 热门搜索/阅读气泡 14 项），0 控制台错误，自收尾并校验端口 3324 释放；截图 4 张存 `.tmp-scripts/out/round2-*.png`。
+
 ## [1.1.0] - 2026-09-26
 
 ### Added

@@ -148,3 +148,94 @@ npm run build -- --out .tmp-scripts/out/audit-build
 ```
 
 > 报告生成时间：2026-09-27（审计辅助脚本位于 `.tmp-scripts/`，该目录已被 `.gitignore` 排除）。
+
+---
+
+## 八、第二轮闭环结果（2026-09-27）
+
+> 目标：把第一批未闭环项全部收口，并落实「配置只能在 JSON5 里调（含完整中文注释）」与「不存在看起来能调、实际无效且无标注的键」。
+
+### 8.1 W1 — B 类第二批设计尺寸迁移（已完成，32 项）
+
+全部默认值与迁移前逐字一致；模板以 `var(--{分类}-{键}, 原值)` 消费，构建时由 tuning 自动注入 CSS 变量；`scripts/lib/tuning-defaults.js` 与 `docs/config-reference.md` §10 同步（33 分类/237 项 → 37 分类/269 项）。
+
+| 分类 | 新增键（默认值） | 原硬编码位置 |
+|---|---|---|
+| search | `overlayPadding '12vh 1rem 2rem'` / `modalPadding '2.5rem 2.5rem 2rem'` / `modalMaxHeight '78vh'` / `closeBtnSize '36px'` | `.search-overlay` / `.search-modal` / `.search-close` |
+| reading | `dockRight '1.35rem'` / `dockBtnSize '40px'` / `dockRightTablet '1rem'` / `dockBottomTablet '6.4rem'` / `gearBottom '14.6rem'` / `gearMobileBottom '10.8rem'` / `panelBottom '13.2rem'` / `panelWidth '280px'` / `dockMobileBottom '14.2rem'` | `.read-dock` / `.dock-btn` / `.dock-ring` / `.reader-gear` / `.reader-panel` 及媒体查询 |
+| mobileToc | `btnBottom '6rem'` / `btnRight '2rem'` / `btnMobileBottom '7.4rem'` / `btnMaxWidth '340px'` / `labelMaxWidth '9.5rem'`（另 `maxHeightVh`/`borderRadius` 改为读取 features，见 W2） | `.m-toc-btn` / `.m-toc-label` / 768px 媒体查询 |
+| ui | `errorSvgMaxWidth '460px'` / `errorSuggestMaxWidth '560px'` / `errorCodeFontSize '7rem'` | `.error-svg` / `.error-suggest` / `.error-code` |
+| lightbox | `btnSize '44px'` / `btnOffset '14px'` | `.lb-*` 控件（尺寸变量此前无人注入，现生效） |
+| toast | `maxWidth '420px'` / `radius '999px'` / `offsetBottom '2rem'` | `.toast` / `--toast-radius` / `--toast-offsetBottom` |
+| pagination | `btnMinWidth '40px'` / `btnHeight '40px'` | `.page-link` |
+| backToTop | `hiddenOffset '20px'` | `.back-to-top` 隐藏态位移 |
+| commandPalette | `listMaxHeight '420px'` | `.cmdp-list` |
+| code | `windowDotSize '11px'` | `.cw-dot` |
+| layout | `articlePadding '2rem'` | `.post-article` 三处内边距 |
+
+证据：runner `.tmp-scripts/run-round2.js` 对 9 个页面读取 CSS 变量与 computed style 共 34 项 W1 断言全绿（含 404、图库灯箱、移动端 600px、平板 1000px 断点），截图 4 张（`.tmp-scripts/out/round2-*.png`）。
+
+### 8.2 W2 — 未接线键收口（已完成）
+
+机器扫描口径：对 `features.json5` 的 931 个叶子键，在 `js/`、`templates/`、`scripts/`（排除 schema/defaults）中按「叶键名零引用」判定。收口账目：
+
+| 处置 | 数量 | 说明 |
+|---|---|---|
+| 已接线（功能已存在，本轮补读配置） | 35 | readingTime.showInMeta；toc.minLevel/maxLevel/highlightActive；mobileToc.overlayClose/lockScroll/autoClose/maxHeightVh/borderRadius；readDock.showProgressRing/showTocButton/showTopButton；externalLink.showFullUrl/openInNewTab；themePresets.showInNavbar/previewOnHover；themeSchedule.applyInstantly；dailyQuote.quoteColor；share.popupWidth/popupHeight/wechatText/wechatTextEn；tts.volume；comments.loadContainer；darkImageFilter.applyImages；shortcuts.helpTitle/helpTitleEn/showHelpTable；ogImage.useCover/gradientForNoCover；search.highlightMatches/closeOnOverlay/focusOnOpen；searchHighlight.enabled（审计中新发现未接线） |
+| 已实现（功能新增） | 5 | hotSearches.top/showInDropdown/showClear（热门词）、readingProgress.tipDisplayMs/ariaAnnounce（气泡 + 播报 + 键盘） |
+| 已标注（预留） | 142（135 新标注 + 7 上批已标注） | JSON5 逐键 `// ⚠ 未接线（预留）：<原因/替代>`；`docs/config-reference.md` 新增「3.0 未接线键总表」 |
+| 已删除（重复键） | 1 | themeToggle.animationMs（W3） |
+
+> 备注：2026-09-27 配置在库共 931 个叶子键；`enabled`/`height`/`size`/`count` 等通用名键无法被叶键名扫描可靠覆盖，本轮按跨文件重复清单人工核验（见 8.3），未列入机器账目。
+
+### 8.3 W3 — 跨文件语义重复结论
+
+| 重复对 | 处置 | 说明 |
+|---|---|---|
+| `themeToggle.animationMs` ↔ `theme.animation.transitionDuration` | **删除前者** | 实际生效后者（经 `tuning.motion.transitionDuration` 覆盖）；schema/config-reference/features 三处同步 |
+| `backToTop.rightOffset/bottomOffset` ↔ `tuning.backToTop.offsetSide/offsetBottom` | 前者标注同义 | CSS 只消费 tuning；features 侧保留兼容 |
+| `lightbox.maxWidthVw` ↔ `imageFit.lightbox.maxWidthPct` | 前者标注同义 | 模板读 imageFit |
+| `listCover.aspectRatio` ↔ `tuning.card.imageAspect`/`theme.card` | 前者标注近似同义 | 卡片比例由 tuning 生效 |
+| `contactPopup.popupWidth '360px'` ↔ 模板固定 `400px` | 标注漂移（待决策） | 接线将改变现有视觉 40px，未擅自改动 |
+| `stats.label*` / `heatmap.legend*`/`tooltip*` / `series.badgeFormat*` 等文案键 ↔ `ui-strings.json5` | 标注（i18n 重复） | 实际文案按语言取自 ui-strings |
+| `wordCount.onCards` ↔ `theme.card.showWordCount` | 标注同义 | 卡片字数由 theme 控制 |
+| `features.motion.*` ↔ `tuning.motion.*`；`search.debounceMs/maxHistory/minChars/noResultText` ↔ `tuning.search.*` | 保留（双活、tuning 优先） | `motion.js`/`search.js` 以 `pick(tuning, features)` 读取，非死键 |
+
+### 8.4 W4 — 小功能（已完成 2 项，均有配置键 + 中文注释 + 双语文案 + 无障碍）
+
+1. **热门搜索**（`hotSearches.top` 默认 5 / `showInDropdown` true / `showClear` true）：本地词频 `s-hotSearches:hot`（≤50 词）累计，下拉渲染「热门搜索」分组（词频降序）+ 清空按钮；原生 button 可键盘操作、清空按钮带 `aria-label`；新增 `ui-strings.search.hot/clear/clearHot`。顺带修复同函数内 `saveHistory` 被调用两次导致的双重计入。
+2. **阅读进度气泡**（`readingProgress.tipDisplayMs` 默认 500 / `ariaAnnounce` true）：点击跳转后气泡停留 `tipDisplayMs`，悬停/聚焦常显；进度条 `tabindex=0` + `aria-valuenow`，支持 ←/→（5%）、Home/End；`prefers-reduced-motion` 下滚动经 `__SB()` 降级。
+
+### 8.5 W5 — 门禁与验证证据
+
+| 门禁/验证 | 结果 |
+|---|---|
+| `npm run verify:config` | PASS（99 模块一致；tuning 新增 31 键 ↔ 注册表一致） |
+| `npm run lint` | 0 错误 |
+| `npm run typecheck` | 通过（tsc 无输出） |
+| `npm test` | **379 tests / 82 suites / 0 fail**（新增 extractToc min/maxLevel 2 例） |
+| `npm run test:build` | 2/2 通过（含 EJS 全量编译与 CSP nonce 断言） |
+| 构建 `npm run build -- --out .tmp-scripts/out/round2-build` | 成功（6.93s，OG 复用 16/失败 0，search-index 8+8） |
+| 产物体积（vs 上批 audit-build） | 页面 gzip 中位 **−5B**（31 页全部 ≤0 或微降）；超 28KB 预算页数 2→2；assets/js gzip 55.4→**56.7KB（+1.3KB）**，超 55KB 上限告警（`perfBudget.warnOnly=true`，非阻断） |
+| 无头 runner `.tmp-scripts/run-round2.js` | **55 PASS / 0 FAIL**、0 控制台错误、端口 3324 已释放；截图 `.tmp-scripts/out/round2-{zh-home,zh-search-hot,zh-404,zh-article-mobile}.png` |
+| runner 覆盖 | W1 变量+计算样式 34 项（含 404/灯箱/移动端/平板断点）；W2 运行时门控 11 项（search 高亮/遮罩/聚焦、mobileToc overlay/lock/autoClose、bundle 标记、SSR 默认态）；W4 热门搜索 5 项 + 进度气泡 3 项 |
+
+### 8.6 W6 — 提交
+
+| 提交 | 内容 |
+|---|---|
+| `6bc957a` | refactor(ai): tuning 设计尺寸第二批迁移（31 项）并同步默认值 |
+| `13cd0f2` | refactor(ai): 删除重复键 themeToggle.animationMs（W3） |
+| `e192443` | feat(ai): 接线 35 项预留配置并按键补全 ⚠ 未接线标注（W2） |
+| `fe0e022` | feat(ai): 热门搜索与阅读进度气泡（W4） |
+| `docs(ai)`（本提交） | CHANGELOG 与第二轮闭环结果 |
+
+### 8.7 仍未闭环项（新发现 / 需用户决策）
+
+1. **JS 预算超限**：assets/js gzip 55.4→56.7KB（上限 55KB，`warnOnly=true` 不阻断）。建议二选一：接受并调高 `features.perfBudget.jsKb`（JSON5 可调），或下一批压缩（热门词/进度逻辑可合并复用）。
+2. **search 结果容器重复查询追加不清空**（既有缺陷，非本批引入）：`doSearchNow` 渲染结果前未清空 `#searchResults`，连续查询会叠加旧结果节点。建议下一批修复（`d.innerHTML=''` 于追加前）。
+3. **readingTime 两处展示**：配置文案（`N阅读约需`）与模板内置 `N 分钟阅读` 默认同时显示；`showInMeta=false` 已可一并隐藏，但文案重复建议二选一（改模板会变更默认视觉，待确认）。
+4. **contactPopup.popupWidth 漂移**：默认 360px vs 模板固定 400px；接线即改变现有视觉，待确认。
+5. **search.matchTags/matchCategories**：接线将扩大搜索结果集合（默认 true 即启用），属行为变更，待确认后接线（当前已标注）。
+6. **通用名键盲区**：`enabled/height/size/count` 等无法被叶键名扫描覆盖，需后续引入基于属性访问路径的静态分析或人工巡检清单。
+7. 135 个预留键（`lightbox.openDurationMs`、`backToTop.scrollDurationMs`、`themeToggle.defaultTheme` 等）为功能未实现而不是硬编码漂移；如需要某键生效，建议单独立项实现并在本表更新状态。

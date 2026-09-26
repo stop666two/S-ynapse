@@ -226,19 +226,34 @@ function applySvgSizing(svg, size, w, h) {
   });
 }
 
-// 失败块标记：pre 原样保留（客户端 __mmRenderAll 接管）；div 形态还原为 pre。
-function markPendingBlock(match, block, isPre) {
+// 失败块标记：pre 原样保留（客户端 __mmRenderAll 接管；data-mm-error 供客户端失败占位）；
+// div 形态还原为 pre。
+function markPendingBlock(match, block, isPre, options) {
+  const opts = options || {};
+  const errAttr = opts.errorText ? ' data-mm-error="' + escapeAttrValue(opts.errorText) + '"' : '';
   if (isPre) {
     if (/data-mm-pending=/.test(match)) return match;
-    return match.replace(/^<pre\b/i, '<pre data-mm-pending="1"');
+    return match.replace(/^<pre\b/i, '<pre data-mm-pending="1"' + errAttr);
   }
   const extra = (block.w ? ' data-w="' + escapeAttrValue(block.w) + '"' : '') + (block.h ? ' data-h="' + escapeAttrValue(block.h) + '"' : '');
-  return '<pre data-language="mermaid" data-mm-pending="1"' + extra + '><code class="language-mermaid">'
+  return '<pre data-language="mermaid" data-mm-pending="1"' + errAttr + extra + '><code class="language-mermaid">'
     + escapeMermaidText(block.code) + '</code></pre>';
 }
 
 function escapeAttrValue(value) {
   return String(value).replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 复制按钮（features.mermaid.copyAfterRender=true）：
+// 复制目标为容器上的 data-mm-code（原始 mermaid 源码，构建期保留在 SSR 产物中）；
+// 不使用内联事件（CSP 合规），点击处理在 layout.ejs 的 mermaid 运行时脚本中事件委托。
+function buildCopyButton(options) {
+  if (!options || options.copyAfterRender !== true) return '';
+  const label = escapeAttrValue(options.copyLabel || '复制图表代码');
+  const copied = escapeAttrValue(options.copyCopiedLabel || '已复制');
+  return '<button type="button" class="mm-copy" data-mm-copy data-copied-label="' + copied + '" aria-label="' + label + '" title="' + label + '">'
+    + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+    + '</button>';
 }
 
 function buildSsrDiv(block, result, options, uid) {
@@ -251,13 +266,14 @@ function buildSsrDiv(block, result, options, uid) {
     'class="mermaid mermaid-ssr"',
     'data-theme-pair="' + (darkRaw ? 'light|dark' : 'light') + '"'
   ];
+  if (options.copyAfterRender === true) attrs.push('data-mm-code="' + escapeAttrValue(block.code) + '"');
   if (block.w) attrs.push('data-w="' + escapeAttrValue(block.w) + '"');
   if (block.h) attrs.push('data-h="' + escapeAttrValue(block.h) + '"');
-  return '<div ' + attrs.join(' ') + '>' + light + (darkRaw || '') + '</div>';
+  return '<div ' + attrs.join(' ') + '>' + light + (darkRaw || '') + buildCopyButton(options) + '</div>';
 }
 
 // 把渲染结果按顺序回填到文章 HTML：成功 → 双主题内联 SVG 容器；失败/不安全 → pending。
-// options: { darkMode = true, size = {}, nonce = '' }
+// options: { darkMode = true, size = {}, nonce = '', copyAfterRender = false, copyLabel, copyCopiedLabel, errorText }
 function replaceMermaidBlocks(html, results, options) {
   const opts = options || {};
   const list = Array.isArray(results) ? results : [];
@@ -266,8 +282,8 @@ function replaceMermaidBlocks(html, results, options) {
   let occurrence = 0;
   const build = (match, block, isPre) => {
     const result = list[index++];
-    if (!result) return markPendingBlock(match, block, isPre);
-    return buildSsrDiv(block, result, opts, occurrence++) || markPendingBlock(match, block, isPre);
+    if (!result) return markPendingBlock(match, block, isPre, opts);
+    return buildSsrDiv(block, result, opts, occurrence++) || markPendingBlock(match, block, isPre, opts);
   };
   let out = input.replace(PRE_BLOCK_RX, (match, preAttrs, codeAttrs, content) => {
     if (!/\blanguage-mermaid\b/.test(codeAttrs)) return match;

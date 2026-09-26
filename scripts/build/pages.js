@@ -13,11 +13,14 @@ const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
-const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder } = require('../lib/feature-wiring');
+const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio } = require('../lib/feature-wiring');
 
 function createPagesModule(ctx) {
   const { getTemplate, renderPage, getPublished, recordBuildFailure, collectFriends, collectSeries, collectGalleryImages, collectSiteStats, collectTags, collectCategories, collectTopTags, groupByYearMonth, categoryHue, resolveDailyQuotes, resolveFaviconHtml, CleanCSS } = ctx;
   let SITE_CSS_HREF = '';
+  // features.imageLazy.preserveAspectRatio（默认 true）：false 时构建期不输出 width/height，
+  // 交由 CSS 自适应（与 markdown.js 出图路径一致）。由 buildPageData 按配置赋值。
+  let PRESERVE_AR = true;
 
   // 卡片（首页/标签列表）图片属性构造：从媒体 manifest 读取原格式多尺寸变体生成 srcset，
   // 使首屏卡片不再下载 1600px 原图（LCP 优化）。仅用 original 格式变体（不引入 <picture>，不改现有 CSS 选择器结构）。
@@ -33,7 +36,9 @@ function createPagesModule(ctx) {
 
   // 通用图片尺寸属性（width/height）构造：用于文章头图、画廊图、prev/next 缩略图等
   // 未被 buildCardImgAttrs 覆盖的 <img>。manifest 无条目或元数据不完整时返回空串（不输出属性）。
+  // features.imageLazy.preserveAspectRatio=false 时恒返回空串（不输出 width/height）。
   function imgDimsAttrs(src) {
+    if (!PRESERVE_AR) return '';
     const entry = getMediaEntry(src);
     const w = entry ? parseInt(entry.width, 10) : NaN;
     const h = entry ? parseInt(entry.height, 10) : NaN;
@@ -87,7 +92,8 @@ function createPagesModule(ctx) {
     if (article && article.featuredImage) return buildCardImgAttrs(article.featuredImage);
     const auto = getAutoCover(article);
     if (!auto) return '';
-    return `src="${escapeAttr(auto.url)}" width="${auto.width}" height="${auto.height}"`;
+    const dims = PRESERVE_AR ? ` width="${auto.width}" height="${auto.height}"` : '';
+    return `src="${escapeAttr(auto.url)}"${dims}`;
   }
 
   // 文章页头图属性：显式 featuredImage 保持原输出（src + manifest 宽高，无 srcset）；
@@ -99,7 +105,8 @@ function createPagesModule(ctx) {
     }
     const auto = getAutoCover(article);
     if (!auto) return '';
-    return `src="${escapeAttr(auto.url)}" width="${auto.width}" height="${auto.height}"`;
+    const dims = PRESERVE_AR ? ` width="${auto.width}" height="${auto.height}"` : '';
+    return `src="${escapeAttr(auto.url)}"${dims}`;
   }
 
   function buildSiteCss(config, baseData) {
@@ -212,6 +219,9 @@ function createPagesModule(ctx) {
       return (o === undefined || o === null) ? fallback : o;
     }
     const pinnedCfg = pinnedConfig(config.features);
+    const seriesCfg = seriesConfig(config.features);
+    const wordCfg = wordCountConfig(config.features);
+    PRESERVE_AR = imagePreserveAspectRatio(config.features);
     return {
       site: config.site,
       theme: config.theme,
@@ -232,7 +242,7 @@ function createPagesModule(ctx) {
       archives: groupByYearMonth(published),
       seriesList: collectSeries(published),
       friends: friendsCfg,
-      galleryItems: collectGalleryImages(articles),
+      galleryItems: collectGalleryImages(articles, { collectFeatured: galleryCollectFeatured(config.features) }),
       siteStats: collectSiteStats(articles, tags, categories),
       listCoverEnabled: !!(config.features && config.features.listCover && config.features.listCover.enabled !== false),
       listCoverFallback: (config.features && config.features.listCover && config.features.listCover.fallback) || 'pattern',
@@ -245,6 +255,28 @@ function createPagesModule(ctx) {
       },
       // cover 运行时归一化（defaultPattern 回退 patterns[0]、preferImage 默认 true）。
       coverCfg: coverRuntimeConfig(config.features),
+      // series/wordCount W3 接线：配置文案模板（*En 空回退中文）优先于 ui-strings 词典。
+      seriesCfg: seriesCfg,
+      wordCfg: wordCfg,
+      seriesBadge: function(name, lang) {
+        return seriesBadgeText(seriesCfg, lang, name, uiText('card.series', '系列', lang), uiText('card.series', 'Series', 'en'));
+      },
+      seriesPanel: function(total, lang) {
+        return seriesPanelTitle(seriesCfg, lang, total, uiText('post.seriesLabel', '系列', lang), uiText('post.seriesLabel', 'Series', 'en'));
+      },
+      wordCountLabel: function(count, lang) {
+        return wordCountText(wordCfg, lang, count, uiText('card.wordUnit', '{count} 字', lang), uiText('card.wordUnit', '{count} words', 'en'));
+      },
+      readTimeLabel: function(minutes, lang) {
+        const en = typeof lang !== 'undefined' && lang === 'en';
+        const tpl = en ? (wordCfg.readTimeFormatEn || wordCfg.readTimeFormat) : wordCfg.readTimeFormat;
+        if (tpl) return readTimeText(wordCfg, lang, minutes, uiText('card.minute', '{minutes} 分钟阅读', lang), uiText('card.minute', '{minutes} min read', 'en'));
+        // 模板显式置空时回退 readingTime.labelBefore/labelAfter（既有键保持可消费），再回退词典。
+        const rt = (config.features && config.features.readingTime) || {};
+        const label = en ? (rt.labelAfterEn || rt.labelAfter || '') : (rt.labelAfter || '');
+        if (label) return String(rt.labelBefore || '') + minutes + label;
+        return readTimeText(wordCfg, lang, minutes, uiText('card.minute', '{minutes} 分钟阅读', lang), uiText('card.minute', '{minutes} min read', 'en'));
+      },
       // 主题暗色规范化（canonical 来源 theme.darkMode；模板早置脚本与按钮样式共用）。
       themeDarkMode: normalizeThemeDarkMode(config.theme && config.theme.darkMode),
       // 页脚快捷键提示按钮渲染门控（features.shortcuts.showHelpHint，默认 true）。
@@ -489,7 +521,7 @@ function createPagesModule(ctx) {
         recentPosts: langPublished.slice(0, 10),
         archives: groupByYearMonth(langPublished),
         seriesList: collectSeries(langPublished),
-        galleryItems: collectGalleryImages(langArticles),
+        galleryItems: collectGalleryImages(langArticles, { collectFeatured: galleryCollectFeatured(config.features) }),
         siteStats: collectSiteStats(langArticles, langTags, langCategories),
         nav: localizeNav(baseData.nav, pf, lang),
         footer: localizeFooter(baseData.footer, pf, lang),

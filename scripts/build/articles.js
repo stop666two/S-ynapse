@@ -9,7 +9,7 @@ const { marked } = require('marked');
 const { getAllFiles } = require('./fs-utils');
 const { preflightArticles, createMediaResolver } = require('../lib/content-validate');
 const { formatDate, safeSlug, validateSlug, applyCjkSpacingToHtml, extractToc, sanitizeHtml, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode } = require('../lib/utils');
-const { makeArticleComparator, stripMarkdownText } = require('../lib/feature-wiring');
+const { makeArticleComparator, stripMarkdownText, mathConfig, mathNeeded, wordCountConfig } = require('../lib/feature-wiring');
 
 function createArticlesModule(ctx) {
   // Load Markdown content from pages/ as key-value map (filename → {title, content, body}).
@@ -141,8 +141,9 @@ function createArticlesModule(ctx) {
         return tag;
       });
     }
-    const MATH_RX = /(\$\$[\s\S]+?\$\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/;
     const MERMAID_RX = /```[ \t]*mermaid\b/i;
+    const mathCfg = mathConfig(config.features);
+    const wcCfg = wordCountConfig(config.features);
     const seenSlugs = new Map();
     for (const meta of files) {
       const { file, lang } = meta;
@@ -228,7 +229,9 @@ function createArticlesModule(ctx) {
             lang
           });
         }
-    const hasMath = MATH_RX.test(content);
+    // hasMath（按需加载 KaTeX 的触发条件）语义见 feature-wiring.mathNeeded：
+    // autoDetect=true 维持历史口径（$$ / \( / \[，单 $ 不单独触发）；false 仅 ```math 围栏块。
+    const hasMath = mathNeeded(content, mathCfg);
     const hasMermaid = MERMAID_RX.test(content);
         let htmlContent = marked.parse(content);
         if (config.site.build.cjkSpacing !== false) htmlContent = applyCjkSpacingToHtml(htmlContent);
@@ -260,9 +263,10 @@ function createArticlesModule(ctx) {
         // features.wordCount.wpm → theme.card.readTimeSpeed → 265 chain.
         // features.readingTime.enabled === false disables the value entirely,
         // which in turn hides every read-time badge in the templates.
-        const wordCount = countWords(content);
+        // 字数口径（features.wordCount.countCjkChars/countDigits）仅影响字数展示；
+        // readTime 的 CJK/Latin 分解始终使用完整口径（与 readingTime 速度键语义一致）。
+        const wordCount = countWords(content, { countCjkChars: wcCfg.countCjkChars, countDigits: wcCfg.countDigits });
         const readingTimeCfg = (config.features && config.features.readingTime) || {};
-        const wordCountCfg = (config.features && config.features.wordCount) || {};
         let readTime = null;
         if (readingTimeCfg.enabled !== false) {
           const cjkSpeed = Number(readingTimeCfg.wordsPerMinuteCJK);
@@ -271,7 +275,7 @@ function createArticlesModule(ctx) {
             const detail = countWordsDetail(content);
             readTime = Math.max(1, Math.ceil(detail.cjk / cjkSpeed + detail.latin / latinSpeed));
           } else {
-            const readSpeed = wordCountCfg.wpm || config.theme.card?.readTimeSpeed || 265;
+            const readSpeed = wcCfg.wpm || config.theme.card?.readTimeSpeed || 265;
             readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
           }
         }

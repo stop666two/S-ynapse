@@ -1,8 +1,14 @@
 'use strict';
 // Markdown 渲染器（自 scripts/build.js 机械拆分；仅移动函数与依赖接线，不含逻辑变更）。
 // 依赖 marked 单例与 lib/utils 转义辅助直连 require，无编排器注入项。
+// 第五轮 W3：math（autoDetect/定界符/mathml）、supSub（标记/数学段跳过/孤立标记）、
+// imageLazy.preserveAspectRatio 接线；缺省配置 = 历史行为。
 const { marked } = require('marked');
 const { escapeAttr, escapeHtml, safeSlug } = require('../lib/utils');
+const {
+  supSubConfig, supSubMatchers, matchSupSub, transformSupSubInMathRaw,
+  mathConfig, buildMathGuardPatterns
+} = require('../lib/feature-wiring');
 
 function createMarkdownModule() {
   // Configure the marked Markdown renderer with custom handlers for:
@@ -14,91 +20,117 @@ function createMarkdownModule() {
   function setupMarkedRenderer(config, mediaManifest) {
     const F = config.features || {};
     const imgLazy = (F.imageLazy && F.imageLazy.enabled !== false);
+    const preserveAR = !(F.imageLazy && F.imageLazy.preserveAspectRatio === false);
     const usePicture = config.site.build.usePictureTag !== false;
     const showLineNumbers = !!(F.codeBlock && (F.codeBlock.lineNumbers || F.codeBlock.showLineNumbers));
     const extTarget = config.site.build.externalLinksTarget || '_blank';
     const extRel = config.site.build.externalLinksRel || 'noopener noreferrer';
     const siteUrl = (config.site.url || '').replace(/\/+$/, '');
+    const mathCfg = mathConfig(F);
+    const supCfg = supSubConfig(F);
+    const supMatchers = supCfg.enabled ? supSubMatchers(supCfg) : [];
 
     // Math-guard extension: captures KaTeX-style math spans (*before* supSub / other
     // inline extensions) so that superscript/subscript syntax inside formulas stays
     // untouched for client-side auto-render (KaTeX).
-    // - Block level:  $$ ... $$ (may span lines)
-    // - Inline level: $ ... $, \( ... \), \[ ... \]
-    marked.use({
-      extensions: [
-        {
-          name: 'mathGuardBlock',
-          level: 'block',
-          start(src) {
-            // Block formulas must start a line (^$$) — not appear mid-line
-            // or inside inline code spans.
-            const m = /^\$\$/m.exec(src);
-            return m ? m.index : undefined;
+    // - Block level: configured blockDelimiters (default $$ ... $$, may span lines)
+    // - Inline level: configured inlineDelimiters (default $ ... $) plus \\( \\) / \\[ \\]
+    //   controlled by renderRoundParens / renderSquareBrackets
+    // math.autoDetect=false 时整组不注册（不解析、不保护；仅 ```math 围栏块经客户端渲染）。
+    // supSub.skipInsideMath=false 时数学段内应用上下标转换（renderer 内处理，仍保护 marked 解析）。
+    const mathDelims = { block: mathCfg.blockDelimiters, inline: mathCfg.inlineDelimiters };
+    function renderMathRaw(raw) {
+      if (supMatchers.length && !supCfg.skipInsideMath) {
+        return transformSupSubInMathRaw(raw, supMatchers, supCfg.preserveUnmatched, mathDelims);
+      }
+      return raw;
+    }
+    if (mathCfg.enabled && mathCfg.autoDetect) {
+      const pat = buildMathGuardPatterns(mathCfg);
+      const inlineStartSet = new Set(pat.inlineStartChars);
+      marked.use({
+        extensions: [
+          {
+            name: 'mathGuardBlock',
+            level: 'block',
+            start(src) {
+              const m = pat.blockStart.exec(src);
+              return m ? m.index : undefined;
+            },
+            tokenizer(src) {
+              const m = pat.blockToken.exec(src);
+              if (m) return { type: 'mathGuardBlock', raw: m[0] };
+              return undefined;
+            },
+            renderer(token) { return renderMathRaw(token.raw); }
           },
-          tokenizer(src) {
-            const m = /^\$\$[\s\S]*?\$\$/.exec(src);
-            if (m) return { type: 'mathGuardBlock', raw: m[0] };
-            return undefined;
-          },
-          renderer(token) { return token.raw; }
-        },
-        {
-          name: 'mathGuardInline',
+          {
+            name: 'mathGuardInline',
+            level: 'inline',
+            start(src) {
+              // Skip backtick-wrapped inline code spans: math delimiters inside
+              // `code` must stay untouched for marked's code tokenizer.
+              let inCode = false;
+              for (let i = 0; i < src.length; i++) {
+                if (src[i] === '`') {
+                  while (i < src.length && src[i] === '`') i++;
+                  inCode = !inCode;
+                  i--;
+                  continue;
+                }
+                if (inCode) continue;
+                if (inlineStartSet.has(src[i])) return i;
+              }
+              return undefined;
+            },
+            tokenizer(src) {
+              const m = pat.inlineToken.exec(src);
+              if (m) return { type: 'mathGuardInline', raw: m[0] };
+              return undefined;
+            },
+            renderer(token) { return renderMathRaw(token.raw); }
+          }
+        ]
+      });
+    }
+
+    // Superscript / subscript extension (marked 12 has no built-in ^x^ / ~x~ syntax):
+    // 标记来自 features.supSub.supMarker/subMarker（≥1 字符，可自定义）；preserveUnmatched=false
+    // 时孤立标记（后随字符不与标记重复）被剥离。
+    if (supMatchers.length) {
+      marked.use({
+        extensions: [{
+          name: 'supSub',
           level: 'inline',
           start(src) {
-            // Skip backtick-wrapped inline code spans: math delimiters inside
-            // `code` must stay untouched for marked's code tokenizer.
-            let inCode = false;
-            for (let i = 0; i < src.length; i++) {
-              if (src[i] === '`') {
-                while (i < src.length && src[i] === '`') i++;
-                inCode = !inCode;
-                i--;
-                continue;
+            let best = -1;
+            for (const mk of supMatchers) {
+              const idx = src.indexOf(mk.marker);
+              if (idx !== -1 && (best === -1 || idx < best)) best = idx;
+            }
+            return best === -1 ? undefined : best;
+          },
+          tokenizer(src) {
+            const hit = matchSupSub(src, supMatchers);
+            if (hit) return { type: 'supSub', raw: hit.raw, text: hit.text, up: hit.up };
+            if (!supCfg.preserveUnmatched) {
+              for (const mk of supMatchers) {
+                if (!src.startsWith(mk.marker)) continue;
+                // `~~`（标记重复）可能是删除线等其它语法，不剥离
+                if (src.startsWith(mk.marker + mk.marker)) break;
+                return { type: 'supSub', raw: mk.marker, text: '', stray: true };
               }
-              if (inCode) continue;
-              if (src[i] === '$' || src[i] === '\\') return i;
             }
             return undefined;
           },
-          tokenizer(src) {
-            const m = /^(?:\$\$(?!\s)[^\n]*?\$\$|\$(?!\$)(?:\\.|[^$\\\n])+\$(?!\d)|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\])/.exec(src);
-            if (m) return { type: 'mathGuardInline', raw: m[0] };
-            return undefined;
-          },
-          renderer(token) { return token.raw; }
-        }
-      ]
-    });
-
-    // Superscript / subscript extension (marked 12 has no built-in ^x^ / ~x~ syntax):
-    marked.use({
-      extensions: [{
-        name: 'supSub',
-        level: 'inline',
-        start(src) {
-          const m = src.match(/[\^~]/);
-          return m ? m.index : undefined;
-        },
-        tokenizer(src) {
-          const match = /^([~^])([^~^\n]+?)\1/.exec(src);
-          if (match) {
-            return {
-              type: 'supSub',
-              raw: match[0],
-              text: match[2],
-              up: match[1] === '^'
-            };
+          renderer(token) {
+            if (token.stray) return '';
+            const body = escapeHtml(token.text);
+            return token.up ? `<sup>${body}</sup>` : `<sub>${body}</sub>`;
           }
-          return undefined;
-        },
-        renderer(token) {
-          const body = escapeHtml(token.text);
-          return token.up ? `<sup>${body}</sup>` : `<sub>${body}</sub>`;
-        }
-      }]
-    });
+        }]
+      });
+    }
 
     marked.use({
       renderer: {
@@ -124,7 +156,7 @@ function createMarkdownModule() {
             if (entry && entry.variants && Object.keys(entry.variants).length > 0) {
               const lqipAttr = entry.lqip ? ` data-lqip="${escapeAttr(entry.lqip)}"` : '';
               const iwAttr = entry.width ? ` data-iw="${entry.width}"` : '';
-              const dimAttr = (parseInt(entry.width, 10) && parseInt(entry.height, 10))
+              const dimAttr = (preserveAR && parseInt(entry.width, 10) && parseInt(entry.height, 10))
                 ? ` width="${parseInt(entry.width, 10)}" height="${parseInt(entry.height, 10)}"` : '';
               const webpSources = [];
               const avifSources = [];
@@ -155,7 +187,7 @@ function createMarkdownModule() {
             if (entry && entry.original) {
               const lqipAttr = entry.lqip ? ` data-lqip="${escapeAttr(entry.lqip)}"` : '';
               const iwAttr = entry.width ? ` data-iw="${entry.width}"` : '';
-              const dimAttr = (parseInt(entry.width, 10) && parseInt(entry.height, 10))
+              const dimAttr = (preserveAR && parseInt(entry.width, 10) && parseInt(entry.height, 10))
                 ? ` width="${parseInt(entry.width, 10)}" height="${parseInt(entry.height, 10)}"` : '';
             return `<img src="${escapeAttr(entry.original)}" alt="${escapeAttr(alt)}"${titleAttr}${loading}${decoding}${lqipAttr}${iwAttr}${dimAttr}>`;
             }
@@ -197,6 +229,11 @@ function createMarkdownModule() {
           const preClsAttr = preCls.length ? ` class="${preCls.join(' ')}"` : '';
           const rawLang = lang ? String(lang).trim() : '';
           const langName = rawLang.split(/\s+/)[0] || '';
+          // features.math.autoDetect=false：仅渲染 ```math 围栏块（客户端 KaTeX 渲染 .math-block[data-tex]）。
+          if (langName === 'math' && mathCfg.enabled && !mathCfg.autoDetect) {
+            const tex = String(text == null ? '' : text).trim();
+            return `<div class="math-block" data-tex="${escapeAttr(tex)}">${escapeHtml(tex)}</div>`;
+          }
           let sizeAttrs = '';
           if (langName === 'mermaid') {
             const norm = v => (/^[0-9.]+$/.test(v) ? v + 'px' : v);

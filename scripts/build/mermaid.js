@@ -5,15 +5,22 @@
 // layout.ejs 据此懒加载 vendor 并由 __mmStart 接管）。缓存目录 .cache/mermaid（不入库）。
 const path = require('path');
 const { extractMermaidBlocks, replaceMermaidBlocks, createMermaidRenderer } = require('../lib/mermaid-render');
+const { mermaidConfig, mermaidErrorText } = require('../lib/feature-wiring');
 
 function createMermaidModule(ctx) {
   // 返回 { blocks, rendered, cached, failed, skipped } 统计；不抛出（渲染故障一律走回退）。
   async function renderArticlesMermaid(config, articles) {
     const stats = { blocks: 0, rendered: 0, cached: 0, failed: 0, skipped: '' };
     const cfg = (config.features && config.features.mermaid) || {};
-    if (cfg.enabled === false) { stats.skipped = 'disabled'; return stats; }
+    const mCfg = mermaidConfig(config.features);
+    if (mCfg.enabled === false) { stats.skipped = 'disabled'; return stats; }
     if (cfg.mode === 'client') { stats.skipped = 'client-mode'; return stats; }
-    const darkMode = cfg.darkMode !== false;
+    // autoDetect=false：构建期不渲染，保留 ```mermaid 围栏回退客户端（article.hasMermaid 保持 true）。
+    if (mCfg.autoDetect === false) { stats.skipped = 'auto-detect-off'; return stats; }
+    // followTheme=false：不跟随站点主题，仅明色单份 SVG（与 darkMode=false 等效的降级路径）。
+    const darkMode = cfg.darkMode !== false && mCfg.followTheme !== false;
+    const copyAfterRender = mCfg.copyAfterRender;
+    const langs = { zh: { copyLabel: '复制图表代码', copiedLabel: '已复制' }, en: { copyLabel: 'Copy diagram code', copiedLabel: 'Copied' } };
     const targets = [];
     for (const article of articles || []) {
       if (!article || !article.hasMermaid) continue;
@@ -57,10 +64,15 @@ function createMermaidModule(ctx) {
         if (dark && dark.cached) stats.cached += 1;
         return { svg: light.svg, svgDark: dark ? dark.svg : null };
       });
+      const labelSet = langs[target.article.lang] || langs.zh;
       target.article.content = replaceMermaidBlocks(target.article.content, blockResults, {
         darkMode,
         size: cfg.size || {},
-        nonce: ctx.cspNonce || ''
+        nonce: ctx.cspNonce || '',
+        copyAfterRender,
+        copyLabel: labelSet.copyLabel,
+        copyCopiedLabel: labelSet.copiedLabel,
+        errorText: mermaidErrorText(mCfg, target.article.lang)
       });
       const pending = (target.article.content.match(/data-mm-pending="1"/g) || []).length;
       stats.failed += pending;

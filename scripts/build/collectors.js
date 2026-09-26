@@ -77,7 +77,10 @@ function createCollectorsModule(ctx) {
   // Extract all media images referenced by published articles (featured images
   // plus inline markdown images) for the /gallery/ page. Deduplicates by src.
   // Returns array of {src, title, url, alt} sorted by source-article date desc.
-  function collectGalleryImages(articles) {
+  // options.collectFeatured=false（features.gallery.collectFeatured）时仅收集正文图片。
+  function collectGalleryImages(articles, options) {
+    const opts = options || {};
+    const collectFeatured = opts.collectFeatured !== false;
     const seen = new Set();
     const items = [];
     const published = ctx.getPublished(articles);
@@ -92,7 +95,7 @@ function createCollectorsModule(ctx) {
         seen.add(src);
         items.push({ src, title: a.title, url: a.url, alt: a.title });
       }
-      if (a.featuredImage && !seen.has(a.featuredImage)) {
+      if (collectFeatured && a.featuredImage && !seen.has(a.featuredImage)) {
         seen.add(a.featuredImage);
         items.push({ src: a.featuredImage, title: a.title, url: a.url, alt: a.title });
       }

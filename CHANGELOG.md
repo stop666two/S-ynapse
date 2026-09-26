@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **图片构建期定尺寸 + 锚点落点稳定（CLS 治理）**：正文（含 `<picture>`）/头图/卡片/画廊图片构建期输出 `width`/`height`（manifest 原图元数据，渲染前预留宽高比），修复「图片未预留高度导致布局偏移与锚点落点漂移」；新增 `features.anchorStabilize`（`enabled`/`settleMs`/`maxTrackMs`，默认开）在整页 hash 直达后按 `load` + `ResizeObserver` 校正落点、跟踪至布局静默，用户输入即停（`html.anchor-stabilizing{overflow-anchor:none}` 防止滚动锚定反向推走落点）。实测（本地 gzip serve + Slow4G + 4× CPU，3 次中位）：冷锚点 CLS 0.5367→0.0011、滚动扫描增量 0.0240→0.0002、落点 1587→146px（最终误差 9.9px，校正瞬间即达理想位，其后极晚布局回移约 10px，页面总高 13983px 不可感知）；TOC 高亮/返回顶部/软导航不受影响；构建 smoke 新增图片尺寸与锚点断言 — `scripts/build/markdown.js` + `scripts/build/pages.js` + `js/domains/core/anchor-stabilize.js` + `js/core/main.js` + `templates/{post,gallery,site-css}.ejs` + `features.json5` + `scripts/build.test.js` + `scripts/build-smoke.test.js`
+
 - **serve 看门狗绝对时限（防任务取消遗留孤儿）**：在父进程监督之外新增 `SYNAPSE_SERVE_MAX_MS` 绝对寿命上限，到时无条件退出——兜底「父进程 PID 被复用」与「监督脚本本身被中断（如任务取消）」两类监督失效场景；`.tmp-scripts` 25 个带服务脚本统一注入 30 分钟上限；实测 2 秒上限自动退出且端口释放，看门狗用例 3/3 通过 — `scripts/build/serve.js`
 
 - **搜索页计数服务端本地化（残余清理）**：搜索页结果计数原先用运行时 `__T` 两次拼接键值，英文页因字典时序回退为中文、且 `foundCount` 的 `{count}` 占位符直接可见；现改为服务端 `ui('search.foundCount')` 模板串 + `{count}` 替换，中英渲染均为成句文案 — `templates/search.ejs`

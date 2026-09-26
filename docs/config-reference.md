@@ -682,7 +682,7 @@ sitemap: {
 | `settleMs` | `300` | 布局静默窗口（ms）：文档高度变化后等待该时长无新变化才校正；连续变化（字体分片陆续应用）只会顺延 |
 | `maxTrackMs` | `8000` | 最长跟踪时间（ms，自首次校正起算）：超时前做最后一次校正并断开 observer，避免长页面持续懒加载时无限校正；`0` = 不设时限 |
 
-实测（2026-09，本地 gzip serve + Slow4G + 4× CPU，每页 3 次中位）：冷锚点落点误差 1431px（偶发 1903px）→ 0px；冷锚点 CLS(sum) 0.5367 → 0.0011；滚动扫描 CLS 增量 0.0240 → 0.0002；TOC 高亮/返回顶部/软导航进出不受影响 — `js/domains/core/anchor-stabilize.js` + `js/core/main.js` + `scripts/lib/features-schema.js`。
+实测（2026-09，本地 gzip serve + Slow4G + 4× CPU，每页 3 次中位）：冷锚点最终落点误差 9.9px（校正瞬间即达理想位 156.1px，其后极晚布局回移约 10px，页面总高 13983px、不可感知；基线中位偏差 1431px、偶发 1903px）；冷锚点 CLS(sum) 0.5367 → 0.0011；滚动扫描 CLS 增量 0.0240 → 0.0002；TOC 高亮/返回顶部/软导航进出不受影响 — `js/domains/core/anchor-stabilize.js` + `js/core/main.js` + `scripts/lib/features-schema.js`。
 
 ---
 

@@ -81,6 +81,12 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     assert.ok(!styleSrc.includes("'unsafe-inline'"), "style-src must not allow 'unsafe-inline' (element context)");
     assert.ok(!styleAttr || !styleAttr.includes("'unsafe-inline'"), "style-src-attr must not allow 'unsafe-inline' (inline style attributes eliminated)");
     assert.ok(cspLine.includes("frame-ancestors 'none'"), "frame-ancestors 'none' must be present");
+    // nonce 同源回归（线上事故根因）：_headers 的 nonce 必须能解析，且根 404 重定向脚本必须携带同一枚。
+    const headerNonce = (/'nonce-([^']+)'/.exec(scriptSrc) || [])[1];
+    assert.ok(headerNonce, 'script-src nonce must be parseable from _headers');
+    const redirectTag = (root404.match(/<script\b[^>]*>\s*\/\*S-LANG-REDIRECT-404\*\//) || [''])[0];
+    assert.ok(redirectTag, 'root 404 redirect script tag must exist');
+    assert.ok(redirectTag.includes('nonce="' + headerNonce + '"'), 'root 404 redirect script must carry the build nonce (CSP)');
     // 内联 style 属性回归：模板/构建产物一律不得再出现元素 style 属性（CSP 属性语境无 nonce）。
     // 正则兼容压缩后的 style=x 形式，且 [\s"'] 前缀不会误伤 <style> 标签与 --style / font-style 字样。
     const htmlFiles = [];
@@ -97,6 +103,19 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       assert.ok(!/[\s"']style\s*=/.test(text), 'no inline style attributes in ' + path.relative(tmpDir, file));
       assert.ok(!text.includes('font-style='), 'no font-style presentation attributes in ' + path.relative(tmpDir, file));
     }
+    // nonce 全站一致性：每个 HTML 里出现的每个 nonce 都必须与 _headers 同源；
+    // 跨构建污染（例如 --out 测试构建写回部署用 Worker 配置）会造成线上内联脚本/样式被整批拦截。
+    const noncePat = /nonce\s*=\s*(?:"([^"]+)"|([^\s>]+))/gi;
+    let nonceCount = 0;
+    for (const file of htmlFiles) {
+      const text = fs.readFileSync(file, 'utf-8');
+      for (const m of text.matchAll(noncePat)) {
+        nonceCount++;
+        const value = m[1] || m[2];
+        assert.strictEqual(value, headerNonce, 'page nonce must match _headers nonce in ' + path.relative(tmpDir, file));
+      }
+    }
+    assert.ok(nonceCount > 0, 'built pages must carry CSP nonces');
     const styleNonce = /'nonce-([^']+)'/.exec(styleSrc);
     assert.ok(styleNonce && styleNonce[1] === (/'nonce-([^']+)'/.exec(scriptSrc) || [])[1], 'script-src and style-src must share one nonce');
     const html = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');

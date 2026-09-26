@@ -33,7 +33,7 @@ const ctx = createBuildContext({
 });
 
 const {
-  json5, chokidar, hooks, generateWorkerSecurity,
+  cspNonce: CSP_NONCE_VALUE, json5, chokidar, hooks, generateWorkerSecurity,
   rootDir: ROOT, distDir: DIST_DIR, watchMode: WATCH_MODE, serveMode: SERVE_MODE,
   showDrafts: SHOW_DRAFTS, allowDegraded: ALLOW_DEGRADED, bundleActive: BUNDLE_ACTIVE,
   outputDirResolved: OUTPUT_DIR_RESOLVED, pkgVersion: PKG_VERSION,
@@ -156,13 +156,13 @@ async function build() {
       throw new Error('页面生成结果为空：dist/ 下没有产出任何 HTML（模板渲染可能整体失败，请检查 templates/*.ejs 的语法与变量）');
     }
     // 根 404：以中文 404 为基底；若存在英文 404 页，则注入语言自适应跳转（en 访客 → /en/404.html）。
-    // 内联脚本不带 nonce，构建尾段的 applyCspNonce 会统一补齐（与页面内联脚本同机制）。
+    // 该脚本不经过 renderPage 的 nonce 注入链，必须在此显式使用同一枚构建期 nonce，否则会被 CSP 拦截。
     const zh404 = path.join(DIST_DIR, 'zh', '404.html');
     if (fs.existsSync(zh404)) {
       const en404 = path.join(DIST_DIR, 'en', '404.html');
       let root404Html = fs.readFileSync(zh404, 'utf-8');
       if (fs.existsSync(en404)) {
-        const redirect404 = '<script>/*S-LANG-REDIRECT-404*/(function(){try{if(navigator.language&&/^en([-]|$)/i.test(navigator.language)&&!localStorage.getItem("s-ss-lang")){location.replace("/en/404.html");return}}catch(e){}})();</script>';
+        const redirect404 = '<script nonce="' + CSP_NONCE_VALUE + '">/*S-LANG-REDIRECT-404*/(function(){try{if(navigator.language&&/^en([-]|$)/i.test(navigator.language)&&!localStorage.getItem("s-ss-lang")){location.replace("/en/404.html");return}}catch(e){}})();</script>';
         const withScript = root404Html.replace('</head>', redirect404 + '</head>');
         root404Html = withScript !== root404Html ? withScript : root404Html + redirect404;
       }
@@ -190,8 +190,10 @@ async function build() {
     generateSearchIndex(config, articles);
     generateSecurityHeaders(config);
     generateRedirects(config, customPages);
-    if (generateWorkerSecurity) {
+    if (generateWorkerSecurity && !OUTPUT_DIR_RESOLVED.custom) {
       generateWorkerSecurity(config.security, path.join(ROOT, 'workers', 'security-config.js'), buildCspTrimContext(config));
+    } else if (generateWorkerSecurity) {
+      console.log('  [INFO] 自定义输出目录构建：跳过 workers/security-config.js 写入（避免污染部署配置的 CSP nonce）');
     }
     if (!BUNDLE_ACTIVE) copyJsAssets();
     copyVendorAssets(config);

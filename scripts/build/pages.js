@@ -14,9 +14,11 @@ const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
 const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapPalette, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig } = require('../lib/feature-wiring');
+const { stableSerialize, pageCacheKey, hashTemplateDir } = require('../lib/incremental');
+const { pruneTo } = require('../lib/asset-cache');
 
 function createPagesModule(ctx) {
-  const { getTemplate, renderPage, getPublished, recordBuildFailure, collectFriends, collectSeries, collectGalleryImages, collectSiteStats, collectTags, collectCategories, collectTopTags, groupByYearMonth, categoryHue, resolveDailyQuotes, resolveFaviconHtml, CleanCSS } = ctx;
+  const { getTemplate, renderPage, getPublished, recordBuildFailure, collectFriends, collectSeries, collectGalleryImages, collectSiteStats, collectTags, collectCategories, collectTopTags, groupByYearMonth, categoryHue, resolveDailyQuotes, resolveFaviconHtml, CleanCSS, loadBuildCache, saveBuildCache } = ctx;
   let SITE_CSS_HREF = '';
   // features.imageLazy.preserveAspectRatio（默认 true）：false 时构建期不输出 width/height，
   // 交由 CSS 自适应（与 markdown.js 出图路径一致）。由 buildPageData 按配置赋值。
@@ -510,6 +512,48 @@ function createPagesModule(ctx) {
       console.log(`  Created: ${relPath}`);
     }
 
+    // 页面渲染 + 写盘统一入口（增量构建 features.incrementalBuild）：
+    // 增量模式（watch 或显式 --incremental，且非 --full）下按「relPath + 模板目录摘要 + 页面数据稳定序列化」
+    // 计算指纹；指纹一致且产物文件存在时跳过重新渲染并复用现有产物（日志输出 skipped N）。
+    // postProcess 用于 renderPage 之后的产物改写（如根页语言跳转片段）。
+    const incCtx = (typeof ctx.getIncrementalContext === 'function' ? ctx.getIncrementalContext() : null) || { active: false, fingerprintHash: 'sha1' };
+    const incremental = incCtx.active === true;
+    const verbose = !!(config.features && config.features.debug && config.features.debug.verbose === true);
+    let pageCache = null;
+    let templatesDigest = '';
+    const pageKeys = {};
+    let skippedPages = 0;
+    let rebuiltPages = 0;
+    if (incremental) {
+      pageCache = loadBuildCache();
+      if (!pageCache.pages) pageCache.pages = {};
+      templatesDigest = hashTemplateDir(ctx.templatesDir, incCtx.fingerprintHash);
+    }
+    async function renderAndWrite(relPath, templateName, data, postProcess) {
+      if (incremental) {
+        const inputStr = templatesDigest + '\u0000' + stableSerialize(data);
+        const key = pageCacheKey(relPath, inputStr, incCtx.fingerprintHash);
+        const fullPath = path.join(ctx.distDir, relPath);
+        const prev = pageCache.pages[relPath];
+        if (prev && prev.key === key && fs.existsSync(fullPath)) {
+          skippedPages++;
+          pageKeys[relPath] = key;
+          if (verbose) console.log('  [incremental] skip: ' + relPath);
+          return;
+        }
+        const html = renderPage(templateName, data, layoutTemplate, config);
+        if (!html) return;
+        await writeFile(relPath, typeof postProcess === 'function' ? postProcess(html) : html);
+        pageCache.pages[relPath] = { key: key };
+        pageKeys[relPath] = key;
+        rebuiltPages++;
+        return;
+      }
+      const html = renderPage(templateName, data, layoutTemplate, config);
+      if (!html) return;
+      await writeFile(relPath, typeof postProcess === 'function' ? postProcess(html) : html);
+    }
+
     for (const lang of siteLangs) {
       const pf = '/' + lang + '/';
       const langArticles = articles.filter(a => a.lang === lang);
@@ -587,11 +631,7 @@ function createPagesModule(ctx) {
             currentUrl: page === 1 ? pf : pf + 'page/' + page + '/',
             currentPage: 'index'
           };
-          const html = renderPage('index.ejs', data, layoutTemplate, config);
-          if (html) {
-            if (page === 1) await writeFile(lang + '/index.html', html);
-            else await writeFile(lang + '/page/' + page + '/index.html', html);
-          }
+          await renderAndWrite(page === 1 ? lang + '/index.html' : lang + '/page/' + page + '/index.html', 'index.ejs', data);
         }
       }
 
@@ -614,67 +654,56 @@ function createPagesModule(ctx) {
           currentUrl: article.url,
           currentPage: 'post'
         };
-        const html = renderPage('post.ejs', data, layoutTemplate, config);
-        if (html) await writeFile(lang + '/' + article.slug + '/index.html', html);
+        await renderAndWrite(lang + '/' + article.slug + '/index.html', 'post.ejs', data);
       }
 
       if (config.site.build.generateArchive !== false) {
         const data = { ...langData, title: lang === 'en' ? 'Archive' : '归档', currentUrl: pf + 'archive', currentPage: 'archive' };
-        const html = renderPage('archive.ejs', data, layoutTemplate, config);
-        if (html) await writeFile(lang + '/archive/index.html', html);
+        await renderAndWrite(lang + '/archive/index.html', 'archive.ejs', data);
       }
 
       if (config.site.build.generateTags !== false) {
         const data = { ...langData, title: lang === 'en' ? 'Tags' : '标签', currentUrl: pf + 'tags', currentPage: 'tags' };
-        const html = renderPage('tags.ejs', data, layoutTemplate, config);
-        if (html) await writeFile(lang + '/tags/index.html', html);
+        await renderAndWrite(lang + '/tags/index.html', 'tags.ejs', data);
         for (const tag of langTags) {
           const tagArticles = langPublished.filter(a => !a.draft && a.tags.includes(tag.name));
           const tagData = { ...langData, title: tag.name, tag, tagName: tag.name, articles: tagArticles, currentUrl: tag.url, currentPage: 'tag' };
-          const tagHtml = renderPage('tag.ejs', tagData, layoutTemplate, config);
-          if (tagHtml) await writeFile(lang + '/tags/' + tag.slug + '/index.html', tagHtml);
+          await renderAndWrite(lang + '/tags/' + tag.slug + '/index.html', 'tag.ejs', tagData);
         }
       }
 
       if (config.site.build.generateCategories !== false) {
         const data = { ...langData, title: lang === 'en' ? 'Categories' : '分类', currentUrl: pf + 'categories', currentPage: 'categories' };
-        const html = renderPage('categories.ejs', data, layoutTemplate, config);
-        if (html) await writeFile(lang + '/categories/index.html', html);
+        await renderAndWrite(lang + '/categories/index.html', 'categories.ejs', data);
         for (const cat of langCategories) {
           const catArticles = langPublished.filter(a => !a.draft && a.categories.includes(cat.name));
           const catData = { ...langData, title: cat.name, category: cat, categoryName: cat.name, articles: catArticles, currentUrl: cat.url, currentPage: 'category' };
-          const catHtml = renderPage('category.ejs', catData, layoutTemplate, config);
-          if (catHtml) await writeFile(lang + '/categories/' + cat.slug + '/index.html', catHtml);
+          await renderAndWrite(lang + '/categories/' + cat.slug + '/index.html', 'category.ejs', catData);
         }
       }
 
       const data404 = { ...langData, title: '404', currentUrl: pf + '404', currentPage: '404' };
-      const html404 = renderPage('404.ejs', data404, layoutTemplate, config);
-      if (html404) await writeFile(lang + '/404.html', html404);
+      await renderAndWrite(lang + '/404.html', '404.ejs', data404);
 
       if (config.features && config.features.favorites && config.features.favorites.enabled !== false) {
         const favData = { ...langData, title: lang === 'en' ? 'Favorites' : '收藏', currentUrl: pf + 'favorites', currentPage: 'favorites' };
-        const favHtml = renderPage('favorites.ejs', favData, layoutTemplate, config);
-        if (favHtml) await writeFile(lang + '/favorites/index.html', favHtml);
+        await renderAndWrite(lang + '/favorites/index.html', 'favorites.ejs', favData);
       }
 
       if (config.site.build.generateGallery !== false) {
         const galleryData = { ...langData, title: lang === 'en' ? 'Gallery' : '图库', currentUrl: pf + 'gallery', currentPage: 'gallery' };
-        const galleryHtml = renderPage('gallery.ejs', galleryData, layoutTemplate, config);
-        if (galleryHtml) await writeFile(lang + '/gallery/index.html', galleryHtml);
+        await renderAndWrite(lang + '/gallery/index.html', 'gallery.ejs', galleryData);
       }
 
       if (baseData.friends) {
         const fdTitle = (baseData.friends.labels && (lang === 'en' ? baseData.friends.labels.en : baseData.friends.labels.zh)) || (lang === 'en' ? 'Friends' : '友情链接');
         const linksData = { ...langData, title: fdTitle, currentUrl: pf + 'links/', currentPage: 'links', pageTitle: fdTitle };
-        const linksHtml = renderPage('links.ejs', linksData, layoutTemplate, config);
-        if (linksHtml) await writeFile(lang + '/links/index.html', linksHtml);
+        await renderAndWrite(lang + '/links/index.html', 'links.ejs', linksData);
       }
 
       if (config.navigation.search && config.navigation.search.enabled) {
         const searchData = { ...langData, title: lang === 'en' ? 'Search' : '搜索', currentUrl: pf + 'search', currentPage: 'search' };
-        const searchHtml = renderPage('search.ejs', searchData, layoutTemplate, config);
-        if (searchHtml) await writeFile(lang + '/search/index.html', searchHtml);
+        await renderAndWrite(lang + '/search/index.html', 'search.ejs', searchData);
       }
 
       if (customPages && customPages.length) {
@@ -697,8 +726,7 @@ function createPagesModule(ctx) {
             currentUrl: pf + cp.slug + '/',
             currentPage: 'page'
           };
-          const pageHtml = renderPage('page.ejs', pageData, layoutTemplate, config);
-          if (pageHtml) await writeFile(lang + '/' + cp.slug + '/index.html', pageHtml);
+          await renderAndWrite(lang + '/' + cp.slug + '/index.html', 'page.ejs', pageData);
         }
       }
     }
@@ -745,13 +773,16 @@ function createPagesModule(ctx) {
         currentUrl: pf,
         currentPage: 'index'
       };
-      const html = renderPage('index.ejs', rootData, layoutTemplate, config);
-      if (html) {
-        // 该片段在 renderPage 之后插入，必须自行带上构建期 nonce（否则严格 CSP 下不执行）
-        const redirectSnippet = '<script nonce="' + ctx.cspNonce + '">/*S-LANG-REDIRECT*/if(navigator.language&&/(en|en-US|en-GB|en-CA)/i.test(navigator.language)&&!localStorage.getItem("s-ss-lang")){location.replace("/en/");}</script>';
-        const finalHtml = html.replace('</head>', redirectSnippet + '</head>');
-        await writeFile('index.html', finalHtml);
-      }
+      // 语言跳转片段在 renderPage 之后插入，必须自行带上构建期 nonce（否则严格 CSP 下不执行）。
+      const redirectSnippet = '<script nonce="' + ctx.cspNonce + '">/*S-LANG-REDIRECT*/if(navigator.language&&/(en|en-US|en-GB|en-CA)/i.test(navigator.language)&&!localStorage.getItem("s-ss-lang")){location.replace("/en/");}</script>';
+      await renderAndWrite('index.html', 'index.ejs', rootData, function (rendered) {
+        return rendered.replace('</head>', redirectSnippet + '</head>');
+      });
+    }
+    if (incremental) {
+      pruneTo(pageCache.pages, Object.keys(pageKeys));
+      saveBuildCache(pageCache);
+      console.log('  [incremental] skipped ' + skippedPages + ' page(s), rebuilt ' + rebuiltPages + ' page(s)');
     }
   }
 

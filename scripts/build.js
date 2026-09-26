@@ -13,16 +13,19 @@ const { buildBundles } = require('./lib/bundle');
 const { computeRelatedArticles } = require('./lib/related');
 const { getAllFiles } = require('./build/fs-utils');
 const { createBuildContext } = require('./build/context');
+const { computeIncrementalContext } = require('./lib/incremental');
 
 // 编排器活值（build() 函数体直接读写；经 getter/setter 注入构建上下文，保持活值语义）：
 //   BUILD_ERRORS   构建错误收集器（build() 赋值；helpers 记录构建失败时读取）
 //   MEDIA_MANIFEST 媒体 manifest（build() 赋值；pages 生成卡片 srcset 时读取）
 //   AUTO_COVERS    自动封面映射（build() 赋值；pages 为无 featuredImage 文章回退封面时读取）
 //   inlineConfigKb 内联配置体积（KB；pages 写入，report 性能预算读取）
+//   INCREMENTAL_CTX 增量构建上下文（build() 赋值；pages 读取以决定页面复用）
 let BUILD_ERRORS = null;
 let MEDIA_MANIFEST = null;
 let AUTO_COVERS = null;
 let inlineConfigKb = 0;
+let INCREMENTAL_CTX = null;
 
 // 构建上下文（scripts/build/context.js）：可选依赖加载、路径/标志计算与全部模块接线在工厂内完成，
 // 本文件只保留编排逻辑（validateJsonSyntax + build() + watch/serve 入口）。
@@ -33,7 +36,8 @@ const ctx = createBuildContext({
   getMediaManifest: () => MEDIA_MANIFEST,
   getAutoCovers: () => AUTO_COVERS,
   getInlineConfigKb: () => inlineConfigKb,
-  setInlineConfigKb: (kb) => { inlineConfigKb = kb; }
+  setInlineConfigKb: (kb) => { inlineConfigKb = kb; },
+  getIncrementalContext: () => INCREMENTAL_CTX
 });
 
 const {
@@ -104,6 +108,19 @@ async function build() {
     const config = loadConfig();
     if (!validateConfig(config)) {
       abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
+    }
+    // 增量构建上下文（features.incrementalBuild）：watch（incrementalBuild.watch）或显式 --incremental 时
+    // 启用页面级复用；复用依赖既有 dist 产物，故在内存中暂时关闭 cleanDist（不写回配置文件）。
+    INCREMENTAL_CTX = computeIncrementalContext(config.features, { argv: process.argv, watchMode: WATCH_MODE });
+    if (INCREMENTAL_CTX.active) {
+      if (config.site.build.cleanDist) {
+        config.site.build.cleanDist = false;
+        console.log('  [incremental] 已启用页面级复用（跳过 dist 清理；强制全量请用 ' + INCREMENTAL_CTX.fullFlag + ' 或 --full）');
+      } else {
+        console.log('  [incremental] 已启用页面级复用（指纹算法 ' + INCREMENTAL_CTX.fingerprintHash + '）');
+      }
+    } else if (INCREMENTAL_CTX.forceFull) {
+      console.log('  [incremental] 强制全量构建（' + (process.argv.includes(INCREMENTAL_CTX.fullFlag) ? INCREMENTAL_CTX.fullFlag : '--full') + '）');
     }
     // CSP nonce 注入（远早于 _headers / Worker 生成，同时覆盖 meta CSP 与页面 HTML）
     applyCspNonce(config);

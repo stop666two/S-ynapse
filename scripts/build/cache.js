@@ -7,7 +7,8 @@ const { writeFileAtomicSync } = require('../lib/atomic-write');
 function createCacheModule(ctx) {
   const { buildCachePath } = ctx;
 
-  // Build cache: source mtime+size+config fingerprint per media image / OG cover.
+  // Build cache: source mtime+size+config fingerprint per media image / OG cover,
+  // plus page fingerprints (incremental rendering) keyed by output relPath.
   // Best-effort only — a corrupt or missing cache never fails the build.
   function loadBuildCache() {
     try {
@@ -15,10 +16,11 @@ function createCacheModule(ctx) {
       return {
         version: 1,
         media: raw && raw.media && typeof raw.media === 'object' ? raw.media : {},
-        og: raw && raw.og && typeof raw.og === 'object' ? raw.og : {}
+        og: raw && raw.og && typeof raw.og === 'object' ? raw.og : {},
+        pages: raw && raw.pages && typeof raw.pages === 'object' ? raw.pages : {}
       };
     } catch (e) {
-      return { version: 1, media: {}, og: {} };
+      return { version: 1, media: {}, og: {}, pages: {} };
     }
   }
 

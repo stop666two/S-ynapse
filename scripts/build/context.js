@@ -283,7 +283,10 @@ function createBuildContext(deps) {
     CleanCSS,
     getMediaManifest: deps.getMediaManifest,
     getAutoCovers: deps.getAutoCovers,
-    setInlineConfigKb: deps.setInlineConfigKb
+    setInlineConfigKb: deps.setInlineConfigKb,
+    getIncrementalContext: deps.getIncrementalContext,
+    loadBuildCache: cache.loadBuildCache,
+    saveBuildCache: cache.saveBuildCache
   });
 
   // 订阅源/站点地图/搜索索引模块（scripts/build/feeds.js）：依赖通过 ctx 注入，函数体原样搬移。

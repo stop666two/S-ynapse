@@ -5,7 +5,7 @@
 // 保证「默认态产物字节不变」；仅显式开启 aggressive 时才叠加实验性选项。
 // 增强计划（compressionEnhancementPlan）同时作为 C3（CSS 合并去重）与 C4（JS 混淆）的配置接口。
 
-const { isExcluded, normalizePath } = require('./compression-config');
+const { OBFUSCATE_PRESETS, isExcluded, normalizePath } = require('./compression-config');
 
 // minify-html 基线选项：与引入压缩配置前 scripts/build/minify.js 的硬编码值保持一致，
 // 默认配置下不得改变产物字节（以构建冒烟的双态对照与哈希等价门禁证明）。
@@ -96,7 +96,6 @@ function jsonSkipReason(relPath, patterns) {
 
 /**
  * 计算本次构建的增强计划：只有压缩阶段启用（非 serve/watch 且总开关开启）时各步骤才为 true。
- * CSS / JS 字段为后续实现（C3/C4）的配置接口，装配与消费分离。
  * @param {object} compression compression.json5 的合并配置
  * @param {boolean} active compressionActive() 的结果（serve/watch 强制 false）
  * @returns {object} 计划对象；exclude 为透传的豁免名单
@@ -117,13 +116,84 @@ function compressionEnhancementPlan(compression, active) {
     cssMergeInlineStyles: on && css.enabled !== false && css.mergeInlineStyles !== false,
     cssDedupe: on && css.enabled !== false && css.dedupe !== false,
     jsObfuscate: on && jsCfg.enabled !== false && jsCfg.minify !== false && obfuscate.enabled === true,
-    jsObfuscatePreset: obfuscate.preset || 'medium',
+    jsObfuscatePreset: OBFUSCATE_PRESETS.includes(obfuscate.preset) ? obfuscate.preset : 'medium',
     jsObfuscateSeed: Number.isInteger(obfuscate.seed) && obfuscate.seed > 0 ? obfuscate.seed : 0,
     jsonCompact: on && json.enabled !== false,
     verifyHeadless: verify.headless !== false,
     fallbackOnFailure: verify.fallbackOnFailure !== false,
     exclude: Array.isArray(cfg.exclude) ? cfg.exclude : []
   };
+}
+
+// 混淆目标：仅自研 esbuild chunk（app/deferred）。vendor、runtime 与其它 JS 一律不动。
+// runtime.<hash>.js 显式排除：其文件名哈希由 copyRuntimeBootstrap 基于「混淆前原文」
+// 计算、HTML 以该名引用（参与内容哈希引用），混淆会破坏「文件名哈希 = 最终字节」，
+// 且首屏引导脚本体积小、执行风险高（详见 docs/config-reference.md）。
+const OBFUSCATE_TARGET_RE = /^(app|deferred)\.[0-9A-Za-z]+\.js$/;
+const OBFUSCATE_EXCLUDED_RE = /^runtime\.[0-9A-Za-z]+\.js$/;
+
+/**
+ * 从构建产物文件名中筛选可混淆的自研 bundle（app.*.js / deferred.*.js）。
+ * 白名单来自本次 esbuild 的产物清单，增量构建残留的旧文件与 runtime/vendor 均不会命中。
+ * @param {string[]} fileNames 本轮 bundle 文件名（不含路径）
+ * @returns {string[]} 目标文件名（保持输入顺序）
+ */
+function selectObfuscationTargets(fileNames) {
+  if (!Array.isArray(fileNames)) return [];
+  return fileNames.filter((name) => typeof name === 'string'
+    && OBFUSCATE_TARGET_RE.test(name)
+    && !OBFUSCATE_EXCLUDED_RE.test(name));
+}
+
+// 混淆选项公共基线：只做标识符重命名与代码简化，显式关闭所有可能引入体积/运行时
+// 开销或破坏模块语义的默认项（javascript-obfuscator 的 stringArray 与 numbersToExpressions
+// 默认开启且未被 preset 覆盖，必须显式声明）。renameGlobals=false 保证 esbuild 的模块
+// 导出（deferred 的 load/has）不被改名，renameProperties=false 保证 DOM/配置键不受影响。
+const OBFUSCATE_BASE_OPTIONS = Object.freeze({
+  compact: true,
+  simplify: true,
+  identifierNamesGenerator: 'mangled-shuffled',
+  renameGlobals: false,
+  renameProperties: false,
+  debugProtection: false,
+  disableConsoleOutput: false,
+  selfDefending: false,
+  numbersToExpressions: false,
+  stringArray: false,
+  controlFlowFlattening: false,
+  deadCodeInjection: false,
+  sourceMap: false
+});
+
+/**
+ * 把压缩配置的混淆档位映射为 javascript-obfuscator 选项。
+ * low：仅标识符重命名 + compact/simplify；medium：追加 stringArray（base64）；
+ * high：再追加 controlFlowFlattening 等（体积约 +117%、运行时约慢 50-80%，默认不推荐）。
+ * @param {string} preset 'low' | 'medium' | 'high'（非法值回退 'medium'）
+ * @param {number} [seed] 非负整数；0 表示随机种子（每次构建字节不同）
+ * @returns {object} 新的选项对象（不修改基线常量）
+ */
+function buildObfuscateOptions(preset, seed) {
+  const level = OBFUSCATE_PRESETS.includes(preset) ? preset : 'medium';
+  /** @type {Record<string, unknown>} */
+  const options = Object.assign({}, OBFUSCATE_BASE_OPTIONS, {
+    seed: Number.isInteger(seed) && seed >= 0 ? seed : 0
+  });
+  if (level === 'medium' || level === 'high') {
+    options.stringArray = true;
+    options.stringArrayEncoding = ['base64'];
+    options.stringArrayThreshold = 0.75;
+    options.stringArrayRotate = true;
+    options.stringArrayIndexShift = true;
+  }
+  if (level === 'high') {
+    options.controlFlowFlattening = true;
+    options.controlFlowFlatteningThreshold = 0.5;
+    options.numbersToExpressions = true;
+    options.splitStrings = true;
+    options.splitStringsChunkLength = 10;
+  }
+  return options;
 }
 
 module.exports = {
@@ -133,5 +203,9 @@ module.exports = {
   needsJsonCompaction,
   compactJsonText,
   jsonSkipReason,
-  compressionEnhancementPlan
+  compressionEnhancementPlan,
+  OBFUSCATE_TARGET_RE,
+  OBFUSCATE_EXCLUDED_RE,
+  selectObfuscationTargets,
+  buildObfuscateOptions
 };

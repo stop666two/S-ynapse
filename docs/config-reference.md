@@ -38,6 +38,7 @@
 | `email` | string | `''` | 作者邮箱 |
 | `url` | string | `http://localhost` | `必填` 站点根 URL(必须以 http:// 或 https:// 开头) |
 | `language` | string | `en` | 页面语言(如 zh-CN,影响日期/朗读) |
+| `languageEn` | string | `''` | 英文站语言标签(en 页 `<html lang>` 与侧栏“最近文章”日期本地化;空则回退 `en-US`) |
 | `timezone` | string | `UTC` | 未实现聚合;保留字段 |
 | `dateFormat` | string | `YYYY-MM-DD` | 日期显示格式(YYYY/MM/DD HH:mm) |
 | `copyright` | string | `''` | 版权文本(页脚) |
@@ -63,6 +64,7 @@
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
 | `seo.metaKeywords` | array | `[]` | meta keywords |
+| `seo.metaKeywordsEn` | array | `[]` | 英文站 meta keywords(en 页;空数组回退 `seo.metaKeywords`) |
 | `seo.ogImageAlt` | boolean | `true` | 为 `og:image` 输出 alt 文本(文章页=标题) |
 | `seo.articleTimes` | boolean | `true` | 文章页输出 `article:published_time`/`article:modified_time`(modified 仅当 frontmatter 提供) |
 | `seo.twitterLabels` | boolean | `true` | 分享卡片读数标签(`twitter:label1/2`=阅读时长/字数,仅文章页) |
@@ -485,7 +487,7 @@ sitemap: {
 `enabled true` / `patterns[]` (gradient/stripes/dots/blob/mesh) / `defaultPattern 'gradient'` / `preview true` / `preferImage true`。文章封面样式库(渐变/条纹/圆点/气泡/网格),在线预览。
 
 ### 3.52 i18n — 内容级双语
-`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true` / `translationNotice true`(文章页翻译互链提示:另一语言存在同 slug 文章时在标题下显示胶囊链接,文案 `post.translationNotice` 支持 `{lang}` 占位) — `features.i18n` 另见 §3.73。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/search-index),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段（页脚自定义 HTML 另支持 `htmlEn`）。**运行时语言以 URL 前缀为准**（localStorage 仅作为无前缀路径的偏好记忆），语言切换保持当前子路径。
+`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true` / `translationNotice true`(文章页翻译互链提示:另一语言存在同 slug 文章时在标题下显示胶囊链接,文案 `post.translationNotice` 支持 `{lang}` 占位) — `features.i18n` 另见 §3.73。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/search-index),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段（页脚自定义 HTML 另支持 `htmlEn`）。站点级文案同样按语言取用：`descriptionEn`/`metaKeywordsEn`/`authorProfile.bioEn` 空则回退中文;`languageEn` 控制 en 页 `<html lang>` 与侧栏日期本地化（缺失时回退 `en-US`，避免英文页出现“2026年9月10日”式中文日期）。**运行时语言以 URL 前缀为准**（localStorage 仅作为无前缀路径的偏好记忆），语言切换保持当前子路径。
 
 ### 3.53 pagefind — Pagefind 全文搜索
 `enabled true` / `indexPath '/pagefind'` / `integrate true`。使用 Pagefind 的离线全文搜索(navigation.search.provider='pagefind' 且本模块 enabled 时生效)。**构建在压缩与哈希之后自动生成索引,输出到 `indexPath`(不参与 cache-bust;先清空旧索引再写入);未安装 pagefind 依赖时告警跳过(`npm install -D --save-exact pagefind`;该依赖默认不在 devDependencies 中);serve/watch 模式同样生成,保证本地预览与生产一致。**
@@ -559,7 +561,7 @@ sitemap: {
 
 ### 3.71 authorCard — 作者卡(关于页)
 
-`enabled true` / `pageSlug 'about'`(显示页面 slug) / `showSocial true` / `showSkills true` / `showTimeline true` / `avatarSize '96px'`(头像尺寸) / `maxTimeline 20`(时间线最多条数,0=不限)。数据源为 `site.authorProfile`(`name`/`avatar`/`bio`/`skills[]`/`timeline[{year,title,desc}]`/`socials[{label,url}]`,全可选、未填项自动隐藏、整块可删除;资料至少一项非空时才渲染) — `templates/page.ejs`。
+`enabled true` / `pageSlug 'about'`(显示页面 slug) / `showSocial true` / `showSkills true` / `showTimeline true` / `avatarSize '96px'`(头像尺寸) / `maxTimeline 20`(时间线最多条数,0=不限)。数据源为 `site.authorProfile`(`name`/`avatar`/`bio`/`bioEn`/`skills[]`/`timeline[{year,title,desc}]`/`socials[{label,url}]`,全可选、未填项自动隐藏、整块可删除;资料至少一项非空时才渲染;`bioEn` 空则回退 `bio`) — `templates/page.ejs`。
 
 ### 3.72 readingHistory — 继续阅读(本地阅读历史)
 
@@ -813,7 +815,7 @@ sitemap: {
 - `selectionGuard`（7 项，**默认关**）：`mode 'content'`（`allow` | `content` 正文禁选 | `strict` 全域）/ `allowSelectors[]`+`allowCode true`（代码白名单）/ `allowCtrlA|allowShiftArrows true`（保留键盘选择，无障碍优先）/ `noticeToast|noticeText`。实现：CSS `user-select:none`（正文/全域）+ `selectstart` 事件双保险，输入框与代码始终豁免。
 - `hotkeyGuard`（12 项，**默认关**）：`keys.f12|ctrlShiftI|ctrlShiftJ|ctrlShiftC` 默认拦截；`ctrlU|ctrlS|ctrlP` 默认放行（分别与查看源码/保存网页/打印冲突，可按需开启）（macOS 自动等效 Cmd）/ `keys.printScreen false`（仅检测提示）/ `keys.custom[]`（`'ctrl+alt+x'` 语法）/ `noticeToast|noticeText|noticeOncePerSession`。仅拦键盘路径（浏览器菜单/独立窗口不可拦，威慑级），输入框豁免。
 - `watermark`（18 项，**默认关**）：`type 'diagonal'`（`fixed`|`tiled`|`diagonal`）/ `text|textEn`（`{site}{date}{time}{id}`）/ `identity 'none'`（`none`|`random`|`storage` 本地短哈希，无指纹）/ `opacity 0.06` / `fontSize` / `color`（空=主题次级色）/ `rotate -22` / `gapX|gapY` / `position`（fixed 专用）/ `zIndex 40` / `hideOnPrint true` / `showInLightbox false` / `mobileEnabled false` / `animate false`（缓慢漂移，尊重减少动效）。`pointer-events:none` + `aria-hidden`，不挡交互。
-- `devtoolsDetect`（15 项，**默认关**）：`methods.sizeDiff|timingDebugger`（停靠尺寸差 / `debugger` 计时）/ `intervalMs 1500`（下限 1000）/ `thresholdSizePx 160` / `thresholdTimingMs 120` / `action 'notice'`（`none`|`notice`|`blurPage`|`lockOverlay`|`reload`，锁屏自带关闭键；`reload` 带会话熔断——每会话最多触发一次，避免尺寸误报导致无限刷新）/ `lockTitle|lockText` / `reloadDelayMs` / `pauseWhenHidden` / `logDetect`；命中时派发 `guard:devtools` 事件（供 consoleGuard 联动清屏）。检测非 100%（窗口缩放等会误报），仅威慑。
+- `devtoolsDetect`（15 项，**默认关**）：`methods.sizeDiff|timingDebugger`（停靠尺寸差 / `debugger` 计时）/ `intervalMs 1500`（下限 1000）/ `thresholdSizePx 160` / `thresholdTimingMs 120` / `action 'notice'`（`none`|`notice`|`blurPage`|`lockOverlay`|`reload`，锁屏自带关闭键；`reload` 带会话熔断——每会话最多触发一次，避免尺寸误报导致无限刷新）/ `lockTitle|lockText`（空 = 走 `ui-strings.json5` 的 `guard.lockTitle`/`guard.lockText`，按页面语言中英自动切换；填固定文本会覆盖 i18n）/ `reloadDelayMs` / `pauseWhenHidden` / `logDetect`；命中时派发 `guard:devtools` 事件（供 consoleGuard 联动清屏）。检测非 100%（窗口缩放等会误报），仅威慑。
 - `consoleGuard`（18 项，**默认关**）：`bannerEnabled|bannerText|bannerTextEn|bannerAscii`（控制台站方留言）/ `clearEnabled|clearIntervalMs|clearOnDetect`（周期清屏与检测联动）/ `muteEnabled|muteMethods[]|muteFreeze`（对页面脚本伪装 console 方法）/ `trapEnabled|trapAction|trapText`（console.log 访问陷阱）/ `hideSelfLogs` / `noticeOncePerSession`。无法拦截真实控制台求值，仅作用于页面上下文。
 - `privacyCurtain`（10 项，**默认关**）：`blurOnBlur`（窗口失焦）/ `blurOnVisibility`（切标签）/ `blurAmount '8px'` / `curtainText|curtainTextEn`（帘上文案）/ `revealDelayMs 200`（恢复去抖）/ `prtScNotice|prtScText|prtScOncePerSession`（PrintScreen 仅检测提示）。`backdrop-filter` 静态遮罩 + `pointer-events:none`，不挡交互。
 - `tamperWatch`（19 项，**默认关**）：`scripts.monitor|action`（动态 `<script>` 注入；action `toast`|`remove`|`report`）+ `scripts.allowPathPrefixes[]`（同源路径前缀白名单，默认 `['/pagefind/']` 豁免 Pagefind 索引脚本，置 `[]` 关闭）/ `attrs.monitor`（动态内联事件）/ `iframes.monitor|action` / `prototype.watch`（fetch/XHR/eval 原型替换，周期比较）/ `dom.monitor|targets[]`（关键节点缺失检测）/ `probeIntervalMs 2000` / `reportEndpoint ''`（默认不上报；自定义跨域端点需加入 CSP `connect-src`，否则会被静默拦截）+ `reportTimeoutMs 5000`（上报超时 ms，1000–30000） + `reportThrottleMs 10000`（上报节流窗口 ms，0 关闭，上限 60000）+ `reportPrivacyMode true`（仅事件类型，URL 去除查询串）/ `cspViolationToast` / `noticeOncePerSession` / `logDetect`。页面级监视可被先行关闭，属异常发现而非安全边界。

@@ -31,15 +31,15 @@
     </svg>
   </div>
   <h1 class="error-code"><b>4</b>0<b>4</b></h1>
-  <h2 class="error-heading" data-i18n="notFound.title">页面走丢了</h2>
-  <p class="error-message" data-i18n="notFound.desc">您访问的页面不存在或已被移除。</p>
+  <h2 class="error-heading" data-i18n="notFound.title"><%= ui('notFound.title', '页面走丢了') %></h2>
+  <p class="error-message" data-i18n="notFound.desc"><%= ui('notFound.desc', '您访问的页面不存在或已被移除。') %></p>
   <div class="error-actions">
-    <a href="<%= (typeof langPrefix!=='undefined' ? langPrefix : '/zh/') %>" class="btn btn-primary" data-i18n="notFound.backHome">返回首页</a>
-    <button type="button" class="btn btn-outline" id="errSearchBtn" data-i18n="notFound.searchSite">站内搜索</button>
+    <a href="<%= (typeof langPrefix!=='undefined' ? langPrefix : '/zh/') %>" class="btn btn-primary" data-i18n="notFound.backHome"><%= ui('notFound.backHome', '返回首页') %></a>
+    <button type="button" class="btn btn-outline" id="errSearchBtn" data-i18n="notFound.searchSite"><%= ui('notFound.searchSite', '站内搜索') %></button>
   </div>
   <% if (typeof recentPosts !== 'undefined' && recentPosts && recentPosts.length) { %>
     <div class="error-suggest">
-      <div class="error-suggest-title" data-i18n="notFound.hotArticles">热门文章</div>
+      <div class="error-suggest-title" data-i18n="notFound.hotArticles"><%= ui('notFound.hotArticles', '热门文章') %></div>
       <div class="error-suggest-list">
         <% recentPosts.slice(0, 5).forEach(function(p) { %>
           <a class="error-suggest-item" href="<%= p.url %>">

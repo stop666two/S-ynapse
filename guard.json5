@@ -459,10 +459,12 @@
 
     // 作用：'blurPage' 的模糊强度；类型：string；推荐：'6px'
     blurAmount: '6px',
-    // 作用：'lockOverlay' 的标题与正文；类型：string；推荐见右
-    lockTitle: '开发者工具已打开',
-    // lockText：'lockOverlay' 的正文。
-    lockText: '请关闭开发者工具后继续浏览',
+    // 作用：'lockOverlay' 的标题与正文；类型：string；空 = 使用 ui-strings
+    //   默认文案（guard.lockTitle / guard.lockText，中英按页面语言自动切换，推荐留空）；
+    //   填固定文本会覆盖 i18n——英文页也会显示该文本
+    lockTitle: '',
+    // lockText：'lockOverlay' 的正文；空 = ui-strings guard.lockText。
+    lockText: '',
     // 作用：'reload' 延迟（给提示留时间）；类型：number(ms)；可填 0–3000；推荐：800
     reloadDelayMs: 800,
 

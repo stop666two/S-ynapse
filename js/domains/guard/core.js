@@ -43,8 +43,20 @@ function stripUrlParams() {
   } catch (e) { /* 忽略：URL 清理失败不影响防护判定与解锁 */ }
 }
 
+// 当前页是否为英文语言页。判定按可靠性排序：
+//   data-lang（core/i18n.js 运行时写入）→ <html lang>（构建期输出 en-US）→ URL 前缀。
+function isEnglishPage() {
+  const el = document.documentElement;
+  if (el.getAttribute('data-lang') === 'en') return true;
+  if (/^en\b/i.test(el.getAttribute('lang') || '')) return true;
+  return /^\/en(\/|$)/.test(location.pathname);
+}
+
+// 按键取 guard 文案；英文页优先取 __I18N__.en.guard（与 __T 共用同一份外置字典），
+// 缺失时回退中文顶层与调用方默认值。
 function t(key, fallback, vars) {
-  const S = ((window.__I18N__ || {}).guard) || {};
+  const D = window.__I18N__ || {};
+  const S = (isEnglishPage() && D.en && D.en.guard) ? D.en.guard : (D.guard || {});
   let s = S[key] || fallback || key;
   if (vars) Object.keys(vars).forEach(function (k) { s = s.replace('{' + k + '}', vars[k]); });
   return s;

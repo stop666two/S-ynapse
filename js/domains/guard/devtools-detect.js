@@ -44,12 +44,12 @@ export function init(ctx) {
       lock = document.createElement('div');
       lock.className = 'g-lock';
       const h = document.createElement('h3');
-      h.textContent = cfg.lockTitle || '开发者工具已打开';
+      h.textContent = cfg.lockTitle || ctx.t('lockTitle', '开发者工具已打开');
       const p = document.createElement('p');
-      p.textContent = cfg.lockText || '请关闭开发者工具后继续浏览';
+      p.textContent = cfg.lockText || ctx.t('lockText', '请关闭开发者工具后继续浏览');
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = '关闭';
+      btn.textContent = ctx.t('close', '关闭');
       btn.addEventListener('click', function () { lock.remove(); lock = null; });
       lock.appendChild(h);
       lock.appendChild(p);

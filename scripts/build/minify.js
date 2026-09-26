@@ -2,8 +2,9 @@
 // 构建产物压缩与缓存指纹（自 scripts/build.js 机械拆分；仅移动函数与依赖接线，不含逻辑变更）。
 // 编排器通过 createMinifyModule(ctx) 注入路径、开关与共享依赖，避免模块间隐式全局。
 // 压缩阶段分两层：基线压缩（minify-html / CleanCSS / Terser 的既有行为，恒定执行）与增强步骤
-// （compression.json5 控制：HTML 激进选项、CSS 同页合并去重、JSON 去空白；JS 混淆接口预留），
-// 增强步骤全部位于 cacheBust 之前，保证文件名哈希对应最终字节。
+// （compression.json5 控制：HTML 激进选项、CSS 同页合并去重、JS 可选混淆、JSON 去空白），
+// 增强步骤全部位于 cacheBust 之前；C4 混淆后按最终字节重命名 bundle 并同步改写 HTML 引用，
+// 保证「文件名哈希 = 最终字节」。
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -12,9 +13,11 @@ const { isExcluded } = require('../lib/compression-config');
 const { mergeStyleBlocks, dedupeStyleBlocks, dedupeCss } = require('../lib/css-merge');
 const {
   buildHtmlMinifyOptions,
+  buildObfuscateOptions,
   compactJsonText,
   compressionEnhancementPlan,
-  jsonSkipReason
+  jsonSkipReason,
+  selectObfuscationTargets
 } = require('../lib/compression-steps');
 
 function formatBytes(bytes) {
@@ -31,6 +34,9 @@ function createMinifyModule(ctx) {
   const compressionState = ctx.compression || { config: {}, active: false, errors: [], warnings: [], override: '' };
   const compressionConfig = compressionState.config || {};
   const compressionPlan = compressionEnhancementPlan(compressionConfig, compressionState.active);
+  // 本轮 esbuild 产物白名单（build.js 经活值 getter 注入）：混淆只作用于本轮 app/deferred，
+  // 增量构建残留的旧 bundle 与 vendor 不在名单内。
+  const getBundleFiles = typeof ctx.getBundleFiles === 'function' ? ctx.getBundleFiles : () => [];
 
   function distRel(file) {
     return path.relative(ctx.distDir, file).split(path.sep).join('/');
@@ -221,6 +227,83 @@ function createMinifyModule(ctx) {
     return totals;
   }
 
+  // 混淆后按最终字节重算 bundle 文件名并同步改写全部 HTML 引用（app src / deferred 内联 URL），
+  // 维持「文件名哈希 = 最终字节」；替换失败只告警，文件保留新名与旧名两份，不影响可用性。
+  function updateBundleRefsInHtml(mapping) {
+    const entries = Object.entries(mapping);
+    let updated = 0;
+    for (const file of ctx.getAllFiles(ctx.distDir).filter(f => /\.html?$/i.test(f))) {
+      try {
+        let html = fs.readFileSync(file, 'utf-8');
+        let changed = false;
+        for (const [orig, next] of entries) {
+          if (!html.includes(orig)) continue;
+          html = html.split(orig).join(next);
+          changed = true;
+        }
+        if (changed) {
+          writeFileAtomicSync(file, html, 'utf-8');
+          updated += 1;
+        }
+      } catch (err) {
+        console.warn(`  [WARN] bundle 引用更新失败 ${distRel(file)}: ${err.message}`);
+        ctx.recordBuildFailure('compression', `bundle ref ${distRel(file)}: ${err.message}`);
+      }
+    }
+    return updated;
+  }
+
+  // C4：对自研 bundle（本轮 app/deferred，runtime 因参与内容哈希引用而排除）执行可选混淆。
+  // 依赖惰性加载（仅开关开启时 require），默认态构建不负担加载耗时；单文件失败只告警。
+  async function obfuscateBundles() {
+    const targets = selectObfuscationTargets(getBundleFiles())
+      .filter(name => !isExcluded('assets/js/' + name, compressionPlan.exclude));
+    if (targets.length === 0) return null;
+    let obfuscator;
+    try {
+      obfuscator = require('javascript-obfuscator');
+    } catch (err) {
+      console.warn('  [WARN] JS 混淆已开启但 javascript-obfuscator 不可用（npm install 后重试）: ' + err.message);
+      ctx.recordBuildFailure('compression', 'JS obfuscate: javascript-obfuscator 不可用');
+      return null;
+    }
+    const options = buildObfuscateOptions(compressionPlan.jsObfuscatePreset, compressionPlan.jsObfuscateSeed);
+    const dir = path.join(ctx.distDir, 'assets', 'js');
+    const mapping = {};
+    const files = [];
+    let beforeTotal = 0;
+    let afterTotal = 0;
+    const startedAt = Date.now();
+    for (const name of targets) {
+      try {
+        const source = fs.readFileSync(path.join(dir, name), 'utf-8');
+        const output = obfuscator.obfuscate(source, options).getObfuscatedCode();
+        if (typeof output !== 'string' || output.length === 0) throw new Error('混淆输出为空');
+        const newName = name.replace(/\.[0-9A-Za-z]+\.js$/, '')
+          + '.' + crypto.createHash('md5').update(output).digest('hex').slice(0, 10) + '.js';
+        writeFileAtomicSync(path.join(dir, newName), output, 'utf-8');
+        if (newName !== name) mapping['assets/js/' + name] = 'assets/js/' + newName;
+        files.push({ name, newName, before: Buffer.byteLength(source), after: Buffer.byteLength(output) });
+        beforeTotal += Buffer.byteLength(source);
+        afterTotal += Buffer.byteLength(output);
+      } catch (err) {
+        console.warn(`  [WARN] JS 混淆跳过 ${name}，保留原文件: ${err.message}`);
+        ctx.recordBuildFailure('compression', `JS 混淆 ${name}: ${err.message}`);
+      }
+    }
+    if (files.length === 0) return null;
+    const refsUpdated = Object.keys(mapping).length > 0 ? updateBundleRefsInHtml(mapping) : 0;
+    for (const item of files) {
+      if (!mapping['assets/js/' + item.name]) continue;
+      try {
+        fs.unlinkSync(path.join(dir, item.name));
+      } catch (err) {
+        console.warn(`  [WARN] 旧 bundle 清理失败 ${item.name}: ${err.message}`);
+      }
+    }
+    return { files, beforeTotal, afterTotal, refsUpdated, ms: Date.now() - startedAt };
+  }
+
   // 压缩配置加载/覆盖校验问题集中上报：warnings 打日志，errors 记录构建失败（不中止构建流程）。
   function reportCompressionIssues() {
     for (const message of compressionState.warnings) console.warn('  [WARN] ' + message);
@@ -262,7 +345,18 @@ function createMinifyModule(ctx) {
       if (count > 0) steps.push('JSON 去空白 ×' + count);
     }
     if (compressionPlan.jsObfuscate) {
-      console.warn('  [WARN] compression.js.obfuscate.enabled=true 暂未接入，本次构建未执行混淆');
+      const result = await obfuscateBundles();
+      if (result) {
+        for (const item of result.files) {
+          console.log('  [compression] JS 混淆：' + item.name + ' → ' + item.newName
+            + '（' + formatBytes(item.before) + ' → ' + formatBytes(item.after) + '）');
+        }
+        console.log('  [compression] JS 混淆合计：' + formatBytes(result.beforeTotal) + ' → ' + formatBytes(result.afterTotal)
+          + '，更新 ' + result.refsUpdated + ' 个 HTML 引用，耗时 ' + result.ms + 'ms（preset=' + compressionPlan.jsObfuscatePreset + '，seed=' + compressionPlan.jsObfuscateSeed + '）');
+        steps.push('JS 混淆 ×' + result.files.length);
+      } else {
+        console.log('  [compression] JS 混淆：无可处理的自研 bundle 或依赖缺失（见告警）');
+      }
     }
     console.log('  [compression] ' + (steps.length ? '已执行增强: ' + steps.join('、') : '无增强步骤执行（基线压缩已完成）'));
   }

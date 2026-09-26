@@ -383,6 +383,7 @@ function createBuildContext(deps) {
 
   // 压缩与缓存指纹模块（scripts/build/minify.js）：注入路径、开关与共享依赖。
   // 机械拆分 1/N —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
+  // getBundleFiles 为 build.js 活值（本轮 esbuild 产物文件名），供 C4 混淆目标白名单读取。
   const minify = createMinifyModule({
     distDir: DIST_DIR,
     cacheBustManifestPath: CACHE_BUST_MANIFEST_PATH,
@@ -390,6 +391,7 @@ function createBuildContext(deps) {
     compression,
     getAllFiles,
     recordBuildFailure: helpers.recordBuildFailure,
+    getBundleFiles: deps.getBundleFiles,
     minifyHtmlNode,
     CleanCSS,
     terser

@@ -22,11 +22,13 @@ const { debugConfig, configSummary } = require('./lib/feature-wiring');
 //   AUTO_COVERS    自动封面映射（build() 赋值；pages 为无 featuredImage 文章回退封面时读取）
 //   inlineConfigKb 内联配置体积（KB；pages 写入，report 性能预算读取）
 //   INCREMENTAL_CTX 增量构建上下文（build() 赋值；pages 读取以决定页面复用）
+//   BUNDLE_FILES   本轮 esbuild 产物文件名（build() 赋值；压缩阶段 C4 混淆目标白名单）
 let BUILD_ERRORS = null;
 let MEDIA_MANIFEST = null;
 let AUTO_COVERS = null;
 let inlineConfigKb = 0;
 let INCREMENTAL_CTX = null;
+let BUNDLE_FILES = [];
 
 // 构建上下文（scripts/build/context.js）：可选依赖加载、路径/标志计算与全部模块接线在工厂内完成，
 // 本文件只保留编排逻辑（validateJsonSyntax + build() + watch/serve 入口）。
@@ -38,7 +40,8 @@ const ctx = createBuildContext({
   getAutoCovers: () => AUTO_COVERS,
   getInlineConfigKb: () => inlineConfigKb,
   setInlineConfigKb: (kb) => { inlineConfigKb = kb; },
-  getIncrementalContext: () => INCREMENTAL_CTX
+  getIncrementalContext: () => INCREMENTAL_CTX,
+  getBundleFiles: () => BUNDLE_FILES
 });
 
 const {
@@ -197,6 +200,7 @@ async function build() {
     baseData.criticalConfig = runtimeConfig.critical;
     if (BUNDLE_ACTIVE) {
       const bundle = await buildBundles({ root: ROOT, outDir: DIST_DIR, minify: config.site.build.minifyJS !== false });
+      BUNDLE_FILES = bundle.files;
       SITE_APP_JS_HREF = bundle.appJsHref;
       SITE_DEFERRED_URL = bundle.deferredUrl;
       SITE_RUNTIME_JS_HREF = copyRuntimeBootstrap() || SITE_RUNTIME_JS_HREF;

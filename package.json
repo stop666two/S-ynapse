@@ -10,9 +10,9 @@
   "scripts": {
     "postinstall": "node scripts/init-project.js",
     "init": "node scripts/init-project.js",
-    "test": "node --test scripts/*.test.js",
+    "test": "node scripts/run-tests.js",
     "test:build": "node --test scripts/build-smoke.test.js",
-    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=\"scripts/lib/**\" --test-coverage-lines=80 scripts/*.test.js",
+    "test:coverage": "node scripts/run-tests.js --experimental-test-coverage --test-coverage-include=scripts/lib/** --test-coverage-lines=80",
     "lint": "eslint js scripts workers",
     "audit": "node scripts/audit.js",
     "typecheck": "tsc -p tsconfig.json",

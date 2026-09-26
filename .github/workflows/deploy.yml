@@ -32,6 +32,24 @@ jobs:
           echo "$CHANGED"
           echo "$CHANGED" | grep -qiE '(AGENTS\.md|AGENTS\.txt|AGENT\.md|AGENT\.txt|agent-readme\.md|RULES\.md)' && { echo "ERROR: AI rule files detected in changes. Blocking merge."; exit 1; } || echo "OK: No AI rule files detected."
 
+  compat-node20:
+    needs: check-agents
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.0'
+          cache: 'npm'
+      - run: npm ci
+      - name: Tests (Node 20 LTS floor)
+        run: npm test
+      - name: Smoke build + installable app (Node 20 LTS floor)
+        run: |
+          npm run verify:config
+          npm run test:build
+          npm run build
+
   build:
     needs: check-agents
     runs-on: ubuntu-latest

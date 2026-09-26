@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **测试入口自举（Node 20 兼容）**：`npm test` / `npm run test:coverage` 改由 `scripts/run-tests.js` 枚举 `scripts/*.test.js` 后调用内置 test runner，消除对 Node 21+ 内部 glob 展开与 shell 展开的依赖（Windows + Node 20 可用）；CI 新增 `compat-node20` 任务（Node 20.19.0 上跑 `npm test` + `verify:config` + `test:build` + `build`） — `scripts/run-tests.js`、`package.json`、`.github/workflows/deploy.yml`
 - **开发服务器看门狗（防孤儿进程）**：`scripts/build/serve.js` 支持 `SYNAPSE_SERVE_PARENT_PID`（父进程退出后 5 秒内自退）与 `SYNAPSE_SERVE_IDLE_MS`（空闲超时自退）环境变量，并处理 SIGINT/SIGTERM；所有 `.tmp-scripts` 工具脚本自动继承；新增 `node .tmp-scripts/kill-orphans.js` 兜底清理 — `scripts/build/serve.js`
 - **构建管线拆分（反馈批次二·二.1）**：`scripts/build.js` 从 3416 行拆为 **265 行编排器 + `scripts/build/` 工厂模块**（config/markdown/articles/collectors/pages/helpers/report/render/feeds/security-files/assets/minify/media/serve/cache/context），每步 dist 哈希等价（173 文件）并以 `npm run test:build` 守护 — `scripts/build/*`
 - **软导航接管站内跳转**：`softNavigation` 默认开启时 `page-transition.js` 不再拦截点击（避免双重过渡）；`command-palette` 导航项/操作项改为打开时实时采集，消除软导航后的过期数据；卡顿探针定位「点击 336–410ms 长任务」根因为文档级导航本身（4× CPU 下），软导航从链路上消除该冻结 — `js/domains/page-transition.js` + `js/domains/command-palette.js`

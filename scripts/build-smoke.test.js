@@ -9,6 +9,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const { resolveChromePath } = require('./lib/mermaid-render');
 
@@ -19,10 +20,11 @@ const SKIP_IN_UNIT_SUITE = process.env.npm_lifecycle_event === 'test';
 
 let tmpDir = null;
 
-function runBuild() {
-  return execFileSync(process.execPath, ['scripts/build.js', '--out', tmpDir], {
+function runBuild(outDir, extraArgs) {
+  const args = ['scripts/build.js', '--out', outDir].concat(extraArgs || []);
+  return execFileSync(process.execPath, args, {
     cwd: ROOT,
-    env: { ...process.env, SYNAPSE_OUT_DIR: tmpDir, NODE_ENV: 'production' },
+    env: { ...process.env, SYNAPSE_OUT_DIR: outDir, NODE_ENV: 'production' },
     stdio: 'pipe',
     timeout: 240000
   });
@@ -33,6 +35,60 @@ function outputTail(err) {
   const text = String(err.stdout || '') + String(err.stderr || '');
   return text.length > 4000 ? '...(truncated)\n' + text.slice(-4000) : text;
 }
+
+// 递归目录摘要：POSIX 相对路径 → sha1 内容哈希（跨状态比较用）。
+function treeDigest(dir) {
+  const out = {};
+  (function walk(current, rel) {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const abs = path.join(current, entry.name);
+      const key = rel ? rel + '/' + entry.name : entry.name;
+      if (entry.isDirectory()) walk(abs, key);
+      else out[key] = crypto.createHash('sha1').update(fs.readFileSync(abs)).digest('hex');
+    }
+  })(dir, '');
+  return out;
+}
+
+// HTML 归一化：构建进程每次随机生成 CSP nonce，跨构建比较前必须替换为占位符。
+function normalizeNonce(html) {
+  return html
+    .replace(/(nonce\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '$1"NONCE"')
+    .replace(/'nonce-[^']*'/gi, "'nonce-NONCE'");
+}
+
+// 构建报告 HTML 归一化：时间戳 / 构建耗时 / 输出体积随构建变化，压缩处理方式不受其影响。
+function normalizeReportHtml(html) {
+  return normalizeNonce(html)
+    .replace(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/, 'TIME')
+    .replace(/(构建耗时<\/span><span class="stat-value">)[^<]*/, '$1ELAPSED')
+    .replace(/(输出体积<\/span><span class="stat-value">)[^<]*/, '$1SIZE');
+}
+
+// 收集 HTML 相对路径 → 原文（排除构建报告：含时间与体积统计）。
+function collectHtml(dir) {
+  const out = {};
+  (function walk(current, rel) {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const abs = path.join(current, entry.name);
+      const key = rel ? rel + '/' + entry.name : entry.name;
+      if (entry.isDirectory()) walk(abs, key);
+      else if (/\.html?$/i.test(entry.name) && key !== 'build-report.html') out[key] = fs.readFileSync(abs, 'utf-8');
+    }
+  })(dir, '');
+  return out;
+}
+
+// 未被基线压缩触及的 vendor 资产：构建产物必须与 node_modules 源逐字节一致。
+// （katex.min.css 例外：基线 CleanCSS 会进一步压缩，属既有行为，用跨状态摘要一致性覆盖。）
+const VENDOR_SOURCE_PAIRS = [
+  ['assets/vendor/mermaid.min.js', 'node_modules/mermaid/dist/mermaid.min.js'],
+  ['assets/vendor/katex/katex.min.js', 'node_modules/katex/dist/katex.min.js'],
+  ['assets/vendor/katex/contrib/auto-render.min.js', 'node_modules/katex/dist/contrib/auto-render.min.js'],
+  ['assets/vendor/morphicons/index.js', 'node_modules/morphicons/dist/index.js'],
+  ['assets/vendor/morphicons/dom.js', 'node_modules/morphicons/dist/dom.js'],
+  ['assets/vendor/fonts/inter-latin-wght-normal.woff2', 'node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2']
+];
 
 // SSR 导航高亮提取：返回页面中 header 导航 nav-active 链接的数量与 href（属性可能被 minify 重排/去引号）。
 function navActiveInfo(html) {
@@ -55,7 +111,7 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
 
   it('clean build writes the expected artifacts and a nonce-based CSP', () => {
     try {
-      runBuild();
+      runBuild(tmpDir);
     } catch (err) {
       assert.fail('build must exit 0, got status ' + err.status + ':\n' + outputTail(err));
     }
@@ -243,6 +299,63 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     }
   });
 
+  it('compression-off second state keeps non-enhanced artifacts byte-identical', () => {
+    const offDir = fs.mkdtempSync(path.join(os.tmpdir(), 's-ynapse-build-smoke-off-'));
+    const overrideFile = path.join(offDir, 'compression-off.json5');
+    fs.writeFileSync(overrideFile, '{ enabled: false }\n', 'utf-8');
+    try {
+      try {
+        runBuild(offDir, ['--compression-override', overrideFile]);
+      } catch (err) {
+        assert.fail('compression-off build must exit 0, got status ' + err.status + ':\n' + outputTail(err));
+      }
+      // ① vendor 未被增强步骤触碰：JS / 字体与 node_modules 源逐字节一致。
+      for (const [rel, src] of VENDOR_SOURCE_PAIRS) {
+        const built = path.join(tmpDir, rel.split('/').join(path.sep));
+        const source = path.join(ROOT, src.split('/').join(path.sep));
+        assert.ok(fs.existsSync(built), 'vendor asset must exist: ' + rel);
+        assert.deepStrictEqual(fs.readFileSync(built), fs.readFileSync(source),
+          'vendor asset must stay byte-identical to its node_modules source: ' + rel);
+      }
+      // vendor 全树跨状态一致（含基线 CleanCSS 会触碰的 katex.min.css：两态基线行为相同）。
+      assert.deepStrictEqual(
+        treeDigest(path.join(offDir, 'assets', 'vendor')),
+        treeDigest(path.join(tmpDir, 'assets', 'vendor')),
+        'vendor tree must be identical between default and compression-off builds'
+      );
+      // ② 非增强文件跨状态一致：HTML 页面（nonce 归一化后）逐字节相同。
+      const defaultHtml = collectHtml(tmpDir);
+      const offHtml = collectHtml(offDir);
+      assert.ok(Object.keys(defaultHtml).length > 0, 'build must emit HTML pages');
+      assert.deepStrictEqual(Object.keys(offHtml).sort(), Object.keys(defaultHtml).sort(),
+        'both states must emit the same HTML page set');
+      for (const rel of Object.keys(defaultHtml)) {
+        assert.strictEqual(normalizeNonce(offHtml[rel]), normalizeNonce(defaultHtml[rel]),
+          'non-enhanced HTML must be identical across states: ' + rel);
+      }
+      // 已紧凑的单行 JSON（search-index）不因压缩步骤变化。
+      assert.deepStrictEqual(
+        fs.readFileSync(path.join(offDir, 'zh', 'search-index.json')),
+        fs.readFileSync(path.join(tmpDir, 'zh', 'search-index.json')),
+        'compact JSON must stay untouched by the JSON enhancement'
+      );
+      // feed.json 是 JSON 增强目标：默认态单行化；关闭态保留换行（证明开关真实生效）。
+      const defaultFeed = fs.readFileSync(path.join(tmpDir, 'zh', 'feed.json'), 'utf-8');
+      const offFeed = fs.readFileSync(path.join(offDir, 'zh', 'feed.json'), 'utf-8');
+      assert.ok(!/[\r\n]/.test(defaultFeed), 'default state must compact feed.json to a single line');
+      assert.ok(/[\r\n]/.test(offFeed), 'compression-off state must keep feed.json multi-line');
+      assert.deepStrictEqual(JSON.parse(defaultFeed), JSON.parse(offFeed), 'JSON compaction must preserve semantics');
+      // 报告文件两态均保持人类可读；内容除时间/体积统计外一致（豁免名单生效）。
+      const reportA = fs.readFileSync(path.join(tmpDir, 'build-report.html'), 'utf-8');
+      const reportB = fs.readFileSync(path.join(offDir, 'build-report.html'), 'utf-8');
+      assert.ok(reportA.includes('\n') && reportB.includes('\n'), 'build-report.html must stay human-readable');
+      assert.strictEqual(normalizeReportHtml(reportB), normalizeReportHtml(reportA),
+        'build report must be identical across states apart from timing/size stats');
+    } finally {
+      fs.rmSync(offDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    }
+  });
+
   it('bad content blocks the build and leaves previous output untouched', () => {
     const indexHtml = path.join(tmpDir, 'zh', 'index.html');
     const beforeHash = fs.readFileSync(indexHtml);
@@ -259,7 +372,7 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     let failed = false;
     let output = '';
     try {
-      runBuild();
+      runBuild(tmpDir);
     } catch (err) {
       failed = true;
       output = outputTail(err);

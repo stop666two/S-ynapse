@@ -8,7 +8,7 @@
 <% var _pcfg=(typeof pinnedCfg!=='undefined'&&pinnedCfg)||{showBadge:true,badgeStyle:'pill'}; articles.forEach(function(article) { %>
 <article class="post-card">
   <h2 class="post-card-title">
-    <% if (article.pinned && _pcfg.showBadge) { %><span class="pin-badge<%= _pcfg.badgeStyle==='corner'?' pin-badge-corner':'' %>"><%= (typeof pinnedText==='function')?pinnedText(typeof lang!=='undefined'?lang:'zh'):ui('card.pinned','置顶') %></span><% } %><% if (article.series) { %><span class="series-badge"><%= ui('card.series','系列') %></span><% } %>
+    <% if (article.pinned && _pcfg.showBadge) { %><span class="pin-badge<%= _pcfg.badgeStyle==='corner'?' pin-badge-corner':'' %>"><%= (typeof pinnedText==='function')?pinnedText(typeof lang!=='undefined'?lang:'zh'):ui('card.pinned','置顶') %></span><% } %>    <% if (article.series && !(features.series&&features.series.showBadge===false)) { %><span class="series-badge"><%= (typeof seriesBadge==='function')?seriesBadge(article.series, typeof lang!=='undefined'?lang:'zh'):ui('card.series','系列') %></span><% } %>
     <a href="<%= article.url %>"><%= article.title %></a>
   </h2>
   <div class="post-card-meta">
@@ -22,11 +22,11 @@
       <% }) %>
     </span>
     <% } %>
-<% if (theme.card && theme.card.showWordCount && article.wordCount) { %>
-    <span><%= ui('card.wordUnit','{count} 字').replace('{count}', article.wordCount) %></span>
+<% if (theme.card && theme.card.showWordCount && article.wordCount && !(features.wordCount&&(features.wordCount.enabled===false||features.wordCount.onCards===false))) { %>
+    <span><%= (typeof wordCountLabel==='function')?wordCountLabel(article.wordCount, typeof lang!=='undefined'?lang:'zh'):ui('card.wordUnit','{count} 字').replace('{count}', article.wordCount) %></span>
     <% } %>
     <% if (theme.card && theme.card.showReadTime && article.readTime) { %>
-    <span><%= ui('card.minute','{minutes} 分钟阅读').replace('{minutes}', article.readTime) %></span>
+    <span><%= (typeof readTimeLabel==='function')?readTimeLabel(article.readTime, typeof lang!=='undefined'?lang:'zh'):ui('card.minute','{minutes} 分钟阅读').replace('{minutes}', article.readTime) %></span>
     <% } %>
   </div>
   <% if (theme.card && theme.card.showExcerpt && article.excerpt) { %>

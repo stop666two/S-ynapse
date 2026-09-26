@@ -15,7 +15,7 @@
       <% if (article.date) { %>
       <span><%= article.formattedDate || article.date %></span>
       <% } %>
-      <% if (features.readingTime && features.readingTime.enabled !== false && features.readingTime.showInMeta !== false && article.readTime) { %><span class="post-reading-time"><%= features.readingTime.labelBefore || '' %><%= article.readTime %><%= (typeof lang!=='undefined'&&lang==='en') ? (features.readingTime.labelAfterEn || features.readingTime.labelAfter || ' min read') : (features.readingTime.labelAfter || ' 分钟') %></span><% } %>
+      <% if (features.readingTime && features.readingTime.enabled !== false && features.readingTime.showInMeta !== false && article.readTime) { %><span class="post-reading-time"><%= (typeof readTimeLabel==='function')?readTimeLabel(article.readTime, typeof lang!=='undefined'?lang:'zh'):(features.readingTime.labelBefore || '') + article.readTime + ((typeof lang!=='undefined'&&lang==='en') ? (features.readingTime.labelAfterEn || features.readingTime.labelAfter || ' min read') : (features.readingTime.labelAfter || ' 分钟')) %></span><% } %>
       <% if (article.categories && article.categories.length) { %>
       <span>
         <% article.categories.forEach(function(cat, i) { %>
@@ -24,10 +24,7 @@
       </span>
       <% } %>
       <% if (article.wordCount && features.wordCount && features.wordCount.enabled!==false && features.wordCount.inArticle!==false) { %>
-      <span><%= article.wordCount %> <span data-i18n="post.words"><%= ui('post.words','字') %></span></span>
-      <% } %>
-      <% if (features.readingTime && features.readingTime.enabled !== false && features.readingTime.showInMeta !== false && article.readTime) { %>
-      <span><%= article.readTime %> <span data-i18n="post.readMinutes"><%= ui('post.readMinutes','分钟阅读') %></span></span>
+      <span><%= (typeof wordCountLabel==='function')?wordCountLabel(article.wordCount, typeof lang!=='undefined'?lang:'zh'):article.wordCount + ' ' + ui('post.words','字') %></span>
       <% } %>
       <% if (article.tags && article.tags.length) { %>
       <span>
@@ -149,8 +146,8 @@
 <%# Series navigation panel — appears when the article belongs to a series (front-matter `series`). %>
 <% if (article.series && features.series && features.series.enabled!==false && features.series.showNavPanel!==false) { %>
 <div class="series-nav" role="navigation" aria-label="<%= ui('post.seriesNav','系列导航') %>">
-  <div class="series-nav-head"><span class="series-nav-badge"><span data-i18n="post.series"><%= ui('post.series','系列') %></span></span><span class="series-nav-name"><%= article.series %></span><span class="series-nav-progress"><%= String(features.series.progressLabel||'{index} / {total}').replace('{index}',article.seriesIndex).replace('{total}',article.seriesTotal) %></span></div>
-  <% var _spct=article.seriesTotal>0?Math.round((article.seriesIndex/article.seriesTotal)*100):0; %><style>.series-progress i{width:<%= _spct %>%}</style><div class="series-progress" aria-hidden="true"><i></i></div>
+  <div class="series-nav-head"><span class="series-nav-badge"><span data-i18n="post.series"><%= ui('post.series','系列') %></span></span><span class="series-nav-name"><%= article.series %></span><% if (typeof seriesPanel==='function' && article.seriesTotal) { %><span class="series-nav-title"><%= seriesPanel(article.seriesTotal, typeof lang!=='undefined'?lang:'zh') %></span><% } %><% if (!(features.series&&features.series.showPosition===false)) { %><span class="series-nav-progress"><%= String(features.series.progressLabel||'{index} / {total}').replace('{index}',article.seriesIndex).replace('{total}',article.seriesTotal) %></span><% } %></div>
+  <% var _showPos=!(features.series&&features.series.showPosition===false); if(_showPos){ var _spct=article.seriesTotal>0?Math.round((article.seriesIndex/article.seriesTotal)*100):0; %><style>.series-progress i{width:<%= _spct %>%}</style><div class="series-progress" aria-hidden="true"><i></i></div><% } %>
   <div class="series-nav-links">
     <% if (article.seriesPrevUrl) { %><a href="<%= article.seriesPrevUrl %>" class="series-nav-link prev">← <%= (typeof lang!=='undefined'&&lang==='en'&&features.series.prevLabelEn)?features.series.prevLabelEn:(features.series.prevLabel||ui('post.prev','上一篇')) %></a><% } %>
     <% if (article.seriesNextUrl) { %><a href="<%= article.seriesNextUrl %>" class="series-nav-link next"><%= (typeof lang!=='undefined'&&lang==='en'&&features.series.nextLabelEn)?features.series.nextLabelEn:(features.series.nextLabel||ui('post.next','下一篇')) %> →</a><% } %>

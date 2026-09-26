@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **搜索入口在软导航后失效修复（用户反馈）**：首页 hero「搜索文章」、404 页搜索按钮、侧栏搜索框回车原先由 search 模块一次性绑定到具体节点——软导航替换内容区后节点被换新，入口静默失效（点按无反应）；且模块加载完成前点击同样无响应。现改为 `js/core/main.js` 关键路径的**文档级事件委托**（`click` 捕获 `.hero-search`/`#errSearchBtn`、`keydown` 捕获 `.widget-search-input` 回车），并对加载前点击以占位 `openSearch` 排队、search 模块就绪后自动补开 — `js/core/main.js` + `js/domains/features/search.js` + 回归 runner `.tmp-scripts/run-search-entry.js`（9/9：加载前排队补开/无刷新/首访/软导航返回/404/侧栏回车/0 控制台错误）
+
 - **全页 a11y 实测修复三处（可访问性与移动端批次）**：① 主按钮背景 `#4a90d9` 配白字仅 3.34:1 → `#2563eb`（5.17:1，`theme.json5` + `site-defaults.js`）；② 暗色系列导航徽标白字配 `#7caeff` 仅 2.24:1 → 暗色改用 `var(--color-bg)` 深色文字（7.95:1）；③ 宽 KaTeX 行间公式（nowrap 内容宽于容器）在 375px 视口撑破页面 → `.post-content .katex-display{overflow-x:auto;overflow-y:hidden;max-width:100%}`，长文压力页 scrollWidth 426→375 — `theme.json5` + `scripts/lib/site-defaults.js` + `templates/site-css.ejs`
 
 - **公告条关闭记忆按语言独立（用户反馈）**：`announcement.storageKey` 升级为按语言区分的 JSON 对象存储（`{"zh":hash,"en":hash}`，旧版单值访问时自动迁移），修复「关闭英文公告后中文公告复现、中文公告不显示」的跨语言互相覆盖问题 — `templates/layout.ejs` + `js/domains/announcement.js`

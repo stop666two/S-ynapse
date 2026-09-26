@@ -1,0 +1,26 @@
+{
+  "note": "verify:config-refs 允许名单：登记「按键名静态扫描不可判定、但已有可靠消费路径」的配置键。allow 为精确键路径（格式 <文件名去后缀>.<路径>），用于 features（功能开关，重点区域）；prefixes 为段落通配（匹配该段及其所有子键），用于数据/展示层配置段——这些段整体经 SSR 模板局部变量、外置配置（window.__SITE__/__TUNING__/__I18N__/__GUARD__）、CSS 变量拼接（--{分类}-{键}）或 JSON 序列化消费，键名不作为独立标识符出现。新增 features 精确项必须在 commit 中说明消费路径。",
+  "allow": {
+    "features.stats.labelPostsEn": "statsLabel 动态拼接 *En 后缀消费（lang=en 时按配置键取名）",
+    "features.stats.labelDaysEn": "同上",
+    "features.stats.labelWordsEn": "同上",
+    "features.stats.labelAvgEn": "同上",
+    "features.stats.labelAvgPerDayEn": "同上",
+    "features.stats.labelTagsEn": "同上",
+    "features.stats.labelCategoriesEn": "同上"
+  },
+  "prefixes": [
+    "tuning",
+    "ui-strings",
+    "guard",
+    "theme",
+    "site",
+    "navigation",
+    "sidebar",
+    "footer",
+    "security",
+    "tag-aliases",
+    "friends",
+    "content-policy"
+  ]
+}

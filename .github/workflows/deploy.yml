@@ -47,6 +47,7 @@ jobs:
       - name: Smoke build + installable app (Node 20 LTS floor)
         run: |
           npm run verify:config
+          npm run verify:config-refs
           npm run test:build
           npm run build
 
@@ -72,6 +73,8 @@ jobs:
       - run: npm run test:build
       - name: Config consistency (code defaults vs config files)
         run: npm run verify:config
+      - name: Config references (unwired key scan)
+        run: npm run verify:config-refs
       - name: Security verification (malicious-content build regression)
         run: npm run verify:security
       - run: npm run build

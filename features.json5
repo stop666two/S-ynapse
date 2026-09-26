@@ -2079,6 +2079,39 @@
   },
 
   // ---------------------------------------------------------------------------
+  // 51b. LCP 分相治理(弱网首屏渲染延迟优化;改前必看注释)
+  // ---------------------------------------------------------------------------
+  lcpOptimize: {
+    // 首屏媒体豁免入场隐藏态。
+    // 作用: 首页首卡与文章头图不再等待 JS 添加 .in/.loaded 才显形——CSS 覆盖
+    //   `.blog-grid>article:first-child` 卡片与其图片的 motion-reveal 初始 opacity:0,
+    //   以及 `.post-featured-image.js-img` 的懒加载淡入初始 opacity:0。
+    // 收益: Slow4G + 4x CPU 实测渲染延迟下降(JS 启动链不再挡 LCP 绘制)。
+    // 代价: 首屏第一张卡片/头图不再播放入场淡入(第二张起不受影响)。
+    // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 保持旧行为)。
+    revealExemptFirstPaint: true,
+    // CJK 字体 CSS 异步化(@font-face 声明不再阻塞首屏渲染)。
+    // 作用: cjk-fonts.css 以 media="print" 低优先加载,加载完成后由 nonce 内联脚本翻回
+    //   media="all";首屏先以系统字体渲染,CJK 字体分片在首屏渲染后再拉取。
+    // 收益: 弱网下减少渲染阻塞 CSS 体积与首屏带宽争抢(LCP 渲染延迟)。
+    // 代价: CJK 字形回退→自托管字体的切换时机后移(仍为 font-display:swap 语义,无空白期)。
+    // 注意: 依赖 layout.ejs 内联引导脚本与 cjk-fonts.js 的引用改写/降级剥离兼容;
+    //   构建失败回退系统字体时脚本自动空转。
+    // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 保持旧行为)。
+    asyncCjkFontCss: true,
+    // CJK 语言页跳过拉丁字体 preload。
+    // 背景: 中文字体的字形来自 CJK 子集(unicode-range 懒加载),拉丁字体(Inter)只承担
+    //   数字/英文片段;zh 页 preload 48KB 拉丁字体在首屏与 LCP 图片/样式争带宽,
+    //   收益小于其占用的关键路径带宽(本地实测 FCP/LCP 约 −0.2 ~ −0.36s,见基线文档)。
+    // 作用: lang=zh(非 en)时不为 theme.externalAssets.fontPreloads 输出 <link rel=preload as=font>;
+    //   字体仍由 @font-face 在首次使用时拉取(有 font-display:swap 回退)。
+    // 代价: zh 页少量拉丁字符(数字/英文标题)的字体切换时机后移(系统字体→Inter)。
+    // 注意: en 页不受影响(仍 preload);site.performance.preloadFonts=false 时本键无意义。
+    // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 保持旧行为)。
+    skipLatinFontPreloadOnCjk: true
+  },
+
+  // ---------------------------------------------------------------------------
   // 52. 滚动进度条(顶部 hairline;基于原生 scroll-driven 动画,零 JS)
   // ---------------------------------------------------------------------------
   scrollIndicator: {

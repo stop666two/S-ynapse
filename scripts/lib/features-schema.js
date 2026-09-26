@@ -168,6 +168,9 @@ const DEFAULT_FEATURES = {
   perfBudget: {
     enabled: true, htmlKb: 28, htmlRawKb: 50, inlineConfigKb: 2, jsKb: 55, requests: 12, warnOnly: true
   },
+  lcpOptimize: {
+    revealExemptFirstPaint: false, asyncCjkFontCss: false, skipLatinFontPreloadOnCjk: false
+  },
   scrollIndicator: {
     enabled: true, height: '2px', gradient: true, respectReducedMotion: true
   },

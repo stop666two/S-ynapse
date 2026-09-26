@@ -267,7 +267,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(95 模块)
+## 3. features.json5 — 功能总控(98 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -656,6 +656,18 @@ sitemap: {
 ### 3.95 incrementalBuild — 增量构建
 
 **预留开关，当前未实现**；增量构建方案见 `docs/incremental-build-design.md`，站点内容增长到 100+ 篇后再评估实现。键位已预留：`enabled true` / `fullFlag '--full'`（强制全量构建的命令行参数）/ `watch true`（监听源文件变更）/ `fingerprintHash 'sha1'`（指纹算法）/ `skipUnchanged true`（跳过未变化源）。当前构建始终为全量，以上键位不产生实际效果 — `scripts/lib/features-schema.js`（仅登记校验，无运行时实现）。
+
+### 3.96 lcpOptimize — LCP 分相治理
+
+弱网首屏渲染延迟优化，按 T5 实测分相数据收敛（本地 gzip serve + Slow4G + 4× CPU；生产复测需部署后执行）。
+
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `revealExemptFirstPaint` | `false` | 首屏媒体豁免入场隐藏态。首页第一张卡片（`.blog-grid>article:first-child` 及其 `.post-card-image`）不再等待 JS 添加 `.in`，文章头图 `.post-featured-image.js-img` 不再等待懒加载模块添加 `.loaded`——CSS 直接覆盖其初始 `opacity:0`。代价：首屏第一张卡片/头图不再播放入场淡入（第二张起不受影响） |
+| `asyncCjkFontCss` | `false` | CJK 字体 CSS 异步化：`cjk-fonts.css` 以 `media="print"` 低优先加载，加载完成后由 nonce 内联引导脚本翻回 `media="all"`（不依赖内联事件属性，兼容 CSP）。弱网下将该 23KB(gzip) 从渲染阻塞链移出、CJK 分片在首屏渲染后拉取。构建期字体管线失败剥离引用时脚本自动空转（回退系统字体）。代价：CJK 字形回退→自托管字体的切换时机后移（仍为 `font-display:swap` 语义，无空白期） |
+| `skipLatinFontPreloadOnCjk` | `false` | CJK 语言页（`lang != en`）跳过拉丁字体 preload：`theme.externalAssets.fontPreloads`（Inter 48KB）不再输出 `<link rel=preload as=font>`，字体仍由 `@font-face` 首次使用时拉取（`font-display:swap` 回退）。zh 页字形来自 CJK 子集，拉丁字体只承担数字/英文片段，preload 占用首屏带宽大于收益；en 页不受影响。`site.performance.preloadFonts=false` 时本键无实际效果。代价：zh 页少量拉丁字符的系统字体→Inter 切换时机后移 |
+
+实测前后对照与分相明细见 `docs/perf-baseline-local-lcp.md`；采集口径见 `scripts/perf-audit.js` 顶部注释 — `templates/layout.ejs` + `templates/site-css.ejs` + `scripts/lib/features-schema.js`。
 
 ---
 

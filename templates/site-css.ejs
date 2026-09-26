@@ -496,8 +496,11 @@
     .site-header svg,.site-header svg [stroke-width],.footer-social svg,.footer-social svg [stroke-width],.footer-subscribe svg,.footer-subscribe svg [stroke-width],.back-to-top svg [stroke-width],.m-bottom-nav svg [stroke-width],.read-dock svg [stroke-width],.lightbox svg [stroke-width],.search-modal svg [stroke-width],.contact-popup-icon svg [stroke-width],.kbd-help svg [stroke-width],.code-action-btn svg [stroke-width],.code-expand-btn svg [stroke-width],.code-copy-all-btn svg [stroke-width]{stroke-width:var(--icons-strokeWidth,1.75)}
     /* —— 图标:微动效 —— */
     .nav-link svg{width:16px;height:16px;margin-right:.45rem;vertical-align:-3px;flex:none}
-    .nav-link svg,.nav-social-link svg,.footer-social a svg,.back-to-top svg,.code-action-btn svg,.code-copy-all-btn svg{transition:transform .35s var(--te),color .35s var(--te)}
-    .nav-link:hover svg,.nav-social-link:hover svg,.footer-social a:hover svg,.back-to-top:hover svg{transform:translateY(calc(-1 * var(--icons-hoverLift,1px)))}
+    .nav-link svg,.nav-social-link svg,.footer-social a svg,.back-to-top svg,.code-action-btn svg,.code-copy-all-btn svg,.search-toggle svg,.nav-boost-btn svg{transition:transform .35s var(--te),color .35s var(--te)}
+    .nav-link:hover svg,.nav-social-link:hover svg,.footer-social a:hover svg,.back-to-top:hover svg,.search-toggle:hover svg,.nav-boost-btn:hover svg{transform:translateY(calc(-1 * var(--icons-hoverLift,1px)))}
+    .nav-toggle:not(.active):hover span,.nav-toggle:not(.active):hover svg{transform:translateY(calc(-1 * var(--icons-hoverLift,1px)))}
+    .nav-toggle svg{transition:transform .35s var(--te)}
+    @media(prefers-reduced-motion:reduce){.nav-indicator.on{transition:none}.nav-link:hover svg,.nav-social-link:hover svg,.footer-social a:hover svg,.back-to-top:hover svg,.search-toggle:hover svg,.nav-boost-btn:hover svg,.nav-toggle:not(.active):hover span,.nav-toggle:not(.active):hover svg{transform:none}}
     .dark-toggle svg{transition:transform .5s var(--te)}.dark-toggle:hover svg{transform:rotate(20deg)}.dark-toggle:active svg{transform:rotate(-20deg)}
     /* —— 小型文字的隐形点按面积扩展（WCAG 2.5.8 目标尺寸）—— */
     .breadcrumb-item a,.post-card-meta a,.post-meta a,.post-tag,.gallery-link,.footer-link,.footer-bottom a,.footer-powered a{position:relative}

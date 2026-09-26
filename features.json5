@@ -176,42 +176,33 @@
     // 是否高亮命中词。
     // 说明: 与 features.searchHighlight 联动——两者任一为 false 即不高亮（maxMatches 仍由 searchHighlight 控制）。
     highlightMatches: true,
-    // 是否显示文章总数提示。
-    // 预留: 当前搜索结果数恒显示，未按下述开关门控，本键未接线。
+    // 是否显示结果数量提示（false = 结果区与 /search 页均不显示「找到 N 条」；计数文案取 ui-strings.search.foundCount 双语）。
     showCount: true,
-    // 搜索框占位文本。
-    // 预留: 当前使用 navigation.json5 search.placeholder（en 站点由 ui-strings 覆盖），本键未接线。
-    placeholder: '搜索...',
-    // 搜索框占位文本（en 站；空 = 回退中文；该键为预留，当前未接线）。
-    placeholderEn: 'Search...',
-    // 无输入时的提示文本。
-    // 预留: 当前空态文案由 tuning/i18n 内置文案提供，本键未接线。
-    emptyHint: '输入关键词开始搜索',
-    // 无输入提示（en 站；空 = 回退中文；该键为预留，当前未接线）。
-    emptyHintEn: 'Type a keyword to search',
-    // 无结果时提示文本。
+    // 无输入提示 + 无结果提示（第四轮 W2 接线）。
+    // ①输入为空时显示本键非空值（空 = 不显示，保持历史行为）；
+    // ②无结果文案优先级链：emptyHint > noResultText > tuning.search.emptyText > i18n 内置兜底。
+    // 空 = 沿用 noResultText（默认空串，保持历史输出「未找到匹配内容」）。
+    emptyHint: '',
+    // 无输入/无结果提示（en 站；空 = 回退中文链）。
+    emptyHintEn: '',
+    // 无结果时提示文本（无结果链中 emptyHint(En) 优先于本键）。
     noResultText: '未找到匹配内容',
-    // 无结果提示（en 站；空 = 回退中文）。
+    // 无结果提示（en 站，空 = 回退中文）。
     noResultTextEn: 'No matching content',
     // 结果命中截断长度(字符)。
     excerptLength: 120,
     // 是否包含正文全文(否则仅标题/摘要/标签)。
     // 说明: 由构建期消费——运行时生成 search-index.json（local 模式）时决定 content 字段是否写入正文。
     includeContent: true,
-    // 是否匹配标签。
-    // 预留: 当前前端检索仅匹配标题/摘要/正文，本键未接线。
+    // 是否匹配标签（false = 标签字段不参与浮层搜索与 /search 页命中判定）。
     matchTags: true,
-    // 是否匹配分类。
-    // 预留: 当前前端检索仅匹配标题/摘要/正文，本键未接线。
+    // 是否匹配分类（false = 分类字段不参与浮层搜索与 /search 页命中判定）。
     matchCategories: true,
-    // 标题匹配权重(正整数;越大越优先)。
-    // 预留: 当前前端无加权排序算法，本键未接线。
+    // 标题匹配权重(≥0；0 = 标题字段不参与匹配与计分；得分 = 权重 × 命中次数)。
     weightTitle: 5,
-    // 摘要匹配权重。
-    // 预留: 当前前端无加权排序算法，本键未接线。
+    // 摘要匹配权重(≥0；0 = 摘要字段不参与匹配与计分)。
     weightExcerpt: 2,
-    // 正文匹配权重。
-    // 预留: 当前前端无加权排序算法，本键未接线。
+    // 正文匹配权重(≥0；0 = 正文字段不参与匹配与计分)。
     weightContent: 1,
     // 关闭方式:点击遮罩（false = 点击遮罩不关闭）。
     closeOnOverlay: true,
@@ -220,9 +211,6 @@
     // 打开动画方式。
     // 类型: string | 可填: 'fade'(默认,弹层淡入)/'slide'(自下而上滑入)
     openAnimation: 'fade',
-    // 是否支持拼音首字母匹配(实验)。
-    // ⚠ 未接线（预留）：前端检索实现固定（仅标题/摘要/正文子串匹配，无加权与拼音）；文案由 navigation/ui-strings 提供。
-    pinyinFuzzy: false,
     // 输入防抖间隔(ms)。停止输入该时长后才执行检索,减少频繁重查。
     debounceMs: 120,
     // 聚焦输入框时是否自动显示搜索历史。
@@ -347,14 +335,11 @@
     showFullUrl: true,
     // 是否默认 target=_blank。
     openInNewTab: true,
-    // 白名单链接是否也加 target。
-    // ⚠ 未接线（预留）：白名单链路不做 target 改写；联系弹窗为图标点击复制，无按钮文案位。
+    // 白名单链接是否也强制新标签页打开（true = target=_blank + noopener/noreferrer 等效；false = 浏览器默认行为）。
     whitelistNewTab: false,
-    // 联系/社交弹窗复制按钮文本。
-    // ⚠ 未接线（预留）：白名单链路不做 target 改写；联系弹窗为图标点击复制，无按钮文案位。
+    // 外链提醒浮层「复制链接」按钮文本（空 = 回退 ui-strings.toolbar.copyLink 双语/内置文案）。
     copyButtonText: '复制',
-    // 复制按钮文本（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：白名单链路不做 target 改写；联系弹窗为图标点击复制，无按钮文案位。
+    // 复制按钮文本（en 站；空 = 回退中文键/内置双语）。
     copyButtonTextEn: 'Copy'
   },
 
@@ -1008,21 +993,17 @@
   // 14. 双向链接(Wiki Links)
   // ---------------------------------------------------------------------------
   wikiLinks: {
-    // 启用双链解析。
+    // 启用双链解析（false = [[...]] 原样保留）。
     enabled: true,
-    // 未知目标显示方式:text(纯文本)/link(死链可点)/hide(隐藏)。
-    // ⚠ 未接线（预留）：双链解析实现固定（未知目标按纯文本、区分大小写、支持自定义标签）。
+    // 未知目标显示方式:text(纯文本)/link(站内搜索链接 /{lang}/search/?q=目标)/hide(整体移除)。
     unknownMode: 'text',
-    // 未知目标附加后缀文本(例如 ⚠)。
-    // ⚠ 未接线（预留）：双链解析实现固定（未知目标按纯文本、区分大小写、支持自定义标签）。
+    // 未知目标附加后缀文本(例如 ⚠)；仅作用于未知目标，默认空。
     unknownSuffix: '',
     // 站内链接是否新页打开。
     openNewTab: false,
-    // 是否忽略大小写匹配标题。
-    // ⚠ 未接线（预留）：双链解析实现固定（未知目标按纯文本、区分大小写、支持自定义标签）。
+    // 是否忽略大小写匹配标题（false = 按原始标题精确匹配；slug 始终精确匹配）。
     caseInsensitive: true,
-    // 自定义文本优先级:使用标签可覆盖。
-    // ⚠ 未接线（预留）：双链解析实现固定（未知目标按纯文本、区分大小写、支持自定义标签）。
+    // 是否允许 [[目标|自定义文本]] 覆盖显示文本（false = 忽略 | 后文本，一律使用规范标题/目标）。
     allowCustomLabel: true
   },
 
@@ -1742,26 +1723,7 @@
   },
 
   // ---------------------------------------------------------------------------
-  // 35. 外链警告(白名单已黑名单复合)
-  // ---------------------------------------------------------------------------
-  // 注: externalLink 已覆盖,以下为扩展行为
-  linkBehavior: {
-    // 域名白名单自动识别(匹配 hostname 或 hostname+path)。
-    // ⚠ 未接线（预留）：模块未接入 external-link 链路（外链行为由 features.externalLink 控制）。
-    matchMode: 'hostname',
-    // 忽略站内相对链接。
-    // ⚠ 未接线（预留）：模块未接入 external-link 链路（外链行为由 features.externalLink 控制）。
-    skipInternal: true,
-    // 邮箱块 mailto 处理:leave/confirm。
-    // ⚠ 未接线（预留）：模块未接入 external-link 链路（外链行为由 features.externalLink 控制）。
-    mailtoMode: 'leave',
-    // 二维码批量匹配(未来)。
-    // ⚠ 未接线（预留）：模块未接入 external-link 链路（外链行为由 features.externalLink 控制）。
-    lateTargeted: false
-  },
-
-  // ---------------------------------------------------------------------------
-  // 36. 性能预算
+  // 35. 性能预算
   // ---------------------------------------------------------------------------
   performance: {
     // 首页 JS 体量上限警告(kB)。
@@ -1812,10 +1774,9 @@
     ctaUrl: '#latest-post',
     // 热门标签显示数量(1~20)。
     tagCount: 8,
-    // 搜索按钮占位文字。
+    // 搜索按钮占位文字（构建期 SSR；空 = 回退 ui-strings.toolbar.searchPlaceholder）。
     searchPlaceholder: '搜索文章…',
-    // 搜索按钮占位文字（en 站；空 = 回退中文）。
-    // ⚠ 未接线（预留）：Hero 搜索占位由 ui-strings.toolbar.searchPlaceholder 提供（en 站同源双语）。
+    // 搜索按钮占位文字（en 站；空 = 回退 ui-strings.toolbar.searchPlaceholder 的 en 文案）。
     searchPlaceholderEn: 'Search posts…',
     // Hero 是否显示日期(最新文章日期)。
     showDate: false,

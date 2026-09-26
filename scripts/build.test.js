@@ -80,8 +80,8 @@ describe('features-schema validateFeatures', () => {
     const r = validateFeatures({ lightbox: 42 }, 'features');
     assert.ok(r.errors.some(e => e.includes('must be an object')));
   });
-  it('exposes 99 feature modules for configuration', () => {
-    assert.strictEqual(FEATURE_MODULES.length, 99);
+  it('exposes 98 feature modules for configuration', () => {
+    assert.strictEqual(FEATURE_MODULES.length, 98);
   });
 });
 

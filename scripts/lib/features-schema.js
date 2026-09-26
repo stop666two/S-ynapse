@@ -32,11 +32,11 @@ const DEFAULT_FEATURES = {
   },
   search: {
     enabled: true, minChars: 1, maxResults: 30, highlightMatches: true,
-    showCount: true, placeholder: '搜索...', placeholderEn: 'Search...', emptyHint: '输入关键词开始搜索', emptyHintEn: 'Type a keyword to search',
+    showCount: true, emptyHint: '', emptyHintEn: '',
     noResultText: '未找到匹配内容', noResultTextEn: 'No matching content', excerptLength: 120, includeContent: true,
     matchTags: true, matchCategories: true, weightTitle: 5, weightExcerpt: 2,
     weightContent: 1, closeOnOverlay: true, focusOnOpen: true,
-    openAnimation: 'fade', pinyinFuzzy: false,
+    openAnimation: 'fade',
     debounceMs: 120, showHistoryOnFocus: true, maxHistory: 5, focusDelayMs: 100
   },
   imageLazy: {
@@ -426,9 +426,6 @@ const DEFAULT_FEATURES = {
     popupWidth: '360px', showAllItems: true,
     showIcon: true, copySuccessText: '', copySuccessTextEn: '', maxItems: 4
   },
-  linkBehavior: {
-    matchMode: 'hostname', skipInternal: true, mailtoMode: 'leave', lateTargeted: false
-  },
   performance: { warningJsKb: 80, warningHtmlKb: 400, warningImageKb: 300, warningBuildMs: 30000 },
   debug: { verbose: false, listPages: false, dumpConfig: false },
   background: {
@@ -507,7 +504,7 @@ const ARRAY_FIELDS = {
   series: [], related: [], pinned: [], wordCount: [], share: ['order'],
   reward: [], gallery: [], heatmap: ['palette'], stats: [], prevNext: [],
   feed: [], analytics: [], redirects: [], maintenance: [], mobile: [],
-  comments: [], contactPopup: [], linkBehavior: [], performance: [], debug: [],
+  comments: [], contactPopup: [], performance: [], debug: [],
   scrollBehavior: [], toast: [], breadcrumb: [], pageTransition: [], pwa: [],
   morphIcons: [],
   viewTransition: [],

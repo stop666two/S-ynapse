@@ -131,8 +131,11 @@ function createServeModule(ctx) {
       console.log('  (Press Ctrl+C to stop)');
     });
     // 自动退出看门狗（防孤儿进程）：环境变量 SYNAPSE_SERVE_PARENT_PID 指定父进程，父进程消失后 5 秒内自退；
-    // SYNAPSE_SERVE_IDLE_MS 指定空闲毫秒数，超时自退（两者缺省均关闭，仅测试/工具脚本使用）。
+    // SYNAPSE_SERVE_IDLE_MS 指定空闲毫秒数，超时自退；SYNAPSE_SERVE_MAX_MS 指定绝对寿命上限，
+    // 到时无条件退出（兜底父进程 PID 被复用或监督脚本自身被杀的情况）。三者缺省均关闭，仅测试/工具脚本使用。
     var parentPid = parseInt(process.env.SYNAPSE_SERVE_PARENT_PID || '', 10);
+    var maxMs = parseInt(process.env.SYNAPSE_SERVE_MAX_MS || '0', 10) || 0;
+    var lifespanStart = Date.now();
     function tryClose(reason) {
       console.log('  Auto-exit: ' + reason);
       try { server.closeAllConnections(); } catch (e) { /* 旧版 Node 无此 API 时忽略 */ }
@@ -143,10 +146,11 @@ function createServeModule(ctx) {
       try { process.kill(parentPid, 0); return true; } catch (e) { return false; }
     }
     var idleMs = parseInt(process.env.SYNAPSE_SERVE_IDLE_MS || '0', 10) || 0;
-    if (parentPid > 0 || idleMs > 0) {
+    if (parentPid > 0 || idleMs > 0 || maxMs > 0) {
       setInterval(function() {
         if (parentPid > 0 && !parentAlive()) { tryClose('parent process exited'); return; }
         if (idleMs > 0 && Date.now() - lastActivity > idleMs) tryClose('idle ' + Math.round((Date.now() - lastActivity) / 1000) + 's');
+        if (maxMs > 0 && Date.now() - lifespanStart > maxMs) tryClose('max lifetime ' + Math.round(maxMs / 1000) + 's');
       }, 5000);
     }
     ['SIGINT', 'SIGTERM'].forEach(function(sig) {

@@ -2,31 +2,45 @@
   Archive page — lists all articles grouped by year (from groupByYearMonth()).
   Data contract:
     archives: Array<{year, month, articles: Array<{formattedDate, date, url, title}>, label}>
+  W4 接线（features；模板数据由 scripts/build/pages.js 预归一化）：
+    stats.showArchiveCards / statsLabel（label*(En) 链）/ statsCfg.linkArchive（卡片跳转目标，空=不跳）；
+    heatmapCfg（levels 2~7 / showLegend / showMonthNumbers / tooltipFormat(En)）/ heatmapBucketLevel /
+    heatmapPalette（CSS 色阶）/ heatmapLegendLevels / heatmapLegendLow|High（图例文案链）。
 %>
 <div class="post-article">
 <h1><%= ui('archive.title','归档') %></h1>
 
-<% if (typeof siteStats !== 'undefined' && siteStats && siteStats.posts > 0) { %>
+<% var _st = (typeof statsCfg !== 'undefined' && statsCfg) ? statsCfg : { showArchiveCards: true, linkArchive: '/archive/' }; %>
+<% if (typeof siteStats !== 'undefined' && siteStats && siteStats.posts > 0 && _st.showArchiveCards) { %>
+<% var _statText = function(key, dict, fallbackKey) { return (typeof statsLabel === 'function') ? statsLabel(lang, key, dict, fallbackKey) : dict; }; %>
+<% var _cards = [
+  [siteStats.posts, _statText('labelPosts', ui('archive.statPosts','文章总数'))],
+  [siteStats.days, _statText('labelDays', ui('archive.statDays','发文天数'))],
+  [siteStats.words.toLocaleString(), _statText('labelWords', ui('archive.statWords','总字数'))],
+  [siteStats.avgPerDay, _statText('labelAvgPerDay', ui('archive.statAvg','日均篇数'), 'labelAvg')],
+  [siteStats.tags, _statText('labelTags', ui('archive.statTags','标签数'))],
+  [siteStats.categories, _statText('labelCategories', ui('archive.statCats','分类数'))]
+]; %>
 <div class="stats-grid">
-  <div class="stats-card"><div class="stats-value"><%= siteStats.posts %></div><div class="stats-label"><%= ui('archive.statPosts','文章总数') %></div></div>
-  <div class="stats-card"><div class="stats-value"><%= siteStats.days %></div><div class="stats-label"><%= ui('archive.statDays','发文天数') %></div></div>
-  <div class="stats-card"><div class="stats-value"><%= siteStats.words.toLocaleString() %></div><div class="stats-label"><%= ui('archive.statWords','总字数') %></div></div>
-  <div class="stats-card"><div class="stats-value"><%= siteStats.avgPerDay %></div><div class="stats-label"><%= (typeof lang!=='undefined'&&lang==='en'&&features.stats&&features.stats.labelAvgPerDayEn)?features.stats.labelAvgPerDayEn:((features.stats&&features.stats.labelAvgPerDay)||ui('archive.statAvg','日均篇数')) %></div></div>
-  <div class="stats-card"><div class="stats-value"><%= siteStats.tags %></div><div class="stats-label"><%= ui('archive.statTags','标签数') %></div></div>
-  <div class="stats-card"><div class="stats-value"><%= siteStats.categories %></div><div class="stats-label"><%= ui('archive.statCats','分类数') %></div></div>
+  <% _cards.forEach(function(c) { %>
+  <% if (_st.linkArchive) { %><a class="stats-card" href="<%= _st.linkArchive %>"><div class="stats-value"><%= c[0] %></div><div class="stats-label"><%= c[1] %></div></a><% } else { %><div class="stats-card"><div class="stats-value"><%= c[0] %></div><div class="stats-label"><%= c[1] %></div></div><% } %>
+  <% }); %>
 </div>
 <% } %>
 
 <% if (archives && archives.length) { %>
 <% var MAXC = archives.reduce(function(m,g){ var c=g.articles.length; return c>m?c:m; }, 0); %>
+<% var _hm = (typeof heatmapCfg !== 'undefined' && heatmapCfg) ? heatmapCfg : { levels: 5, showLegend: true, showMonthNumbers: true }; %>
+<% var _hmLegend = (typeof heatmapLegendLevels !== 'undefined' && heatmapLegendLevels) ? heatmapLegendLevels : [1, 2, 4]; %>
 <% var _pcfg=(typeof pinnedCfg!=='undefined'&&pinnedCfg)||{showBadge:true,badgeStyle:'pill'}; archives.forEach(function(group) { %>
 <div class="archive-year">
   <h2 class="archive-year-title"><%= group.year %></h2>
   <div class="cal-heat" aria-label="<%= group.year %> <%= ui('archive.heatmap','年每月') %><%= ui('archive.textArticle','文章') %><%= ui('archive.heatmapSuffix','热力图') %>">
     <% for (var mo = 1; mo <= 12; mo++) { %>
     <% var cnt = 0; group.articles.forEach(function(a){ var mm=parseInt(a.month,10); if(mm===mo) cnt++; }); %>
-    <% var lvl = cnt===0 ? 'l0' : (MAXC<=2 ? 'l'+Math.min(cnt+1,5) : 'l'+Math.max(1,Math.min(5,Math.ceil(cnt/MAXC*5)))); %>
-    <div class="cal-cell <%= lvl %>" title="<%= group.year %>-<%= mo %>: <%= cnt %> <%= ui('archive.postUnit','篇') %>"><%= mo %></div>
+    <% var lvl = (typeof heatmapBucketLevel === 'function') ? heatmapBucketLevel(cnt, MAXC, _hm.levels) : 0; %>
+    <% var tip = (typeof heatmapTooltip === 'function') ? heatmapTooltip(lang, group.year, mo, cnt) : (group.year + '-' + mo + ': ' + cnt + ' ' + ui('archive.postUnit','篇')); %>
+    <div class="cal-cell l<%= lvl %>" title="<%= tip %>"><% if (_hm.showMonthNumbers) { %><%= mo %><% } %></div>
     <% } %>
   </div>
   <div class="archive-month">
@@ -41,7 +55,9 @@
   </div>
 </div>
 <% }) %>
-<div class="cal-legend"><span><%= ui('archive.count','文章') %></span><i class="cal-cell l0"></i><i class="cal-cell l1"></i><i class="cal-cell l2"></i><i class="cal-cell l4"></i><span><%= ui('archive.legend','少 → 多') %></span></div>
+<% if (_hm.showLegend) { %>
+<div class="cal-legend"><span><%= ui('archive.textArticle','文章') %></span><i class="cal-cell l0"></i><% _hmLegend.forEach(function(l) { %><i class="cal-cell l<%= l %>"></i><% }); %><span><%= (typeof heatmapLegendLow === 'function') ? heatmapLegendLow(lang) : ui('archive.legendLow','少') %> → <%= (typeof heatmapLegendHigh === 'function') ? heatmapLegendHigh(lang) : ui('archive.legendHigh','多') %></span></div>
+<% } %>
 <% } else { %>
 <p class="empty-note"><%= ui('archive.empty','暂无归档') %></p>
 <% } %>

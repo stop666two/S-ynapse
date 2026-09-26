@@ -13,7 +13,7 @@ const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
-const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio } = require('../lib/feature-wiring');
+const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapPalette, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig } = require('../lib/feature-wiring');
 
 function createPagesModule(ctx) {
   const { getTemplate, renderPage, getPublished, recordBuildFailure, collectFriends, collectSeries, collectGalleryImages, collectSiteStats, collectTags, collectCategories, collectTopTags, groupByYearMonth, categoryHue, resolveDailyQuotes, resolveFaviconHtml, CleanCSS } = ctx;
@@ -222,6 +222,10 @@ function createPagesModule(ctx) {
     const seriesCfg = seriesConfig(config.features);
     const wordCfg = wordCountConfig(config.features);
     PRESERVE_AR = imagePreserveAspectRatio(config.features);
+    // W4 接线（lightbox/backToTop/heatmap/stats/mobile/contactPopup）：构建期归一化一次，供模板与 CSS 消费。
+    const heatCfg = heatmapConfig(config.features);
+    const statsCfgW4 = statsConfig(config.features);
+    const statsRawW4 = (config.features && config.features.stats) || {};
     return {
       site: config.site,
       theme: config.theme,
@@ -277,6 +281,23 @@ function createPagesModule(ctx) {
         if (label) return String(rt.labelBefore || '') + minutes + label;
         return readTimeText(wordCfg, lang, minutes, uiText('card.minute', '{minutes} 分钟阅读', lang), uiText('card.minute', '{minutes} min read', 'en'));
       },
+      // W4 接线：lightbox 时长/宽度、backToTop 滚动与锚点回退、mobile 细节、contactPopup 宽度。
+      lightboxCfg: lightboxConfig(config.features),
+      backToTopCfg: backToTopConfig(config.features),
+      mobileCfg: mobileConfig(config.features),
+      contactPopupCfg: contactPopupConfig(config.features),
+      // W4 接线：归档热力图（层数/图例/月份数字/tooltip）与统计卡（显隐/文案链/跳转）。
+      heatmapCfg: heatCfg,
+      heatmapPalette: heatmapPalette(heatCfg.levels),
+      heatmapLegendLevels: heatmapLegendLevels(heatCfg.levels),
+      heatmapBucketLevel: heatmapBucketLevel,
+      heatmapLegendLow: function(lang) { return heatmapLegendText(heatCfg, lang, 'low', uiText('archive.legendLow', '少', lang)); },
+      heatmapLegendHigh: function(lang) { return heatmapLegendText(heatCfg, lang, 'high', uiText('archive.legendHigh', '多', lang)); },
+      heatmapTooltip: function(lang, year, month, count) {
+        return heatmapTooltip(heatCfg, lang, year, month, count, uiText('archive.postUnit', '篇', lang), uiText('archive.postUnit', 'posts', 'en'));
+      },
+      statsCfg: statsCfgW4,
+      statsLabel: function(lang, key, dict, fallbackKey) { return statsLabel(statsRawW4, lang, key, dict, fallbackKey); },
       // 主题暗色规范化（canonical 来源 theme.darkMode；模板早置脚本与按钮样式共用）。
       themeDarkMode: normalizeThemeDarkMode(config.theme && config.theme.darkMode),
       // 页脚快捷键提示按钮渲染门控（features.shortcuts.showHelpHint，默认 true）。

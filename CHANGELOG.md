@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **第五轮配置接线（W3，2026-09-27）**：数学/上下标/Mermaid/系列/相关推荐/字数/图库/图片尺寸组「未接线」键全部真实可控或作为无实现重复键删除——
+  - 数学（`math`）：`autoDetect`（true 默认 = 解析配置定界符并保护数学段；false = 不自动解析，仅渲染 ` ```math ` 围栏块 → 构建期 `.math-block[data-tex]` 容器 + 客户端 KaTeX 渲染）、`inlineDelimiters`/`blockDelimiters`（数组、去空去重、正则转义；构建期 mathGuard 与客户端 auto-render 共用同一份配置）、`mathml`（true = KaTeX output `htmlAndMathml`，false = `html`）。KaTeX 按需加载 canonical `mathNeeded`（单 `$` 保持历史不单独触发口径；自定义定界符成对出现即触发）。
+  - 上下标（`supSub`）：`supMarker`/`subMarker`（≥1 字符参数化，正则元字符按字面量）、`skipInsideMath`（true 默认 = 数学段内不处理；false = 段内也转换）、`preserveUnmatched`（false = 剥离孤立标记；`~~` 重复标记保留给删除线等语法）。
+  - Mermaid：`autoDetect=false` = 构建期不 SSR、保留围栏回退客户端（仍仅识别显式 ` ```mermaid ` 标注）；`followTheme=false` = 仅明色单份 SVG（**同时修复单主题产物在暗色模式下被 CSS 隐藏的既有缺陷**）；`copyAfterRender=true` = SSR 图附「复制图表代码」按钮（原始源码经 `data-mm-code` 保留在产物中，事件委托 + `navigator.clipboard`，CSP 合规，zh/en 文案）；`errorTextEn` = en 站渲染失败占位（SSR pending 块 `data-mm-error` + 客户端兜底常量，空回退中文）。
+  - 系列（`series`）：`showBadge`（卡片徽标显隐）、`badgeFormat(En)`（`{name}` 模板，优先于 `ui-strings.card.series`）、`panelTitle(En)`（面板标题 `{total}`，优先于 `ui-strings.post.seriesLabel`）、`showPosition`（面板进度文本与进度条显隐）、`sidebarWidget`（侧栏系列 widget 显隐）。
+  - 相关推荐：`related.excludeCurrent=false` 允许自引用（默认 true 排除，历史行为）。
+  - 字数（`wordCount`）：`onCards`、`textFormat(En)`/`readTimeFormat(En)`（模板链 `*En` > 中文 > ui-strings 词典）、`countCjkChars`/`countDigits`（统计口径参数化 `countWordsDetail(text, options)`：CJK 逐字 / 纯数字 token 开关；口径仅影响展示，阅读时长计算仍用完整口径）。
+  - 图库：`gallery.collectFeatured=false` 仅收集正文图片（默认 true 收集封面 + 正文，按 src 去重）。
+  - 图片：`imageLazy.preserveAspectRatio=false` 构建期不输出 width/height（markdown 正文与 pages 卡片/头图/图库/缩略图两条出图路径统一受控）。
+  - 基础设施：构建 CLI 新增 `--features-override <file>`（隔离第二态构建/预览的 features 深合并覆盖，仍过 `validateFeatures`；不修改仓库配置，供 runner/回归验证使用）。
+  - 新增纯函数 `supSubConfig` / `supSubMatchers` / `matchSupSub` / `transformSupSubText` / `transformSupSubInMathRaw` / `mathConfig` / `buildMathGuardPatterns` / `hasCustomMathDelimiters` / `mathNeeded` / `mermaidConfig` / `mermaidErrorText` / `seriesConfig` / `seriesBadgeText` / `seriesPanelTitle` / `relatedConfig` / `wordCountConfig` / `wordCountText` / `readTimeText` / `galleryCollectFeatured` / `imagePreserveAspectRatio`（`scripts/lib/feature-wiring.js`）；`scripts/config-wiring.test.js` 单测由 26 例扩至 40 例（含 markdown 集成与 collector 集成）。
+- **缺陷修复：文章页阅读时长双显示（用户可感知）**：`post-reading-time`（readingTime.labelAfter）与 meta 内独立 `分钟阅读` 曾同时渲染两处；现按 `features.wordCount.readTimeFormat(En)` 单一来源渲染（显式置空时回退 `readingTime.labelBefore/labelAfter(En)`，再回退词典），每页仅一处。
 - **第四轮配置接线（W2，2026-09-27）**：搜索/外链/双链/Hero 组「未接线」键全部真实可控或作为重复键删除——
   - 检索（浮层搜索与 /search 页统一语义）：`search.weightTitle/weightExcerpt/weightContent`（得分 = 字段权重 × 命中出现次数；权重 0 = 该字段不参与匹配与计分；按总分降序、同分保持日期倒序索引原序）、`search.matchTags/matchCategories`（标签/分类命中参与入选、计 0 分；默认 true → 结果集为历史行为的超集）、`search.showCount`（结果计数显隐，false 时浮层结果区与 /search 页均不显示；文案 `ui-strings.search.foundCount` 双语 `{count}` 占位）、`search.emptyHint/emptyHintEn`（无结果文案链首位 + 空输入浮层提示；默认空串 = 沿用 `noResultText`，保持历史输出）。
   - 外链：`externalLink.whitelistNewTab`（true = 白名单外链 `target=_blank + noopener/noreferrer` 等效，事件委托对动态插入链接同样生效）、`externalLink.copyButtonText/copyButtonTextEn`（外链提醒浮层新增「复制链接」按钮：点击复制目标 URL 并短暂显示「已复制」；文案链 config(En→中文) > `ui-strings.toolbar.copyLink`（新增双语）> 内置）。
@@ -29,6 +41,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **第五轮配置闭环（W3）语义变更**：
+  - 系列卡片徽标默认文案由 ui-strings 的「系列」改为 `features.series.badgeFormat` 默认模板「系列 · {name}」（带系列名）；系列导航面板新增可见标题（`panelTitle` 默认「本系列共 {total} 篇」）。
+  - 文章页阅读时长默认显示由「N 分钟」变为「N 分钟阅读」（单一来源模板默认值与卡片一致；见上方缺陷修复）。
+  - `supSub.skipInsideMath` 默认值 false→true、`wordCount.countDigits` 默认值 false→true：均为口径修正（与代码既有行为一致），默认输出不变；两键在 features.json5/schema/文档同步。
+  - Mermaid `followTheme=false` 或 `darkMode=false` 的单主题产物在暗色模式下不再被隐藏（`data-theme-pair="light"` 显式保持可见）。
+  - 构建 CLI 新增 `--features-override` 参数（默认路径不受影响）。
 - **第四轮配置闭环（W2）语义变更**：浮层搜索排序由「索引原序（日期倒序）」改为「加权总分降序（默认标题 5 / 摘要 2 / 正文 1）」；`/search` 页排序由固定 `10/3/3/5/4` 改为同一 config 权重语义（标签/分类改为仅参与入选、计 0 分），两处检索行为统一；`matchTags/matchCategories` 默认 true 使标签/分类命中进入结果集（**超集**，行为变化）；结果计数文案由 `N 个结果`（`ui-strings.search.foundText`）改为 `找到 N 个结果`（`ui-strings.search.foundCount`）；`hero.searchPlaceholderEn` 默认文案由 ui-strings 的 `Search posts...` 切换为 features 值 `Search posts…`（en 首页占位仅省略号字符差异）；`search.emptyHint/emptyHintEn` 默认由 `输入关键词开始搜索` / `Type a keyword to search` 改为空串（= 沿用 `noResultText`，浮层无结果默认输出不变）；外链提醒浮层新增「复制链接」按钮（默认 `复制`/`Copy`）。
 - **无结果文案优先级调整（W2）**：`features.search` 键现在优先于 `tuning.search`（`emptyHint(En) > noResultText(En) > tuning.search.emptyText(En) > i18n 兜底`；此前 `tuning.search.emptyText(En)` 优先于 `noResultText(En)`）；两者默认文案同值，默认渲染不变。
 - **第三轮配置闭环（2026-09-27 W1）语义/来源变更**：`themeToggle.defaultTheme/rememberChoice/iconStyle/transitionAll` 唯一来源迁移至 `theme.json5 → darkMode.*`（原键删除，`themeToggle` 仅保留 `enabled/persistKey/toggleIconSwap/zIndex`）；`listCover.showOnArchive` 由未接线转为生效（标签归档列表 `/tags/<tag>/` 封面显隐，默认 true=现行为；/archive/ 年表页保持纯文字列表）；`dailyQuote.widgetStyle` 取值语义改为 `card`（默认，等同旧值 `sidebar`）/`plain`；`motion.revealStaggerMax` 默认值由 80 调整为 500（仅在 `revealDelayMs>0` 时产生错峰，默认 `revealDelayMs=0` 行为不变）；`searchHighlight.markClass` 默认由 `'search-hit'` 调整为 `''`（代码此前恒输出裸 `<mark>`，默认行为不变）。
@@ -38,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- `features.gallery.incrementalByDefault`（第五轮，未接线；当前实现无图库增量清单缓存，该键无任何消费点与可观察差异。**迁移**：无需操作，删除无行为变化；未来实现增量构建时按 `docs/incremental-build-design.md` 新方案恢复）。
 - `features.search.placeholder` / `features.search.placeholderEn`（第四轮，语义重复；搜索框占位唯一来源 `navigation.json5 → search.placeholder/placeholderEn`（空回退 `ui-strings.search.placeholder`），模板 SSR 直接消费且实测生效。**迁移**：把值搬入 `navigation.json5` 同名键；默认 `搜索文章...` / `Search posts...` 行为不变）。
 - `features.search.pinyinFuzzy`（第四轮，未接线且零依赖无法实现真正 CJK→拼音映射，不得以子序列模糊冒名拼音。**迁移**：如需拼音检索，先引入拼音库并在 `features.search` 重新立项；当前检索仅支持子串匹配）。
 - `features.linkBehavior` 整个模块（`matchMode` / `skipInternal` / `mailtoMode` / `lateTargeted`，第四轮，从未接线且与 `features.externalLink` 语义重叠或与现状相悖，整体删除、无行为变化；**迁移**：外链行为改 `features.externalLink`，逐键裁决见 `docs/config-reference.md` §3.36）。
@@ -49,6 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 验证与门禁
 
+- **第五轮（W3）**：`npm test` 419/419（82 suites；`scripts/config-wiring.test.js` 由 26 例扩至 40 例）、`npm run test:build` 2/2、`npm run lint` 0 错、`npm run typecheck` 0 错、`npm run verify:config` PASS（98 模块一致）。
+- **第五轮（W3）**：4 个隔离构建全部成功：默认 `.tmp-scripts/out/w3-build`（3.6s、81 页，预算告警与基线同级、`perfBudget.warnOnly=true` 非阻断）、alt（系列/字数/相关/图库/图片尺寸/数学/supSub 第二态）、mermaid-alt（`followTheme=false` + `copyAfterRender=true`）、nomermaid（`autoDetect=false`）；`--features-override` 未污染仓库配置。
+- **第五轮（W3）**：无头 runner `.tmp-scripts/run-w3.js`（端口 3327，4 台静态服务器逐个启停 + 自收尾看门狗 + 端口释放校验）：**41 断言全绿**（默认/alt 静态 24、mermaid 两态 9、浏览器运行时 7：KaTeX 渲染/mathml 节点/autoDetect=false 无渲染/复制按钮剪贴板=源码/followTheme=false 暗色可见/客户端回退 SVG、生命周期 1），0 失败。
 - **第四轮（W2）**：`npm test` 405/405（82 suites；`scripts/config-wiring.test.js` 由 17 例扩至 26 例，`scripts/build.test.js` 模块计数 99→98 同步）、`npm run test:build` 2/2、`npm run lint` 0 错、`npm run typecheck` 0 错、`npm run verify:config` PASS（98 模块一致）。
 - **第四轮（W2）**：构建 `.tmp-scripts/out/w2-build` 成功（3.8s、81 页，OG 复用 16/失败 0，search-index 8+8；预算告警与 W1 基线同级，`perfBudget.warnOnly=true` 非阻断）。
 - **第四轮（W2）**：无头 runner `.tmp-scripts/run-w2.js`（端口 3326，自收尾看门狗 + 端口释放校验）：**34 断言全绿**（浮层加权/计数/回归/空结果链 5、hero 2、配置拦截变体 12、/search 页 4、externalLink 5、静态/bundle/SSR 4、门禁 1），0 控制台错误；对 W1 旧构建复现「重复查询旧结果残留」等未接线差异 15 项（复现记录见提交说明与 `.tmp-scripts/repro` 日志）。

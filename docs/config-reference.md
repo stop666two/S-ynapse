@@ -280,28 +280,21 @@
 **双语约定（*En 字段）**:所有文案型字段均可追加同名 `En` 后缀（如 `reward.buttonTextEn`）提供英文站文案；类型与中文值一致，**空字符串 = en 站回退中文值**。共覆盖 60 键：search / codeBlock / externalLink / shortcuts / readingTime / codeCopy / readMode / readingPanel / mermaid / series / related / pinned / wordCount / share / reward / gallery / heatmap / stats / prevNext / maintenance / comments / contactPopup / hero / dailyQuote / favorites / subscribe。构建期模板按页面语言渲染 `*En`；运行时模块（`search.js`/`share.js`/`code-block.js`/`comments.js`/`contact-popup.js`/`favorites.js`）按当前页面语言（`data-lang`）取 `*En`。
 
 
-### 3.0 未接线键总表（预留状态；第二轮 + 第三轮 + 第四轮配置闭环 2026-09-27）
+### 3.0 未接线键总表（预留状态；第二轮 + 第三轮 + 第四轮 + 第五轮配置闭环 2026-09-27）
 
 > 状态口径：本节「已接线」= 代码读取且生效（见各模块小节说明）；「未接线（已标注）」= 功能未实现或实现固定，JSON5 对应键上方已加 `// ⚠ 未接线（预留）：…` 注释，**修改暂不生效**；「已实现」= 本轮新增实现（hotSearches 热门词、readingProgress 悬停气泡与 aria、readingTime.showInMeta、toc min/maxLevel、mobileToc overlayClose/lockScroll、readDock show*、externalLink showFullUrl/openInNewTab、share copiedShowMs/popupWidth/popupHeight/wechatText、tts.volume、comments.loadContainer、darkImageFilter.applyImages、mobileToc.autoClose、themePresets.showInNavbar/previewOnHover、themeSchedule.applyInstantly、shortcuts.helpTitle/showHelpTable、ogImage.useCover/gradientForNoCover、search.highlightMatches/closeOnOverlay/focusOnOpen、searchHighlight.enabled 门控）。
 > 第三轮闭环（2026-09-27 W1，15 项）已从本表移除并在各模块小节更新：`themeToggle.defaultTheme/rememberChoice/iconStyle/transitionAll`（删除重复键 → 唯一来源 `theme.darkMode.*`）、`shortcuts.showHelpHint`、`toc.defaultOpenLevel`、`autoSummary.stripMarkdown`、`codeCopy.includeWindowBar`（删除重复键 → `codeBlock.windowBar`）、`searchHighlight.markClass`、`listCover.showOnArchive`（接线）/`aspectRatio`（删除重复键 → `tuning.card.imageAspect`）、`mobileBottomNav.onlyMobile`（接线）/`useSafeArea`（删除重复键 → `mobile.safeAreaBottom`）、`readMode.focusOnlyContent`、`pinned.*`、`motion.revealStaggerMax`、`dailyQuote.widgetStyle`、`favorites.listIcon`、`cover.defaultPattern/preferImage`、`pagefind.integrate`。
 > 第四轮闭环（2026-09-27 W2）已从本表移除并在各模块小节更新：`search.emptyHint/emptyHintEn`（接线：空输入提示 + 无结果链首）、`search.showCount`、`search.matchTags/matchCategories`、`search.weightTitle/weightExcerpt/weightContent`、`externalLink.whitelistNewTab/copyButtonText/copyButtonTextEn`、`wikiLinks.unknownMode/unknownSuffix/caseInsensitive/allowCustomLabel`、`hero.searchPlaceholderEn`（接线）；`search.placeholder/placeholderEn`、`search.pinyinFuzzy`、`linkBehavior` 整个模块（删除，迁移见 CHANGELOG/§3.4/§3.36）。
 > 本表由审计脚本扫出（`js/templates/scripts` 对叶子键名的引用检测）；`enabled`、`height`、`size` 等通用名键不在机器扫描口径内，已按跨文件重复与抽样核验处理（见 `docs/config-audit-2026-09-27.md`「第二轮闭环结果」）。
+> 第五轮闭环（2026-09-27 W3，30 键 / 29 接线 + 1 删除）已从本表移除并在各模块小节更新：`imageLazy.preserveAspectRatio`；`supSub.supMarker/subMarker/skipInsideMath/preserveUnmatched`；`math.autoDetect/inlineDelimiters/blockDelimiters/mathml`；`mermaid.autoDetect/followTheme/copyAfterRender/errorTextEn`；`series.showBadge/badgeFormat/badgeFormatEn/sidebarWidget/panelTitle/panelTitleEn/showPosition`；`related.excludeCurrent`；`wordCount.onCards/textFormat/textFormatEn/readTimeFormat/readTimeFormatEn/countCjkChars/countDigits`；`gallery.collectFeatured`；`gallery.incrementalByDefault`（删除，无增量清单缓存实现，迁移见 §3.25/CHANGELOG）。
 
 | 模块 | 未接线键（JSON5 已标注） | 原因 / 替代来源 |
 |---|---|---|
 | `lightbox` | `maxWidthVw` / `openDurationMs` / `switchDurationMs` | 灯箱打开/切换补间未实现；现由 CSS transition（transitionDurationMs）统一控制 |
 | `backToTop` | `rightOffset` / `bottomOffset` / `scrollDurationMs` / `htmlAnchorFallback` | 返回顶部用原生 scrollTo（smooth/auto 由 smoothScroll 控制<sup>①</sup>），自定义时长与无 JS 锚点回退未实现 |
-| `imageLazy` | `preserveAspectRatio` | 构建期已恒输出 width/height 防抖；关闭需改构建模板 |
 | `incrementalBuild` | `fullFlag` / `fingerprintHash` / `skipUnchanged` | 增量构建方案未实现（见 docs/incremental-build-design.md） |
 | `tts` | `preferDefaultVoice` / `voiceBy` / `highlightParagraph` | 语音选择与逐句高亮实现固定（highlightParagraph 与 highlightReading 重叠） |
-| `supSub` | `supMarker` / `subMarker` / `skipInsideMath` / `preserveUnmatched` | 上下标标记固定为 ^/~，构建期正则未做动态标记 |
-| `math` | `autoDetect` / `inlineDelimiters` / `blockDelimiters` / `mathml` | 定界符固定为 $/$$；MathML 输出恒开 |
-| `mermaid` | `autoDetect` / `followTheme` / `copyAfterRender` / `errorTextEn` | 图表检测/主题跟随实现固定（构建期 SSR） |
-| `series` | `showBadge` / `badgeFormat` / `badgeFormatEn` / `sidebarWidget` / `panelTitle` / `panelTitleEn` / `showPosition` | 模板当前恒渲染徽标/面板；文案由 ui-strings 词典提供 |
-| `related` | `excludeCurrent` | 相关推荐恒排除当前文章 |
-| `wordCount` | `onCards` / `textFormat` / `textFormatEn` / `readTimeFormat` / `readTimeFormatEn` / `countCjkChars` / `countDigits` | 卡片字数由 theme.card.showWordCount 控制；文案由 ui-strings 词典提供；统计口径固定 |
 | `reward` | `closeByBtn` / `closeByOverlay` / `closeByEsc` | 弹窗固定支持按钮/遮罩/Esc 三种关闭方式（不可单独禁用） |
-| `gallery` | `collectFeatured` / `incrementalByDefault` | 图库恒收集文章封面且始终增量收集 |
 | `heatmap` | `levels` / `showLegend` / `legendLow` / `legendLowEn` / `legendHigh` / `legendHighEn` / `tooltipFormat` / `tooltipFormatEn` / `showMonthNumbers` | 热力图层级/图例/月份数字模板固定；文案由 ui-strings 词典提供 |
 | `stats` | `showArchiveCards` / `labelPosts` / `labelPostsEn` / `labelDays` / `labelDaysEn` / `labelWords` / `labelWordsEn` / `labelAvg` / `labelAvgEn` / `labelTags` / `labelTagsEn` / `labelCategories` / `labelCategoriesEn` / `linkArchive` | 归档统计文案由 ui-strings.archive.* 提供；卡片跳转恒指向 /archive/ |
 | `feed` | `rssEnabled` / `rssFullContent` / `rssMaxItems` / `jsonFeedPath` / `jsonFeedFullContent` / `jsonFeedMaxItems` / `injectHeadLinks` / `injectFooterLink` | 订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明） |
@@ -353,6 +346,8 @@
 ### 3.5 imageLazy — 懒加载
 `enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
 
+> 第五轮 W3 接线：`preserveAspectRatio=true`（默认，历史行为）构建期输出 width/height（CLS 保护），覆盖 markdown 正文图片与 pages 出图路径（卡片/头图/图库/prev-next 缩略图，经 `scripts/build/pages.js` 的 imgDimsAttrs/buildCardImgAttrs/cardCoverAttrs/postCoverAttrs）；`false` 时不输出 width/height，交由 CSS 自适应。`data-lqip` 与 `data-iw` 不受影响。
+
 ### 3.6 codeBlock — 代码块
 `enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `showLanguageTag true` / `lineNumbers true`(纯文本块也可用) / `wrapLongLines false`(true=软换行,行号仍按行高对齐) / `highlightBackground var(--color-hover)`(hover 混色基色,力度见 tuning.code.hoverBgMix) / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false`(true=首块上方一键复制全页) / `downloadButton true` / `blobRevokeDelayMs 1000`(下载后释放 Blob URL 延迟 ms) / `prismBatchMs 8`(Prism 高亮单批主线程预算 ms) / `prismIdleTimeoutMs 300`(首帧高亮空闲超时 ms) / `prismIdleFallbackMs 60`(无 requestIdleCallback 时的兜底间隔 ms)
 
@@ -390,13 +385,28 @@
 > 第四轮 W2 接线：构建期 `scripts/lib/utils.js → resolveWikiLinks(content, lookup, options)` 参数化，`scripts/build/articles.js` 传入本组键（`unknownMode`/`unknownSuffix`/`caseInsensitive`/`allowCustomLabel` + 当前语言）；`enabled=false` 跳过整个解析。查表新增 `titlesExact`（原始大小写标题）供 `caseInsensitive=false` 使用。单测覆盖三模式与各键四态（含 URL 编码）。
 
 ### 3.16 supSub — 上下标
-`enabled true` / `supMarker ^` / `subMarker ~` / `skipInsideMath false` / `preserveUnmatched true`
+`enabled true` / `supMarker ^` / `subMarker ~` / `skipInsideMath true` / `preserveUnmatched true`
+
+> 第五轮 W3 接线：标记参数化（≥1 字符，正则元字符按字面量匹配；`supMarker` 与 `subMarker` 相同时以上标优先），构建期 `scripts/build/markdown.js` 的 marked 扩展按配置生成 tokenizer；`preserveUnmatched=true`（默认）= 孤立标记保持原文，`false` = 剥离孤立标记（标记重复如 `~~` 视为删除线等其它语法，不剥离）；`skipInsideMath=true`（默认，历史行为）= 数学段内不处理（`math.autoDetect=true` 时由 mathGuard 保护，数学段内成对标记保持原样）；`false` = 数学段内也应用上下标转换（renderer 内对定界符内部文本转换，可能破坏公式，谨慎使用；`autoDetect=false` 时无数学段，此键无效）。`skipInsideMath` 默认值由原 false 修正为 true（口径修正，默认行为不变）。单测：`scripts/config-wiring.test.js`（四键四态 + matcher 边界）。
 
 ### 3.17 math — KaTeX
 `enabled true` / `autoDetect true` / `version 0.16.22` / `inlineDelimiters ['$']` / `blockDelimiters ['$$']` / `throwOnError false` / `strict false` / `renderRoundParens true` / `renderSquareBrackets true` / `selector .post-content` / `mathml true`
 
+> 第五轮 W3 接线（构建期 mathGuard + 客户端 auto-render 共用同一份配置，经外置 `window.__FEATURES__.math`）：
+> - `autoDetect=true`（默认）= 解析 `inlineDelimiters`（对称、不跨行；单字符 `$` 结尾避免数字，防金额误报）与 `blockDelimiters`（对称、可跨行、须位于行首）；`\(`/`\[` 由 `renderRoundParens`/`renderSquareBrackets` 独立控制。`false` = **不自动解析任何定界符**（不保护、不加载 KaTeX 按需渲染），仅渲染 ` ```math ` 围栏块：构建期输出 `<div class="math-block" data-tex="…">`，客户端 KaTeX 渲染（`throwOnError`/`strict`/`mathml` 同样生效）。
+> - 定界符数组去空去重；全部经正则转义（如 `['**']` 按字面量匹配）；空数组回退 `['$']`/`['$$']`。
+> - `mathml=true`（默认，历史行为）= KaTeX `output='htmlAndMathml'`；`false` = `'html'`（不输出 MathML 节点）。
+> - KaTeX 按需加载口径：`$$` / `\(` / `\[` / 配置的自定义定界符成对出现即触发；**单字符 `$` 与默认 `$$` 不走自定义检测**，单 `$` 单独出现不触发（历史口径，可配置非 `$` 的 `inlineDelimiters` 规避）。canonical：`scripts/lib/feature-wiring.js → mathNeeded/mathConfig/buildMathGuardPatterns`（单测覆盖）。
+> - `inlineDelimiters` 置空串/缺失回退默认；`autoDetect`/`mathml` 仅在显式 `false` 时关闭。
+
 ### 3.18 mermaid
 `enabled true` / `autoDetect true` / `version 11.4.1` / `followTheme true` / `lightTheme default` / `darkTheme dark` / `securityLevel strict` / `mode 'build'`（渲染模式：`build`=构建期服务端渲染，生成双主题内联 `<svg>`，页面不再加载 3.5MB vendor，渲染失败或无 Chrome 自动回退客户端 / `client`=保持懒加载 vendor + `__mmStart` 客户端渲染） / `darkMode true`（仅 `mode='build'` 生效：明/暗各渲染一份 SVG，页内 CSS 切换、零闪烁；false=仅明色） / `chromePath ''`（仅 `mode='build'` 自动探测失败时使用；自动探测顺序：`CHROME_PATH` 环境变量 > Windows 默认安装路径 > Linux/macOS 的 `google-chrome`/`chromium`；缓存目录 `.cache/mermaid`，不入库） / `idleTimeoutMs 1500`(客户端懒加载 vendor 的空闲超时 ms) / `idleFallbackMs 200`(无 requestIdleCallback 兜底 ms) / `rerenderIdleTimeoutMs 300`(主题切换重渲染空闲超时 ms) / `rerenderIdleFallbackMs 60` / `renderTimeoutMs 10000`(构建期单块渲染超时 ms) / `copyAfterRender false` / `errorText [图表渲染失败]`（`errorTextEn` 为 en 站文案，空回退中文）
+
+> 第五轮 W3 接线：
+> - `autoDetect=true`（默认）= 构建期 SSR（仅识别显式 ` ```mermaid ` 围栏）；`false` = **构建期不检测/不渲染**，保留围栏代码并回退客户端渲染（`article.hasMermaid` 保持 true，页面懒加载 vendor 由 `__mmStart` 接管；仍仅识别显式围栏，不扫描普通文本）。`mode='client'` 时本键无额外作用。
+> - `followTheme=true`（默认）= 图表主题跟随站点（明/暗双份，受 `darkMode` 控制）；`false` = 仅明色单份 SVG（暗色沿用同一张图；同时修复既有缺陷：单主题产物在暗色模式下曾被 CSS 隐藏，现按 `data-theme-pair="light"` 保持可见）。客户端 `mode='client'` 下 `followTheme=false` 时固定明色主题且主题切换不重渲染。
+> - `copyAfterRender=true` = 每张已渲染（SSR）图右上角附「复制图表代码」按钮：原始 mermaid 源码经 `data-mm-code` 保留在产物中，点击复制（CSP 合规：事件委托 + `navigator.clipboard`，失败回退 `execCommand`；文案按页面语言 zh/en）。
+> - `errorText(En)` = 渲染失败占位文案：SSR 失败块在回退客户端的 `<pre>` 上携带 `data-mm-error`，客户端渲染最终失败时显示；`autoDetect=false` / `mode='client'` 场景由页面内联常量兜底（en 站取 `errorTextEn`，空回退中文）。canonical：`scripts/lib/feature-wiring.js → mermaidConfig/mermaidErrorText`。
 
 `size` 子块 — 图表尺寸（全局默认，单图可覆盖）：
 - `width ''` / `height ''`(全局默认宽高，空=自然尺寸；单位白名单 px/%/vw/vh/rem，纯数字按 px)
@@ -408,14 +418,29 @@
 ### 3.19 series — 系列
 `enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8`(侧栏系列 widget 最多展示条数,超出截断) / `prevLabel 上一篇` / `nextLabel 下一篇` / `progressLabel {index} / {total}`(进度模板) / `sidebarTitle 系列`(侧栏 widget 标题,sidebar.json5 w.title 为空时使用)。以上文案键均有同名 `*En`（`badgeFormatEn`/`panelTitleEn`/`prevLabelEn`/`nextLabelEn`/`sidebarTitleEn`），空回退中文
 
+> 第五轮 W3 接线：
+> - `showBadge=false` = 卡片（首页/标签/分类列表）不渲染系列徽标；`badgeFormat`/`badgeFormatEn` = 徽标文本模板（`{name}` 替换系列名；en 站取 `badgeFormatEn`，空回退中文模板；显式空串回退 `ui-strings.card.series` 词典）— `templates/index.ejs`/`tag.ejs`/`category.ejs`。
+> - `panelTitle`/`panelTitleEn` = 文章页系列导航面板标题（`{total}` 替换总篇数；空回退 `ui-strings.post.seriesLabel` 词典）；`showPosition=false` = 隐藏面板内进度文本（`progressLabel`）与进度条；`showNavPanel=false` 仍为整面板开关。
+> - `sidebarWidget=false` = 不渲染侧栏 `type: series` widget（sidebar.json5 配置仍保留）。
+> - 文案优先级（统一链）：`*En`（en 站）> 中文模板 > ui-strings 词典；未设置=默认模板，显式空串=词典。canonical：`scripts/lib/feature-wiring.js → seriesConfig/seriesBadgeText/seriesPanelTitle`（单测覆盖）。
+
 ### 3.20 related — 相关推荐
 `enabled true` / `topN 4` / `sameCategoryWeight 2` / `sameTagWeight 3` / `minScore 2` / `excludeCurrent true` / `title 相关推荐`（`titleEn` en 站文案，空回退中文） / `showExcerpt true`(卡片显示摘要) / `excerptLength 80`(摘要截断长度) / `showCount false`(显示共享标签数徽章)
+
+> 第五轮 W3 接线：`excludeCurrent=true`（默认，历史行为）相关推荐排除当前文章；`false` = 允许自引用（当前文章与自身共享全部标签/分类，得分最高排第一，常见于「补全推荐位」场景，注意视觉自指）。构建期 `scripts/lib/related.js → computeRelatedArticles`（单测覆盖两态）。
 
 ### 3.21 pinned — 置顶
 `enabled true`（false=不渲染徽标且不重排；第三轮接线） / `badgeText 置顶`（`badgeTextEn` en 站文案，空回退中文；**配置文案优先于 ui-strings.card.pinned 词典**） / `badgeStyle pill`(`pill|corner|none`；`none`=不渲染徽标，`corner`=卡片左上角/标题行角标样式；第三轮接线) / `sortRule pinned-first`(`pinned-first`=置顶前（现行为）/`normal`=仅标记不重排，按日期自然排序；构建期 `scripts/build/articles.js` 生效，第三轮接线)。徽标应用于首页/归档/标签/分类/文章页 — `templates/index.ejs` + `templates/archive.ejs` + `templates/tag.ejs` + `templates/category.ejs` + `templates/post.ejs`。
 
 ### 3.22 wordCount — 字数
-`enabled true` / `onCards true` / `inArticle true` / `textFormat {count} 字` / `readTimeFormat {minutes} 分钟阅读`（`textFormatEn`/`readTimeFormatEn` en 站模板，空回退中文） / `wpm 265` / `countCjkChars true` / `countDigits false`
+`enabled true` / `onCards true` / `inArticle true` / `textFormat {count} 字` / `readTimeFormat {minutes} 分钟阅读`（`textFormatEn`/`readTimeFormatEn` en 站模板，空回退中文） / `wpm 265` / `countCjkChars true` / `countDigits true`
+
+> 第五轮 W3 接线：
+> - 统计口径（`scripts/lib/utils.js → countWordsDetail(text, options)` 参数化，canonical）：`countCjkChars=true`（默认，历史行为）= CJK 字符逐字计数，`false` = CJK 不计入总数（拉丁词照计）；`countDigits=true`（默认，历史行为）= 数字作为普通拉丁词计数（`"123"` 计 1），`false` = 纯数字 token 不计（`"abc123"` 等混合 token 仍计 1，不拆分单词）。`countDigits` 默认值由原 false 修正为 true（口径修正，默认行为不变）。口径仅影响字数展示；阅读时长（readTime）的两段速度计算始终使用完整口径。
+> - 模板优先级（统一链）：`*En`（en 站）> 中文模板 > ui-strings 词典（`card.wordUnit`/`card.minute`）；未设置=默认模板，显式空串=词典。`readTimeFormat` 显式置空时进一步回退 `features.readingTime.labelBefore/labelAfter(En)`（既有键保持可消费）。
+> - `onCards`：卡片字数显示 = `wordCount.enabled && onCards && theme.card.showWordCount` 全真才显示（`onCards=false` 显式关闭，覆盖 theme）；`inArticle` 控制文章页 meta 字数（现行为）。
+> - **缺陷修复**：文章页 readingTime 曾同时渲染两处（`post-reading-time` + meta 内 `分钟阅读`），现按配置单一来源渲染（`readTimeFormat` 链），每页仅一处。默认显示由「N 分钟」变为「N 分钟阅读」（与 wordCount 模板默认一致，见 CHANGELOG Changed）。
+> - 覆盖范围：首页/标签/分类卡片（`readTimeFormat` 同时用于卡片与封面时间徽标）、文章页 meta — `scripts/build/pages.js` 注入 `wordCountLabel`/`readTimeLabel`；canonical：`scripts/lib/feature-wiring.js → wordCountConfig/wordCountText/readTimeText`（单测覆盖中英混排/纯数字/CJK 开关矩阵）。
 
 ### 3.23 share — 分享
 `enabled true` / `order ['weibo','qq','wechat','x','facebook','mail','copy']`(顺序即显示顺序) / `position toolbar` / `popupWidth 640` / `popupHeight 520`（弹窗尺寸，第二轮接线到 `window.open` features 串） / `wechatText {title} 分享自 {url}` / `wechatTextEn ''`(en 站模板,空回退中文；微信复制按模板替换 `{title}`/`{url}`，第二轮接线) / `copiedText 链接已复制` / `copiedTextEn ''` / `copiedShowMs 2500`(复制成功 toast 时长，第二轮接线) / `showLabel false` / `label 分享文章` / `labelEn ''` / `useNativeShare false`(支持 navigator.share 时优先原生分享) / `copyFallback true`(剪贴板 API 不可用时 textarea 回退)。运行时复制成功提示按页面语言取 `copiedTextEn` — `js/domains/features/share.js`
@@ -424,7 +449,10 @@
 `enabled false`(需 site.reward.enabled) / `buttonText 打赏` / `note 感谢支持` / `popupTitle 打赏支持` / `closeByBtn true` / `closeByOverlay true` / `closeByEsc true` / `qrSize 180px` / `maxWidth 560px` / `showNote true`(显示打赏说明文字) / `qrMaxWidth 180px`(二维码最大宽度 CSS) / `closeText 关闭`(关闭按钮文本) / `links []`(赞助平台链接数组,弹窗底部显示胶囊按钮,每项 `{label,url}`,新窗口 `noopener`;如 GitHub Sponsors / Ko-fi / 爱发电)。文案键均有同名 `*En`（`buttonTextEn`/`noteEn`/`popupTitleEn`/`closeTextEn`），空回退中文；弹窗内方式名称与说明优先取 `site.reward.*En`（见 §1）
 
 ### 3.25 gallery — 图库页
-`enabled true` / `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片`（`titleEn`/`descriptionEn`/`emptyTextEn` en 站文案，空回退中文） / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `order newest` / `incrementalByDefault true` / `maxItems 0`(0=不限) / `gap 12px`(瀑布流列间距 CSS) / `showCaption true`(图片下方显示来源说明) / `borderRadius 8px`(卡片圆角 CSS)
+`enabled true` / `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片`（`titleEn`/`descriptionEn`/`emptyTextEn` en 站文案，空回退中文） / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `order newest` / `maxItems 0`(0=不限) / `gap 12px`(瀑布流列间距 CSS) / `showCaption true`(图片下方显示来源说明) / `borderRadius 8px`(卡片圆角 CSS)
+
+> 第五轮 W3 接线：`collectFeatured=true`（默认，历史行为）= 图库收集文章封面图 + 正文图片（按 src 去重）；`false` = 仅收集正文图片（`scripts/build/collectors.js → collectGalleryImages(articles, { collectFeatured })` 参数化，单测覆盖两态）。
+> **已删除**：`incrementalByDefault`（原注释「是否包含 404 前后的图（增量，始终 true）」）。当前实现无图库增量清单缓存，该键无任何消费点与可观察差异；未来若实现增量构建（`docs/incremental-build-design.md`）再按新方案恢复，迁移无行为变化（见 CHANGELOG Removed）。
 
 ### 3.26 heatmap — 归档热力图
 `enabled true` / `levels 5`(2~7) / `scaling auto`(`auto|fixed`) / `palette []`(fixed 时色表) / `showLegend true` / `legendLow 少` / `legendHigh 多` / `tooltipFormat {year}-{month}: {count} 篇`（`legendLowEn`/`legendHighEn`/`tooltipFormatEn` en 站文案，空回退中文） / `showMonthNumbers true` / `gap 3px`(单元格间距) / `borderRadius 3px`(单元格圆角) / `cellSize 13px`(单元格尺寸,置空则撑满容器) / `emptyColor var(--color-border)`(空月份颜色)

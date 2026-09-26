@@ -55,6 +55,7 @@
 | `rss.path` | string | `/feed.xml` | RSS 输出路径 |
 | `rss.fullContent` | bool | `true` | RSS 条目含全文(否则摘要) |
 | `rss.maxItems` | number | `50` | RSS 条目数上限 |
+| `rss.injectHeadLinks` | bool | `true` | 是否在 `<head>` 输出 RSS/JSON Feed alternate `<link>`（false=不输出；feed 文件本身仍生成） |
 | `rss.jsonFeed.enabled` | bool | `true` | 是否生成 /feed.json(JSON Feed) |
 | `rss.jsonFeed.path` | string | `/feed.json` | JSON Feed 输出路径(按语言自动加前缀) |
 | `rss.jsonFeed.fullContent` | bool | `false` | JSON Feed 条目含全文(否则摘要);非布尔值忽略并回退 `rss.fullContent` |
@@ -280,24 +281,14 @@
 **双语约定（*En 字段）**:所有文案型字段均可追加同名 `En` 后缀（如 `reward.buttonTextEn`）提供英文站文案；类型与中文值一致，**空字符串 = en 站回退中文值**。共覆盖 60 键：search / codeBlock / externalLink / shortcuts / readingTime / codeCopy / readMode / readingPanel / mermaid / series / related / pinned / wordCount / share / reward / gallery / heatmap / stats / prevNext / maintenance / comments / contactPopup / hero / dailyQuote / favorites / subscribe。构建期模板按页面语言渲染 `*En`；运行时模块（`search.js`/`share.js`/`code-block.js`/`comments.js`/`contact-popup.js`/`favorites.js`）按当前页面语言（`data-lang`）取 `*En`。
 
 
-### 3.0 未接线键总表（预留状态；第二轮 + 第三轮 + 第四轮 + 第五轮 + 第六轮配置闭环 2026-09-27）
+### 3.0 未接线键总表（已清零）
 
-> 状态口径：本节「已接线」= 代码读取且生效（见各模块小节说明）；「未接线（已标注）」= 功能未实现或实现固定，JSON5 对应键上方已加 `// ⚠ 未接线（预留）：…` 注释，**修改暂不生效**；「已实现」= 本轮新增实现（hotSearches 热门词、readingProgress 悬停气泡与 aria、readingTime.showInMeta、toc min/maxLevel、mobileToc overlayClose/lockScroll、readDock show*、externalLink showFullUrl/openInNewTab、share copiedShowMs/popupWidth/popupHeight/wechatText、tts.volume、comments.loadContainer、darkImageFilter.applyImages、mobileToc.autoClose、themePresets.showInNavbar/previewOnHover、themeSchedule.applyInstantly、shortcuts.helpTitle/showHelpTable、ogImage.useCover/gradientForNoCover、search.highlightMatches/closeOnOverlay/focusOnOpen、searchHighlight.enabled 门控）。
-> 第三轮闭环（2026-09-27 W1，15 项）已从本表移除并在各模块小节更新：`themeToggle.defaultTheme/rememberChoice/iconStyle/transitionAll`（删除重复键 → 唯一来源 `theme.darkMode.*`）、`shortcuts.showHelpHint`、`toc.defaultOpenLevel`、`autoSummary.stripMarkdown`、`codeCopy.includeWindowBar`（删除重复键 → `codeBlock.windowBar`）、`searchHighlight.markClass`、`listCover.showOnArchive`（接线）/`aspectRatio`（删除重复键 → `tuning.card.imageAspect`）、`mobileBottomNav.onlyMobile`（接线）/`useSafeArea`（删除重复键 → `mobile.safeAreaBottom`）、`readMode.focusOnlyContent`、`pinned.*`、`motion.revealStaggerMax`、`dailyQuote.widgetStyle`、`favorites.listIcon`、`cover.defaultPattern/preferImage`、`pagefind.integrate`。
-> 第四轮闭环（2026-09-27 W2）已从本表移除并在各模块小节更新：`search.emptyHint/emptyHintEn`（接线：空输入提示 + 无结果链首）、`search.showCount`、`search.matchTags/matchCategories`、`search.weightTitle/weightExcerpt/weightContent`、`externalLink.whitelistNewTab/copyButtonText/copyButtonTextEn`、`wikiLinks.unknownMode/unknownSuffix/caseInsensitive/allowCustomLabel`、`hero.searchPlaceholderEn`（接线）；`search.placeholder/placeholderEn`、`search.pinyinFuzzy`、`linkBehavior` 整个模块（删除，迁移见 CHANGELOG/§3.4/§3.36）。
-> 本表由审计脚本扫出（`js/templates/scripts` 对叶子键名的引用检测）；`enabled`、`height`、`size` 等通用名键不在机器扫描口径内，已按跨文件重复与抽样核验处理（见 `docs/config-audit-2026-09-27.md`「第二轮闭环结果」）。
-> 第五轮闭环（2026-09-27 W3，30 键 / 29 接线 + 1 删除）已从本表移除并在各模块小节更新：`imageLazy.preserveAspectRatio`；`supSub.supMarker/subMarker/skipInsideMath/preserveUnmatched`；`math.autoDetect/inlineDelimiters/blockDelimiters/mathml`；`mermaid.autoDetect/followTheme/copyAfterRender/errorTextEn`；`series.showBadge/badgeFormat/badgeFormatEn/sidebarWidget/panelTitle/panelTitleEn/showPosition`；`related.excludeCurrent`；`wordCount.onCards/textFormat/textFormatEn/readTimeFormat/readTimeFormatEn/countCjkChars/countDigits`；`gallery.collectFeatured`；`gallery.incrementalByDefault`（删除，无增量清单缓存实现，迁移见 §3.25/CHANGELOG）。
-> 第六轮闭环（2026-09-27 W4，31 键 / 29 接线 + 2 删除）已从本表移除并在各模块小节更新：`lightbox.maxWidthVw/openDurationMs/switchDurationMs`；`backToTop.rightOffset/bottomOffset`（删除重复键 → canonical `tuning.backToTop.offsetSide/offsetBottom`）、`backToTop.scrollDurationMs/htmlAnchorFallback`；`tts.preferDefaultVoice/voiceBy/highlightParagraph`；`reward.closeByBtn/closeByOverlay/closeByEsc`；`heatmap.levels/showLegend/legendLow/legendLowEn/legendHigh/legendHighEn/tooltipFormat/tooltipFormatEn/showMonthNumbers`；`stats.showArchiveCards/labelPosts(En)/labelDays(En)/labelWords(En)/labelAvg(En)/labelAvgPerDay/labelTags(En)/labelCategories(En)/linkArchive`；`mobile.searchFullscreen/buttonStackGap/touchFallback/codeScrollHint`；`contactPopup.popupWidth/showAllItems/copyTextEn`。默认值口径修正：`mobile.buttonStackGap` 4rem→3.4rem、`contactPopup.popupWidth` 360px→400px（均按「视觉不变」对齐历史实现，见 CHANGELOG Changed）。
+> 状态口径：本表为配置闭环审计的收口记录。全部键已完成处置——**不存在「看起来能调、实际无效且无标注」的键**：
+> - **已接线**：代码读取且生效（见各模块小节）；
+> - **已删除**：与唯一来源重复或语义与实现相悖的键（迁移映射见 CHANGELOG 与对应小节）；
+> - **自动守卫**：`npm run verify:config-refs`（`scripts/check-config-refs.js`）按「叶子键名零引用」扫描，发现未接线键即失败；允许名单见 `scripts/config-refs-allowlist.json`（数据/展示层配置经整体对象注入，不按键名引用）。
+> 已知盲区：通用短键名（`enabled`/`size` 等）不参与静态判定；features 动态拼接键（`stats.label*En`）已在允许名单登记。
 
-| 模块 | 未接线键（JSON5 已标注） | 原因 / 替代来源 |
-|---|---|---|
-| `incrementalBuild` | `fullFlag` / `fingerprintHash` / `skipUnchanged` | 增量构建方案未实现（见 docs/incremental-build-design.md） |
-| `feed` | `rssEnabled` / `rssFullContent` / `rssMaxItems` / `jsonFeedPath` / `jsonFeedFullContent` / `jsonFeedMaxItems` / `injectHeadLinks` / `injectFooterLink` | 订阅实际以 site.rss / site.rss.jsonFeed 为准（模块头已注明） |
-| `analytics` | `injectAt` / `emitBeacon` / `siteTag` | 统计注入固定 body + beacon（域名随 CSP 自动裁剪） |
-| `redirects` | `generatePagesFile` / `applyInServe` / `invalidRule` | 重定向实现固定：恒生成 _redirects 并在 serve 应用（非法规则 abort） |
-| `maintenance` | `setRetryAfter` / `retryAfter` | 维护响应固定设置 Retry-After: 3600（Worker 侧） |
-| `performance` | `warningJsKb` / `warningHtmlKb` / `warningImageKb` / `warningBuildMs` | 构建性能阈值未消费（预算门禁由 features.perfBudget 控制） |
-| `debug` | `verbose` / `listPages` / `dumpConfig` | 构建日志由 CLI 参数控制，未读取本组键 |
 
 ### 3.1 lightbox — 图片灯箱
 | 字段 | 默认 | 说明 |
@@ -326,7 +317,7 @@
 > - canonical：`scripts/lib/feature-wiring.js → lightboxConfig`（单测覆盖）。
 
 ### 3.2 readingProgress — 阅读进度条
-`enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500`(点击跳转后百分比气泡停留时长；悬停/聚焦期间常显，第二轮接线) / `updateThrottleMs 30` / `ariaAnnounce true`(进度条输出 `aria-valuenow`，屏幕阅读器可读；第二轮接线) / `topOffset 0` / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发)。点击跳转支持键盘（聚焦进度条后 ←/→ 步进 5%、Home/End 首尾）
+`enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500`(点击跳转后百分比气泡停留时长；悬停/聚焦期间常显，第二轮接线) / `updateThrottleMs 30` / `ariaAnnounce true`(进度条输出 `aria-valuenow`，屏幕阅读器可读；第二轮接线) / `topOffset 0`(进度条距视口顶部偏移，构建期写入 `.reading-progress` 的 `top`，值需含单位如 `8px`/`2vh`，`0` 默认贴顶) / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发)。点击跳转支持键盘（聚焦进度条后 ←/→ 步进 5%、Home/End 首尾）
 
 ### 3.3 backToTop — 返回顶部
 `enabled true` / `showAfterPx 400` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false`
@@ -469,6 +460,7 @@
 
 > **第六轮 W4 接线**：
 > - `levels`（2~7，越界钳制，非法回退 5）= 非空层级数：色阶 `l1..l(levels-1)` 由浅到深 + 顶层 `l(levels)` 为强调混色。`levels=5` 时逐字保持历史色阶（25/45/65% + 实色 + 强调混色），渲染不变；其他层数按 25%→100% 线性等分。分桶口径保留历史：`maxCount<=2` 用 `count+1` 阶梯，否则 `ceil(count/maxCount*levels)`。CSS 色阶由 `heatmapPalette(levels)` 生成。
+> - **色表（`scaling` / `palette`）**：`scaling='fixed'` 且 `palette`（长度 ≥ levels，取前 levels 项）时使用固定色表替代 color-mix 自动色阶；`palette` 不足 levels 或 `scaling='auto'`（默认）时回退自动色阶，前者构建期输出 `[WARN]` 提示。`palette` 项为空串/非字符串时被过滤。canonical：`scripts/lib/feature-wiring.js → resolveHeatmapPalette`（单测覆盖）。
 > - `showLegend=false` 不渲染图例；`legendLow(_En)`/`legendHigh(_En)` 为「少 → 多」两端文案，链为 `*En`(en 站) > 中文 > `ui-strings archive.legendLow/legendHigh`（新增双语）；图例示色层级随 `levels` 自适应（levels=5 → l0/l1/l2/l4，历史不变）。
 > - `tooltipFormat(_En)` = 单元格悬停提示模板，占位符 `{year}`/`{month}`/`{count}`；空串回退内置 `{year}-{month}: {count} <文章单位>`（单位取 `ui-strings archive.postUnit`）。默认模板与历史输出逐字一致。
 > - `showMonthNumbers=false` = 单元格不显示月份数字（仅保留色块与悬停提示）。
@@ -487,19 +479,50 @@
 ### 3.28 prevNext
 `enabled true` / `showLabels true` / `prevLabel 上一篇` / `nextLabel 下一篇`（`prevLabelEn`/`nextLabelEn` en 站文案，空回退中文；`site.prevPostLabel`/`nextPostLabel` 为中文次回退） / `hideWhenMissing false` / `showThumbnail false`(导航卡缩略图) / `labelPosition left`(`left|center|right`) / `scrollToTopOnClick true`(点击导航后滚回顶部)
 
-### 3.29 feed — 订阅【预留区，未接线】
-`rssEnabled true` / `rssPath /feed.xml` / `rssFullContent true` / `rssMaxItems 50` / `jsonFeedPath /feed.json` / `jsonFeedFullContent false` / `jsonFeedMaxItems 20` / `injectHeadLinks true` / `injectFooterLink false`
+### 3.29 feed（已删除，迁移到 site.rss / subscribe）
 
-> 注意: 本段各键当前未接入构建链路（修改不生效，仅作未来统一入口预留）。实际生效的订阅配置请改 `site.rss`（见 2.4 site.rss）与 `subscribe` 段；head 订阅链接恒随 `site.rss` 配置输出。
+> `features.feed` 模块已删除：其键与 `site.rss`（订阅唯一来源）完全重复，或与 `subscribe` 段语义重叠。迁移映射：
+>
+> | 原键 | 迁移到 |
+> |---|---|
+> | `rssEnabled` | `site.rss.enabled` |
+> | `rssPath` | `site.rss.path` |
+> | `rssFullContent` | `site.rss.fullContent` |
+> | `rssMaxItems` | `site.rss.maxItems` |
+> | `jsonFeedPath` / `jsonFeedFullContent` / `jsonFeedMaxItems` | `site.rss.jsonFeed.path` / `.fullContent` / `.maxItems` |
+> | `injectHeadLinks` | `site.rss.injectHeadLinks`（新增，默认 true；false 时不输出 `<head>` 的 RSS/JSON Feed alternate 链接） |
+> | `injectFooterLink` | `features.subscribe.enabled` + `features.subscribe.rss`（页脚订阅条） |
+>
+> 行为不变（原默认值与 site.rss 默认一致）；迁移见 CHANGELOG Removed。
 
 ### 3.30 analytics
-`enabled true` / `scriptSrc https://static.cloudflareinsights.com/beacon.min.js` / `injectAt body` / `emitBeacon true` / `siteTag ''`
+
+`enabled true` / `scriptSrc https://static.cloudflareinsights.com/beacon.min.js` / `injectAt body`(`body|head`，非法回退 body) / `emitBeacon true` / `siteTag ''`
+
+> **接线说明（构建期注入）**：
+> - 注入条件：`features.analytics.enabled` 与 `site.webAnalytics.enabled` 同为真，且解析出 token（见下）；token 为空时不注入（保持历史「无 token 警告」）。
+> - token 优先级：**`siteTag`（非空）> `site.webAnalytics.token` > 环境变量 `CF_WEB_ANALYTICS_TOKEN`**；`siteTag` 作为 token 的站点级覆盖来源（切换统计属性/环境时无需改 site.json5）。
+> - `injectAt`：`body`（默认）= 在 `</body>` 前注入引导脚本；`head` = 在 `</head>` 前注入。非非法值（含 `end-of-body` 等描述写法）由 schema 枚举校验拒绝。
+> - `emitBeacon=false`：脚本仍按 `scriptSrc` 加载，但不输出 `data-cf-beacon` JSON（token 不下发到页面）。
+> - `scriptSrc` 更换为非 Cloudflare 域名时需同步 `security.csp` 放行（CSP 自动裁剪只认 Cloudflare 官方域名）。
+> - canonical：`scripts/lib/feature-wiring.js → analyticsConfig / buildAnalyticsTag`（单测覆盖转义与开关）、`scripts/build/config.js`（token 优先级）。
 
 ### 3.31 redirects
-`enabled false`(规则在 site.json5 redirects) / `generatePagesFile true` / `applyInServe true` / `invalidRule abort`(`warn-only|abort`)
+
+`enabled true`(site.json5 自定义规则开关) / `generatePagesFile true`(false = 不生成 _redirects) / `applyInServe true`(false = 本地 serve 不应用) / `invalidRule abort`(`warn-only|abort`)
+
+> **接线说明**：
+> - `enabled=false`：跳过 `site.redirects` 自定义规则，仍生成框架语言/别名规则（`/ → /{lang}/`、`/feed.xml`、`/search-index.json`、自定义页面别名）。默认 `true`（对齐历史「恒应用自定义规则」行为；原默认 false 与实现漂移已修正，见 CHANGELOG Changed）。
+> - `generatePagesFile=false`：完全不产出 `dist/_redirects`（含框架别名）；本地 serve 无文件可读。
+> - `applyInServe=false`：`dist/_redirects` 照常生成（部署侧生效），仅本地 serve 跳过应用，便于直测真实页面。
+> - `invalidRule`：`abort`（默认）= 非法规则记录构建失败（`recordBuildFailure`，构建以非零退出；`--allow-degraded` 可降级继续）；`warn-only` = 仅 `[WARN]` 并跳过该条。非法判定与清洗见 `scripts/lib/redirect-rules.js`（单测覆盖：缺失字段、非 `/` 开头、非 http(s) 目标、控制字符剔除）。
+> - canonical：`scripts/lib/redirect-rules.js` + `scripts/build/security-files.js` + `scripts/build/serve.js`。
 
 ### 3.32 maintenance
+
 `enabled false` / `message 站点维护中，请稍后再来。`（`messageEn` en 站文案，空回退中文） / `status 503` / `setRetryAfter true` / `retryAfter 3600`
+
+> **接线说明（本地 serve 与 Worker 同源）**：`setRetryAfter=false` 时维护响应不输出 `Retry-After`；`retryAfter`（秒，非法/非正回退 3600）为响应值。构建期经 `scripts/generate-security-config.js → maintenanceWorkerConfig` 写入 `workers/security-config.js`，Worker 读取后应用于维护响应；本地 serve 直接读 `config.features.maintenance`。运行开关仍为 `--maintenance`/`MAINTENANCE=1`（serve）与 Worker 环境变量 `MAINTENANCE=1`（`enabled` 键不参与运行时开关）。单测：`scripts/security-worker.test.js`（Worker 关闭态）+ `scripts/config-wiring.test.js`（归一化）；runner 覆盖 serve 两态。
 
 ### 3.33 mobile
 `enabled true` / `searchFullscreen true` / `buttonStackGap 3.4rem` / `touchFallback true` / `codeScrollHint true` / `tocBreakpoint 768`(移动端 TOC 按钮断点 px) / `safeAreaBottom true`(底部安全区留白) / `tapHighlight false`(取消点击高亮)
@@ -533,10 +556,24 @@
 > 迁移：外链行为请改 `features.externalLink`（`mode`/`whitelist`/`blacklist`/`openInNewTab`/`whitelistNewTab` 等，见 §3.7）；如未来确需 mailto 告警，应在 `externalLink` 下新增专用键而非恢复本模块。
 
 ### 3.37 performance
+
 `warningJsKb 80` / `warningHtmlKb 400` / `warningImageKb 300` / `warningBuildMs 30000`
 
+> **构建性能告警（仅提示，不阻断）**：构建收尾按实测值逐项输出 `[WARN]`——
+> - `warningJsKb`：`assets/js` 全部应用 JS（gzip 合计）超限；
+> - `warningHtmlKb`：最大 HTML 原始体积（单页 raw）超限；
+> - `warningImageKb`：`dist/media` 用户图片（优化后）超限，列最多 10 条；OG 产物不计（尺寸由 `features.ogImage` 控制）；
+> - `warningBuildMs`：本次构建耗时超限。
+> 阈值 ≤0/非法 = 不告警；与预算门禁 `features.perfBudget` 职责区分：**本组只发 `[WARN]`，perfBudget 输出 `[budget]` 报告且可配置 `warnOnly=false` 阻断构建**。canonical：`scripts/lib/feature-wiring.js → performanceWarnings`（单测覆盖）+ `scripts/build/report.js`。
+
 ### 3.38 debug
+
 `verbose false` / `listPages false` / `dumpConfig false`
+
+> **开发助手（默认全关，不影响正常输出）**：
+> - `verbose=true`：输出构建阶段耗时标记（`[DEBUG] …（+Nms）`）与增量构建逐页跳过明细（`[incremental] skip: path`）；
+> - `listPages=true`：构建末输出渲染页面清单（相对产物根路径、按字典序）；
+> - `dumpConfig=true`：配置校验后输出解析合并配置摘要（顶层模块与键数、关键开关；token/secret 等敏感字段只显示是否已设置，绝不输出明文）。
 
 ### 3.39 sitemap — 站点地图拆分(Sitemap Split)
 > 配置位于 `features.json5` 下的 `sitemap` 段。拆分语义:URL 总数 ≤ `maxUrlsPerFile` → 单一 `<urlset>` sitemap.xml;URL 总数 > `maxUrlsPerFile` → 生成 `sitemap-1.xml … sitemap-N.xml` + `sitemap.xml`(sitemapindex 索引)。与 `site.json5` 的 `sitemap` 段(csp 开关)联动——`site.sitemap.enabled=false` 时整体跳过。
@@ -662,7 +699,7 @@ sitemap: {
 
 ### 3.67 perfBudget — 性能预算门禁
 
-`enabled true` / `htmlKb 28`(单页 HTML gzip 上限,含内联 CSS/脚本) / `htmlRawKb 50`(页面 HTML raw 体积中位上限;长文等极端页面由中位口径自然豁免) / `inlineConfigKb 2`(页面内联关键配置降级子集上限) / `jsKb 55`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入) / `requests 12`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
+`enabled true` / `htmlKb 28`(单页 HTML gzip 上限,含内联 CSS/脚本) / `htmlRawKb 50`(页面 HTML raw 体积中位上限;长文等极端页面由中位口径自然豁免) / `inlineConfigKb 2`(页面内联关键配置降级子集上限) / `jsKb 60`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入;60KB 口径含 app+deferred+runtime 三包,deferred 为按需 chunk,首屏实际约 28KB——跨模块去重达标后可回调 55) / `requests 12`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
 
 ### 3.68 scrollIndicator — 滚动进度条
 
@@ -794,7 +831,15 @@ listCover: {
 
 ### 3.95 incrementalBuild — 增量构建
 
-**预留开关，当前未实现**；增量构建方案见 `docs/incremental-build-design.md`，站点内容增长到 100+ 篇后再评估实现。键位已预留：`enabled true` / `fullFlag '--full'`（强制全量构建的命令行参数）/ `watch true`（监听源文件变更）/ `fingerprintHash 'sha1'`（指纹算法）/ `skipUnchanged true`（跳过未变化源）。当前构建始终为全量，以上键位不产生实际效果 — `scripts/lib/features-schema.js`（仅登记校验，无运行时实现）。
+`enabled true` / `fullFlag '--full'` / `watch true` / `fingerprintHash 'sha1'` / `skipUnchanged true`
+
+> **页面级增量渲染（最小可用实现）**：
+> - 启用条件：`enabled` 且 `skipUnchanged` 非 false，且非强制全量，且请求来源为 `--watch`（`watch=true`）或显式 `--incremental`；普通 `npm run build` 始终全量（`cleanDist` 行为不变）。
+> - 机制：每页指纹 = `relPath + 模板目录摘要 + 页面数据稳定序列化`（对象键排序、跳过函数、CSP nonce 归一化）经 `fingerprintHash`（sha1/sha256/md5）散列，写入 `.build-cache.json → pages`（与媒体/OG 缓存同文件）；指纹一致且产物文件存在时跳过重新渲染并复用现有产物，日志输出 `[incremental] skipped N page(s), rebuilt M page(s)`。
+> - 增量模式在内存中暂时关闭 `site.build.cleanDist`（不清空 dist 才能复用；不写回配置文件）；非增量构建保持全量清理。
+> - `fullFlag`（默认 `--full`，可自定义参数名；`--full` 始终有效）：强制全量重建。**删除文章/页面后请用 `--full` 清理残留产物**（增量模式不清理已删除源的旧文件）。
+> - `fingerprintHash` 非法值回退 sha1。canonical：`scripts/lib/incremental.js`（单测覆盖指纹算法/稳定序列化/决策组合）+ `scripts/build/pages.js`（renderAndWrite）。
+> - 完整分文件增量方案（文章解析/聚合页步骤级）仍见 `docs/incremental-build-design.md` 的远期设计，不在当前实现范围。
 
 ### 3.96 lcpOptimize — LCP 分相治理
 

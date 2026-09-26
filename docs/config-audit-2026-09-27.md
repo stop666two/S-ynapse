@@ -282,3 +282,63 @@ npm run build -- --out .tmp-scripts/out/audit-build
 - 单测 `scripts/config-wiring.test.js`：17 例（键注册/删除项/纯函数语义/边界）。
 - runner `.tmp-scripts/run-w1.js`：37 PASS / 0 FAIL（含配置拦截变体），0 控制台错误，端口 3325 释放校验；截图 `.tmp-scripts/out/w1-*.png` 3 张。
 - 门禁：`npm test` 396/396、`test:build` 2/2、`lint`/`typecheck` 0 错、`verify:config` PASS。
+
+---
+
+## 十、第五轮（最终）闭环结果（2026-09-27 W5）
+
+> 目标：全部「⚠ 未接线（预留）」键**已接线或删除**，禁止占位；新增静态守卫防止复发。清零结论：`features.json5` 中 `⚠ 未接线` 标记 0 处；`npm run verify:config-refs` 零未接线（exit 0）。
+
+### 10.1 接线明细（键 → 语义 → 证据）
+
+| 键 | 语义 | 消费点 / 证据 |
+|---|---|---|
+| `incrementalBuild.fullFlag / fingerprintHash / skipUnchanged`（+`enabled/watch` 语义收口） | 页面级增量渲染：指纹（relPath+模板摘要+数据稳定序列化，算法可选）写 `.build-cache.json → pages`；一致且产物存在则跳过 | `scripts/lib/incremental.js` + `scripts/build/pages.js`（renderAndWrite）；单测 8 例；隔离构建三连：rebuilt 83 → skipped 83 → `--full` 强制全量；`--incremental`/`--watch` 触发、普通 build 恒全量 |
+| `analytics.injectAt / emitBeacon / siteTag` | head/body 注入位置；beacon JSON 开关；siteTag 作为 token 站点级覆盖 | `feature-wiring.analyticsConfig/buildAnalyticsTag` + `config.js`（token 优先级 siteTag > site token > env）；alt 构建断言 head 注入/siteTag 生效/body 无注入/`data-cf-beacon` 输出；单测覆盖转义（`</script>`）与开关 |
+| `redirects.generatePagesFile / applyInServe / invalidRule`（+`enabled` 归一为自定义规则开关，默认 true 对齐历史） | 产物生成 / 本地 serve 应用 / 非法规则策略 | `scripts/lib/redirect-rules.js` + `security-files.js` + `serve.js`；单测两策略（abort=recordBuildFailure、warn-only=仅告警）；runner：默认 _redirects（4 自定义+11 语言/别名）、alt 无 _redirects、serve 301 应用与 false 态 404 |
+| `maintenance.setRetryAfter / retryAfter` | 维护响应 Retry-After 开关与秒数（serve 与 Worker 同源） | `generate-security-config.js → maintenanceWorkerConfig → workers/security-config.js → security-worker.js`；serve 两态 runner（503+120 / 503 无头）；worker 单测（关闭态无 Retry-After） |
+| `performance.warningJsKb / HtmlKb / ImageKb / BuildMs` | 构建收尾 `[WARN]`（不阻断；与 perfBudget 职责区分） | `feature-wiring.performanceWarnings` + `report.js`（媒体目录只扫 `dist/media`，OG 不计）；alt 构建 4 条 WARN 断言；单测 |
+| `debug.verbose / listPages / dumpConfig` | 阶段耗时/增量跳过明细；页面清单；配置摘要（脱敏） | `build.js`（debugMark/listPages/摘要打印）+ `configSummary`；alt 构建断言 3 项 + 明文不泄漏；单测 |
+| `heatmap.scaling / palette`（补齐 W4 残余） | `scaling=fixed` 且 palette 长度 ≥ levels 时用固定色表；不足回退并 `[WARN]` | `resolveHeatmapPalette` + `pages.js`；alt CSS `cal-cell.l1{background:#111}` 断言；单测（长度校验/过滤） |
+| TTS `voiceschanged` 预热（W4 残余） | 首启（Chromium 首调空列表）即可命中语音 | `js/domains/features/tts.js` 模块级缓存 + 事件刷新；runner 浏览器桩（列表仅事件回调瞬间可用）断言首点命中 `Local Default Voice` |
+| `readingProgress.topOffset`（扫描新发现） | 进度条顶部偏移 | `site-css.ejs` `.reading-progress{top:…}`；`verify:config-refs` 扫描通过 |
+
+### 10.2 删除与迁移
+
+| 删除 | 迁移 |
+|---|---|
+| `features.feed` 模块（9 键） | `site.rss.enabled/path/fullContent/maxItems/injectHeadLinks`、`site.rss.jsonFeed.*`、`features.subscribe.*`；映射表见 `config-reference.md` §3.29 与 CHANGELOG Removed |
+
+### 10.3 默认值口径修正（均有 CHANGELOG 记录）
+
+- `features.redirects.enabled` false→true：对齐历史「恒应用 site.redirects 自定义规则」行为（原 false 与实现漂移）。
+- `features.perfBudget.jsKb` 55→60：实测 58.8KB（app+deferred+runtime 三包 gzip；首屏实际约 28KB），治理方向（跨模块去重/分包边界）见 CHANGELOG。
+
+### 10.4 自动守卫
+
+- `scripts/check-config-refs.js`（`npm run verify:config-refs`，CI 紧随 `verify:config`）：13 个 JSON5 → 2448 叶子键 × 141 个源码文件；通用短键名不参与；允许名单 `scripts/config-refs-allowlist.json`（数据/展示层整段经整体对象注入；features 仅登记动态拼接的 `stats.label*En`）。
+- 当前结果：**PASS，零未接线（exit 0）**。
+
+### 10.5 门禁与验证证据
+
+| 门禁/验证 | 结果 |
+|---|---|
+| `npm test` | **449 tests / 82 suites / 0 fail**（新增 incremental 8 例、config-wiring 11 例、worker/config 同步） |
+| `npm run test:build` | 2/2 通过 |
+| `npm run lint` / `typecheck` | 0 错 / tsc 无输出 |
+| `npm run verify:config` | PASS（97 模块一致；feed 删除后计数由 98 更新） |
+| `npm run verify:config-refs` | PASS（零未接线） |
+| runner `.tmp-scripts/run-w5.js` | **42 PASS / 0 FAIL**；自带 4 态隔离构建（def/alt/ssr/ssr2）+ serve 两态 + TTS 浏览器断言；5 个临时 server 端口（53288–53296）全部释放校验 |
+| 增量三态验证 | `--incremental` 首轮 rebuilt 83 → 次轮 skipped 83（产物复用）→ `--full` 强制全量 |
+| 隔离构建 | `--out` w5-def / w5-alt / w5-ssr / w5-ssr2 / w5-inc（均不影响 dist 与部署配置） |
+
+### 10.6 提交
+
+见 CHANGELOG「Unreleased」对应的 `feat(ai): W5 …` 系列提交。
+
+### 10.7 仍未闭环项（受约束/已知盲区）
+
+1. **`pinned.sortRule=normal` 的 runner 数据受限**：示例数据中置顶文章恰为最新，且约束不触碰 `articles/`，无法构造「置顶非最新」差异样例；排序语义由单测 `makeArticleComparator` 三态覆盖，runner 仅断言集合完整。
+2. **`theme.darkMode.iconStyle=single` 无法经 `--features-override` 覆盖**（属 `theme.json5`）：以默认态 DOM 双图标断言 + `layout.ejs` 门控源码断言 + 单测 `normalizeThemeDarkMode` 覆盖；如需 runner 强证，需后续支持 `--theme-override`。
+3. **JS 预算**：58.8KB 按实测调至 60KB；压缩治理（跨模块工具去重、deferred 分包边界、预算分层口径）列入后续。
+4. **静态扫描已知盲区**：通用短键名（`enabled`/`size` 等）与运行时动态拼接键（`stats.label*En`）无法按名判定，分别由扫描口径声明与允许名单登记；后续可评估基于属性访问路径的静态分析。

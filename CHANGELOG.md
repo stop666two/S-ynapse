@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **第七轮配置接线（W5 收尾波，2026-09-27）**：全部「⚠ 未接线（预留）」键收口（`features.json5` 标记清零），新增未接线静态守卫——
+  - **增量构建（`incrementalBuild`）**：`enabled/watch/skipUnchanged/fullFlag/fingerprintHash` 全部接线。页面指纹 = `relPath + 模板目录摘要 + 页面数据稳定序列化`（对象键排序、跳过函数、CSP nonce 归一化）经所选算法（sha1/sha256/md5）散列，写入 `.build-cache.json → pages`；指纹一致且产物存在时跳过重新渲染并复用现有产物（日志 `[incremental] skipped N page(s), rebuilt M page(s)`）。触发：`--watch`（`watch=true`）或显式 `--incremental`；`--full`（或自定义 `fullFlag`）强制全量；增量模式在内存中暂时关闭 `cleanDist`（不写回配置），普通 `npm run build` 保持全量清理。删除内容后建议 `--full` 清理残留产物。新增纯函数库 `scripts/lib/incremental.js`（单测 8 例）。
+  - **云统计（`analytics`）**：`injectAt`（`body`/`head`，非法回退 body）、`emitBeacon`（false = 脚本仍加载但不输出 `data-cf-beacon` JSON）、`siteTag` 接线；token 优先级 **`siteTag`（非空）> `site.webAnalytics.token` > 环境变量 `CF_WEB_ANALYTICS_TOKEN`**（`scripts/build/config.js`）；`features.analytics.enabled=false` 直接关闭注入。新增 `analyticsConfig`/`buildAnalyticsTag`（纯函数，含 `</script>` 转义）。
+  - **重定向（`redirects`）**：`generatePagesFile=false` 不产出 `_redirects`；`applyInServe=false` 仅本地 serve 不应用（部署文件照常生成）；`invalidRule` 两策略接线——`abort`（默认）= 非法规则记录构建失败（构建非零退出，`--allow-degraded` 可降级）、`warn-only` = 仅 `[WARN]` 跳过；`enabled` 归一为 site.json5 自定义规则开关。新增纯函数库 `scripts/lib/redirect-rules.js`（单测两策略）。
+  - **维护模式（`maintenance`）**：`setRetryAfter=false` 时维护响应不输出 `Retry-After`；`retryAfter`（秒，非法回退 3600）为响应值。构建期经 `generate-security-config.js` 写入 `workers/security-config.js` 供 Worker 读取，本地 serve 直接消费同一配置（两处行为同源）。
+  - **构建性能告警（`performance.warning*`）**：构建收尾按 `warningJsKb`/`warningHtmlKb`/`warningImageKb`/`warningBuildMs` 输出 `[WARN]`（仅提示不阻断；与 `features.perfBudget` 门禁职责区分）。`warningImageKb` 只扫 `dist/media` 用户图片（OG 产物不计），最多列 10 条。新增纯函数 `performanceWarnings`。
+  - **构建调试（`debug`）**：`verbose=true` 输出阶段耗时（`[DEBUG] …（+Nms）`）与增量逐页跳过明细；`listPages=true` 构建末输出渲染页面清单；`dumpConfig=true` 输出解析合并配置摘要（token/secret 等敏感字段只显示是否已设置，绝不输出明文）。默认全关，不影响正常输出。
+  - **热力图色表（`heatmap.scaling/palette`）**：`scaling=fixed` 且 `palette` 长度 ≥ `levels` 时以固定色表替代 color-mix 自动色阶（取前 levels 项）；不足/`auto` 回退自动色阶并对前者输出 `[WARN]`。新增纯函数 `resolveHeatmapPalette`。
+  - **TTS 首启预热**：`js/domains/features/tts.js` 模块级缓存语音列表并监听 `voiceschanged` 刷新——Chromium 首启（`getVoices()` 首调为空）首次点击朗读即可命中配置的语音策略。
+  - **`readingProgress.topOffset`**（静态扫描新发现）：接线为 `.reading-progress` 的 `top` 偏移（需含单位，`0` 贴顶）。
+  - **未接线静态守卫**：新增 `scripts/check-config-refs.js`（`npm run verify:config-refs`，CI 紧随 `verify:config`）——13 个 JSON5 提取 2448 叶子键 × 141 源码文件按「键名零引用」扫描；允许名单 `scripts/config-refs-allowlist.json`（数据/展示层整段整体注入；features 仅登记动态拼接的 `stats.label*En`）。当前为空（exit 0）。
+  - 新增单测：`scripts/incremental-build.test.js`（8 例）、`scripts/config-wiring.test.js` 扩至 69 例、`scripts/security-worker.test.js` 维护关闭态；runner `.tmp-scripts/run-w5.js` 42 PASS（4 态隔离构建 + serve 两态 + TTS 浏览器断言）。
 - **第六轮配置接线（W4，2026-09-27）**：灯箱/返回顶部/朗读/打赏/热力图/统计/移动端/联系弹窗组「未接线」键全部真实可控或作为重复键删除——
   - 灯箱（`lightbox`）：`maxWidthVw` 构建期归一为 CSS 变量 `--lightbox-maxWidthVw`（专键 > 兼容旧键 `imageFit.lightbox.maxWidthPct` > 92）；`openDurationMs`/`switchDurationMs` 接线为打开/切换透明度补间（WAAPI；专键 > 通用 `transitionDurationMs` > 220；0=瞬时；`prefers-reduced-motion: reduce` 不播放）。
   - 返回顶部（`backToTop`）：`scrollDurationMs` 接线为 rAF + easeOutCubic 自定义滚动（`behavior:'instant'` 逐帧步进，避免与 CSS `scroll-behavior:smooth` 二次平滑打架；用户滚轮/触摸中断；`smoothScroll=false`/`__SB()==='auto'`/减少动效为瞬时；点击与快捷键共用；`readDock` 顶部按钮同源）；`htmlAnchorFallback=true` 输出 `<noscript>` 锚点链接（`href="#top"`，无 JS 可返回顶部，JS 可用时由 `#btt` 接管）。
@@ -51,6 +63,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **第七轮配置闭环（W5）语义/默认值变更**：
+  - `features.redirects.enabled` 默认值 `false`→`true`：原默认与历史实现漂移（`_redirects` 一直应用 `site.json5` 自定义规则）；现 `enabled` 作为自定义规则开关（false 时仍保留框架语言/别名规则），默认行为与历史一致。JSON5 注释/schema/文档同步。
+  - `features.perfBudget.jsKb` 55→**60**：实测 `assets/js` 全量 gzip 58.8KB（app 26.4 + deferred 30.7 + runtime 1.7；deferred 为按需懒加载 chunk，首屏实际加载约 28KB）。按实测口径调整上限并保留 `warnOnly=true`；后续治理方向：跨模块工具去重、deferred 分包边界复核、预算分层口径评估（达标后回调 55）。`scripts/lib/perf-budget.js` 兜底默认值同步。
+  - `features.performance` 组键从「未接线」变为构建收尾 `[WARN]`（不阻断）；`debug` 组键变为可选构建调试输出（默认全关，正常输出不变）。
+  - 增量构建启用时（`--watch`/`--incremental`）在内存中关闭 `cleanDist` 以复用产物（不写回配置文件）；普通构建行为不变。
 - **第六轮配置闭环（W4）语义/默认值变更**：
   - `mobile.buttonStackGap` 默认值 `4rem`→`3.4rem`：原默认与历史实现不符（实际堆叠步进 3.4rem，m-toc 底距 7.4rem），按「视觉不变」原则修正；新实现 m-toc 底距 = `tuning.mobileToc.btnMobileBottom(7.4rem) - 3.4rem + buttonStackGap`，默认渲染不变。
   - `contactPopup.popupWidth` 默认值 `360px`→`400px`：原默认从未生效（模板恒 `max-width:400px`），按「视觉不变」原则对齐实现并接线。
@@ -75,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- `features.feed` 模块（9 键：`rssEnabled/rssPath/rssFullContent/rssMaxItems/jsonFeedPath/jsonFeedFullContent/jsonFeedMaxItems/injectHeadLinks/injectFooterLink`，第七轮，重复/未接线模块；订阅唯一来源为 `site.json5 → rss`）。**迁移**：`rssEnabled→site.rss.enabled`、`rssPath→site.rss.path`、`rssFullContent→site.rss.fullContent`、`rssMaxItems→site.rss.maxItems`、`jsonFeed*→site.rss.jsonFeed.*`、`injectHeadLinks→site.rss.injectHeadLinks`（新增键，默认 true）、`injectFooterLink→features.subscribe.enabled + subscribe.rss`；映射表另见 `docs/config-reference.md` §3.29。删除无行为变化（原默认值与 site.rss 默认一致）。
 - `features.backToTop.rightOffset` / `features.backToTop.bottomOffset`（第六轮，语义重复；返回顶部定位唯一来源 `tuning.json5 → backToTop.offsetSide/offsetBottom`，模板经 `var(--backToTop-offsetSide/offsetBottom, 2rem)` 消费。**迁移**：位置请改 tuning 同名键；原 features 默认值 `2rem`/`2rem` 与 tuning 同值，删除无行为变化）。
 - `features.gallery.incrementalByDefault`（第五轮，未接线；当前实现无图库增量清单缓存，该键无任何消费点与可观察差异。**迁移**：无需操作，删除无行为变化；未来实现增量构建时按 `docs/incremental-build-design.md` 新方案恢复）。
 - `features.search.placeholder` / `features.search.placeholderEn`（第四轮，语义重复；搜索框占位唯一来源 `navigation.json5 → search.placeholder/placeholderEn`（空回退 `ui-strings.search.placeholder`），模板 SSR 直接消费且实测生效。**迁移**：把值搬入 `navigation.json5` 同名键；默认 `搜索文章...` / `Search posts...` 行为不变）。

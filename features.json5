@@ -222,7 +222,10 @@
     // 聚焦输入框时是否自动显示搜索历史。
     showHistoryOnFocus: true,
     // 搜索历史最多保留条数(超出丢弃最旧)。
-    maxHistory: 5
+    maxHistory: 5,
+    // 打开搜索后延迟聚焦输入框的等待(ms)：等待弹层动画开始后再聚焦,避免移动端键盘顶起闪烁。
+    // 类型: number(ms) | 推荐: 50-200
+    focusDelayMs: 100
   },
 
   // ---------------------------------------------------------------------------
@@ -291,6 +294,15 @@
     headerHeight: '36px',
     // 代码块正文字号(em 相对单位)。
     fontSize: '0.92em',
+    // Prism 高亮分批预算(ms)：单次空闲回调最多占用主线程的时间,超出则让出（页面底部内联脚本消费;越小越不易卡顿但高亮更慢）。
+    // 类型: number(ms) | 推荐: 4-16
+    prismBatchMs: 8,
+    // Prism 首帧高亮的 requestIdleCallback 超时(ms)：浏览器长时间无空闲时强制开始高亮。
+    // 类型: number(ms) | 推荐: 200-500
+    prismIdleTimeoutMs: 300,
+    // Prism 无 requestIdleCallback 时的 setTimeout 兜底间隔(ms)。
+    // 类型: number(ms) | 推荐: 30-100
+    prismIdleFallbackMs: 60,
     // 代码块上方"复制全部代码"按钮（多代码块页面适用;true=首块上方显示按钮,一键复制全页所有代码块）。
     copyAllButton: false,
     // 下载按钮。
@@ -496,6 +508,9 @@
     storageKey: 's-sidebarOrder',
     // 移动端是否支持长按拖拽(触屏)。桌面端默认支持 HTML5 drag。
     touchLongPress: true,
+    // 长按触发拖拽的判定时长(ms;仅触屏,touchLongPress=true 时生效)。
+    // 类型: number(ms) | 推荐: 300-800
+    touchLongPressMs: 500,
     // 桌面端是否仅在悬停时显示拖拽手柄(≡)。
     showHandleOnHover: true,
     // 本地存储解析失败时是否重置为配置默认顺序。
@@ -966,7 +981,13 @@
     // 朗读文本提取时跳过的选择器(逗号分隔,默认跳过代码块/公式/图表)。
     skipSelectors: 'pre, .katex, .mermaid',
     // 阅读按钮位置:toolbar/float。
-    position: 'toolbar'
+    position: 'toolbar',
+    // Chromium 长文本自动暂停后的心跳恢复间隔(ms;朗读卡死时周期性 resume)。
+    // 类型: number(ms) | 推荐: 300-1000
+    resumeIntervalMs: 500,
+    // 心跳恢复的最大尝试次数(超过即结束朗读并清理状态)。
+    // 类型: number | 推荐: 2-5
+    resumeMaxTries: 3
   },
 
   // ---------------------------------------------------------------------------
@@ -1061,6 +1082,21 @@
     // CHROME_PATH 环境变量 > Windows 默认安装路径 > Linux/macOS 的 google-chrome/chromium)。
     // 类型: string | 可填: 绝对路径 或 ''(自动探测) | 推荐: ''(自动探测)
     chromePath: '',
+    // 客户端按需加载 vendor 时的 requestIdleCallback 超时(ms)：页面空闲后才开始加载 Mermaid。
+    // 类型: number(ms) | 推荐: 1000-3000
+    idleTimeoutMs: 1500,
+    // 无 requestIdleCallback 时的 setTimeout 兜底间隔(ms)。
+    // 类型: number(ms) | 推荐: 100-500
+    idleFallbackMs: 200,
+    // 主题切换后重渲染 Mermaid 的 requestIdleCallback 超时(ms)。
+    // 类型: number(ms) | 推荐: 200-600
+    rerenderIdleTimeoutMs: 300,
+    // 主题切换重渲染无 requestIdleCallback 时的兜底间隔(ms)。
+    // 类型: number(ms) | 推荐: 30-150
+    rerenderIdleFallbackMs: 60,
+    // 构建期单块渲染超时(ms;无头浏览器渲染 Mermaid,超时按失败回退客户端)。
+    // 类型: number(ms) | 推荐: 5000-30000
+    renderTimeoutMs: 10000,
     // 是否显示流程图内文本的复制按钮。
     copyAfterRender: false,
     // 渲染失败占位文本。
@@ -1704,8 +1740,11 @@
       opacity: 0.7,
       // 是否绘制粒子间连线。
       showLines: true,
-      // 触屏设备/窄屏(<640px)自动关闭粒子(性能保护)。
-      autoDisableMobile: false
+      // 触屏设备/窄屏自动关闭粒子(性能保护;窄屏阈值见 mobileMaxWidth)。
+      autoDisableMobile: false,
+      // autoDisableMobile=true 时的窄屏阈值(px)：视口宽度小于该值时关闭粒子。
+      // 类型: number(px) | 推荐: 480-768
+      mobileMaxWidth: 640
     }
   },
 
@@ -1961,7 +2000,13 @@
     // 系统"减少动态效果"下的策略: light(轻量版:更短的纯淡出,推荐) / off(不拦截链接) / full(始终完整)。
     reducedMotion: 'light',
     // 不拦截的选择器(匹配元素或其祖先)。
-    excludeSelector: '[data-no-transition]'
+    excludeSelector: '[data-no-transition]',
+    // 导航失败兜底观察窗口(ms)：离开态淡出后该时长内页面仍可见,即视为导航未发生并移除离开态。
+    // 类型: number(ms) | 推荐: 1500-5000
+    leaveGuardMs: 2500,
+    // 系统"减少动态效果"时的离开时长上限(ms;reducedMotion='light' 时生效)。
+    // 类型: number(ms) | 推荐: 40-120
+    reducedDurationMs: 70
   },
 
   // ---------------------------------------------------------------------------
@@ -2418,6 +2463,10 @@
     // 类型: string | 可填: 任意 CSS 宽度 | 推荐: '440px'
     width: '440px',
 
+    // 关闭时移除 DOM 的延迟(ms；须 ≥ 关闭过渡时长,否则弹窗会闪现)
+    // 类型: number(ms) | 推荐: 200-400
+    removeDelayMs: 240,
+
     // 标题(zh) / 英文标题(空 = en 站回退 zh)
     // 类型: string
     title: '', titleEn: '',
@@ -2509,6 +2558,9 @@
     scrollToTop: true
   },
 
+  // ---------------------------------------------------------------------------
+  // 总控：防护与交互控制（preset 档位 + 各模块开关；全部细节参数在 guard.json5）
+  // ---------------------------------------------------------------------------
   guards: {
     // 总开关：false 时 guard.json5 全文件失效
     enabled: true,
@@ -2568,7 +2620,10 @@
     // 淡出时长(ms)（收尾动画；推荐 300-500）
     fadeMs: 380,
     // 遮罩层级（应高于导航 1000 与公告；推荐 2500-3500）
-    zIndex: 3000
+    zIndex: 3000,
+    // 硬超时的额外缓冲(ms)：maxShowMs 到点后延迟该缓冲再强制淡出，给启动收尾留余量。
+    // 类型: number(ms) | 推荐: 30-150
+    failsafeBufferMs: 60
   },
 
   // ---------------------------------------------------------------------------
@@ -2590,7 +2645,10 @@
     // 无 requestIdleCallback 时的回退间隔(ms)（推荐 80-200）
     idleFallbackMs: 120,
     // 唤醒后续批次的交互事件名列表（默认四件套；可增删，如 'scroll'）
-    interactionEvents: ['pointerdown', 'keydown', 'touchstart', 'wheel']
+    interactionEvents: ['pointerdown', 'keydown', 'touchstart', 'wheel'],
+    // 外置配置加载超时(ms)：超过该时长仍未取到 config.json 时降级为内联最小子集（见 js/core/runtime.js）。
+    // 类型: number(ms) | 推荐: 2000-5000
+    configTimeoutMs: 3000
   },
 
   // ---------------------------------------------------------------------------

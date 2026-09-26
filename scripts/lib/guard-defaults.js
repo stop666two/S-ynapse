@@ -25,6 +25,7 @@ const DEFAULT_GUARD = {
       "longPress": true,
       "longPressMs": 550
     },
+    "searchFocusDelayMs": 60,
     "behavior": {
       "closeOnEsc": true,
       "closeOnScroll": true,

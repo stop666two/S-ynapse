@@ -37,7 +37,7 @@ const DEFAULT_FEATURES = {
     matchTags: true, matchCategories: true, weightTitle: 5, weightExcerpt: 2,
     weightContent: 1, closeOnOverlay: true, focusOnOpen: true,
     openAnimation: 'fade', pinyinFuzzy: false,
-    debounceMs: 120, showHistoryOnFocus: true, maxHistory: 5
+    debounceMs: 120, showHistoryOnFocus: true, maxHistory: 5, focusDelayMs: 100
   },
   imageLazy: {
     enabled: true, fadeIn: true,
@@ -50,7 +50,8 @@ const DEFAULT_FEATURES = {
     copyFailText: '复制失败', copyFailTextEn: 'Copy failed', blobRevokeDelayMs: 1000, showLanguageTag: true, lineNumbers: true, windowBar: true,
     wrapLongLines: false, highlightBackground: 'var(--color-hover)',
     borderRadius: '0.375rem', maxHeight: '', copyAllButton: false, downloadButton: true,
-    maxHeightVh: 'none', headerHeight: '36px', fontSize: '0.92em'
+    maxHeightVh: 'none', headerHeight: '36px', fontSize: '0.92em',
+    prismBatchMs: 8, prismIdleTimeoutMs: 300, prismIdleFallbackMs: 60
   },
   externalLink: {
     enabled: true, whitelist: [], blacklist: [], mode: 'warn',
@@ -135,7 +136,8 @@ const DEFAULT_FEATURES = {
   },
   pageTransition: {
     enabled: true, type: 'slide', durationMs: 180, outDurationMs: 120,
-    reducedMotion: 'light', excludeSelector: '[data-no-transition]'
+    reducedMotion: 'light', excludeSelector: '[data-no-transition]',
+    leaveGuardMs: 2500, reducedDurationMs: 70
   },
   pwa: {
     enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true, offlinePage: true, installPrompt: true, installDismissKey: 's-a2hs-dismissed', updateToastMs: 6000
@@ -212,11 +214,12 @@ const DEFAULT_FEATURES = {
     buttons: [],
     closeButton: { enabled: true, label: '知道了', labelEn: 'Got it', style: 'primary' },
     closeIcon: true, closeOnBackdrop: true, escToClose: true,
-    colors: { overlay: '', background: '', text: '', textSecondary: '', border: '', primary: '', primaryText: '', ghost: '' }
+    colors: { overlay: '', background: '', text: '', textSecondary: '', border: '', primary: '', primaryText: '', ghost: '' },
+    removeDelayMs: 240
   },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
-    touchLongPress: true, showHandleOnHover: true, resetOnLoadFail: true
+    touchLongPress: true, touchLongPressMs: 500, showHandleOnHover: true, resetOnLoadFail: true
   },
   exportBackup: {
     enabled: true, includeMedia: true, includeConfig: true, outputDir: 'exports',
@@ -308,7 +311,8 @@ const DEFAULT_FEATURES = {
     voiceBy: 'lang', readSelector: '.post-content', icon: 'speaker',
     highlightParagraph: false, position: 'toolbar',
     highlightReading: true, highlightClass: 'tts-highlight',
-    skipSelectors: 'pre, .katex, .mermaid'
+    skipSelectors: 'pre, .katex, .mermaid',
+    resumeIntervalMs: 500, resumeMaxTries: 3
   },
   wikiLinks: {
     enabled: true, unknownMode: 'text', unknownSuffix: '', openNewTab: false,
@@ -329,6 +333,9 @@ const DEFAULT_FEATURES = {
     lightTheme: 'default', darkTheme: 'dark', securityLevel: 'strict',
     copyAfterRender: false, errorText: '[图表渲染失败]', errorTextEn: '[Diagram failed to render]',
     mode: 'build', darkMode: true, chromePath: '',
+    idleTimeoutMs: 1500, idleFallbackMs: 200,
+    rerenderIdleTimeoutMs: 300, rerenderIdleFallbackMs: 60,
+    renderTimeoutMs: 10000,
     size: { width: '', height: '', minWidth: '320px', maxWidth: 'none', minHeight: '200px', maxHeight: 'none', fit: 'scroll' }
   },
   series: {
@@ -429,7 +436,7 @@ const DEFAULT_FEATURES = {
   background: {
     particles: {
       enabled: true, count: 72, speed: 0.5, linkDistance: 120,
-      opacity: 0.7, showLines: true, autoDisableMobile: false
+      opacity: 0.7, showLines: true, autoDisableMobile: false, mobileMaxWidth: 640
     }
   },
   motion: {
@@ -450,8 +457,8 @@ const DEFAULT_FEATURES = {
     letterSpacing: '0.02em', template: 'aurora', palette: 'theme', showCategory: true
   },
   guards: { enabled: true, preset: 'soft', contextMenu: true, copyGuard: true, selectionGuard: true, hotkeyGuard: true, watermark: true, devtoolsDetect: true, consoleGuard: true, privacyCurtain: true, tamperWatch: true, accessGate: true },
-  loading: { enabled: true, delayMs: 120, minShowMs: 250, maxShowMs: 2000, reducedMotion: 'skip', text: '', ariaBusy: true, spinner: true, spinnerStyle: 'orbit', showTitle: false, overlayColor: '', fadeMs: 380, zIndex: 3000 },
-  boot: { enabled: true, idleTimeoutMs: 800, interactionWake: true, log: false, budgetMs: 40, heavyMode: 'idle', idleFallbackMs: 120, interactionEvents: ['pointerdown', 'keydown', 'touchstart', 'wheel'] },
+  loading: { enabled: true, delayMs: 120, minShowMs: 250, maxShowMs: 2000, reducedMotion: 'skip', text: '', ariaBusy: true, spinner: true, spinnerStyle: 'orbit', showTitle: false, overlayColor: '', fadeMs: 380, zIndex: 3000, failsafeBufferMs: 60 },
+  boot: { enabled: true, idleTimeoutMs: 800, interactionWake: true, log: false, budgetMs: 40, heavyMode: 'idle', idleFallbackMs: 120, interactionEvents: ['pointerdown', 'keydown', 'touchstart', 'wheel'], configTimeoutMs: 3000 },
   imageFit: { enabled: true, content: { upscale: 'never', cap: 1.5, maxHeightVh: 0, align: 'center' }, cover: { fit: 'cover', position: 'center', maxHeightVh: 0, aspect: '', applyToCards: true }, gallery: { stretch: false, maxHeightPx: 0 }, lightbox: { fit: 'contain', maxWidthPct: 92, maxHeightVh: 82 } }
 };
 

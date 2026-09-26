@@ -36,7 +36,8 @@ const DEFAULT_TUNING = {
     "mobileBreakpoint": "768px",
     "tocHideBreakpoint": "900px",
     "tabletBreakpoint": "1024px",
-    "maxContentWidth": "1600px"
+    "maxContentWidth": "1600px",
+    "gridCollapseBreakpoint": "640px"
   },
   "radius": {
     "default": "0.618rem",
@@ -253,7 +254,8 @@ const DEFAULT_TUNING = {
   },
   "announcement": {
     "fontSize": "0.8125rem",
-    "letterSpacing": "0.015em"
+    "letterSpacing": "0.015em",
+    "height": "34px"
   },
   "guard": {
     "menuWidth": "232px",
@@ -272,6 +274,38 @@ const DEFAULT_TUNING = {
     "blurPx": "6px",
     "ringSize": "2rem",
     "titleSize": "1rem"
+  },
+  "zIndex": {
+    "header": "1000",
+    "mobileNav": "999",
+    "announcement": "999",
+    "mobileBottomNav": "1200",
+    "readingDock": "990",
+    "readingGear": "998",
+    "readerPanel": "1500",
+    "mobileToc": "999",
+    "mobileTocDrawer": "1500",
+    "kbdHelp": "1500",
+    "searchOverlay": "2000",
+    "navBoostPanel": "1200",
+    "presetPop": "1600",
+    "toast": "1200",
+    "scrollIndicator": "1100",
+    "readingTip": "10000",
+    "lightbox": "2000",
+    "reward": "1900",
+    "linkWarning": "3000",
+    "contactPopup": "4000",
+    "pwaInstall": "1050",
+    "softnavBusy": "2000",
+    "grain": "2000",
+    "guardMenu": "1900",
+    "guardFlash": "1890",
+    "guardCurtain": "1880",
+    "guardLock": "1895",
+    "guardGate": "1898",
+    "guardWmOverLightbox": "1700",
+    "popupNotice": "2100"
   }
 };
 

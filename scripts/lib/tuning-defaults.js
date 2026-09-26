@@ -25,6 +25,7 @@ const DEFAULT_TUNING = {
     "leadSize": "1.272em"
   },
   "layout": {
+    "articlePadding": "2rem",
     "containerWidth": "1250px",
     "tocWidth": "200px",
     "gap": "1.618rem",
@@ -98,6 +99,10 @@ const DEFAULT_TUNING = {
     "collapsedByDefault": "false"
   },
   "search": {
+    "overlayPadding": "12vh 1rem 2rem",
+    "modalPadding": "2.5rem 2.5rem 2rem",
+    "modalMaxHeight": "78vh",
+    "closeBtnSize": "36px",
     "modalWidth": "760px",
     "inputHeight": "56px",
     "inputFontSize": "1.375rem",
@@ -113,6 +118,15 @@ const DEFAULT_TUNING = {
   "reading": {
     "progressHeight": "3px",
     "dockBottom": "5.6rem",
+    "dockRight": "1.35rem",
+    "dockBtnSize": "40px",
+    "dockRightTablet": "1rem",
+    "dockBottomTablet": "6.4rem",
+    "gearBottom": "14.6rem",
+    "gearMobileBottom": "10.8rem",
+    "panelBottom": "13.2rem",
+    "panelWidth": "280px",
+    "dockMobileBottom": "14.2rem",
     "ttsRate": "1",
     "ttsPitch": "1",
     "fontSizeStep": "1",
@@ -141,6 +155,8 @@ const DEFAULT_TUNING = {
     "hairlineStrength": "30%"
   },
   "pagination": {
+    "btnMinWidth": "40px",
+    "btnHeight": "40px",
     "maxVisible": "5",
     "gap": ".5rem",
     "activeScale": "1.05",
@@ -204,6 +220,7 @@ const DEFAULT_TUNING = {
     "panelPadding": "1rem 1.25rem"
   },
   "backToTop": {
+    "hiddenOffset": "20px",
     "offsetBottom": "2rem",
     "offsetSide": "2rem"
   },
@@ -217,6 +234,7 @@ const DEFAULT_TUNING = {
     "heroStrengthDark": "12%"
   },
   "code": {
+    "windowDotSize": "11px",
     "borderWidth": "1px",
     "borderMix": "65%",
     "lineNumberColor": "var(--color-tl)",
@@ -249,6 +267,7 @@ const DEFAULT_TUNING = {
   },
   "commandPalette": {
     "width": "560px",
+    "listMaxHeight": "420px",
     "topOffset": "16vh",
     "backdropMix": "55%"
   },
@@ -274,6 +293,27 @@ const DEFAULT_TUNING = {
     "blurPx": "6px",
     "ringSize": "2rem",
     "titleSize": "1rem"
+  },
+  "mobileToc": {
+    "btnBottom": "6rem",
+    "btnRight": "2rem",
+    "btnMobileBottom": "7.4rem",
+    "btnMaxWidth": "340px",
+    "labelMaxWidth": "9.5rem"
+  },
+  "ui": {
+    "errorSvgMaxWidth": "460px",
+    "errorSuggestMaxWidth": "560px",
+    "errorCodeFontSize": "7rem"
+  },
+  "lightbox": {
+    "btnSize": "44px",
+    "btnOffset": "14px"
+  },
+  "toast": {
+    "maxWidth": "420px",
+    "radius": "999px",
+    "offsetBottom": "2rem"
   },
   "zIndex": {
     "header": "1000",

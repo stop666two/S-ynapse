@@ -995,3 +995,127 @@ test('模板接线：mermaid 复制反馈时长取 codeCopy.buttonTimeout（单�
   assert.ok(layout.includes('features.codeCopy&&features.codeCopy.buttonTimeout'), 'layout.ejs 应读取 codeCopy.buttonTimeout');
   assert.ok(!/b\.classList\.remove\('mm-copied'\)\},1500\)/.test(layout), '不得残留硬编码 1500');
 });
+
+// ---------------------------------------------------------------------------
+// 审计残余收敛：mermaid 客户端选项透传 / 水印断点单一来源 /
+// 触觉时长与存储键开放配置。
+// ---------------------------------------------------------------------------
+
+test('mermaidClientDefaults：字段与历史硬编码逐字一致', () => {
+  assert.deepStrictEqual(w.mermaidClientDefaults({ dark: false, fontFamily: 'A', scale: false }), {
+    startOnLoad: false,
+    securityLevel: 'strict',
+    theme: 'neutral',
+    fontFamily: 'A',
+    flowchart: { htmlLabels: false, useMaxWidth: false, curve: 'basis' },
+    sequence: { useMaxWidth: false },
+    gantt: { useMaxWidth: false },
+    er: { useMaxWidth: false },
+    class: { htmlLabels: false, useMaxWidth: false },
+    state: { htmlLabels: false, useMaxWidth: false },
+    themeVariables: { edgeLabelBackground: 'transparent' }
+  });
+  const dark = w.mermaidClientDefaults({ dark: true, fontFamily: '', scale: true });
+  assert.strictEqual(dark.theme, 'dark');
+  assert.strictEqual(dark.fontFamily, 'sans-serif', '空字体回退与模板一致');
+  assert.strictEqual(dark.flowchart.useMaxWidth, true);
+  assert.strictEqual(dark.class.useMaxWidth, true);
+});
+
+test('mergeMermaidClientOptions：默认快照合并 = 内建默认（默认行为不变）', () => {
+  assert.deepStrictEqual(features.mermaid.clientOptions, DEFAULT_FEATURES.mermaid.clientOptions, 'JSON5 与 schema 默认快照一致');
+  for (const dark of [false, true]) {
+    for (const scale of [false, true]) {
+      const base = w.mermaidClientDefaults({ dark: dark, fontFamily: "'Inter',sans-serif", scale: scale });
+      const merged = w.mergeMermaidClientOptions(base, DEFAULT_FEATURES.mermaid.clientOptions);
+      assert.deepStrictEqual(merged.options, base, 'dark=' + dark + ' scale=' + scale + ' 默认不得改变结果');
+      assert.deepStrictEqual(merged.warnings, []);
+    }
+  }
+  const none = w.mergeMermaidClientOptions(w.mermaidClientDefaults({}), undefined);
+  assert.deepStrictEqual(none.options, w.mermaidClientDefaults({}));
+  assert.deepStrictEqual(none.warnings, [], '未配置 = 默认，不告警');
+});
+
+test('mergeMermaidClientOptions：覆盖生效、未知键透传、非法类型忽略并告警', () => {
+  const base = w.mermaidClientDefaults({ dark: false, fontFamily: 'A', scale: false });
+  const ok = w.mergeMermaidClientOptions(base, {
+    securityLevel: 'loose',
+    theme: 'dark',
+    fontFamily: 'monospace',
+    flowchart: { curve: 'linear', unknownFlow: true },
+    themeVariables: { primaryColor: '#f00' },
+    totallyUnknown: { a: 1 }
+  });
+  assert.strictEqual(ok.options.securityLevel, 'loose');
+  assert.strictEqual(ok.options.theme, 'dark');
+  assert.strictEqual(ok.options.fontFamily, 'monospace');
+  assert.strictEqual(ok.options.flowchart.curve, 'linear');
+  assert.strictEqual(ok.options.flowchart.htmlLabels, false, '未覆盖的内建子键保留');
+  assert.strictEqual(ok.options.flowchart.unknownFlow, true, '未知子键透传');
+  assert.strictEqual(ok.options.themeVariables.primaryColor, '#f00');
+  assert.deepStrictEqual(ok.options.totallyUnknown, { a: 1 }, '未知顶层键透传');
+  assert.deepStrictEqual(ok.warnings, []);
+
+  const bad = w.mergeMermaidClientOptions(base, { securityLevel: 123, startOnLoad: 'no', flowchart: [1], themeVariables: null });
+  assert.strictEqual(bad.options.securityLevel, 'strict');
+  assert.strictEqual(bad.options.startOnLoad, false);
+  assert.deepStrictEqual(bad.options.flowchart, base.flowchart, '数组 vs 对象 = 类型非法，忽略');
+  assert.deepStrictEqual(bad.options.themeVariables, base.themeVariables, 'null 非法，忽略');
+  assert.deepStrictEqual(bad.warnings.slice().sort(), ['flowchart', 'securityLevel', 'startOnLoad', 'themeVariables']);
+
+  const scalar = w.mergeMermaidClientOptions(base, 'nope');
+  assert.deepStrictEqual(scalar.options, base);
+  assert.deepStrictEqual(scalar.warnings, ['clientOptions']);
+});
+
+test('watermarkMobileBreakpointPx：断点单一来源 = tuning.layout.mobileBreakpoint（默认 768）', () => {
+  const { DEFAULT_TUNING } = require('./lib/tuning-defaults.js');
+  const tuning = json5.parse(fs.readFileSync(path.join(ROOT, 'tuning.json5'), 'utf-8'));
+  assert.strictEqual(w.watermarkMobileBreakpointPx(DEFAULT_TUNING), 768);
+  assert.strictEqual(w.watermarkMobileBreakpointPx(tuning), 768);
+  assert.strictEqual(w.watermarkMobileBreakpointPx({ layout: { mobileBreakpoint: '640px' } }), 640);
+  assert.strictEqual(w.watermarkMobileBreakpointPx({ layout: { mobileBreakpoint: 900 } }), 900);
+  assert.strictEqual(w.watermarkMobileBreakpointPx({ layout: { mobileBreakpoint: '0' } }), 768);
+  assert.strictEqual(w.watermarkMobileBreakpointPx({ layout: { mobileBreakpoint: '' } }), 768);
+  assert.strictEqual(w.watermarkMobileBreakpointPx(undefined), 768);
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'domains', 'guard', 'watermark.js'), 'utf-8');
+  assert.ok(src.includes('layout') && src.includes('mobileBreakpoint'), 'watermark.js 应读取 tuning.layout.mobileBreakpoint');
+  assert.ok(!src.includes('max-width: 768px'), 'watermark.js 不得残留硬编码 768px 断点');
+});
+
+test('hapticDurationMs / storageKeyOr：默认=历史值、覆盖生效、0 禁用、空值回退', () => {
+  assert.strictEqual(w.hapticDurationMs(undefined), 10);
+  assert.strictEqual(w.hapticDurationMs(''), 10);
+  assert.strictEqual(w.hapticDurationMs('abc'), 10);
+  assert.strictEqual(w.hapticDurationMs(-5), 10);
+  assert.strictEqual(w.hapticDurationMs(0), 0, '0 = 禁用震动');
+  assert.strictEqual(w.hapticDurationMs(25), 25);
+  assert.strictEqual(w.hapticDurationMs('30'), 30);
+  assert.strictEqual(w.storageKeyOr(undefined, 's-dt-reload'), 's-dt-reload');
+  assert.strictEqual(w.storageKeyOr('  ', 's-dt-reload'), 's-dt-reload');
+  assert.strictEqual(w.storageKeyOr(' custom-key ', 's-lb-pos'), 'custom-key');
+});
+
+test('开放配置：features/guard 新键与 schema/注册表一致（默认 = 历史值）', () => {
+  const guard = json5.parse(fs.readFileSync(path.join(ROOT, 'guard.json5'), 'utf-8'));
+  const { DEFAULT_GUARD } = require('./lib/guard-defaults.js');
+  assert.strictEqual(features.lightbox.positionStorageKey, 's-lb-pos');
+  assert.strictEqual(DEFAULT_FEATURES.lightbox.positionStorageKey, 's-lb-pos');
+  assert.strictEqual(features.sidebarDrag.hapticMs, 10);
+  assert.strictEqual(DEFAULT_FEATURES.sidebarDrag.hapticMs, 10);
+  assert.strictEqual(guard.contextMenu.hapticMs, 10);
+  assert.strictEqual(DEFAULT_GUARD.contextMenu.hapticMs, 10);
+  assert.strictEqual(guard.devtoolsDetect.reloadStorageKey, 's-dt-reload');
+  assert.strictEqual(DEFAULT_GUARD.devtoolsDetect.reloadStorageKey, 's-dt-reload');
+  const lightboxSrc = fs.readFileSync(path.join(ROOT, 'js', 'domains', 'features', 'lightbox.js'), 'utf-8');
+  assert.ok(lightboxSrc.includes('positionStorageKey'), 'lightbox.js 应消费 positionStorageKey');
+  assert.ok(lightboxSrc.includes("'s-lb-pos'"), 'lightbox.js 缺省回退历史前缀');
+  const devtoolsSrc = fs.readFileSync(path.join(ROOT, 'js', 'domains', 'guard', 'devtools-detect.js'), 'utf-8');
+  assert.ok(devtoolsSrc.includes('reloadStorageKey'), 'devtools-detect.js 应消费 reloadStorageKey');
+  assert.ok(devtoolsSrc.includes("'s-dt-reload'"), 'devtools-detect.js 缺省回退历史键');
+  const sidebarSrc = fs.readFileSync(path.join(ROOT, 'js', 'domains', 'features', 'sidebar-drag.js'), 'utf-8');
+  assert.ok(sidebarSrc.includes('hapticMs'), 'sidebar-drag.js 应消费 hapticMs');
+  const menuSrc = fs.readFileSync(path.join(ROOT, 'js', 'domains', 'guard', 'context-menu.js'), 'utf-8');
+  assert.ok(menuSrc.includes('hapticMs'), 'context-menu.js 应消费 hapticMs');
+});

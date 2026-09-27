@@ -21,34 +21,38 @@ test('countLeaves：对象逐层展开、数组逐项、数组内对象不展开
   assert.strictEqual(countLeaves({ a: [] }), 0);
 });
 
-test('实测计数：features 97 模块/936 项、tuning 37 分类/273 项、全仓 2718 项', () => {
+test('实测计数：features 97 模块/944 项、tuning 37 分类/273 项、全仓 2728 项', () => {
   const { perFile, total } = countConfigFiles(ROOT, ALL_CONFIG_FILES);
   assert.strictEqual(perFile['features.json5'].topKeys, 97, 'features 模块数');
-  assert.strictEqual(perFile['features.json5'].items, 936, 'features 配置项');
+  assert.strictEqual(perFile['features.json5'].items, 944, 'features 配置项');
   assert.strictEqual(perFile['tuning.json5'].topKeys, 37, 'tuning 分类数');
   assert.strictEqual(perFile['tuning.json5'].items, 273, 'tuning 配置项');
   assert.strictEqual(perFile['guard.json5'].topKeys, 11, 'guard 模块数');
-  assert.strictEqual(total, 2718, '14 个配置文件总项数');
+  assert.strictEqual(perFile['guard.json5'].items, 179, 'guard 配置项');
+  assert.strictEqual(total, 2728, '14 个配置文件总项数');
 });
 
 test('README：总数/features/tuning 计数与实测一致，无旧计数残留', () => {
   const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf-8');
   const totalMatch = /实测 (\d+) 项/.exec(readme);
   assert.ok(totalMatch, 'README 应声明「实测 N 项」');
-  assert.strictEqual(Number(totalMatch[1]), 2718, 'README 总项数');
+  assert.strictEqual(Number(totalMatch[1]), 2728, 'README 总项数');
   const featMatch = /\*\*(\d+) 个模块、(\d+) 个配置项\*\*/.exec(readme);
   assert.ok(featMatch, 'README 应声明 features 模块数/配置项数');
   assert.strictEqual(Number(featMatch[1]), 97, 'README features 模块数');
-  assert.strictEqual(Number(featMatch[2]), 936, 'README features 配置项');
+  assert.strictEqual(Number(featMatch[2]), 944, 'README features 配置项');
   const tunMatch = /（(\d+) 分类 \/ (\d+) 项）/.exec(readme);
   assert.ok(tunMatch, 'README 应声明 tuning 分类数/项数');
   assert.strictEqual(Number(tunMatch[1]), 37, 'README tuning 分类数');
   assert.strictEqual(Number(tunMatch[2]), 273, 'README tuning 项数');
-  assert.ok(readme.includes('97 模块/936 项'), 'README 目录树 features 计数应同步');
+  assert.ok(readme.includes('97 模块/944 项'), 'README 目录树 features 计数应同步');
   assert.ok(readme.includes('37 分类/273 项'), 'README 目录树 tuning 计数应同步');
-  assert.ok(readme.includes('11 个模块/177 项'), 'README 目录树 guard 计数应同步');
+  assert.ok(readme.includes('11 个模块/179 项'), 'README 目录树 guard 计数应同步');
   assert.ok(!readme.includes('2692'), 'README 不得残留旧总数 2692');
   assert.ok(!readme.includes('919 项'), 'README 不得残留旧 features 计数 919');
+  assert.ok(!readme.includes('936 项'), 'README 不得残留旧 features 计数 936');
+  assert.ok(!readme.includes('177 项'), 'README 不得残留旧 guard 计数 177');
+  assert.ok(!readme.includes('2718'), 'README 不得残留旧总数 2718');
 });
 
 test('config-reference：tuning 章节计数与 search 分类计数与实测一致', () => {

@@ -6,8 +6,8 @@
 //   1. 确认远端已存在该 tag（gh release create --verify-tag 同样要求）；
 //   2. 读取 tag 指向的 RELEASE.json 并执行与 CI 相同的双重校验（status/version/commit/checks）；
 //   3. 生成或复用 release-artifacts/S-ynapse-<version>.zip（白名单 + 版本一致性校验通过）；
-//   4. 调用 gh release create 附加 zip 创建 GitHub Release（预发布版本加 --prerelease）；
-//   5. 按「只保留最新版本」策略清理其余 Release 及其 tag（release-prune）。
+//   4. 调用 gh release create --latest 附加 zip 创建 GitHub Release（预发布版本号同样置为 Latest）；
+//   5. 按「只保留最新版本」策略清理其余 Release 与远端 v* tag（release-prune）。
 //
 // 注意：Actions 通道在 tag 推送时已自动创建 Release；两条通道二选一，避免重复创建。
 // 用法：npm run release:publish -- vX.Y.Z
@@ -89,10 +89,10 @@ function main() {
   const ghArgs = [
     'release', 'create', tag, zip,
     '--verify-tag',
+    '--latest',
     '--title', 'S-ynapse ' + tag,
     '--notes', notes
   ];
-  if (version.includes('-')) ghArgs.push('--prerelease');
   const gh = spawnSync('gh', ghArgs, { cwd: ROOT, stdio: 'inherit' });
   if (gh.error) {
     throw new Error('无法执行 gh（请安装并 gh auth login）：' + gh.error.message);
@@ -102,14 +102,16 @@ function main() {
   }
   console.log('[release:publish] 已创建 Release ' + tag + '，附件 ' + zip);
 
-  // 发布策略：只保留最新版本——清理其余 Release 及其远端 tag。
+  // 发布策略：只保留最新版本——先清理其余 Release，再清理远端其余 v* tag。
   const pruned = pruneOlderReleases({ keep: tag });
-  if (pruned.failed.length > 0) {
-    console.error('[release:publish] Release 已创建，但 ' + pruned.failed.length + ' 个旧 Release 删除失败（单版本策略未完全生效）：');
-    for (const failure of pruned.failed) console.error('  - ' + failure.tag + '：' + failure.message);
+  const pruneFailures = pruned.failed.concat(pruned.tagsFailed);
+  if (pruneFailures.length > 0) {
+    console.error('[release:publish] Release 已创建，但 ' + pruneFailures.length + ' 项旧版清理失败（单版本策略未完全生效）：');
+    for (const failure of pruneFailures) console.error('  - ' + failure.tag + '：' + failure.message);
     throw new Error('旧版清理失败，请手动执行 npm run release:prune -- --keep ' + tag);
   }
-  console.log('[release:publish] 旧版清理完成：仅保留 ' + tag + '（删除 ' + pruned.deleted.length + ' 个）');
+  console.log('[release:publish] 旧版清理完成：仅保留 ' + tag +
+    '（删除 Release ' + pruned.deleted.length + ' 个、远端 tag ' + pruned.tagsDeleted.length + ' 个）');
 }
 
 try {

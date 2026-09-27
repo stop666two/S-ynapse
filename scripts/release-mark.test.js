@@ -205,7 +205,7 @@ test('release-mark --dry-run：显式预发布版本（核心等于当前）被�
   assert.strictEqual(result.status, 0, '预发布 dry-run 应成功：' + (result.stderr || ''));
   assert.ok(result.stdout.includes(target), '应输出目标版本 ' + target);
   assert.ok(result.stdout.includes('预发布'), '应标明预发布发布类型');
-  assert.ok(result.stdout.includes('prerelease'), '应说明 GitHub Release 标记为 prerelease');
+  assert.ok(result.stdout.includes('Latest'), '应说明 GitHub Release 以 Latest 发布');
   assert.ok(result.stdout.includes('npm version --no-git-tag-version'), '预发布不是同版本标记，应执行版本同步');
   assertNoWrites(before);
 });

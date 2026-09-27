@@ -7,7 +7,7 @@ name: Release
 #               RELEASE.json = package.json = tag 三方版本一致
 #   buildability 解压归档 → npm ci --ignore-scripts → npm test → npm run build，
 #               断言关键产物（失败即不发布）
-#   publish     建 GitHub Release（预发布加 --prerelease）→ 清理其余 Release 及其 tag（只保留最新）
+#   publish     建 GitHub Release（始终 --latest，不按预发布标记）→ 清理其余 Release 与远端 v* tag（只保留最新）
 # 站点部署由 deploy.yml 独立负责（触发条件限定 branches: [main]），tag 推送不会触发部署。
 on:
   push:
@@ -146,13 +146,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          prerelease_flag=""
-          case "$GITHUB_REF_NAME" in
-            *-*) prerelease_flag="--prerelease" ;;
-          esac
           gh release create "$GITHUB_REF_NAME" release-artifacts/S-ynapse-*.zip \
             --verify-tag \
-            $prerelease_flag \
+            --latest \
             --title "S-ynapse $GITHUB_REF_NAME" \
             --notes "经人工核验与全套质量门禁验证的版本；归档已通过解压可构建校验。校验依据见 tag 内 RELEASE.json。"
       - name: Prune older releases (keep latest only)

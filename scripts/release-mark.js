@@ -113,7 +113,7 @@ function printUsage() {
   console.log('  同版本标记        显式版本且等于当前 package.json 版本时，跳过 npm version，');
   console.log('                    为当前版本建首个 Release（CHANGELOG [Unreleased] 合并进已有版本段）');
   console.log('  预发布标记        显式 X.Y.Z-<预发布>（如 1.1.0-a1）；当前版本不带预发布时可标记');
-  console.log('                    同核心版本的预发布，GitHub Release 将标记为 prerelease');
+  console.log('                    同核心版本的预发布，GitHub Release 以 Latest 发布（版本名保留预发布标识）');
 }
 
 // 人工核验与确认参数的共享校验：提前执行一次避免跑完门禁才因命令行缺失失败。
@@ -205,7 +205,7 @@ function printDryRun(options, currentVersion, targetVersion, sameVersion, change
     console.log('  package.json / package-lock.json → ' + targetVersion + '（npm version --no-git-tag-version）');
   }
   console.log('  发布类型：' + (targetVersion.includes('-')
-    ? '预发布（v' + targetVersion + '，GitHub Release 将标记为 prerelease）'
+    ? '预发布（v' + targetVersion + '，GitHub Release 以 Latest 发布）'
     : '正式版（v' + targetVersion + '）'));
   console.log('  人工核验：' + options.humanVerifiedBy.trim());
   console.log('  门禁（dry-run 跳过，正式执行 ' + RELEASE_GATES.length + ' 项）：');

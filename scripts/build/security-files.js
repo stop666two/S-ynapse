@@ -79,7 +79,7 @@ function generateRedirects(config, customPages) {
   return valid;
 }
 
-/** CSP 裁剪上下文：giscus 是否真正启用、统计 token 是否配置、外链资源引用（决定保留哪些可选域名）。 */
+/** CSP 裁剪上下文：giscus 是否真正启用、统计 token 是否配置、一言 API 是否启用、外链资源引用（决定保留哪些可选域名）。 */
 function buildCspTrimContext(config) {
   const site = config.site || {};
   const features = config.features || {};
@@ -87,10 +87,13 @@ function buildCspTrimContext(config) {
   const comments = site.comments || {};
   const fComments = features.comments || {};
   const fGiscus = features.giscus || {};
+  const fQuote = features.dailyQuote || {};
+  const quoteApi = fQuote.api || {};
   const wa = site.webAnalytics || {};
   return {
     giscusNeeded: !!(comments.enabled === true && comments.provider === 'giscus' && fComments.enabled !== false && fGiscus.enabled !== false),
     analyticsNeeded: !!(wa.enabled !== false && wa.token),
+    hitokotoNeeded: !!(fQuote.enabled !== false && quoteApi.enabled !== false),
     externalAssets: theme.externalAssets || {}
   };
 }

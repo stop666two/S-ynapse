@@ -27,11 +27,12 @@
 
     // 构建期自动裁剪未使用域名
     // 作用: 生成 _headers 与 Worker 配置时，按实际启用的功能移除 directives 中
-    //   未使用的可选域名（giscus.app / cdn.jsdelivr.net / fonts.googleapis.com / fonts.gstatic.com）
+    //   未使用的可选域名（giscus.app / cdn.jsdelivr.net / fonts.googleapis.com / fonts.gstatic.com /
+    //   v1.hitokoto.cn / static.cloudflareinsights.com / cloudflareinsights.com）
     // 何时开: 默认开启（最小权限，未启用的能力不应留在 CSP 白名单里）
     // 何时关: 需要完全手动接管域名清单（自定义第三方资源未写进 theme.externalAssets 时），
     //   或排查第三方资源被裁剪问题时临时设为 false 对照
-    // 类型: boolean | 可填: true(推荐)/false | 裁剪只涉及上述四个已知域名，自加域名永远保留
+    // 类型: boolean | 可填: true(推荐)/false | 裁剪只涉及上述已知域名，自加域名永远保留
     "autoTrim": true,
 
     // 指令列表（均为 string[];空数组的指令会被跳过）
@@ -68,7 +69,10 @@
       // 字体来源（Google Fonts 字体文件 / jsdelivr 兜底;本地 vendor 字体为同源）
       "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
       // 网络请求来源（fetch/XHR/beacon；CF 统计上报域名仅 webAnalytics 配置 token 时由 autoTrim 保留）
-      "connect-src": ["'self'", "https://cloudflareinsights.com"],
+      // 可填: 同源；CF 统计（cloudflareinsights.com）；一言 API（v1.hitokoto.cn，仅
+      //   features.dailyQuote.enabled 与 features.dailyQuote.api.enabled 均非 false 时由 autoTrim 保留）
+      // 不可填: 未计划直连的第三方域名（会被浏览器拦截；新增直连能力时同步登记到 autoTrim 规则）
+      "connect-src": ["'self'", "https://cloudflareinsights.com", "https://v1.hitokoto.cn"],
       // 音视频来源 | 推荐: ["'self'"]（媒体文件均本地化）
       "media-src": ["'self'"],
       // 插件对象来源（<object>/<embed>） | 推荐: ["'none'"]（彻底禁用,防老式 XSS）

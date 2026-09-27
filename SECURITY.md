@@ -24,6 +24,7 @@ Cloudflare Pages（CI 推送）为备用路径。本文件说明支持范围、�
   缺失）会用 Worker 内置 FALLBACK：`script-src` 同步移除 `'unsafe-inline'`（fail-closed），
   `style-src` 因无构建期 nonce 可注入而保留 `'unsafe-inline'` 以保障降级页可读——正式产物会覆盖。
 - **压缩功能无安全面变化**：`compression.json5` 仅重写 `dist/` 文本产物的字节（压缩、去空白、同页样式合并去重），发生在消毒与 CSP nonce 注入之后，不改变安全语义；`assets/vendor/**`、媒体与报告文件默认豁免（原字节复制）；JS 混淆默认关闭，开启时仅作用于本轮自研 bundle（vendor 与 `runtime` 引导脚本排除），且混淆不是安全边界——客户端代码始终可被分析。无头对比门禁失败时自动回退未压缩基线产物，安全性不降级。
+- **第三方运行时请求（每日一言）**：仅当 `features.dailyQuote.api.enabled` 非 `false`、访客在中文页且点击「换一句」时，浏览器直连 `features.dailyQuote.api.endpoint`（默认 `https://v1.hitokoto.cn/`，HTTPS、免 key、不带站点/用户标识）；CSP `connect-src` 由构建期按该开关自动保留/裁剪该域名（`scripts/lib/csp.js` 与 `scripts/build/security-files.js` 的 `buildCspTrimContext`）。请求失败/超时/非 2xx/字段非法/离线一律静默回退本地随机，英文页从不发起请求；关闭该开关后产物中不保留任何相关域名与请求路径。
 - **accessGate（`guard.json5`）是软防护，不是访问控制**：密码哈希与解锁码内联在
   前端产物中，`?guard=off` 与 localStorage 伪造均可绕过；关闭 JavaScript 或直接
   读取 HTML 也能看到内容。请勿用它保护机密数据——需要真实门禁请使用

@@ -98,7 +98,7 @@ function applyHeaderHardening(security) {
  * pathRestrictions: [] = 无受保护路径；skipPaths: [] = 不跳过任何路径（严格计数）。
  * 仅当字段缺失（undefined）时才回退到 Worker 内置兜底（fail-closed）。
  * @param {Object} security security.json5 解析结果
- * @param {{giscusNeeded?: boolean, externalAssets?: Object}} [cspContext] CSP 裁剪上下文；
+ * @param {{giscusNeeded?: boolean, analyticsNeeded?: boolean, hitokotoNeeded?: boolean, externalAssets?: Object}} [cspContext] CSP 裁剪上下文；
  *   传入时按实际启用功能裁剪可选域名（与 _headers 层保持一致）；不传则原样输出。
  * @param {Object} [features] features.json5 解析结果；传入时携带 maintenance（Retry-After 开关与秒数）。
  */

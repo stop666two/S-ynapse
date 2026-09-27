@@ -10,6 +10,8 @@
 //   · https://cdn.jsdelivr.net    → 仅当 theme.externalAssets 中确有引用该域的资源
 //   · https://fonts.googleapis.com→ 仅当 externalAssets.styles 引用 Google Fonts
 //   · https://fonts.gstatic.com   → 同上，或 externalAssets.fontPreloads 引用 gstatic
+//   · https://v1.hitokoto.cn      → 仅当 features.dailyQuote.enabled 与
+//       features.dailyQuote.api.enabled 均非 false（「换一句」会直连一言）时保留
 //   · https://static.cloudflareinsights.com / https://cloudflareinsights.com
 //     → 仅当 site.webAnalytics.enabled 且已配置 token（context.analyticsNeeded）时保留；
 //       若在 Cloudflare 面板另开 Web Analytics 而不在 site.json5 配置 token，
@@ -22,6 +24,7 @@ const GISCUS = 'https://giscus.app';
 const JSDELIVR = 'https://cdn.jsdelivr.net';
 const GFONTS = 'https://fonts.googleapis.com';
 const GSTATIC = 'https://fonts.gstatic.com';
+const HITOKOTO = 'https://v1.hitokoto.cn';
 const INSIGHTS_STATIC = 'https://static.cloudflareinsights.com';
 const INSIGHTS_REPORT = 'https://cloudflareinsights.com';
 
@@ -43,7 +46,7 @@ function externalBlob(externalAssets) {
 /**
  * 裁剪 CSP 指令。
  * @param {Object} directives 原始指令对象（key → string[]）
- * @param {{giscusNeeded?: boolean, analyticsNeeded?: boolean, externalAssets?: Object}} [context] 功能开关上下文；
+ * @param {{giscusNeeded?: boolean, analyticsNeeded?: boolean, hitokotoNeeded?: boolean, externalAssets?: Object}} [context] 功能开关上下文；
  *   缺省视为全部可选域名不使用（最严格）。
  * @returns {Object} 新指令对象（已裁剪；空指令被移除）
  */
@@ -56,6 +59,7 @@ function trimCspDirectives(directives, context) {
     [JSDELIVR]: blob.indexOf(JSDELIVR) > -1,
     [GFONTS]: blob.indexOf(GFONTS) > -1,
     [GSTATIC]: blob.indexOf(GSTATIC) > -1 || blob.indexOf(GFONTS) > -1,
+    [HITOKOTO]: ctx.hitokotoNeeded === true,
     [INSIGHTS_STATIC]: ctx.analyticsNeeded === true,
     [INSIGHTS_REPORT]: ctx.analyticsNeeded === true
   };

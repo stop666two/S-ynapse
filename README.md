@@ -70,8 +70,8 @@
 
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
-- 构建报告：每次构建生成 `build-report.html` 含详细统计（含内容策略拦截清单）
-- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（267 项 / 54 组）；`npm run lint` 提供 ESLint 静态检查
+- 构建报告：每次构建生成 `build-report.html`（详细统计 + 内容策略拦截清单）与 `report.txt`（阶段耗时、压缩前后 raw/gzip 对照、无头验证摘要、告警与预算结论）
+- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（581 项 / 106 组）；`npm run lint` 提供 ESLint 静态检查
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -375,7 +375,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 | 11 | 压缩 | 压缩 HTML（@minify-html）、CSS（CleanCSS）、JS（Terser）；此前先完成前端资产拷贝（js/ ESM → `dist/assets/js/`，vendor 与 KaTeX 字体 → `dist/assets/vendor/`） |
 | 12 | 缓存破坏 | MD5 内容哈希重命名文件，更新 HTML 引用 |
 | 13 | PWA | manifest.json + Service Worker（启用时；执行顺序在压缩之前） |
-| 14 | 构建报告 | build-report.html（耗时/文章数/体积/功能状态/内容策略拦截清单） |
+| 14 | 构建报告 | build-report.html（耗时/文章数/体积/功能状态/内容策略拦截清单）+ report.txt（阶段耗时/压缩前后体积对照/验证摘要/告警/预算结论；位于压缩与哈希之后，天然豁免） |
 
 > **执行顺序说明**：日志编号按功能命名输出；实际调用顺序中 13（PWA）先于 11（压缩）执行；Pagefind 索引（可选）在缓存破坏之后生成且不占独立编号。
 
@@ -468,9 +468,10 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（313 项 / 70 组） |
+| `npm test` | 运行单元测试（581 项 / 106 组） |
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前总量约 98%） |
-| `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物与 CSP nonce；CI 运行，不进 `npm test`） |
+| `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、CSP nonce 与 report.txt 两态；CI 运行，不进 `npm test`） |
+| `npm run verify:compression` | 压缩无头对比门禁（完整构建 + 压缩产物 vs 未压缩副本的 DOM/样式/控制台/交互断言；passed=0、failed=1、skipped=0；`--out`/`--chrome`/`--keep-baseline`/`--json` 可选） |
 | `npm run sbom` | 生成 CycloneDX 1.5（ECMA-424）SBOM → `build-artifacts/sbom.cdx.json`（不入库；CI 上传为 `sbom-cyclonedx` artifact） |
 | `npm run lint` | ESLint 静态检查（js/scripts/workers；CI 门禁） |
 | `npm run audit` | 依赖漏洞扫描（固定官方 registry：本机 npm 镜像会阻断 audit 接口） |
@@ -487,7 +488,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 313 项 / 70 组，全部通过
+npm test            # 581 项 / 106 组，全部通过
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
 npm run typecheck   # TypeScript checkJs（scripts/lib，渐进引入）
@@ -535,7 +536,7 @@ npm run verify:security   # 集成安全回归
 | sbom | 14 | CycloneDX 1.5 构建：组件计数/purl 编码/SHA-512 哈希/去重 bom-ref/稳定排序/落盘 |
 | config-consistency（无 describe，顶层用例） | 7 | features 值与结构/死键判定 |
 
-> `npm test` 共 **313 项 / 70 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
+> `npm test` 共 **581 项 / 106 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
 
 ### SBOM（软件物料清单）
 

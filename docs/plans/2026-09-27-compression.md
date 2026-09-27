@@ -47,9 +47,9 @@ compression: {
 - **C3 CSS 合并去重** ✅ 已完成（2026-09-27，收口记录见「七、C3/C4 进度与偏差」）：`scripts/lib/css-merge.js` 纯函数（合并 + 保守去重）+ 增强阶段接线 + 36 例单测 + 冒烟断言。
 - **C4 JS 混淆** ✅ 已完成（2026-09-27，收口记录见「七、C3/C4 进度与偏差」）：`javascript-obfuscator` 5.8.0 惰性加载 + preset/seed 装配 + 白名单与内容寻址重命名 + 13 例单测 + 无头 runner（17 PASS）。
 - **C5 门禁与回退** ✅ 已完成（2026-09-27，收口记录见「八、C5 进度与偏差」）：`compression.verify.headless` 时构建后跑关键页对比（压缩产物 vs 未压缩临时副本）：DOM 归一化哈希、采样元素计算样式、0 控制台错误、关键交互冒烟；不一致 → 用未压缩产物覆写 + `[WARN]` + 报告条目；`scripts/verify-compression.js` + CI 步骤。
-- **C6 WASM 评估**：`docs/wasm-eval.md`（基准表：CleanCSS vs lightningcss、Terser vs oxc-minify 的体积/耗时；结论与建议），不动生产依赖。
-- **C7 报告与文档**：`dist/report.txt`（构建时间、压缩前后体积对照 gzip/raw、节省率、告警、未达标项）+ CHANGELOG + README/架构文档更新。
-- **C8 验收**：目标核对（HTML gzip −10%、JS −20%、≤8s）；无头全页回归（复用 a11y/softnav/搜索 runner 模式）；部署确认。
+- **C6 WASM 评估** ✅ 已完成（2026-09-27，收口记录见「九、C6/C7 进度与偏差」）：`docs/wasm-eval.md`（基准表：CleanCSS vs lightningcss、Terser vs oxc-minify 的体积/耗时；结论「暂不切换生产」与重新评估触发条件），不动生产依赖。
+- **C7 报告与文档** ✅ 已完成（2026-09-27，收口记录见「九、C6/C7 进度与偏差」）：`dist/report.txt`（阶段耗时、压缩前后体积对照 gzip/raw、节省率、验证摘要、告警、预算与目标对照）+ `scripts/lib/build-report-text.js` 纯函数与单测 + 集成断言 + CHANGELOG + README/架构/配置文档更新。
+- **C8 验收**：目标核对（HTML gzip −10%、JS −20%、≤8s；口径待用户拍板——见「九」的待验证点）；无头全页回归（复用 a11y/softnav/搜索 runner 模式）；部署确认。
 
 ## 五、验收标准
 
@@ -134,6 +134,18 @@ compression: {
 - runner 回退演示：注入破坏 → `status=failed`、`fallback={applied:true, restored:110, removed:0, bytesIdentical:true}`、构建 exit 0、破坏标记消失；基线快照与回退产物 assets+feed.json 22 文件逐字节一致。
 - 关闭态不产出验证结果文件；看门狗空闲 4s 自退且端口释放；watch 覆盖缺失进程存活 ≥9s。
 
-**未闭环（留待后续）**
+## 九、C6/C7 进度与偏差
 
-- C7 报告未实装：验证摘要目前进入 `.cache/compression-verify/last.json` 与构建日志（`[WARNINGS]` 尾部），尚未进入 `dist/report.txt`/`build-report.html`；C8 目标考核（HTML gzip −10%、JS −20%、构建 ≤8s）受验证耗时影响需在 C8 中一并评估（本机验证 7–14s、构建基线压缩 ~8s）。
+**完成范围（2026-09-27）**
+
+- **C6**：`docs/wasm-eval.md`。默认态 `--out` 构建样本（`assets/css/*.css` 与 `assets/js/{app,deferred,runtime}*.js`），Node API 直调（工具隔离安装 `.cache/wasm-eval/tools`，`package.json`/lock 零改动），每工具预热 1 次 + 计时 3 次取中位，gzip -9。合计结果：CSS gzip 现状 49,090B → lightningcss 49,000B（再省 0.18%，耗时 12.20ms vs CleanCSS 119.03ms）；JS gzip 现状 60,086B → oxc 57,771B（再省 3.85%，耗时 20.82ms vs Terser 700.63ms；体积比 Terser 输出大 0.76%）。结论：暂不切换生产 + 4 条触发条件。关键发现：`templates/site-css.ejs:206` 悬垂逗号（`.cal-cell:hover` 规则被浏览器丢弃）、`runtime.*.js` 未压缩（两工具可省约 24-25%）、两候选均为原生 NAPI 二进制（非 WASM）与许可证信息。
+- **C7**：`scripts/lib/build-report-text.js` 纯渲染库（5 个固定段标 + 缺失容错，15 例单测）；`scripts/build/minify.js` 压缩阶段前后分类快照（raw/gzip/哈希差分 → 变更/新增/移除/跳过/豁免）随 `minifyAll` 返回；`scripts/build.js` 阶段计时与摘要写出；`scripts/build/report.js` `writeBuildReportText` + `checkPerfBudget` 返回预算结果复用；`scripts/lib/dist-hash.js` 默认忽略 `report.txt`；`scripts/build-smoke.test.js` 两态断言；README/config-reference/architecture/CHANGELOG 更新。
+- **实测证据**：`.cache/c7-check` 默认态全流程构建 exit 0（含无头验证 PASS 6 页），report.txt 实录：阶段耗时（压缩增强 28.02s 含验证 23.23s、页面 4.44s、其它 2.65s…）、HTML 84 页 raw 4.42→4.01MB（节省 9.28%）/ gzip 1014.5→960.6KB（节省 5.31%）、CSS 7 文件 gzip 0.53%、JS 13 文件 0%、JSON 2 文件 gzip 0.25%、perfBudget 1 项 OVER（HTML 单页 gzip 34.0/28.0KB）、压缩目标现状值 HTML 5.31% / JS 0.00%。
+- **门禁**：`npm test` 581/581（106 suites）、`npm run test:build` 3/3、`npm run lint` 0 错、`npm run typecheck` 0 错、`verify:config` / `verify:config-refs` PASS。
+
+**待验证点（C8 前置，需用户拍板口径）**
+
+1. **压缩目标口径**：HTML gzip ≥10% 与 JS gzip ≥20% 应以「压缩增强关闭态对照构建」为基准核定；report.txt 当前输出的是**本阶段**（含基线压缩）口径，实测 HTML 5.31%、JS 0.00%（打包态 esbuild 已压缩，属预期）。
+2. **构建时长是否含无头验证**：`≤8s` 目标在验证开启时必然超出（本次 37.21s，其中无头验证 23.23s；验证关闭时构建约 13s）。需用户决定目标按「纯构建」还是「构建+验证」口径考核，或在 C8 调整验证策略（并行/采样/CI 条件执行已是现状）。
+3. **顺带缺陷（非本次修复范围）**：`templates/site-css.ejs:206` 悬垂逗号导致 `.cal-cell:hover` 悬停效果失效，建议独立缺陷修复 + 回归断言；`runtime.*.js` 未压缩，可评估压缩+改名同步哈希引用。
+4. **无头全页回归与部署确认**：C8 按计划复用 a11y/softnav/搜索 runner 模式执行回归，再行部署确认。

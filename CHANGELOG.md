@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **WASM 压缩器替换评估（压缩 C6，2026-09-27）**：新增 `docs/wasm-eval.md`——在默认态 `--out` 构建产物上基准 CSS（clean-css 5.3.3 vs lightningcss 1.33.0）与 JS（terser 5.49.0 vs oxc-minify 0.151.0），每工具每文件预热 1 次后计时 3 次取中位，输出 raw/gzip-9/耗时与相对现状节省率。结果：CSS 合计 gzip 仅再省 0.18%（lightningcss 耗时约为 CleanCSS 的 1/10）；JS 合计 gzip 再省 3.85%（oxc 耗时约为 Terser 的 1/34，但输出体积略大 0.76%）。关键发现：① `templates/site-css.ejs:206` 存在悬垂逗号（`…var(--td)},.cal-cell:hover{…}`），浏览器同样丢弃该 `:hover` 规则，lightningcss 严格解析如实报错、CleanCSS/Terser 不校验选择器故放过；② `runtime.*.js` 为未压缩源码（两工具均可再省约 24-25%）；③ 两者均为 Rust 原生 NAPI 二进制（非 WASM），许可证 lightningcss MPL-2.0 / oxc MIT。结论：暂不切换生产（收益有限、严格解析需配套修复、当前规模无耗时瓶颈），并给出 4 条重新评估触发条件；评估工具隔离安装于 `.cache/wasm-eval/tools`，`package.json`/`package-lock.json` 零改动。
+- **构建摘要 `dist/report.txt`（压缩 C7，2026-09-27）**：
+  - **纯渲染库**：新增 `scripts/lib/build-report-text.js`（固定段落：阶段耗时 / 压缩统计 / 无头验证 / 告警 / 预算与目标；缺失字段一律「未记录/未运行/（无）」容错；`scripts/build-report-text.test.js` 15 例覆盖段渲染、缺失容错、失败+回退/跳过分支与格式化边界）。
+  - **压缩统计采集**：`scripts/build/minify.js` 在压缩阶段前后各做一次分类快照（HTML/CSS/JS/JSON 的 raw/gzip/内容哈希），差分产出变更/新增/移除/跳过/豁免计数与前后体积，随 `minifyAll` 返回；`minifyAll` 无头验证是否运行以 `verificationRan` 上报。
+  - **构建接线**：`scripts/build.js` 新增阶段计时（配置/预校验/页面/媒体/OG/压缩增强/cacheBust/PWA/报告/其它），报告阶段调用 `writeBuildReportText`（`scripts/build/report.js`；验证摘要仅在本轮实际运行时读取 `.cache/compression-verify/last.json`，`checkPerfBudget` 改为返回预算结果供摘要复用）。
+  - **产物护栏**：`scripts/lib/dist-hash.js` 默认忽略项新增 `report.txt`（与 `build-report.html`/`og/` 同为非确定性产物），`scripts/dist-hash.test.js` 同步。
+  - **集成断言**：`scripts/build-smoke.test.js` 断言两态（增强开/关）均产出 `report.txt`、含固定段标（头部、`[阶段耗时]`、`[压缩统计]`、`[无头验证]`、`[告警]`、`[预算与目标]`）且关闭态标注「压缩增强: 关闭」。
+  - **文档**：README 命令表补 `verify:compression`、测试计数按实测更新（581 项 / 106 组）、构建管线第 14 步与特性清单补 report.txt；`docs/config-reference.md` compression 章节补 report.txt 摘要内容与产物护栏说明；`docs/architecture.md` 产物列表与报告门禁补 report.txt。
+  - **门禁与实录**：`npm test` 581/581（106 suites）、`npm run test:build` 3/3、`npm run lint`/`npm run typecheck` 0 错、`verify:config`/`verify:config-refs` PASS；`.cache/c7-check` 默认态全流程构建 exit 0，report.txt 实录阶段耗时、压缩统计（HTML 84 页 raw 4.42→4.01MB / gzip 1014.5→960.6KB）、无头验证 PASS（6 页）与 perfBudget/压缩目标对照。
 - **压缩无头对比门禁与失败自动回退（压缩 C5，2026-09-27）**：
   - **门禁**：增强阶段前把将被增强触及的 dist 文本产物（HTML/CSS/JS/JSON）快照到 `.cache/compression-baseline/`；增强完成后、cacheBust 之前启动两个本地静态服务（压缩产物 / 基线叠加层，端口系统分配且互异，子进程注入 `SYNAPSE_SERVE_PARENT_PID`/`SYNAPSE_SERVE_IDLE_MS`/`SYNAPSE_SERVE_MAX_MS` 看门狗），系统 Chrome（`puppeteer-core`）逐页断言 6 页集（`/zh/`、`/en/`、首页发现的文章、`/zh/search/`、`/zh/archive/`、`/zh/404.html`）：静态页（关 JS 隔离运行时注入）DOM 归一化结构一致（白名单仅内联 `<style>` 剔除、nonce 归一化、app/deferred 哈希归一化）、可见元素前 80 个计算样式一致、两态 0 控制台错误（唯一过滤 favicon 噪声）、压缩态软导航/搜索/主题交互冒烟；混淆开启时追加 `__T`/`__SB` 与 deferred 动态加载断言。验证先于 cacheBust，回退后参与内容哈希的即回退产物（「哈希=最终字节」不破）。
   - **跳过**：Chrome 探测/启动失败 → `[WARN]` + 结果标注 `skipped`，构建照常成功；`SYNAPSE_COMPRESSION_VERIFY=off` 可显式关闭（冒烟构建已使用）。

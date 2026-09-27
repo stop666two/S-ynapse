@@ -1023,12 +1023,13 @@ listCover: {
 
 ## 12. compression.json5 — 构建产物压缩
 
-第 14 个配置文件。对 `dist/` 产物做可配置压缩：HTML/CSS/JS/JSON 单行化与去注释、CSS 同页 `<style>` 合并去重（C3 已实装）、可选 JS 混淆（C4 已实装，默认关）；增强阶段完成后执行无头对比门禁，失败自动回退未压缩产物（已实装）。加载与校验由 `scripts/lib/compression-config.js` 承担，压缩执行位于 `scripts/build/minify.js` 的压缩阶段，无头对比/回退核心位于 `scripts/lib/compression-verify.js`（`scripts/compression-config.test.js` 覆盖默认合并/类型/枚举/glob 语义，`scripts/compression-pipeline.test.js` 覆盖增强步骤装配，`scripts/css-merge.test.js` 与 `scripts/js-obfuscate.test.js` 覆盖 C3/C4 纯函数，`scripts/compression-verify.test.js` 覆盖快照/恢复/归一化/端口纯逻辑）。
+第 14 个配置文件。对 `dist/` 产物做可配置压缩：HTML/CSS/JS/JSON 单行化与去注释、CSS 同页 `<style>` 合并去重（C3 已实装）、可选 JS 混淆（C4 已实装，默认关）；增强阶段完成后执行无头对比门禁，失败自动回退未压缩产物（已实装）。加载与校验由 `scripts/lib/compression-config.js` 承担，压缩执行位于 `scripts/build/minify.js` 的压缩阶段，无头对比/回退核心位于 `scripts/lib/compression-verify.js`，`dist/report.txt` 摘要渲染位于 `scripts/lib/build-report-text.js`（`scripts/compression-config.test.js` 覆盖默认合并/类型/枚举/glob 语义，`scripts/compression-pipeline.test.js` 覆盖增强步骤装配，`scripts/css-merge.test.js` 与 `scripts/js-obfuscate.test.js` 覆盖 C3/C4 纯函数，`scripts/compression-verify.test.js` 覆盖快照/恢复/归一化/端口纯逻辑，`scripts/build-report-text.test.js` 覆盖摘要段渲染与缺失容错）。
 
 **生效范围（重要）**
 - 仅作用于 `dist/` 产物；`exclude` 命中的路径按原字节复制。
 - `--serve` / `--watch` 自动关闭：本地调试所见即未压缩产物，无需改配置。
 - 压缩发生在内容哈希（cacheBust）之前：文件名哈希对应压缩后的最终字节；改配置 → 产物字节变化 → 哈希换代，不会出现「哈希未变、内容已变」的脏缓存。
+- `dist/report.txt` 与 `build-report.html` 在报告阶段生成（压缩与 cacheBust 之后），天然豁免压缩。`report.txt` 汇总：阶段耗时（配置/预校验/页面/媒体/OG/压缩增强/cacheBust/PWA/报告/其它）、HTML/CSS/JS/JSON 的压缩前后 raw/gzip 与节省率（含变更/新增/移除/跳过/豁免计数）、压缩阶段失败清单、无头验证摘要（读取 `.cache/compression-verify/last.json`；本轮未运行则如实标注）、非阻断告警、perfBudget 5 项对照与压缩目标现状值（HTML gzip ≥10%、JS gzip ≥20% 混淆关态；最终口径待 C8 以对照构建核定）。`report.txt` 已列入默认 `exclude`，且被产物等价护栏 `scripts/lib/dist-hash.js` 的默认忽略项覆盖（与 `build-report.html` 同为含时间戳的非确定性产物）。
 
 **语义：基线压缩 vs 增强步骤**
 - **基线压缩**：`site.build.minifyHTML/minifyCSS/minifyJS` 驱动的既有 minify-html / CleanCSS / Terser 行为，恒定执行且**不受本文件开关影响**（默认态产物字节与引入本文件前一致）。`exclude` 只约束增强步骤，不改变基线。

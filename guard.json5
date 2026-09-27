@@ -24,6 +24,10 @@
 //
 // 类型约定：单位支持 px/%/rem/vh/vw；纯数字仅用于毫秒（ms）与次数；
 //   非法值（类型不符/超出枚举/负数）会被忽略并回退到“推荐值”。
+//
+// 消费方：scripts/build/config.js（加载）→ scripts/lib/config-split.js（运行时外置）
+//   → js/domains/guard/*（各防护模块消费）。
+// 文档：docs/config-reference.md §11 guard.json5。
 // ============================================================================
 
 {
@@ -230,6 +234,7 @@
       // 推荐：'—— 原文：{title}\n{url}'（换行缩进由 attribution.separator 统一追加）
       text: '—— 原文：{title}\n{url}',
       // 作用：英文附件模板（英文页面使用）；推荐：'— From: {title}\n{url}'
+      // 注意：空 = en 页回退 text（js/domains/guard/copy-guard.js）
       textEn: '— From: {title}\n{url}',
       // 作用：追加位置；类型：string；可填：'after' | 'before'
       // 推荐：'after'（复制正文尾部，不打断引用习惯）
@@ -381,7 +386,7 @@
     // 作用：中文页水印文字模板；占位符：{site} 站名、{date} 日期、{time} 时间、{id} 标识
     // 类型：string；推荐：'{site} · {date}'；不可填：无（纯文本亦可）
     text: '{site} · {date}',
-    // 作用：英文页模板；推荐：'{site} · {date}'
+    // 作用：英文页模板；推荐：'{site} · {date}'；空 = en 页回退 text
     textEn: '{site} · {date}',
 
     // 作用：访问者标识策略（用于溯源：同一浏览器同一标识）
@@ -497,7 +502,7 @@
     bannerEnabled: false,
     // bannerText：欢迎语正文(中文)。
     bannerText: '本站为静态博客，请勿粘贴执行陌生代码',
-    // bannerTextEn：欢迎语正文(英文)。
+    // bannerTextEn：欢迎语正文(英文)；空 = 回退 bannerText。
     bannerTextEn: 'This is a static blog. Never paste unknown code here.',
     // bannerAscii：true 时以大字 ASCII 艺术输出；推荐 false。
     bannerAscii: false,
@@ -557,7 +562,7 @@
     blurAmount: '8px',
     // 作用：帘上文案（中/英）；类型：string；推荐：'已暂停显示' / 'Paused'
     curtainText: '已暂停显示',
-    // curtainTextEn：帘上文案(英文)；类型 string。
+    // curtainTextEn：帘上文案(英文)；类型 string；空 = 回退 curtainText。
     curtainTextEn: 'Paused',
     // 作用：恢复显示的去抖延迟（快速切回不闪）；类型：number(ms)；可填 0–1000；推荐：200
     revealDelayMs: 200,

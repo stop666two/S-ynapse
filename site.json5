@@ -4,8 +4,10 @@
 // 格式: JSON5（允许注释/尾逗号/无引号键名;解析失败会给出精确行号与修复提示）
 // 生效: 修改后需重新构建（npm run build / npm run serve）
 // 优先级: 本文件 > build.js 内置默认值（缺省字段自动回退默认,可安全删除可选键）
+// 消费方: scripts/build/config.js（加载）→ scripts/build/*（渲染/安全文件/资源与页面生成）
+// 文档: docs/config-reference.md §1 site.json5
 // 关联: 功能开关见 features.json5;视觉微调见 tuning.json5;文案见 ui-strings.json5
-// 注意: 本文件顶部字段中,title/titleEn 为语言对应关系（zh 用 title,en 用 titleEn）
+// 注意: 本文件顶部字段中,title/titleEn 为语言对应关系（zh → title,en → titleEn）
 // =====================================================================
 {
   // ===================================================================
@@ -524,9 +526,9 @@
         "type": "popup", // 弹层型（用 value/popup*）
         "value": "123456789", // 弹层内主体值
         "popupTitle": "QQ", // 弹层标题
-        "popupTitleEn": "QQ", // 弹层标题（英文）
+        "popupTitleEn": "QQ", // 弹层标题（英文；空 = 回退 popupTitle）
         "popupContent": "QQ 号：123456789", // 弹层正文
-        "popupContentEn": "QQ: 123456789" // 弹层正文（英文）
+        "popupContentEn": "QQ: 123456789" // 弹层正文（英文；空 = 回退 popupContent）
       },
       // QQ 群（弹层展示群号）
       "qqgroup": {
@@ -534,9 +536,9 @@
         "type": "popup", // 弹层型（用 value/popup*）
         "value": "987654321", // 弹层内主体值
         "popupTitle": "QQ 群", // 弹层标题
-        "popupTitleEn": "QQ Group", // 弹层标题（英文）
+        "popupTitleEn": "QQ Group", // 弹层标题（英文；空 = 回退 popupTitle）
         "popupContent": "QQ 群号：987654321", // 弹层正文
-        "popupContentEn": "QQ group: 987654321" // 弹层正文（英文）
+        "popupContentEn": "QQ group: 987654321" // 弹层正文（英文；空 = 回退 popupContent）
       },
       // 微信（弹层展示微信号）
       "wechat": {
@@ -544,9 +546,9 @@
         "type": "popup", // 弹层型（用 value/popup*）
         "value": "MyWeChatID", // 弹层内主体值
         "popupTitle": "微信", // 弹层标题
-        "popupTitleEn": "WeChat", // 弹层标题（英文）
+        "popupTitleEn": "WeChat", // 弹层标题（英文；空 = 回退 popupTitle）
         "popupContent": "微信号：MyWeChatID", // 弹层正文
-        "popupContentEn": "WeChat ID: MyWeChatID" // 弹层正文（英文）
+        "popupContentEn": "WeChat ID: MyWeChatID" // 弹层正文（英文；空 = 回退 popupContent）
       },
       // 电话（弹层展示号码）
       "phone": {
@@ -554,9 +556,9 @@
         "type": "popup", // 弹层型（用 value/popup*）
         "value": "13800138000", // 弹层内主体值
         "popupTitle": "电话", // 弹层标题
-        "popupTitleEn": "Phone", // 弹层标题（英文）
+        "popupTitleEn": "Phone", // 弹层标题（英文；空 = 回退 popupTitle）
         "popupContent": "电话：13800138000", // 弹层正文
-        "popupContentEn": "Phone: 13800138000" // 弹层正文（英文）
+        "popupContentEn": "Phone: 13800138000" // 弹层正文（英文；空 = 回退 popupContent）
       }
     }
   },
@@ -982,13 +984,13 @@
     // 注意: 首次构建需联网拉取（结果缓存于 .cache/fonts/，之后离线可复用）；断网/超时/
     //       解析失败时自动跳过并 console.warn，页面回退系统字体链，构建不会失败
     "cjkFonts": {
-      "enabled": true,
-      "family": "Noto Sans SC",
-      "weights": [
+      "enabled": true, // 是否启用子集化（boolean，默认 true）
+      "family": "Noto Sans SC", // Google Fonts 字体族名（string，默认 "Noto Sans SC"）
+      "weights": [ // 需要的字重列表（number[]，默认 [400,700]；空数组回退默认）
         400,
         700
       ],
-      "fetchTimeoutMs": 15000
+      "fetchTimeoutMs": 15000 // 单次网络请求超时（number，毫秒，默认 15000）
     },
 
     // 构建报告
@@ -1048,7 +1050,7 @@
     "title": "安全提醒",
 
     // 弹层标题（英文）
-    // 类型: string | 推荐: "Security Notice"
+    // 类型: string | 推荐: "Security Notice" | 空 = en 站回退 title
     "titleEn": "Security Notice",
 
     // 提示正文（中文,支持 \n 换行）
@@ -1057,18 +1059,19 @@
     "message": "您即将离开本站，前往外部网站。\n\n请注意核实链接的真实性，不要输入任何个人信息。\n谨防钓鱼网站和诈骗。\n\n目标链接：",
 
     // 提示正文（英文）
+    // 类型: string（多行） | 空 = en 站回退 message
     "messageEn": "You are about to leave this site and visit an external website.\n\nPlease verify the link's authenticity and do not enter any personal information.\nBeware of phishing sites and scams.\n\nTarget link:",
 
     // 确认按钮文案（中文） | 类型: string | 推荐: "继续访问"
     "confirmText": "继续访问",
 
-    // 确认按钮文案（英文） | 推荐: "Continue"
+    // 确认按钮文案（英文；空 = 回退 confirmText） | 推荐: "Continue"
     "confirmTextEn": "Continue",
 
     // 取消按钮文案（中文） | 推荐: "取消返回"
     "cancelText": "取消返回",
 
-    // 取消按钮文案（英文） | 推荐: "Cancel"
+    // 取消按钮文案（英文；空 = 回退 cancelText） | 推荐: "Cancel"
     "cancelTextEn": "Cancel",
 
     // 白名单（不弹窗的域名）

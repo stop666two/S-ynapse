@@ -58,6 +58,12 @@ function normalizeNonce(html) {
     .replace(/'nonce-[^']*'/gi, "'nonce-NONCE'");
 }
 
+// 跨态 HTML 比较还需折叠 runtime 引导脚本名：默认态经 Terser 压缩后按最终字节改名，
+// 关闭态保留 copyRuntimeBootstrap 的原始内容哈希名（压缩与否的文件名差异属预期）。
+function normalizeRuntimeHref(html) {
+  return html.replace(/runtime\.[0-9A-Za-z]+\.js/g, 'runtime.HASH.js');
+}
+
 // 构建报告 HTML 归一化：时间戳 / 构建耗时 / 输出体积随构建变化，压缩处理方式不受其影响。
 function normalizeReportHtml(html) {
   return normalizeNonce(html)
@@ -136,6 +142,38 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     assert.ok(summaryText.includes('压缩增强: 启用'), 'default report.txt must mark compression enhancements as enabled');
     assert.ok(summaryText.includes('HTML: 文件'), 'default report.txt must aggregate HTML compression stats');
     assert.ok(summaryText.includes('gzip'), 'default report.txt must report gzip before/after');
+    // 悬停规则回归：site-css.ejs 的悬垂逗号使 `.cal-cell:hover` 规则被浏览器整条丢弃
+    // （`},.` 破坏规则边界），产物 CSS 与页面内联样式都不得再出现该模式。
+    const builtCssDir = path.join(tmpDir, 'assets', 'css');
+    let siteCssText = null;
+    for (const name of fs.readdirSync(builtCssDir)) {
+      if (!/\.css$/i.test(name)) continue;
+      const text = fs.readFileSync(path.join(builtCssDir, name), 'utf-8');
+      assert.ok(!text.includes('},.'), 'dangling CSS separator must not appear in ' + name);
+      if (/^site\./.test(name)) siteCssText = text;
+    }
+    assert.ok(siteCssText && siteCssText.includes('.cal-cell:hover'), 'calendar hover rule must survive into site css');
+    for (const [rel, text] of Object.entries(collectHtml(tmpDir))) {
+      const styleText = (text.match(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi) || []).join('\n');
+      assert.ok(!styleText.includes('},.'), 'dangling CSS separator must not appear in inline styles: ' + rel);
+    }
+    // runtime 引导脚本：增强阶段 Terser 压缩并按最终字节改名，HTML 引用必须指向产物内真实文件。
+    const jsDir = path.join(tmpDir, 'assets', 'js');
+    const jsFiles = fs.readdirSync(jsDir);
+    const runtimeFiles = jsFiles.filter((f) => /^runtime\..+\.js$/.test(f));
+    assert.strictEqual(runtimeFiles.length, 1, 'exactly one runtime bootstrap must be emitted');
+    const runtimeBuf = fs.readFileSync(path.join(jsDir, runtimeFiles[0]));
+    assert.ok(runtimeBuf.length < fs.readFileSync(path.join(ROOT, 'js', 'core', 'runtime.js')).length,
+      'runtime bootstrap must be smaller than its source after compression');
+    assert.ok(runtimeBuf.toString('utf-8').includes('window.__T'), 'compressed runtime must keep the __T bootstrap');
+    assert.strictEqual('runtime.' + crypto.createHash('md5').update(runtimeBuf).digest('hex').slice(0, 10) + '.js',
+      runtimeFiles[0], 'runtime file name must equal the final content hash');
+    const homeHtml = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');
+    assert.ok(homeHtml.includes('/assets/js/' + runtimeFiles[0]), 'HTML must reference the compressed runtime file');
+    // esbuild splitting：入口仍为 app/deferred/runtime 各一，跨入口共享模块抽为 shared chunk。
+    assert.strictEqual(jsFiles.filter((f) => /^app\..+\.js$/.test(f)).length, 1, 'exactly one app chunk');
+    assert.strictEqual(jsFiles.filter((f) => /^deferred\..+\.js$/.test(f)).length, 1, 'exactly one deferred chunk');
+    assert.ok(jsFiles.some((f) => /^shared\..+\.js$/.test(f)), 'splitting must emit at least one shared chunk');
     const root404 = fs.readFileSync(path.join(tmpDir, '404.html'), 'utf-8');
     assert.ok(root404.includes('S-LANG-REDIRECT-404'), 'root 404 must carry the language redirect hook');
     assert.ok(root404.includes('/en/404.html'), 'root 404 must route en visitors to the localized page');
@@ -349,8 +387,8 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       const stripStyleBlocks = (text) => text.replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, '');
       for (const rel of Object.keys(defaultHtml)) {
         assert.strictEqual(
-          stripStyleBlocks(normalizeNonce(offHtml[rel])),
-          stripStyleBlocks(normalizeNonce(defaultHtml[rel])),
+          stripStyleBlocks(normalizeRuntimeHref(normalizeNonce(offHtml[rel]))),
+          stripStyleBlocks(normalizeRuntimeHref(normalizeNonce(defaultHtml[rel]))),
           'non-style HTML must be identical across states: ' + rel
         );
         const onCount = (defaultHtml[rel].match(/<style\b/gi) || []).length;

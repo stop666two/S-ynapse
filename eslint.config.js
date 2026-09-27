@@ -56,6 +56,14 @@ module.exports = [
       globals: Object.assign({}, globals.node, globals.browser)
     }
   },
+  // 例外：压缩无头验证库内的 DOM 断言函数经 page.evaluate 序列化后在浏览器上下文执行，
+  // 函数体使用的 document/window/getComputedStyle 属浏览器全局，需为该文件补声明。
+  {
+    files: ['scripts/lib/compression-verify.js'],
+    languageOptions: {
+      globals: Object.assign({}, globals.node, globals.browser)
+    }
+  },
   // Cloudflare Worker（workers/**/*.js 与 *.mjs）：ESM 语法，同时使用平台与浏览器风格全局（fetch/crypto/URL 等）
   {
     files: ['workers/**/*.js', 'workers/**/*.mjs'],

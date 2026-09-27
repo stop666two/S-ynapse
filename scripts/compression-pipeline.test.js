@@ -9,6 +9,7 @@ const {
   buildHtmlMinifyOptions,
   compactJsonText,
   compressionEnhancementPlan,
+  enhancementWorkActive,
   jsonSkipReason,
   needsJsonCompaction
 } = require('./lib/compression-steps');
@@ -184,6 +185,30 @@ describe('compressionEnhancementPlan（增强计划装配）', () => {
     assert.equal(plan.htmlRemoveComments, true, 'html.enabled=false 时不应用 HTML 增强选项');
     assert.equal(plan.jsonCompact, false);
     assert.equal(plan.jsObfuscate, false);
+  });
+});
+
+describe('enhancementWorkActive（无头对比触发条件）', () => {
+  test('默认配置：存在会改变产物的增强步骤', () => {
+    assert.equal(enhancementWorkActive(compressionEnhancementPlan(DEFAULT_COMPRESSION, true)), true);
+  });
+
+  test('serve/watch 或总开关关闭：无增强工作', () => {
+    assert.equal(enhancementWorkActive(compressionEnhancementPlan(DEFAULT_COMPRESSION, false)), false);
+    assert.equal(enhancementWorkActive(compressionEnhancementPlan({ enabled: false }, true)), false);
+    assert.equal(enhancementWorkActive(null), false);
+  });
+
+  test('全部增强步骤关闭：无工作；仅 removeComments=false 也算改变产物', () => {
+    const off = JSON.parse(JSON.stringify(DEFAULT_COMPRESSION));
+    off.html.enabled = false;
+    off.css.enabled = false;
+    off.js.enabled = false;
+    off.json.enabled = false;
+    assert.equal(enhancementWorkActive(compressionEnhancementPlan(off, true)), false);
+    const keepComments = JSON.parse(JSON.stringify(DEFAULT_COMPRESSION));
+    keepComments.html.removeComments = false;
+    assert.equal(enhancementWorkActive(compressionEnhancementPlan(keepComments, true)), true);
   });
 });
 

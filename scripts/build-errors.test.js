@@ -1,11 +1,12 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
-const { createBuildErrorCollector, resolveExitCode, formatFailures } = require('./lib/build-errors');
+const { createBuildErrorCollector, resolveExitCode, formatFailures, formatWarnings } = require('./lib/build-errors');
 
 describe('build-errors collector', () => {
   it('starts empty', () => {
     const c = createBuildErrorCollector();
     assert.strictEqual(c.hasErrors, false);
+    assert.strictEqual(c.hasWarnings, false);
     assert.deepStrictEqual(c.entries, []);
   });
 
@@ -15,9 +16,25 @@ describe('build-errors collector', () => {
     c.add('feed', 'rss failed: y');
     assert.strictEqual(c.hasErrors, true);
     assert.deepStrictEqual(c.entries, [
-      { stage: 'render', message: 'article page failed: x' },
-      { stage: 'feed', message: 'rss failed: y' }
+      { stage: 'render', message: 'article page failed: x', fatal: true },
+      { stage: 'feed', message: 'rss failed: y', fatal: true }
     ]);
+  });
+
+  it('non-fatal entries are recorded but keep the build successful', () => {
+    const c = createBuildErrorCollector();
+    c.add('compression-verify', '对比失败已回退', { fatal: false });
+    assert.strictEqual(c.hasErrors, false);
+    assert.strictEqual(c.hasWarnings, true);
+    assert.deepStrictEqual(c.fatalEntries, []);
+    assert.deepStrictEqual(c.warningEntries, [
+      { stage: 'compression-verify', message: '对比失败已回退', fatal: false }
+    ]);
+    assert.strictEqual(resolveExitCode(c, {}), 0);
+    c.add('feed', 'rss failed');
+    assert.strictEqual(c.hasErrors, true);
+    assert.strictEqual(resolveExitCode(c, {}), 1);
+    assert.deepStrictEqual(c.fatalEntries.map((e) => e.stage), ['feed']);
   });
 
   it('returns a copy of entries so callers cannot mutate internal state', () => {
@@ -52,5 +69,13 @@ describe('build-errors collector', () => {
     assert.ok(out.includes('[feed] rss failed'));
     assert.ok(out.includes('2'));
     assert.strictEqual(formatFailures([]), '');
+  });
+
+  it('formatWarnings labels non-blocking entries without the failure wording', () => {
+    const out = formatWarnings([{ stage: 'compression-verify', message: '已回退' }]);
+    assert.ok(out.includes('[compression-verify] 已回退'));
+    assert.ok(out.includes('不阻断'));
+    assert.ok(!out.includes('构建失败'));
+    assert.strictEqual(formatWarnings([]), '');
   });
 });

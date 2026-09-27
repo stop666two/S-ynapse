@@ -125,6 +125,22 @@ function compressionEnhancementPlan(compression, active) {
   };
 }
 
+/**
+ * 判断增强计划中是否存在会改变产物的步骤：无变化时两态必然一致，无头对比可整体跳过。
+ * htmlRemoveComments=false 相对基线（keep_comments=false）保留注释，同样属于产物改变。
+ * @param {object} plan compressionEnhancementPlan 的结果
+ * @returns {boolean}
+ */
+function enhancementWorkActive(plan) {
+  if (!plan || plan.active !== true) return false;
+  return plan.htmlAggressive === true
+    || plan.htmlRemoveComments === false
+    || plan.cssMergeInlineStyles === true
+    || plan.cssDedupe === true
+    || plan.jsObfuscate === true
+    || plan.jsonCompact === true;
+}
+
 // 混淆目标：仅自研 esbuild chunk（app/deferred）。vendor、runtime 与其它 JS 一律不动。
 // runtime.<hash>.js 显式排除：其文件名哈希由 copyRuntimeBootstrap 基于「混淆前原文」
 // 计算、HTML 以该名引用（参与内容哈希引用），混淆会破坏「文件名哈希 = 最终字节」，
@@ -204,6 +220,7 @@ module.exports = {
   compactJsonText,
   jsonSkipReason,
   compressionEnhancementPlan,
+  enhancementWorkActive,
   OBFUSCATE_TARGET_RE,
   OBFUSCATE_EXCLUDED_RE,
   selectObfuscationTargets,

@@ -100,9 +100,10 @@ function createHelpersModule(ctx) {
     return _faviconHtmlCache;
   }
   // Collects runtime failures so the build can exit non-zero instead of silently ignoring them.
-  function recordBuildFailure(stage, message) {
+  // options.fatal === false 时记录为非阻断告警（进入报告但退出码保持 0，如压缩验证失败已回退）。
+  function recordBuildFailure(stage, message, options) {
     const buildErrors = ctx.getBuildErrors();
-    if (buildErrors) buildErrors.add(stage, message);
+    if (buildErrors) buildErrors.add(stage, message, options);
   }
 
   return { getPublished, resolveDailyQuotes, faviconFallbackSvg, readPngSize, resolveFaviconHtml, recordBuildFailure };

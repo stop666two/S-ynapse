@@ -81,7 +81,7 @@ function validateReleaseState(state, options) {
   if (typeof state.commit !== 'string' || !COMMIT_RE.test(state.commit)) {
     errors.push('commit 必须是 40 位小写十六进制提交 SHA（当前：' + JSON.stringify(state.commit) + '）');
   } else if (typeof opts.commit === 'string' && opts.commit !== '' && state.commit !== opts.commit.toLowerCase()) {
-    errors.push('commit 与 tag 指向的提交不一致：RELEASE.json=' + state.commit + '，tag=' + opts.commit.toLowerCase());
+    errors.push('commit 与期望提交（tag 指向提交的父提交）不一致：RELEASE.json=' + state.commit + '，期望=' + opts.commit.toLowerCase());
   }
 
   if (!isPlainObject(state.checks) || Object.keys(state.checks).length === 0) {
@@ -126,9 +126,10 @@ function runCli(argv) {
     return 1;
   }
 
-  const commitResult = spawnSync('git', ['rev-parse', tag + '^{commit}'], { cwd: root, encoding: 'utf-8' });
+  // RELEASE.json.commit 记录被核验提交（tag 指向提交的父提交；git 提交无法包含自身 SHA）。
+  const commitResult = spawnSync('git', ['rev-parse', tag + '^{commit}^'], { cwd: root, encoding: 'utf-8' });
   if (commitResult.error || commitResult.status !== 0) {
-    console.error('[release-validate] 无法解析 tag ' + tag + '：' + ((commitResult.stderr || '').trim() || 'git rev-parse 失败'));
+    console.error('[release-validate] 无法解析 tag ' + tag + ' 的父提交：' + ((commitResult.stderr || '').trim() || 'git rev-parse 失败'));
     return 1;
   }
   const commit = commitResult.stdout.trim();

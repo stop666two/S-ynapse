@@ -6,7 +6,7 @@
 //   3. 校验人工核验参数（--human-verified / --confirm）；
 //   4. 同步 package.json / package-lock.json 版本；
 //   5. 将 CHANGELOG 的 [Unreleased] 内容归入新版本段；
-//   6. 生成 RELEASE.json（status=verified + 门禁全 true + 提交 SHA 回填）；
+//   6. 生成 RELEASE.json（status=verified + 门禁全 true + 记录被核验提交 = tag 父提交）；
 //   7. 提交 chore(release): vX.Y.Z 并创建附注 tag vX.Y.Z；
 //   8. 默认只留在本地并打印后续命令，--push（需 --confirm-push 二次确认）才推送。
 //
@@ -167,7 +167,7 @@ function printDryRun(options, currentVersion, targetVersion, changelogText) {
   for (const gate of RELEASE_GATES) console.log('    - ' + gate.command);
   console.log('  package.json / package-lock.json → ' + targetVersion + '（npm version --no-git-tag-version）');
   console.log('  CHANGELOG：[Unreleased] 内容归入 ' + (heading ? heading[0] : '## [' + targetVersion + '] - ' + today) + '，并补版本链接');
-  console.log('  RELEASE.json：status=verified、checks 全 true、commit 占位（首个提交产生 SHA 后回填并 amend）');
+  console.log('  RELEASE.json：status=verified、checks 全 true、commit=被核验提交（tag 的父提交）');
   console.log('  提交：chore(release): v' + targetVersion + '；附注 tag v' + targetVersion + '（默认不 push）');
   console.log('  后续（人工执行）：git push origin <branch> 且 git push origin v' + targetVersion);
   console.log('[release:mark] dry-run 完成：未写入任何文件');
@@ -225,32 +225,28 @@ function main() {
   const updatedChangelog = rewriteChangelog(changelogText, targetVersion, formatUtcDate(new Date()));
   fs.writeFileSync(CHANGELOG, updatedChangelog, 'utf-8');
 
-  // ⑥ RELEASE.json：先写占位 commit，提交产生真实 SHA 后回填。
+  // ⑥ RELEASE.json：记录被核验提交（写入时 HEAD 即通过门禁的提交，也是 release 提交的父提交）。
+  // git 提交内容无法包含自身 SHA（数学上不可自引用），因此 commit 字段记录 tag^ 而非 tag 目标，
+  // CI 以 `git rev-parse vX.Y.Z^{commit}^` 与之比对，同样能防止标记与 tag 张冠李戴。
+  const verifiedCommit = gitOrThrow(['rev-parse', 'HEAD']);
   const state = buildReleaseState({
     version: targetVersion,
     status: 'verified',
     humanVerifiedBy: options.humanVerifiedBy.trim(),
     verifiedAt: new Date().toISOString(),
-    commit: '',
+    commit: verifiedCommit,
     checks
   });
   writeFileAtomicSync(RELEASE_JSON, JSON.stringify(state, null, 2) + '\n');
 
-  // ⑦ 提交发布变更。
+  // ⑦ 提交发布变更（单提交，不做 amend：amend 会改变提交 SHA，使标记与 tag 目标失配）。
   gitOrThrow(['add', 'package.json', 'package-lock.json', 'CHANGELOG.md', 'RELEASE.json']);
   gitOrThrow(['commit', '-m', 'chore(release): ' + tag]);
 
-  // commit 回填：amend 保证 tag 指向的提交内 RELEASE.json.commit === 该提交 SHA（无 push 前安全）。
-  const commit = gitOrThrow(['rev-parse', 'HEAD']);
-  state.commit = commit;
-  writeFileAtomicSync(RELEASE_JSON, JSON.stringify(state, null, 2) + '\n');
-  gitOrThrow(['add', 'RELEASE.json']);
-  gitOrThrow(['commit', '--amend', '--no-edit']);
-
-  // ⑧ 创建附注 tag。
+  // ⑧ 创建附注 tag（指向发布提交，其父提交即 RELEASE.json.commit 记录的核验提交）。
   gitOrThrow(['tag', '-a', tag, '-m', 'Release ' + tag]);
   const branch = gitOrThrow(['rev-parse', '--abbrev-ref', 'HEAD']);
-  console.log('[release:mark] 已创建提交与附注 tag ' + tag + '（' + commit.slice(0, 12) + '，分支 ' + branch + '）');
+  console.log('[release:mark] 已创建提交与附注 tag ' + tag + '（核验提交 ' + verifiedCommit.slice(0, 12) + '，分支 ' + branch + '）');
 
   // ⑨ 默认不 push，打印后续命令；--push + --confirm-push 才推送。
   if (options.push) {

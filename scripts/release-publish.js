@@ -25,9 +25,10 @@ function git(args) {
 }
 
 function loadStateAtTag(tag) {
-  const commitResult = git(['rev-parse', tag + '^{commit}']);
+  // RELEASE.json.commit 记录被核验提交 = tag 指向提交的父提交（git 提交无法包含自身 SHA）。
+  const commitResult = git(['rev-parse', tag + '^{commit}^']);
   if (commitResult.error || commitResult.status !== 0) {
-    throw new Error('无法解析 tag ' + tag + '（本地是否存在该 tag？）：' + ((commitResult.stderr || '').trim() || 'git rev-parse 失败'));
+    throw new Error('无法解析 tag ' + tag + ' 的父提交（本地是否存在该 tag？）：' + ((commitResult.stderr || '').trim() || 'git rev-parse 失败'));
   }
   const stateResult = git(['show', tag + ':RELEASE.json']);
   if (stateResult.error || stateResult.status !== 0) {
@@ -81,7 +82,7 @@ function main() {
     '经人工核验与全套质量门禁验证的版本。',
     '人工核验：' + state.humanVerifiedBy,
     '核验时间：' + state.verifiedAt,
-    '提交：' + state.commit
+    '被核验提交：' + state.commit
   ].join('\n');
   const gh = spawnSync('gh', [
     'release', 'create', tag, zip,

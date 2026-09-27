@@ -36,11 +36,10 @@ CI 与 RELEASE.json 的 `checks` 键也以此为准（缺项或不全 true 即�
 | `status` | string | 必须为 `verified` 才允许发布；初始 `unverified` |
 | `humanVerifiedBy` | string | 人工核验人姓名（非空；机器无法替代人工确认） |
 | `verifiedAt` | string | 人工核验时间，ISO 8601 UTC（如 `2026-09-27T12:00:00.000Z`，日历严格校验） |
-| `commit` | string | 40 位小写 SHA；必须等于 tag 指向的提交，由 release:mark 回填 |
+| `commit` | string | 40 位小写 SHA；必须等于 tag 指向提交的**父提交**（被核验提交）。git 提交的内容无法包含自身 SHA（数学上不可自引用），因此记录父提交，校验以 `git rev-parse vX.Y.Z^{commit}^` 比对 |
 | `checks` | object | 11 项门禁键 → `true`；任一缺失或 false 即失败 |
 
-**双重校验** = ① tag 存在（CI 触发/`--verify-tag`）+ ② 该 tag 指向提交内的 RELEASE.json 满足上表全部约束。
-校验逻辑唯一实现：`scripts/lib/release-validate.js → validateReleaseState`；CI 用 `node scripts/lib/release-validate.js --tag vX.Y.Z` 执行。
+**双重校验** = ① tag 存在（CI 触发/`--verify-tag`）+ ② 该 tag 指向提交内的 RELEASE.json 满足上表全部约束（`commit` 的比对基准是 tag 的父提交，原因见字段表）。校验逻辑唯一实现：`scripts/lib/release-validate.js → validateReleaseState`；CI 用 `node scripts/lib/release-validate.js --tag vX.Y.Z` 执行。
 
 ## 3. 人工核验的含义
 
@@ -65,8 +64,7 @@ npm run release:mark -- patch --human-verified "张三" --confirm 1.1.1
 
 脚本步骤：① 工作区干净 + tag 未被占用 → ② 顺序执行 11 项门禁 → ③ 校验人工核验参数 →
 ④ `npm version --no-git-tag-version` 同步 package.json/lock → ⑤ CHANGELOG `[Unreleased]` 内容归入 `[X.Y.Z] - 日期` 并补版本链接 →
-⑥ 生成 RELEASE.json（verified + checks 全 true，commit 先占位）→ ⑦ 提交 `chore(release): vX.Y.Z` 后回填 commit 并 amend →
-⑧ 创建附注 tag `vX.Y.Z` → ⑨ 默认不 push，打印后续命令。
+⑥ 生成 RELEASE.json（verified + checks 全 true，commit=被核验提交=当前 HEAD，即后续 release 提交的父提交）→ ⑦ **单提交** `chore(release): vX.Y.Z`（不做 amend，避免提交 SHA 漂移导致标记失配）→ ⑧ 创建附注 tag `vX.Y.Z` → ⑨ 默认不 push，打印后续命令。
 
 推送需要显式二次确认：`--push --confirm-push`（分支与 tag 都会推送）。
 

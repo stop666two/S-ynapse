@@ -3,6 +3,10 @@
 // 校验逻辑同时服务 CI tag 触发与本地 release:publish，任一字段失配都必须逐条报错并拒绝发布。
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const { validateReleaseState } = require('./lib/release-validate.js');
 const { buildPassedChecks, RELEASE_GATES } = require('./lib/release-version.js');
 
@@ -49,7 +53,7 @@ test('validateReleaseState：commit 必须是 40 位 SHA 且与 tag 指向一致
   assert.ok(badFormat.errors.some(function (e) { return e.includes('40 位'); }));
   const mismatch = validateReleaseState(validState(), { commit: 'b'.repeat(40) });
   assert.strictEqual(mismatch.ok, false);
-  assert.ok(mismatch.errors.some(function (e) { return e.includes('commit 与 tag 指向的提交不一致'); }));
+  assert.ok(mismatch.errors.some(function (e) { return e.includes('commit 与期望提交'); }));
 });
 
 test('validateReleaseState：checks 必须非空、全 true、包含全部必需门禁', () => {
@@ -107,4 +111,40 @@ test('validateReleaseState：多个字段同时失配时逐条返回错误', () 
   });
   assert.strictEqual(result.ok, false);
   assert.ok(result.errors.length >= 5, '应逐条报告所有问题（实际 ' + result.errors.length + ' 条）');
+});
+
+test('git 语义回归：单提交发布流程中 commit = tag 父提交，父提交比对校验通过', function () {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 's-ynapse-reltag-'));
+  try {
+    const git = function (args) {
+      const result = spawnSync('git', args, { cwd: dir, encoding: 'utf-8' });
+      assert.strictEqual(result.status, 0, 'git ' + args.join(' ') + ' 失败：' + (result.stderr || ''));
+      return result.stdout.trim();
+    };
+    git(['init']);
+    git(['config', 'user.email', 'release-test@example.com']);
+    git(['config', 'user.name', 'release-test']);
+    git(['config', 'commit.gpgsign', 'false']);
+    git(['config', 'tag.gpgsign', 'false']);
+    fs.writeFileSync(path.join(dir, 'app.txt'), 'source', 'utf-8');
+    git(['add', '.']);
+    git(['commit', '-m', 'source']);
+
+    const verifiedCommit = git(['rev-parse', 'HEAD']);
+    fs.writeFileSync(
+      path.join(dir, 'RELEASE.json'),
+      JSON.stringify(validState({ commit: verifiedCommit }), null, 2) + '\n',
+      'utf-8'
+    );
+    git(['add', '.']);
+    git(['commit', '-m', 'chore(release): v1.2.3']);
+    git(['tag', '-a', 'v1.2.3', '-m', 'Release v1.2.3']);
+
+    const parent = git(['rev-parse', 'v1.2.3^{commit}^']);
+    assert.strictEqual(parent, verifiedCommit, 'tag 的父提交应等于被核验提交');
+    const marker = JSON.parse(git(['show', 'v1.2.3:RELEASE.json']));
+    assert.deepStrictEqual(validateReleaseState(marker, { tag: 'v1.2.3', commit: parent }), { ok: true, errors: [] });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

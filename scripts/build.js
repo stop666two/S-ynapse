@@ -60,7 +60,7 @@ const {
   buildSiteCss, writeRuntimeConfig, buildPageData, processCustomPages, generatePages,
   buildCjkFonts,
   generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, generateSearchIndex, generatePagefindIndex,
-  checkPerfBudget, checkPerformanceWarnings, generateBuildReport, generateRedirects, buildCspTrimContext, generateSecurityHeaders,
+  checkPerfBudget, checkPerformanceWarnings, generateBuildReport, writeBuildReportText, generateRedirects, buildCspTrimContext, generateSecurityHeaders,
   minifyAll, cacheBust, copyJsAssets, copyRuntimeBootstrap, copyVendorAssets, generatePWA,
   startServer
 } = ctx;
@@ -104,6 +104,8 @@ async function build() {
   console.log('  S-ynapse Static Blog Builder v' + PKG_VERSION);
   console.log('========================================\n');
   const startTime = Date.now();
+  const phaseTimings = {};
+  const markPhase = function (key, startedAt) { phaseTimings[key] = Date.now() - startedAt; };
   const buildErrors = createBuildErrorCollector();
   BUILD_ERRORS = buildErrors;
   if (!validateJsonSyntax()) {
@@ -144,8 +146,11 @@ async function build() {
     }
     // CSP nonce 注入（远早于 _headers / Worker 生成，同时覆盖 meta CSP 与页面 HTML）
     applyCspNonce(config);
+    markPhase('config', startTime);
     if (hooks && hooks.preBuild) await hooks.preBuild(config);
+    const preflightStartedAt = Date.now();
     const preflight = preflightContent();
+    markPhase('preflight', preflightStartedAt);
     if (preflight.errors.length > 0) {
       for (const entry of preflight.errors) buildErrors.add(entry.stage, entry.message);
       console.error('\n[PREFLIGHT] Content validation found ' + preflight.errors.length + ' problem(s):');
@@ -158,7 +163,9 @@ async function build() {
     setupDist(config);
     copyStatic(config);
     const policyResult = copyProtectedAssets(config);
+    const mediaStartedAt = Date.now();
     const mediaManifest = await optimizeMedia(config);
+    markPhase('media', mediaStartedAt);
     MEDIA_MANIFEST = mediaManifest;
     const articles = await processArticles(config, mediaManifest, buildErrors);
     // 无封面文章自动封面（features.listCover.autoGenerate）：须在页面生成前完成，
@@ -215,7 +222,9 @@ async function build() {
     baseData.deferredUrl = SITE_DEFERRED_URL;
     baseData.runtimeJsHref = SITE_RUNTIME_JS_HREF;
     const customPages = processCustomPages(config, baseData);
+    const pagesStartedAt = Date.now();
     await generatePages(config, articles, baseData, customPages);
+    markPhase('pages', pagesStartedAt);
     const generatedHtmlCount = getAllFiles(DIST_DIR).filter((f) => f.endsWith('.html')).length;
     if (generatedHtmlCount === 0) {
       throw new Error('页面生成结果为空：dist/ 下没有产出任何 HTML（模板渲染可能整体失败，请检查 templates/*.ejs 的语法与变量）');
@@ -246,7 +255,9 @@ async function build() {
       if (OUTPUT_DIR_RESOLVED.custom) process.env.SYNAPSE_OUT_DIR = DIST_DIR;
       const ogArgs = [path.join(ROOT, 'scripts', 'generate-og.js')];
       if (SHOW_DRAFTS) ogArgs.push('--drafts');
+      const ogStartedAt = Date.now();
       const ogRes = spawnSync(process.execPath, ogArgs, { stdio: 'inherit' });
+      markPhase('og', ogStartedAt);
       if (ogRes.status !== 0) {
         console.warn('  [WARN] OG image generation reported errors (see above); continuing build.');
         recordBuildFailure('og', 'generate-og.js exited with status ' + ogRes.status);
@@ -263,9 +274,15 @@ async function build() {
     }
     if (!BUNDLE_ACTIVE) copyJsAssets();
     copyVendorAssets(config);
+    const pwaStartedAt = Date.now();
     await generatePWA(config);
-    await minifyAll(config);
+    markPhase('pwa', pwaStartedAt);
+    const compressionStartedAt = Date.now();
+    const compressionStats = await minifyAll(config);
+    markPhase('compression', compressionStartedAt);
+    const cacheBustStartedAt = Date.now();
     await cacheBust(config);
+    markPhase('cacheBust', cacheBustStartedAt);
     await generatePagefindIndex(config);
     debugMark('压缩与缓存指纹完成（构建产物就绪）');
     if (hooks && hooks.postBuild) {
@@ -282,12 +299,50 @@ async function build() {
     console.log(`  Build complete in ${elapsed}s`);
     console.log(`  Output: ${path.relative(ROOT, DIST_DIR).split(path.sep).join('/') || '.'}/`);
     console.log(`========================================`);
+    const reportStartedAt = Date.now();
     if (config.site.build.buildReport !== false) {
       console.log('[14/14] Generating build report...');
       generateBuildReport(config, articles, tags, categories, customPages, elapsed, policyResult);
     }
-    checkPerfBudget(config);
+    const perfBudgetReport = checkPerfBudget(config);
     checkPerformanceWarnings(config, (Date.now() - startTime) / 1000);
+    // dist/report.txt 构建摘要：阶段耗时、压缩前后对照、验证摘要、告警与预算结论；
+    // 位于压缩/cacheBust 之后，天然豁免（exclude 已含 report.txt）。
+    if (config.site.build.buildReport !== false) {
+      markPhase('report', reportStartedAt);
+      const totalMs = Date.now() - startTime;
+      const measuredMs = ['config', 'preflight', 'pages', 'media', 'og', 'compression', 'cacheBust', 'pwa', 'report']
+        .reduce(function (sum, key) { return sum + (phaseTimings[key] || 0); }, 0);
+      const budget = perfBudgetReport
+        ? Object.assign({ warnOnly: ((config.features && config.features.perfBudget) || {}).warnOnly !== false }, perfBudgetReport)
+        : null;
+      try {
+        writeBuildReportText({
+          generatedAt: new Date().toISOString(),
+          totalMs: totalMs,
+          phases: [
+            { key: 'config', ms: phaseTimings.config },
+            { key: 'preflight', ms: phaseTimings.preflight },
+            { key: 'pages', ms: phaseTimings.pages },
+            { key: 'media', ms: phaseTimings.media },
+            { key: 'og', ms: phaseTimings.og },
+            { key: 'compression', ms: phaseTimings.compression },
+            { key: 'cacheBust', ms: phaseTimings.cacheBust },
+            { key: 'pwa', ms: phaseTimings.pwa },
+            { key: 'report', ms: phaseTimings.report },
+            { key: 'other', ms: Math.max(0, totalMs - measuredMs) }
+          ],
+          compression: compressionStats,
+          verifyRan: !!(compressionStats && compressionStats.verificationRan),
+          warnings: buildErrors.warningEntries,
+          failures: buildErrors.fatalEntries,
+          budget: budget
+        });
+      } catch (err) {
+        console.error('  [ERROR] 构建摘要 report.txt 写入失败: ' + err.message);
+        buildErrors.add('report', 'report.txt: ' + err.message);
+      }
+    }
     // features.debug.listPages：构建末输出渲染页面清单（相对产物根路径，按字典序）。
     if (debugCfg.listPages) {
       const pageList = getAllFiles(DIST_DIR)

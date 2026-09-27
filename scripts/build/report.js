@@ -6,6 +6,7 @@ const path = require('path');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { escapeHtml } = require('../lib/utils');
 const { gzipSize, evaluatePerfBudget, formatPerfBudget } = require('../lib/perf-budget');
+const { renderBuildReportText } = require('../lib/build-report-text');
 const { performanceWarnings } = require('../lib/feature-wiring');
 const { getAllFiles } = require('./fs-utils');
 
@@ -81,9 +82,10 @@ function createReportModule(ctx) {
     for (const msg of warnings) console.warn('  [WARN] ' + msg);
   }
 
+  // 返回预算评估结果（enabled=false 时返回 null），供 dist/report.txt 复用，避免重复统计。
   function checkPerfBudget(config) {
     const budget = (config.features && config.features.perfBudget) || {};
-    if (budget.enabled === false) return;
+    if (budget.enabled === false) return null;
     const stats = collectBudgetStats();
     const report = evaluatePerfBudget(stats, budget);
     console.log('\n' + formatPerfBudget(report, budget.warnOnly !== false));
@@ -91,6 +93,30 @@ function createReportModule(ctx) {
     if (!report.ok && budget.warnOnly === false) {
       throw new Error('性能预算超限: ' + report.items.filter(item => !item.ok).map(item => item.label).join(', '));
     }
+    return report;
+  }
+
+  // 写入 dist/report.txt 构建摘要（报告阶段生成，位于压缩与 cacheBust 之后，天然豁免压缩）。
+  // 无头验证摘要仅在「本轮实际运行验证」时读取结果文件，避免历史结果被误当成本轮结论。
+  function writeBuildReportText(input) {
+    const data = Object.assign({}, input || {});
+    if (input && input.verifyRan === true) {
+      const verifyPath = process.env.SYNAPSE_COMPRESSION_VERIFY_REPORT
+        || ctx.compressionVerifyReportPath
+        || path.join(ctx.distDir, '..', '.cache', 'compression-verify', 'last.json');
+      let report = null;
+      try {
+        report = JSON.parse(fs.readFileSync(verifyPath, 'utf-8'));
+      } catch (err) {
+        console.warn('  [WARN] 压缩验证结果读取失败（report.txt 将标注为缺失）: ' + err.message);
+      }
+      data.verify = { ran: true, report };
+    } else {
+      data.verify = { ran: false, report: null };
+    }
+    delete data.verifyRan;
+    writeFileAtomicSync(path.join(ctx.distDir, 'report.txt'), renderBuildReportText(data), 'utf-8');
+    console.log('  Created: report.txt');
   }
 
   // Generate an HTML build report page with stats: build time, article count, tag/category counts,
@@ -139,7 +165,7 @@ function createReportModule(ctx) {
     } catch { return '?'; }
   }
 
-  return { collectBudgetStats, collectLargeImages, checkPerfBudget, checkPerformanceWarnings, generateBuildReport, getDirSize };
+  return { collectBudgetStats, collectLargeImages, checkPerfBudget, checkPerformanceWarnings, generateBuildReport, writeBuildReportText, getDirSize };
 }
 
 module.exports = { createReportModule };

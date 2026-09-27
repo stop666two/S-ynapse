@@ -384,7 +384,8 @@ function createBuildContext(deps) {
     getCompression: () => resolveCompressionState(),
     getPublished: helpers.getPublished,
     getInlineConfigKb: deps.getInlineConfigKb,
-    recordBuildFailure: helpers.recordBuildFailure
+    recordBuildFailure: helpers.recordBuildFailure,
+    compressionVerifyReportPath: path.join(rootDir, '.cache', 'compression-verify', 'last.json')
   });
 
   // 压缩与缓存指纹模块（scripts/build/minify.js）：注入路径、开关与共享依赖。

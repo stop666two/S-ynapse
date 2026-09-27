@@ -10,6 +10,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { isExcluded } = require('../lib/compression-config');
+const { gzipSize } = require('../lib/perf-budget');
 const { mergeStyleBlocks, dedupeStyleBlocks, dedupeCss } = require('../lib/css-merge');
 const {
   buildHtmlMinifyOptions,
@@ -78,6 +79,85 @@ function createMinifyModule(ctx) {
 
   function distRel(file) {
     return path.relative(ctx.distDir, file).split(path.sep).join('/');
+  }
+
+  // 压缩阶段统计的分类：与压缩/增强步骤实际触达的产物类型一一对应。
+  // JS 含 vendor（基线压缩在 --no-bundle 下会处理全部 JS），豁免计数单独给出。
+  const STAT_CATEGORIES = Object.freeze({
+    html: /\.html?$/i,
+    css: /\.css$/i,
+    js: /\.js$/i,
+    json: /\.json$/i
+  });
+
+  // 统计快照：记录各分类当前文件的 raw/gzip 字节与内容哈希（md5）。
+  // raw/gzip 汇总用于 report.txt 的前后对照；哈希用于判定同路径文件是否被改写。
+  function snapshotCompressionStats() {
+    const snapshot = {};
+    for (const key of Object.keys(STAT_CATEGORIES)) {
+      const pattern = STAT_CATEGORIES[key];
+      const entries = new Map();
+      let raw = 0;
+      let gzip = 0;
+      for (const file of ctx.getAllFiles(ctx.distDir).filter((f) => pattern.test(f))) {
+        try {
+          const buffer = fs.readFileSync(file);
+          const gzipped = gzipSize(buffer);
+          raw += buffer.length;
+          gzip += gzipped;
+          entries.set(distRel(file), {
+            raw: buffer.length,
+            gzip: gzipped,
+            hash: crypto.createHash('md5').update(buffer).digest('hex')
+          });
+        } catch (err) {
+          console.warn(`  [WARN] 压缩统计快照跳过 ${distRel(file)}: ${err.message}`);
+        }
+      }
+      snapshot[key] = { entries, raw, gzip };
+    }
+    return snapshot;
+  }
+
+  // 前后快照差分：变更 = 同路径内容哈希变化；新增/移除 = 混淆改名等导致的文件集变化；
+  // 跳过 = 存在且未变化；豁免 = 命中 compression.exclude（仅约束增强步骤）。
+  function buildCompressionStats(before, after) {
+    const categories = {};
+    for (const key of Object.keys(STAT_CATEGORIES)) {
+      const previous = before[key] || { entries: new Map(), raw: 0, gzip: 0 };
+      const current = after[key] || { entries: new Map(), raw: 0, gzip: 0 };
+      let changed = 0;
+      let added = 0;
+      let exempt = 0;
+      for (const [rel, entry] of current.entries) {
+        const old = previous.entries.get(rel);
+        if (!old) added += 1;
+        else if (old.hash !== entry.hash) changed += 1;
+        if (isExcluded(rel, compressionPlan.exclude)) exempt += 1;
+      }
+      let removed = 0;
+      for (const rel of previous.entries.keys()) {
+        if (!current.entries.has(rel)) removed += 1;
+      }
+      categories[key] = {
+        filesBefore: previous.entries.size,
+        filesAfter: current.entries.size,
+        rawBefore: previous.raw,
+        rawAfter: current.raw,
+        gzipBefore: previous.gzip,
+        gzipAfter: current.gzip,
+        changed,
+        added,
+        removed,
+        skipped: current.entries.size - changed - added,
+        exempt
+      };
+    }
+    return {
+      active: compressionPlan.active === true,
+      verificationRan: shouldRunVerification(),
+      categories
+    };
   }
 
   // Minify all HTML files in a directory tree using @minify-html/node.
@@ -486,6 +566,8 @@ function createMinifyModule(ctx) {
     console.log('[11/14] Minifying assets...');
     refreshCompressionState();
     reportCompressionIssues();
+    // 前后快照仅服务 dist/report.txt 的体积对照，不改变压缩流程本身。
+    const statsBefore = snapshotCompressionStats();
     await minifyHTMLInDir(ctx.distDir, config);
     await minifyInlineStylesInDir(ctx.distDir, config);
     await minifyCSSInDir(ctx.distDir, config);
@@ -531,6 +613,7 @@ function createMinifyModule(ctx) {
     if (config.site.build.minifyJS) types.push('JS');
     if (types.length)     console.log(`  Minified: ${types.join(', ')}`);
     else console.log('  [SKIP] Minification disabled');
+    return buildCompressionStats(statsBefore, snapshotCompressionStats());
   }
 
   // Cache-busting via MD5 content hashing.

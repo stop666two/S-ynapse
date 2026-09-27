@@ -18,6 +18,12 @@ const ROOT = path.resolve(__dirname, '..');
 // 白名单判定、ZIP 解析与版本一致性校验仍有纯函数用例在包内全量运行。
 const HAS_GIT_REPO = fs.existsSync(path.join(ROOT, '.git'));
 
+// 派生副本（如 real-site/）不维护发布标记 RELEASE.json，也不产出发布归档：
+// 依赖 HEAD/tag 发布标记的端到端用例显式跳过并声明；纯函数用例仍全量运行。
+const DERIVED_COPY = process.env.SYNAPSE_DERIVED_COPY === '1';
+const DERIVED_SKIP_REASON =
+  '派生副本（SYNAPSE_DERIVED_COPY=1）：RELEASE.json 发布标记仅在 canonical 仓库维护，发布归档端到端检查在 canonical 仓库执行';
+
 function gitText(args) {
   const result = spawnSync('git', args, { cwd: ROOT, encoding: 'utf-8' });
   assert.strictEqual(result.status, 0, 'git ' + args.join(' ') + ' 应成功：' + (result.stderr || ''));
@@ -29,6 +35,10 @@ function makeTempDir() {
 }
 
 test('archiveRelease：真实 git archive HEAD → 内容全部落在白名单内且必需文件齐全', function (t) {
+  if (DERIVED_COPY) {
+    t.skip(DERIVED_SKIP_REASON);
+    return;
+  }
   if (!HAS_GIT_REPO) {
     t.skip('发布包不含 .git，端到端归档检查在源码仓库执行');
     return;
@@ -82,6 +92,10 @@ test('archiveRelease：真实 git archive HEAD → 内容全部落在白名单�
 });
 
 test('release-archive CLI：--ref HEAD --out 临时路径，退出码 0 且输出骨架与测试摘要', function (t) {
+  if (DERIVED_COPY) {
+    t.skip(DERIVED_SKIP_REASON);
+    return;
+  }
   if (!HAS_GIT_REPO) {
     t.skip('发布包不含 .git，端到端归档检查在源码仓库执行');
     return;
@@ -133,6 +147,10 @@ test('assertVersionConsistency：RELEASE.json/package.json/tag 三方一致校�
 });
 
 test('resolveVersion：真实 HEAD 返回 package.json 一致的版本（版本校验接入归档入口）', function (t) {
+  if (DERIVED_COPY) {
+    t.skip(DERIVED_SKIP_REASON);
+    return;
+  }
   if (!HAS_GIT_REPO) {
     t.skip('发布包不含 .git，真实 HEAD 版本读取在源码仓库执行');
     return;

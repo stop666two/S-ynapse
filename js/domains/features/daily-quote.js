@@ -33,7 +33,8 @@ export function pickNextIndex(current, total, rand) {
 }
 
 // 组装一言请求 URL：endpoint 必须为 https（否则返回空串，调用方回退本地）；
-// categories 过滤为短标识符后以 | 连接为 c 参数；maxLength>0 时追加 max_length。
+// categories 过滤为短标识符后逐个以「重复 c= 参数」追加（实测 API 仅接受重复参数；| 或逗号形式会 400）；
+// maxLength>0 时追加 max_length。
 export function buildApiUrl(api) {
   var cfg = api || {};
   var endpoint = typeof cfg.endpoint === 'string' && cfg.endpoint ? cfg.endpoint : DEFAULT_API_ENDPOINT;
@@ -42,7 +43,7 @@ export function buildApiUrl(api) {
     return typeof c === 'string' && /^[A-Za-z0-9_-]+$/.test(c);
   });
   var params = [];
-  if (cats.length) params.push('c=' + cats.join('|'));
+  cats.forEach(function (c) { params.push('c=' + c); });
   var max = Math.floor(Number(cfg.maxLength));
   if (isFinite(max) && max > 0) params.push('max_length=' + max);
   if (!params.length) return endpoint;

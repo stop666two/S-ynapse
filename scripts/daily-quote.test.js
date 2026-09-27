@@ -121,11 +121,11 @@ describe('运行时纯函数（与浏览器模块同源）', () => {
 describe('dailyQuote API 纯函数（与浏览器模块同源）', () => {
   const API_DEFAULT = { endpoint: 'https://v1.hitokoto.cn/', categories: ['d', 'i', 'k'], maxLength: 0 };
 
-  it('buildApiUrl：默认端点 + 分类参数（| 连接）', async () => {
+  it('buildApiUrl：默认端点 + 分类参数（重复 c=，实测 API 仅接受此形式）', async () => {
     const m = await loadQuoteModule();
-    assert.strictEqual(m.buildApiUrl(API_DEFAULT), 'https://v1.hitokoto.cn/?c=d|i|k');
+    assert.strictEqual(m.buildApiUrl(API_DEFAULT), 'https://v1.hitokoto.cn/?c=d&c=i&c=k');
     const fromDefaults = DEFAULT_FEATURES.dailyQuote.api;
-    assert.strictEqual(m.buildApiUrl(fromDefaults), 'https://v1.hitokoto.cn/?c=d|i|k', 'schema 默认值应生成实测同款 URL');
+    assert.strictEqual(m.buildApiUrl(fromDefaults), 'https://v1.hitokoto.cn/?c=d&c=i&c=k', 'schema 默认值应生成实测同款 URL');
   });
 
   it('buildApiUrl：非 https 端点拒绝、空端点回退默认', async () => {

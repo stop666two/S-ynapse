@@ -112,3 +112,14 @@
 - **线上验证**：CSP 0 违规、软导航 ALL PASS、`/admin` 403、404 语言链路正确（`/nope/` 根 404 带语言跳转；`/en/nope/` 直接英文 404）；`report.txt` 随资产发布（如需私有化需调整部署清单）。
 - **生产性能复测**（Slow 4G + 4× CPU，3 次中位）：**LCP 2808ms**（3372/2372/2808，较上轮 3796ms −26%）、CLS 0.0003、请求 30、总传输 971.7KB；LCP 元素为首张卡片封面（自动封面），分相 TTFB 816 / 加载 670 / 渲染延迟 1089。**≤1.2s 目标仍未达**，候选优化：卡片封面缩略变体、首图 `fetchpriority=high`/preload、封面尺寸策略。
 - **残余**：HTML/JS 目标已按用户 A 选项接受；混淆默认关（开启时 gzip +59.9%）；增量构建文章级粒度；验证耗时约 13s（含验证构建 18.1s）；同 Chrome profile 构建需串行；`report.txt` 公开可访问；真机点检待用户执行。
+
+## 10. 完成标记 + 自动发布机制与首批 Release（2026-09-27，已部署）
+
+- **完成标记**：根 `RELEASE.json`（`schemaVersion/version/status/humanVerifiedBy/verifiedAt/commit/checks`）+ SemVer 附注 tag；`npm run release:mark -- <major|minor|patch|X.Y.Z> --human-verified "<姓名>" --confirm <版本> [--push --confirm-push]` 依次执行干净工作区校验 → 11 项前置门禁（lint/typecheck/test/test:build/四条 config verify/verify:security/verify:compression/真实构建，`RELEASE_GATES` 单一来源）→ 人工核验参数校验 → 版本与 CHANGELOG 归段 → 写 verified 标记（commit=tag 父提交）→ `chore(release)` 单提交 → 附注 tag；`--dry-run` 仅演练。
+- **双通道发布 + 双重校验**：`.github/workflows/release.yml`（`on push tags v*`；validate 读取 tag 内 `RELEASE.json`，未完成/不匹配即拒绝）→ 11 项门禁 → **buildability**（解压归档 → `npm ci --ignore-scripts` → `npm test` → `npm run build` → 断言 `dist/index.html`/`report.txt`/`zh/search-index.json`）→ `gh release create --latest`（**永不标记 Pre-release**）→ **只保留最新**：旧 Release（`--cleanup-tag`）与其余 `v*` 远端 tag 自动清理；本地备用通道 `release:publish` 同语义。
+- **基础包语义（用户定稿）**：归档 = 可完整体验 README 全部功能的最简骨架——`articles/**`、`media/**` 仅 `.gitkeep` 空目录（无示例文章/媒体），`pages/**`、`static/**` 保留，测试随包；空站可直接 `npm run build`；配置为默认初始态（社交链接等已占位）。
+- **发布历史**：`v1.1.0`（首个 Release，被后续策略清理）→ `v1.1.0-a1`（因 release 测试读真实 CHANGELOG `[Unreleased]` 导致 CI 红，重打后又被 Pre-release 标记问题影响）→ **`v1.1.0-a2` 为当前唯一 Release（Latest、非预发布）**，资产 `S-ynapse-1.1.0-a2.zip`。
+- **事故与修复**：①`release-mark.test` 仓库状态依赖 → 临时夹具仓库化（11/11，两态均绿）；②`release-version.test` 真实仓库态硬编码小节数 → 按 Unreleased 实际小节数断言；③prune 扩展清理残留 `v*` tag（先 Release 后 tag，`--dry-run` 可预览）；④发布统一 `--latest`，彻底消除预发布态。
+- **配置治理收口**：guard 绕过通道全配置化（`core.bypass.enabled/urlParam/localStorage/localhost/cleanUrl/queryParam/storageFlag/accessGateKey`，25 例单测 + 35 断言 runner）；隐藏开关审查（A 类 21 键接入、B 类 6 组去重、C 类 25 项留档 `docs/config-hidden-switches-audit.md`）；审计遗留三项（mermaid.clientOptions、水印断点单一源、触觉/存储键）；新增 `verify:config-comments`（注释守卫）与 `verify:config-docs`（文档键覆盖守卫）并接入 CI。
+- **生产部署**：Worker `blog` 版本 **`7e52ad6f-659d-4a0f-8127-8d0003bab862`**（回滚点 `36cf88fe`）；线上 `probe-live-csp` 0 违规、`verify-live-softnav` ALL PASS、`/admin` 403、缺失路由 404 正常。
+- **残余**：归档不含 docs（README 中 docs 链接包内不可用，属定稿口径）；生产 LCP 目标未达标；`config-count`/`release-archive` 在派生副本按 `SYNAPSE_DERIVED_COPY=1` 显式跳过并声明。

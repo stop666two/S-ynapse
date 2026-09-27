@@ -3,7 +3,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { collectKeys, keyAppears, moduleNameOf, checkDocs, FILE_POLICIES } = require('./check-config-docs');
+const { collectKeys, keyAppears, moduleNameOf, checkDocs, FILE_POLICIES, DATA_FILE_POLICIES } = require('./check-config-docs');
 
 // docs/ 不进发布包（白名单排除），发布包解压环境中跳过「真实仓库文档」集成检查；
 // 源码仓库与 CI gates（有 docs）仍全量执行。
@@ -45,6 +45,10 @@ describe('check-config-docs 策略表', () => {
     assert.strictEqual(FILE_POLICIES.length, 14);
     const depth1 = FILE_POLICIES.filter(p => p.depth === 1).map(p => p.file).sort();
     assert.deepStrictEqual(depth1, ['content-policy', 'friends', 'tag-aliases', 'ui-strings']);
+  });
+
+  it('data 数据文件策略：登记 data/quotes.json5 章节存在性（键级由文件头注释承担）', () => {
+    assert.deepStrictEqual(DATA_FILE_POLICIES.map(p => p.file), ['data/quotes.json5']);
   });
 });
 

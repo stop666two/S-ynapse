@@ -40,6 +40,12 @@ const FILE_POLICIES = [
   { file: 'content-policy', depth: 1 }
 ];
 
+// 数据文件（不属于 14 个 JSON5 配置，但属于站点默认体验数据）：只校验文档中存在
+// `## N. data/<file>.json5` 文件级章节；逐字段语义由数据文件头部注释与章节内容承担。
+const DATA_FILE_POLICIES = [
+  { file: 'data/quotes.json5' }
+];
+
 function readJson5(file) {
   let raw = fs.readFileSync(file, 'utf-8');
   if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
@@ -106,12 +112,22 @@ function checkDocs({ root = ROOT, docText } = {}) {
       }
     }
   }
+  for (const policy of DATA_FILE_POLICIES) {
+    const filePath = path.join(root, policy.file);
+    if (!fs.existsSync(filePath)) {
+      missingSections.push(policy.file + '（文件不存在）');
+      continue;
+    }
+    const sectionRe = new RegExp('^## \\d+\\. .*' + escapeRegExp(policy.file), 'm');
+    if (!sectionRe.test(doc)) missingSections.push(policy.file);
+  }
   return { checked, missing, missingSections, staleModules };
 }
 
 function main() {
   const result = checkDocs();
-  console.log('[check-config-docs] 解析 14 个 JSON5：full 文件 10 个（顶层+模块键）、data 文件 4 个（章节+模块标题）；共校验 ' + result.checked + ' 个键');
+  console.log('[check-config-docs] 解析 14 个 JSON5：full 文件 10 个（顶层+模块键）、data 文件 4 个（章节+模块标题）；' +
+    '外加 data 数据文件 ' + DATA_FILE_POLICIES.length + ' 个（章节存在性）；共校验 ' + result.checked + ' 个键');
   const failed = result.missing.length > 0 || result.missingSections.length > 0 || result.staleModules.length > 0;
   if (result.missingSections.length) {
     console.error('[check-config-docs] 缺少文件级章节（## N. <文件>.json5）：');
@@ -135,4 +151,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { collectKeys, keyAppears, moduleNameOf, checkDocs, FILE_POLICIES };
+module.exports = { collectKeys, keyAppears, moduleNameOf, checkDocs, FILE_POLICIES, DATA_FILE_POLICIES };

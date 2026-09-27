@@ -103,6 +103,7 @@
     prevPost: '上一篇', nextPost: '下一篇',
     readTimeLabel: '{minutes} 分钟阅读',
     words: '字', readMinutes: '分钟阅读', readSettings: '阅读设置', fontSize: '字号', lineHeight: '行距', width: '宽幅', resetDefault: '重置为默认', relatedTitle: '相关文章', shareThis: '分享本文', linkCopied: '链接已复制', disqusNoScript: '请启用 JavaScript 以查看评论。', rewardQrCode: '收款码',
+    sourceUrl: '原文链接',
   },
 
   // 顶栏/工具栏
@@ -373,6 +374,7 @@
       prevPost: 'Previous', nextPost: 'Next',
       readTimeLabel: '{minutes} min read',
     words: 'words', readMinutes: 'min read', readSettings: 'Reading settings', fontSize: 'Font size', lineHeight: 'Line height', width: 'Width', resetDefault: 'Reset to default', relatedTitle: 'Related articles', shareThis: 'Share this article', linkCopied: 'Link copied', disqusNoScript: 'Please enable JavaScript to view comments.', rewardQrCode: 'QR code',
+    sourceUrl: 'Source',
     },
     toolbar: {
       backToTop: 'Back to top', openSearchLabel: 'Search', closeSearch: 'Close search', boostLabel: 'Page boost settings', tocCollapse: 'Collapse contents', rotateL: 'Rotate left', rotateR: 'Rotate right', vtLabel: 'Page transition', specLabel: 'Prefetch/prerender', softNavLabel: 'Seamless navigation',

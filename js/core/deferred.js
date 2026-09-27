@@ -10,6 +10,7 @@ import { init as ttsInit } from '../domains/features/tts.js';
 import { init as shortcutsInit } from '../domains/features/shortcuts.js';
 import { init as prevNextInit } from '../domains/features/prev-next.js';
 import { init as shareInit } from '../domains/features/share.js';
+import { init as exportArticleInit } from '../domains/features/export-article.js';
 import { init as contactPopupInit } from '../domains/features/contact-popup.js';
 import { init as sidebarDragInit } from '../domains/features/sidebar-drag.js';
 import { init as themePresetsInit } from '../domains/features/theme-presets.js';
@@ -38,6 +39,7 @@ const registry = {
   shortcuts: shortcutsInit,
   'prev-next': prevNextInit,
   share: shareInit,
+  'export-article': exportArticleInit,
   'contact-popup': contactPopupInit,
   'sidebar-drag': sidebarDragInit,
   'theme-presets': themePresetsInit,

@@ -67,6 +67,7 @@ const idleQueue = [
   dyn('shortcuts', '../domains/features/shortcuts.js'),
   dyn('prev-next', '../domains/features/prev-next.js'),
   dyn('share', '../domains/features/share.js'),
+  dyn('export-article', '../domains/features/export-article.js'),
   dyn('contact-popup', '../domains/features/contact-popup.js'),
   dyn('sidebar-drag', '../domains/features/sidebar-drag.js'),
   dyn('theme-presets', '../domains/features/theme-presets.js'),

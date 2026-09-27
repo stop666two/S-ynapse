@@ -176,6 +176,15 @@ function createFeedsModule(ctx) {
           if (p.draft || !p.slug) continue;
           urls.push({ loc: pf + p.slug + '/', changefreq: pageFreq, priority: String(pagePr) });
         }
+        // 系列聚合页（features.series.pageEnabled）：与页面生成同源（ctx.collectSeries 按
+        // safeSlug 组 slug）；空系列不产出页面，故不纳入。
+        const seriesPagesOn = (config.features && config.features.series && config.features.series.enabled !== false && config.features.series.pageEnabled !== false);
+        if (seriesPagesOn && typeof ctx.collectSeries === 'function') {
+          for (const s of ctx.collectSeries(langPubs)) {
+            if (!s.articles.length || !s.slug) continue;
+            urls.push({ loc: pf + 'series/' + s.slug + '/', changefreq: pageFreq, priority: String(pagePr) });
+          }
+        }
         const sitemapPath = config.site.sitemap.path.replace(/^\//, '');
         const entryPath = path.join(ctx.distDir, lang, sitemapPath);
         const outDir = path.dirname(entryPath);

@@ -14,6 +14,7 @@ const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
 const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette } = require('../lib/feature-wiring');
+const { collectSeriesPages } = require('../lib/series-page');
 const { stableSerialize, pageCacheKey, hashTemplateDir } = require('../lib/incremental');
 const { pruneTo } = require('../lib/asset-cache');
 
@@ -561,6 +562,14 @@ function createPagesModule(ctx) {
       await writeFile(relPath, typeof postProcess === 'function' ? postProcess(html) : html);
     }
 
+    // 每语言系列列表预计算（系列聚合页与跨语言 alt 匹配共用；避免循环内重复分组）。
+    const seriesByLang = {};
+    for (const l of siteLangs) {
+      seriesByLang[l] = collectSeries(getPublished(articles.filter(a => a.lang === l)));
+    }
+    // 系列配置（baseData 已由 buildPageData 归一化；generatePages 内模板数据与生成块共用）。
+    const seriesCfg = baseData.seriesCfg || seriesConfig(config.features);
+
     for (const lang of siteLangs) {
       const pf = '/' + lang + '/';
       const langArticles = articles.filter(a => a.lang === lang);
@@ -592,7 +601,11 @@ function createPagesModule(ctx) {
         allCategories: langCategories,
         recentPosts: langPublished.slice(0, 10),
         archives: groupByYearMonth(langPublished),
-        seriesList: collectSeries(langPublished),
+        seriesList: seriesByLang[lang],
+        // 系列聚合页链接（features.series.pageEnabled；模板侧单一来源；关闭或名称为空返回空串）。
+        seriesPageHref: function(name) {
+          return (seriesCfg.enabled && seriesCfg.pageEnabled && name) ? pf + 'series/' + safeSlug(String(name)) + '/' : '';
+        },
         galleryItems: collectGalleryImages(langArticles, { collectFeatured: galleryCollectFeatured(config.features) }),
         siteStats: collectSiteStats(langArticles, langTags, langCategories),
         nav: localizeNav(baseData.nav, pf, lang),
@@ -686,6 +699,33 @@ function createPagesModule(ctx) {
           const catArticles = langPublished.filter(a => !a.draft && a.categories.includes(cat.name));
           const catData = { ...langData, title: cat.name, category: cat, categoryName: cat.name, articles: catArticles, currentUrl: cat.url, currentPage: 'category' };
           await renderAndWrite(lang + '/categories/' + cat.slug + '/index.html', 'category.ejs', catData);
+        }
+      }
+
+      // 系列聚合页 /{lang}/series/<slug>/（features.series.pageEnabled；空系列不生成）：
+      // 系列名标题 + 按 order 的文章列表（序位/进度标签/上下篇）+ 自动 meta 描述；
+      // 搜索索引不纳入（feeds.generateSearchIndex 仅索引文章），sitemap 由 feeds 纳入。
+      if (seriesCfg.enabled && seriesCfg.pageEnabled) {
+        const otherLang = siteLangs.find(function (l) { return l !== lang; }) || '';
+        const seriesPageDefs = collectSeriesPages(
+          seriesByLang[lang] || [],
+          lang,
+          seriesCfg.order,
+          otherLang ? (seriesByLang[otherLang] || []) : [],
+          otherLang
+        );
+        for (const def of seriesPageDefs) {
+          const seriesData = {
+            ...langData,
+            title: def.name,
+            description: def.description,
+            seriesName: def.name,
+            seriesArticles: def.articles,
+            altLangUrl: def.altUrl,
+            currentUrl: def.url,
+            currentPage: 'series-page'
+          };
+          await renderAndWrite(lang + '/series/' + def.slug + '/index.html', 'series-page.ejs', seriesData);
         }
       }
 

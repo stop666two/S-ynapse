@@ -1,0 +1,43 @@
+<%# 系列聚合页 /{lang}/series/<slug>/：系列名标题 + 按 order 的文章列表（序位/进度标签/上下篇）。
+   数据由 scripts/build/pages.js 经 scripts/lib/series-page.js 生成（空系列不渲染，搜索索引不纳入）。 %>
+<div class="post-article series-page-hero">
+  <h1><%= seriesName %></h1>
+  <p class="series-page-count"><%= ui('post.seriesPageCount','共 {total} 篇').replace('{total}', seriesArticles.length) %></p>
+</div>
+
+<% if (seriesArticles && seriesArticles.length) { %>
+<% var _showPos=!(features.series&&features.series.showPosition===false); %>
+<div class="blog-grid series-grid">
+<% seriesArticles.forEach(function(article) { %>
+<article class="post-card series-item">
+  <h2 class="post-card-title">
+    <span class="series-item-index" aria-hidden="true">#<%= article.seriesIndex %></span>
+    <a href="<%= article.url %>"><%= article.title %></a>
+  </h2>
+  <div class="post-card-meta">
+    <% if (theme.card && theme.card.showDate && article.date) { %>
+    <span><%= article.formattedDate || article.date %></span>
+    <% } %>
+    <% if (_showPos) { %>
+    <span class="series-item-progress"><%= String(features.series.progressLabel||'{index} / {total}').replace('{index}',article.seriesIndex).replace('{total}',article.seriesTotal) %></span>
+    <% } %>
+    <% if (theme.card && theme.card.showWordCount && article.wordCount && !(features.wordCount&&(features.wordCount.enabled===false||features.wordCount.onCards===false))) { %>
+    <span><%= (typeof wordCountLabel==='function')?wordCountLabel(article.wordCount, typeof lang!=='undefined'?lang:'zh'):ui('card.wordUnit','{count} 字').replace('{count}', article.wordCount) %></span>
+    <% } %>
+    <% if (theme.card && theme.card.showReadTime && article.readTime) { %>
+    <span><%= (typeof readTimeLabel==='function')?readTimeLabel(article.readTime, typeof lang!=='undefined'?lang:'zh'):ui('card.minute','{minutes} 分钟阅读').replace('{minutes}', article.readTime) %></span>
+    <% } %>
+  </div>
+  <% if (theme.card && theme.card.showExcerpt && article.excerpt) { %>
+  <p class="post-card-excerpt"><%= article.excerpt %></p>
+  <% } %>
+  <div class="series-item-nav">
+    <% if (article.seriesPrevUrl) { %><a class="series-item-prev" href="<%= article.seriesPrevUrl %>">← <%= (typeof lang!=='undefined'&&lang==='en'&&features.series.prevLabelEn)?features.series.prevLabelEn:(features.series.prevLabel||ui('post.seriesPrev','上一集')) %></a><% } %>
+    <% if (article.seriesNextUrl) { %><a class="series-item-next" href="<%= article.seriesNextUrl %>"><%= (typeof lang!=='undefined'&&lang==='en'&&features.series.nextLabelEn)?features.series.nextLabelEn:(features.series.nextLabel||ui('post.seriesNext','下一集')) %> →</a><% } %>
+  </div>
+</article>
+<% }) %>
+</div>
+<% } else { %>
+<div class="post-article"><p class="empty-state-ts"><%= ui('post.seriesEmpty','该系列下暂无文章') %></p></div>
+<% } %>

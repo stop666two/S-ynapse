@@ -133,6 +133,10 @@ function swap(html, url, mode) {
   body.className = keep.join(' ');
   const artTitle = newDoc.body.getAttribute('data-article-title') || '';
   body.setAttribute('data-article-title', artTitle);
+  // 语言切换直达地址（系列聚合页等页面对语言切换按钮使用 data-alt-lang）随页交换同步。
+  const altLang = newDoc.body.getAttribute('data-alt-lang');
+  if (altLang) body.setAttribute('data-alt-lang', altLang);
+  else body.removeAttribute('data-alt-lang');
   if (typeof window.__ART_TITLE__ === 'string' && artTitle) window.__ART_TITLE__ = artTitle;
   if (mode === 'push') history.pushState({ soft: true }, '', url);
   else if (mode === 'replace') history.replaceState({ soft: true }, '', url);

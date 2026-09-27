@@ -370,6 +370,7 @@ function createBuildContext(deps) {
     watchMode: WATCH_MODE,
     getFeed: () => Feed,
     getPublished: helpers.getPublished,
+    collectSeries: collectors.collectSeries,
     collectTags: collectors.collectTags,
     collectCategories: collectors.collectCategories,
     recordBuildFailure: helpers.recordBuildFailure

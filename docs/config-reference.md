@@ -11,7 +11,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson5--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson5--视觉与主题)
-3. [features.json5 — 功能总控(99 模块)](#3-featuresjson5--功能总控99-模块)
+3. [features.json5 — 功能总控(100 模块)](#3-featuresjson5--功能总控100-模块)
 4. [navigation.json5 — 导航](#4-navigationjson5--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson5--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson5--页脚)
@@ -339,7 +339,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(99 模块)
+## 3. features.json5 — 功能总控(100 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -1058,6 +1058,12 @@ listCover: {
 构建期：`scripts/lib/md-export.js` 把 `articles/<lang>/<file>.md` 按字节原样复制为 `dist/md/<lang>/<slug>.md`——**保留原始 frontmatter**（下载内容与仓库源完全一致；front-matter 解析、wiki 链接与渲染预处理不会污染导出文件）；`lang`/`slug` 双白名单校验防目录穿越，校验或写盘失败仅记非阻断告警并让复制按钮隐藏（不产生 404 链接）。运行时：`js/domains/features/export-article.js` 进 deferred 按需路径（`js/core/deferred.js` + idle 队列），文档级事件委托对软导航安全；剪贴板复用 share/contact 同款 `navigator.clipboard` + `textarea`/`execCommand` 回退；按钮为原生 `<button>`（双语 `aria-label`/`title`，键盘可达），复制期间 `data-busy` 防重复触发。打印样式：`templates/site-css.ejs` 输出自足 `@media print` 块——隐藏导航/侧栏/工具栏/评论/相关推荐（即使 `features.printStyle` 关闭也成立）、保留标题与署名、强制白底黑字（覆盖暗色模式变量）、代码块浅底防跨页断裂、来源脚注显现；`features.printStyle` 保持独立可与之叠加。静态服务 `scripts/lib/static-server.js` 以 `text/markdown` 提供 `.md` 原文。
 
 ---
+
+### 3.100 bilingual — 双语对照（同 slug 文章切换 + 宽屏并排）
+
+`enabled true`（总开关；false = 不渲染对照入口/右栏，语言按钮恢复既有路径前缀替换行为） / `switch true`（文章页「中/EN」对照切换入口，构建期指向同 slug 另一语言文章；无对应文章时整条隐藏） / `sideBySide true`（宽屏「并排对照」开关，视口 ≥ `breakpointPx` 时显示；默认关闭、状态仅当次会话） / `breakpointPx 1280`（并排生效的最小视口宽度 px；480–3840 夹取，非法回退 1280）。
+
+构建期：`scripts/build/pages.js` 为每篇文章计算 `altArticle`（同 slug、非草稿、另一语言；缺失为 null）并注入 `altLangUrl`——`templates/layout.ejs` 据此输出 `body[data-alt-lang]`（hreflang/x-default 与语言按钮直达共用）；`templates/post.ejs` 渲染对照工具条与右栏骨架（无对照整条不渲染；并排开关初始 `hidden`，由运行时按断点显隐；无 JS 时切换链接仍为普通 `<a>` 可直接跳转）。运行时 `js/domains/features/bilingual.js`（deferred 按需路径 + `js/core/deferred.js` 注册）：点击切换入口优先走软导航就地交换（不可用/失败回退整页跳转，交换后回到页首）；开启并排时 fetch 对方 HTML → 提取 `.post-content` → 净化（移除 `script`/工具条/评论/系列导航等，剥离 `id`/`data-vt`/`on*`）→ 注入右栏（`role=region` + 标题 landmark），右栏 `position:sticky` 独立滚动；关闭/软导航/视口缩回断点以下自动清理还原单栏。`js/domains/core/i18n.js` 语言切换优先 `data-alt-lang` 并走软导航；同一软导航钩子重扫对照状态并同步「无对照文章隐藏导航语言按钮」。纯函数 `js/domains/features/bilingual-core.js`（配置归一化 / URL 互指判定 / 断点判定 / 提取净化决策）由 `scripts/bilingual-core.test.js` 覆盖，并与 `scripts/lib/feature-wiring.js` 的 `bilingualConfig` 同值对拍。
 
 ## 4. navigation.json5 — 导航
 

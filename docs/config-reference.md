@@ -339,7 +339,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(101 模块)
+## 3. features.json5 — 功能总控(102 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -1074,6 +1074,14 @@ listCover: {
 面板位于文章页阅读设置（`templates/post.ejs`；`role=tablist`/`role=tabpanel`，方向键与 Home/End 可切换）。运行时 `js/domains/features/theme-lab.js`（deferred 按需路径 + `js/core/deferred.js` 注册）：行由 `tokens` 白名单注入（`<label>` + `<input type="color">` + 当前值 `<output>` + 单项重置），取色即写 `document.documentElement.style.setProperty`（CSSOM 内联变量，所见即所得）；预设载入复用 `window.__PRESETS__`（按当前模式取 13 色并以 token → theme.json5 键名映射）；「保存到本地」把 `{light,dark}` 覆盖写入 `storageKey`，「全部重置」清空内存与 localStorage；明/暗切换（`data-theme` 变更）按当前模式重放覆盖、避免跨模式串色；软导航后经 `__SOFTNAV_HOOKS__` 重绑面板。首屏防闪烁：`templates/layout.ejs` 头部内联脚本紧随主题早置脚本，同步读取同一存储结构并按当前模式应用覆盖（合法值判定与纯函数一致）。
 
 导出：「复制片段 / 下载片段」输出可粘贴进 `theme.json5 → presetOverrides` 的 JSON5 文本（含注释头与逐项中文注释；明亮模式写 `colors`、暗色模式写 `darkMode.colors`）。纯函数 `js/domains/features/theme-lab-core.js`（token 归一化 / 颜色校验 / 覆盖合并与净化 / JSON5 序列化）由 `scripts/theme-lab.test.js` 覆盖，并与 `scripts/lib/feature-wiring.js` 的 `themeLabConfig` 同值对拍。
+
+---
+
+### 3.102 saveDataMode — 省流模式（自动跟随 + 手动开关）
+
+`enabled true`（总开关；false = 不注入首屏早置脚本、不注册运行时模块，零开销） / `auto true`（自动跟随系统省流偏好 `navigator.connection.saveData`，含 `change` 变化） / `manual true`（阅读设置面板「省流模式」开关，localStorage 持久；**显式手动选择优先于自动**，可开可关；false = 不渲染开关且忽略已存偏好） / `storageKey 'ss-save-data'`（偏好存储键，值 `'1'` = 开 / `'0'` = 关；空串回退默认键） / `degrade.animations true`（停用全部 CSS 动画/过渡并跳过视图过渡） / `degrade.particles true`（停止粒子背景绘制并隐藏画布） / `degrade.lowResImages true`（图片重写为最小分辨率变体） / `degrade.lazyAggressive true`（取消首屏 eager 预载，全部 `loading=lazy` + `fetchpriority=low`） / `degrade.systemFontsOnly true`（网页字体降级为系统字体栈）。各 degrade 子项唯一关闭方式 = 显式 `false`，运行时切换即时生效/还原。与 `prefers-reduced-motion` 的语义区分：后者按各模块的 light/full 策略保留部分动效，save-data 更彻底（全量停用动画与过渡）。
+
+首屏防闪烁：`templates/layout.ejs` 头部内联脚本按与纯函数一致的决策（手动偏好 → 自动 → 默认关）同步置 `html.save-data`。运行时 `js/domains/core/save-data.js`（critical 同步层，`js/core/main.js` 注册）：系统 `saveData` 变化时重新决策；手动开关切换即写 `storageKey` 并即时降级/还原（类移除、图片回补原 `src`/`srcset`）；软导航后经 `__SOFTNAV_HOOKS__` 重绑面板；降级副作用经 `ss:save-data` 事件通知粒子背景（`js/domains/features/background.js`），图片改写/还原委托 `js/domains/core/image-lazy.js`（`window.__imageLazySaveData`，最小候选选择来自 `js/domains/core/save-data-core.js`）；`js/core/runtime.js → window.__SB`、`js/domains/core/page-transition.js`、`js/core/soft-nav.js` 分别将平滑滚动、页面过渡与视图过渡降级为瞬时。CSS 降级块输出于 `templates/site-css.ejs`（`html.save-data` 全域 `animation-duration/transition-duration` 归零、`scroll-behavior:auto`、系统字体栈覆盖 `--ff`/`--ff-d`/`--ff-h`/`--ff-mono`）。纯函数 `js/domains/core/save-data-core.js`（配置归一化 / 决策矩阵 / 变体宽度推断与最小候选）由 `scripts/save-data.test.js` 覆盖，并与 `scripts/lib/feature-wiring.js` 的 `saveDataModeConfig` 同值对拍。
 
 ## 4. navigation.json5 — 导航
 

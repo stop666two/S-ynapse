@@ -260,7 +260,10 @@ test('rewriteChangelog：真实仓库态（[Unreleased] 与静态版本段并存
     assert.ok(new RegExp('^## \\[' + currentVersion + '\\] - 2026-09-27$', 'm').test(plan.text), '版本段日期更新');
     assert.ok(plan.text.includes('自动发布 Release 机制'), 'Unreleased 代表性条目保留');
     assert.ok(plan.text.includes('无封面文章自动生成封面'), '已有版本段代表性条目保留');
-    assert.ok(plan.mergedSubsections.length >= 2, '至少合并 Added/Changed 两个小节');
+    const afterUnreleased = realText.split(/^## \[Unreleased\][^\n]*\n/m)[1] || '';
+    const unreleasedBlock = afterUnreleased.split(/^## \[/m)[0];
+    const expectedSubsections = (unreleasedBlock.match(/^### .+$/gm) || []).length;
+    assert.strictEqual(plan.mergedSubsections.length, expectedSubsections, 'Unreleased 中所有小节都被合并');
   } else {
     assert.ok(!/^## \[Unreleased\]/m.test(plan.text), 'Unreleased 若存在必被处理');
   }

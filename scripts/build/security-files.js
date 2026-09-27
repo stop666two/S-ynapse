@@ -165,7 +165,7 @@ function generateSecurityHeaders(config) {
 
   // Browser cache policy (audit P-5)。注意：Cloudflare 会把所有匹配规则的 Cache-Control
   // 合并为一个逗号连接的头，不存在“后置规则覆盖”——同名目录的规则必须互不重叠。
-  // 打包模式下 /assets/js 仅含内容哈希产物（app/deferred/runtime.<hash>.js），整目录可
+  // 打包模式下 /assets/js 仅含内容哈希产物（app/deferred/shared/runtime.<hash>.js），整目录可
   // immutable；--no-bundle 回退模式含稳定路径（core/*.js），仍用 1h+SWR。
   // Media/OG names may be reused when content changes → 7d + revalidate.
   // Disable via site.build.cacheControl === false.

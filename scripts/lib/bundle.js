@@ -1,7 +1,10 @@
 // esbuild 两段 chunk 打包（优化 Task 1.2）：
 //   app      首屏启动链（js/core/main.js，含静态关键模块）
 //   deferred 交互/重模块聚合（js/core/deferred.js，运行时按需载入）
-// 产物带内容哈希（app.<hash>.js / deferred.<hash>.js），由 esbuild 生成；
+// splitting 开启：app 与 deferred 的共享模块抽为 shared.<hash>.js 公共 chunk，
+// 由 ES 模块图在运行时加载（HTML 仅引用 app / deferred / runtime 三个入口名，
+// shared chunk 由引用方按相对路径导入，无需额外改写引用）。
+// 产物带内容哈希（app.<hash>.js / deferred.<hash>.js / shared.<hash>.js），由 esbuild 生成；
 // 写入使用项目原子写工具，保证不与 --watch 并发读者产生半截文件。
 'use strict';
 
@@ -59,11 +62,12 @@ async function buildBundles(options) {
     outdir: path.join(outDir, 'assets', 'js'),
     bundle: true,
     format: 'esm',
-    splitting: false,
+    splitting: true,
     minify,
     target: ['es2020'],
     write: false,
     entryNames: '[name].[hash]',
+    chunkNames: 'shared.[hash]',
     logLevel: 'warning'
   });
   const names = [];

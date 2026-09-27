@@ -118,6 +118,92 @@ describe('运行时纯函数（与浏览器模块同源）', () => {
   });
 });
 
+describe('dailyQuote API 纯函数（与浏览器模块同源）', () => {
+  const API_DEFAULT = { endpoint: 'https://v1.hitokoto.cn/', categories: ['d', 'i', 'k'], maxLength: 0 };
+
+  it('buildApiUrl：默认端点 + 分类参数（| 连接）', async () => {
+    const m = await loadQuoteModule();
+    assert.strictEqual(m.buildApiUrl(API_DEFAULT), 'https://v1.hitokoto.cn/?c=d|i|k');
+    const fromDefaults = DEFAULT_FEATURES.dailyQuote.api;
+    assert.strictEqual(m.buildApiUrl(fromDefaults), 'https://v1.hitokoto.cn/?c=d|i|k', 'schema 默认值应生成实测同款 URL');
+  });
+
+  it('buildApiUrl：非 https 端点拒绝、空端点回退默认', async () => {
+    const m = await loadQuoteModule();
+    assert.strictEqual(m.buildApiUrl({ endpoint: 'http://v1.hitokoto.cn/', categories: ['d'] }), '', 'http 明文应拒绝');
+    assert.strictEqual(m.buildApiUrl({ endpoint: '', categories: ['d'] }), 'https://v1.hitokoto.cn/?c=d', '空串回退默认端点');
+    assert.strictEqual(m.buildApiUrl(undefined), 'https://v1.hitokoto.cn/', '未配置时仅默认端点');
+  });
+
+  it('buildApiUrl：分类过滤非法元素与特殊字符（防注入）', async () => {
+    const m = await loadQuoteModule();
+    assert.strictEqual(m.buildApiUrl({ categories: ['d', 'i j', 'k?x=1', 7, ''] }), 'https://v1.hitokoto.cn/?c=d', '仅保留合法短标识符');
+    assert.strictEqual(m.buildApiUrl({ endpoint: 'https://v1.hitokoto.cn/', categories: [] }), 'https://v1.hitokoto.cn/', '空数组省略 c 参数');
+    assert.strictEqual(m.buildApiUrl({ endpoint: 'https://v1.hitokoto.cn/', categories: 'd' }), 'https://v1.hitokoto.cn/', '非数组视为未配置');
+  });
+
+  it('buildApiUrl：maxLength 边界与已有查询串拼接', async () => {
+    const m = await loadQuoteModule();
+    assert.strictEqual(m.buildApiUrl({ categories: ['i'], maxLength: 24 }), 'https://v1.hitokoto.cn/?c=i&max_length=24');
+    for (const bad of [0, -5, 'x', null, undefined]) {
+      const url = m.buildApiUrl({ endpoint: 'https://v1.hitokoto.cn/', categories: [], maxLength: bad });
+      assert.ok(!url.includes('max_length'), 'maxLength=' + String(bad) + ' 不应出现参数');
+    }
+    assert.strictEqual(m.buildApiUrl({ categories: ['i'], maxLength: 24.9 }), 'https://v1.hitokoto.cn/?c=i&max_length=24', '小数向下取整');
+    assert.strictEqual(m.buildApiUrl({ endpoint: 'https://v1.hitokoto.cn/?x=1', categories: ['d'] }), 'https://v1.hitokoto.cn/?x=1&c=d', '已有 ? 时用 & 追加');
+  });
+
+  it('normalizeApiQuote：合法响应归一化（作者与作品来源）', async () => {
+    const m = await loadQuoteModule();
+    assert.deepStrictEqual(
+      m.normalizeApiQuote({ hitokoto: ' 山重水复疑无路 ', from: '游山西村', from_who: '陆游', type: 'i' }),
+      { text: '山重水复疑无路', author: '陆游', source: '游山西村' }
+    );
+    assert.deepStrictEqual(
+      m.normalizeApiQuote({ hitokoto: '句子', from: '作品', from_who: '' }),
+      { text: '句子', author: '作品', source: '' },
+      'from_who 空回退 from 且不重复署源'
+    );
+    assert.deepStrictEqual(
+      m.normalizeApiQuote({ hitokoto: '句子', from: '', from_who: '' }),
+      { text: '句子', author: '', source: '' }
+    );
+  });
+
+  it('normalizeApiQuote：非法字段/结构返回 null（触发本地回退）', async () => {
+    const m = await loadQuoteModule();
+    assert.strictEqual(m.normalizeApiQuote({}), null, '缺 hitokoto');
+    assert.strictEqual(m.normalizeApiQuote({ hitokoto: '   ' }), null, '空白文本');
+    assert.strictEqual(m.normalizeApiQuote({ hitokoto: 123 }), null, '非字符串文本');
+    assert.strictEqual(m.normalizeApiQuote(null), null);
+    assert.strictEqual(m.normalizeApiQuote('{"hitokoto":"x"}'), null, '字符串载荷非对象');
+    assert.strictEqual(m.normalizeApiQuote([]), null, '数组载荷');
+    const partial = m.normalizeApiQuote({ hitokoto: 'x', from_who: 7, from: null });
+    assert.deepStrictEqual(partial, { text: 'x', author: '', source: '' }, '非字符串署名视为空');
+  });
+
+  it('canUseApi：开关/语言/离线/进行中决策矩阵', async () => {
+    const m = await loadQuoteModule();
+    const base = { enabled: true, lang: 'zh', online: true, pending: false, now: 10000, lastAt: 0, minIntervalMs: 1000 };
+    assert.strictEqual(m.canUseApi(base), true, '中文+在线+未节流 → API');
+    assert.strictEqual(m.canUseApi(Object.assign({}, base, { enabled: false })), false, '关闭 → 本地');
+    assert.strictEqual(m.canUseApi(Object.assign({}, base, { lang: 'en' })), false, '英文页 → 本地');
+    assert.strictEqual(m.canUseApi(Object.assign({}, base, { online: false })), false, '离线 → 本地');
+    assert.strictEqual(m.canUseApi(Object.assign({}, base, { pending: true })), false, '请求进行中 → 本地');
+    assert.strictEqual(m.canUseApi(undefined), false, '缺参保守回退本地');
+  });
+
+  it('canUseApi：minIntervalMs 节流边界', async () => {
+    const m = await loadQuoteModule();
+    const base = { enabled: true, lang: 'zh', online: true, pending: false, minIntervalMs: 1000 };
+    assert.strictEqual(m.canUseApi(Object.assign({}, base, { now: 1500, lastAt: 1000 })), false, '间隔内 → 本地');
+    assert.strictEqual(m.canUseApi(Object.assign({}, base, { now: 2000, lastAt: 1000 })), true, '达到间隔 → API');
+    assert.strictEqual(m.canUseApi(Object.assign({}, base, { now: 999, lastAt: 0 })), true, '首次请求不节流');
+    assert.strictEqual(m.canUseApi(Object.assign({}, base, { now: 1500, lastAt: 1000, minIntervalMs: 0 })), true, '间隔 0 不节流');
+    assert.strictEqual(m.canUseApi(Object.assign({}, base, { now: 1500, lastAt: 1000, minIntervalMs: -5 })), true, '负间隔按 0');
+  });
+});
+
 describe('构建期数据层（scripts/lib/daily-quotes.js）', () => {
   it('normalizeQuoteEntry：字符串/旧对象/新对象/非法值', () => {
     assert.deepStrictEqual(normalizeQuoteEntry('  hi  '), { text: 'hi', textEn: '', author: '', authorEn: '', source: '', sourceEn: '', tags: [] });
@@ -219,5 +305,20 @@ describe('features.dailyQuote schema 默认值', () => {
     const features = json5.parse(fs.readFileSync(path.join(ROOT, 'features.json5'), 'utf-8'));
     assert.deepStrictEqual(features.dailyQuote.dataFile, dq.dataFile);
     assert.strictEqual(features.dailyQuote.count, dq.count);
+  });
+
+  it('api 子块默认值与 features.json5 同步', () => {
+    const dq = DEFAULT_FEATURES.dailyQuote;
+    assert.deepStrictEqual(dq.api, {
+      enabled: true,
+      endpoint: 'https://v1.hitokoto.cn/',
+      categories: ['d', 'i', 'k'],
+      maxLength: 0,
+      timeoutMs: 5000,
+      minIntervalMs: 1000,
+      attributionText: '来源：一言'
+    });
+    const features = json5.parse(fs.readFileSync(path.join(ROOT, 'features.json5'), 'utf-8'));
+    assert.deepStrictEqual(features.dailyQuote.api, dq.api, 'features.json5 的 api 子块必须与 schema 默认值一致');
   });
 });

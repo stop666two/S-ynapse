@@ -193,6 +193,10 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     assert.ok(!styleSrc.includes("'unsafe-inline'"), "style-src must not allow 'unsafe-inline' (element context)");
     assert.ok(!styleAttr || !styleAttr.includes("'unsafe-inline'"), "style-src-attr must not allow 'unsafe-inline' (inline style attributes eliminated)");
     assert.ok(cspLine.includes("frame-ancestors 'none'"), "frame-ancestors 'none' must be present");
+    // 一言 API（features.dailyQuote.api.enabled 默认 true）：connect-src 必须保留直连域名，
+    // 关闭态由 scripts/csp.test.js 的 trim 二态断言覆盖（构建期 autoTrim 共用同一函数）。
+    const connectSrc = cspParts.find((part) => part.startsWith('connect-src ')) || '';
+    assert.ok(connectSrc.includes('https://v1.hitokoto.cn'), 'connect-src must keep the hitokoto endpoint for the default dailyQuote API');
     // nonce 同源回归（线上事故根因）：_headers 的 nonce 必须能解析，且根 404 重定向脚本必须携带同一枚。
     const headerNonce = (/'nonce-([^']+)'/.exec(scriptSrc) || [])[1];
     assert.ok(headerNonce, 'script-src nonce must be parseable from _headers');

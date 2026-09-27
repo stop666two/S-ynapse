@@ -1,13 +1,16 @@
 // csp.test.js —— CSP 指令构建期裁剪单元测试（TDD：先红后绿）
-// 覆盖：按 giscus/Web Analytics 开关与 externalAssets 引用关系自动移除未使用域名、空指令剔除、不修改原对象。
+// 覆盖：按 giscus/Web Analytics/一言 API 开关与 externalAssets 引用关系自动移除未使用域名、
+// 空指令剔除、不修改原对象；并直接断言 buildCspTrimContext 的二态推导（构建层接线）。
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { trimCspDirectives } = require('./lib/csp');
+const { createSecurityFilesModule } = require('./build/security-files');
 
 const GISCUS = 'https://giscus.app';
 const JSDELIVR = 'https://cdn.jsdelivr.net';
 const GFONTS = 'https://fonts.googleapis.com';
 const GSTATIC = 'https://fonts.gstatic.com';
+const HITOKOTO = 'https://v1.hitokoto.cn';
 
 function baseDirectives() {
   return {
@@ -93,4 +96,27 @@ test('缺失 context 视为全部关闭（最严格）', () => {
   const out = trimCspDirectives(baseDirectives(), undefined);
   const all = JSON.stringify(out);
   assert.ok(!all.includes(GISCUS) && !all.includes(JSDELIVR) && !all.includes(GFONTS) && !all.includes(GSTATIC));
+});
+
+test('启用一言（hitokotoNeeded）时保留 v1.hitokoto.cn，关闭时移除', () => {
+  const withDomain = baseDirectives();
+  withDomain['connect-src'] = ["'self'", 'https://cloudflareinsights.com', HITOKOTO];
+  const on = trimCspDirectives(withDomain, { giscusNeeded: false, externalAssets: {}, hitokotoNeeded: true });
+  assert.ok(on['connect-src'].includes(HITOKOTO), '开启时 connect-src 必须保留一言域名');
+  const off = trimCspDirectives(withDomain, { giscusNeeded: false, externalAssets: {} });
+  assert.ok(!off['connect-src'].includes(HITOKOTO), '关闭时 connect-src 必须移除一言域名');
+  assert.deepStrictEqual(off['connect-src'], ["'self'"], '移除后仅余自身（统计域名亦未启用）');
+  assert.ok(JSON.stringify(trimCspDirectives(withDomain, undefined)).includes(HITOKOTO) === false, '缺省 context 视为关闭');
+});
+
+test('buildCspTrimContext：一言开关二态推导（总开关与 api 子开关）', () => {
+  const mod = createSecurityFilesModule({});
+  const enabled = mod.buildCspTrimContext({ site: {}, features: { dailyQuote: { enabled: true, api: { enabled: true } } }, theme: {} });
+  assert.strictEqual(enabled.hitokotoNeeded, true, '总开关与 api 均开 → 保留域名');
+  const quoteOff = mod.buildCspTrimContext({ site: {}, features: { dailyQuote: { enabled: false, api: { enabled: true } } }, theme: {} });
+  assert.strictEqual(quoteOff.hitokotoNeeded, false, 'dailyQuote 总开关关闭 → 裁剪');
+  const apiOff = mod.buildCspTrimContext({ site: {}, features: { dailyQuote: { enabled: true, api: { enabled: false } } }, theme: {} });
+  assert.strictEqual(apiOff.hitokotoNeeded, false, 'api.enabled=false → 裁剪');
+  const missing = mod.buildCspTrimContext({ site: {}, features: {}, theme: {} });
+  assert.strictEqual(missing.hitokotoNeeded, true, '未显式关闭时默认保留（与 features 默认开启一致）');
 });

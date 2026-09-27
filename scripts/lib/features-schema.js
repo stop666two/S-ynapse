@@ -38,7 +38,7 @@ const DEFAULT_FEATURES = {
     showCount: true, emptyHint: '', emptyHintEn: '',
     noResultText: '未找到匹配内容', noResultTextEn: 'No matching content', excerptLength: 120, includeContent: true,
     matchTags: true, matchCategories: true, weightTitle: 5, weightExcerpt: 2,
-    weightContent: 1, closeOnOverlay: true, focusOnOpen: true,
+    weightContent: 1, index: { bigram: true, maxGzipKb: 60 }, closeOnOverlay: true, focusOnOpen: true,
     openAnimation: 'fade',
     debounceMs: 120, showHistoryOnFocus: true, maxHistory: 5, focusDelayMs: 100
   },

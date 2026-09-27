@@ -59,7 +59,7 @@ const {
   collectTags, collectCategories,
   buildSiteCss, writeRuntimeConfig, buildPageData, processCustomPages, generatePages,
   buildCjkFonts,
-  generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, generateSearchIndex, generatePagefindIndex,
+  generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, prepareSearchIndex, generateSearchIndex, generatePagefindIndex,
   checkPerfBudget, checkPerformanceWarnings, generateBuildReport, writeBuildReportText, generateRedirects, buildCspTrimContext, generateSecurityHeaders,
   minifyAll, cacheBust, copyJsAssets, copyRuntimeBootstrap, copyVendorAssets, generatePWA,
   startServer
@@ -221,6 +221,15 @@ async function build() {
     baseData.appJsHref = SITE_APP_JS_HREF;
     baseData.deferredUrl = SITE_DEFERRED_URL;
     baseData.runtimeJsHref = SITE_RUNTIME_JS_HREF;
+    // 搜索索引须先于页面渲染准备：内容寻址 URL 注入 window.__SEARCH_INDEX_URL__（模板按语言取用）；
+    // 实际文件在 [9/14] 阶段写盘，预计算保证了 URL 与最终内容哈希一致。
+    try {
+      baseData.searchIndexUrls = await prepareSearchIndex(config, articles);
+    } catch (err) {
+      console.warn('  [WARN] Search index preparation failed: ' + err.message);
+      recordBuildFailure('search', 'Search index preparation failed: ' + err.message);
+      baseData.searchIndexUrls = {};
+    }
     const customPages = processCustomPages(config, baseData);
     const pagesStartedAt = Date.now();
     await generatePages(config, articles, baseData, customPages);
@@ -264,7 +273,7 @@ async function build() {
       }
     }
     await pingSearchEngines(config);
-    generateSearchIndex(config, articles);
+    await generateSearchIndex(config, articles);
     generateSecurityHeaders(config);
     generateRedirects(config, customPages);
     if (generateWorkerSecurity && !OUTPUT_DIR_RESOLVED.custom) {

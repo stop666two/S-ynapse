@@ -3,11 +3,19 @@
 // 编排器通过 createFeedsModule(ctx) 注入路径、正文过滤器与构建错误收集器。
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { escapeHtml, stripHtml } = require('../lib/utils');
 const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('../lib/robots');
 const { resolveJsonFeedOptions } = require('../lib/feed-options');
 const { localSearchIndexNeeded } = require('../lib/feature-wiring');
+const {
+  searchIndexOptions, buildLanguageIndex, measureGzip, hashIndexText, pruneIndexToBudget, resolveFinalAssetUrl
+} = require('../lib/search-index');
+
+const SEARCH_INDEX_CORE_PATH = path.join(__dirname, '..', '..', 'js', 'domains', 'features', 'search-core.js');
+const SEARCH_INDEX_FILE_RE = /^search-index\.[0-9a-f]+\.json$/;
+const DEFAULT_BUST_PATTERN = '.*\\.(css|js|png|jpg|svg)$';
 
 function createFeedsModule(ctx) {
   // Generate an RSS 2.0 feed (per-language).
@@ -265,33 +273,115 @@ function createFeedsModule(ctx) {
       }
     }
   }
-  function generateSearchIndex(config, articles) {
+  // 搜索索引（v2 倒排、外置内容寻址）：
+  //   prepareSearchIndex 在页面渲染前计算每语言索引与 URL（/assets/search-index.<hash>.json），
+  //   由 build.js 注入模板（window.__SEARCH_INDEX_URL__）；generateSearchIndex 负责写盘与旧产物清理。
+  //   体积超出 features.search.index.maxGzipKb 时按词频裁剪低频词并记录非阻断告警（report.txt + 构建日志）。
+  let preparedSearchIndexes = null;
+  let searchCorePromise = null;
+  function loadSearchCore() {
+    if (!searchCorePromise) searchCorePromise = import(pathToFileURL(SEARCH_INDEX_CORE_PATH).href);
+    return searchCorePromise;
+  }
+  function searchWeightOf(raw, dflt) {
+    return (raw === '' || raw == null || isNaN(+raw)) ? dflt : Math.max(0, +raw);
+  }
+  async function prepareSearchIndex(config, articles) {
+    preparedSearchIndexes = null;
+    if (!localSearchIndexNeeded(config.navigation, config.features)) return {};
+    const opts = searchIndexOptions(config.features);
+    const core = await loadSearchCore();
+    const s = (config.features && config.features.search) || {};
+    const fullContent = s.includeContent !== false;
+    const indexFields = [];
+    if (searchWeightOf(s.weightTitle, 5) > 0) indexFields.push('title');
+    if (searchWeightOf(s.weightExcerpt, 2) > 0) indexFields.push('excerpt');
+    if (fullContent && searchWeightOf(s.weightContent, 1) > 0) indexFields.push('content');
+    const busting = config.site.build.enableCacheBusting === true;
+    const bustOpts = {
+      cacheBusting: busting,
+      pattern: new RegExp(config.site.build.cacheBustingPattern || DEFAULT_BUST_PATTERN, 'i')
+    };
+    const maxBytes = opts.maxGzipKb * 1024;
+    const siteLangsSI = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+    const prepared = { langs: {} };
+    const urls = {};
+    for (const lang of siteLangsSI) {
+      try {
+        const published = ctx.getPublished(articles.filter(a => a.lang === lang));
+        const docs = published.map(a => ({
+          title: a.title,
+          url: a.url,
+          excerpt: stripHtml(a.excerpt || '').substring(0, 200),
+          featuredImage: resolveFinalAssetUrl(ctx.distDir, a.featuredImage || '', bustOpts),
+          content: fullContent ? stripHtml(a.content).substring(0, 5000) : '',
+          tags: a.tags,
+          categories: a.categories,
+          lang
+        }));
+        const index = buildLanguageIndex(core, docs, { lang, fields: indexFields, bigram: opts.bigram });
+        const fullBytes = measureGzip(JSON.stringify(index));
+        const pruned = pruneIndexToBudget(index, maxBytes);
+        if (pruned.pruned > 0) {
+          const detail = `搜索索引（${lang}）gzip ${(fullBytes / 1024).toFixed(1)}KB 超出 features.search.index.maxGzipKb=${opts.maxGzipKb}：已裁剪 ${pruned.pruned} 个低频词 → ${(pruned.gzipBytes / 1024).toFixed(1)}KB`;
+          console.warn('  [WARN] ' + detail);
+          ctx.recordBuildFailure('search', detail, { fatal: false });
+        }
+        if (!pruned.reached) {
+          const detail = `搜索索引（${lang}）裁剪后仍为 ${(pruned.gzipBytes / 1024).toFixed(1)}KB，超过 features.search.index.maxGzipKb=${opts.maxGzipKb}（不阻断构建，请调高上限或关闭 includeContent）`;
+          console.warn('  [WARN] ' + detail);
+          ctx.recordBuildFailure('search', detail, { fatal: false });
+        }
+        const hash = hashIndexText(lang, pruned.text);
+        const fileName = 'search-index.' + hash + '.json';
+        prepared.langs[lang] = {
+          url: '/assets/' + fileName,
+          fileName,
+          text: pruned.text,
+          gzipBytes: pruned.gzipBytes,
+          prunedCount: pruned.pruned,
+          docsCount: index.docs.length
+        };
+        urls[lang] = '/assets/' + fileName;
+      } catch (err) {
+        console.warn(`  [WARN] Search index preparation failed for ${lang}: ${err.message}`);
+        ctx.recordBuildFailure('search', `Search index preparation failed for ${lang}: ${err.message}`, { fatal: false });
+      }
+    }
+    preparedSearchIndexes = prepared;
+    return urls;
+  }
+  async function generateSearchIndex(config, articles) {
     // provider=pagefind 时仅当 features.pagefind.integrate=false（回退内置搜索链路）才生成本地索引。
     if (!localSearchIndexNeeded(config.navigation, config.features)) {
       console.log('  [SKIP] Search index generation disabled or provider not local');
       return;
     }
     console.log('[9/14] Generating search index...');
-    const fullContent = !!(config.features && config.features.search && config.features.search.includeContent !== false);
-    const siteLangsSI = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
-    for (const lang of siteLangsSI) {
-      const langArticles = articles.filter(a => a.lang === lang);
-      const published = ctx.getPublished(langArticles);
-      const index = published.map(a => ({
-        title: a.title,
-        url: a.url,
-        excerpt: stripHtml(a.excerpt || '').substring(0, 200),
-        featuredImage: a.featuredImage || '',
-        content: fullContent ? stripHtml(a.content).substring(0, 5000) : '',
-        tags: a.tags,
-        categories: a.categories,
-        lang
-      }));
-      const outputPath = path.join(ctx.distDir, lang, 'search-index.json');
-      const outDir = path.dirname(outputPath);
-      if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-      writeFileAtomicSync(outputPath, JSON.stringify(index), 'utf-8');
-      console.log(`  Created: /${lang}/search-index.json (${index.length} entries)`);
+    try {
+      if (!preparedSearchIndexes) await prepareSearchIndex(config, articles);
+      const prepared = preparedSearchIndexes || { langs: {} };
+      const assetsDir = path.join(ctx.distDir, 'assets');
+      fs.mkdirSync(assetsDir, { recursive: true });
+      // 上一轮内容寻址索引清理（增量构建不清理 dist；文件名随内容变化，避免残留堆积）。
+      for (const name of fs.readdirSync(assetsDir)) {
+        if (SEARCH_INDEX_FILE_RE.test(name)) fs.rmSync(path.join(assetsDir, name), { force: true });
+      }
+      // 旧固定路径索引（v1 产物 /{lang}/search-index.json）迁移清理：不再产出，避免残留过期副本。
+      const siteLangsSI = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+      for (const lang of siteLangsSI) {
+        const legacy = path.join(ctx.distDir, lang, 'search-index.json');
+        if (fs.existsSync(legacy)) fs.rmSync(legacy, { force: true });
+      }
+      for (const lang of Object.keys(prepared.langs)) {
+        const entry = prepared.langs[lang];
+        writeFileAtomicSync(path.join(assetsDir, entry.fileName), entry.text, 'utf-8');
+        const pruneNote = entry.prunedCount ? `, pruned ${entry.prunedCount}` : '';
+        console.log(`  Created: ${entry.url} (${entry.docsCount} entries, gzip ${(entry.gzipBytes / 1024).toFixed(1)}KB${pruneNote})`);
+      }
+    } catch (err) {
+      console.error('  [ERROR] Search index generation failed: ' + err.message);
+      ctx.recordBuildFailure('search', 'Search index generation failed: ' + err.message);
     }
   }
 
@@ -331,7 +421,7 @@ function createFeedsModule(ctx) {
     }
   }
 
-  return { generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, generateSearchIndex, generatePagefindIndex };
+  return { generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, prepareSearchIndex, generateSearchIndex, generatePagefindIndex };
 }
 
 module.exports = { createFeedsModule };

@@ -30,7 +30,7 @@ articles/ media/ static/ + 14 个 JSON5 配置
 | `scripts/generate-og.js` | OG 图生成（独立进程，`.cache/og` 增量缓存） |
 | `templates/*.ejs` | 页面模板（layout/index/post/archive/search/tag/category/404/PWA 等 15 个） |
 | `js/core/` | 启动器：`runtime.js`（配置加载引导）、`boot.js`（阶段队列）、`main.js`（入口）、`deferred.js`（懒加载模块注册表） |
-| `js/domains/{core,features,guard}/` | 51 个前端领域模块（core 17 / features 23 / guard 11；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
+| `js/domains/{core,features,guard}/` | 61 个前端领域模块（core 17 / features 32 / guard 12；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
 | `workers/security-worker.js` + `workers/lib/` | 边缘安全层（`ip-utils` / `rate-limit`） |
 | `workers/wrangler.toml` | 生产部署配置（Worker 名、assets 绑定、环境变量） |
 | `*.json5`（根目录 14 个） | 站点/主题/功能/文案/压缩等配置，全部经 `verify:config` 校验 |

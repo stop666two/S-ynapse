@@ -339,7 +339,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(100 模块)
+## 3. features.json5 — 功能总控(101 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -1064,6 +1064,16 @@ listCover: {
 `enabled true`（总开关；false = 不渲染对照入口/右栏，语言按钮恢复既有路径前缀替换行为） / `switch true`（文章页「中/EN」对照切换入口，构建期指向同 slug 另一语言文章；无对应文章时整条隐藏） / `sideBySide true`（宽屏「并排对照」开关，视口 ≥ `breakpointPx` 时显示；默认关闭、状态仅当次会话） / `breakpointPx 1280`（并排生效的最小视口宽度 px；480–3840 夹取，非法回退 1280）。
 
 构建期：`scripts/build/pages.js` 为每篇文章计算 `altArticle`（同 slug、非草稿、另一语言；缺失为 null）并注入 `altLangUrl`——`templates/layout.ejs` 据此输出 `body[data-alt-lang]`（hreflang/x-default 与语言按钮直达共用）；`templates/post.ejs` 渲染对照工具条与右栏骨架（无对照整条不渲染；并排开关初始 `hidden`，由运行时按断点显隐；无 JS 时切换链接仍为普通 `<a>` 可直接跳转）。运行时 `js/domains/features/bilingual.js`（deferred 按需路径 + `js/core/deferred.js` 注册）：点击切换入口优先走软导航就地交换（不可用/失败回退整页跳转，交换后回到页首）；开启并排时 fetch 对方 HTML → 提取 `.post-content` → 净化（移除 `script`/工具条/评论/系列导航等，剥离 `id`/`data-vt`/`on*`）→ 注入右栏（`role=region` + 标题 landmark），右栏 `position:sticky` 独立滚动；关闭/软导航/视口缩回断点以下自动清理还原单栏。`js/domains/core/i18n.js` 语言切换优先 `data-alt-lang` 并走软导航；同一软导航钩子重扫对照状态并同步「无对照文章隐藏导航语言按钮」。纯函数 `js/domains/features/bilingual-core.js`（配置归一化 / URL 互指判定 / 断点判定 / 提取净化决策）由 `scripts/bilingual-core.test.js` 覆盖，并与 `scripts/lib/feature-wiring.js` 的 `bilingualConfig` 同值对拍。
+
+---
+
+### 3.101 themeLab — 主题调色板编辑器（阅读设置面板「主题」页）
+
+`enabled true`（总开关；false = 文章页阅读设置面板不渲染「主题」页签、不注入首屏早置脚本、运行时零加载） / `storageKey 'ss-theme-lab'`（本地覆盖保存键；「全部重置」与清除操作同时删除该键） / `tokens [...]`（参与编辑的 CSS 颜色变量白名单，8–12 项，顺序即面板展示顺序；仅接受 `--color-p`/`--color-s`/`--color-a`/`--color-bg`/`--color-surface`/`--color-t`/`--color-ts`/`--color-tl`/`--color-border`/`--color-hover`/`--color-code-bg`/`--color-code-t`，未定义变量名静默剔除、去重后不足 8 项回退默认 12 项；带 alpha 的 `--color-shadow` 不可编辑） / `exportName 'theme-overrides.json5'`（下载片段文件名；路径分隔符与文件系统保留字符自动剔除，结果为空回退默认名）。
+
+面板位于文章页阅读设置（`templates/post.ejs`；`role=tablist`/`role=tabpanel`，方向键与 Home/End 可切换）。运行时 `js/domains/features/theme-lab.js`（deferred 按需路径 + `js/core/deferred.js` 注册）：行由 `tokens` 白名单注入（`<label>` + `<input type="color">` + 当前值 `<output>` + 单项重置），取色即写 `document.documentElement.style.setProperty`（CSSOM 内联变量，所见即所得）；预设载入复用 `window.__PRESETS__`（按当前模式取 13 色并以 token → theme.json5 键名映射）；「保存到本地」把 `{light,dark}` 覆盖写入 `storageKey`，「全部重置」清空内存与 localStorage；明/暗切换（`data-theme` 变更）按当前模式重放覆盖、避免跨模式串色；软导航后经 `__SOFTNAV_HOOKS__` 重绑面板。首屏防闪烁：`templates/layout.ejs` 头部内联脚本紧随主题早置脚本，同步读取同一存储结构并按当前模式应用覆盖（合法值判定与纯函数一致）。
+
+导出：「复制片段 / 下载片段」输出可粘贴进 `theme.json5 → presetOverrides` 的 JSON5 文本（含注释头与逐项中文注释；明亮模式写 `colors`、暗色模式写 `darkMode.colors`）。纯函数 `js/domains/features/theme-lab-core.js`（token 归一化 / 颜色校验 / 覆盖合并与净化 / JSON5 序列化）由 `scripts/theme-lab.test.js` 覆盖，并与 `scripts/lib/feature-wiring.js` 的 `themeLabConfig` 同值对拍。
 
 ## 4. navigation.json5 — 导航
 

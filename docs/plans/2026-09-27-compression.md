@@ -46,7 +46,7 @@ compression: {
 - **C2 压缩流水线** ✅ 已完成（2026-09-27，收口记录见「六、C2 进度与偏差」）：扩展 `scripts/build/minify.js` 为压缩阶段执行器：HTML（minify-html 选项化）、CSS（CleanCSS × 合并去重）、JS（Terser × 可选混淆）、JSON（去空白）；豁免名单生效；全程 `recordBuildFailure` 接线 + 失败不阻断（fallback 原样）。
 - **C3 CSS 合并去重** ✅ 已完成（2026-09-27，收口记录见「七、C3/C4 进度与偏差」）：`scripts/lib/css-merge.js` 纯函数（合并 + 保守去重）+ 增强阶段接线 + 36 例单测 + 冒烟断言。
 - **C4 JS 混淆** ✅ 已完成（2026-09-27，收口记录见「七、C3/C4 进度与偏差」）：`javascript-obfuscator` 5.8.0 惰性加载 + preset/seed 装配 + 白名单与内容寻址重命名 + 13 例单测 + 无头 runner（17 PASS）。
-- **C5 门禁与回退**：`compression.verify.headless` 时构建后跑关键页对比（压缩产物 vs 未压缩临时副本）：DOM 归一化哈希、采样元素计算样式、0 控制台错误、关键交互冒烟；不一致 → 用未压缩产物覆写 + `[WARN]` + 报告条目；`scripts/verify-compression.js` + CI 步骤。
+- **C5 门禁与回退** ✅ 已完成（2026-09-27，收口记录见「八、C5 进度与偏差」）：`compression.verify.headless` 时构建后跑关键页对比（压缩产物 vs 未压缩临时副本）：DOM 归一化哈希、采样元素计算样式、0 控制台错误、关键交互冒烟；不一致 → 用未压缩产物覆写 + `[WARN]` + 报告条目；`scripts/verify-compression.js` + CI 步骤。
 - **C6 WASM 评估**：`docs/wasm-eval.md`（基准表：CleanCSS vs lightningcss、Terser vs oxc-minify 的体积/耗时；结论与建议），不动生产依赖。
 - **C7 报告与文档**：`dist/report.txt`（构建时间、压缩前后体积对照 gzip/raw、节省率、告警、未达标项）+ CHANGELOG + README/架构文档更新。
 - **C8 验收**：目标核对（HTML gzip −10%、JS −20%、≤8s）；无头全页回归（复用 a11y/softnav/搜索 runner 模式）；部署确认。
@@ -105,3 +105,35 @@ compression: {
 
 - C5 无头门禁与自动回退未实装：`verify.headless` / `verify.fallbackOnFailure` 仍只是增强计划字段与配置文档承诺；混淆/合并异常当前策略为「跳过 + 告警 + 记录构建失败」（不阻断、不自动回退）。
 - C7 报告未实装：C3/C4 统计输出在构建日志（合并块/去重/节省/混淆体积），尚未进入 `dist/report.txt`（该文件本身仍待 C7 创建）。
+
+## 八、C5 进度与偏差
+
+**完成范围（2026-09-27）**
+
+- **快照与回退**：`scripts/lib/compression-verify.js`——`collectSnapshotTargets`（仅 HTML/CSS/JS/JSON）、`createBaselineSnapshot`（`.cache/compression-baseline`，原子复制 + 清单）、`restoreBaselineSnapshot`（覆写 + 删除增强孤儿 + 重建缺文件）、`compareSnapshotBytes`（逐字节 sha256 复核）。
+- **无头断言**：`scripts/compression-verify-server.js`（静态服务子进程：root 优先 + 基线叠加层 fallback、端口 0 系统分配、打印端口行、看门狗 env 自退）+ `scripts/lib/static-server.js`（MIME/gzip/clean URL 解析抽取，serve.js 同步复用）。断言：静态页（关 JS）DOM 归一化结构 + 前 80 可见元素计算样式；JS 开启页逐页 0 控制台错误；压缩态交互冒烟；混淆开启追加运行时断言。结果写 `.cache/compression-verify/last.json`（含阶段耗时/端口/对比摘要）。
+- **回退接线**：`scripts/build/minify.js` 在增强前快照、增强后 cacheBust 前验证；失败且 fallback=true → 回退 + `[WARN]` + `recordBuildFailure('compression-verify', …, { fatal:false })`（`scripts/lib/build-errors.js` 新增非阻断条目语义，构建尾部输出 `[WARNINGS]`）；false → 保留产物并阻断。Chrome 缺失/启动失败 → skipped 告警，构建不失败。
+- **独立命令与 CI**：`scripts/verify-compression.js` + `npm run verify:compression`（passed=0 / failed=1 / skipped=0）；`deploy.yml` 构建后按 Chrome 探测条件执行。
+- **C2 遗留修复**：compression 配置惰性加载 + `build()` try 内显式触发；watch 初始构建补齐 catch（缺失 `--compression-override` 不再退出监听，`--features-override`/`--theme-override` 本就在 loadConfig 的 try 内）。
+- **测试与证据**：`scripts/compression-verify.test.js` 51 例；`npm test` 566/566（102 suites）、`test:build` 3/3、lint/typecheck/verify:config/verify:config-refs 全绿；runner `.tmp-scripts/run-c5.js` 23 PASS / 0 FAIL。
+
+**设计与偏差（相对任务书原文）**
+
+1. **验证时机**：任务书为「增强完成后、cacheBust 之前」，实测保持（回退后 cacheBust 对回退产物重算，哈希语义闭合）。
+2. **基线采用「文本产物快照 + 叠加层服务」而非整目录复制**：快照只含 HTML/CSS/JS/JSON，基线服务器对未快照资产回退到压缩产物目录读取（这些资产本就不被增强触碰），避免复制 media/vendor 大目录。
+3. **静态对比页关闭 JavaScript**：首版实现（JS 开启）在实测中捕获到运行时注入噪声（reveal 动画 `in` 类与内联 transition-delay、代码块工具栏 `data-cbbound/tabindex`、`speculationrules` 动态脚本）导致的 6 项假阳性；改为 JS 关闭的静态页做 DOM/样式对比，JS 运行时正确性由控制台错误与交互冒烟覆盖——压缩作用于静态字节，此隔离属压缩无关差异的显式归一化（代码注释与 config-reference 记录）。
+4. **大 try 与逐字节复核**：回退后追加 `compareSnapshotBytes`；不一致升级为阻断失败（防止「回退本身损坏产物」静默通过）。
+5. **测试钩子**：回退路径以 `SYNAPSE_COMPRESSION_VERIFY_CORRUPT=1` 注入真实 DOM 破坏（非 mock）；`SYNAPSE_COMPRESSION_BASELINE_KEEP=1` 保留快照供 runner 独立逐字节比对（assets 全树 + feed.json 共 22 文件一致）。
+6. **Chrome 稳定性**：项目内持久 profile + `--no-proxy-server` + `browser.close` 超时强杀兜底（Windows 实测首导航/关闭偶发 10–75s，处理后验证稳定在 7–14s/次）。同一 profile 同时刻只允许一个构建使用（仓库构建串行）。
+7. **CLI 退出码**：`failed` 即使构建已回退仍返回 1——构建内联门禁「不阻断」与显式门禁命令「如实报错」职责分离。
+8. **非阻断记录**：构建失败收集器新增 `fatal:false`（`hasErrors` 只看致命条目），满足任务书「recordBuildFailure + 不阻断」的双重要求；`fallbackOnFailure=false` 时同 stage 走致命记录。
+
+**验收对照（本波实测）**
+
+- `npm run verify:compression`：PASS，6 页断言、端口释放、验证 7–14s（阶段耗时：静态 ~3–4s、运行时 ~5s、交互 ~4s）。
+- runner 回退演示：注入破坏 → `status=failed`、`fallback={applied:true, restored:110, removed:0, bytesIdentical:true}`、构建 exit 0、破坏标记消失；基线快照与回退产物 assets+feed.json 22 文件逐字节一致。
+- 关闭态不产出验证结果文件；看门狗空闲 4s 自退且端口释放；watch 覆盖缺失进程存活 ≥9s。
+
+**未闭环（留待后续）**
+
+- C7 报告未实装：验证摘要目前进入 `.cache/compression-verify/last.json` 与构建日志（`[WARNINGS]` 尾部），尚未进入 `dist/report.txt`/`build-report.html`；C8 目标考核（HTML gzip −10%、JS −20%、构建 ≤8s）受验证耗时影响需在 C8 中一并评估（本机验证 7–14s、构建基线压缩 ~8s）。

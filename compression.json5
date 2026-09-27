@@ -164,13 +164,15 @@
     // 作用：压缩后无头对比门禁开关
     // 类型：boolean；可填：true（对比压缩 / 未压缩产物的 DOM、采样计算样式、控制台错误与关键交互）/ false（跳过）
     // 默认：true
-    // 注意：需要可用的无头浏览器环境；缺失时按门禁失败处理（见 fallbackOnFailure）
+    // 注意：需要可用的无头浏览器环境；Chrome 探测/启动失败时跳过并告警（构建不失败，结果标注 skipped）；
+    //   测试/隔离构建可用环境变量 SYNAPSE_COMPRESSION_VERIFY=off 显式关闭
     headless: true,
 
-    // 作用：门禁失败或压缩异常时的回退策略
-    // 类型：boolean；可填：true（回退未压缩产物 + 告警，构建继续）/ false（门禁失败即构建失败）
+    // 作用：门禁失败时的回退策略
+    // 类型：boolean；可填：true（回退未压缩产物 + 非阻断告警，构建继续）/ false（不回退、保留压缩产物并以非零码失败告警）
     // 默认：true
-    // 注意：回退只影响本次产物；报告会记录失败原因，便于定位后重试
+    // 注意：回退发生在 cacheBust（内容哈希）之前，回退产物照常参与哈希（哈希=最终字节）；
+    //   回退后执行逐字节复核，复核不一致升级为阻断失败；验证结果写入 .cache/compression-verify/last.json
     fallbackOnFailure: true,
   },
 }

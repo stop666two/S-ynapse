@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **压缩无头对比门禁与失败自动回退（压缩 C5，2026-09-27）**：
+  - **门禁**：增强阶段前把将被增强触及的 dist 文本产物（HTML/CSS/JS/JSON）快照到 `.cache/compression-baseline/`；增强完成后、cacheBust 之前启动两个本地静态服务（压缩产物 / 基线叠加层，端口系统分配且互异，子进程注入 `SYNAPSE_SERVE_PARENT_PID`/`SYNAPSE_SERVE_IDLE_MS`/`SYNAPSE_SERVE_MAX_MS` 看门狗），系统 Chrome（`puppeteer-core`）逐页断言 6 页集（`/zh/`、`/en/`、首页发现的文章、`/zh/search/`、`/zh/archive/`、`/zh/404.html`）：静态页（关 JS 隔离运行时注入）DOM 归一化结构一致（白名单仅内联 `<style>` 剔除、nonce 归一化、app/deferred 哈希归一化）、可见元素前 80 个计算样式一致、两态 0 控制台错误（唯一过滤 favicon 噪声）、压缩态软导航/搜索/主题交互冒烟；混淆开启时追加 `__T`/`__SB` 与 deferred 动态加载断言。验证先于 cacheBust，回退后参与内容哈希的即回退产物（「哈希=最终字节」不破）。
+  - **跳过**：Chrome 探测/启动失败 → `[WARN]` + 结果标注 `skipped`，构建照常成功；`SYNAPSE_COMPRESSION_VERIFY=off` 可显式关闭（冒烟构建已使用）。
+  - **回退**：失败且 `fallbackOnFailure=true` → 基线快照覆写 dist（含删除混淆重命名等增强新增产物）→ `[WARN]` + 非阻断记录（`compression-verify`，退出码保持 0）+ 逐字节复核（不一致升级为阻断）；`false` → 保留压缩产物并阻断。构建失败收集器新增 `fatal:false` 非阻断条目语义与 `[WARNINGS]` 尾部输出。
+  - **独立门禁命令**：`scripts/verify-compression.js` + `npm run verify:compression`（passed=0 / failed=1 / skipped=0；支持 `--out`/`--chrome`/`--keep-baseline`/`--json`）；CI `deploy.yml` 在 Chrome 可用时条件执行。
+  - **修复（C2 遗留）**：`--compression-override`（及 compression 配置）改为惰性加载并在 `build()` 的 try 内显式触发；watch 模式初始构建失败不再退出监听（初始 `build()` 补齐 catch），缺失覆盖文件的探针验证进程存活。
+  - **加速与隔离**：静态对比页关闭 JavaScript；逐页两态并行采样；项目内持久 Chrome profile `.cache/chrome-verify-profile`（跳过首次导航初始化、避免临时 profile 清理等待，`browser.close` 超时兜底强杀）；`--no-proxy-server` 规避 Windows WPAD 首次导航拖慢；报告新增 `phaseDurationsMs`。
+  - **测试与实测**：`scripts/compression-verify.test.js` 51 例（快照/恢复/孤儿清理/逐字节复核/白名单归一化/环境开关/端口解析与释放/页面发现/静态服务解析）；`npm test` 566/566（102 suites）、`npm run test:build` 3/3、lint/typecheck/verify:config/verify:config-refs 全绿；runner `.tmp-scripts/run-c5.js` 23 PASS / 0 FAIL（端口 3331 自收尾）：默认态 `npm run verify:compression` PASS（6 页、端口释放、验证约 7–14s）；人为破坏注入 → 验证 failed → 回退 110 文件、逐字节复核一致、构建 exit 0；关闭态不产出验证结果；看门狗空闲自退与覆盖缺失 watch 探针通过。
 - **构建产物压缩配置层与压缩增强步骤（`compression.json5`，第 14 个配置文件）**：
   - **配置层**：`scripts/lib/compression-config.js`（默认值注册表、深合并、类型/枚举/`exclude` 校验、glob 豁免判定、`compressionActive`）与 `scripts/lib/compression-steps.js`（增强计划装配、HTML 选项装配、JSON 去空白纯函数）；`verify:config` 结构监守与 `verify:config-refs` 引用扫描纳入 compression.json5。
   - **加载与注入**：构建期由 `scripts/build/context.js` 注入压缩配置；加载/覆盖校验错误 → 告警 + 记录构建失败 + 降级内置默认值（不中止构建）；`--serve`/`--watch` 自动关闭增强步骤（本地调试所见与基线一致）；`--compression-override <path>`（JSON5 深合并、仍过 `validateCompression`、不写仓库配置文件）供隔离第二态构建。

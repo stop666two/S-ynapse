@@ -1023,7 +1023,7 @@ listCover: {
 
 ## 12. compression.json5 — 构建产物压缩
 
-第 14 个配置文件。对 `dist/` 产物做可配置压缩：HTML/CSS/JS/JSON 单行化与去注释、CSS 同页 `<style>` 合并去重（C3 已实装）、可选 JS 混淆（C4 已实装，默认关）；无头对比门禁与自动回退为 C5 待实装。加载与校验由 `scripts/lib/compression-config.js` 承担，压缩执行位于 `scripts/build/minify.js` 的压缩阶段（`scripts/compression-config.test.js` 覆盖默认合并/类型/枚举/glob 语义，`scripts/compression-pipeline.test.js` 覆盖增强步骤装配，`scripts/css-merge.test.js` 与 `scripts/js-obfuscate.test.js` 覆盖 C3/C4 纯函数）。
+第 14 个配置文件。对 `dist/` 产物做可配置压缩：HTML/CSS/JS/JSON 单行化与去注释、CSS 同页 `<style>` 合并去重（C3 已实装）、可选 JS 混淆（C4 已实装，默认关）；增强阶段完成后执行无头对比门禁，失败自动回退未压缩产物（已实装）。加载与校验由 `scripts/lib/compression-config.js` 承担，压缩执行位于 `scripts/build/minify.js` 的压缩阶段，无头对比/回退核心位于 `scripts/lib/compression-verify.js`（`scripts/compression-config.test.js` 覆盖默认合并/类型/枚举/glob 语义，`scripts/compression-pipeline.test.js` 覆盖增强步骤装配，`scripts/css-merge.test.js` 与 `scripts/js-obfuscate.test.js` 覆盖 C3/C4 纯函数，`scripts/compression-verify.test.js` 覆盖快照/恢复/归一化/端口纯逻辑）。
 
 **生效范围（重要）**
 - 仅作用于 `dist/` 产物；`exclude` 命中的路径按原字节复制。
@@ -1040,9 +1040,19 @@ listCover: {
   - `css.dedupe`（C3 已实装）：保守去重——①同一规则内同属性且同 `!important` 状态的重复声明保留最后一条（重要性与普通混合时一律不动，避免破坏层叠）；②相邻（仅空白分隔）且完全相同的规则保留前一条；非相邻重复不折叠、`@keyframes` 内部与 at-rule 结构不动、规则顺序不动。作用于页面内联 style 与 dist 外链 CSS 文件（`assets/**` 不参与 cacheBust，外链 CSS 只改内容不改名，与基线 CleanCSS 行为一致）；解析异常（标签/括号/引号/注释不配平）跳过该文件并告警，不阻断构建。
   - `js.obfuscate.enabled=true`（C4 已实装）：对**本轮 esbuild 产物** `app.<hash>.js` / `deferred.<hash>.js` 执行混淆，随后按混淆后字节重算文件名（md5-10）并同步改写全部 HTML 引用（app `src` 与 `window.__DEFERRED_URL__` 内联 URL），维持「文件名哈希=最终字节」。`runtime.<hash>.js` 因文件名哈希由源码派生、HTML 以该名引用（参与内容哈希引用），排除在混淆之外；vendor、`--no-bundle` 源码拷贝与增量残留旧文件永不命中（白名单=本轮 bundle 清单）。依赖 `javascript-obfuscator` 为 devDependency，仅在开关开启时惰性加载；单文件失败保留原名原文件并告警。
 - `html.collapseWhitespace=false` 暂不受支持：minify-html 恒折叠安全空白，配置为 false 时输出 `[WARN]` 并保持折叠。
-- `verify.headless`/`verify.fallbackOnFailure`：**C5 门禁参数**，本波仅进入增强计划，不执行无头对比。
+- `verify.headless` / `verify.fallbackOnFailure`（无头对比门禁 + 自动回退，已实装）：见下节「无头对比门禁与自动回退」。
 - 失败处理：配置加载/覆盖校验错误 → 记录构建失败 + 告警 + 降级内置默认值（不中止构建流程；`--allow-degraded` 可让退出码为 0）；逐文件压缩失败 → 告警 + 保留原文件 + 记录构建失败。
-- `--compression-override <path>`：隔离验证/预览构建的第二态压缩配置（JSON5 深合并、仍过 `validateCompression`、不写仓库 `compression.json5`）；文件缺失或解析错误按 `--features-override`/`--theme-override` 同模式中止构建。
+- `--compression-override <path>`：隔离验证/预览构建的第二态压缩配置（JSON5 深合并、仍过 `validateCompression`、不写仓库 `compression.json5`）；文件缺失或解析错误在构建 try 内按 `--features-override`/`--theme-override` 同模式中止（watch 下被 rebuild 循环捕获，不再使监听进程退出）。
+
+**无头对比门禁与自动回退（verify）**
+
+- **时机**：增强步骤前把将被增强触及的 dist 文本产物（HTML/CSS/JS/JSON）快照到项目 `.cache/compression-baseline/`；增强完成后、cacheBust 之前启动两个本地静态服务（压缩产物 / 基线叠加层，端口由系统分配且互不相同，子进程注入 `SYNAPSE_SERVE_PARENT_PID`/`SYNAPSE_SERVE_IDLE_MS`/`SYNAPSE_SERVE_MAX_MS` 看门狗），用系统 Chrome（`puppeteer-core`）逐页断言。因验证先于 cacheBust，回退后参与内容哈希的即回退产物（哈希=最终字节不破）。
+- **页面集（≥6 页）**：`/zh/`、`/en/`、一篇文章（首页卡片链接发现）、`/zh/search/`、`/zh/archive/`、`/zh/404.html`。
+- **断言**：① 两态静态页（JavaScript 关闭以隔离运行时注入噪声）DOM 归一化结构一致——剔除注释/空白文本节点/属性顺序，白名单仅内联 `<style>` 元素整体剔除（同页合并为预期结构变化）、构建期 nonce 归一化、`app`/`deferred` bundle 文件名哈希归一化；② 静态页可见元素前 80 个的 `getComputedStyle` 关键属性串一致；③ 两态（JavaScript 开启）逐页 0 控制台错误（唯一过滤项：浏览器默认 favicon 探测噪声）；④ 压缩态交互冒烟：软导航点击文章无整页刷新、搜索可打开、主题切换可用；⑤ `js.obfuscate.enabled=true` 时压缩态额外断言 `__T`/`__SB` 可用与 deferred 动态加载成功。
+- **跳过语义**：Chrome 探测失败（`CHROME_PATH`/系统路径/PATH 均无）、puppeteer-core 不可用或 Chrome 启动失败 → 跳过验证并 `[WARN]`，构建照常成功；结果 JSON 标注 `status=skipped` 与原因。可用环境变量 `SYNAPSE_COMPRESSION_VERIFY=off` 显式关闭构建内联验证（测试/隔离构建）。
+- **回退语义**：验证失败且 `fallbackOnFailure=true` → 用基线快照覆写 dist 文本产物（并删除快照后新增的增强产物），以 `[WARN]` + 非阻断记录（`compression-verify`，构建退出码保持 0）继续；回退后逐字节复核，不一致则升级为阻断失败。`fallbackOnFailure=false` → 不回退、保留压缩产物并记录阻断失败（构建退出码非零）。Chrome 缺失属环境原因，不进入回退。
+- **产物与缓存**：验证结果 JSON 写入 `.cache/compression-verify/last.json`（含 `phaseDurationsMs` 阶段耗时、端口与释放结论、逐页对比摘要）；基线快照默认验证后删除（`SYNAPSE_COMPRESSION_BASELINE_KEEP=1` 保留供人工比对）；Chrome 使用项目内持久 profile `.cache/chrome-verify-profile`（跳过首次导航初始化，可安全删除；同一时刻只允许一个构建使用）。
+- **独立命令**：`npm run verify:compression`（`scripts/verify-compression.js`）执行一次完整构建并读取验证结果：`passed → 0`、`failed → 1`（即使构建已回退，显式门禁仍报失败供人工介入）、`skipped → 0`；支持 `--out <dir>`、`--chrome <path>`、`--keep-baseline`、`--json`。CI（`.github/workflows/deploy.yml`）在 Chrome 可用时条件执行该命令。
 
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -1061,8 +1071,8 @@ listCover: {
 | `js.obfuscate.seed` | number | `0` | 0 = 每次随机；固定正整数保证每次构建字节一致（同 seed 复跑已实测逐字节确定） |
 | `json.enabled` | bool | `true` | JSON 产物去空白（本波实装；跳过紧凑单行与 `assets/config.*.json`，输出始终合法） |
 | `exclude` | string[] | 见文件 | 相对 dist 根的 glob 豁免名单；整体替换（不与默认项合并） |
-| `verify.headless` | bool | `true` | 压缩后无头对比门禁（C5 预留接口，本波仅进入增强计划不执行） |
-| `verify.fallbackOnFailure` | bool | `true` | 门禁失败/压缩异常时回退未压缩产物并告警（C5 预留接口） |
+| `verify.headless` | bool | `true` | 压缩后无头对比门禁（已实装）：增强后、cacheBust 前对比压缩产物与基线快照（6 页 DOM/采样计算样式/控制台错误/交互冒烟）；无 Chrome 跳过并告警（构建不失败），`SYNAPSE_COMPRESSION_VERIFY=off` 可显式关闭 |
+| `verify.fallbackOnFailure` | bool | `true` | 门禁失败时：true=用基线快照回退未压缩产物并以非阻断告警继续（逐字节复核）；false=保留压缩产物并记录阻断失败 |
 
 **C4 混淆代价与注意（2026-09-27 本机实测，medium 档 + seed=20260927）**
 - 体积：app + deferred 合计 raw 189.6KB → 253.3KB（+33.6%）、gzip 60.2KB → 96.3KB（+59.9%）；runtime 未混淆（3.7KB）。esbuild 已极致压缩，混淆器短名与包装代码会净增体积。

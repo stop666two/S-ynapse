@@ -385,6 +385,7 @@
 | `backdropOpacity` | `0.9` | 遮罩透明度 |
 | `preloadAdjacent` | `true` | 预载相邻图 |
 | `rememberPosition` | `false` | 记忆上次位置 |
+| `positionStorageKey` | `s-lb-pos` | 位置记忆存储键前缀（实际键 = 前缀 + `:` + 当前路径名；仅 `rememberPosition=true` 时生效；空/非法回退历史前缀） |
 | `showCaption` | `true` | 显示图片标题（`alt`/`title`） |
 | `captionMaxLines` | `2` | 标题最多行数（超出省略） |
 | `swipeThresholdPx` | `50` | 触屏横向滑动切图最小位移(px) |
@@ -491,7 +492,8 @@
 | `version` | string | `11.17.2` | 版本标识（镜像 `package.json` 安装版本；构建期 SSR 与缓存键、客户端 vendor 均直接使用安装版本，改此值不改变加载来源；`scripts/config-count.test.js` 锁定二者一致） |
 | `followTheme` | bool | `true` | 图表主题跟随站点（明/暗双份）；false = 仅明色单份 |
 | `lightTheme` / `darkTheme` | string | `default` / `dark` | 明/暗两份 SVG 使用的 mermaid 主题名 |
-| `securityLevel` | string | `strict` | mermaid 安全级别（`strict` 禁用 HTML 标签） |
+| `securityLevel` | string | `strict` | 构建期渲染安全级别（`strict` 禁用 HTML 标签；客户端渲染取值见 `clientOptions.securityLevel`） |
+| `clientOptions` | object | 见下 | 客户端渲染（`mode='client'` 或 `autoDetect=false` 回退）传给 `mermaid.initialize` 的选项：与内建默认深合并（配置优先），未知键原样透传（mermaid 自校验），类型与内建默认不符的键忽略并在控制台告警；SSR 不受影响 |
 | `mode` | string | `build` | `build` = 构建期服务端渲染（生成双主题内联 `<svg>`，页面不再加载 3.5MB vendor；失败或无 Chrome 自动回退客户端）/ `client` = 保持懒加载 vendor + `__mmStart` 客户端渲染 |
 | `darkMode` | bool | `true` | 仅 `mode='build'` 生效：明/暗各渲染一份 SVG，页内 CSS 切换、零闪烁；false = 仅明色 |
 | `chromePath` | string | `''` | 仅 `mode='build'` 自动探测失败时使用；探测顺序：`CHROME_PATH` 环境变量 > Windows 默认安装路径 > Linux/macOS 的 `google-chrome`/`chromium` |
@@ -507,6 +509,14 @@
 - `maxWidth 'none'` / `maxHeight 'none'`(`none`=不限制；`scroll` 模式下可横向滚动，设 `'100%'`/`'70vh'` 可强制限制)
 - `fit 'scroll'`(`scroll`=不缩放、超宽容器横向滚动（推荐，时序图/宽图不挤压） / `scale`=缩放到容器宽度（旧行为）)
 - 单图覆盖：代码块语言标记后追加 `w=` / `h=`，如 ` ```mermaid w=900 h=520 `；不填项走全局，非法值忽略并回退默认 — `scripts/build.js`(解析) + `templates/layout.ejs`(应用)
+
+`clientOptions` 子块 — 客户端 `mermaid.initialize` 选项透传（默认值与历史硬编码逐字一致）：
+- 内建动态默认（可被覆盖）：`startOnLoad false`、`theme`（跟随站点深浅；`followTheme=false` 时固定明色）、`fontFamily`（正文字体，空回退 `sans-serif`）、各图种 `useMaxWidth`（`size.fit='scale'` 时为 `true`，`scroll` 时为 `false`）
+- `securityLevel 'strict'`（可填 `strict|loose|antiscript|sandbox`；仅客户端渲染，构建期 SSR 固定 `strict`）
+- `flowchart.htmlLabels false`（true 有 XSS 面）/ `flowchart.curve 'basis'`（`basis` 平滑 | `linear` 折线 | `cardinal|monotoneX|monotoneY|step` 等 CurveFactory 名）
+- `class.htmlLabels false` / `state.htmlLabels false`
+- `themeVariables.edgeLabelBackground 'transparent'`（themeVariables 为自由映射，任意 mermaid 主题变量键值对均可透传）
+- canonical：`scripts/lib/feature-wiring.js → mermaidClientDefaults / mergeMermaidClientOptions`（`templates/layout.ejs` 内联脚本镜像同一语义，单测覆盖默认=现状、覆盖生效、非法回退告警）
 
 > **接线说明**：
 > - `autoDetect=true`（默认）= 构建期 SSR（仅识别显式 ` ```mermaid ` 围栏）；`false` = **构建期不检测/不渲染**，保留围栏代码并回退客户端渲染（`article.hasMermaid` 保持 true，页面懒加载 vendor 由 `__mmStart` 接管；仍仅识别显式围栏，不扫描普通文本）。`mode='client'` 时本键无额外作用。
@@ -763,7 +773,7 @@ sitemap: {
 > canonical：`scripts/lib/feature-wiring.js → readDockScrollConfig`（默认 80/12 = 历史行为）。
 
 ### 3.43 sidebarDrag — 侧栏拖拽重排
-`enabled true` / `persistOrder true` / `storageKey 's-sidebarOrder'` / `touchLongPress true` / `touchLongPressMs 500`(长按判定时长 ms) / `showHandleOnHover true` / `resetOnLoadFail true`。用户可拖拽侧栏 widget 重排顺序,存储于 localStorage;移动端长按 `touchLongPressMs`(默认 500ms) 触发。
+`enabled true` / `persistOrder true` / `storageKey 's-sidebarOrder'` / `touchLongPress true` / `touchLongPressMs 500`(长按判定时长 ms) / `hapticMs 10`(长按触发拖拽的触觉反馈时长 ms，0=禁用；仅支持 `navigator.vibrate` 的设备生效) / `showHandleOnHover true` / `resetOnLoadFail true`。用户可拖拽侧栏 widget 重排顺序,存储于 localStorage;移动端长按 `touchLongPressMs`(默认 500ms) 触发。
 
 ### 3.44 ogImageStyle — 社交卡片样式
 `enabled true` / `template 'aurora'`(`aurora|mesh|grid|paper|duotone`;无封面文章的 OG 底图模板) / `palette 'theme'`(`theme|hash`;hash=按首个分类名哈希取色,同分类同色) / `showCategory true`(封面角标) / `align 'center'`(`center|left`) / `showSite true`(站点名) / `showUrl true`(右下角站点 URL;false=保持画面简洁) / `useGradient true` / `gradientAngle '135deg'` / `fontSizeBase 64` / `maxLines 4` / `letterSpacing '0.02em'`。构建期为无封面文章生成模板化 OG 图(1200×630;尺寸与字号缩放经 `site.seo.ogImage` 的 width/height/fontScale 控制);有封面文章走"封面+底部渐变条"合成 — `scripts/generate-og.js`。
@@ -1222,12 +1232,12 @@ listCover: {
 | `bypass.queryParam` | string | `'guard'` | URL 参数名；空字符串回退默认（禁用该通道请用 `urlParam:false`） |
 | `bypass.storageFlag` | string | `'s-guards-off'` | localStorage 键名；空字符串 = 关闭该通道 |
 | `bypass.accessGateKey` | bool | `true` | 是否允许 accessGate 的 `?key=` 解锁码绕过访问门槛（是否可用仍由 `accessGate.unlockCodes` 决定） |
-- `contextMenu`（35 项）：`enabled` / `revokeDelayMs 3000`(下载后释放 Blob URL 延迟 ms) / `translateUrl`(划词翻译模板，`{lang}`/`{text}`；空=隐藏翻译项) / `disableNative` / `trigger.longPress`+`longPressMs 550` / `searchFocusDelayMs 60`(「搜索所选文字」打开搜索后聚焦输入框延迟 ms) / `behavior.closeOnEsc|closeOnScroll|closeOnOutside|closeOnBlur` / `style.width|radius|blur|animMs|shadowOpacity`（width/radius 留空=走 `tuning.json5` → `guard` 分类）/ `showOn.selection|link|image|code|blank` / `builtin.*`（copy/copyLink/openNewTab/searchSelected/translate/backToTop/toggleTheme/print/copyCode/copyRaw/download；`viewSource`/`inspect` 默认关）/ `items[]` 自定义项（`label`/`labelEn`/`icon`/`url`|`action`/`selector`；自定义动作派发 `guard:menu-action` 事件）/ `excludeSelectors[]` / `ariaLabel`。
+- `contextMenu`（36 项）：`enabled` / `revokeDelayMs 3000`(下载后释放 Blob URL 延迟 ms) / `translateUrl`(划词翻译模板，`{lang}`/`{text}`；空=隐藏翻译项) / `disableNative` / `trigger.longPress`+`longPressMs 550` / `hapticMs 10`(长按弹出菜单的触觉反馈时长 ms，0=禁用；仅支持 `navigator.vibrate` 的设备生效) / `searchFocusDelayMs 60`(「搜索所选文字」打开搜索后聚焦输入框延迟 ms) / `behavior.closeOnEsc|closeOnScroll|closeOnOutside|closeOnBlur` / `style.width|radius|blur|animMs|shadowOpacity`（width/radius 留空=走 `tuning.json5` → `guard` 分类）/ `showOn.selection|link|image|code|blank` / `builtin.*`（copy/copyLink/openNewTab/searchSelected/translate/backToTop/toggleTheme/print/copyCode/copyRaw/download；`viewSource`/`inspect` 默认关）/ `items[]` 自定义项（`label`/`labelEn`/`icon`/`url`|`action`/`selector`；自定义动作派发 `guard:menu-action` 事件）/ `excludeSelectors[]` / `ariaLabel`。
 - `copyGuard`（18 项）：`mode 'attribution'`（`off` | `attribution` 追加出处 | `weakBlock` 首次拦截并提示、再次放行 | `block` 硬拦截）/ `attribution.text`+`textEn`（占位符 `{title}{url}{author}{site}`）/ `position after|before` / `separator` / `minChars 40`（短复制不打扰）/ `onlyArticles true` / `allow.codeBlocks true`+`allow.selectors[]`（代码块与可编辑区始终放行）/ `block.toast|toastText|flash`（复用统一 `__toast`）/ `extra.alsoCut|imageNotice|iOSOverride` / `noticeOncePerSession true` / `logCopyEvents false`（仅本地 console，无网络上报）/ `flashRemoveMs 600`(闪烁遮罩移除延迟 ms)。
 - `selectionGuard`（7 项，**默认关**）：`mode 'content'`（`allow` | `content` 正文禁选 | `strict` 全域）/ `allowSelectors[]`+`allowCode true`（代码白名单）/ `allowCtrlA|allowShiftArrows true`（保留键盘选择，无障碍优先）/ `noticeToast|noticeText`。实现：CSS `user-select:none`（正文/全域）+ `selectstart` 事件双保险，输入框与代码始终豁免。
 - `hotkeyGuard`（12 项，**默认关**）：`keys.f12|ctrlShiftI|ctrlShiftJ|ctrlShiftC` 默认拦截；`ctrlU|ctrlS|ctrlP` 默认放行（分别与查看源码/保存网页/打印冲突，可按需开启）（macOS 自动等效 Cmd）/ `keys.printScreen false`（仅检测提示）/ `keys.custom[]`（`'ctrl+alt+x'` 语法）/ `noticeToast|noticeText|noticeOncePerSession`。仅拦键盘路径（浏览器菜单/独立窗口不可拦，威慑级），输入框豁免。
-- `watermark`（18 项，**默认关**）：`type 'diagonal'`（`fixed`|`tiled`|`diagonal`）/ `text|textEn`（`{site}{date}{time}{id}`）/ `identity 'none'`（`none`|`random`|`storage` 本地短哈希，无指纹）/ `idLength 6`（标识显示长度 4–16）/ `opacity 0.06` / `fontSize` / `color`（空=主题次级色）/ `rotate -22` / `gapX|gapY` / `position`（fixed 专用）/ `zIndex 40` / `hideOnPrint true` / `showInLightbox false` / `mobileEnabled false` / `animate false`（缓慢漂移，尊重减少动效）。`pointer-events:none` + `aria-hidden`，不挡交互。
-- `devtoolsDetect`（15 项，**默认关**）：`methods.sizeDiff|timingDebugger`（停靠尺寸差 / `debugger` 计时）/ `intervalMs 1500`（下限 1000）/ `thresholdSizePx 160` / `thresholdTimingMs 120` / `action 'notice'`（`none`|`notice`|`blurPage`|`lockOverlay`|`reload`，锁屏自带关闭键；`reload` 带会话熔断——每会话最多触发一次，避免尺寸误报导致无限刷新）/ `lockTitle|lockText`（空 = 走 `ui-strings.json5` 的 `guard.lockTitle`/`guard.lockText`，按页面语言中英自动切换；填固定文本会覆盖 i18n）/ `reloadDelayMs` / `pauseWhenHidden` / `logDetect`；命中时派发 `guard:devtools` 事件（供 consoleGuard 联动清屏）。检测非 100%（窗口缩放等会误报），仅威慑。
+- `watermark`（18 项，**默认关**）：`type 'diagonal'`（`fixed`|`tiled`|`diagonal`）/ `text|textEn`（`{site}{date}{time}{id}`）/ `identity 'none'`（`none`|`random`|`storage` 本地短哈希，无指纹）/ `idLength 6`（标识显示长度 4–16）/ `opacity 0.06` / `fontSize` / `color`（空=主题次级色）/ `rotate -22` / `gapX|gapY` / `position`（fixed 专用）/ `zIndex 40` / `hideOnPrint true` / `showInLightbox false` / `mobileEnabled false`（移动端断点取自 `tuning.layout.mobileBreakpoint`，默认 768px；配置外置加载失败降级时回退 768）/ `animate false`（缓慢漂移，尊重减少动效）。`pointer-events:none` + `aria-hidden`，不挡交互。
+- `devtoolsDetect`（16 项，**默认关**）：`methods.sizeDiff|timingDebugger`（停靠尺寸差 / `debugger` 计时）/ `intervalMs 1500`（下限 1000）/ `thresholdSizePx 160` / `thresholdTimingMs 120` / `action 'notice'`（`none`|`notice`|`blurPage`|`lockOverlay`|`reload`，锁屏自带关闭键；`reload` 带会话熔断——每会话最多触发一次，避免尺寸误报导致无限刷新）/ `lockTitle|lockText`（空 = 走 `ui-strings.json5` 的 `guard.lockTitle`/`guard.lockText`，按页面语言中英自动切换；填固定文本会覆盖 i18n）/ `reloadDelayMs` / `reloadStorageKey 's-dt-reload'`（`reload` 熔断标记的 sessionStorage 键名；空回退默认，改键 = 旧熔断标记不再命中）/ `pauseWhenHidden` / `logDetect`；命中时派发 `guard:devtools` 事件（供 consoleGuard 联动清屏）。检测非 100%（窗口缩放等会误报），仅威慑。
 - `consoleGuard`（18 项，**默认关**）：`bannerEnabled|bannerText|bannerTextEn|bannerAscii`（控制台站方留言）/ `clearEnabled|clearIntervalMs|clearOnDetect`（周期清屏与检测联动）/ `muteEnabled|muteMethods[]|muteFreeze`（对页面脚本伪装 console 方法）/ `trapEnabled|trapAction|trapText`（console.log 访问陷阱）/ `hideSelfLogs` / `noticeOncePerSession`。无法拦截真实控制台求值，仅作用于页面上下文。
 - `privacyCurtain`（10 项，**默认关**）：`blurOnBlur`（窗口失焦）/ `blurOnVisibility`（切标签）/ `blurAmount '8px'` / `curtainText|curtainTextEn`（帘上文案）/ `revealDelayMs 200`（恢复去抖）/ `prtScNotice|prtScText|prtScOncePerSession`（PrintScreen 仅检测提示）。`backdrop-filter` 静态遮罩 + `pointer-events:none`，不挡交互。
 - `tamperWatch`（19 项，**默认关**）：`scripts.monitor|action`（动态 `<script>` 注入；action `toast`|`remove`|`report`）+ `scripts.allowPathPrefixes[]`（同源路径前缀白名单，默认 `['/pagefind/']` 豁免 Pagefind 索引脚本，置 `[]` 关闭）/ `attrs.monitor`（动态内联事件）/ `iframes.monitor|action` / `prototype.watch`（fetch/XHR/eval 原型替换，周期比较）/ `dom.monitor|targets[]`（关键节点缺失检测）/ `probeIntervalMs 2000` / `reportEndpoint ''`（默认不上报；自定义跨域端点需加入 CSP `connect-src`，否则会被静默拦截）+ `reportTimeoutMs 5000`（上报超时 ms，1000–30000） + `reportThrottleMs 10000`（上报节流窗口 ms，0 关闭，上限 60000）+ `reportPrivacyMode true`（仅事件类型，URL 去除查询串）/ `cspViolationToast` / `noticeOncePerSession` / `logDetect`。页面级监视可被先行关闭，属异常发现而非安全边界。

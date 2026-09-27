@@ -33,7 +33,10 @@ export function init() {
     if (!rotE) { if (rotL) rotL.style.display = 'none'; if (rotR) rotR.style.display = 'none'; }
     if (L.closeButton === false && close) close.style.display = 'none';
     var list = [], idx = 0, tx0 = null, ty0 = null, mdx = null, sc = 1, rot = 0, px = 0, py = 0, panning = false, sx = 0, sy = 0;
-    var RKEY = 's-lb-pos:' + location.pathname, remember = L.rememberPosition === true;
+    /* 位置记忆键前缀：features.lightbox.positionStorageKey（空/非法回退历史前缀 's-lb-pos'）；
+       实际键 = 前缀 + ':' + location.pathname，改键等同清空一次旧记忆。 */
+    var posPrefix = L.positionStorageKey == null ? '' : String(L.positionStorageKey).trim();
+    var RKEY = (posPrefix || 's-lb-pos') + ':' + location.pathname, remember = L.rememberPosition === true;
     function apply() { var tr = 'translate(' + px + 'px,' + py + 'px) rotate(' + rot + 'deg)'; if (sc > 1) tr += ' scale(' + sc + ')'; img.style.transform = tr; img.style.cursor = (sc > 1 && panE) ? 'grab' : 'default'; }
     function reset() { sc = 1; rot = 0; px = 0; py = 0; apply(); }
     function zoomTo(z, cx, cy) { if (!zoomE || !img) return; var old = sc; sc = Math.min(zmax, Math.max(zmin, z)); if (sc <= 1) { px = 0; py = 0; } else if (cx !== undefined && rot === 0) { px += (old - sc) * (cx - .5) * img.offsetWidth; py += (old - sc) * (cy - .5) * img.offsetHeight; } apply(); }

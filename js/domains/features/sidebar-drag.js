@@ -50,12 +50,17 @@ function bindDrag(SB, aside, slot, w) {
 
 function bindTouch(SB, aside, w, slot, lpDelay) {
   var touchTimer = null, touchSlot = null;
+  // 长按触觉反馈时长：features.sidebarDrag.hapticMs（0 = 禁用；非法/负数回退 10 = 历史行为）。
+  var rawHaptic = SB.hapticMs;
+  var hapticMs = (rawHaptic == null || rawHaptic === '' || isNaN(parseInt(rawHaptic, 10)))
+    ? 10
+    : Math.max(0, parseInt(rawHaptic, 10));
   w.addEventListener('touchstart', function (e) {
     if (e.touches.length !== 1) return;
     touchSlot = slot;
     touchTimer = setTimeout(function () {
       touchSlot.classList.add('dragging');
-      if (navigator.vibrate) navigator.vibrate(10);
+      if (hapticMs > 0 && navigator.vibrate) navigator.vibrate(hapticMs);
     }, lpDelay);
   }, { passive: true });
   w.addEventListener('touchmove', function (e) {

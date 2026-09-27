@@ -2,7 +2,13 @@
 export function init(ctx) {
   const cfg = (ctx.G.watermark) || {};
   if (cfg.enabled === false) return;
-  if (cfg.mobileEnabled !== true && window.matchMedia('(max-width: 768px)').matches) return;
+  // 移动端断点单一来源：tuning.layout.mobileBreakpoint（可能带 px 单位）。
+  // 时序：guard 模块经 boot.js 关键队列在 __CONFIG_READY__ 之后导入，成功路径 __TUNING__ 已就绪；
+  // 降级路径（外置配置加载失败）无 __TUNING__，回退 768 = 历史硬编码行为（与 tuning 默认一致）。
+  const bpRaw = ((window.__TUNING__ || {}).layout || {}).mobileBreakpoint;
+  const bp = parseFloat(bpRaw);
+  const breakpointPx = isNaN(bp) || bp <= 0 ? 768 : bp;
+  if (cfg.mobileEnabled !== true && window.matchMedia('(max-width: ' + breakpointPx + 'px)').matches) return;
 
   const type = cfg.type || 'diagonal';
   const lang = (document.documentElement.lang || 'zh').startsWith('en') ? 'en' : 'zh';

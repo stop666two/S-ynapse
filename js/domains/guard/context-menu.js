@@ -21,6 +21,11 @@ export function init(ctx) {
   const b = cfg.behavior || {};
   const st = cfg.style || {};
   const trigger = cfg.trigger || {};
+  // 长按触觉反馈时长：guard.contextMenu.hapticMs（0 = 禁用；非法/负数回退 10 = 历史行为）。
+  const rawHaptic = cfg.hapticMs;
+  const hapticMs = (rawHaptic == null || rawHaptic === '' || isNaN(parseInt(rawHaptic, 10)))
+    ? 10
+    : Math.max(0, parseInt(rawHaptic, 10));
   const edge = parseInt((ctx.core.edgePadding || '8px'), 10) || 8;
 
   let menu = null;
@@ -211,7 +216,7 @@ export function init(ctx) {
         pressTimer = null;
         const list = itemsFor({ target: target, clientX: pressX, clientY: pressY });
         if (list.length && open(pressX, pressY, list)) {
-          if (navigator.vibrate) navigator.vibrate(10);
+          if (hapticMs > 0 && navigator.vibrate) navigator.vibrate(hapticMs);
         }
       }, ms);
     }, { passive: true });

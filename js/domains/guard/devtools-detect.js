@@ -9,7 +9,10 @@ export function init(ctx) {
   const once = cfg.noticeOncePerSession !== false;
   let fired = false;
   let lock = null;
-  const RELOAD_KEY = 's-dt-reload';
+  // 熔断标记键：guard.devtoolsDetect.reloadStorageKey（空/非法回退历史键 's-dt-reload'，
+  // 与 guard-defaults.js 默认一致；sessionStorage 不可用时由下方 try 放弃刷新）。
+  const reloadKeyRaw = cfg.reloadStorageKey == null ? '' : String(cfg.reloadStorageKey).trim();
+  const RELOAD_KEY = reloadKeyRaw || 's-dt-reload';
 
   function detectSize() {
     return (window.outerWidth - window.innerWidth) > sizeThreshold ||

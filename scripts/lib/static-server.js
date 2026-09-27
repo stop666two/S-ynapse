@@ -72,8 +72,9 @@ function resolveStaticFile(rootDir, urlPath) {
   const rootResolved = path.resolve(rootDir);
   const urlNoSlash = String(urlPath || '').replace(/\/$/, '');
   let filePath = urlNoSlash ? path.resolve(rootDir, '.' + urlNoSlash) : path.join(rootDir, 'index.html');
+  // 路径穿越（解析结果越出服务根）按 404 处理：既防目录逃逸，也避免把根 404 页当命中文件返回 200。
   if (!filePath.startsWith(rootResolved + path.sep) && !filePath.startsWith(rootResolved + '/')) {
-    filePath = path.join(rootDir, '404.html');
+    return { filePath: path.join(rootDir, '404.html'), isNotFound: true };
   }
   try {
     if (fs.statSync(filePath).isDirectory()) filePath = path.join(filePath, 'index.html');

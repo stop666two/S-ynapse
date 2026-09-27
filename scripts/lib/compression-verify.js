@@ -5,12 +5,14 @@
 //
 // 对比模型：同一构建的「增强后 dist」与「增强前基线快照」各起一个本地静态服务
 // （scripts/compression-verify-server.js），puppeteer-core（系统 Chrome）逐页断言：
-//   ① DOM 归一化结构一致——剔除压缩无关差异（注释 / 空白文本节点 / 属性顺序），
-//      显式白名单：内联 <style> 元素整体剔除（同页合并是预期结构变化，样式等价由 ② 断言）、
-//      构建期 nonce 归一化、app/deferred bundle 的文件名哈希归一化；
-//   ② 采样元素计算样式一致——每页取可见元素前 N 个的 getComputedStyle 关键属性串；
-//   ③ 两态 0 控制台错误（唯一过滤项：浏览器默认 favicon 请求噪声）；
-//   ④ 压缩态交互冒烟——软导航点击文章无整页刷新、搜索可打开、主题切换可用；
+//   ① DOM 归一化结构一致（JS 关闭的静态页）——剔除压缩无关差异（注释 / 空白文本节点 /
+//      属性顺序），显式白名单：内联 <style> 元素整体剔除（同页合并是预期结构变化，
+//      样式等价由 ② 断言）、构建期 nonce 归一化、app/deferred bundle 文件名哈希归一化；
+//      关闭 JS 以隔离运行时注入（reveal 动画类、代码块工具栏属性、speculationrules 脚本
+//      等时序相关差异），压缩作用于静态字节，这属于压缩无关差异；
+//   ② 采样元素计算样式一致（JS 关闭的静态页）——每页可见元素前 N 个的 getComputedStyle 关键属性串；
+//   ③ 两态 0 控制台错误（JS 开启，逐页；唯一过滤项：浏览器默认 favicon 请求噪声）；
+//   ④ 压缩态交互冒烟（JS 开启）——软导航点击文章无整页刷新、搜索可打开、主题切换可用；
 //   ⑤ js.obfuscate.enabled 时压缩态额外断言 __T/__SB 与 deferred 动态加载。
 // 失败由调用方按 verify.fallbackOnFailure 决定回退；
 // Chrome 探测失败或启动失败 → status=skipped（构建不失败，仅告警）。
@@ -35,7 +37,7 @@ const SERVE_PORT_LINE = /SYNAPSE_SERVE_PORT=(\d+)/;
 const DEFAULT_SERVER_START_TIMEOUT_MS = 20000;
 const DEFAULT_PORT_RELEASE_TIMEOUT_MS = 3000;
 const DEFAULT_PAGE_TIMEOUT_MS = 30000;
-const PAGE_SETTLE_MS = 600;
+const PAGE_SETTLE_MS = 300;
 // 验证服务看门狗：父进程（构建）消失 / 空闲 3 分钟 / 寿命 10 分钟即自退。
 const VERIFY_WATCHDOG = Object.freeze({ idleMs: 180000, maxMs: 600000 });
 const STYLE_SAMPLE_LIMIT = 80;
@@ -505,16 +507,16 @@ async function browserInteractions() {
   const out = { search: false, theme: false, softNav: false };
   const overlay = doc.getElementById('searchOverlay');
   if (!clickIfPossible(doc.querySelector('.hero-search')) && typeof win.openSearch === 'function') win.openSearch();
-  await sleep(600);
+  await sleep(500);
   out.search = !!(overlay && overlay.classList.contains('open'));
   const themeBefore = doc.documentElement.getAttribute('data-theme');
   if (clickIfPossible(doc.querySelector('.dark-toggle'))) {
-    await sleep(700);
+    await sleep(600);
     out.theme = doc.documentElement.getAttribute('data-theme') !== themeBefore;
   }
   win.__COMPRESSION_VERIFY_MARK = 771;
   if (clickIfPossible(doc.querySelector('.post-card a[href^="/zh/"]'))) {
-    await sleep(2500);
+    await sleep(2000);
     out.softNav = win.__COMPRESSION_VERIFY_MARK === 771 && location.pathname !== '/zh/';
     out.after = location.pathname;
   }
@@ -539,7 +541,10 @@ async function browserRuntimeBootstrap() {
 // 无头断言编排
 // ---------------------------------------------------------------------------
 
-async function preparePage(page) {
+async function preparePage(page, jsEnabled) {
+  try {
+    await page.setJavaScriptEnabled(jsEnabled !== false);
+  } catch (err) { /* 旧版协议不支持时按默认（启用）处理 */ }
   try {
     await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   } catch (err) { /* 旧版协议不支持时忽略：settle 等待仍提供稳定性 */ }
@@ -547,8 +552,26 @@ async function preparePage(page) {
   page.setDefaultNavigationTimeout(DEFAULT_PAGE_TIMEOUT_MS);
 }
 
-async function settlePage(page) {
-  await page.waitForFunction(() => typeof (/** @type {any} */ (window)).__T === 'function', { timeout: 8000 }).catch(() => {});
+// 静态对比页面关闭 JavaScript：压缩作用于静态字节，DOM/计算样式须与运行时注入
+// （reveal 动画类、代码块工具栏属性、speculationrules 脚本等时序相关差异）解耦；
+// JS 运行时正确性由控制台错误断言与交互冒烟单独覆盖。
+// 等待 CSSOM 与字体就绪（document.fonts.ready）后采样：字体度量会影响 line-height 等
+// 计算值，必须先稳定再对比；但不等全部图片（load 事件），避免大图拉长门禁时间。
+async function sampleStaticPage(page, url, opts) {
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
+  await page.evaluate(() => {
+    const fonts = document.fonts;
+    return fonts && fonts.ready ? fonts.ready.then(() => true) : true;
+  }).catch(() => {});
+  await sleep(150);
+  const rawDom = await page.evaluate(browserCanonicalDom);
+  const styles = await page.evaluate(browserSampleStyles, STYLE_SAMPLE_LIMIT, STYLE_PROPS);
+  return { dom: normalizeWhitelistText(rawDom), styles };
+}
+
+// 运行时页面（JS 开启）等待运行时引导就绪后收集控制台错误；不做 DOM/样式采样。
+async function settleRuntimePage(page, timeoutMs) {
+  await page.waitForFunction(() => typeof (/** @type {any} */ (window)).__T === 'function', { timeout: timeoutMs || 6000 }).catch(() => {});
   await sleep(PAGE_SETTLE_MS);
 }
 
@@ -568,27 +591,46 @@ function attachConsole(page) {
   };
 }
 
-async function samplePage(page, url, consoleState, opts) {
-  consoleState.reset();
-  await page.goto(url, { waitUntil: 'load', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
-  await settlePage(page);
-  const rawDom = await page.evaluate(browserCanonicalDom);
-  const styles = await page.evaluate(browserSampleStyles, STYLE_SAMPLE_LIMIT, STYLE_PROPS);
-  return { dom: normalizeWhitelistText(rawDom), styles, errors: consoleState.errors.slice() };
+// Chrome 关闭兜底：Windows 上 browser.close() 偶发长时间等待浏览器进程退出
+// （后台网络/杀软扫描等），超出阈值后直接终止进程，避免门禁被清理阶段拖垮。
+// 强杀可能残留临时 profile 目录（系统 %TEMP%），不影响构建产物与端口回收校验。
+async function closeBrowserSafely(browser, timeoutMs) {
+  const limit = Number.isFinite(timeoutMs) ? timeoutMs : 2000;
+  const proc = (() => { try { return browser.process(); } catch (err) { return null; } })();
+  const exited = new Promise((resolve) => {
+    if (!proc || proc.exitCode !== null) return resolve();
+    proc.once('exit', resolve);
+  });
+  const closedByApi = browser.close().then(() => true).catch(() => false);
+  const closed = await Promise.race([closedByApi, sleep(limit).then(() => false)]);
+  if (closed) return { closedByApi: true, forcedKill: false };
+  try { if (proc && !proc.killed) proc.kill('SIGKILL'); } catch (err) { /* 进程已退出 */ }
+  await Promise.race([exited, sleep(limit)]);
+  return { closedByApi: false, forcedKill: true };
 }
 
-function comparePage(page, compressed, baseline, report) {
+async function sampleRuntimeErrors(page, url, consoleState, opts) {
+  consoleState.reset();
+  await page.goto(url, { waitUntil: 'load', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
+  await settleRuntimePage(page);
+  return consoleState.errors.slice();
+}
+
+function compareStaticPage(page, compressed, baseline, report) {
   if (compressed.dom !== baseline.dom) {
     report.failures.push({ kind: 'dom', page, detail: firstDifference(compressed.dom, baseline.dom) });
   }
   if (JSON.stringify(compressed.styles) !== JSON.stringify(baseline.styles)) {
     report.failures.push({ kind: 'style', page, detail: firstArrayDifference(compressed.styles, baseline.styles) });
   }
-  if (compressed.errors.length > 0 || baseline.errors.length > 0) {
+}
+
+function compareConsoleErrors(page, compressedErrors, baselineErrors, report) {
+  if (compressedErrors.length > 0 || baselineErrors.length > 0) {
     report.failures.push({
       kind: 'console',
       page,
-      detail: { compressed: compressed.errors.slice(0, 5), baseline: baseline.errors.slice(0, 5) }
+      detail: { compressed: compressedErrors.slice(0, 5), baseline: baselineErrors.slice(0, 5) }
     });
   }
 }
@@ -628,6 +670,8 @@ async function checkRuntimeBootstrap(page, report) {
  * @property {string} [chromePath] 显式 Chrome 路径（缺省按 resolveChromePath 探测）
  * @property {boolean} [obfuscateEnabled] 是否启用 JS 混淆（追加 __T/__SB 与 deferred 断言）
  * @property {number} [pageTimeoutMs] 单页加载超时（毫秒）
+ * @property {string} [profileDir] 持久 Chrome profile 目录（复用可跳过首次导航初始化与临时
+ *   profile 清理等待；同一目录同一时刻只允许一个 Chrome 实例，构建应串行执行）
  * @property {string} [cwd] 子服务进程工作目录
  * @property {Record<string, string|undefined>} [env] 环境变量（测试注入）
  * @property {Console} [logger] 日志输出
@@ -690,9 +734,12 @@ async function verifyCompression(options) {
   }
 
   report.pages = discoverVerifyPages(distDir);
+  const phase = { startedAt: Date.now() };
+  const mark = (name) => { phase[name] = Date.now(); };
   const serverHandles = [];
   let browser = null;
   try {
+    mark('serversStartedAt');
     const watchdogEnv = {
       SYNAPSE_SERVE_PARENT_PID: String(process.pid),
       SYNAPSE_SERVE_IDLE_MS: String(VERIFY_WATCHDOG.idleMs),
@@ -710,12 +757,18 @@ async function verifyCompression(options) {
     if (!assertDistinctPorts([compressedPort, baselinePort])) {
       report.failures.push({ kind: 'server', detail: '验证服务端口未互异: ' + compressedPort + ',' + baselinePort });
     }
+    mark('serversReadyAt');
 
+    const profileDir = opts.profileDir ? path.resolve(opts.profileDir) : '';
+    if (profileDir) fs.mkdirSync(profileDir, { recursive: true });
     try {
       browser = await puppeteerCore.launch({
         executablePath: chromePath,
         headless: true,
-        args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--enable-unsafe-swiftshader'],
+        userDataDir: profileDir || undefined,
+        // --no-proxy-server：跳过 Windows 系统代理自动探测（WPAD），否则首个导航可能被拖到秒级；
+        // --disable-features：关闭翻译/优化提示等与验证无关的后台初始化。
+        args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-proxy-server', '--disable-features=Translate,OptimizationHints'],
         timeout: 30000,
         protocolTimeout: 120000
       });
@@ -723,39 +776,83 @@ async function verifyCompression(options) {
       report.reason = 'chrome-launch-failed: ' + String((err && err.message) || err);
       return finish('skipped');
     }
+    mark('browserReadyAt');
 
     const compressedBase = 'http://127.0.0.1:' + compressedPort;
     const baselineBase = 'http://127.0.0.1:' + baselinePort;
-    const pageA = await browser.newPage();
-    const pageB = await browser.newPage();
-    await preparePage(pageA);
-    await preparePage(pageB);
-    const consoleA = attachConsole(pageA);
-    const consoleB = attachConsole(pageB);
 
+    // ① 静态产物对比（JS 关闭）：DOM 归一化结构 + 采样计算样式。
+    const staticA = await browser.newPage();
+    const staticB = await browser.newPage();
+    await preparePage(staticA, false);
+    await preparePage(staticB, false);
     for (const pagePath of report.pages) {
-      const compressed = await samplePage(pageA, compressedBase + pagePath, consoleA, opts);
-      const baseline = await samplePage(pageB, baselineBase + pagePath, consoleB, opts);
+      const staticStartedAt = Date.now();
+      const [compressed, baseline] = await Promise.all([
+        sampleStaticPage(staticA, compressedBase + pagePath, opts),
+        sampleStaticPage(staticB, baselineBase + pagePath, opts)
+      ]);
       report.comparisons.push({
         page: pagePath,
-        compressed: { domLength: compressed.dom.length, styleSamples: compressed.styles.length, errors: compressed.errors.slice(0, 3) },
-        baseline: { domLength: baseline.dom.length, styleSamples: baseline.styles.length, errors: baseline.errors.slice(0, 3) }
+        staticMs: Date.now() - staticStartedAt,
+        compressed: { domLength: compressed.dom.length, styleSamples: compressed.styles.length },
+        baseline: { domLength: baseline.dom.length, styleSamples: baseline.styles.length }
       });
-      comparePage(pagePath, compressed, baseline, report);
+      compareStaticPage(pagePath, compressed, baseline, report);
     }
+    await staticA.close().catch(() => {});
+    await staticB.close().catch(() => {});
+    mark('staticReadyAt');
 
-    // 交互与运行时断言固定用压缩态首页（页面集对比后页面可能已离开首页）。
-    await pageA.goto(compressedBase + '/zh/', { waitUntil: 'load', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
-    await settlePage(pageA);
-    if (opts.obfuscateEnabled) report.runtime = await checkRuntimeBootstrap(pageA, report);
-    report.interactions = await runInteractions(pageA, report);
+    // ② 运行时控制台错误（JS 开启）：两态逐页收集，均须为 0。
+    const runtimeA = await browser.newPage();
+    const runtimeB = await browser.newPage();
+    await preparePage(runtimeA, true);
+    await preparePage(runtimeB, true);
+    const consoleA = attachConsole(runtimeA);
+    const consoleB = attachConsole(runtimeB);
+    for (const pagePath of report.pages) {
+      const [compressedErrors, baselineErrors] = await Promise.all([
+        sampleRuntimeErrors(runtimeA, compressedBase + pagePath, consoleA, opts),
+        sampleRuntimeErrors(runtimeB, baselineBase + pagePath, consoleB, opts)
+      ]);
+      const entry = report.comparisons.find((item) => item.page === pagePath);
+      if (entry) {
+        entry.compressed.errors = compressedErrors.slice(0, 3);
+        entry.baseline.errors = baselineErrors.slice(0, 3);
+      }
+      compareConsoleErrors(pagePath, compressedErrors, baselineErrors, report);
+    }
+    mark('runtimeReadyAt');
+
+    // ③ 交互与运行时断言固定用压缩态首页（页面集对比后页面可能已离开首页）。
+    await runtimeA.goto(compressedBase + '/zh/', { waitUntil: 'load', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
+    await settleRuntimePage(runtimeA);
+    if (opts.obfuscateEnabled) report.runtime = await checkRuntimeBootstrap(runtimeA, report);
+    report.interactions = await runInteractions(runtimeA, report);
+    mark('interactionsReadyAt');
   } catch (err) {
     report.failures.push({ kind: 'internal', detail: String((err && err.stack) || err) });
   } finally {
+    let browserCloseForced = false;
     if (browser) {
-      try { await browser.close(); } catch (err) { /* 关闭失败不阻断端口回收校验 */ }
+      const closeResult = await closeBrowserSafely(browser);
+      browserCloseForced = closeResult.forcedKill;
     }
+    const stopStartedAt = Date.now();
     await Promise.all(serverHandles.map((handle) => stopVerifyServer(handle)));
+    const serverStopMs = Date.now() - stopStartedAt;
+    mark('cleanupAt');
+    report.phaseDurationsMs = {
+      servers: (phase.serversReadyAt || phase.startedAt) - phase.serversStartedAt,
+      browserLaunch: (phase.browserReadyAt || 0) - (phase.serversReadyAt || 0),
+      staticCompare: (phase.staticReadyAt || 0) - (phase.browserReadyAt || 0),
+      runtimeConsole: (phase.runtimeReadyAt || 0) - (phase.staticReadyAt || 0),
+      interactions: (phase.interactionsReadyAt || 0) - (phase.runtimeReadyAt || 0),
+      cleanup: phase.cleanupAt - (phase.interactionsReadyAt || phase.runtimeReadyAt || phase.startedAt),
+      browserCloseForced,
+      serverStopMs
+    };
     const ports = report.servers.map((server) => server.port);
     if (ports.length > 0) {
       const released = [];

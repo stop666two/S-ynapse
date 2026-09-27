@@ -9,6 +9,7 @@
 - 发布产物对应唯一 git commit；回滚以 commit 为最小单位（`git revert <sha>`）。
 - **生产路径 = Worker 部署**：`npm run build` → `npx wrangler deploy --config workers/wrangler.toml --env production`。
   静态资产与 Worker 脚本是**同一版本**，一次 `rollback` 同时回退页面与安全层。
+- **当前生产版本：`36cf88fe-eabb-45d7-9746-a6a8277e116b`；上一个可回滚版本：`2fa78c1d-db76-4108-b32b-42ad5f42a61a`**（示例；实际以 `wrangler deployments list` 为准）。
 - CI（`.github/workflows/deploy.yml`）推送时只执行 `wrangler pages deploy`（Pages），**不会更新生产 Worker**；更新 Worker 必须手动执行上面的部署命令。
 - 数据回滚：内容源（articles/media/pages/配置）均在 git 中，回滚 commit 即回滚数据；`workers/security-config.js` 为构建产物（gitignore），随 `npm run build` 重新生成；`database.db` 非站点数据源。
 
@@ -43,20 +44,32 @@
 - 维护页：`npx wrangler secret put MAINTENANCE --config workers/wrangler.toml --env production`（值 `1`）→ 全站 503，恢复时删除该 secret 或置空；不设置 `MAINTENANCE_MESSAGE` 时默认文案按 `Accept-Language` 自动选中/英（`en*` → 英文，其余 → 中文），自定义时原样覆盖。
 - 暂时摘除安全层：将 `[assets] run_worker_first = false` 后重新部署（静态 `_headers` 仍提供基础安全头），故障排除后改回 `true` 再部署。
 
-## 4. 运行时密钥与配置
+## 4. 压缩验证失败回退（构建期排障）
+
+构建增强步骤（`compression.json5`，默认开）完成后会执行无头对比门禁；失败时按 `verify.fallbackOnFailure` 自动回退未压缩基线并告警，构建仍成功。排障路径：
+
+1. **看结果 JSON**：`.cache/compression-verify/last.json` —— `status`（`passed`/`failed`/`skipped`）、失败页面与断言类型、`phaseDurationsMs` 阶段耗时、端口释放结论。
+2. **看构建摘要**：`dist/report.txt` —— 「无头验证摘要」段（本轮未运行会如实标注）与「CSS 合并/去重跳过」明细（文件 + 原因）；跳过项不代表产物损坏（该文件保持原样，不计入失败账本）。
+3. **独立复核**：`npm run verify:compression -- --json`（完整构建 + 两态断言；`passed=0`、`failed=1`、`skipped=0`）。无 Chrome 环境会跳过并告警，不阻断构建；可用 `CHROME_PATH` 指定浏览器。
+4. **回退是否生效**：回退后构建日志有 `[WARN]`，且快照产物的逐字节复核通过；若复核不一致会升级为阻断失败（此时不要部署，按第 5 步回滚现有版本或修复后重建）。
+5. **确认是压缩还是内容问题**：`--compression-override` 传一份 `enabled:false` 的配置重跑构建（隔离验证第二态，不写回仓库配置）；仍失败说明与压缩无关，按内容/模板问题排查。
+
+> 说明：Chrome 使用项目内持久 profile `.cache/chrome-verify-profile`，同一时刻只允许一个构建使用（构建需串行）；该目录可安全删除。
+
+## 5. 运行时密钥与配置
 
 - **`LOG_IP_SECRET`（必须生产配置）**：`npx wrangler secret put LOG_IP_SECRET --config workers/wrangler.toml --env production`
   （随机长字符串；未配置时 IP 日志哈希用固定盐，可被枚举反推）。
 - 限流/路径/CSP 调整：改 `security.json5` → `npm run build`（重新生成 `workers/security-config.js`）→ 重新 `wrangler deploy`。
-- 构建缓存 `.build-cache.json` / `.cache/` 可在回滚后删除以强制全量重建（不参与版本控制）。
+- 构建缓存 `.build-cache.json` / `.cache/` 可在回滚后删除以强制全量重建（不参与版本控制）；含 `.cache/compression-baseline/`（验证基线快照）、`.cache/compression-verify/last.json`。
 
-## 5. 保留与演练
+## 6. 保留与演练
 
 - 保留策略：git 历史全量；Cloudflare Worker 版本按平台策略保留（`wrangler deployments list` 可查）。
 - 演练：每季度或每次重大变更（CSP/Worker 结构调整）后在预发环境走一遍第 1 节步骤 1–2 与第 3 节维护模式，记录耗时与阻塞点。
 - 事后分析：恢复后 48 小时内输出根因/影响/修复/预防四段记录（AGENTS.md 规则 207）。
 
-## 6. 快速对照表
+## 7. 快速对照表
 
 | 故障类型 | 首选动作 | 预期恢复时间 |
 |---|---|---|
@@ -65,3 +78,5 @@
 | 内容错误（文章/配置） | `git revert` + `npm run build` + `wrangler deploy` | 5–15 分钟 |
 | 误拦截/限流过严 | 改 `security.json5` 重建后部署；或临时维护模式 | < 5 分钟 |
 | 日志隐私（未配密钥） | `wrangler secret put LOG_IP_SECRET` 后重新部署 | < 5 分钟 |
+| 压缩验证 failed（构建已自动回退） | 查 `.cache/compression-verify/last.json` 与 `report.txt`；独立 `verify:compression` 复核 | 10–30 分钟 |
+| 压缩回退复核不一致（构建阻断） | 不部署；修复后重建，或 `wrangler rollback` 回上一版本 | < 10 分钟 |

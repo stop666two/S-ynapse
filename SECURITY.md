@@ -1,8 +1,8 @@
 # 安全策略（Security Policy）
 
 S-ynapse 是静态博客生成器：构建期为 Markdown/HTML 做白名单消毒，运行期由 Cloudflare
-Pages `_headers` 与可选 `security-worker` 双层下发安全策略。本文件说明支持范围、
-报告渠道与已知边界。
+Workers 安全层（生产路径，静态资产与脚本同版本部署）与静态 `_headers` 双层下发安全策略；
+Cloudflare Pages（CI 推送）为备用路径。本文件说明支持范围、报告渠道与已知边界。
 
 ## 报告漏洞
 
@@ -23,6 +23,7 @@ Pages `_headers` 与可选 `security-worker` 双层下发安全策略。本文�
   与 `X-Frame-Options: DENY` 双重禁止页面被嵌入。未构建的原型部署（security-config.js
   缺失）会用 Worker 内置 FALLBACK：`script-src` 同步移除 `'unsafe-inline'`（fail-closed），
   `style-src` 因无构建期 nonce 可注入而保留 `'unsafe-inline'` 以保障降级页可读——正式产物会覆盖。
+- **压缩功能无安全面变化**：`compression.json5` 仅重写 `dist/` 文本产物的字节（压缩、去空白、同页样式合并去重），发生在消毒与 CSP nonce 注入之后，不改变安全语义；`assets/vendor/**`、媒体与报告文件默认豁免（原字节复制）；JS 混淆默认关闭，开启时仅作用于本轮自研 bundle（vendor 与 `runtime` 引导脚本排除），且混淆不是安全边界——客户端代码始终可被分析。无头对比门禁失败时自动回退未压缩基线产物，安全性不降级。
 - **accessGate（`guard.json5`）是软防护，不是访问控制**：密码哈希与解锁码内联在
   前端产物中，`?guard=off` 与 localStorage 伪造均可绕过；关闭 JavaScript 或直接
   读取 HTML 也能看到内容。请勿用它保护机密数据——需要真实门禁请使用
@@ -51,3 +52,5 @@ Pages `_headers` 与可选 `security-worker` 双层下发安全策略。本文�
 - 仅支持默认分支最新提交；Node 版本见 `package.json` `engines`。
 - 依赖漏洞通过 `npm run audit`（官方 registry）与 CI `npm audit --audit-level=high`
   持续检查，高危（CVSS ≥ 7）7 天内处置。
+- 安全回归门禁：`npm run verify:security`（注入恶意内容 → 真实构建 → 语义断言，CI 阻断）
+  与 `npm run verify:compression`（压缩产物 vs 未压缩基线的无头对比，条件执行）。

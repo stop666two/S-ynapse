@@ -99,7 +99,10 @@ const DEFAULT_FEATURES = {
   },
   dailyQuote: {
     enabled: true, widgetStyle: 'card', label: '每日一言', labelEn: 'Daily Quote',
-    source: 'builtin', count: 7, quoteColor: ''
+    source: 'builtin', dataFile: 'data/quotes.json5', count: 0, quoteColor: '',
+    refreshLabel: '换一句', refreshLabelEn: 'Another',
+    copyLabel: '复制', copyLabelEn: 'Copy',
+    copiedLabel: '已复制', copiedLabelEn: 'Copied'
   },
   favorites: {
     enabled: true, position: 'toolbar', storageKey: 's-favorites',

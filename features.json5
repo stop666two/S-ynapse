@@ -1887,11 +1887,29 @@
     // 题目标签（en 站；空 = 回退中文）。
     labelEn: 'Daily Quote',
     // 数据源。
-    // 类型: string | 可填: 'builtin'(内置引语)/ 相对项目根或绝对路径的 .json/.json5 文件
-    // 文件格式: ["引语"] 或 [{ text, author }](也接受 { quotes: [...] });加载失败自动回退内置并警告
+    // 类型: string | 可填: 'builtin'（默认）/ 相对项目根或绝对路径的 .json/.json5 文件
+    // 'builtin' 时优先读取 dataFile（默认 data/quotes.json5，逐条含中英与真实出处）；
+    // 文件缺失或加载失败即告警并回退代码内置最小集（5 条，仅公版可核验名句）。
+    // 自定义路径格式: ["引语"] 或 [{ text, author, textEn, ... }]（也接受 { quotes: [...] }）；
+    // 自定义路径加载失败同样回退内置并告警。
     source: 'builtin',
-    // 引用数量(循环轮换)。
-    count: 7,
+    // builtin 引语数据文件（相对项目根或绝对路径；.json/.json5）。
+    // 文件格式与标签枚举见文件头部注释及 docs/config-reference.md「data/quotes.json5」章节。
+    dataFile: 'data/quotes.json5',
+    // 注入池大小：0 = 全部条目（默认，当前数据文件 100 条）；>0 = 按数据顺序取前 N 条（稳定顺序，向后兼容旧配置写法 count: 7）。
+    count: 0,
+    // 「换一句」按钮文案。
+    refreshLabel: '换一句',
+    // 「换一句」按钮文案（en 站；空 = 回退中文）。
+    refreshLabelEn: 'Another',
+    // 「复制」按钮文案。
+    copyLabel: '复制',
+    // 「复制」按钮文案（en 站；空 = 回退中文）。
+    copyLabelEn: 'Copy',
+    // 复制成功后的短暂提示文案（按钮短暂替换 + toast）。
+    copiedLabel: '已复制',
+    // 复制成功提示文案（en 站；空 = 回退中文）。
+    copiedLabelEn: 'Copied',
     // 文本颜色(空则继承)。
     quoteColor: ''
   },

@@ -7,9 +7,14 @@ const DEFAULT_GUARD = {
   "core": {
     "preset": "soft",
     "bypass": {
+      "enabled": true,
+      "urlParam": true,
+      "localStorage": true,
       "localhost": false,
+      "cleanUrl": true,
       "queryParam": "guard",
-      "storageFlag": "s-guards-off"
+      "storageFlag": "s-guards-off",
+      "accessGateKey": true
     },
     "logLevel": "off",
     "respectEditable": true,

@@ -11,12 +11,14 @@
 //   preset = 'soft'   → 仅“自定义右键菜单 + 复制署名”生效（默认，体验友好）
 //   preset = 'strict' → 各模块按本文件内的 enabled 字段生效（含拦截/检测类）
 //
-// 绕过通道（调试/无障碍必需，优先级从高到低）：
-//   1. URL 参数  ?guard=off 强制关闭      ?guard=on 强制开启（覆盖一切）
+// 绕过通道（调试/无障碍必需，优先级从高到低；均由 core.bypass 逐项开关，enabled=false 全关）：
+//   1. URL 参数  ?guard=off 强制关闭      ?guard=on 强制开启（覆盖一切，含其余绕过通道）
 //   2. localStorage['s-guards-off']='1'  持久关闭（控制台执行一次即可）
-//   3. core.bypass.localhost = true 时，localhost/127.0.0.1 自动关闭
+//   3. core.bypass.localhost = true 时，localhost/127.0.0.1/::1 自动关闭
+//   4. accessGate 的 ?key= 解锁码（是否允许由 core.bypass.accessGateKey 控制）
 // 注意：URL 参数在绕过判定与 accessGate 解锁码读取完成后，会被 history.replaceState
-//   从地址栏移除（保留其它查询串与 hash）——避免开关状态随链接传播与留存可分享 URL。
+//   从地址栏移除（保留其它查询串与 hash）——避免开关状态随链接传播与留存可分享 URL；
+//   core.bypass.cleanUrl=false 可保留参数（判定结果不变）。
 //
 // 诚实声明：所有“拦截/检测”类能力均为威慑手段，均可被浏览器菜单、
 //   开发者工具、阅读模式等绕过；且可能影响可访问性与正常用户操作。
@@ -32,7 +34,7 @@
 
 {
   // ==========================================================================
-  // 【core】全局行为与绕过通道（8 项）
+  // 【core】全局行为与绕过通道（13 项）
   // ==========================================================================
   core: {
     // 作用：一键档位（供 features.guards.preset 读取；此处保持默认 'soft'）
@@ -42,17 +44,44 @@
     // 注意：'strict' 会按本文件 enabled 字段开启拦截类模块，普通用户会感到被冒犯
     preset: 'soft',
 
-    // 作用：localhost/127.0.0.1 自动关闭全部防护（开发预览不被打扰）
-    // 类型：boolean；可填：true | false
-    // 推荐：false（本地预览所见即所得；需要安静时用 ?guard=off）
-    // 注意：true 时你本机看到的界面与线上不一致，排查问题前先关掉它
+    // 作用：绕过通道的子配置（调试/无障碍开关：URL 参数、localStorage、localhost、解锁码）
+    // 类型：object；可填：下方各子键；不可填：非对象（回退内置默认）
+    // 推荐：默认值（保持调试通道可用、localhost 不自动关闭）
     bypass: {
-      // 作用：本地地址(host 为 localhost/127.0.0.1)时自动关闭全部防护；boolean；推荐 false
+      // 作用：绕过通道总开关（false 时 URL/localStorage/localhost/解锁码全部无效）
+      // 类型：boolean；可填：true | false
+      // 推荐：true（调试与无障碍通道；如需全关防护请用 features.guards.preset='off'）
+      // 注意：false 只关闭“调试绕过”，不改变 guard 本身是否启用；判定原因记录为 'disabled'
+      enabled: true,
+
+      // 作用：是否允许 URL 参数通道（?guard=off / ?guard=on）
+      // 类型：boolean；可填：true | false
+      // 推荐：true（线上排查与移动端调试的唯一免登录开关）
+      // 注意：false 时参数被忽略（不再强制开关）；地址栏清洗仍由 cleanUrl 独立控制
+      urlParam: true,
+
+      // 作用：是否允许 localStorage 持久关闭通道（键值为 '1' 时绕过）
+      // 类型：boolean；可填：true | false
+      // 推荐：true（控制台执行一次即可静音全部防护）
+      // 注意：false 时 storageFlag 被忽略；键名本身仍由 storageFlag 配置
+      localStorage: true,
+
+      // 作用：本地地址(host 为 localhost/127.0.0.1/::1)时自动关闭全部防护
+      // 类型：boolean；可填：true | false
+      // 推荐：false（本地预览所见即所得；需要安静时用 ?guard=off）
+      // 注意：true 时本机看到的界面与线上不一致，排查问题前先关掉它
       localhost: false,
+
+      // 作用：绕过判定与解锁读取完成后，是否用 history.replaceState 清洗地址栏参数
+      // 类型：boolean；可填：true | false
+      // 推荐：true（避免开关状态随链接传播与留存可分享 URL）
+      // 注意：清洗对象为 queryParam 参数名与 accessGate 的 'key' 参数（保留其它查询串与 hash）；
+      //   false 时参数保留在地址栏，判定结果不变（刷新后仍生效）
+      cleanUrl: true,
 
       // 作用：URL 参数名，?guard=off / ?guard=on 强制开关（覆盖一切其它设置）
       // 类型：string；可填：任意参数名（避免与已有参数冲突）
-      // 不可填：空字符串（为空则禁用该通道）
+      // 不可填：空字符串（为空回退默认 'guard'；如需禁用该通道请用 urlParam: false）
       // 推荐：'guard'
       // 注意：参数在绕过判定完成后即从地址栏移除（replaceState，保留其它查询串与 hash），
       //   不改变判定优先级；改参数名时清理逻辑自动跟随本字段
@@ -60,8 +89,15 @@
 
       // 作用：localStorage 键名，值为 '1' 时持久关闭防护
       // 类型：string；可填：任意键名
+      // 不可填：无（空字符串 = 关闭该通道）
       // 推荐：'s-guards-off'；注意：用户一旦设置，线上不会再看到防护
-      storageFlag: 's-guards-off'
+      storageFlag: 's-guards-off',
+
+      // 作用：是否允许 accessGate 的 ?key= 解锁码通道（URL 携带解锁码直接解锁）
+      // 类型：boolean；可填：true | false
+      // 推荐：true（保持现状；解锁码是否可用仍由 accessGate.unlockCodes 决定）
+      // 注意：false 时忽略 ?key=（不会解锁）；参数清理仍由 cleanUrl 统一控制
+      accessGateKey: true
     },
 
     // 作用：控制台日志级别（前缀 [guard]，便于过滤）

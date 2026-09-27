@@ -1,46 +1,30 @@
 // Guard core —— 防护与交互控制总控
-// 职责：档位解析（off/soft/strict）、绕过通道（URL/localStorage/localhost）、
+// 职责：档位解析（off/soft/strict）、绕过通道（URL/localStorage/localhost/解锁码）、
 //      共享上下文（i18n、toast、可编辑区判断、日志）与子模块懒加载。
+import { normalizeGuardBypass, resolveGuardBypass, stripGuardParams } from './bypass.js';
+
 const F = window.__FEATURES__ || {};
 const G = window.__GUARD__ || {};
 const CORE = G.core || {};
 
-function queryValue(name) {
-  const m = new RegExp('[?&]' + name + '=([^&]+)').exec(location.search);
-  if (!m) return '';
-  try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
-}
-
-function bypassed() {
-  const b = CORE.bypass || {};
-  const q = b.queryParam || 'guard';
-  const v = queryValue(q);
-  if (v === 'off') return true;
-  if (v === 'on') return false;
-  try {
-    const flag = b.storageFlag;
-    if (flag && localStorage.getItem(flag) === '1') return true;
-  } catch (e) { /* 隐私模式忽略 */ }
-  if (b.localhost) {
-    const h = location.hostname;
-    if (h === 'localhost' || h === '127.0.0.1' || h === '::1') return true;
+// 读取绕过判定所需环境值（localStorage 访问在隐私模式下可能抛错，读取点单独包裹）。
+function readBypassEnv() {
+  const cfg = normalizeGuardBypass(CORE.bypass);
+  let storageValue = '';
+  if (cfg.storageFlag) {
+    try { storageValue = localStorage.getItem(cfg.storageFlag) || ''; } catch (e) { /* 隐私模式忽略 */ }
   }
-  return false;
+  return { search: location.search, storageValue: storageValue, hostname: location.hostname };
 }
 
 // 清除地址栏中的防护参数（?guard= 绕过标记与 ?key= 解锁码），保留其它查询串与 hash。
 // 时序约束：必须在绕过判定与 accessGate 解锁逻辑读取完成之后调用——过早移除会让
 // 解锁码失效。仅原地替换当前历史记录（replaceState），不新增历史条目。
+// 是否清洗由 core.bypass.cleanUrl 控制；false 时保留参数，判定结果不变。
 function stripUrlParams() {
-  const names = [(CORE.bypass && CORE.bypass.queryParam) || 'guard', 'key'];
-  try {
-    const url = new URL(location.href);
-    let changed = false;
-    names.forEach(function (name) {
-      if (name && url.searchParams.has(name)) { url.searchParams.delete(name); changed = true; }
-    });
-    if (changed) history.replaceState(history.state, '', url.pathname + url.search + url.hash);
-  } catch (e) { /* 忽略：URL 清理失败不影响防护判定与解锁 */ }
+  const r = stripGuardParams(location.href, CORE.bypass);
+  if (!r.changed) return;
+  try { history.replaceState(history.state, '', r.href); } catch (e) { /* 忽略：URL 清理失败不影响防护判定与解锁 */ }
 }
 
 // 当前页是否为英文语言页。判定按可靠性排序：
@@ -80,7 +64,9 @@ function markReady() { try { window.__GUARD_READY__ = true; } catch (e) { /* 忽
 
 export function init() {
   if (!Object.keys(G).length) { markReady(); return; }
-  if (bypassed()) { log('bypassed'); stripUrlParams(); markReady(); return; }
+  const resolved = resolveGuardBypass(CORE.bypass, readBypassEnv());
+  try { window.__GUARD_BYPASS__ = resolved.reason; } catch (e) { /* 忽略：可观测标记写入失败不影响防护 */ }
+  if (resolved.bypassed) { log('bypassed'); stripUrlParams(); markReady(); return; }
   const preset = (F.guards && F.guards.preset) || 'soft';
   if (preset === 'off') { log('preset off'); stripUrlParams(); markReady(); return; }
 

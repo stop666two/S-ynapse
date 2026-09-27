@@ -1,4 +1,6 @@
 // Guard access gate —— 访问门槛（路径前缀密码 + 限次 + 解锁码 + 会话记忆）
+import { ACCESS_GATE_KEY_PARAM, isAccessGateKeyAllowed } from './bypass.js';
+
 export function init(ctx) {
   const cfg = (ctx.G.accessGate) || {};
   if (cfg.enabled === false) return;
@@ -124,7 +126,10 @@ export function init(ctx) {
   }
 
   if (pw.enabled && inScope) {
-    const key = new URLSearchParams(location.search).get('key');
+    // ?key= 解锁码通道由 core.bypass.accessGateKey（并同受 bypass.enabled）控制。
+    const key = isAccessGateKeyAllowed(ctx.core.bypass)
+      ? new URLSearchParams(location.search).get(ACCESS_GATE_KEY_PARAM)
+      : null;
     const codes = Array.isArray(cfg.unlockCodes) ? cfg.unlockCodes : [];
     if (key && codes.indexOf(key) > -1) storeUnlock();
     else if (!unlocked() && pw.hash) renderGate(false);

@@ -55,6 +55,13 @@ test('白名单包含：构建入口/检查配置/git hooks/示例页面与默�
   }
 });
 
+test('白名单包含：默认站点数据 data/**（每日一言数据文件属于可体验功能）', () => {
+  assert.strictEqual(isReleaseAllowed('data/quotes.json5'), true, 'data/quotes.json5 应包含');
+  assert.strictEqual(isReleaseAllowed('data/nested/deep.json5'), true, 'data/** 任意深度应包含');
+  assert.ok(RELEASE_REQUIRED_DIRS.includes('data'), 'data 应列入必需目录');
+  assert.ok(RELEASE_REQUIRED_FILES.includes('data/quotes.json5'), 'data/quotes.json5 应列入必需文件');
+});
+
 test('骨架目录：只允许 .gitkeep 标记，示例文章与演示媒体一律拒绝', () => {
   for (const dir of RELEASE_SKELETON_DIRS) {
     assert.strictEqual(isReleaseAllowed(dir + '/' + RELEASE_SKELETON_MARKER), true, dir + ' 根标记应包含');

@@ -147,7 +147,7 @@ npm run release:archive -- --ref v1.1.0 --out dist/release.zip
 
 白名单单一来源：`scripts/lib/release-manifest.js`。口径：**基础包 = 可完整体验 README 全部功能的最基本骨架**，解压后 `npm ci --ignore-scripts && npm test && npm run build` 必须全部成功。
 
-- 包含：`js/**`、`scripts/**`（含全部 `*.test.js`，保证解压后 `npm test` 可运行）、`templates/**`、`workers/**`、`.githooks/**`、示例页面 `pages/**`、默认资源 `static/**`；根全部 `*.json5`、`package.json`、`package-lock.json`、`.env.example`、`.gitattributes`、`.gitignore`、`LICENSE`、`README.md`、`RELEASE.json`、`build.bat`、`serve.bat`、`eslint.config.js`、`tsconfig.json`、`wrangler.toml`。
+- 包含：`js/**`、`scripts/**`（含全部 `*.test.js`，保证解压后 `npm test` 可运行）、`templates/**`、`workers/**`、`.githooks/**`、示例页面 `pages/**`、默认资源 `static/**`、默认数据 `data/**`（如每日一言 `data/quotes.json5`，属可体验的默认功能）；根全部 `*.json5`、`package.json`、`package-lock.json`、`.env.example`、`.gitattributes`、`.gitignore`、`LICENSE`、`README.md`、`RELEASE.json`、`build.bat`、`serve.bat`、`eslint.config.js`、`tsconfig.json`、`wrangler.toml`。
 - 骨架目录（只保留 `.gitkeep`，实体内容一律过滤）：`articles/**`（如 `articles/zh/.gitkeep`、`articles/en/.gitkeep`）与 `media/**`（`media/.gitkeep`）。pathspec 对这两个目录只注入 `**/.gitkeep`；`assertArchiveContents` 兜底拒绝任何非标记条目，错误信息标注「骨架目录只允许 .gitkeep」。
 - 排除：`docs/**`、`.github/**`、`.tmp-scripts/**`、`.playwright-mcp/**`、`backups/**`、`real-site/**`、`dist/**`、`node_modules/**`、`.cache/**`、`build-artifacts/**`、`release-artifacts/**`、`workers/security-config.js`；未知路径默认拒绝。
 - 注意：可选内容目录 `videos/`、`assets/` 当前仓库尚无内容；`git archive` 对未匹配的 pathspec 会直接失败，故不能预先写入，待目录出现内容时显式加入白名单。

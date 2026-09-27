@@ -7,7 +7,8 @@
 //   3. assertArchiveContents() 在 zip 生成后复核，任何越界条目立即抛错，阻止发布。
 //
 // 设计（口径：基础包 = 可完整体验 README 全部功能的最基本骨架）：
-//   - 包含：应用代码（js/scripts/templates/workers）、构建与发布入口（build.bat/serve.bat、
+//   - 包含：应用代码（js/scripts/templates/workers）、默认站点数据（data/**，如每日一言
+//     quotes.json5）、构建与发布入口（build.bat/serve.bat、
 //     eslint.config.js、tsconfig.json、wrangler.toml）、示例页面与默认资源（pages/static）、
 //     git hook（.githooks）、根全部 *.json5 与锁文件；
 //   - 骨架目录：articles/ 与 media/ 在包内只保留 .gitkeep 标记（空目录语义），
@@ -32,9 +33,10 @@ const RELEASE_SKELETON_DIRS = Object.freeze([
 // 骨架目录内唯一允许的文件名（目录占位标记，解压后空目录可被 git 跟踪/构建识别）。
 const RELEASE_SKELETON_MARKER = '.gitkeep';
 
-// 允许整目录递归包含且必须有内容的顶层目录（应用源码 + 保留的示例页面与默认资源）。
+// 允许整目录递归包含且必须有内容的顶层目录（应用源码 + 保留的示例页面与默认资源 + 默认数据）。
 const RELEASE_REQUIRED_DIRS = Object.freeze([
   '.githooks', // git hooks（npm run init / postinstall 安装 pre-commit 保护）
+  'data',      // 默认站点数据（data/quotes.json5 每日一言，属于可体验的默认功能）
   'js',        // 浏览器端运行时模块
   'pages',     // 自定义示例页面（关于/免责声明/隐私/条款）
   'scripts',   // 构建、验证与发布脚本（含 *.test.js，便于解压后运行 npm test）
@@ -100,6 +102,7 @@ const RELEASE_REQUIRED_FILES = Object.freeze([
   'wrangler.toml',
   'site.json5',
   'theme.json5',
+  'data/quotes.json5',
   '.githooks/pre-commit',
   'articles/zh/.gitkeep',
   'articles/en/.gitkeep',

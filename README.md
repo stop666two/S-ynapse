@@ -455,6 +455,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ### 派生副本与回滚
 
 - **多工作区定源**：本仓库是唯一事实源。若本机存在 `real-site/` 等派生副本（被 `.git/info/exclude` 排除、含独立 `.git`），任何修复只以本仓库为准；同步后必须用 `git diff --no-index --stat scripts/ real-site/scripts/` 与 `git diff --no-index --stat js/ real-site/js/` 核对差异归零，禁止只改副本或只改主仓库。
+- **派生副本门禁**：派生副本含真实站点数据，配置项计数可与 canonical 文档声明不同；在派生副本内运行 `npm test` 时设 `SYNAPSE_DERIVED_COPY=1`，`scripts/config-count.test.js` 的精确计数断言会显式跳过并打印原因（跳过项计入 skipped）。主仓库/CI 不设该变量，断言不弱化、行为不变。
 - **发布回滚**：见 `docs/runbook/rollback.md`（**Worker 优先**：`wrangler rollback` 同时回退脚本与静态资产；Pages 为备用路径；含 `LOG_IP_SECRET` 与部署后抽查命令）。
 
 ---

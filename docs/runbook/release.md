@@ -68,6 +68,38 @@ npm run release:mark -- patch --human-verified "张三" --confirm 1.1.1
 
 推送需要显式二次确认：`--push --confirm-push`（分支与 tag 都会推送）。
 
+### 4.1 同版本标记（为当前版本建立首个 Release）
+
+当 package.json 已是目标版本、且该版本从未发布过（tag 不存在）时，用「同版本标记」直接为当前版本建 Release，不做版本递增：
+
+```bash
+# 演练（当前 package.json 为 1.1.0 时）
+npm run release:mark -- 1.1.0 --human-verified "张三" --confirm 1.1.0 --dry-run
+
+# 正式标记
+npm run release:mark -- 1.1.0 --human-verified "张三" --confirm 1.1.0
+```
+
+- 触发条件：参数为显式 `X.Y.Z` 且等于 package.json 当前版本；关键字 `major|minor|patch` 或更高的显式版本仍走递增路径（行为不变），低于当前版本的显式版本仍被拒绝。
+- 版本同步：跳过 `npm version`（版本号已一致）；仅当 `package-lock.json` 根版本（顶层 `version` 与 `packages[""].version`）漂移时同步为目标版本。
+- 其余步骤与递增路径完全一致：11 项门禁 → 人工核验参数校验 → CHANGELOG 变换 → RELEASE.json（commit=tag 父提交）→ 单提交 `chore(release): vX.Y.Z` → 附注 tag → 默认不 push。
+
+注意事项：
+
+- **已发布版本不可重复使用**：tag `vX.Y.Z` 已存在时脚本在门禁前直接拒绝；要发布新内容必须走递增（SemVer 2.0.0）。
+- 同版本标记不会修改 package.json 的版本号，只产生 CHANGELOG 与 RELEASE.json 的发布提交。
+- dry-run 会标明「同版本标记」分支并输出 CHANGELOG 变换计划（模式与合并小节明细），据此核对后再正式执行。
+
+**CHANGELOG 变换规则（三态，纯函数 `scripts/lib/release-version.js → planChangelogRewrite`）**：
+
+| 输入态 | 变换 |
+|---|---|
+| ① 有 `[Unreleased]`、无 `[X.Y.Z]` | `[Unreleased]` 标题重命名为 `## [X.Y.Z] - <YYYY-MM-DD>` 并补版本链接 |
+| ② 有 `[Unreleased]`、已有 `[X.Y.Z]`（当前仓库即此态） | `[Unreleased]` 各小节按标题合并进 `[X.Y.Z]` 对应小节顶部（新条目在前、既有条目保留；目标段没有的标题按原顺序追加到末尾），删除 `[Unreleased]` 段，版本段日期更新为发布日 |
+| ③ 无 `[Unreleased]` | 仅确保 `[X.Y.Z]` 段与版本链接：段已存在则只补缺失链接，段缺失则在最新版本段前新建空段 |
+
+三个分支都不改动其他段落，原有链接引用块原样保留；dry-run 与正式执行共用同一变换计划。
+
 ## 5. 双通道发布
 
 **通道 A（默认）：GitHub Actions on tag。** 推送 tag 后 `.github/workflows/release.yml` 自动：
@@ -115,6 +147,7 @@ npm run release:archive -- --ref v1.1.0 --out dist/release.zip
 |---|---|
 | 演练发布计划 | `npm run release:mark -- patch --human-verified "<姓名>" --confirm <版本> --dry-run` |
 | 正式标记并提交/tag | `npm run release:mark -- <major|minor|patch|X.Y.Z> --human-verified "<姓名>" --confirm <版本>` |
+| 同版本标记（首个 Release） | `npm run release:mark -- <当前版本> --human-verified "<姓名>" --confirm <当前版本>` |
 | 推送分支与 tag | `git push origin <branch>` + `git push origin vX.Y.Z`（或 `release:mark --push --confirm-push`） |
 | 本地生成归档 | `npm run release:archive -- --ref <tag|HEAD>` |
 | 本地建 Release（备用） | `npm run release:publish -- vX.Y.Z` |

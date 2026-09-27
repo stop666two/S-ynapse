@@ -265,7 +265,7 @@ function createMinifyModule(ctx) {
 
   // JSON 去空白（增强步骤）：扫描 dist 全部 *.json，仅重写「含换行/缩进」的文件；
   // 豁免名单（vendor/media/报告等）与内容寻址的 assets/config.<hash>.json 先行跳过。
-  // 单文件失败只告警并保留原文件（recordBuildFailure 记录，压缩阶段不中断）。
+  // 单文件失败只告警并保留原文件，同时记入失败账本（构建最终以非零退出）；压缩阶段不中断。
   async function compactJsonInDir(dir) {
     const files = ctx.getAllFiles(dir).filter(f => /\.json$/i.test(f));
     let compacted = 0;
@@ -288,10 +288,11 @@ function createMinifyModule(ctx) {
   }
 
   // C3：页面内联 <style> 合并 + 保守去重，以及 dist 外链 CSS 文件的保守去重。
-  // 逐文件 try/catch：解析异常（标签/括号/引号/注释不配平）只告警并保留原文件，不阻断构建。
+  // 逐文件 try/catch：解析异常（标签/括号/引号/注释不配平）只告警并保留原文件，
+  // 计入 skipped 统计（明细进 report.txt），不计入失败账本（不阻断构建）。
   // 注意：外链 CSS 与基线 CleanCSS 行为一致，只改内容不改名（assets/ 不参与 cacheBust）。
   async function runCssEnhancements() {
-    const totals = { pages: 0, blocksMerged: 0, rulesCollapsed: 0, declsDropped: 0, cssFiles: 0, bytesSaved: 0, skipped: 0 };
+    const totals = { pages: 0, blocksMerged: 0, rulesCollapsed: 0, declsDropped: 0, cssFiles: 0, bytesSaved: 0, skipped: 0, skippedDetails: [] };
     const htmlFiles = ctx.getAllFiles(ctx.distDir).filter(f => /\.html?$/i.test(f));
     for (const file of htmlFiles) {
       const rel = distRel(file);
@@ -320,8 +321,8 @@ function createMinifyModule(ctx) {
         totals.bytesSaved += before.length - html.length;
       } catch (err) {
         console.warn(`  [WARN] HTML 内联样式合并/去重跳过 ${rel}，保留原文件: ${err.message}`);
-        ctx.recordBuildFailure('compression', `CSS ${rel}: ${err.message}`);
         totals.skipped += 1;
+        totals.skippedDetails.push({ file: rel, reason: err.message });
       }
     }
     if (!compressionPlan.cssDedupe) return totals;
@@ -339,8 +340,8 @@ function createMinifyModule(ctx) {
         totals.bytesSaved += result.stats.bytesSaved;
       } catch (err) {
         console.warn(`  [WARN] CSS 文件去重跳过 ${rel}，保留原文件: ${err.message}`);
-        ctx.recordBuildFailure('compression', `CSS ${rel}: ${err.message}`);
         totals.skipped += 1;
+        totals.skippedDetails.push({ file: rel, reason: err.message });
       }
     }
     return totals;
@@ -487,10 +488,12 @@ function createMinifyModule(ctx) {
   }
 
   // 执行增强步骤。compressionActive=false（serve/watch 或 enabled=false）时全部跳过，仅保留基线压缩。
+  // 返回 { cssSkips }：CSS 合并/去重跳过计数与明细（无增强运行时为 0），供 minifyAll 汇总进构建报告。
   async function runCompressionEnhancements() {
+    const cssSkips = { count: 0, details: [] };
     if (!compressionPlan.active) {
       console.log('  [compression] 增强步骤已跳过（serve/watch 或 compression.enabled=false）；基线压缩照常');
-      return;
+      return { cssSkips };
     }
     if (compressionState.override) console.log('  [compression] override: ' + compressionState.override);
     const htmlCfg = (compressionState.config && compressionState.config.html) || {};
@@ -501,6 +504,8 @@ function createMinifyModule(ctx) {
     if (compressionPlan.htmlAggressive) steps.push('HTML 激进选项');
     if (compressionPlan.cssMergeInlineStyles || compressionPlan.cssDedupe) {
       const css = await runCssEnhancements();
+      cssSkips.count = css.skipped;
+      cssSkips.details = css.skippedDetails;
       if (css.pages > 0 || css.cssFiles > 0) {
         const parts = [];
         if (css.blocksMerged > 0) parts.push('合并 style 块 ×' + css.blocksMerged + '（' + css.pages + ' 个页面）');
@@ -512,7 +517,7 @@ function createMinifyModule(ctx) {
         console.log('  [compression] CSS：' + parts.join('；'));
         steps.push('CSS 合并去重');
       }
-      if (css.skipped > 0) console.log('  [compression] CSS：跳过 ' + css.skipped + ' 个解析异常文件（见构建失败记录）');
+      if (css.skipped > 0) console.log('  [compression] CSS：跳过 ' + css.skipped + ' 个解析异常文件，保留原文件（不计入失败账本；明细见 report.txt）');
     }
     if (compressionPlan.jsonCompact) {
       const count = await compactJsonInDir(ctx.distDir);
@@ -545,6 +550,7 @@ function createMinifyModule(ctx) {
       }
     }
     console.log('  [compression] ' + (steps.length ? '已执行增强: ' + steps.join('、') : '无增强步骤执行（基线压缩已完成）'));
+    return { cssSkips };
   }
 
   // 无头对比验证（增强完成后、cacheBust 之前）：失败且 fallbackOnFailure=true 时用基线快照
@@ -673,7 +679,7 @@ function createMinifyModule(ctx) {
         }
       }
     }
-    await runCompressionEnhancements();
+    const enhancements = await runCompressionEnhancements();
     if (baseline) await runCompressionVerification(baseline, verifyChrome);
     const types = [];
     if (config.site.build.minifyHTML) types.push('HTML');
@@ -681,7 +687,9 @@ function createMinifyModule(ctx) {
     if (config.site.build.minifyJS) types.push('JS');
     if (types.length)     console.log(`  Minified: ${types.join(', ')}`);
     else console.log('  [SKIP] Minification disabled');
-    return buildCompressionStats(statsBefore, snapshotCompressionStats());
+    const stats = buildCompressionStats(statsBefore, snapshotCompressionStats());
+    stats.cssSkips = enhancements.cssSkips;
+    return stats;
   }
 
   // Cache-busting via MD5 content hashing.

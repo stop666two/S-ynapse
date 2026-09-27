@@ -1,9 +1,13 @@
 'use strict';
 // 压缩流水线（C2）纯函数与装配单测：JSON 去空白、豁免与内容寻址跳过、HTML 激进选项装配、
-// 增强计划（compressionEnhancementPlan）与 --compression-override 深合并校验。
+// 增强计划（compressionEnhancementPlan）与 --compression-override 深合并校验；
+// 以及 CSS 合并/去重解析异常的跳过降级路径（不进入失败账本）。
 // 运行：node --test scripts/compression-pipeline.test.js（由 npm test 统一收集）。
-const { describe, test } = require('node:test');
+const { describe, test, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const {
   HTML_MINIFY_BASELINE_OPTIONS,
   buildHtmlMinifyOptions,
@@ -17,6 +21,9 @@ const {
   DEFAULT_COMPRESSION,
   mergeCompressionOverride
 } = require('./lib/compression-config');
+const { createMinifyModule } = require('./build/minify.js');
+const { getAllFiles } = require('./build/fs-utils.js');
+const { renderBuildReportText } = require('./lib/build-report-text.js');
 
 describe('JSON 去空白（compactJsonText / needsJsonCompaction）', () => {
   test('含换行的嵌套结构压缩为单行且语义等价', () => {
@@ -247,5 +254,65 @@ describe('mergeCompressionOverride（--compression-override 深合并）', () =>
     const before = JSON.stringify(DEFAULT_COMPRESSION);
     mergeCompressionOverride(DEFAULT_COMPRESSION, { enabled: false, html: { aggressive: true } });
     assert.equal(JSON.stringify(DEFAULT_COMPRESSION), before);
+  });
+});
+
+describe('CSS 合并/去重跳过降级（不进入失败账本）', () => {
+  const BUILD_CONFIG = { site: { build: { minifyHTML: false, minifyCSS: false, minifyJS: false, enableCacheBusting: false } } };
+  const savedVerify = process.env.SYNAPSE_COMPRESSION_VERIFY;
+
+  afterEach(() => {
+    if (savedVerify === undefined) delete process.env.SYNAPSE_COMPRESSION_VERIFY;
+    else process.env.SYNAPSE_COMPRESSION_VERIFY = savedVerify;
+  });
+
+  function makeDist() {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'synapse-css-skip-'));
+    fs.mkdirSync(path.join(dir, 'assets', 'css'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'index.html'),
+      '<style nonce="N">.a{color:red}</style><style nonce="N">.b{color:blue}', 'utf-8');
+    fs.writeFileSync(path.join(dir, 'assets', 'css', 'bad.css'), '.c{color:red', 'utf-8');
+    return dir;
+  }
+
+  test('解析异常页面/CSS 只计入 skipped 统计，不调用 recordBuildFailure 且保留原文件', async () => {
+    process.env.SYNAPSE_COMPRESSION_VERIFY = 'off';
+    const dir = makeDist();
+    const failures = [];
+    try {
+      const mod = createMinifyModule({
+        distDir: dir,
+        cacheBustManifestPath: path.join(dir, 'cache-bust-manifest.json'),
+        bundleActive: true,
+        getCompression: () => ({ config: DEFAULT_COMPRESSION, active: true, errors: [], warnings: [], override: '' }),
+        getAllFiles,
+        recordBuildFailure: (stage, message, options) => failures.push({ stage, message, options }),
+        minifyHtmlNode: null,
+        CleanCSS: null,
+        terser: null,
+        getBundleFiles: () => [],
+        compressionBaselineDir: path.join(dir, '.baseline'),
+        compressionVerifyReportPath: path.join(dir, '.verify.json'),
+        compressionVerifyProfileDir: path.join(dir, '.profile')
+      });
+      const stats = await mod.minifyAll(BUILD_CONFIG);
+      assert.equal(failures.length, 0, '跳过不得进入失败账本：' + JSON.stringify(failures));
+      assert.equal(stats.cssSkips.count, 2, '两个解析异常文件都必须计入跳过统计');
+      assert.deepEqual(stats.cssSkips.details.map((d) => d.file).sort(), ['assets/css/bad.css', 'index.html']);
+      for (const detail of stats.cssSkips.details) {
+        assert.match(detail.reason, /配平|未闭合/, '跳过明细必须携带原因：' + JSON.stringify(detail));
+      }
+      assert.equal(fs.readFileSync(path.join(dir, 'index.html'), 'utf-8'),
+        '<style nonce="N">.a{color:red}</style><style nonce="N">.b{color:blue}', '解析异常页面必须保留原文件');
+      assert.equal(fs.readFileSync(path.join(dir, 'assets', 'css', 'bad.css'), 'utf-8'), '.c{color:red',
+        '解析异常 CSS 必须保留原文件');
+      const text = renderBuildReportText({ compression: stats, failures });
+      assert.ok(text.includes('CSS 合并/去重跳过: 2 项（保留原文件；不计入失败账本）'));
+      assert.ok(text.includes('- index.html: '));
+      assert.ok(text.includes('- assets/css/bad.css: '));
+      assert.ok(text.includes('失败:（无）'), '跳过不得渲染为压缩失败');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

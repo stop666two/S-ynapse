@@ -45,6 +45,13 @@ function fullInput() {
     compression: {
       active: true,
       verificationRan: true,
+      cssSkips: {
+        count: 2,
+        details: [
+          { file: 'zh/example/index.html', reason: 'HTML 标签配平检查失败（script/style/svg/noscript）' },
+          { file: 'assets/css/site.css', reason: 'CSS 大括号未闭合' }
+        ]
+      },
       categories: {
         html: category({ filesAfter: 84, filesBefore: 84, rawBefore: 3300000, rawAfter: 3100000, gzipBefore: 900000, gzipAfter: 830000 }),
         css: category({ rawBefore: 200000, rawAfter: 194000, gzipBefore: 50000, gzipAfter: 49000 }),
@@ -101,6 +108,13 @@ describe('renderBuildReportText 完整渲染', () => {
     assert.ok(text.includes('失败:（无）'));
   });
 
+  it('渲染 CSS 合并/去重跳过计数与明细', () => {
+    const text = renderBuildReportText(fullInput());
+    assert.ok(text.includes('CSS 合并/去重跳过: 2 项（保留原文件；不计入失败账本）'));
+    assert.ok(text.includes('- zh/example/index.html: HTML 标签配平检查失败（script/style/svg/noscript）'));
+    assert.ok(text.includes('- assets/css/site.css: CSS 大括号未闭合'));
+  });
+
   it('压缩目标段标注达标/未达', () => {
     const text = renderBuildReportText(fullInput());
     assert.ok(text.includes('HTML gzip: 节省 7.78%（目标 ≥ 10.00%，未达）'));
@@ -129,6 +143,15 @@ describe('renderBuildReportText 缺失容错', () => {
   it('压缩统计缺失时逐类标注未记录', () => {
     const text = renderBuildReportText({ compression: null });
     for (const label of ['HTML:', 'CSS:', 'JS:', 'JSON:']) assert.ok(text.includes(label + ' 未记录'), label + ' must be marked as not recorded');
+    assert.ok(text.includes('CSS 合并/去重跳过: 未记录'), 'missing cssSkips must be tolerated');
+  });
+
+  it('cssSkips 缺省 details 时只渲染计数', () => {
+    const input = fullInput();
+    delete input.compression.cssSkips.details;
+    input.compression.cssSkips.count = 1;
+    const text = renderBuildReportText(input);
+    assert.ok(text.includes('CSS 合并/去重跳过: 1 项（保留原文件；不计入失败账本）'));
   });
 
   it('预算缺失时标注未记录', () => {

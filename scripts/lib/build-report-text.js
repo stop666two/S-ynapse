@@ -109,6 +109,18 @@ function renderVerifySection(verify) {
   return lines;
 }
 
+// CSS 合并/去重跳过明细：解析异常文件被保留原样并告警（不计入失败账本），
+// 计数与原因在压缩统计段如实呈现；字段缺失（旧结果/未运行）按「未记录」容错。
+function renderCssSkipLines(cssSkips) {
+  const input = cssSkips && typeof cssSkips === 'object' ? cssSkips : null;
+  if (!input || !Number.isFinite(input.count)) return ['  CSS 合并/去重跳过: ' + NOT_RECORDED];
+  if (input.count === 0) return ['  CSS 合并/去重跳过:（无）'];
+  const lines = ['  CSS 合并/去重跳过: ' + input.count + ' 项（保留原文件；不计入失败账本）'];
+  const details = Array.isArray(input.details) ? input.details : [];
+  for (const item of details) lines.push('    - ' + item.file + ': ' + item.reason);
+  return lines;
+}
+
 function renderCompressionSection(compression, failures) {
   const stats = compression && typeof compression === 'object' ? compression : {};
   const lines = [];
@@ -116,6 +128,7 @@ function renderCompressionSection(compression, failures) {
   for (const key of ['html', 'css', 'js', 'json']) {
     lines.push('  ' + formatCategoryLine(key, stats.categories && stats.categories[key]));
   }
+  lines.push(...renderCssSkipLines(stats.cssSkips));
   const compressionFailures = (Array.isArray(failures) ? failures : [])
     .filter((entry) => entry && COMPRESSION_FAILURE_STAGES.includes(entry.stage));
   if (compressionFailures.length === 0) {
@@ -173,7 +186,7 @@ function renderBudgetSection(budget, compression, totalMs) {
  * @param {string} [input.generatedAt] 生成时间（UTC ISO 8601）
  * @param {number} [input.totalMs] 构建总耗时（毫秒）
  * @param {Array<{key: string, ms: number}>} [input.phases] 阶段耗时（顺序即渲染顺序）
- * @param {object} [input.compression] 压缩统计（scripts/build/minify.js minifyAll 的返回值）
+ * @param {object} [input.compression] 压缩统计（scripts/build/minify.js minifyAll 的返回值，含 cssSkips 跳过明细）
  * @param {{ran: boolean, report: object|null}} [input.verify] 无头验证摘要
  * @param {Array<{stage: string, message: string}>} [input.warnings] 非阻断告警
  * @param {Array<{stage: string, message: string}>} [input.failures] 阻断失败（压缩阶段自动归入压缩统计）

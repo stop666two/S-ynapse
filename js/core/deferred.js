@@ -6,6 +6,7 @@ import { init as searchInit } from '../domains/features/search.js';
 import { init as searchPageInit } from '../domains/features/search-page.js';
 import { init as lightboxInit } from '../domains/features/lightbox.js';
 import { init as readingPanelInit } from '../domains/features/reading-panel.js';
+import { init as themeLabInit } from '../domains/features/theme-lab.js';
 import { init as ttsInit } from '../domains/features/tts.js';
 import { init as shortcutsInit } from '../domains/features/shortcuts.js';
 import { init as prevNextInit } from '../domains/features/prev-next.js';
@@ -36,6 +37,7 @@ const registry = {
   'search-page': searchPageInit,
   lightbox: lightboxInit,
   'reading-panel': readingPanelInit,
+  'theme-lab': themeLabInit,
   tts: ttsInit,
   shortcuts: shortcutsInit,
   'prev-next': prevNextInit,

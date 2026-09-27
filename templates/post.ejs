@@ -98,10 +98,39 @@
 <button class="reader-gear" id="readerGear" aria-label="<%= ui('post.readSettings','阅读设置') %>" title="<%= ui('post.readSettings','阅读设置') %>" data-i18n-aria="post.readSettings" data-i18n-title="post.readSettings" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 <div class="reader-panel" id="readerPanel" role="dialog" aria-label="<%= ui('post.readSettings','阅读设置') %>" data-i18n-aria="post.readSettings">
   <h4 data-i18n="post.readSettings"><%= ui('post.readSettings','阅读设置') %></h4>
+  <%# 主题调色板页签（features.themeLab 启用时渲染；面板结构与交互见 js/domains/features/{reading-panel,theme-lab}.js）。 %>
+  <% var _tl=(typeof features!=='undefined'&&features.themeLab)||null; var _tlOn=!!(_tl&&_tl.enabled!==false); %>
+  <% if(_tlOn){ %>
+  <div class="reader-tabs" role="tablist" aria-label="<%= ui('post.readSettings','阅读设置') %>">
+    <button type="button" class="reader-tab active" id="rtabRead" role="tab" aria-selected="true" aria-controls="rpageRead" data-i18n="post.tabRead"><%= ui('post.tabRead','阅读') %></button>
+    <button type="button" class="reader-tab" id="rtabTheme" role="tab" aria-selected="false" aria-controls="rpageTheme" tabindex="-1" data-i18n="post.tabTheme"><%= ui('post.tabTheme','主题') %></button>
+  </div>
+  <% } %>
+  <div id="rpageRead"<% if(_tlOn){ %> role="tabpanel" aria-labelledby="rtabRead"<% } %>>
   <div class="reader-row"><label for="rFont" data-i18n="post.fontSize"><%= ui('post.fontSize','字号') %></label><input type="range" id="rFont" min="<%=features.readingPanel.fontSizeMin||15%>" max="<%=features.readingPanel.fontSizeMax||26%>" step="<%=(typeof tuning!=='undefined'&&tuning.reading&&tuning.reading.fontSizeStep)||features.readingPanel.fontSizeStep||1%>" value="<%=features.readingPanel.fontSizeDefault||19%>"></div>
   <div class="reader-row"><label for="rLine" data-i18n="post.lineHeight"><%= ui('post.lineHeight','行距') %></label><input type="range" id="rLine" min="<%=features.readingPanel.lineHeightMin||1.4%>" max="<%=features.readingPanel.lineHeightMax||2.6%>" step="<%=(typeof tuning!=='undefined'&&tuning.reading&&tuning.reading.lineHeightStep)||features.readingPanel.lineHeightStep||0.1%>" value="<%=features.readingPanel.lineHeightDefault||1.9%>"></div>
   <div class="reader-row"><label for="rWidth" data-i18n="post.width"><%= ui('post.width','宽幅') %></label><input type="range" id="rWidth" min="<%=features.readingPanel.widthMin||560%>" max="<%=features.readingPanel.widthMax||1200%>" step="<%=features.readingPanel.widthStep||40%>" value="<%=features.readingPanel.widthDefault||800%>"></div>
   <% if(features.readingPanel.showReset!==false){ %><button class="reader-reset" id="rReset"><%=(typeof lang!=='undefined'&&lang==='en'&&features.readingPanel.resetTextEn)?features.readingPanel.resetTextEn:(features.readingPanel.resetText||ui('post.resetDefault','重置为默认'))%></button><% } %>
+  </div>
+  <% if(_tlOn){ %>
+  <%# 「主题」页：预设载入 / 关键 token 取色（运行时按 features.themeLab.tokens 白名单注入行）/ 保存 / 重置 / 导出。 %>
+  <div class="reader-page" id="rpageTheme" role="tabpanel" aria-labelledby="rtabTheme" hidden>
+    <div class="theme-lab-row theme-lab-preset-row">
+      <label for="themeLabPreset" data-i18n="post.themeLabPreset"><%= ui('post.themeLabPreset','预设') %></label>
+      <select id="themeLabPreset" aria-label="<%= ui('post.themeLabPreset','预设') %>" data-i18n-aria="post.themeLabPreset"></select>
+    </div>
+    <div id="themeLabBody" class="theme-lab-body"></div>
+    <div class="theme-lab-actions">
+      <button type="button" class="reader-reset" id="themeLabSave" data-i18n="post.themeLabSave"><%= ui('post.themeLabSave','保存到本地') %></button>
+      <button type="button" class="reader-reset" id="themeLabResetAll" data-i18n="post.themeLabResetAll"><%= ui('post.themeLabResetAll','全部重置') %></button>
+    </div>
+    <div class="theme-lab-actions">
+      <button type="button" class="reader-reset" id="themeLabCopy" data-i18n="post.themeLabCopy"><%= ui('post.themeLabCopy','复制片段') %></button>
+      <button type="button" class="reader-reset" id="themeLabDownload" data-i18n="post.themeLabDownload"><%= ui('post.themeLabDownload','下载片段') %></button>
+    </div>
+    <p class="theme-lab-status" id="themeLabStatus" role="status" aria-live="polite"></p>
+  </div>
+  <% } %>
 </div>
 <% } %>
 

@@ -63,6 +63,7 @@ const idleQueue = [
   dyn('search', '../domains/features/search.js'),
   dyn('lightbox', '../domains/features/lightbox.js'),
   dyn('reading-panel', '../domains/features/reading-panel.js'),
+  dyn('theme-lab', '../domains/features/theme-lab.js'),
   dyn('tts', '../domains/features/tts.js'),
   dyn('shortcuts', '../domains/features/shortcuts.js'),
   dyn('prev-next', '../domains/features/prev-next.js'),

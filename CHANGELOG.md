@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **空站兼容测试夹具**：在无 `docs/`、`CHANGELOG.md`、`.git` 的解压包环境中，文档覆盖（`check-config-docs`、`config-count`）、发布 dry-run（`release-mark`）、真实仓库态（`release-version`）与端到端归档/版本读取（`release-archive`）用例显式跳过并声明原因；源码仓库与 CI 门禁仍全量执行，断言不弱化。
 - **配置默认化核对**：`site.json5` 社交链接 GitHub 项由维护者主页改为占位示例（`https://github.com/your-username`）；14 个 JSON5 逐项复核无个人/真实数据残留（其余为 `example.com`、示例备案号与占位账号）。
 
+### Fixed
+
+- **空站压缩验证 softNav 冒烟误判**：`scripts/lib/compression-verify.js` 在首页无文章卡片（空站骨架）时 softNav 判为「不适用」并跳过该断言，有文章或返回值缺失目标信息（异常兜底）时仍要求 softNav 通过；新增 3 例单测锁定两态（空站跳过、有目标/异常仍判失败）。
+
 ## [1.1.0] - 2026-09-27
 
 ### Added

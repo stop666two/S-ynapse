@@ -22,6 +22,7 @@ const {
   assertDistinctPorts,
   discoverArticlePath,
   discoverVerifyPages,
+  runInteractions,
   waitForPortRelease
 } = require('./lib/compression-verify');
 const {
@@ -253,5 +254,31 @@ describe('static-server（共享静态服务解析）', () => {
     assert.equal(isCompressibleType('image/png'), false);
     assert.equal(isCompressibleType('font/woff2'), false);
     assert.equal(MIME_TYPES['.html'], 'text/html');
+  });
+});
+
+describe('runInteractions（交互冒烟空站兼容）', () => {
+  const makePage = (outcome) => ({ evaluate: async () => outcome });
+
+  test('空站无文章卡片（softNavApplicable=false）：跳过 softNav 断言，search/theme 照常校验', async () => {
+    const report = { failures: [] };
+    const outcome = await runInteractions(makePage({ search: true, theme: true, softNav: false, softNavApplicable: false }), report);
+    assert.deepEqual(report.failures, []);
+    assert.equal(outcome.softNavApplicable, false);
+  });
+
+  test('有文章卡片（softNavApplicable=true）：softNav 未通过仍判失败', async () => {
+    const report = { failures: [] };
+    await runInteractions(makePage({ search: true, theme: true, softNav: false, softNavApplicable: true }), report);
+    assert.equal(report.failures.length, 1);
+    assert.ok(report.failures[0].detail.includes('softNav'), '失败明细应指明 softNav');
+    assert.equal(report.failures[0].kind, 'interaction');
+  });
+
+  test('返回值缺失 softNavApplicable（异常兜底）：按原断言要求 softNav === true', async () => {
+    const report = { failures: [] };
+    await runInteractions(makePage({ search: true, theme: true, softNav: false, error: 'boom' }), report);
+    assert.equal(report.failures.length, 1);
+    assert.ok(report.failures[0].detail.includes('softNav'));
   });
 });

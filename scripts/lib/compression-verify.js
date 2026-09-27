@@ -505,7 +505,7 @@ async function browserInteractions() {
     if (target && typeof target.click === 'function') target.click();
     return !!(target && typeof target.click === 'function');
   };
-  const out = { search: false, theme: false, softNav: false };
+  const out = { search: false, theme: false, softNav: false, softNavApplicable: false };
   const overlay = doc.getElementById('searchOverlay');
   if (!clickIfPossible(doc.querySelector('.hero-search')) && typeof win.openSearch === 'function') win.openSearch();
   await sleep(500);
@@ -516,7 +516,11 @@ async function browserInteractions() {
     out.theme = doc.documentElement.getAttribute('data-theme') !== themeBefore;
   }
   win.__COMPRESSION_VERIFY_MARK = 771;
-  if (clickIfPossible(doc.querySelector('.post-card a[href^="/zh/"]'))) {
+  // 软导航冒烟需要首页存在同语言文章卡片；空站骨架（0 文章）没有可点击目标，
+  // 标记为不适用，由 runInteractions 跳过该项断言。
+  const softNavTarget = doc.querySelector('.post-card a[href^="/zh/"]');
+  out.softNavApplicable = !!softNavTarget;
+  if (clickIfPossible(softNavTarget)) {
     await sleep(2000);
     out.softNav = win.__COMPRESSION_VERIFY_MARK === 771 && location.pathname !== '/zh/';
     out.after = location.pathname;
@@ -643,7 +647,10 @@ async function runInteractions(page, report) {
   } catch (err) {
     outcome = { search: false, theme: false, softNav: false, error: String((err && err.message) || err) };
   }
-  for (const name of ['search', 'theme', 'softNav']) {
+  // 空站骨架没有文章卡片（softNavApplicable=false）时 softNav 判为不适用而跳过；
+  // 有目标或返回值缺失该字段（异常兜底）时仍按原断言要求 softNav === true。
+  const checks = outcome.softNavApplicable === false ? ['search', 'theme'] : ['search', 'theme', 'softNav'];
+  for (const name of checks) {
     if (outcome[name] !== true) {
       report.failures.push({ kind: 'interaction', page: '/zh/', detail: name + ' 冒烟未通过: ' + JSON.stringify(outcome) });
     }
@@ -887,6 +894,7 @@ module.exports = {
   assertDistinctPorts,
   discoverArticlePath,
   discoverVerifyPages,
+  runInteractions,
   waitForPortRelease,
   summarizeFailures,
   writeVerifyReport,

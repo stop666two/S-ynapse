@@ -334,6 +334,27 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     }
     const fontRule = headers.split('\n\n').find((section) => section.startsWith('/assets/fonts/*'));
     assert.ok(fontRule && fontRule.includes('max-age=31536000'), 'CJK subset font chunks must be immutable-cacheable');
+    // PWA（features.pwa/site.pwa 默认开）：manifest/离线页/SW 产物齐全；SW 壳预缓存清单
+    // 条目必须全部存在于产物（否则 cache.addAll 404 导致安装失败），并引用压缩/指纹后的
+    // 最终 runtime 文件名；_headers 对 /sw.js 输出 no-cache。
+    const swArtifactPath = path.join(tmpDir, 'sw.js');
+    assert.ok(fs.existsSync(path.join(tmpDir, 'manifest.json')), 'PWA manifest.json must be emitted by default');
+    assert.ok(fs.existsSync(path.join(tmpDir, 'offline.html')), 'PWA offline.html must be emitted by default');
+    assert.ok(fs.existsSync(swArtifactPath), 'PWA sw.js must be emitted by default');
+    const swText = fs.readFileSync(swArtifactPath, 'utf-8');
+    const precacheMatch = /const PRECACHE_URLS = (\[[^\]]*\]);/.exec(swText);
+    assert.ok(precacheMatch, 'SW must inline a shell precache list');
+    const precacheList = JSON.parse(precacheMatch[1]);
+    assert.ok(precacheList.length >= 5, 'SW shell precache must cover core assets, got ' + precacheList.length);
+    assert.ok(precacheList.includes('/offline.html'), 'SW shell precache must include the offline page');
+    for (const url of precacheList) {
+      assert.ok(fs.existsSync(path.join(tmpDir, url.replace(/^\//, '').split('/').join(path.sep))),
+        'SW precache entry must exist on disk: ' + url);
+    }
+    assert.ok(precacheList.includes('/assets/js/' + runtimeFiles[0]),
+      'SW precache must reference the final post-compression runtime name: ' + runtimeFiles[0]);
+    const swHeaderRule = headers.split('\n\n').find((section) => section.startsWith('/sw.js'));
+    assert.ok(swHeaderRule && swHeaderRule.includes('no-cache'), '/sw.js must be served with Cache-Control: no-cache');
     // CJK 字体子集化双态（两态都绿）：有网络（或热缓存）时 CSS 与分片存在且 zh 页面引用；
     // 断网且无缓存时构建成功、不产出 CSS，且 HTML 中的引用已被剥离（不会出现 404 外链）。
     const cjkCss = path.join(tmpDir, 'assets', 'css', 'cjk-fonts.css');

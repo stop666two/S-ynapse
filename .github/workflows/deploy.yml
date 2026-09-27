@@ -75,6 +75,8 @@ jobs:
         run: npm run verify:config
       - name: Config references (unwired key scan)
         run: npm run verify:config-refs
+      - name: Config comments (per-key comment coverage guard)
+        run: npm run verify:config-comments
       - name: Security verification (malicious-content build regression)
         run: npm run verify:security
       - run: npm run build

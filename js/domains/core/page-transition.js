@@ -12,6 +12,9 @@ export function init() {
     var _eff = _sysR ? RM : 'full';
     if (_eff === 'off') return;
     var OUT = isNaN(+PT.outDurationMs) ? 120 : +PT.outDurationMs;
+    // 省流模式：离开过渡时长归零（点击即导航，不做任何等待）；与 reduced-motion 的
+    // light 语义区分——save-data 更彻底（全量禁用而非缩短）。
+    if (document.documentElement.classList.contains('save-data')) OUT = 0;
     // 导航失败兜底观察窗口（OUT 之后仍可见即视为导航未发生，移除离开态）；
     // 兜底值与 features-schema.js → DEFAULT_FEATURES.pageTransition 同值，仅在配置缺失/非法时生效。
     var LEAVE_GUARD_MS = isNaN(+PT.leaveGuardMs) ? 2500 : Math.max(0, +PT.leaveGuardMs);

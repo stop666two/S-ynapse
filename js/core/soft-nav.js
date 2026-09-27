@@ -169,7 +169,8 @@ async function go(url, mode) {
     const html = await loadPage(url);
     if (seq !== navSeq) return;
     const doSwap = function () { swap(html, url, mode); };
-    if (cfg().viewTransition !== false && typeof document.startViewTransition === 'function') {
+    // 省流模式：跳过 View Transition（动画全量禁用语义，与 reduced-motion 的降级区分）。
+    if (cfg().viewTransition !== false && typeof document.startViewTransition === 'function' && !document.documentElement.classList.contains('save-data')) {
       const t = document.startViewTransition(doSwap);
       if (t && t.finished && t.finished.catch) t.finished.catch(function () { /* 过渡被中断不影响内容交换 */ });
       if (t && t.updateCallbackDone && t.updateCallbackDone.catch) t.updateCallbackDone.catch(function () {});

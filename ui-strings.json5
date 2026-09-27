@@ -106,6 +106,7 @@
     sourceUrl: '原文链接',
     bilingualSwitch: '中/EN', bilingualSide: '并排对照', bilingualPanel: '双语对照',
     tabRead: '阅读', tabTheme: '主题', themeLabPreset: '预设', themeLabSave: '保存到本地', themeLabResetAll: '全部重置', themeLabCopy: '复制片段', themeLabDownload: '下载片段',
+    saveData: '省流模式', saveDataHint: '减少动画与图片流量；跟随系统省流设置自动开启',
   },
 
   // 顶栏/工具栏
@@ -379,6 +380,7 @@
     sourceUrl: 'Source',
     bilingualSwitch: 'EN/中', bilingualSide: 'Side by side', bilingualPanel: 'Bilingual comparison',
     tabRead: 'Read', tabTheme: 'Theme', themeLabPreset: 'Preset', themeLabSave: 'Save locally', themeLabResetAll: 'Reset all', themeLabCopy: 'Copy fragment', themeLabDownload: 'Download fragment',
+    saveData: 'Data saver', saveDataHint: 'Fewer animations and smaller images; follows your system data saver',
     },
     toolbar: {
       backToTop: 'Back to top', openSearchLabel: 'Search', closeSearch: 'Close search', boostLabel: 'Page boost settings', tocCollapse: 'Collapse contents', rotateL: 'Rotate left', rotateR: 'Rotate right', vtLabel: 'Page transition', specLabel: 'Prefetch/prerender', softNavLabel: 'Seamless navigation',

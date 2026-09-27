@@ -110,6 +110,13 @@
   <div class="reader-row"><label for="rFont" data-i18n="post.fontSize"><%= ui('post.fontSize','字号') %></label><input type="range" id="rFont" min="<%=features.readingPanel.fontSizeMin||15%>" max="<%=features.readingPanel.fontSizeMax||26%>" step="<%=(typeof tuning!=='undefined'&&tuning.reading&&tuning.reading.fontSizeStep)||features.readingPanel.fontSizeStep||1%>" value="<%=features.readingPanel.fontSizeDefault||19%>"></div>
   <div class="reader-row"><label for="rLine" data-i18n="post.lineHeight"><%= ui('post.lineHeight','行距') %></label><input type="range" id="rLine" min="<%=features.readingPanel.lineHeightMin||1.4%>" max="<%=features.readingPanel.lineHeightMax||2.6%>" step="<%=(typeof tuning!=='undefined'&&tuning.reading&&tuning.reading.lineHeightStep)||features.readingPanel.lineHeightStep||0.1%>" value="<%=features.readingPanel.lineHeightDefault||1.9%>"></div>
   <div class="reader-row"><label for="rWidth" data-i18n="post.width"><%= ui('post.width','宽幅') %></label><input type="range" id="rWidth" min="<%=features.readingPanel.widthMin||560%>" max="<%=features.readingPanel.widthMax||1200%>" step="<%=features.readingPanel.widthStep||40%>" value="<%=features.readingPanel.widthDefault||800%>"></div>
+  <%# 省流模式手动开关（features.saveDataMode.manual）：切换即写 localStorage 并即时降级/还原；
+      状态、持久化与自动跟随逻辑见 js/domains/core/save-data.js。 %>
+  <% var _sdCfg=(typeof features!=='undefined'&&features.saveDataMode)||null; var _sdSwitch=!!(_sdCfg&&_sdCfg.enabled!==false&&_sdCfg.manual!==false); %>
+  <% if(_sdSwitch){ %>
+  <div class="reader-row reader-row-switch"><label for="saveDataToggle" data-i18n="post.saveData"><%= ui('post.saveData','省流模式') %></label><input type="checkbox" id="saveDataToggle" role="switch" aria-checked="false" aria-describedby="saveDataHint"></div>
+  <p class="reader-hint" id="saveDataHint" data-i18n="post.saveDataHint"><%= ui('post.saveDataHint','减少动画与图片流量；跟随系统省流设置自动开启') %></p>
+  <% } %>
   <% if(features.readingPanel.showReset!==false){ %><button class="reader-reset" id="rReset"><%=(typeof lang!=='undefined'&&lang==='en'&&features.readingPanel.resetTextEn)?features.readingPanel.resetTextEn:(features.readingPanel.resetText||ui('post.resetDefault','重置为默认'))%></button><% } %>
   </div>
   <% if(_tlOn){ %>

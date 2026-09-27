@@ -1,6 +1,9 @@
+// 粒子背景（features.background.particles）：仅在 body.bg-particles 且未降级时启动；
+// 省流模式（features.saveDataMode.degrade.particles）激活时停止 rAF 并隐藏画布，
+// 开关切换经 window 事件 'ss:save-data' 即时停止/恢复（见 js/domains/core/save-data.js）。
 export function init() {
   (function () {
-    var F = window.__FEATURES__ || {}, BG = (F && F.background) || {}, G = BG.particles || {};
+    var F = window.__FEATURES__ || {}, BG = (F && F.background) || {}, G = BG.particles || {}, SD = (F && F.saveDataMode) || {}, SGD = (SD.degrade || {});
     if (G.enabled === false) return;
     var b = document.body;
     if (!b || !b.classList.contains('bg-particles')) return;
@@ -48,8 +51,27 @@ export function init() {
       }
       rafId = window.requestAnimationFrame(step);
     }
-    rs(); start();
+    // 省流：停止绘制并隐藏画布；关闭省流后恢复尺寸与循环（degrade.particles=false 时不受影响）。
+    function saveDataOn() {
+      return SD.enabled !== false && SGD.particles !== false && document.documentElement.classList.contains('save-data');
+    }
+    function applySaveData() {
+      if (saveDataOn()) { stop(); cv.style.display = 'none'; }
+      else { cv.style.display = ''; rs(); start(); }
+    }
+    rs();
+    // 首帧即省流：不启动循环并隐藏画布（事件在开关切换时才到达）。
+    if (saveDataOn()) cv.style.display = 'none';
+    else start();
     window.addEventListener('resize', rs, { passive: true });
-    document.addEventListener('visibilitychange', function () { if (document.hidden) { stop(); } else { start(); } });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { stop(); } else if (!saveDataOn()) { start(); }
+    });
+    window.addEventListener('ss:save-data', applySaveData);
+    // 验收 runner / 调试只读入口（运行态与画布显隐；不参与业务判定）。
+    window.__bgFx = {
+      isRunning: function () { return rafId !== 0; },
+      isHidden: function () { return cv.style.display === 'none'; }
+    };
   })();
 }

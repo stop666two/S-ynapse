@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **基础包骨架化（空站发布）**：发布归档重新定位为「可完整体验 README 全部功能的最基本骨架」——`scripts/lib/release-manifest.js` 引入骨架目录概念，归档内 `articles/**` 与 `media/**` 只保留 `.gitkeep` 空目录标记（示例文章与演示媒体被 pathspec 过滤，`assertArchiveContents` 兜底拒绝非标记条目并给出「骨架目录只允许 .gitkeep」专项错误），示例页面 `pages/**` 与默认资源 `static/**` 照常分发；`scripts/release-archive.js` 输出骨架目录/测试随包统计，`--out` 支持目录目标；0 文章时 `npm run build` 仍产出 `dist/index.html`、`dist/report.txt`、`dist/zh/search-index.json`，解压后 `npm test` 全绿。
+- **解压可构建门禁（buildability）**：`.github/workflows/release.yml` 在 publish 前新增独立作业——下载归档 → 解压 → `npm ci --ignore-scripts` → `npm test` → `npm run build` → 断言 `dist/index.html`、`dist/report.txt`、`dist/zh/search-index.json`；任一环节失败即整个 release 失败、不创建 Release。
+- **预发布版本标记支持**：`release:mark` 接受显式 SemVer 预发布版本（如 `1.1.0-a1`，允许与当前正式版同核心版本），package.json/lock 同步、CHANGELOG 段名 `[1.1.0-a1] - 日期`、tag 为 `v1.1.0-a1`；CI 与本地 `release:publish` 自动加 `--prerelease`。
+- **只保留最新版本（旧版清理）**：`npm run release:prune -- --keep <tag>` 删除其余 GitHub Release 及其远端 tag（`--cleanup-tag`，`--dry-run` 预览）；CI publish 最后一步与本地 `release:publish` 成功后自动执行，历史 Release（含已发布的正式版）随新版本发布自动下线。
+
+### Changed
+
+- **发布文档与下载说明对齐骨架语义**：`docs/runbook/release.md` 增补基础包语义（空站骨架 + 空站可构建 + 测试可跑 + 配置默认初始态）、buildability 的 `npm test` 步骤、骨架白名单与旧版清理示例；README 双语下载提示改为「空站骨架」表述，说明 `articles/`、`media/` 为空目录、放入自有内容即可构建。
+- **空站兼容测试夹具**：在无 `docs/`、`CHANGELOG.md`、`.git` 的解压包环境中，文档覆盖（`check-config-docs`、`config-count`）、发布 dry-run（`release-mark`）、真实仓库态（`release-version`）与端到端归档/版本读取（`release-archive`）用例显式跳过并声明原因；源码仓库与 CI 门禁仍全量执行，断言不弱化。
+- **配置默认化核对**：`site.json5` 社交链接 GitHub 项由维护者主页改为占位示例（`https://github.com/your-username`）；14 个 JSON5 逐项复核无个人/真实数据残留（其余为 `example.com`、示例备案号与占位账号）。
+
 ## [1.1.0] - 2026-09-27
 
 ### Added

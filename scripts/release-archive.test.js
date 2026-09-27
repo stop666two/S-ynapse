@@ -7,8 +7,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { readZipEntries, archiveRelease } = require('./release-archive.js');
-const { assertArchiveContents, isReleaseAllowed, RELEASE_REQUIRED_FILES, RELEASE_EXCLUDE_PATTERNS } = require('./lib/release-manifest.js');
+const { readZipEntries, archiveRelease, assertVersionConsistency, resolveVersion } = require('./release-archive.js');
+const { assertArchiveContents, isReleaseAllowed, RELEASE_REQUIRED_FILES, RELEASE_REQUIRED_DIRS, RELEASE_EXCLUDE_PATTERNS } = require('./lib/release-manifest.js');
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -39,6 +39,15 @@ test('archiveRelease：真实 git archive HEAD → 内容全部落在白名单�
     const files = entries.filter(function (e) { return !e.endsWith('/'); }).map(function (e) { return e.slice(prefix.length); });
     for (const required of RELEASE_REQUIRED_FILES) {
       assert.ok(files.includes(required), '归档应包含 ' + required);
+    }
+    for (const dir of RELEASE_REQUIRED_DIRS) {
+      assert.ok(files.some(function (f) { return f.startsWith(dir + '/'); }), '归档应包含 ' + dir + '/ 内容');
+    }
+    for (const file of ['build.bat', 'serve.bat', 'eslint.config.js', 'tsconfig.json', 'wrangler.toml', '.githooks/pre-commit', 'scripts/build.test.js', 'templates/layout.ejs', 'js/core/main.js']) {
+      assert.ok(files.includes(file), '归档应包含 ' + file);
+    }
+    for (const contentDir of ['articles', 'pages', 'static', 'media']) {
+      assert.ok(files.some(function (f) { return f.startsWith(contentDir + '/'); }), '归档应包含内容目录 ' + contentDir + '/');
     }
     assert.ok(files.some(function (f) { return f.startsWith('js/'); }), '归档应包含 js/ 内容');
     assert.ok(files.some(function (f) { return f.endsWith('.test.js'); }), '归档应包含测试文件');
@@ -79,6 +88,20 @@ test('release-archive CLI：ref 缺少 RELEASE.json（历史 tag）时退出码 
   });
   assert.strictEqual(result.status, 1);
   assert.ok(result.stderr.includes('RELEASE.json'), '错误信息应指明 RELEASE.json');
+});
+
+test('assertVersionConsistency：RELEASE.json/package.json/tag 三方一致校验（预发布同样支持）', function () {
+  assert.strictEqual(assertVersionConsistency('HEAD', '1.1.0-a1', '1.1.0-a1'), true);
+  assert.strictEqual(assertVersionConsistency('v1.1.0-a1', '1.1.0-a1', '1.1.0-a1'), true);
+  assert.strictEqual(assertVersionConsistency('HEAD', '1.1.0', '1.1.0'), true, 'HEAD 跳过 tag 名比对');
+  assert.throws(function () { assertVersionConsistency('HEAD', '1.1.0', '1.1.0-a1'); }, /版本不一致/);
+  assert.throws(function () { assertVersionConsistency('v1.1.0', '1.1.0-a1', '1.1.0-a1'); }, /tag 与版本不一致/);
+  assert.throws(function () { assertVersionConsistency('v1.1.1', '1.1.0', '1.1.0'); }, /tag 与版本不一致/);
+});
+
+test('resolveVersion：真实 HEAD 返回 package.json 一致的版本（版本校验接入归档入口）', function () {
+  const current = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8')).version;
+  assert.strictEqual(resolveVersion('HEAD'), current);
 });
 
 test('readZipEntries：非 ZIP 文件抛错；排除模式覆盖关键敏感目录', function () {

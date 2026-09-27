@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 'use strict';
 // 本地/CI 归档脚本（npm run release:archive）：
-//   1. 读取 ref（tag 或 HEAD）指向的 RELEASE.json 获取版本号；
+//   1. 读取 ref（tag 或 HEAD）指向的 RELEASE.json 获取版本号，并校验版本三方一致
+//      （RELEASE.json = package.json = tag 名），预发布版本（X.Y.Z-<预发布>）同样支持；
 //   2. 用 `git archive` + 白名单 pathspec 生成 S-ynapse-<version>.zip（含统一前缀目录）；
-//   3. 解析 zip 中央目录逐条复核白名单（assertArchiveContents）并断言必需文件存在。
+//   3. 解析 zip 中央目录逐条复核白名单（assertArchiveContents）并断言必需文件/目录存在。
 //
 // 用法：node scripts/release-archive.js --ref <tag|HEAD> [--out <zip 路径>]
 // 默认输出：release-artifacts/S-ynapse-<version>.zip（目录已加入 .gitignore）。
@@ -12,6 +13,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const manifest = require('./lib/release-manifest');
+const { isSemver } = require('./lib/release-version');
 
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_OUT_DIR = path.join(ROOT, 'release-artifacts');
@@ -42,21 +44,41 @@ function parseArgs(argv) {
   return options;
 }
 
-// 读取 ref 指向的 RELEASE.json 版本号；缺失或非法即抛错（发布包必须携带状态标记）。
-function resolveVersion(ref) {
-  const result = git(['show', ref + ':RELEASE.json']);
+// 读取 ref 指向的 JSON 文件并解析；缺失或非法即抛错。
+function readJsonAtRef(ref, file) {
+  const result = git(['show', ref + ':' + file]);
   if (result.error || result.status !== 0) {
-    throw new Error('无法读取 ' + ref + ':RELEASE.json：' + ((result.stderr || '').trim() || '文件不存在'));
+    throw new Error('无法读取 ' + ref + ':' + file + '：' + ((result.stderr || '').trim() || '文件不存在'));
   }
-  let state;
   try {
-    state = JSON.parse(result.stdout);
+    return JSON.parse(result.stdout);
   } catch (err) {
-    throw new Error(ref + ':RELEASE.json 不是合法 JSON：' + err.message, { cause: err });
+    throw new Error(ref + ':' + file + ' 不是合法 JSON：' + err.message, { cause: err });
   }
-  if (typeof state.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(state.version)) {
-    throw new Error(ref + ':RELEASE.json 的 version 不是 X.Y.Z：' + JSON.stringify(state.version));
+}
+
+// 版本一致性断言（CI「版本校验」）：
+//   - RELEASE.json.version 必须等于 package.json.version（release:mark 保证两者同步）；
+//   - ref 为 tag（v 开头）时，tag 名必须是 'v' + version，防止旧 tag 打包出错误命名的归档。
+function assertVersionConsistency(ref, releaseVersion, packageVersion) {
+  if (packageVersion !== releaseVersion) {
+    throw new Error('版本不一致：RELEASE.json=' + releaseVersion + '，package.json=' + packageVersion +
+      '（请先用 release:mark 同步版本后再归档）');
   }
+  if (/^v/.test(ref) && ref !== 'v' + releaseVersion) {
+    throw new Error('tag 与版本不一致：ref=' + ref + '，RELEASE.json.version=' + releaseVersion);
+  }
+  return true;
+}
+
+// 读取 ref 的版本号并校验与 package.json / tag 一致；缺失或非法即抛错（发布包必须携带状态标记）。
+function resolveVersion(ref) {
+  const state = readJsonAtRef(ref, 'RELEASE.json');
+  if (!isSemver(state.version)) {
+    throw new Error(ref + ':RELEASE.json 的 version 不是合法 SemVer（X.Y.Z 或 X.Y.Z-预发布）：' + JSON.stringify(state.version));
+  }
+  const pkg = readJsonAtRef(ref, 'package.json');
+  assertVersionConsistency(ref, state.version, pkg.version);
   return state.version;
 }
 
@@ -124,7 +146,7 @@ function archiveRelease(options) {
   if (missingFiles.length > 0) {
     throw new Error('归档缺少必需文件：' + missingFiles.join(', '));
   }
-  const missingDirs = manifest.RELEASE_DIRS.filter(function (dir) {
+  const missingDirs = manifest.RELEASE_REQUIRED_DIRS.filter(function (dir) {
     return !files.some(function (file) { return file.startsWith(dir + '/'); });
   });
   if (missingDirs.length > 0) {
@@ -152,4 +174,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { archiveRelease, readZipEntries, resolveVersion, parseArgs };
+module.exports = { archiveRelease, readZipEntries, readJsonAtRef, assertVersionConsistency, resolveVersion, parseArgs };

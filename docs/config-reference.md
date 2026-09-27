@@ -9,18 +9,19 @@
 ---
 
 ## 目录
-1. [site.json5 — 站点主体](#1-sitejson--站点主体)
-2. [theme.json5 — 视觉与主题](#2-themejson--视觉与主题)
-3. [features.json5 — 功能总控(95 模块)](#3-featuresjson5--功能总控95-模块)
-4. [navigation.json5 — 导航](#4-navigationjson--导航)
-5. [sidebar.json5 — 侧栏](#5-sidebarjson--侧栏)
-6. [footer.json5 — 页脚](#6-footerjson--页脚)
-7. [security.json5 — 安全](#7-securityjson--安全)
-8. [content-policy.json5 — 内容策略](#8-content-policyjson--内容策略)
-9. [tag-aliases.json5 / friends.json5 — 可选数据文件](#9-tag-aliasesjson--friendsjson--可选数据文件)
+1. [site.json5 — 站点主体](#1-sitejson5--站点主体)
+2. [theme.json5 — 视觉与主题](#2-themejson5--视觉与主题)
+3. [features.json5 — 功能总控(97 模块)](#3-featuresjson5--功能总控97-模块)
+4. [navigation.json5 — 导航](#4-navigationjson5--导航)
+5. [sidebar.json5 — 侧栏](#5-sidebarjson5--侧栏)
+6. [footer.json5 — 页脚](#6-footerjson5--页脚)
+7. [security.json5 — 安全](#7-securityjson5--安全)
+8. [content-policy.json5 — 内容策略](#8-content-policyjson5--内容策略)
+9. [tag-aliases.json5 / friends.json5 — 可选数据文件](#9-tag-aliasesjson5--friendsjson5--可选数据文件)
 10. [tuning.json5 — UI 微调参数层](#10-tuningjson5--ui-微调参数层)
 11. [guard.json5 — 防护与交互控制域](#11-guardjson5--防护与交互控制域)
 12. [compression.json5 — 构建产物压缩](#12-compressionjson5--构建产物压缩)
+13. [ui-strings.json5 — 界面文案词典](#13-ui-stringsjson5--界面文案词典)
 
 ---
 
@@ -133,7 +134,11 @@
 | `build.cacheControl` | bool | `true` | 分级 Cache-Control 响应头（css 1 年 immutable；js/vendor 1 小时 + SWR；media/og 7 天 + SWR）；`false` 完全不输出 |
 | `build.minifyHTML/CSS/JS` | bool | `true` | 压缩开关：HTML（含残留内联脚本/样式）压缩去注释；站点主样式（外链 `dist/assets/css/site.<hash>.css`）与残留内联 `<style>`（customCSS 等）均经 CleanCSS(level 1) 压缩；JS 压缩范围 = `dist/assets/js`（vendor 上游已压缩、自动跳过）；JSON 输出（search-index/manifest/speculation-rules 等）始终紧凑 |
 | `build.removeConsole` | bool | `false` | 剥离 console.*（仅作用于 `dist/assets/js`） |
-| `build.generateIndex/Archive/Tags/Categories/Gallery` | bool | `true` | 页面生成开关 |
+| `build.generateIndex` | bool | `true` | 生成首页 `/{lang}/index.html` 与分页 |
+| `build.generateArchive` | bool | `true` | 生成归档页 `/{lang}/archive/`（按年归档列表） |
+| `build.generateTags` | bool | `true` | 生成标签云与标签文章列表 |
+| `build.generateCategories` | bool | `true` | 生成分类列表与分类文章列表 |
+| `build.generateGallery` | bool | `true` | 生成图库页 `/{lang}/gallery/` |
 | `build.generateAuthorPages` | bool | `false` | 作者页 |
 | `build.copyStatic` | bool | `true` | 复制 static/ |
 | `build.optimizeMedia` | bool | `false` | sharp 媒体优化 |
@@ -218,6 +223,32 @@
 | `showRepoLink` | bool | `true` | 显示仓库链接 |
 | `repoUrl` | string | `''` | 仓库 URL |
 
+### site.hero — 首页 Hero 内容源
+`site.hero.*` 与 `features.hero.*` 同名键合并：`site.hero` 提供内容，`features.hero` 提供开关与视觉参数；两者同名时以 `site.hero` 优先（`ctaLabelEn` 为 en 站文案，空回退 `features.hero.ctaLabelEn` 再回退中文）。
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `hero.enabled` | bool | `true` | Hero 总开关（与 `features.hero.enabled` 同时为真才渲染） |
+| `hero.title` / `hero.titleEn` | string | `''` | Hero 标题（空回退站点名 `title`/`titleEn`） |
+| `hero.subtitle` / `hero.subtitleEn` | string | `''` | Hero 副标题（空回退站点副标题，再回退描述） |
+| `hero.showSearch` | bool | `true` | 显示搜索按钮（与 features 同键取与） |
+| `hero.showCta` | bool | `true` | 显示 CTA 按钮（与 features 同键取与） |
+| `hero.ctaLabel` / `hero.ctaLabelEn` | string | `查看全部文章` / `View all posts` | CTA 文案（en 站空回退中文与 features 默认） |
+| `hero.ctaUrl` | string | `#latest-post` | CTA 目标（站内锚点或路径） |
+| `hero.showTags` | bool | `true` | 显示热门标签区（与 features 同键取与） |
+| `hero.tagCount` | number | `8` | 热门标签展示条数（features 同键兜底） |
+
+### site.customHead / customBodyStart / customBodyEnd — 原样 HTML 注入
+三项均为 string（HTML 片段），原样插入对应位置（不做消毒，写入前请自行确认内容可信）：
+
+| 字段 | 默认 | 插入位置 | 注意 |
+|---|---|---|---|
+| `customHead` | `''` | 每页 `</head>` 前 | 适合第三方验证 `<meta>`；引入外链脚本需同步放行 CSP |
+| `customBodyStart` | `''` | `<body>` 开标签后 | 如 GTM `<noscript>` |
+| `customBodyEnd` | `''` | `</body>` 前 | 如统计脚本，注意 CSP 与隐私声明 |
+
+> 注入内容不会经过 `sanitize-html`；构建产物等价性护栏与安全回归以配置空值为基线。
+
 ---
 
 ## 2. theme.json5 — 视觉与主题
@@ -230,17 +261,21 @@
 | `colors.background/surface/text/textSecondary/textLight/border/shadow/hover/codeBackground/codeText` | string | 见代码 | 全站色板 |
 | `darkMode.enabled` | bool | `false` | 暗色模式总开关 |
 | `darkMode.toggle` | bool | `true` | 页面切换按钮 |
-| `darkMode.default` | string | `system` | `light`/`dark`/`system`（唯一来源，替代原 themeToggle.defaultTheme） |
-| `darkMode.rememberChoice` | bool | `true` | `false`=偏好仅存 sessionStorage（当次会话），迁移自 themeToggle.rememberChoice |
-| `darkMode.iconStyle` | string | `sun-moon` | `sun-moon`/`single`/`switch`，迁移自 themeToggle.iconStyle |
-| `darkMode.transitionAll` | bool | `true` | 切换时给 html 加 `.theme-switching` 过渡；false=瞬时，迁移自 themeToggle.transitionAll |
+| `darkMode.default` | string | `system` | 默认主题：`light`/`dark`/`system`（唯一来源） |
+| `darkMode.rememberChoice` | bool | `true` | `false`=偏好仅存 sessionStorage（当次会话），true=localStorage 持久记忆 |
+| `darkMode.iconStyle` | string | `sun-moon` | 切换按钮图标：`sun-moon`/`single`/`switch` |
+| `darkMode.transitionAll` | bool | `true` | 切换时给 html 加 `.theme-switching` 过渡；false=瞬时 |
 | `darkMode.colors.*` | — | `{}` | 暗色覆盖色板 |
 | `fontFamily` / `fontFamilyMono` | string | `sans-serif`/`monospace` | 字体 |
 | `fontSystem.stack/displayStack/headingStack/scale` | string/number | `inter`/`sora`/`manrope`/`1` | 字体系统：正文族 / 展示层（h1·Logo）/ 次级标题（h2-h6·卡片·部件）族 / 全局缩放；中文字符自动回退 CJK 字体链；字体文件构建期本地化到 `assets/vendor/fonts/` 并自动预加载 |
+| `fontSystem.customStack` | string | `''` | 自定义字体栈（仅 `stack='custom'` 时作为正文字体族；CSS font-family 列表，未随站点提供的字体名会回退，视觉不可控） |
+| `fontSystem.bodyWeight` | number | `400` | 正文字重（300 细 / 400 常规 / 500 中等 / 600 半粗 / 700 粗） |
+| `fontSystem.numbersMono` | bool | `true` | 统计数字/阅读面板进度等使用等宽字体（对齐更整齐） |
 | `fontSizeBase` / `lineHeight` | string/number | `16px`/`1.8` | 基础字号/行高 |
 | `headingFontWeight` | number | `700` | 标题字重 |
 | `letterSpacing` | string | `0.02em` | 字符间距 |
 | `spacing.containerWidth` | string | `1250px` | 容器宽度(balanced 档位写入) |
+| `spacing.radiusLarge` | string | `1.618rem` | 大圆角（图片/弹窗），与 `spacing.radius`（卡片/输入框）独立 |
 | `spacing.gap/padding` | — | — | 间距 |
 | `tiers.rounding/shadow/border/density` | object | — | 档位数值表（"选档"见 rounding/shadowLevel/borderStyle 与 density.preset，数值全部在此定义） |
 | `surfaceHighlight.light/dark` | string | — | 表面高光/描边（`0 0 #0000` = 关闭） |
@@ -269,12 +304,41 @@
 | `background.mode/colors/gradientAngle/gridSize/dotSize/opacity` | string/array/number | `particles`/—/`135`/`24`/`1`/`1` | 页面背景特效（粒子细节见 features.background.particles） |
 | `avatar.shape/ring/ringColor/badge` | string/bool/string/bool | `round`/`false`/`''`/`true` | 头像外观与首字母徽章 |
 | `density.preset/columns` | string/number | `balanced`/`2` | 布局密度档位（compact/balanced/airy;数值见 tiers.density） |
-| `appearance.*` | — | 见 theme.json5 | 外观细节（选中色/滚动条/焦点环/代码/表格/分隔线/图注） |
-| `articleFooter.enabled/source/...` | bool/string | `true`/`disclaimer` | 文章页脚公告栏（内容源为 pages/ 下文件） |
+| `articleFooter.enabled` | bool | `true` | 文章页脚公告栏总开关（见下方子表） |
+| `articleFooter.source` | string | `disclaimer` | 内容来源：`pages/` 下文件名（不含扩展名；不存在则公告栏为空） |
+
+#### theme.appearance — 外观细节
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `appearance.selectionBg` | string | `''` | 文本选中背景色（空 = 辅色 25% 透明） |
+| `appearance.scrollbarWidth` | string | `8px` | 滚动条宽度（WebKit） |
+| `appearance.scrollbarRadius` | string | `4px` | 滚动条圆角 |
+| `appearance.focusRingWidth` | string | `2px` | 键盘焦点环宽度（无障碍必备） |
+| `appearance.focusRingOffset` | string | `2px` | 焦点环与元素间距 |
+| `appearance.codePadding` | string | `1rem` | 代码块内边距 |
+| `appearance.codeLineHeight` | number | `1.6` | 代码块行高 |
+| `appearance.blockquoteBorderWidth` | string | `3px` | 引用块左侧竖线宽度 |
+| `appearance.tableStripeBg` | string | `''` | 表格斑马纹背景（空 = hover 色 50%） |
+| `appearance.tableCellPadding` | string | `.6rem .9rem` | 表格单元格内边距 |
+| `appearance.hrOpacity` | number | `0.6` | 分隔线不透明度（0–1） |
+| `appearance.imageCaptionAlign` | string | `center` | 图注对齐：`left`/`center`/`right` |
+
+#### theme.articleFooter — 文章页脚公告栏
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `articleFooter.backgroundColor` | string | `#f0f4f8` | 背景色（与页面背景轻微区分） |
+| `articleFooter.textColor` | string | `#4a5568` | 文字色 |
+| `articleFooter.borderColor` | string | `#cbd5e1` | 边框色 |
+| `articleFooter.borderWidth` | string | `1px` | 边框粗细 |
+| `articleFooter.borderRadius` | string | `0.5rem` | 圆角 |
+| `articleFooter.paddingTop` / `paddingBottom` | string | `1.25rem` | 上下内边距 |
+| `articleFooter.paddingLeft` / `paddingRight` | string | `1.5rem` | 左右内边距 |
+
+> 内容在构建期从 `pages/<source>.md` 读取并按语言取用；样式经构建期写入 CSS 变量。
 
 ---
 
-## 3. features.json5 — 功能总控(98 模块)
+## 3. features.json5 — 功能总控(97 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -295,6 +359,15 @@
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `enabled` | `true` | 总开关 |
+| `zoomEnabled` | `true` | 缩放总开关（false 时禁用滚轮/双击/按钮/双指缩放） |
+| `panEnabled` | `true` | 放大后可拖拽平移 |
+| `rotateEnabled` | `true` | 旋转（按钮左右 90°） |
+| `pinchEnabled` | `true` | 双指捏合缩放（触屏） |
+| `zoomStep` | `0.25` | 按钮/滚轮单步缩放倍数 |
+| `zoomMin` / `zoomMax` | `1` / `4` | 缩放范围（1 = 原始尺寸） |
+| `dblClickZoom` | `true` | 双击切换放大/复位 |
+| `wheelZoom` | `true` | 滚轮缩放（桌面） |
+| `showZoomButtons` | `true` | 显示 ＋/− 按钮 |
 | `selectors` | `.post-content img, .gallery-item img` | 收集目标 CSS 选择器 |
 | `minSize` | `60` | 触发最小边长(px),过滤小图标 |
 | `prevNextButtons` | `true` | 上/下一张按钮 |
@@ -308,9 +381,12 @@
 | `counterFormat` | `{current} / {total}` | 计数模板 |
 | `maxWidthVw` / `maxSizePx` / `maxHeightVh` | `92`/`1600`/`82` | 图片约束 |
 | `openDurationMs` / `switchDurationMs` | `180`/`120` | 打开/切换动画时长(ms;0=瞬时) |
+| `transitionDurationMs` | `220` | 通用过渡时长兜底（`openDurationMs`/`switchDurationMs` 未设时回退） |
 | `backdropOpacity` | `0.9` | 遮罩透明度 |
 | `preloadAdjacent` | `true` | 预载相邻图 |
 | `rememberPosition` | `false` | 记忆上次位置 |
+| `showCaption` | `true` | 显示图片标题（`alt`/`title`） |
+| `captionMaxLines` | `2` | 标题最多行数（超出省略） |
 
 > **接线说明**：
 > - `maxWidthVw` = 灯箱图片最大宽度（vw）：构建期归一化为 CSS 变量 `--lightbox-maxWidthVw`（可被 customCSS 覆盖），专键优先；未设/非法时回退兼容旧键 `imageFit.lightbox.maxWidthPct`，再回退 92。默认两者同值（92），渲染不变。
@@ -318,13 +394,13 @@
 > - canonical：`scripts/lib/feature-wiring.js → lightboxConfig`（单测覆盖）。
 
 ### 3.2 readingProgress — 阅读进度条
-`enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500`(点击跳转后百分比气泡停留时长；悬停/聚焦期间常显) / `updateThrottleMs 30` / `ariaAnnounce true`(进度条输出 `aria-valuenow`，屏幕阅读器可读) / `topOffset 0`(进度条距视口顶部偏移，构建期写入 `.reading-progress` 的 `top`，值需含单位如 `8px`/`2vh`，`0` 默认贴顶) / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发)。点击跳转支持键盘（聚焦进度条后 ←/→ 步进 5%、Home/End 首尾）
+`enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500`(点击跳转后百分比气泡停留时长；悬停/聚焦期间常显) / `showTip true`(是否显示跟随进度圆点的百分比提示气泡) / `updateThrottleMs 30` / `ariaAnnounce true`(进度条输出 `aria-valuenow`，屏幕阅读器可读) / `topOffset 0`(进度条距视口顶部偏移，构建期写入 `.reading-progress` 的 `top`，值需含单位如 `8px`/`2vh`，`0` 默认贴顶) / `zIndex 1000`(进度条层级，与其他浮层冲突时调大) / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发)。点击跳转支持键盘（聚焦进度条后 ←/→ 步进 5%、Home/End 首尾）
 
 ### 3.3 backToTop — 返回顶部
 `enabled true` / `showAfterPx 400` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false`
 
 > **接线说明**：
-> - **已删除**：`rightOffset` / `bottomOffset`（与 `tuning.backToTop.offsetSide/offsetBottom` 重复且实际生效 tuning 值）。迁移：位置请改 `tuning.json5 → backToTop.offsetSide/offsetBottom`（模板经 `var(--backToTop-offsetSide/offsetBottom, 2rem)` 消费，桌面沿用；移动端底部固定 4rem 以配合按钮堆叠）。原键默认值与 tuning 同值，迁移无行为变化（见 CHANGELOG Removed）。
+> - 按钮位置由 `tuning.json5 → backToTop.offsetSide/offsetBottom` 控制（模板经 `var(--backToTop-offsetSide/offsetBottom, 2rem)` 消费，桌面沿用；移动端底部固定 4rem 以配合按钮堆叠）。
 > - `scrollDurationMs` = 点击按钮 / 快捷键的返回顶部动画时长（ms），实现为 rAF + easeOutCubic 逐帧步进（`behavior:'instant'` 绕过 CSS `scroll-behavior:smooth`，避免二次平滑）；`0` = 瞬时。`smoothScroll=false`、`window.__SB()==='auto'`（`scrollBehavior` 关闭 / behavior=auto / 系统减少动效且未豁免）或系统减少动效时均瞬时；用户滚轮/触摸即中断动画。默认 450ms。
 > - `htmlAnchorFallback=true` = 页面输出 `<noscript>` 内的锚点链接（`href="#top"`，复用 `.back-to-top` 样式与文案），无 JS 环境可返回顶部；JS 可用时该链接不渲染、由 `#btt` 接管。默认 false（不输出，保持历史 DOM）。
 > - canonical：`scripts/lib/feature-wiring.js → backToTopConfig`（单测覆盖）。
@@ -335,7 +411,7 @@
 > **检索语义（浮层搜索与 /search 页统一）**：命中字段得分 = 字段权重 × 命中出现次数（线性计数），按总分降序；同分保持索引原序（`search-index.json` 由构建期按日期倒序生成，等价「同分按日期」）。**权重为 0 = 该字段既不参与匹配也不参与计分**（如 `weightContent=0` 时正文不再命中）。`tags`/`categories` 命中仅参与「是否入选」（计 0 分，排在所有加权命中之后），分别由 `matchTags`/`matchCategories` 门控（默认 true → 结果为历史行为的超集）。canonical 纯函数：`scripts/lib/feature-wiring.js → rankSearchEntries`（单测覆盖）。
 > **无结果文案优先级链**：`emptyHint(En)` > `noResultText(En)` > `tuning.search.emptyText(En)` > i18n 内置文案；`emptyHint` 非空时也作为「输入为空」的浮层提示（默认空串 = 不显示，保持历史输出「未找到匹配内容」）。注意：features 键优先于 tuning（两者默认文案同值，默认渲染不变）。
 > **连续查询**：每次渲染前清空旧结果节点（修复此前结果容器追加、旧结果残留的缺陷）；`search-index.json` 已含 `tags`/`categories` 字段（构建期由 `scripts/build/feeds.js` 写入）。
-> **已删除**：`placeholder`/`placeholderEn`（与 `navigation.json5 → search.placeholder/placeholderEn` 重复；canonical 保留 navigation，模板 SSR 直接消费，迁移见 CHANGELOG）；`pinyinFuzzy`（无第三方依赖无法实现 CJK→拼音映射，且不得以子序列模糊冒名拼音；未来引入拼音库再恢复）。
+> **检索实现**：子串匹配 + 字段加权（标题/摘要/正文/标签/分类），无拼音模糊；搜索框占位文案的单一来源为 `navigation.json5 → search.placeholder/placeholderEn`（SSR 直接消费，模板不再读本模块）。
 
 ### 3.5 imageLazy — 懒加载
 `enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
@@ -343,7 +419,7 @@
 > 接线说明：`preserveAspectRatio=true`（默认，历史行为）构建期输出 width/height（CLS 保护），覆盖 markdown 正文图片与 pages 出图路径（卡片/头图/图库/prev-next 缩略图，经 `scripts/build/pages.js` 的 imgDimsAttrs/buildCardImgAttrs/cardCoverAttrs/postCoverAttrs）；`false` 时不输出 width/height，交由 CSS 自适应。`data-lqip` 与 `data-iw` 不受影响。
 
 ### 3.6 codeBlock — 代码块
-`enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `showLanguageTag true` / `lineNumbers true`(纯文本块也可用) / `wrapLongLines false`(true=软换行,行号仍按行高对齐) / `highlightBackground var(--color-hover)`(hover 混色基色,力度见 tuning.code.hoverBgMix) / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false`(true=首块上方一键复制全页) / `downloadButton true` / `blobRevokeDelayMs 1000`(下载后释放 Blob URL 延迟 ms) / `prismBatchMs 8`(Prism 高亮单批主线程预算 ms) / `prismIdleTimeoutMs 300`(首帧高亮空闲超时 ms) / `prismIdleFallbackMs 60`(无 requestIdleCallback 时的兜底间隔 ms)
+`enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `copyFailTextEn ''`(en 站失败文案，空回退中文) / `showLanguageTag true` / `lineNumbers true`(纯文本块也可用) / `wrapLongLines false`(true=软换行,行号仍按行高对齐) / `highlightBackground var(--color-hover)`(hover 混色基色,力度见 tuning.code.hoverBgMix) / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false`(true=首块上方一键复制全页) / `downloadButton true` / `blobRevokeDelayMs 1000`(下载后释放 Blob URL 延迟 ms) / `prismBatchMs 8`(Prism 高亮单批主线程预算 ms) / `prismIdleTimeoutMs 300`(首帧高亮空闲超时 ms) / `prismIdleFallbackMs 60`(无 requestIdleCallback 时的兜底间隔 ms)
 
 视觉细化项(tuning.json5)：`code`(lineNumberColor/lineNumberOpacity/hoverBorderMix/hoverShadowMix/hoverBgMix/inlineRadius/inlineHairlineMix/diffAddMix/diffDelMix) / `icons`(strokeWidth/hoverLift)；终端语言自动前缀(bash/sh/shell/zsh/fish→`$ lang`；powershell→`PS> powershell`；console→`> console`)；diff 增删行着色(.token.inserted/.deleted)；菜单图标见 navigation.json5 的 `icon`(内置 home/archive/tags/info/book/link/folder/search/rss/download)。
 
@@ -353,25 +429,25 @@
 > 接线说明：`whitelistNewTab=true` 时白名单外链强制新标签页打开（`target=_blank + noopener/noreferrer` 等效，经 `window.open`，动态插入链接同样生效）；false（默认）= 浏览器默认行为（当前页跳转），保持历史行为。`copyButtonText(En)` 控制外链提醒浮层「复制链接」按钮文案（点击复制目标 URL，短暂显示「已复制」）：`copyButtonTextEn`（en 站，空回退中文键）> `copyButtonText` > `ui-strings.toolbar.copyLink`（新增双语）> 内置文案；默认 `复制`/`Copy`（见 CHANGELOG Added）。
 
 ### 3.8 themeToggle
-`enabled true` / `persistKey ss-theme`(主题偏好存储键；`theme.darkMode.rememberChoice=false` 时改用 sessionStorage 同键) / `toggleIconSwap true`(仅在 `theme.darkMode.iconStyle='sun-moon'` 时生效：切换交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)。**切换过渡时长唯一来源为 `theme.animation.transitionDuration`（经 `tuning.motion.transitionDuration` 覆盖；原 `themeToggle.animationMs` 已删除）。**默认主题/是否记忆/图标样式/是否整体过渡的**唯一来源为 `theme.json5 → darkMode.default / rememberChoice / iconStyle / transitionAll**（`themeToggle.defaultTheme/rememberChoice/iconStyle/transitionAll` 重复键已删除；运行时经外置配置 `window.__THEME__.darkMode` 读取，模板早置脚本服务端直读）。`iconStyle`：`sun-moon` 双图标交替（默认）/ `single` 常显单个月亮图标 / `switch` CSS 滑块开关；`transitionAll=true`（默认）切换时给 `<html>` 加 `.theme-switching`（`--td` 时长后移除），false=不加类瞬时切换。`rememberChoice=false` 时早置脚本与切换均忽略 localStorage 旧值、仅用 sessionStorage。
+`enabled true` / `persistKey ss-theme`(主题偏好存储键；`theme.darkMode.rememberChoice=false` 时改用 sessionStorage 同键) / `toggleIconSwap true`(仅在 `theme.darkMode.iconStyle='sun-moon'` 时生效：切换交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)。**切换过渡时长的唯一来源为 `theme.animation.transitionDuration`（经 `tuning.motion.transitionDuration` 覆盖）；默认主题/是否记忆/图标样式/是否整体过渡的唯一来源为 `theme.json5 → darkMode.default / rememberChoice / iconStyle / transitionAll`**（运行时经外置配置 `window.__THEME__.darkMode` 读取，模板早置脚本服务端直读）。`iconStyle`：`sun-moon` 双图标交替（默认）/ `single` 常显单个月亮图标 / `switch` CSS 滑块开关；`transitionAll=true`（默认）切换时给 `<html>` 加 `.theme-switching`（`--td` 时长后移除），false=不加类瞬时切换。`rememberChoice=false` 时早置脚本与切换均忽略 localStorage 旧值、仅用 sessionStorage。
 
 ### 3.9 shortcuts — 快捷键
 `enabled true` / `openSearch /`(空=禁用,下同) / `toggleTheme d` / `prevPost k` / `nextPost j` / `help ?` / `close Escape` / `showHelpHint true`(页脚 `?` 提示按钮；false=不渲染，文案取 ui-strings `toolbar.shortcutHint` 双语) / `helpTitle 快捷键一览`（`helpTitleEn` en 站；作为帮助面板 `aria-label`，空回退 ui-strings） / `showHelpTable true`(false 时不渲染快捷键表) / `ignoreInInputs true`(true=输入框内按键不触发快捷键;false=输入框内也触发)
 
 ### 3.10 toc — 目录(桌面侧)
-`enabled true` / `minLevel 2` / `maxLevel 4`（两者接线到构建期 TOC 提取；受正文标题锚点限制收敛到 2–4，minLevel=3 可只收 h3 及以下） / `collapsible true` / `defaultOpenLevel 2`（初始展开层级：0=全折叠；N≥1 展开到「minLevel+N-1」级，默认 2 且 minLevel=2 → 展开 h2/h3，h4 初始折叠可点分组箭头展开；`tuning.toc.collapsedByDefault=true` 优先级更高） / `highlightActive true`(false = 关闭当前章节高亮) / `activeOffset 120` / `groupCollapse true`(二级项带折叠箭头,可收起其下三级项)
+`enabled true` / `minLevel 2` / `maxLevel 4`（两者接线到构建期 TOC 提取；受正文标题锚点限制收敛到 2–4，minLevel=3 可只收 h3 及以下） / `collapsible true` / `defaultOpenLevel 2`（初始展开层级：0=全折叠；N≥1 展开到「minLevel+N-1」级，默认 2 且 minLevel=2 → 展开 h2/h3，h4 初始折叠可点分组箭头展开；`tuning.toc.collapsedByDefault=true` 优先级更高） / `highlightActive true`(false = 关闭当前章节高亮) / `activeOffset 120` / `progressLine true`(目录顶部阅读进度线) / `updateUrl true`(滚动时以 `history.replaceState` 更新地址栏 hash，不产生历史记录) / `smoothScroll true`(条目点击平滑滚动；`scrollBehavior` 关闭时仍瞬时) / `visitedFade true`(已读章节淡显) / `groupCollapse true`(二级项带折叠箭头,可收起其下三级项) / `titleText 目录`（`titleTextEn Contents` en 站标题，空回退中文） / `showTitle true`(侧栏/抽屉显示标题行) / `maxWidthPx 320`(桌面目录最大宽度 px)
 
 ### 3.11 mobileToc — 移动目录抽屉
 `enabled true` / `borderRadius 1rem` / `maxHeightVh 70` / `autoClose true` / `overlayClose true` / `lockScroll true` / `position right` / `showCurrent true`(胶囊按钮显示当前章节名与进度百分比)。移动端目录抽屉;显示断点由 `mobile.tocBreakpoint` 控制。
 
 ### 3.12 readingPanel — 阅读设置面板
-`enabled true` / `fontSizeMin 15`/`fontSizeMax 26`/`fontSizeStep 1`/`fontSizeDefault 19` / `lineHeightMin 1.4`/`LineHeightMax 2.6`/`Step 0.1`/`Default 1.9` / `widthMin 560`/`widthMax 1200`/`Step 40`/`Default 800` / `remember true` / `persistKey 'ss-reading'`(阅读设置 localStorage 键) / `resetText 重置`（`resetTextEn` 为 en 站文案，空回退中文） / `position right`
+`enabled true` / `fontSizeMin 15` / `fontSizeMax 26` / `fontSizeStep 1` / `fontSizeDefault 19` / `lineHeightMin 1.4` / `lineHeightMax 2.6` / `lineHeightStep 0.1` / `lineHeightDefault 1.9` / `widthMin 560` / `widthMax 1200` / `widthStep 40` / `widthDefault 800` / `remember true` / `persistKey 'ss-reading'`(阅读设置 localStorage 键) / `showReset true`(显示「重置」按钮) / `resetText 重置`（`resetTextEn` 为 en 站文案，空回退中文） / `position right`
 
 ### 3.13 readMode — 阅读模式
 `enabled true` / `persist true` / `label 阅读模式`（`labelEn` 为 en 站文案，空回退中文） / `focusOnlyContent true`（true=隐藏侧栏/目录仅保留正文（现行为）；false=保留侧栏，仅收窄正文；运行时 `html[data-reading-focus]` 门控） / `fontScale 1`
 
 ### 3.14 tts — 朗读
-`enabled true` / `rate 0.5`(0.1~10) / `pitch 1` / `volume 1` / `preferDefaultVoice true` / `voiceBy lang` / `readSelector .post-content` / `icon speaker` / `highlightParagraph false` / `position toolbar` / `resumeIntervalMs 500`(Chromium 长文本自动暂停后的心跳恢复间隔 ms) / `resumeMaxTries 3`(心跳恢复最大次数，超过即结束朗读)
+`enabled true` / `rate 0.5`(0.1~10) / `pitch 1` / `volume 1` / `preferDefaultVoice true` / `voiceBy lang` / `readSelector .post-content` / `skipSelectors 'pre, .katex, .mermaid'`(朗读时跳过的 CSS 选择器，避免读出代码/公式/图表源码) / `icon speaker` / `highlightParagraph false` / `position toolbar` / `resumeIntervalMs 500`(Chromium 长文本自动暂停后的心跳恢复间隔 ms) / `resumeMaxTries 3`(心跳恢复最大次数，超过即结束朗读)
 
 > **接线说明（语音选择与段落高亮）**：
 > - `preferDefaultVoice=true`（默认）= 命中语音中按 `localService`(2 分) + `default`(1 分) 取最高分（稳定序）；`false` = 取平台返回顺序首个。无命中时不设置 `voice`，由浏览器默认语音朗读。
@@ -453,8 +529,7 @@
 ### 3.25 gallery — 图库页
 `enabled true` / `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片`（`titleEn`/`descriptionEn`/`emptyTextEn` en 站文案，空回退中文） / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `order newest` / `maxItems 0`(0=不限) / `gap 12px`(瀑布流列间距 CSS) / `showCaption true`(图片下方显示来源说明) / `borderRadius 8px`(卡片圆角 CSS)
 
-> 接线说明：`collectFeatured=true`（默认，历史行为）= 图库收集文章封面图 + 正文图片（按 src 去重）；`false` = 仅收集正文图片（`scripts/build/collectors.js → collectGalleryImages(articles, { collectFeatured })` 参数化，单测覆盖两态）。
-> **已删除**：`incrementalByDefault`（原注释「是否包含 404 前后的图（增量，始终 true）」）。当前实现无图库增量清单缓存，该键无任何消费点与可观察差异；未来若实现增量构建（`docs/incremental-build-design.md`）再按新方案恢复，迁移无行为变化（见 CHANGELOG Removed）。
+> 接线说明：`collectFeatured=true`（默认，历史行为）= 图库收集文章封面图 + 正文图片（按 src 去重）；`false` = 仅收集正文图片（`scripts/build/collectors.js → collectGalleryImages(articles, { collectFeatured })` 参数化，单测覆盖两态）。图库为全量聚合：每次构建按 `order`/`maxItems` 重新收集，无增量清单缓存。
 
 ### 3.26 heatmap — 归档热力图
 `enabled true` / `levels 5`(2~7) / `scaling auto`(`auto|fixed`) / `palette []`(fixed 时色表) / `showLegend true` / `legendLow 少` / `legendHigh 多` / `tooltipFormat {year}-{month}: {count} 篇`（`legendLowEn`/`legendHighEn`/`tooltipFormatEn` en 站文案，空回退中文） / `showMonthNumbers true` / `gap 3px`(单元格间距) / `borderRadius 3px`(单元格圆角) / `cellSize 13px`(单元格尺寸,置空则撑满容器) / `emptyColor var(--color-border)`(空月份颜色)
@@ -469,7 +544,7 @@
 > - canonical：`scripts/lib/feature-wiring.js → heatmapConfig/heatmapBucketLevel/heatmapPalette/heatmapLegendLevels/heatmapLegendText/heatmapTooltip`（单测覆盖钳制/分桶/色阶/文案链）。
 
 ### 3.27 stats — 站点统计
-`enabled true` / `showArchiveCards true` / `labelPosts 文章总数` / `labelDays 发文天数` / `labelWords 总字数` / `labelAvg 日均篇数` / `labelAvgPerDay 日均`(归档页日均标签,优先于 labelAvg) / `labelTags 标签数` / `labelCategories 分类数`（以上标签均有同名 `*En`，空回退中文） / `cardColumns auto-fit`(统计卡列模式,也可固定列数) / `showSidebar true`(侧栏统计 widget 开关,sidebar.json5 需含 type=stats) / `linkArchive /archive/`
+`enabled true` / `showArchiveCards true` / `labelPosts 文章总数` / `labelPostsEn Posts` / `labelDays 发文天数` / `labelDaysEn Days` / `labelWords 总字数` / `labelWordsEn Words` / `labelAvg 日均篇数` / `labelAvgEn Avg/Day` / `labelAvgPerDay 日均`(归档页日均标签,优先于 labelAvg) / `labelAvgPerDayEn Avg/Day` / `labelTags 标签数` / `labelTagsEn Tags` / `labelCategories 分类数` / `labelCategoriesEn Categories`（全部 `*En` 空回退中文） / `cardColumns auto-fit`(统计卡列模式,也可固定列数) / `showSidebar true`(侧栏统计 widget 开关,sidebar.json5 需含 type=stats) / `linkArchive /archive/`
 
 > **接线说明（归档页统计卡；侧栏统计 widget 不受影响）**：
 > - `showArchiveCards=false` 不渲染整个统计卡网格（归档页标题与列表保留）。
@@ -480,21 +555,33 @@
 ### 3.28 prevNext
 `enabled true` / `showLabels true` / `prevLabel 上一篇` / `nextLabel 下一篇`（`prevLabelEn`/`nextLabelEn` en 站文案，空回退中文；`site.prevPostLabel`/`nextPostLabel` 为中文次回退） / `hideWhenMissing false` / `showThumbnail false`(导航卡缩略图) / `labelPosition left`(`left|center|right`) / `scrollToTopOnClick true`(点击导航后滚回顶部)
 
-### 3.29 feed（已删除，迁移到 site.rss / subscribe）
+### 3.29 popupNotice — 弹窗公告
 
-> `features.feed` 模块已删除：其键与 `site.rss`（订阅唯一来源）完全重复，或与 `subscribe` 段语义重叠。迁移映射：
->
-> | 原键 | 迁移到 |
-> |---|---|
-> | `rssEnabled` | `site.rss.enabled` |
-> | `rssPath` | `site.rss.path` |
-> | `rssFullContent` | `site.rss.fullContent` |
-> | `rssMaxItems` | `site.rss.maxItems` |
-> | `jsonFeedPath` / `jsonFeedFullContent` / `jsonFeedMaxItems` | `site.rss.jsonFeed.path` / `.fullContent` / `.maxItems` |
-> | `injectHeadLinks` | `site.rss.injectHeadLinks`（新增，默认 true；false 时不输出 `<head>` 的 RSS/JSON Feed alternate 链接） |
-> | `injectFooterLink` | `features.subscribe.enabled` + `features.subscribe.rss`（页脚订阅条） |
->
-> 行为不变（原默认值与 site.rss 默认一致）；迁移见 CHANGELOG Removed。
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `enabled` | bool | `false` | 总开关；启用但无任何内容（title/body/image/qr/buttons 全空）仅告警不渲染 |
+| `delayMs` | number | `1500` | 页面加载后延迟弹出毫秒 |
+| `frequency` | string | `day` | 记忆频率：`session`（当次会话）/`day`（每日一次）/`always`（每次都弹） |
+| `reshowOnChange` | bool | `true` | 内容哈希变化后忽略频率记忆重新弹出 |
+| `storageKey` | string | `s-popupNotice` | 关闭记忆 localStorage 键 |
+| `width` | string | `440px` | 弹窗最大宽度（CSS 长度） |
+| `removeDelayMs` | number | `240` | 关闭后移除 DOM 延迟毫秒（配合淡出动画） |
+| `title` / `titleEn` | string | `''` | 标题（en 站空回退中文） |
+| `body` / `bodyEn` | string | `''` | 正文（空行分段，纯文本渲染，不解析 Markdown） |
+| `image` / `imageAlt` / `imageAltEn` | string | `''` | 插图路径与替代文本（`imageAltEn` 空回退中文） |
+| `qr.enabled` | bool | `false` | 二维码区块开关 |
+| `qr.src` | string | `''` | 二维码图片路径 |
+| `qr.caption` / `qr.captionEn` | string | `''` | 二维码下方说明（en 站空回退中文） |
+| `buttons[]` | array | `[]` | 按钮数组，每项 `{label,labelEn,url,style:primary\|ghost,newTab}` |
+| `closeButton.enabled` | bool | `true` | 底部关闭按钮 |
+| `closeButton.label` / `labelEn` | string | `知道啦` / `Got it` | 关闭按钮文案 |
+| `closeButton.style` | string | `primary` | 按钮风格（同 buttons） |
+| `closeIcon` | bool | `true` | 右上角 × 图标 |
+| `closeOnBackdrop` | bool | `true` | 点遮罩关闭 |
+| `escToClose` | bool | `true` | Esc 关闭 |
+| `colors.*` | object | `{}` | 配色覆盖：`overlay`/`background`/`text`/`textSecondary`/`border`/`primary`/`primaryText`/`ghost`，留空跟随主题变量 |
+
+> 构建期由 `scripts/lib/popup-notice-config.js` 归一化并校验；配置随运行时外置配置注入，移动端真机点检项见 `docs/mobile-checklist.md` 第 9 条。
 
 ### 3.30 analytics
 
@@ -547,14 +634,23 @@
 > - `showAllItems=false` = 条目超过 2 条时折叠为前 2 条 + 「更多」展开器（展开后显示全部至 `maxItems`，按钮切换为「收起」；文案取 `ui-strings common.more` / `toolbar.collapseAll`）。默认 `true` = 全量展示。
 > - canonical：`scripts/lib/feature-wiring.js → contactPopupConfig/contactCopyText`（单测覆盖宽度默认与文案链）。
 
-### 3.36 linkBehavior（已删除）
+### 3.36 softNavigation — 软导航（无整页刷新跳转）
 
-> 该模块四个键（`matchMode hostname` / `skipInternal true` / `mailtoMode leave` / `lateTargeted false`）从未接线，且与 `features.externalLink` 语义重叠或与现状矛盾，整体删除（无代码消费，无行为变化）：
-> - `matchMode`：白名单匹配规则已由 `externalLink.whitelist` 表达式（含 `*.` 通配）唯一定义，第二套匹配模式切换会造成双来源；
-> - `skipInternal`：站内链接永不拦截是「外链」警告的固有不变量（现实现按同源判定 return），无可配置空间；
-> - `mailtoMode`：现行为 mailto 链接直接交给系统客户端（不拦截），属浏览器默认且无历史告警需求；
-> - `lateTargeted`：现点击处理为 document 级事件委托，天然覆盖动态插入链接（晚绑定）；false 默认与现状相悖，保留会误导。
-> 迁移：外链行为请改 `features.externalLink`（`mode`/`whitelist`/`blacklist`/`openInNewTab`/`whitelistNewTab` 等，见 §3.7）；如未来确需 mailto 告警，应在 `externalLink` 下新增专用键而非恢复本模块。
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `enabled` | bool | `true` | 总开关 |
+| `toggle.show` | bool | `true` | 显示页内「页面加速」开关（导航栏闪电图标） |
+| `toggle.defaultOn` | bool | `true` | 首次访问默认开启 |
+| `toggle.storageKey` | string | `s-soft-nav` | 开关记忆 localStorage 键 |
+| `prefetchOnHover` | bool | `true` | 悬停链接时预取目标页 HTML |
+| `prefetchDelayMs` | number | `80` | 悬停预取延迟毫秒（防误触） |
+| `cacheTtlMs` | number | `300000` | 内存缓存有效期毫秒（前进/后退复用同页） |
+| `timeoutMs` | number | `10000` | fetch 超时毫秒，超时回退整页跳转 |
+| `viewTransition` | bool | `true` | 同文档过渡动画（配合 `features.viewTransition`） |
+| `excludeSelectors[]` | array | `['[data-no-soft-nav]','.no-soft-nav']` | 不拦截的链接选择器 |
+| `scrollToTop` | bool | `true` | 进入新页后回到顶部（后退恢复原滚动位置） |
+
+> 仅拦截同源、同语言段（`/zh/` 或 `/en/`）、非资源文件的左键链接；跨语言、外部链接、下载、`target=_blank`、仅 hash 跳转均走原生导航；任何异常（超时/目标结构缺失/交换报错）自动回退 `location.href` 整页跳转。页面级模块经 `window.__SOFTNAV_HOOKS__` 注册重绑；`window.__softNav` 提供 `isOn/setOn/navigate` 调试句柄。CF Web Analytics 信标只在文档加载时计数，软导航不产生新的页面浏览记录（如需 SPA 级统计请关闭软导航或自行接埋点）。
 
 ### 3.37 performance
 
@@ -621,7 +717,7 @@ sitemap: {
 `enabled true` / `template 'aurora'`(`aurora|mesh|grid|paper|duotone`;无封面文章的 OG 底图模板) / `palette 'theme'`(`theme|hash`;hash=按首个分类名哈希取色,同分类同色) / `showCategory true`(封面角标) / `align 'center'`(`center|left`) / `showSite true`(站点名) / `showUrl true`(右下角站点 URL;false=保持画面简洁) / `useGradient true` / `gradientAngle '135deg'` / `fontSizeBase 64` / `maxLines 4` / `letterSpacing '0.02em'`。构建期为无封面文章生成模板化 OG 图(1200×630;尺寸与字号缩放经 `site.seo.ogImage` 的 width/height/fontScale 控制);有封面文章走"封面+底部渐变条"合成 — `scripts/generate-og.js`。
 
 ### 3.45 hero — 首页 Hero
-`enabled true` / `showSearch true` / `showTags true` / `tagCount 5` / `showDate false`(显示最新文章日期) / `ctaLabelEn View all posts`(en CTA 文案;`ctaLabel` 中文,空回退) / `searchPlaceholder 搜索文章…` / `searchPlaceholderEn Search posts…`（接线说明：构建期 SSR，hero 键 > `ui-strings.toolbar.searchPlaceholder(En)`；空串回退 ui-strings） / `heightVh 60`(Hero 最小高度 vh) / `backgroundImage ''`(背景图 URL,空则纯色/渐变)。首页顶部横幅,显示标题简介+搜索+热门标签。
+`enabled true` / `showSearch true` / `showTags true` / `showCta true`(CTA 按钮开关，与 `site.hero.showCta` 取与) / `tagCount 8` / `showDate false`(显示最新文章日期) / `ctaLabel 查看全部文章`(`ctaLabelEn View all posts` en CTA 文案；`site.hero.ctaLabel(En)` 优先，空回退本模块) / `ctaUrl '#latest-post'`(CTA 目标；`site.hero.ctaUrl` 优先) / `searchPlaceholder 搜索文章…` / `searchPlaceholderEn Search posts…`（接线说明：构建期 SSR，hero 键 > `ui-strings.toolbar.searchPlaceholder(En)`；空串回退 ui-strings） / `heightVh 61.8`(Hero 最小高度 vh) / `backgroundImage ''`(背景图 URL,空则纯色/渐变)。首页顶部横幅,显示标题简介+搜索+热门标签；内容源优先取 `site.hero.*`（见 §1 site.hero）。
 
 ### 3.46 background — 背景特效
 `background.particles.enabled true`（粒子总开关；仅 `theme.background.mode='particles'` 时生效，颜色自动跟随 `--color-s`） / `particles.count 72`(10~120，越少越省电) / `particles.speed 0.5`(0.2~2) / `particles.linkDistance 120`(连线距离 px) / `particles.opacity 0.7`(0~1) / `particles.showLines true` / `particles.autoDisableMobile false`(触屏/窄屏自动关闭粒子) / `particles.mobileMaxWidth 640`(autoDisableMobile 的窄屏阈值 px)。
@@ -784,7 +880,7 @@ sitemap: {
 
 ### 3.88 codeCopy — 代码块复制按钮
 
-`enabled true` / `buttonText '复制'` / `copiedText '已复制'`（成功态文案）/ `buttonTextEn ''` / `copiedTextEn ''`（en 站文案，空回退中文/词典）/ `buttonTimeout 1500`（成功态停留毫秒）/ `showLineNumbers false`（行号列）。文案留空时回退 `ui-strings` 词典；运行时按页面语言取 `*En` — `js/domains/core/code-block.js`。**窗栏（Mac 窗栏样条）唯一来源为 `features.codeBlock.windowBar`；原 `codeCopy.includeWindowBar` 语义重复，为已移除的重复键（迁移见 CHANGELOG）。**
+`enabled true` / `buttonText '复制'` / `copiedText '已复制'`（成功态文案）/ `buttonTextEn ''` / `copiedTextEn ''`（en 站文案，空回退中文/词典）/ `buttonTimeout 1500`（成功态停留毫秒）/ `showLineNumbers false`（行号列）。文案留空时回退 `ui-strings` 词典；运行时按页面语言取 `*En` — `js/domains/core/code-block.js`。**窗栏（Mac 窗栏样条）由 `features.codeBlock.windowBar` 控制（单一来源）。**
 
 ### 3.89 tocScrollSpy — 目录滚动高亮
 
@@ -800,7 +896,7 @@ sitemap: {
 
 ### 3.92 listCover — 列表封面
 
-`enabled true` / `showOnHome true`（首页卡片）/ `showOnArchive true`（**标签归档列表页** `/tags/<tag>/` 封面显隐；false=列表卡片不渲染封面；/archive/ 年表页为纯文字列表不受影响）/ `fallback 'pattern'`（无封面文章的回退形态：`pattern` 渐变占位块显示标题文字（默认） / `none` 纯文字卡片不渲染占位块；`enabled=false` 时完全隐藏列表媒体区）/ `lazy true`（懒加载）/ `autoGenerate`（无封面文章构建期自动生成封面，见下）。与 `features.cover`（文章封面样式库）分工：此项控制列表页是否展示封面 — `templates/index.ejs` + `templates/tag.ejs` + `templates/post.ejs` + `scripts/build/pages.js`。**封面宽高比唯一来源为 `tuning.card.imageAspect`（CSS 变量 `--card-imageAspect`）；原 `listCover.aspectRatio` 语义重复，为已移除的重复键（迁移见 CHANGELOG）。**
+`enabled true` / `showOnHome true`（首页卡片）/ `showOnArchive true`（**标签归档列表页** `/tags/<tag>/` 封面显隐；false=列表卡片不渲染封面；/archive/ 年表页为纯文字列表不受影响）/ `fallback 'pattern'`（无封面文章的回退形态：`pattern` 渐变占位块显示标题文字（默认） / `none` 纯文字卡片不渲染占位块；`enabled=false` 时完全隐藏列表媒体区）/ `lazy true`（懒加载）/ `autoGenerate`（无封面文章构建期自动生成封面，见下）。与 `features.cover`（文章封面样式库）分工：此项控制列表页是否展示封面 — `templates/index.ejs` + `templates/tag.ejs` + `templates/post.ejs` + `scripts/build/pages.js`。**封面宽高比由 `tuning.card.imageAspect` 控制（CSS 变量 `--card-imageAspect`，单一来源）。**
 
 **`autoGenerate` — 无封面文章自动封面**：文章 frontmatter 无 `featuredImage` 时，构建期为其生成列表卡片与文章页头图封面（主题色背景 + 自动换行标题 + 可选站点名/分类角标），输出到 `dist/og/cover-<slug>.<hash8>.<ext>`（hash = 标题 + 站点名 + 主题色 + 样式版本 + 宽高格式 + 样式开关；内容寻址命名，`/og/*` 已有 `_headers` 7 天缓存规则，且被 sitemap 与 cache-bust 忽略），缓存于 `.cache/covers/`（同输入二次构建命中直接复用，不重渲染）。**显式 `featuredImage` 始终优先（行为不变）；`enabled:false` 或单篇生成失败时回退上面的 `fallback` 形态（`pattern`/`none`），失败仅告警不阻断构建**。图片输出 `width`/`height` 属性（构建期定尺寸，防 CLS）。键位：`enabled true`（总开关）/ `width 1200` / `height 630`（64–4096，越界夹取）/ `format 'webp'`（`webp` | `jpeg`，`jpg` 同义；切换扩展名后旧产物下次构建清理）/ `backgroundStyle 'gradient'`（`gradient` 主→辅渐变 | `solid` 主色纯色）/ `showSiteName true`（左下角站点名，en 站取 `site.titleEn`）/ `showCategory false`（左上角分类/系列角标，取 `categories[0]`，缺省 `series`）。主题色取自 `theme.colors.primary/secondary` 与 `darkMode.colors.text`，缺失时跳过生成。
 
@@ -828,7 +924,7 @@ listCover: {
 
 ### 3.94 mobileBottomNav — 移动端底部导航
 
-`enabled true` / `items ['home','archive','search','theme']`（底部按钮项列表，按序展示）/ `onlyMobile true`（true=仅 ≤`tuning.layout.mobileBreakpoint` 断点内显示（现行为）；false=桌面端也显示（`data-only-mobile="false"` + CSS 门控））/ `labelHome ''` / `labelArchive ''` / `labelSearch ''` / `labelTheme ''` / `labelTop ''`（各按钮文案覆盖，空 = 使用 `ui-strings.json5` 的 `bottomNav.*` 词条，主题按钮文案随当前明暗状态动态切换）。层级经 `tuning.zIndex.mobileBottomNav` 调整。与 `features.mobile` 的抽屉菜单互补：底部导航负责高频入口 — `templates/layout.ejs` + `js/domains/core/navigation.js`。**iOS 安全区适配唯一来源为 `features.mobile.safeAreaBottom`（`env(safe-area-inset-bottom)`）；原 `mobileBottomNav.useSafeArea` 语义重复，为已移除的重复键（迁移见 CHANGELOG）。**
+`enabled true` / `items ['home','archive','search','theme']`（底部按钮项列表，按序展示）/ `onlyMobile true`（true=仅 ≤`tuning.layout.mobileBreakpoint` 断点内显示（现行为）；false=桌面端也显示（`data-only-mobile="false"` + CSS 门控））/ `labelHome ''` / `labelArchive ''` / `labelSearch ''` / `labelTheme ''` / `labelTop ''`（各按钮文案覆盖，空 = 使用 `ui-strings.json5` 的 `bottomNav.*` 词条，主题按钮文案随当前明暗状态动态切换）。层级经 `tuning.zIndex.mobileBottomNav` 调整。与 `features.mobile` 的抽屉菜单互补：底部导航负责高频入口 — `templates/layout.ejs` + `js/domains/core/navigation.js`。**iOS 安全区适配由 `features.mobile.safeAreaBottom` 控制（`env(safe-area-inset-bottom)`，单一来源）。**
 
 ### 3.95 incrementalBuild — 增量构建
 
@@ -935,7 +1031,17 @@ listCover: {
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
-| `headers` | `{}` | 自定义响应头 |
+| `forceHttps` | bool | `true` | Worker 将 HTTP 请求 301 跳转到 HTTPS（静态托管由平台自带 HTTPS 处理；本地 serve 不适用） |
+| `headers` | object | 见下 | 响应头默认值表（键名即头名，值即头值；与 `hardening` 覆盖段合并） |
+| `headers.X-Frame-Options` | string | `DENY` | 禁止页面被 iframe 嵌入（与 CSP `frame-ancestors 'none'` 双保险） |
+| `headers.X-Content-Type-Options` | string | `nosniff` | 禁止 MIME 嗅探 |
+| `headers.Referrer-Policy` | string | `strict-origin-when-cross-origin` | 跨站来源策略 |
+| `headers.Permissions-Policy` | string | `geolocation=(), microphone=(), camera=()` | 禁用敏感浏览器特性 |
+| `headers.Strict-Transport-Security` | string | `max-age=31536000; includeSubDomains; preload` | HSTS（参数可由 `hardening.hsts*` 覆盖） |
+| `headers.X-XSS-Protection` | string | `0` | 显式关闭已废弃的旧 XSS 过滤器 |
+| `headers.Cross-Origin-Resource-Policy` | string | `same-origin` | 跨源资源策略 |
+| `headers.Cross-Origin-Embedder-Policy` | string | `unsafe-none` | 跨源嵌入策略 |
+| `headers.Cross-Origin-Opener-Policy` | string | `same-origin` | 跨源窗口隔离 |
 | `csp.enabled` / `directives` / `reportOnly` / `reportUri` | `false`/`{}`/`false`/`/csp-report` | Content-Security-Policy。构建期为 `script-src` 与 `style-src` 注入同一枚 `'nonce-...'`（内联 `<script>`/`<style>` 同步注入 nonce 属性），二者移除 `'unsafe-inline'`；模板与产物已无内联 `style="..."` 属性，故不再声明 `style-src-attr`（属性语境按 CSP3 回退到 `style-src`，同样拒绝内联）；`frame-ancestors 'none'` 与 `X-Frame-Options: DENY` 双保险 |
 | `csp.autoTrim` / `csp.metaEnabled` | `true`/`false` | 构建期按功能裁剪未用域名（giscus / jsdelivr / Google Fonts / Cloudflare 统计——统计域名仅在 site.webAnalytics 配置 token 时保留；在 Cloudflare 面板另开统计而未配 token 时请设 `false`）；`metaEnabled` 开启时额外输出 `<head>` meta CSP（与响应头使用同一裁剪结果，仅无响应头环境需要，默认关） |
 | `robots.enabled` / `rules[]` | `false`/`[]` | robots 规则 |
@@ -994,6 +1100,45 @@ listCover: {
 
 **分类(37)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / icons / morphicons / magazine / commandPalette / announcement / guard / loading / mobileToc / ui / lightbox / toast / zIndex。
 
+**完整键名索引（按分类；键后为其默认值，含义与取值见 `tuning.json5` 逐项注释）**：
+- **typography（18 项）**：bodySize 1.0625rem / h1Size 2.058em / h2Size 1.618em / h3Size 1.272em / h4Size 1em / h5Size .875em / h6Size .8125em / smallSize .875em / tinySize .75em / lineHeight 1.8 / headingLineHeight 1.3 / letterSpacing 0.02em / headingWeight 700 / monoSize .875em / quoteSize 1.05em / captionSize .8125rem / metaSize .875rem / leadSize 1.272em
+- **layout（14 项）**：articlePadding 2rem / containerWidth 1250px / tocWidth 200px / gap 1.618rem / padding 2.618rem / contentOffset -10px / headerContentGap 48px / tocMinLeft 10px / sidebarMinRight 10px / mobileBreakpoint 768px / tocHideBreakpoint 900px / tabletBreakpoint 1024px / maxContentWidth 1600px / gridCollapseBreakpoint 640px
+- **radius（7 项）**：default 0.618rem / large 1.618rem / button 0.382rem / image 0.618rem / avatar 50% / badge 1rem / input 0.382rem
+- **motion（11 项）**：hoverLiftPx 4 / hoverScale 1.02 / underlineThickness 2px / underlineOffset 3px / rippleDurationMs 500 / revealDurationMs 250 / revealOffset 10px / staggerDelayMs 60 / buttonPressScale 0.97 / transitionDuration 0.3s / transitionTiming cubic-bezier(0.22, 1, 0.36, 1)
+- **hero（9 项）**：titleSize 2.618em / subSize 1.05em / maxWidth 760px / actionsGap .75rem / tagGap .5rem / ctaRadius 0.382rem / paddingTop 1rem / paddingBottom 2rem / dateSize .9375rem
+- **card（12 项）**：imageAspect 16/10 / radius 0.618rem / padding 1.5rem / titleSize 1.272rem / excerptLines 3 / metaSize .8125rem / nocoverMinSize 1.272rem / nocoverMaxSize 1.618rem / gridGap 1.618rem / imageHoverScale 1.02 / bentoFeatured true / bentoAspect 21/10
+- **toc（9 项）**：fontSize .8125rem / labelSize .6875rem / indentL2 .5rem / indentL3 1.2rem / indentL4 1.9rem / progressHeight 3px / stickyTop 80px / scrollOffset 80 / collapsedByDefault false
+- **search（15 项）**：overlayPadding 12vh 1rem 2rem / modalPadding 2.5rem 2.5rem 2rem / modalMaxHeight 78vh / closeBtnSize 36px / modalWidth 760px / inputHeight 56px / inputFontSize 1.375rem / historyCount 5 / hotCount 5 / debounceMs 120 / minQueryLength 1 / excerptLength 120 / resultLimit 30 / emptyText 未找到匹配内容 / emptyTextEn No matching content
+- **reading（21 项）**：progressHeight 3px / dockBottom 5.6rem / dockRight 1.35rem / dockBtnSize 40px / dockRightTablet 1rem / dockBottomTablet 6.4rem / gearBottom 14.6rem / gearMobileBottom 10.8rem / panelBottom 13.2rem / panelWidth 280px / dockMobileBottom 14.2rem / ttsRate 1 / ttsPitch 1 / fontSizeStep 1 / lineHeightStep 0.1 / readingMaxWidth 72ch / quoteTint 6% / imageHoverScale 1.01 / h2AccentWidth .25rem / h2AccentHeight 1em / h2AccentColor var(--color-s)
+- **comments（5 项）**：avatarSize 40px / marginTop 2rem / width 100% / borderRadius 0.618rem / dividerShow true
+- **header（7 项）**：height 60px / logoSize 1.272em / iconSize 18px / scrolledHeight 56px / scrollShrink true / scrollThresholdPx 8 / hairlineStrength 30%
+- **pagination（6 项）**：btnMinWidth 40px / btnHeight 40px / maxVisible 5 / gap .5rem / activeScale 1.05 / radius 0.618rem
+- **stats（5 项）**：numberSize 1.5rem / labelSize .8125rem / cardPadding 1rem 1.25rem / gap 1rem / hoverLiftPx 2px
+- **breadcrumb（4 项）**：fontSize .8125rem / gap .4rem / marginBottom 1rem / currentWeight 600
+- **share（4 项）**：btnSize 32px / gap .35rem / iconSize 16px / radius .375rem
+- **prevNext（5 项）**：thumbSize 64px / thumbHeight 44px / gap 1rem / marginTop 2rem / titleLines 1
+- **contactPopup（4 项）**：iconSize 30px / radius 1.618rem / valueFontSize 1.25rem / titleSize 1.25rem
+- **reward（3 项）**：btnFontSize .8125rem / popupRadius 0.618rem / entryGap .75rem
+- **dailyQuote（5 项）**：showAuthor true / quoteFontSize .95rem / authorFontSize .8rem / markSize 2rem / refreshDaily true
+- **tags（5 项）**：cloudMinSize .75rem / cloudMaxSize 1.25rem / cloudGap .5rem / showCount true / hoverScale 1.05
+- **series（4 项）**：panelRadius 0.618rem / progressHeight 4px / badgeColor var(--color-s) / panelPadding 1rem 1.25rem
+- **backToTop（3 项）**：hiddenOffset 20px / offsetBottom 2rem / offsetSide 2rem
+- **texture（3 项）**：noiseBaseFrequency 0.8 / noiseOpacity 0.025 / noiseOpacityDark 0.035
+- **glow（2 项）**：heroStrength 8% / heroStrengthDark 12%
+- **code（12 项）**：windowDotSize 11px / borderWidth 1px / borderMix 65% / lineNumberColor var(--color-tl) / lineNumberOpacity .5 / hoverBorderMix 35% / hoverShadowMix 25% / hoverBgMix 92% / inlineRadius 4px / inlineHairlineMix 70% / diffAddMix 12% / diffDelMix 12%
+- **icons（2 项）**：strokeWidth 1.75 / hoverLift 1px
+- **morphicons（4 项）**：stiffness 420 / damping 30 / reducedStiffness 900 / reducedDamping 55
+- **magazine（6 项）**：dropCapSize 3.4em / dropCapColor var(--color-s) / dropCapWeight 600 / bleedWidth 4rem / tableHoverMix 6% / headingNumberColor color-mix(in srgb, var(--color-ts) 55%, transparent)
+- **commandPalette（4 项）**：width 560px / listMaxHeight 420px / topOffset 16vh / backdropMix 55%
+- **announcement（3 项）**：fontSize 0.8125rem / letterSpacing 0.015em / height 34px
+- **guard（6 项）**：menuWidth 232px / menuRadius 0.618rem / menuBlur 10px / itemRadius 0.382rem / itemGap 2px / menuMaxHeight 70vh
+- **loading（8 项）**：dotSize 0.55rem / dotGap 0.45rem / dotLift 6px / textSize 0.8125rem / overlayAlpha 92% / blurPx 6px / ringSize 2rem / titleSize 1rem
+- **mobileToc（5 项）**：btnBottom 6rem / btnRight 2rem / btnMobileBottom 7.4rem / btnMaxWidth 340px / labelMaxWidth 9.5rem
+- **ui（3 项）**：errorSvgMaxWidth 460px / errorSuggestMaxWidth 560px / errorCodeFontSize 7rem
+- **lightbox（2 项）**：btnSize 44px / btnOffset 14px
+- **toast（3 项）**：maxWidth 420px / radius 999px / offsetBottom 2rem
+- **zIndex（30 项）**：header 1000 / mobileNav 999 / announcement 999 / mobileBottomNav 1200 / readingDock 990 / readingGear 998 / readerPanel 1500 / mobileToc 999 / mobileTocDrawer 1500 / kbdHelp 1500 / searchOverlay 2000 / navBoostPanel 1200 / presetPop 1600 / toast 1200 / scrollIndicator 1100 / readingTip 10000 / lightbox 2000 / reward 1900 / linkWarning 3000 / contactPopup 4000 / pwaInstall 1050 / softnavBusy 2000 / grain 2000 / guardMenu 1900 / guardFlash 1890 / guardCurtain 1880 / guardLock 1895 / guardGate 1898 / guardWmOverLightbox 1700 / popupNotice 2100
+
 **已绑定示例(150 项 CSS + 19 项行为)**:`--hero-maxWidth`、`--zIndex-*`(全站浮层层级,30 项:header/mobileNav/announcement/mobileBottomNav/readingDock/readingGear/readerPanel/mobileToc/mobileTocDrawer/kbdHelp/searchOverlay/navBoostPanel/presetPop/toast/scrollIndicator/readingTip/lightbox/reward/linkWarning/contactPopup/pwaInstall/softnavBusy/grain/guardMenu/guardFlash/guardCurtain/guardLock/guardGate/guardWmOverLightbox/popupNotice；模板以 `var(--zIndex-键, 原值)` 消费)、`--layout-tabletBreakpoint`/`mobileBreakpoint`/`tocHideBreakpoint`/`gridCollapseBreakpoint`(媒体查询断点,经 EJS 直读)、`--radius-default/large/button/avatar`、`--typography-lineHeight/letterSpacing/headingWeight`、`--toast-offsetBottom/borderWidth/radius/maxWidth`、`--breadcrumb-fontSize/gap/marginBottom`、`--card-padding/metaSize/radius`、`--toc-stickyTop`/`--sidebar-stickyTop`(粘性定位)、`--header-iconSize`、`--share-gap`、`--header-scrolledHeight/hairlineStrength`、`--code-borderWidth/borderMix/windowDotSize`、`--texture-noiseOpacity`、`--glow-heroStrength`、`--card-imageHoverScale/excerptLines/gridGap`、`--motion-transitionTiming/buttonPressScale`、`--reading-quoteTint/imageHoverScale/h2AccentWidth/Height/dockRight/dockBtnSize/dockRightTablet/dockBottomTablet/gearBottom/gearMobileBottom/panelBottom/panelWidth/dockMobileBottom`、`--search-overlayPadding/modalPadding/modalMaxHeight/closeBtnSize`、`--mobileToc-btnBottom/btnRight/btnMobileBottom/btnMaxWidth/labelMaxWidth`、`--ui-errorSvgMaxWidth/errorSuggestMaxWidth/errorCodeFontSize`、`--lightbox-btnSize/btnOffset`、`--pagination-btnMinWidth/btnHeight`、`--backToTop-hiddenOffset`、`--commandPalette-listMaxHeight`、`--layout-articlePadding`;行为侧:search 历史/热词/去抖/结果上限/空文案(`search.emptyTextEn` 为 en 站空结果文案,空回退 `emptyText`)、toc 滚动偏移与默认折叠、tts 语速/音调、dailyQuote 作者显示/每日刷新、readingPanel 字号/行距步进、morphicons 弹簧刚度/阻尼/轻量版弹簧。
 
 **注意**:绑定值均已对齐现有视觉(如 toast.radius=999px 对应胶囊形),修改前建议先在浏览器 DevTools 中试值。
@@ -1010,7 +1155,7 @@ listCover: {
 - `copyGuard`（18 项）：`mode 'attribution'`（`off` | `attribution` 追加出处 | `weakBlock` 首次拦截并提示、再次放行 | `block` 硬拦截）/ `attribution.text`+`textEn`（占位符 `{title}{url}{author}{site}`）/ `position after|before` / `separator` / `minChars 40`（短复制不打扰）/ `onlyArticles true` / `allow.codeBlocks true`+`allow.selectors[]`（代码块与可编辑区始终放行）/ `block.toast|toastText|flash`（复用统一 `__toast`）/ `extra.alsoCut|imageNotice|iOSOverride` / `noticeOncePerSession true` / `logCopyEvents false`（仅本地 console，无网络上报）/ `flashRemoveMs 600`(闪烁遮罩移除延迟 ms)。
 - `selectionGuard`（7 项，**默认关**）：`mode 'content'`（`allow` | `content` 正文禁选 | `strict` 全域）/ `allowSelectors[]`+`allowCode true`（代码白名单）/ `allowCtrlA|allowShiftArrows true`（保留键盘选择，无障碍优先）/ `noticeToast|noticeText`。实现：CSS `user-select:none`（正文/全域）+ `selectstart` 事件双保险，输入框与代码始终豁免。
 - `hotkeyGuard`（12 项，**默认关**）：`keys.f12|ctrlShiftI|ctrlShiftJ|ctrlShiftC` 默认拦截；`ctrlU|ctrlS|ctrlP` 默认放行（分别与查看源码/保存网页/打印冲突，可按需开启）（macOS 自动等效 Cmd）/ `keys.printScreen false`（仅检测提示）/ `keys.custom[]`（`'ctrl+alt+x'` 语法）/ `noticeToast|noticeText|noticeOncePerSession`。仅拦键盘路径（浏览器菜单/独立窗口不可拦，威慑级），输入框豁免。
-- `watermark`（18 项，**默认关**）：`type 'diagonal'`（`fixed`|`tiled`|`diagonal`）/ `text|textEn`（`{site}{date}{time}{id}`）/ `identity 'none'`（`none`|`random`|`storage` 本地短哈希，无指纹）/ `opacity 0.06` / `fontSize` / `color`（空=主题次级色）/ `rotate -22` / `gapX|gapY` / `position`（fixed 专用）/ `zIndex 40` / `hideOnPrint true` / `showInLightbox false` / `mobileEnabled false` / `animate false`（缓慢漂移，尊重减少动效）。`pointer-events:none` + `aria-hidden`，不挡交互。
+- `watermark`（18 项，**默认关**）：`type 'diagonal'`（`fixed`|`tiled`|`diagonal`）/ `text|textEn`（`{site}{date}{time}{id}`）/ `identity 'none'`（`none`|`random`|`storage` 本地短哈希，无指纹）/ `idLength 6`（标识显示长度 4–16）/ `opacity 0.06` / `fontSize` / `color`（空=主题次级色）/ `rotate -22` / `gapX|gapY` / `position`（fixed 专用）/ `zIndex 40` / `hideOnPrint true` / `showInLightbox false` / `mobileEnabled false` / `animate false`（缓慢漂移，尊重减少动效）。`pointer-events:none` + `aria-hidden`，不挡交互。
 - `devtoolsDetect`（15 项，**默认关**）：`methods.sizeDiff|timingDebugger`（停靠尺寸差 / `debugger` 计时）/ `intervalMs 1500`（下限 1000）/ `thresholdSizePx 160` / `thresholdTimingMs 120` / `action 'notice'`（`none`|`notice`|`blurPage`|`lockOverlay`|`reload`，锁屏自带关闭键；`reload` 带会话熔断——每会话最多触发一次，避免尺寸误报导致无限刷新）/ `lockTitle|lockText`（空 = 走 `ui-strings.json5` 的 `guard.lockTitle`/`guard.lockText`，按页面语言中英自动切换；填固定文本会覆盖 i18n）/ `reloadDelayMs` / `pauseWhenHidden` / `logDetect`；命中时派发 `guard:devtools` 事件（供 consoleGuard 联动清屏）。检测非 100%（窗口缩放等会误报），仅威慑。
 - `consoleGuard`（18 项，**默认关**）：`bannerEnabled|bannerText|bannerTextEn|bannerAscii`（控制台站方留言）/ `clearEnabled|clearIntervalMs|clearOnDetect`（周期清屏与检测联动）/ `muteEnabled|muteMethods[]|muteFreeze`（对页面脚本伪装 console 方法）/ `trapEnabled|trapAction|trapText`（console.log 访问陷阱）/ `hideSelfLogs` / `noticeOncePerSession`。无法拦截真实控制台求值，仅作用于页面上下文。
 - `privacyCurtain`（10 项，**默认关**）：`blurOnBlur`（窗口失焦）/ `blurOnVisibility`（切标签）/ `blurAmount '8px'` / `curtainText|curtainTextEn`（帘上文案）/ `revealDelayMs 200`（恢复去抖）/ `prtScNotice|prtScText|prtScOncePerSession`（PrintScreen 仅检测提示）。`backdrop-filter` 静态遮罩 + `pointer-events:none`，不挡交互。
@@ -1092,6 +1237,45 @@ listCover: {
 
 **与 perfBudget（`features.perfBudget`）的关系**：两者独立——perfBudget 是**结果口径**的体积门禁（统计压缩后的 dist 产物，超预算按 `warnOnly` 提醒或阻断构建），compression.json5 是**达成手段**（决定压缩开关与豁免范围）。关闭压缩或扩大豁免会让预算更易超线；预算数值本身不在本文件配置，HTML gzip 体积与请求数仍以 perfBudget 的实测为准。
 
+## 13. ui-strings.json5 — 界面文案词典
+
+第 14 个配置文件中的文案数据表。结构与策略（「键名即文档」——值为实际文案，不逐键复述）：
+
+- **结构**：顶部各区为中文文案；文件后半的 `en` 键为英文镜像（同名同构）。构建期服务端 `ui()` 与客户端 `__I18N__` / `__T()` 共用同一份词典。
+- **回退链**：当前语言词典 → 中文原文 → 代码内置默认（`ui('key','默认')`）。`en` 镜像未覆盖的键，英文站显示中文原文。
+- **占位符**：形如 `{count}` / `{name}` 的花括号占位符由调用方替换，勿删；键缺省时回退内置默认；新增未被代码引用的键不生效（谨慎添加）。
+
+| 模块键 | 用途 |
+|---|---|
+| `top` | 顶部/页面文本（语言、主题预设等） |
+| `bottomNav` | 移动端底部导航 |
+| `search` | 搜索浮层与结果页（占位、热词、错误态、重试等） |
+| `group` | 搜索结果分组（文章/标签/分类） |
+| `nav` | 导航（菜单、面包屑、关项目等） |
+| `sidebar` | 侧边栏各组件标题与提示 |
+| `card` | 卡片与列表（阅读全文、空态、置顶等） |
+| `post` | 文章页（上下篇、目录、朗读、分享、打赏等） |
+| `toolbar` | 文章工具栏与浮层操作按钮（灯箱、代码、快捷键帮助等） |
+| `archive` | 归档页（统计、图例、空态） |
+| `gallery` | 图库页 |
+| `category` | 分类列表与计数 |
+| `tag` | 标签文章列表 |
+| `tags` | 标签云/标签页 |
+| `links` | 友情链接页（空态、申请） |
+| `favorites` | 收藏页与收藏操作提示 |
+| `notFound` | 404 页（返回首页、站内搜索、热门文章） |
+| `pagination` | 分页上一页/下一页 |
+| `announcement` | 公告条 |
+| `pwa` | PWA（更新、离线、安装、重试） |
+| `common` | 通用（空态、重试、确认、取消、复制成功、返回等） |
+| `commandPalette` | 命令面板（分组与动作名） |
+| `subscribe` | 订阅组件 |
+| `readingHistory` | 继续阅读（清除） |
+| `guard` | 防护模块提示（复制拦截、快捷键拦截、检测提示、访问门槛等） |
+| `en` | 英文镜像（结构与中文区一致；未覆盖键回退中文） |
+
+> 修改文案后需重新构建；`guard` 区文案与 `guard.json5` 的模块一一对应（`guard.json5` 内的 `noticeText` 等专用键可覆盖词典）。
+
 ## 校验与错误上报行为
 1. **配置错误 → 立即终止**:缺逗号/引号未闭合/非法字符 → `[FATAL]` + 文件名、行列、上下文(带 `^` 定位)、原因、中文修复提示。
 2. **校验失败 → 终止**:类型错误(如 enabled: "yes")、枚举越界、share 平台名未知、URL 非 http(s)、站点名缺失。
@@ -1119,5 +1303,4 @@ listCover: {
 - HTML 仅内联 ≤2KB 的降级子集（`features.guards` + `pwa` 开关；连同逐页小项 `__SITE_TITLE__`/`__ART_TITLE__`/`__SEARCH_PROVIDER__`）。
 - 前端启动时异步加载该文件并写入 `window.__FEATURES__` 等全局；失败自动重试 1 次，3 秒超时后使用内置最小子集继续运行（fail-open，`window.__CONFIG_OK__=false`）。
 - `site.build.cacheControl: false` 时该文件的缓存响应头同样不下发（与其它资源一致）。
-- `popupNotice`（弹窗公告）：`enabled false`(总开关) / `delayMs 1500`(延迟弹出) / `frequency 'day'`(`session|day|always`，内容未变时频率) / `reshowOnChange true`(内容变化后重弹) / `storageKey 's-popupNotice'` / `width '440px'` / `title`/`titleEn` / `body`/`bodyEn`(空行分段，纯文本渲染) / `image`/`imageAlt`/`imageAltEn` / `qr{enabled,src,caption,captionEn}` / `buttons[]`(每项 `{label,labelEn,url,style:primary|ghost,newTab}`) / `closeButton{enabled,label,labelEn,style}` / `closeIcon true`(右上角 ×) / `closeOnBackdrop true` / `escToClose true` / `colors{overlay,background,text,textSecondary,border,primary,primaryText,ghost}`(留空跟随主题变量)。构建期由 `scripts/lib/popup-notice-config.js` 校验；启用但无任何内容仅告警。
-- `softNavigation`（软导航）：`enabled true`(总开关) / `toggle { show true, defaultOn true, storageKey 's-soft-nav' }`(页内开关，位于「页面加速」面板) / `prefetchOnHover true`(悬停预取目标页 HTML) / `prefetchDelayMs 80` / `cacheTtlMs 300000`(内存缓存有效期，前进/后退复用) / `timeoutMs 10000`(fetch 超时即回退) / `viewTransition true`(同文档过渡动画) / `excludeSelectors ['[data-no-soft-nav]','.no-soft-nav']`(不拦截的链接) / `scrollToTop true`。仅拦截同源、同语言段（`/zh/` 或 `/en/`）、非资源文件的左键链接；跨语言、外部链接、下载、`target=_blank`、仅 hash 跳转均走原生导航；任何异常（超时/目标结构缺失/交换报错）自动回退 `location.href` 整页跳转。页面级模块经 `window.__SOFTNAV_HOOKS__` 注册重绑；`window.__softNav` 提供 `isOn/setOn/navigate` 调试句柄。注意：CF Web Analytics 信标只在文档加载时计数，软导航不产生新的页面浏览记录（如需 SPA 级统计请关闭软导航或自行接埋点）。
+- `popupNotice` / `softNavigation` 等交互配置同样随该文件外置下发（前端启动后从 `window.__FEATURES__` 取用）；逐字段说明见 §3.29 popupNotice 与 §3.36 softNavigation。

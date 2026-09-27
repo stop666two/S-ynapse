@@ -13,6 +13,10 @@ const PACKAGE_JSON = path.join(ROOT, 'package.json');
 const CHANGELOG = path.join(ROOT, 'CHANGELOG.md');
 const RELEASE_JSON = path.join(ROOT, 'RELEASE.json');
 
+// 发布包不含 CHANGELOG.md（文档不进包），dry-run 集成用例需要真实 CHANGELOG 才能演练；
+// 缺失时显式跳过并声明原因，版本计算与 CHANGELOG 变换的纯函数用例仍在包内全量运行。
+const HAS_CHANGELOG = fs.existsSync(CHANGELOG);
+
 function run(args) {
   return spawnSync(process.execPath, ['scripts/release-mark.js'].concat(args), { cwd: ROOT, encoding: 'utf-8' });
 }
@@ -40,7 +44,11 @@ function previousVersion(version) {
   return (major - 1) + '.0.0';
 }
 
-test('release-mark --dry-run：输出完整计划、不写入任何文件、退出码 0', function () {
+test('release-mark --dry-run：输出完整计划、不写入任何文件、退出码 0', function (t) {
+  if (!HAS_CHANGELOG) {
+    t.skip('发布包不含 CHANGELOG.md（文档不进包），dry-run 集成检查在源码仓库执行');
+    return;
+  }
   const before = snapshot();
   const target = nextPatch(JSON.parse(before.pkg).version);
   const result = run(['patch', '--human-verified', '测试员', '--confirm', target, '--dry-run']);
@@ -61,7 +69,11 @@ test('release-mark --dry-run：输出完整计划、不写入任何文件、退�
   assert.strictEqual(after.release, before.release, 'RELEASE.json 不得变化');
 });
 
-test('release-mark --dry-run：同版本标记输出同版本分支与 CHANGELOG 计划、不写入任何文件', function () {
+test('release-mark --dry-run：同版本标记输出同版本分支与 CHANGELOG 计划、不写入任何文件', function (t) {
+  if (!HAS_CHANGELOG) {
+    t.skip('发布包不含 CHANGELOG.md（文档不进包），dry-run 集成检查在源码仓库执行');
+    return;
+  }
   const before = snapshot();
   const current = JSON.parse(before.pkg).version;
   const result = run([current, '--human-verified', '测试员', '--confirm', current, '--dry-run']);
@@ -105,6 +117,10 @@ test('release-mark：显式版本低于当前版本被拒绝', function () {
 });
 
 test('release-mark --dry-run：显式预发布版本（核心等于当前）被接受并标明预发布', function (t) {
+  if (!HAS_CHANGELOG) {
+    t.skip('发布包不含 CHANGELOG.md（文档不进包），dry-run 集成检查在源码仓库执行');
+    return;
+  }
   const current = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf-8')).version;
   if (current.includes('-')) {
     t.skip('当前版本已带预发布标识，同核心预发布例外不适用');

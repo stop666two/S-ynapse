@@ -55,8 +55,13 @@ test('README：总数/features/tuning 计数与实测一致，无旧计数残留
   assert.ok(!readme.includes('2718'), 'README 不得残留旧总数 2718');
 });
 
-test('config-reference：tuning 章节计数与 search 分类计数与实测一致', () => {
-  const doc = fs.readFileSync(path.join(ROOT, 'docs', 'config-reference.md'), 'utf-8');
+test('config-reference：tuning 章节计数与 search 分类计数与实测一致', function (t) {
+  const docsPath = path.join(ROOT, 'docs', 'config-reference.md');
+  if (!fs.existsSync(docsPath)) {
+    t.skip('发布包不含 docs/config-reference.md（文档不进包），计数一致性检查在源码仓库执行');
+    return;
+  }
+  const doc = fs.readFileSync(docsPath, 'utf-8');
   const header = /独立 UI 参数文件\((\d+) 分类 \/ (\d+) 项/.exec(doc);
   assert.ok(header, 'config-reference 应有 tuning 计数声明');
   assert.strictEqual(Number(header[1]), 37, 'tuning 分类数');

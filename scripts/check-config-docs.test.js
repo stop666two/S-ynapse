@@ -1,8 +1,13 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { collectKeys, keyAppears, moduleNameOf, checkDocs, FILE_POLICIES } = require('./check-config-docs');
+
+// docs/ 不进发布包（白名单排除），发布包解压环境中跳过「真实仓库文档」集成检查；
+// 源码仓库与 CI gates（有 docs）仍全量执行。
+const DOCS_REFERENCE = path.join(__dirname, '..', 'docs', 'config-reference.md');
 
 describe('check-config-docs collectKeys', () => {
   it('depth=1 仅返回顶层键', () => {
@@ -44,7 +49,11 @@ describe('check-config-docs 策略表', () => {
 });
 
 describe('check-config-docs 真实仓库', () => {
-  it('14 个配置文件键均被 config-reference 覆盖（集成）', () => {
+  it('14 个配置文件键均被 config-reference 覆盖（集成）', function (t) {
+    if (!fs.existsSync(DOCS_REFERENCE)) {
+      t.skip('发布包不含 docs/config-reference.md（文档不进包），文档覆盖集成检查在源码仓库执行');
+      return;
+    }
     const result = checkDocs({ root: path.resolve(__dirname, '..') });
     assert.deepStrictEqual(result.missing, []);
     assert.deepStrictEqual(result.missingSections, []);
@@ -52,7 +61,11 @@ describe('check-config-docs 真实仓库', () => {
     assert.ok(result.checked > 1000, '校验键数应大于 1000，实际 ' + result.checked);
   });
 
-  it('CLI 退出码为 0', () => {
+  it('CLI 退出码为 0', function (t) {
+    if (!fs.existsSync(DOCS_REFERENCE)) {
+      t.skip('发布包不含 docs/config-reference.md（文档不进包），CLI 检查在源码仓库执行');
+      return;
+    }
     const result = spawnSync(process.execPath, [path.join(__dirname, 'check-config-docs.js')], { encoding: 'utf-8' });
     assert.strictEqual(result.status, 0, result.stderr);
     assert.match(result.stdout, /PASS/);

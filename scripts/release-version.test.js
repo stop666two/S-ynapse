@@ -241,8 +241,13 @@ test('rewriteChangelog：变换幂等（同版本再次调用保持 ensure 且�
   assert.strictEqual(plan.text, once);
 });
 
-test('rewriteChangelog：真实仓库态（[Unreleased] 与静态版本段并存时执行合并）', () => {
-  const realText = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf-8');
+test('rewriteChangelog：真实仓库态（[Unreleased] 与静态版本段并存时执行合并）', function (t) {
+  const changelogPath = path.join(ROOT, 'CHANGELOG.md');
+  if (!fs.existsSync(changelogPath)) {
+    t.skip('发布包不含 CHANGELOG.md（文档不进包），真实仓库态检查在源码仓库执行');
+    return;
+  }
+  const realText = fs.readFileSync(changelogPath, 'utf-8');
   const currentVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8')).version;
   const versionRe = new RegExp('^## \\[' + currentVersion.replace(/\./g, '\\.') + '\\]', 'm');
   const hasUnreleased = /^## \[Unreleased\]/m.test(realText);

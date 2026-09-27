@@ -30,6 +30,7 @@
     "release:mark": "node scripts/release-mark.js",
     "release:archive": "node scripts/release-archive.js",
     "release:publish": "node scripts/release-publish.js",
+    "release:prune": "node scripts/release-prune.js",
     "dev": "node scripts/build.js --watch --drafts",
     "serve": "node scripts/build.js --serve",
     "start": "node scripts/build.js --serve --port 3000",

@@ -7,13 +7,14 @@
 // （scripts/compression-verify-server.js），puppeteer-core（系统 Chrome）逐页断言：
 //   ① DOM 归一化结构一致（JS 关闭的静态页）——剔除压缩无关差异（注释 / 空白文本节点 /
 //      属性顺序），显式白名单：内联 <style> 元素整体剔除（同页合并是预期结构变化，
-//      样式等价由 ② 断言）、构建期 nonce 归一化、app/deferred bundle 文件名哈希归一化；
+//      样式等价由 ② 断言）、构建期 nonce 归一化、app/deferred bundle 与 runtime 引导脚本
+//      的文件名哈希归一化（混淆/压缩按最终字节改名是预期差异）；
 //      关闭 JS 以隔离运行时注入（reveal 动画类、代码块工具栏属性、speculationrules 脚本
 //      等时序相关差异），压缩作用于静态字节，这属于压缩无关差异；
 //   ② 采样元素计算样式一致（JS 关闭的静态页）——每页可见元素前 N 个的 getComputedStyle 关键属性串；
 //   ③ 两态 0 控制台错误（JS 开启，逐页；唯一过滤项：浏览器默认 favicon 请求噪声）；
 //   ④ 压缩态交互冒烟（JS 开启）——软导航点击文章无整页刷新、搜索可打开、主题切换可用；
-//   ⑤ js.obfuscate.enabled 时压缩态额外断言 __T/__SB 与 deferred 动态加载。
+//   ⑤ runtime 压缩或 js.obfuscate.enabled 时压缩态额外断言 __T/__SB 与 deferred 动态加载。
 // 失败由调用方按 verify.fallbackOnFailure 决定回退；
 // Chrome 探测失败或启动失败 → status=skipped（构建不失败，仅告警）。
 //
@@ -194,8 +195,8 @@ function compareSnapshotBytes(baselineDir, distDir) {
 /**
  * 断言白名单归一化：把两态之间预期存在的差异折叠为占位符。
  *   ① nonce 属性值与 CSP 串（同一构建下两态本应一致，归一化用于防御跨构建复用）；
- *   ② app/deferred bundle 的文件名哈希（混淆按最终字节重命名，两态必然不同；
- *      runtime 不参与混淆重命名，保持原样以便差异暴露）。
+ *   ② app/deferred bundle 与 runtime 引导脚本的文件名哈希：混淆/压缩按最终字节重命名，
+ *      两态必然不同（改动内容已由控制台错误、交互与运行时断言覆盖）。
  * 幂等；仅归一化具名白名单，其余差异一律保留为失败信号。
  * @param {string} text 规范 DOM 串
  * @returns {string}
@@ -204,7 +205,7 @@ function normalizeWhitelistText(text) {
   return String(text == null ? '' : text)
     .replace(/(nonce\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '$1"NONCE"')
     .replace(/'nonce-[^']*'/gi, "'nonce-NONCE'")
-    .replace(/\b(app|deferred)\.[0-9A-Za-z]{6,12}\.js/g, '$1.HASH.js');
+    .replace(/\b(app|deferred|runtime)\.[0-9A-Za-z]{6,12}\.js/g, '$1.HASH.js');
 }
 
 /**
@@ -668,7 +669,9 @@ async function checkRuntimeBootstrap(page, report) {
  * @property {string} distDir 增强后的产物目录
  * @property {string} baselineDir 增强前的基线快照目录
  * @property {string} [chromePath] 显式 Chrome 路径（缺省按 resolveChromePath 探测）
- * @property {boolean} [obfuscateEnabled] 是否启用 JS 混淆（追加 __T/__SB 与 deferred 断言）
+ * @property {boolean} [obfuscateEnabled] 是否启用 JS 混淆（保留字段；引导断言条件之一）
+ * @property {boolean} [bootstrapAssertions] 是否断言运行时引导（__T/__SB 与 deferred 动态加载）：
+ *   runtime 压缩或 JS 混淆任一开启时为 true（缺省回退 obfuscateEnabled）
  * @property {number} [pageTimeoutMs] 单页加载超时（毫秒）
  * @property {string} [profileDir] 持久 Chrome profile 目录（复用可跳过首次导航初始化与临时
  *   profile 清理等待；同一目录同一时刻只允许一个 Chrome 实例，构建应串行执行）
@@ -828,7 +831,9 @@ async function verifyCompression(options) {
     // ③ 交互与运行时断言固定用压缩态首页（页面集对比后页面可能已离开首页）。
     await runtimeA.goto(compressedBase + '/zh/', { waitUntil: 'load', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
     await settleRuntimePage(runtimeA);
-    if (opts.obfuscateEnabled) report.runtime = await checkRuntimeBootstrap(runtimeA, report);
+    if (opts.bootstrapAssertions === true || opts.obfuscateEnabled === true) {
+      report.runtime = await checkRuntimeBootstrap(runtimeA, report);
+    }
     report.interactions = await runInteractions(runtimeA, report);
     mark('interactionsReadyAt');
   } catch (err) {

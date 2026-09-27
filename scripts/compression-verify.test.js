@@ -142,12 +142,12 @@ describe('normalizeWhitelistText（断言白名单归一化）', () => {
     assert.ok(out.includes("'nonce-NONCE'"), out);
   });
 
-  test('app/deferred bundle 文件名哈希归一化，runtime 保持原样', () => {
+  test('app/deferred bundle 与 runtime 文件名哈希归一化', () => {
     const input = 'src="/assets/js/app.ab12cd34ef.js" url="/assets/js/deferred.0011aabbcc.js" runtime="/assets/js/runtime.ffeedd.js"';
     const out = normalizeWhitelistText(input);
     assert.ok(out.includes('/assets/js/app.HASH.js'), out);
     assert.ok(out.includes('/assets/js/deferred.HASH.js'), out);
-    assert.ok(out.includes('/assets/js/runtime.ffeedd.js'), 'runtime 不参与混淆重命名，不得归一化');
+    assert.ok(out.includes('/assets/js/runtime.HASH.js'), 'runtime 压缩改名后同样归一化');
   });
 
   test('幂等且不误伤相似串', () => {

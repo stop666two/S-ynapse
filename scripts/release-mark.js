@@ -17,9 +17,10 @@
 // --dry-run：跳过重型门禁，仅演练版本/文件/CHANGELOG 变换并输出计划，不写入任何文件。
 //
 // 用法：
-//   npm run release:mark -- <major|minor|patch|X.Y.Z> --human-verified "<姓名>" --confirm <版本号>
+//   npm run release:mark -- <major|minor|patch|X.Y.Z|X.Y.Z-预发布> --human-verified "<姓名>" --confirm <版本号>
 //   npm run release:mark -- patch --human-verified "张三" --confirm 1.1.1 --dry-run
 //   npm run release:mark -- 1.1.0 --human-verified "张三" --confirm 1.1.0   # 同版本标记
+//   npm run release:mark -- 1.1.0-a1 --human-verified "张三" --confirm 1.1.0-a1 --dry-run  # 预发布
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -102,15 +103,17 @@ function parseArgs(argv) {
 }
 
 function printUsage() {
-  console.log('用法：npm run release:mark -- <major|minor|patch|X.Y.Z> --human-verified "<姓名>" --confirm <版本号> [--dry-run] [--push --confirm-push]');
+  console.log('用法：npm run release:mark -- <major|minor|patch|X.Y.Z|X.Y.Z-预发布> --human-verified "<姓名>" --confirm <版本号> [--dry-run] [--push --confirm-push]');
   console.log('');
   console.log('说明：');
   console.log('  --human-verified  人工核验人姓名（必填，记录进 RELEASE.json）');
   console.log('  --confirm         目标版本号（必填，与计算出的目标版本一致才继续）');
   console.log('  --dry-run         只演练并打印计划，不执行门禁、不写文件');
   console.log('  --push            推送分支与 tag（必须同时给 --confirm-push 二次确认）');
-  console.log('  同版本标记        显式 X.Y.Z 且等于当前 package.json 版本时，跳过 npm version，');
-  console.log('                    为当前版本建首个 Release（CHANGELOG [Unreleased] 合并进已有 [X.Y.Z] 段）');
+  console.log('  同版本标记        显式版本且等于当前 package.json 版本时，跳过 npm version，');
+  console.log('                    为当前版本建首个 Release（CHANGELOG [Unreleased] 合并进已有版本段）');
+  console.log('  预发布标记        显式 X.Y.Z-<预发布>（如 1.1.0-a1）；当前版本不带预发布时可标记');
+  console.log('                    同核心版本的预发布，GitHub Release 将标记为 prerelease');
 }
 
 // 人工核验与确认参数的共享校验：提前执行一次避免跑完门禁才因命令行缺失失败。
@@ -201,6 +204,9 @@ function printDryRun(options, currentVersion, targetVersion, sameVersion, change
     console.log('  目标版本：' + targetVersion + '（bump=' + options.bump + '，--confirm 一致）');
     console.log('  package.json / package-lock.json → ' + targetVersion + '（npm version --no-git-tag-version）');
   }
+  console.log('  发布类型：' + (targetVersion.includes('-')
+    ? '预发布（v' + targetVersion + '，GitHub Release 将标记为 prerelease）'
+    : '正式版（v' + targetVersion + '）'));
   console.log('  人工核验：' + options.humanVerifiedBy.trim());
   console.log('  门禁（dry-run 跳过，正式执行 ' + RELEASE_GATES.length + ' 项）：');
   for (const gate of RELEASE_GATES) console.log('    - ' + gate.command);

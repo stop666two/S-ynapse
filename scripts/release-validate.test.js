@@ -35,6 +35,14 @@ test('validateReleaseState：status 必须是 verified（未完成标记拒绝�
   assert.ok(result.errors.some(function (e) { return e.includes('status 必须为 verified'); }));
 });
 
+test('validateReleaseState：预发布版本（X.Y.Z-预发布）与 tag 一致时通过', () => {
+  const prerelease = validState({ version: '1.2.3-rc.1' });
+  assert.deepStrictEqual(validateReleaseState(prerelease, { tag: 'v1.2.3-rc.1', commit: COMMIT }), { ok: true, errors: [] });
+  assert.strictEqual(validateReleaseState(validState({ version: '1.2.3-01' })).ok, false, '非法预发布标识符必须拒绝');
+  const mismatch = validateReleaseState(validState({ version: '1.2.3-rc.1' }), { tag: 'v1.2.3' });
+  assert.strictEqual(mismatch.ok, false, '预发布版本与正式版 tag 不一致必须拒绝');
+});
+
 test('validateReleaseState：version 必须是 X.Y.Z 且与 tag/期望版本一致', () => {
   assert.strictEqual(validateReleaseState(validState({ version: '1.2' })).ok, false);
   const mismatchTag = validateReleaseState(validState({ version: '1.2.3' }), { tag: 'v1.2.4' });

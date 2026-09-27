@@ -104,6 +104,29 @@ test('release-mark：显式版本低于当前版本被拒绝', function () {
   assert.ok(result.stderr.includes('必须大于当前版本'));
 });
 
+test('release-mark --dry-run：显式预发布版本（核心等于当前）被接受并标明预发布', function (t) {
+  const current = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf-8')).version;
+  if (current.includes('-')) {
+    t.skip('当前版本已带预发布标识，同核心预发布例外不适用');
+    return;
+  }
+  const target = current + '-a1';
+  const result = run([target, '--human-verified', '测试员', '--confirm', target, '--dry-run']);
+  assert.strictEqual(result.status, 0, '预发布 dry-run 应成功：' + (result.stderr || ''));
+  assert.ok(result.stdout.includes(target), '应输出目标版本 ' + target);
+  assert.ok(result.stdout.includes('预发布'), '应标明预发布发布类型');
+  assert.ok(result.stdout.includes('prerelease'), '应说明 GitHub Release 标记为 prerelease');
+  assert.ok(result.stdout.includes('npm version --no-git-tag-version'), '预发布不是同版本标记，应执行版本同步');
+});
+
+test('release-mark：核心版本更低的预发布被拒绝', function () {
+  const current = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf-8')).version;
+  const target = previousVersion(current) + '-a1';
+  const result = run([target, '--human-verified', '测试员', '--confirm', target, '--dry-run']);
+  assert.strictEqual(result.status, 1, '核心版本更低的预发布应被拒绝');
+  assert.ok(result.stderr.includes('必须大于当前版本'));
+});
+
 test('release-mark：同版本标记 --confirm 不一致被拒绝', function () {
   const current = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf-8')).version;
   const result = run([current, '--human-verified', '测试员', '--confirm', '9.9.9', '--dry-run']);

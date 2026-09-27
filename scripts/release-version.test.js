@@ -28,13 +28,19 @@ test('computeNextVersion：major/minor/patch 递增并归零低位', () => {
   assert.strictEqual(computeNextVersion('0.0.0', 'patch'), '0.0.1');
 });
 
-test('computeNextVersion：显式版本必须大于当前版本，非法输入抛错', () => {
+test('computeNextVersion：显式版本必须大于当前版本（同核心预发布为例外），非法输入抛错', () => {
   assert.strictEqual(computeNextVersion('1.2.3', '1.5.0'), '1.5.0');
   assert.throws(() => computeNextVersion('1.2.3', '1.2.3'), /必须大于当前版本/);
   assert.throws(() => computeNextVersion('1.2.3', '1.2.2'), /必须大于当前版本/);
   assert.throws(() => computeNextVersion('1.2.3', 'v1.5.0'), /无效的版本参数/);
   assert.throws(() => computeNextVersion('1.2.3', 'latest'), /无效的版本参数/);
   assert.throws(() => computeNextVersion('bad', 'patch'), /当前版本/);
+  // 预发布：当前为正式版时可标记同核心预发布；预发布升级/换正式版按 SemVer 比较；回退拒绝
+  assert.strictEqual(computeNextVersion('1.2.3', '1.2.3-rc.1'), '1.2.3-rc.1');
+  assert.strictEqual(computeNextVersion('1.2.3-rc.1', '1.2.3-rc.2'), '1.2.3-rc.2');
+  assert.strictEqual(computeNextVersion('1.2.3-rc.1', '1.2.3'), '1.2.3');
+  assert.throws(() => computeNextVersion('1.2.3', '1.2.2-rc.1'), /必须大于当前版本/);
+  assert.throws(() => computeNextVersion('1.2.3-rc.1', '1.2.3-rc.0'), /必须大于当前版本/);
 });
 
 test('resolveReleaseTarget：关键字/显式更高版本走递增，显式同版本走同版本标记', () => {
@@ -43,15 +49,21 @@ test('resolveReleaseTarget：关键字/显式更高版本走递增，显式同�
   assert.deepStrictEqual(resolveReleaseTarget('1.2.3', 'major'), { version: '2.0.0', sameVersion: false });
   assert.deepStrictEqual(resolveReleaseTarget('1.2.3', '2.0.0'), { version: '2.0.0', sameVersion: false });
   assert.deepStrictEqual(resolveReleaseTarget('1.2.3', '1.2.3'), { version: '1.2.3', sameVersion: true });
+  assert.deepStrictEqual(resolveReleaseTarget('1.2.3', '1.2.3-rc.1'), { version: '1.2.3-rc.1', sameVersion: false });
+  assert.deepStrictEqual(resolveReleaseTarget('1.2.3-rc.1', '1.2.3-rc.1'), { version: '1.2.3-rc.1', sameVersion: true });
   assert.throws(() => resolveReleaseTarget('1.2.3', '1.2.2'), /必须大于当前版本/);
   assert.throws(() => resolveReleaseTarget('1.2.3', 'latest'), /无效的版本参数/);
 });
 
-test('normalizeTagVersion：只接受 vX.Y.Z，返回裸版本号', () => {
+test('normalizeTagVersion：接受 vX.Y.Z 与 vX.Y.Z-预发布，返回裸版本号', () => {
   assert.strictEqual(normalizeTagVersion('v1.2.3'), '1.2.3');
+  assert.strictEqual(normalizeTagVersion('v1.2.3-rc.1'), '1.2.3-rc.1');
+  assert.strictEqual(normalizeTagVersion('v1.1.0-a1'), '1.1.0-a1');
   assert.throws(() => normalizeTagVersion('1.2.3'), /vX\.Y\.Z/);
   assert.throws(() => normalizeTagVersion('v1.2'), /vX\.Y\.Z/);
-  assert.throws(() => normalizeTagVersion('v1.2.3-rc.1'), /vX\.Y\.Z/);
+  assert.throws(() => normalizeTagVersion('v1.2.3-'), /vX\.Y\.Z/);
+  assert.throws(() => normalizeTagVersion('v1.2.3-rc_1'), /vX\.Y\.Z/);
+  assert.throws(() => normalizeTagVersion('v1.2.3-01'), /vX\.Y\.Z/);
   assert.throws(() => normalizeTagVersion(''), /vX\.Y\.Z/);
 });
 
@@ -59,9 +71,21 @@ test('semver 工具：isSemver / compareSemver / formatUtcDate', () => {
   assert.strictEqual(isSemver('1.0.0'), true);
   assert.strictEqual(isSemver('1.0'), false);
   assert.strictEqual(isSemver(100), false);
+  assert.strictEqual(isSemver('1.0.0-a1'), true);
+  assert.strictEqual(isSemver('1.0.0-a.1'), true);
+  assert.strictEqual(isSemver('1.0.0-'), false);
+  assert.strictEqual(isSemver('1.0.0-a..b'), false);
+  assert.strictEqual(isSemver('1.0.0-01'), false, '数字标识符不得有前导零');
   assert.ok(compareSemver('2.0.0', '1.9.9') > 0);
   assert.ok(compareSemver('1.2.3', '1.2.3') === 0);
   assert.ok(compareSemver('1.2.3', '1.2.4') < 0);
+  assert.ok(compareSemver('1.1.0-a1', '1.1.0') < 0, '预发布 < 正式版');
+  assert.ok(compareSemver('1.1.0-a2', '1.1.0-a1') > 0);
+  assert.ok(compareSemver('1.1.0-10', '1.1.0-9') > 0, '数字标识符按数值比较');
+  assert.ok(compareSemver('1.1.0-a10', '1.1.0-a9') < 0, '字母数字标识符按 ASCII 字典序');
+  assert.ok(compareSemver('1.1.0-rc.1', '1.1.0-a1') > 0, 'ASCII 字典序：rc > a1');
+  assert.ok(compareSemver('1.1.0-alpha', '1.1.0-alpha.1') < 0, '公共前缀时标识符更少者更小');
+  assert.ok(compareSemver('1.1.0-1', '1.1.0-a') < 0, '数字标识符优先级低于字母数字');
   assert.strictEqual(formatUtcDate(new Date('2026-09-27T23:59:59.000Z')), '2026-09-27');
 });
 
@@ -122,6 +146,25 @@ test('rewriteChangelog：状态① 有 Unreleased、无目标版本段 → 重�
   assert.ok(plan.text.includes('[1.1.0]: https://github.com/stop666two/S-ynapse/releases/tag/v1.1.0'), '补版本链接');
   assert.strictEqual(plan.linkAdded, true);
   assert.ok(plan.text.endsWith('\n'), '文件以换行结尾');
+});
+
+test('rewriteChangelog：预发布版本段（X.Y.Z-a1）可正确重命名并补链接', () => {
+  const input = [
+    '# Changelog',
+    '',
+    '## [Unreleased]',
+    '',
+    '### Added',
+    '',
+    '- 预发布条目 A',
+    ''
+  ].join('\n');
+  const plan = planChangelogRewrite(input, '1.2.0-a1', '2026-09-27');
+  assert.strictEqual(plan.mode, 'rename');
+  assert.ok(plan.text.includes('## [1.2.0-a1] - 2026-09-27'), '预发布段标题');
+  assert.ok(plan.text.includes('- 预发布条目 A'), '条目保留');
+  assert.ok(plan.text.includes('[1.2.0-a1]: https://github.com/stop666two/S-ynapse/releases/tag/v1.2.0-a1'), '预发布版本链接');
+  assert.strictEqual(plan.linkAdded, true);
 });
 
 test('rewriteChangelog：状态② 有 Unreleased 与目标版本段 → 合并、删段、改日期', () => {

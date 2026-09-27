@@ -476,13 +476,23 @@
 > - `inlineDelimiters` 置空串/缺失回退默认；`autoDetect`/`mathml` 仅在显式 `false` 时关闭。
 
 ### 3.18 mermaid
-`enabled true` / `autoDetect true` / `version 11.4.1` / `followTheme true` / `lightTheme default` / `darkTheme dark` / `securityLevel strict` / `mode 'build'`（渲染模式：`build`=构建期服务端渲染，生成双主题内联 `<svg>`，页面不再加载 3.5MB vendor，渲染失败或无 Chrome 自动回退客户端 / `client`=保持懒加载 vendor + `__mmStart` 客户端渲染） / `darkMode true`（仅 `mode='build'` 生效：明/暗各渲染一份 SVG，页内 CSS 切换、零闪烁；false=仅明色） / `chromePath ''`（仅 `mode='build'` 自动探测失败时使用；自动探测顺序：`CHROME_PATH` 环境变量 > Windows 默认安装路径 > Linux/macOS 的 `google-chrome`/`chromium`；缓存目录 `.cache/mermaid`，不入库） / `idleTimeoutMs 1500`(客户端懒加载 vendor 的空闲超时 ms) / `idleFallbackMs 200`(无 requestIdleCallback 兜底 ms) / `rerenderIdleTimeoutMs 300`(主题切换重渲染空闲超时 ms) / `rerenderIdleFallbackMs 60` / `renderTimeoutMs 10000`(构建期单块渲染超时 ms) / `copyAfterRender false` / `errorText [图表渲染失败]`（`errorTextEn` 为 en 站文案，空回退中文）
 
-> 接线说明：
-> - `autoDetect=true`（默认）= 构建期 SSR（仅识别显式 ` ```mermaid ` 围栏）；`false` = **构建期不检测/不渲染**，保留围栏代码并回退客户端渲染（`article.hasMermaid` 保持 true，页面懒加载 vendor 由 `__mmStart` 接管；仍仅识别显式围栏，不扫描普通文本）。`mode='client'` 时本键无额外作用。
-> - `followTheme=true`（默认）= 图表主题跟随站点（明/暗双份，受 `darkMode` 控制）；`false` = 仅明色单份 SVG（暗色沿用同一张图；同时修复既有缺陷：单主题产物在暗色模式下曾被 CSS 隐藏，现按 `data-theme-pair="light"` 保持可见）。客户端 `mode='client'` 下 `followTheme=false` 时固定明色主题且主题切换不重渲染。
-> - `copyAfterRender=true` = 每张已渲染（SSR）图右上角附「复制图表代码」按钮：原始 mermaid 源码经 `data-mm-code` 保留在产物中，点击复制（CSP 合规：事件委托 + `navigator.clipboard`，失败回退 `execCommand`；文案按页面语言 zh/en）。
-> - `errorText(En)` = 渲染失败占位文案：SSR 失败块在回退客户端的 `<pre>` 上携带 `data-mm-error`，客户端渲染最终失败时显示；`autoDetect=false` / `mode='client'` 场景由页面内联常量兜底（en 站取 `errorTextEn`，空回退中文）。canonical：`scripts/lib/feature-wiring.js → mermaidConfig/mermaidErrorText`。
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `enabled` | bool | `true` | 总开关 |
+| `autoDetect` | bool | `true` | 构建期识别显式 ` ```mermaid ` 围栏并 SSR；false = 不渲染、保留围栏回退客户端 |
+| `version` | string | `11.4.1` | 版本标识；实际渲染与缓存键以 `package.json` 安装的 mermaid 版本为准 |
+| `followTheme` | bool | `true` | 图表主题跟随站点（明/暗双份）；false = 仅明色单份 |
+| `lightTheme` / `darkTheme` | string | `default` / `dark` | 明/暗两份 SVG 使用的 mermaid 主题名 |
+| `securityLevel` | string | `strict` | mermaid 安全级别（`strict` 禁用 HTML 标签） |
+| `mode` | string | `build` | `build` = 构建期服务端渲染（生成双主题内联 `<svg>`，页面不再加载 3.5MB vendor；失败或无 Chrome 自动回退客户端）/ `client` = 保持懒加载 vendor + `__mmStart` 客户端渲染 |
+| `darkMode` | bool | `true` | 仅 `mode='build'` 生效：明/暗各渲染一份 SVG，页内 CSS 切换、零闪烁；false = 仅明色 |
+| `chromePath` | string | `''` | 仅 `mode='build'` 自动探测失败时使用；探测顺序：`CHROME_PATH` 环境变量 > Windows 默认安装路径 > Linux/macOS 的 `google-chrome`/`chromium` |
+| `idleTimeoutMs` / `idleFallbackMs` | number | `1500` / `200` | 客户端懒加载 vendor 的空闲超时与无 `requestIdleCallback` 兜底（ms） |
+| `rerenderIdleTimeoutMs` / `rerenderIdleFallbackMs` | number | `300` / `60` | 主题切换重渲染的空闲超时与兜底（ms） |
+| `renderTimeoutMs` | number | `10000` | 构建期单块渲染超时（ms） |
+| `copyAfterRender` | bool | `false` | 每张已渲染 SSR 图附「复制图表代码」按钮 |
+| `errorText` / `errorTextEn` | string | `[图表渲染失败]` | 渲染失败占位文案（en 站空回退中文；均空回退内置英文兜底） |
 
 `size` 子块 — 图表尺寸（全局默认，单图可覆盖）：
 - `width ''` / `height ''`(全局默认宽高，空=自然尺寸；单位白名单 px/%/vw/vh/rem，纯数字按 px)
@@ -490,6 +500,12 @@
 - `maxWidth 'none'` / `maxHeight 'none'`(`none`=不限制；`scroll` 模式下可横向滚动，设 `'100%'`/`'70vh'` 可强制限制)
 - `fit 'scroll'`(`scroll`=不缩放、超宽容器横向滚动（推荐，时序图/宽图不挤压） / `scale`=缩放到容器宽度（旧行为）)
 - 单图覆盖：代码块语言标记后追加 `w=` / `h=`，如 ` ```mermaid w=900 h=520 `；不填项走全局，非法值忽略并回退默认 — `scripts/build.js`(解析) + `templates/layout.ejs`(应用)
+
+> **接线说明**：
+> - `autoDetect=true`（默认）= 构建期 SSR（仅识别显式 ` ```mermaid ` 围栏）；`false` = **构建期不检测/不渲染**，保留围栏代码并回退客户端渲染（`article.hasMermaid` 保持 true，页面懒加载 vendor 由 `__mmStart` 接管；仍仅识别显式围栏，不扫描普通文本）。`mode='client'` 时本键无额外作用。
+> - `followTheme=true`（默认）= 图表主题跟随站点（明/暗双份，受 `darkMode` 控制）；`false` = 仅明色单份 SVG（暗色沿用同一张图；同时修复既有缺陷：单主题产物在暗色模式下曾被 CSS 隐藏，现按 `data-theme-pair="light"` 保持可见）。客户端 `mode='client'` 下 `followTheme=false` 时固定明色主题且主题切换不重渲染。
+> - `copyAfterRender=true` = 每张已渲染（SSR）图右上角附「复制图表代码」按钮：原始 mermaid 源码经 `data-mm-code` 保留在产物中，点击复制（CSP 合规：事件委托 + `navigator.clipboard`，失败回退 `execCommand`；文案按页面语言 zh/en）。
+> - `errorText(En)` = 渲染失败占位文案：SSR 失败块在回退客户端的 `<pre>` 上携带 `data-mm-error`，客户端渲染最终失败时显示；`autoDetect=false` / `mode='client'` 场景由页面内联常量兜底（en 站取 `errorTextEn`，空回退中文）。canonical：`scripts/lib/feature-wiring.js → mermaidConfig/mermaidErrorText`。
 
 ### 3.19 series — 系列
 `enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8`(侧栏系列 widget 最多展示条数,超出截断) / `prevLabel 上一篇` / `nextLabel 下一篇` / `progressLabel {index} / {total}`(进度模板) / `sidebarTitle 系列`(侧栏 widget 标题,sidebar.json5 w.title 为空时使用)。以上文案键均有同名 `*En`（`badgeFormatEn`/`panelTitleEn`/`prevLabelEn`/`nextLabelEn`/`sidebarTitleEn`），空回退中文
@@ -585,7 +601,13 @@
 
 ### 3.30 analytics
 
-`enabled true` / `scriptSrc https://static.cloudflareinsights.com/beacon.min.js` / `injectAt body`(`body|head`，非法回退 body) / `emitBeacon true` / `siteTag ''`
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `enabled` | bool | `true` | 统计注入开关（同时要求 `site.webAnalytics.enabled` 为真且解析出 token） |
+| `scriptSrc` | string | `https://static.cloudflareinsights.com/beacon.min.js` | 信标脚本地址（换非 CF 域名需同步放行 CSP） |
+| `injectAt` | string | `body` | 注入位置：`body`（`</body>` 前）/`head`（`</head>` 前）；非法值由 schema 拒绝 |
+| `emitBeacon` | bool | `true` | 是否输出 `data-cf-beacon` JSON（false = 不把 token 下发到页面） |
+| `siteTag` | string | `''` | 站点级 token 覆盖（非空优先于 `site.webAnalytics.token` 与环境变量） |
 
 > **接线说明（构建期注入）**：
 > - 注入条件：`features.analytics.enabled` 与 `site.webAnalytics.enabled` 同为真，且解析出 token（见下）；token 为空时不注入（保持历史「无 token 警告」）。
@@ -597,7 +619,12 @@
 
 ### 3.31 redirects
 
-`enabled true`(site.json5 自定义规则开关) / `generatePagesFile true`(false = 不生成 _redirects) / `applyInServe true`(false = 本地 serve 不应用) / `invalidRule abort`(`warn-only|abort`)
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `enabled` | bool | `true` | `site.json5` 自定义规则开关（false 时仍生成框架语言/别名规则） |
+| `generatePagesFile` | bool | `true` | false = 完全不产出 `dist/_redirects`（含框架别名） |
+| `applyInServe` | bool | `true` | false = `_redirects` 照常生成，仅本地 serve 不应用 |
+| `invalidRule` | string | `abort` | 非法规则策略：`abort`（记录构建失败，非零退出）/`warn-only`（告警并跳过该条） |
 
 > **接线说明**：
 > - `enabled=false`：跳过 `site.redirects` 自定义规则，仍生成框架语言/别名规则（`/ → /{lang}/`、`/feed.xml`、`/search-index.json`、自定义页面别名）。默认 `true`（对齐历史「恒应用自定义规则」行为；原默认 false 与实现漂移已修正，见 CHANGELOG Changed）。
@@ -608,7 +635,13 @@
 
 ### 3.32 maintenance
 
-`enabled false` / `message 站点维护中，请稍后再来。`（`messageEn` en 站文案，空回退中文） / `status 503` / `setRetryAfter true` / `retryAfter 3600`
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `enabled` | bool | `false` | 声明维护响应参数是否生效于服务端配置生成（运行开关仍为 `MAINTENANCE=1`/`--maintenance`） |
+| `message` / `messageEn` | string | `站点维护中，请稍后再来。` | 维护页文案（en 站空回退中文） |
+| `status` | number | `503` | 维护响应状态码 |
+| `setRetryAfter` | bool | `true` | 是否输出 `Retry-After` 响应头 |
+| `retryAfter` | number | `3600` | `Retry-After` 秒数（非法/非正回退 3600） |
 
 > **接线说明（本地 serve 与 Worker 同源）**：`setRetryAfter=false` 时维护响应不输出 `Retry-After`；`retryAfter`（秒，非法/非正回退 3600）为响应值。构建期经 `scripts/generate-security-config.js → maintenanceWorkerConfig` 写入 `workers/security-config.js`，Worker 读取后应用于维护响应；本地 serve 直接读 `config.features.maintenance`。运行开关仍为 `--maintenance`/`MAINTENANCE=1`（serve）与 Worker 环境变量 `MAINTENANCE=1`（`enabled` 键不参与运行时开关）。单测：`scripts/security-worker.test.js`（Worker 关闭态）+ `scripts/config-wiring.test.js`（归一化）；runner 覆盖 serve 两态。
 
@@ -654,7 +687,12 @@
 
 ### 3.37 performance
 
-`warningJsKb 80` / `warningHtmlKb 400` / `warningImageKb 300` / `warningBuildMs 30000`
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `warningJsKb` | number | `80` | `assets/js` 全部应用 JS（gzip 合计）超限告警 |
+| `warningHtmlKb` | number | `400` | 最大 HTML 原始体积（单页 raw）超限告警 |
+| `warningImageKb` | number | `300` | `dist/media` 用户图片（优化后）超限告警，列最多 10 条；OG 产物不计 |
+| `warningBuildMs` | number | `30000` | 本次构建耗时超限告警 |
 
 > **构建性能告警（仅提示，不阻断）**：构建收尾按实测值逐项输出 `[WARN]`——
 > - `warningJsKb`：`assets/js` 全部应用 JS（gzip 合计）超限；
@@ -665,7 +703,11 @@
 
 ### 3.38 debug
 
-`verbose false` / `listPages false` / `dumpConfig false`
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `verbose` | bool | `false` | 输出构建阶段耗时标记（`[DEBUG] …（+Nms）`）与增量构建逐页跳过明细 |
+| `listPages` | bool | `false` | 构建末输出渲染页面清单（相对产物根路径、按字典序） |
+| `dumpConfig` | bool | `false` | 配置校验后输出解析合并配置摘要（顶层模块与键数、关键开关；敏感字段只显示是否已设置，不输出明文） |
 
 > **开发助手（默认全关，不影响正常输出）**：
 > - `verbose=true`：输出构建阶段耗时标记（`[DEBUG] …（+Nms）`）与增量构建逐页跳过明细（`[incremental] skip: path`）；
@@ -928,7 +970,13 @@ listCover: {
 
 ### 3.95 incrementalBuild — 增量构建
 
-`enabled true` / `fullFlag '--full'` / `watch true` / `fingerprintHash 'sha1'` / `skipUnchanged true`
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `enabled` | bool | `true` | 页面级增量总开关 |
+| `fullFlag` | string | `--full` | 强制全量重建的 CLI 参数名（`--full` 始终有效） |
+| `watch` | bool | `true` | `--watch` 监听重建时启用增量；false 时仅显式 `--incremental` 生效 |
+| `fingerprintHash` | string | `sha1` | 页面指纹哈希算法：`sha1`/`sha256`/`md5`（非法值回退 sha1） |
+| `skipUnchanged` | bool | `true` | 指纹一致且产物存在时跳过重新渲染并复用现有产物 |
 
 > **页面级增量渲染（最小可用实现）**：
 > - 启用条件：`enabled` 且 `skipUnchanged` 非 false，且非强制全量，且请求来源为 `--watch`（`watch=true`）或显式 `--incremental`；普通 `npm run build` 始终全量（`cleanDist` 行为不变）。
@@ -1096,7 +1144,7 @@ listCover: {
 
 独立 UI 参数文件(37 分类 / 269 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
-**优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已在「tuning 收尾」中全部清理(单一入口归各自模块配置);10 项原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
+**优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已全部清理(单一入口归各自模块配置);原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
 
 **分类(37)**:typography / layout / radius / motion / hero / card / toc / search / reading / comments / header / pagination / stats / breadcrumb / share / prevNext / contactPopup / reward / dailyQuote / tags / series / backToTop / texture / glow / code / icons / morphicons / magazine / commandPalette / announcement / guard / loading / mobileToc / ui / lightbox / toast / zIndex。
 

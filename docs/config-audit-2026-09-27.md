@@ -373,7 +373,7 @@ npm run build -- --out .tmp-scripts/out/audit-build
 
 ## 十二、现状结论（本报告结论更新）
 
-- **配置规模**：14 个 JSON5（含 `compression.json5`），合计 2692 项（口径：对象逐层展开、数组元素逐项计入）——`features` 97 模块/919 项、`tuning` 37 分类/269 项、`guard` 11 模块/172 项。
+- **配置规模**：14 个 JSON5（含 `compression.json5`），合计 2692 项（口径：对象逐层展开、数组元素逐项计入且元素为对象时不再展开）——`features` 97 模块/919 项、`tuning` 37 分类/269 项、`guard` 11 模块/172 项。
 - **门禁链（全部 PASS）**：`verify:config`（结构/默认值一致性）、`verify:config-refs`（2465 叶子键 × 152 源码文件，零未接线）、`verify:config-comments`（逐键注释覆盖率）、`node scripts/check-config-docs.js`（1854 个顶层/模块键在 `docs/config-reference.md` 全覆盖，零残留已删除模块小节）、`verify:security`、`verify:compression`。
 - **文档**：`docs/config-reference.md` 13 章逐字段参考（含 compression 全字段表、tuning 完整键名索引、弹窗公告/软导航/锚点稳定/LCP 治理字段表）。
 - **测试**：`npm test` 611 项 / 111 组全部通过（本报告结论更新时实测）。

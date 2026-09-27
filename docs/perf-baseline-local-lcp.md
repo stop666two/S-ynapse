@@ -4,7 +4,7 @@
 > 采样口径：Slow 4G（下行 200000 B/s / 上行 93750 B/s / RTT 150ms）+ CPU 4x + 禁用缓存 + 独立上下文，每页 3 次取中位数。
 > 本地与生产不可直接对比（无 CDN 边缘、无 Brotli、单机 Node 压缩），仅用于同口径前后回归。
 >
-> **当前状态**：`features.lcpOptimize` 的四个优化键（`revealExemptFirstPaint` / `asyncCjkFontCss` / `skipLatinFontPreloadOnCjk` / `contentVisibility`）默认均为 `false`——实测收益不稳定或未达标（冷锚点直达场景），故默认关闭并保留键位；逐键结论见 `docs/config-reference.md` §3.94。本文件为该轮 A/B 的采样记录。
+> **当前状态**：schema 默认四个键均为 `false`；本仓库当前配置启用其中三个（`revealExemptFirstPaint` / `asyncCjkFontCss` / `skipLatinFontPreloadOnCjk` = `true`），`contentVisibility` 因实测未达标保持 `false`。逐键结论与代价见 `docs/config-reference.md` §3.94；本文件为该轮 A/B 的采样记录。
 
 ## LCP 元素
 

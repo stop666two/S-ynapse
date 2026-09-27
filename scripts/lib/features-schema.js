@@ -102,7 +102,11 @@ const DEFAULT_FEATURES = {
     source: 'builtin', dataFile: 'data/quotes.json5', count: 0, quoteColor: '',
     refreshLabel: '换一句', refreshLabelEn: 'Another',
     copyLabel: '复制', copyLabelEn: 'Copy',
-    copiedLabel: '已复制', copiedLabelEn: 'Copied'
+    copiedLabel: '已复制', copiedLabelEn: 'Copied',
+    api: {
+      enabled: true, endpoint: 'https://v1.hitokoto.cn/', categories: ['d', 'i', 'k'],
+      maxLength: 0, timeoutMs: 5000, minIntervalMs: 1000, attributionText: '来源：一言'
+    }
   },
   favorites: {
     enabled: true, position: 'toolbar', storageKey: 's-favorites',

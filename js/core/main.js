@@ -82,7 +82,8 @@ const idleQueue = [
   dyn('favorites', '../domains/features/favorites.js'),
   dyn('popup-notice', '../domains/features/popup-notice.js'),
   dyn('cover', '../domains/features/cover.js'),
-  dyn('touch-fallback', '../domains/features/touch-fallback.js')
+  dyn('touch-fallback', '../domains/features/touch-fallback.js'),
+  dyn('bilingual', '../domains/features/bilingual.js')
 ];
 
 const criticalQueue = [

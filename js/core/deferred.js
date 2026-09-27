@@ -29,6 +29,7 @@ import { init as rewardInit } from '../domains/features/reward.js';
 import { init as popupNoticeInit } from '../domains/features/popup-notice.js';
 import { init as coverInit } from '../domains/features/cover.js';
 import { init as touchFallbackInit } from '../domains/features/touch-fallback.js';
+import { init as bilingualInit } from '../domains/features/bilingual.js';
 
 const registry = {
   search: searchInit,
@@ -57,7 +58,8 @@ const registry = {
   reward: rewardInit,
   'popup-notice': popupNoticeInit,
   cover: coverInit,
-  'touch-fallback': touchFallbackInit
+  'touch-fallback': touchFallbackInit,
+  bilingual: bilingualInit
 };
 
 export function load(name) {

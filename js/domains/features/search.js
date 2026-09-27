@@ -14,7 +14,10 @@ export function init() {
       var m = location.pathname.match(/^\/([a-z]{2})(\/|$)/);
       url = '/' + (m ? m[1] : 'zh') + '/search-index.json';
     }
-    var timeoutMs = +(TNS.indexTimeoutMs || 5000);
+    var tRaw = +TNS.indexTimeoutMs;
+    var timeoutMs = isNaN(tRaw) || tRaw <= 0 ? 5000 : tRaw;
+    var rRaw = parseInt(TNS.indexRetry, 10);
+    var retries = isNaN(rRaw) || rRaw < 0 ? 1 : rRaw;
     function fetchOnce(attempt) {
       var opts = { credentials: 'same-origin' };
       if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) opts.signal = AbortSignal.timeout(timeoutMs);
@@ -22,7 +25,7 @@ export function init() {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
       }).catch(function (err) {
-        if (attempt < 1) return fetchOnce(attempt + 1);
+        if (attempt < retries) return fetchOnce(attempt + 1);
         throw err;
       });
     }
@@ -334,7 +337,8 @@ export function init() {
     var box = document.createElement('div');
     box.className = 'search-result-empty search-result-error';
     var msg = document.createElement('div');
-    msg.textContent = TNS.errorText || __T('search.loadError', '搜索索引加载失败，请检查网络后重试');
+    // 失败提示链：tuning.search.errorText(En)（按语言，空 = 不参与）> i18n 内置双语兜底。
+    msg.textContent = (isEnSearch() ? (TNS.errorTextEn || '') : (TNS.errorText || '')) || __T('search.loadError', '搜索索引加载失败，请检查网络后重试');
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'search-retry-btn';
@@ -372,13 +376,15 @@ export function init() {
   function bumpHot(q) {
     var F3 = window.__FEATURES__ || {}, HS = (F3 && F3.hotSearches) || {};
     if (HS.enabled === false || HS.showInDropdown === false || !q) return;
+    // features.hotSearches.maxWords（缺省/非法回退 50，保持历史行为）。
+    var MW = isNaN(+HS.maxWords) ? 50 : Math.max(1, Math.floor(+HS.maxWords));
     var hot = readHot();
     hot[q] = (+hot[q] || 0) + 1;
     var keys = Object.keys(hot);
-    if (keys.length > 50) {
+    if (keys.length > MW) {
       keys.sort(function (a, b) { return hot[b] - hot[a]; });
       var pruned = {};
-      keys.slice(0, 50).forEach(function (k) { pruned[k] = hot[k]; });
+      keys.slice(0, MW).forEach(function (k) { pruned[k] = hot[k]; });
       hot = pruned;
     }
     try { localStorage.setItem(__HSK + HOT_SUFFIX, JSON.stringify(hot)); } catch (e) { /* 忽略：存储不可用时热门词不记录 */ }

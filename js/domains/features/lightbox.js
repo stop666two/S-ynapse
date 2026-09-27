@@ -15,6 +15,13 @@ export function init() {
     var sel = L.selectors || '.post-content img,.gallery-item img';
     var zoomE = L.zoomEnabled !== false, panE = L.panEnabled !== false, rotE = L.rotateEnabled !== false, pinchE = L.pinchEnabled !== false;
     var step = +L.zoomStep || .25, zmin = +L.zoomMin || 1, zmax = +L.zoomMax || 4;
+    /* 手势阈值缺省/非法回退 50 / 80 / 80 / 2 / 6，均保持历史行为。 */
+    var rawSwipe = +L.swipeThresholdPx, rawSwipeClose = +L.swipeCloseThresholdPx, rawMouseSwipe = +L.mouseSwipeThresholdPx;
+    var swipePx = isNaN(rawSwipe) ? 50 : Math.max(0, rawSwipe);
+    var swipeClosePx = isNaN(rawSwipeClose) ? 80 : Math.max(0, rawSwipeClose);
+    var mouseSwipePx = isNaN(rawMouseSwipe) ? 80 : Math.max(0, rawMouseSwipe);
+    var dblLevel = isNaN(+L.dblClickZoomLevel) ? 2 : Math.max(1, +L.dblClickZoomLevel);
+    var clickTol = isNaN(+L.clickTolerancePx) ? 6 : Math.max(0, +L.clickTolerancePx);
     var dbl = L.dblClickZoom !== false, wheel = L.wheelZoom !== false, showBtns = L.showZoomButtons !== false;
     var canNav = L.prevNextButtons !== false, cntShow = L.showCounter !== false, kbNav = L.keyboardNavigate !== false, esc = L.escToClose !== false, bdClose = L.closeOnBackdrop !== false, swipe = L.swipeToNavigate !== false, swipeClose = L.swipeClose !== false;
     var prev = document.getElementById('lbPrev'), next = document.getElementById('lbNext'), close = document.getElementById('lbClose');
@@ -43,7 +50,7 @@ export function init() {
     lb.addEventListener('pointerdown', function (e) { downX = e.clientX; downY = e.clientY; });
     if (bdClose) lb.addEventListener('click', function (e) {
       if (downX === null) return;
-      if (Math.hypot(e.clientX - downX, e.clientY - downY) > 6) return;
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) > clickTol) return;
       if (e.target === lb) { hide(); return; }
       if (e.target === stage && img) {
         var r = img.getBoundingClientRect();
@@ -51,11 +58,11 @@ export function init() {
       }
     });
     document.addEventListener('keydown', function (e) { if (!lb.classList.contains('open')) return; var k = e.key; if (k === 'Escape' && esc) { hide(); } else if (k === 'ArrowLeft' && kbNav) { e.preventDefault(); show(idx - 1); } else if (k === 'ArrowRight' && kbNav) { e.preventDefault(); show(idx + 1); } });
-    if (swipe) { lb.addEventListener('touchstart', function (e) { tx0 = e.touches[0].clientX; ty0 = e.touches[0].clientY; }, { passive: true }); lb.addEventListener('touchend', function (e) { if (tx0 === null) return; var dx = e.changedTouches[0].clientX - tx0, dy = e.changedTouches[0].clientY - ty0; if (swipeClose && sc <= 1 && dy > 80 && Math.abs(dy) > Math.abs(dx)) { hide(); tx0 = null; ty0 = null; return; } if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) { if (dx > 50) show(idx - 1); if (dx < -50) show(idx + 1); } tx0 = null; ty0 = null; }, { passive: true }); }
-    if (swipe) { stage.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse' || sc > 1 || rot !== 0 || !lb.classList.contains('open')) return; mdx = e.clientX; }); stage.addEventListener('pointerup', function (e) { if (e.pointerType !== 'mouse' || mdx === null) return; var d = e.clientX - mdx; mdx = null; if (Math.abs(d) > 80) { show(d < 0 ? idx + 1 : idx - 1); } }); }
+    if (swipe) { lb.addEventListener('touchstart', function (e) { tx0 = e.touches[0].clientX; ty0 = e.touches[0].clientY; }, { passive: true }); lb.addEventListener('touchend', function (e) { if (tx0 === null) return; var dx = e.changedTouches[0].clientX - tx0, dy = e.changedTouches[0].clientY - ty0; if (swipeClose && sc <= 1 && dy > swipeClosePx && Math.abs(dy) > Math.abs(dx)) { hide(); tx0 = null; ty0 = null; return; } if (Math.abs(dx) > swipePx && Math.abs(dx) > Math.abs(dy)) { if (dx > swipePx) show(idx - 1); if (dx < -swipePx) show(idx + 1); } tx0 = null; ty0 = null; }, { passive: true }); }
+    if (swipe) { stage.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse' || sc > 1 || rot !== 0 || !lb.classList.contains('open')) return; mdx = e.clientX; }); stage.addEventListener('pointerup', function (e) { if (e.pointerType !== 'mouse' || mdx === null) return; var d = e.clientX - mdx; mdx = null; if (Math.abs(d) > mouseSwipePx) { show(d < 0 ? idx + 1 : idx - 1); } }); }
     /* zoom & pan & rotate */
     if (zIn) zIn.onclick = function () { zoomTo(sc + step); }; if (zOut) zOut.onclick = function () { zoomTo(sc - step); }; if (rotL) rotL.onclick = function () { rot = (rot + 270) % 360; apply(); }; if (rotR) rotR.onclick = function () { rot = (rot + 90) % 360; apply(); }; if (rst) rst.onclick = reset;
-    if (dbl) stage.addEventListener('dblclick', function (e) { if (!lb.classList.contains('open')) return; if (sc > 1) { reset(); } else { var r = stage.getBoundingClientRect(); zoomTo(2, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); } });
+    if (dbl) stage.addEventListener('dblclick', function (e) { if (!lb.classList.contains('open')) return; if (sc > 1) { reset(); } else { var r = stage.getBoundingClientRect(); zoomTo(dblLevel, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); } });
     if (wheel) stage.addEventListener('wheel', function (e) { if (!lb.classList.contains('open')) return; e.preventDefault(); var mul = (e.ctrlKey || e.metaKey) ? 2 : 1; zoomTo(sc + (e.deltaY < 0 ? step : -step) * mul); }, { passive: false });
     if (panE) stage.addEventListener('pointerdown', function (e) { if (sc <= 1 && rot === 0) return; panning = true; sx = e.clientX - px; sy = e.clientY - py; img.style.cursor = 'grabbing'; stage.setPointerCapture(e.pointerId); });
     if (panE) stage.addEventListener('pointermove', function (e) { if (!panning) return; px = e.clientX - sx; py = e.clientY - sy; apply(); });

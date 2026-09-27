@@ -21,9 +21,9 @@ export function init() {
       primaryOnly: false
     };
   }
-  // 热键语义：undefined/null 回退默认 'k'；空字符串=显式关闭监听（与 features.json5 注释一致）
-  var hotkey = parseHotkey(F.hotkey === undefined || F.hotkey === null ? 'k' : F.hotkey);
-  var maxResults = Number(F.maxResults) > 0 ? Number(F.maxResults) : 8;
+  // 热键语义：undefined/null 回退默认 'ctrl+shift+p'（与 features.json5/schema 同值）；空字符串=显式关闭监听
+  var hotkey = parseHotkey(F.hotkey === undefined || F.hotkey === null ? 'ctrl+shift+p' : F.hotkey);
+  var maxResults = Number(F.maxResults) > 0 ? Number(F.maxResults) : 10;
   var T = typeof window.__T === 'function' ? window.__T : function (k, d) { return d || k; };
   var dlg = null, input = null, listEl = null;
   var navItems = null, actItems = null, posts = null, results = [], active = -1;

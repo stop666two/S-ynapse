@@ -186,10 +186,13 @@ export function init() {
     return true;
   };
   const pre = (cfg() && cfg().preload) || 'interaction';
+  // features.morphIcons.idleTimeoutMs（缺省/非法回退 3000，保持历史行为）。
+  const idleRaw = +F.idleTimeoutMs;
+  const idleTimeoutMs = isNaN(idleRaw) ? 3000 : Math.max(0, Math.floor(idleRaw));
   if (pre === 'immediate') {
     loadVendor().then(function (m) { if (m) initAll(); });
   } else if (pre === 'idle' && typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(function () { loadVendor().then(function (m) { if (m) initAll(); }); }, { timeout: 3000 });
+    window.requestIdleCallback(function () { loadVendor().then(function (m) { if (m) initAll(); }); }, { timeout: idleTimeoutMs });
   }
   const events = ['pointerover', 'pointerdown', 'touchstart', 'focusin'];
   function disarm() {

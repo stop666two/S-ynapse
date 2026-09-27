@@ -7,20 +7,22 @@ const SP_SUPPORTED = (function () {
 
 function cfgVT() { return (window.__FEATURES__ && window.__FEATURES__.viewTransition) || {}; }
 function cfgSP() { return (window.__FEATURES__ && window.__FEATURES__.speculation) || {}; }
-function storeKey(cfg) {
-  return cfg.toggle && cfg.toggle.storageKey;
+// storageKey 缺省回退各自 JSON5 默认键（features.viewTransition/speculation.toggle.storageKey），
+// 避免配置缺省（degrade/老配置）时写入 "undefined" 键。
+function storeKey(cfg, fallback) {
+  return (cfg.toggle && cfg.toggle.storageKey) || fallback;
 }
-function getOn(cfg) {
+function getOn(cfg, fallback) {
   const t = cfg.toggle || {};
   try {
-    const v = localStorage.getItem(storeKey(cfg));
+    const v = localStorage.getItem(storeKey(cfg, fallback));
     if (v === '0') return false;
     if (v === '1') return true;
   } catch (e) { /* 隐私模式等场景下忽略 */ }
   return t.defaultOn !== false;
 }
-function setOn(cfg, on) {
-  try { localStorage.setItem(storeKey(cfg), on ? '1' : '0'); } catch (e) { /* 忽略 */ }
+function setOn(cfg, on, fallback) {
+  try { localStorage.setItem(storeKey(cfg, fallback), on ? '1' : '0'); } catch (e) { /* 忽略 */ }
 }
 function sysReduce() {
   try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
@@ -30,7 +32,7 @@ function vtActive() {
   if (c.enabled === false || !VT_SUPPORTED) return false;
   const rm = c.reducedMotion || 'light';
   if (rm === 'off' && sysReduce()) return false;
-  return getOn(c);
+  return getOn(c, 's-view-transition');
 }
 function spDelivery() {
   return cfgSP().delivery || 'inline';
@@ -39,7 +41,7 @@ function spActive() {
   const c = cfgSP();
   if (c.enabled === false || !SP_SUPPORTED) return false;
   if (spDelivery() === 'header') return false;
-  return getOn(c);
+  return getOn(c, 's-speculation');
 }
 window.__viewTransitionActive = vtActive;
 
@@ -120,11 +122,11 @@ function initUI() {
     }
   });
   if (vtBox) vtBox.addEventListener('change', function () {
-    setOn(cfgVT(), vtBox.checked);
+    setOn(cfgVT(), vtBox.checked, 's-view-transition');
     setVtOff(!vtActive());
   });
   if (spBox) spBox.addEventListener('change', function () {
-    setOn(cfgSP(), spBox.checked);
+    setOn(cfgSP(), spBox.checked, 's-speculation');
     setSpeculation(spActive());
   });
 }

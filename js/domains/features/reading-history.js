@@ -3,6 +3,8 @@ export function init() {
   if (F.enabled === false) return;
   var KEY = String(F.storageKey);
   var maxItems = Number(F.maxItems) > 0 ? Number(F.maxItems) : 5;
+  // features.readingHistory.maxStored（缺省/非法回退 50，保持历史行为；仅存储上限，展示条数由 maxItems 控制）。
+  var maxStored = Number(F.maxStored) > 0 ? Math.floor(Number(F.maxStored)) : 50;
   var T = typeof window.__T === 'function' ? window.__T : function (k, d) { return d || k; };
   function load() {
     try {
@@ -11,7 +13,7 @@ export function init() {
     } catch (e) { return []; }
   }
   function save(a) {
-    try { localStorage.setItem(KEY, JSON.stringify(a.slice(0, 50))); } catch (e) { /* storage 满或被禁用时静默降级 */ }
+    try { localStorage.setItem(KEY, JSON.stringify(a.slice(0, maxStored))); } catch (e) { /* storage 满或被禁用时静默降级 */ }
   }
   function record() {
     if (document.prerendering) {

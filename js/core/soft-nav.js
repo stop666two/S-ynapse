@@ -4,7 +4,7 @@
 //   - 任何异常（超时、解析失败、目标结构缺失、交换抛错）都会回退为 location.href 整页跳转；
 //   - 页内开关（features.softNavigation.toggle）供用户规避兼容问题；关闭后恢复浏览器原生导航；
 //   - 文档级监听器只绑定一次；页面级模块通过 __SOFTNAV_HOOKS__ 注册重绑函数，交换后统一重绑。
-const CACHE_MAX = 16;
+const CACHE_MAX_FALLBACK = 16;
 let navSeq = 0;
 let prefetchTimer = null;
 const cache = new Map();
@@ -60,7 +60,10 @@ function eligible(a) {
 }
 
 function trimCache() {
-  while (cache.size > CACHE_MAX) {
+  // features.softNavigation.cacheMaxEntries（缺省/非法回退 16，保持历史行为）。
+  const raw = +cfg().cacheMaxEntries;
+  const max = Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : CACHE_MAX_FALLBACK;
+  while (cache.size > max) {
     const oldest = cache.keys().next().value;
     cache.delete(oldest);
   }

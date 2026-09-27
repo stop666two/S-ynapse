@@ -16,7 +16,9 @@ export function init() {
   // false（默认）= 不改写浏览器默认行为（当前页面跳转），保持历史行为。
   var wlNewTab = EL.whitelistNewTab === true;
   var copyBtn = document.getElementById('linkWarningCopy');
-  var COPY_FEEDBACK_MS = 1500;
+  // features.externalLink.copyFeedbackMs（缺省/非法回退 1500，保持历史行为）。
+  var rawCopyMs = +EL.copyFeedbackMs;
+  var COPY_FEEDBACK_MS = isNaN(rawCopyMs) ? 1500 : Math.max(0, rawCopyMs);
   var openExt = function (u) { window.open(u, newTab ? '_blank' : '_self', newTab ? 'noopener' : ''); };
   // 复制按钮文案优先级：copyButtonTextEn（en 站，空回退中文键）> copyButtonText > ui-strings/built-in 双语。
   function copyButtonLabel() {

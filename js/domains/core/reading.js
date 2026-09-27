@@ -1,8 +1,19 @@
+// 阅读模式配置：persist=false 时不读写存储（仅当次会话），并清理旧值；storageKey 缺省回退历史键名。
+function readModeCfg() {
+  var F = window.__FEATURES__ || {}, R = (F && F.readMode) || {};
+  return { persist: R.persist !== false, key: R.storageKey || 'readingMode' };
+}
+
 export function toggleReadingMode() {
   var d = document.documentElement;
-  var a = d.getAttribute('data-reading');
-  if (a === 'true') { d.removeAttribute('data-reading'); try { localStorage.setItem('readingMode', 'false'); } catch (e) { /* 忽略：存储不可用时阅读模式仅当次会话有效 */ } }
-  else { d.setAttribute('data-reading', 'true'); try { localStorage.setItem('readingMode', 'true'); } catch (e) { /* 忽略：存储不可用时阅读模式仅当次会话有效 */ } }
+  var on = d.getAttribute('data-reading') !== 'true';
+  var RM = readModeCfg();
+  if (on) d.setAttribute('data-reading', 'true');
+  else d.removeAttribute('data-reading');
+  try {
+    if (RM.persist) localStorage.setItem(RM.key, on ? 'true' : 'false');
+    else localStorage.removeItem(RM.key);
+  } catch (e) { /* 忽略：存储不可用时阅读模式仅当次会话有效 */ }
 }
 
 // 返回顶部：features.backToTop.scrollDurationMs 自定义 rAF 缓动（0=瞬时）；
@@ -90,11 +101,15 @@ function updateDock() {
   var sh = document.documentElement.scrollHeight - window.innerHeight;
   var pc = sh > 0 ? Math.min(1, window.scrollY / sh) : 0;
   if (S.ring) S.ring.style.strokeDashoffset = String(R * (1 - pc));
+  // 显隐阈值：hideBelowPx（近顶部恒显）与 directionDeltaPx（方向判定增量）缺省回退 80/12，保持历史行为。
+  var rawBelow = +CFG.D.hideBelowPx, rawDelta = +CFG.D.directionDeltaPx;
+  var hideBelowPx = isNaN(rawBelow) ? 80 : Math.max(0, rawBelow);
+  var directionDeltaPx = isNaN(rawDelta) ? 12 : Math.max(0, rawDelta);
   var last = +d.getAttribute('data-last') || 0, now = window.scrollY;
   if (CFG.D.hideOnScrollDown !== false && document.querySelector('.post-content')) {
-    if (now < 80) { d.classList.add('visible'); d.classList.remove('scroll-hide'); }
-    else if (now > last + 12) { d.classList.remove('visible'); d.classList.add('scroll-hide'); }
-    else if (now < last - 12) { d.classList.add('visible'); d.classList.remove('scroll-hide'); }
+    if (now < hideBelowPx) { d.classList.add('visible'); d.classList.remove('scroll-hide'); }
+    else if (now > last + directionDeltaPx) { d.classList.remove('visible'); d.classList.add('scroll-hide'); }
+    else if (now < last - directionDeltaPx) { d.classList.add('visible'); d.classList.remove('scroll-hide'); }
   }
   d.setAttribute('data-last', String(now));
 }
@@ -132,7 +147,9 @@ function bind() {
       S.bar.addEventListener('keydown', function (e) {
         var sh = document.documentElement.scrollHeight - window.innerHeight;
         if (sh <= 0) return;
-        var step = 0.05, cur = window.scrollY / sh;
+        // features.readingProgress.keyboardStep（缺省/非法回退 0.05，保持历史行为；上限 1）。
+        var rawStep = +CFG.RP.keyboardStep;
+        var step = isNaN(rawStep) || rawStep <= 0 ? 0.05 : Math.min(1, rawStep), cur = window.scrollY / sh;
         if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); seekPct(cur + step); }
         else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); seekPct(cur - step); }
         else if (e.key === 'Home') { e.preventDefault(); seekPct(0); }

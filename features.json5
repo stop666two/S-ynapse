@@ -456,6 +456,52 @@
   },
 
   // ---------------------------------------------------------------------------
+  // 8d. 主题调色板编辑器(阅读设置面板「主题」页:关键 token 取色/实时预览/保存/导出)
+  // ---------------------------------------------------------------------------
+  // 说明: 白名单 token 与 theme.json5 → colors 键一一对应;编辑结果经 CSS 变量
+  //       (document.documentElement.style)实时生效,「保存到本地」写入 localStorage
+  //       并在首屏早置脚本应用(刷新不闪烁);导出为可粘贴进 presetOverrides 的 JSON5 片段。
+  themeLab: {
+    // 启用主题调色板编辑器(false = 不渲染面板「主题」页、不注入早置脚本、运行时零加载)。
+    // 类型: boolean | 可填: true/false | 推荐: true
+    enabled: true,
+
+    // 保存本地覆盖的 localStorage 键名(修改键名会使旧保存失效;「全部重置」与清除操作删除该键)。
+    // 类型: string | 推荐: 'ss-theme-lab' | 不可填: 空串(回退默认键)
+    storageKey: 'ss-theme-lab',
+
+    // 参与编辑的 CSS 颜色变量白名单(顺序即面板展示顺序,逐项映射 theme.json5 → colors 同名键)。
+    // 类型: string[] | 可填: 8–12 项,取值为下表中的变量名:
+    //   '--color-p'(primary 主色) / '--color-s'(secondary 辅色) / '--color-a'(accent 强调)
+    //   '--color-bg'(background 背景) / '--color-surface'(surface 卡面) / '--color-t'(text 正文)
+    //   '--color-ts'(textSecondary 次要文字) / '--color-tl'(textLight 弱化文字)
+    //   '--color-border'(border 边框) / '--color-hover'(hover 悬停底)
+    //   '--color-code-bg'(codeBackground 代码底) / '--color-code-t'(codeText 代码字)
+    // 不可填: 未定义的变量名(静默剔除;过滤去重后不足 8 项回退默认 12 项)、带透明度的
+    //   '--color-shadow'(取色器只编辑 #hex,会丢失 alpha 通道)
+    // 推荐: 默认 12 项(全量可编辑);只需品牌色时可收窄到 8 项
+    tokens: [
+      '--color-p',
+      '--color-s',
+      '--color-a',
+      '--color-bg',
+      '--color-surface',
+      '--color-t',
+      '--color-ts',
+      '--color-tl',
+      '--color-border',
+      '--color-hover',
+      '--color-code-bg',
+      '--color-code-t'
+    ],
+
+    // 导出文件名(「下载片段」使用的文件名;内容为 presetOverrides 的 JSON5 文本)。
+    // 类型: string | 推荐: 'theme-overrides.json5'
+    // 不可填: 路径分隔符与文件系统保留字符(自动剔除;结果为空回退默认名)
+    exportName: 'theme-overrides.json5'
+  },
+
+  // ---------------------------------------------------------------------------
   // 9. 键盘快捷键
   // ---------------------------------------------------------------------------
   shortcuts: {

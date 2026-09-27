@@ -993,6 +993,39 @@ function readModeConfig(features) {
   return { persist: R.persist !== false, storageKey: key || 'readingMode' };
 }
 
+// themeLab 主题调色板归一化（canonical；与 js/domains/features/theme-lab-core.js 同语义）：
+//   enabled 默认 true；storageKey 空值回退 'ss-theme-lab'；
+//   tokens 仅保留已定义变量名（THEME_LAB_TOKENS）、去重保序、封顶 12；过滤后不足 8 项回退默认 12 项；
+//   exportName 剔除路径分隔符与文件系统保留字符，空结果回退 'theme-overrides.json5'。
+const THEME_LAB_TOKENS = [
+  '--color-p', '--color-s', '--color-a', '--color-bg', '--color-surface', '--color-t',
+  '--color-ts', '--color-tl', '--color-border', '--color-hover', '--color-code-bg', '--color-code-t'
+];
+const THEME_LAB_MIN_TOKENS = 8;
+const THEME_LAB_MAX_TOKENS = 12;
+const THEME_LAB_DEFAULT_KEY = 'ss-theme-lab';
+const THEME_LAB_DEFAULT_EXPORT = 'theme-overrides.json5';
+
+function themeLabConfig(features) {
+  const T = (features && features.themeLab) || {};
+  const key = T.storageKey == null ? '' : String(T.storageKey).trim();
+  const out = [];
+  if (Array.isArray(T.tokens)) {
+    for (const item of T.tokens) {
+      const id = item == null ? '' : String(item).trim();
+      if (THEME_LAB_TOKENS.includes(id) && !out.includes(id)) out.push(id);
+    }
+  }
+  // eslint-disable-next-line no-control-regex -- 有意匹配控制字符：文件名不得携带 NUL–US 段
+  const name = String(T.exportName == null ? '' : T.exportName).replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').trim();
+  return {
+    enabled: T.enabled !== false,
+    storageKey: key || THEME_LAB_DEFAULT_KEY,
+    tokens: (out.length >= THEME_LAB_MIN_TOKENS ? out : THEME_LAB_TOKENS.slice()).slice(0, THEME_LAB_MAX_TOKENS),
+    exportName: name || THEME_LAB_DEFAULT_EXPORT
+  };
+}
+
 // bilingual 双语对照配置归一化（构建期模板/CSS 与运行时共用语义）：
 //   enabled/switch/sideBySide 默认 true；
 //   breakpointPx 夹取到 480–3840 的整数（非法/缺失回退 1280）。
@@ -1307,6 +1340,7 @@ module.exports = {
   continueReadingConfig,
   exportArticleConfig,
   readModeConfig,
+  themeLabConfig,
   bilingualConfig,
   commandPaletteConfig,
   searchIndexConfig,

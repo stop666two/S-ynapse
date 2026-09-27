@@ -77,6 +77,14 @@ const DEFAULT_FEATURES = {
     respectManualOverride: true, applyInstantly: true, checkIntervalMs: 60000, smoothTransitionMs: 350,
     smoothTransition: true
   },
+  themeLab: {
+    enabled: true, storageKey: 'ss-theme-lab',
+    tokens: [
+      '--color-p', '--color-s', '--color-a', '--color-bg', '--color-surface', '--color-t',
+      '--color-ts', '--color-tl', '--color-border', '--color-hover', '--color-code-bg', '--color-code-t'
+    ],
+    exportName: 'theme-overrides.json5'
+  },
   shortcuts: {
     enabled: true, openSearch: '/', toggleTheme: 'd', prevPost: 'k',
     nextPost: 'j', help: '?', close: 'Escape', showHelpHint: true,
@@ -532,6 +540,7 @@ const ENUM_FIELDS = {
 const ARRAY_FIELDS = {
   lightbox: [], readingProgress: [], backToTop: [], search: [], imageLazy: [],
   codeBlock: [], externalLink: ['whitelist', 'blacklist'], themeToggle: [],
+  themeLab: ['tokens'],
   shortcuts: [], toc: [], mobileToc: [], readingPanel: [], tts: [], wikiLinks: [],
   supSub: [], math: ['inlineDelimiters', 'blockDelimiters'], mermaid: [],
   series: [], related: [], pinned: [], wordCount: [], share: ['order'],

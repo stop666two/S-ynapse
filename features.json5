@@ -1225,6 +1225,11 @@
   series: {
     // 启用系列功能。
     enabled: true,
+    // 构建期生成系列聚合页 /{lang}/series/<slug>/（系列名标题 + 按 order 的文章列表 +
+    // 每篇的上一集/下一集链接；空系列不生成；搜索索引不纳入，sitemap 纳入）。
+    // 类型: boolean | 可填: true(生成) | false(不生成) | 推荐: true
+    // 注意: 关闭仅停止生成；系列徽标/文章页系列面板/侧栏 widget 不受影响。
+    pageEnabled: true,
     // 文章卡片显示系列徽标（文案见 badgeFormat；false = 不渲染徽标）。
     showBadge: true,
     // 徽标文本模板:{name} 系列名。

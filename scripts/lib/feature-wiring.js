@@ -510,6 +510,7 @@ function seriesConfig(features) {
   const str = function (v, dflt) { return v == null ? dflt : String(v); };
   return {
     enabled: s.enabled !== false,
+    pageEnabled: s.pageEnabled !== false,
     showBadge: s.showBadge !== false,
     badgeFormat: str(s.badgeFormat, '系列 · {name}'),
     badgeFormatEn: str(s.badgeFormatEn, 'Series · {name}'),

@@ -361,7 +361,7 @@ const DEFAULT_FEATURES = {
     size: { width: '', height: '', minWidth: '320px', maxWidth: 'none', minHeight: '200px', maxHeight: 'none', fit: 'scroll' }
   },
   series: {
-    enabled: true, showBadge: true, badgeFormat: '系列 · {name}', badgeFormatEn: 'Series · {name}',
+    enabled: true, pageEnabled: true, showBadge: true, badgeFormat: '系列 · {name}', badgeFormatEn: 'Series · {name}',
     showNavPanel: true, sidebarWidget: true, order: 'asc',
     panelTitle: '本系列共 {total} 篇', panelTitleEn: '{total} posts in this series', showPosition: true, defaultWidgetCount: 8,
     prevLabel: '上一篇', prevLabelEn: 'Previous', nextLabel: '下一篇', nextLabelEn: 'Next',

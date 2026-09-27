@@ -526,12 +526,13 @@
 > - `errorText(En)` = 渲染失败占位文案：SSR 失败块在回退客户端的 `<pre>` 上携带 `data-mm-error`，客户端渲染最终失败时显示；`autoDetect=false` / `mode='client'` 场景由页面内联常量兜底（en 站取 `errorTextEn`，空回退中文）。canonical：`scripts/lib/feature-wiring.js → mermaidConfig/mermaidErrorText`。
 
 ### 3.19 series — 系列
-`enabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8`(侧栏系列 widget 最多展示条数,超出截断) / `prevLabel 上一篇` / `nextLabel 下一篇` / `progressLabel {index} / {total}`(进度模板) / `sidebarTitle 系列`(侧栏 widget 标题,sidebar.json5 w.title 为空时使用)。以上文案键均有同名 `*En`（`badgeFormatEn`/`panelTitleEn`/`prevLabelEn`/`nextLabelEn`/`sidebarTitleEn`），空回退中文
+`enabled true` / `pageEnabled true` / `showBadge true` / `badgeFormat 系列 · {name}` / `showNavPanel true` / `sidebarWidget true` / `order asc` / `panelTitle 本系列共 {total} 篇` / `showPosition true` / `defaultWidgetCount 8`(侧栏系列 widget 最多展示条数,超出截断) / `prevLabel 上一篇` / `nextLabel 下一篇` / `progressLabel {index} / {total}`(进度模板) / `sidebarTitle 系列`(侧栏 widget 标题,sidebar.json5 w.title 为空时使用)。以上文案键均有同名 `*En`（`badgeFormatEn`/`panelTitleEn`/`prevLabelEn`/`nextLabelEn`/`sidebarTitleEn`），空回退中文
 
 > 接线说明：
+> - `pageEnabled=true`（默认）= 构建期生成系列聚合页 `/{lang}/series/<slug>/`（`slug = safeSlug(系列名)`；模板 `templates/series-page.ejs`）：系列名标题、按 `order` 排序的文章列表（每篇含序位 `#N`、进度标签 `progressLabel` 与上一集/下一集链接）、自动 meta 描述（无系列/空系列不生成页面）；页面纳入 sitemap、不纳入搜索索引。`false` = 不生成页面（系列徽标/文章页系列面板/侧栏 widget 保持可用）。同语言内语言切换按钮经 `data-alt-lang` 直达对应语言系列页（按文章 slug 集合完全匹配，无对应时回退常规前缀替换）。canonical：`scripts/lib/series-page.js`（单测覆盖）。
 > - `showBadge=false` = 卡片（首页/标签/分类列表）不渲染系列徽标；`badgeFormat`/`badgeFormatEn` = 徽标文本模板（`{name}` 替换系列名；en 站取 `badgeFormatEn`，空回退中文模板；显式空串回退 `ui-strings.card.series` 词典）— `templates/index.ejs`/`tag.ejs`/`category.ejs`。
 > - `panelTitle`/`panelTitleEn` = 文章页系列导航面板标题（`{total}` 替换总篇数；空回退 `ui-strings.post.seriesLabel` 词典）；`showPosition=false` = 隐藏面板内进度文本（`progressLabel`）与进度条；`showNavPanel=false` 仍为整面板开关。
-> - `sidebarWidget=false` = 不渲染侧栏 `type: series` widget（sidebar.json5 配置仍保留）。
+> - `sidebarWidget=false` = 不渲染侧栏 `type: series` widget（sidebar.json5 配置仍保留）；widget 条目在 `pageEnabled=true` 时链接系列聚合页，否则回退该系列第一篇文章。
 > - 文案优先级（统一链）：`*En`（en 站）> 中文模板 > ui-strings 词典；未设置=默认模板，显式空串=词典。canonical：`scripts/lib/feature-wiring.js → seriesConfig/seriesBadgeText/seriesPanelTitle`（单测覆盖）。
 
 ### 3.20 related — 相关推荐

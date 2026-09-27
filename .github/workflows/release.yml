@@ -1,6 +1,11 @@
 name: Release
 
-# 仅由版本 tag 触发：先做 RELEASE.json 双重校验，再跑全套质量门禁，最后建 GitHub Release。
+# 仅由版本 tag 触发（正式版 vX.Y.Z 与预发布 vX.Y.Z-<预发布> 同样支持）：
+#   validate    RELEASE.json 双重校验（status/version/tag/commit/checks）
+#   gates       全套质量门禁（与 release:mark 的 RELEASE_GATES 同源）
+#   archive     按白名单生成归档，并校验 RELEASE.json = package.json = tag 三方版本一致
+#   buildability 解压归档 → npm ci --ignore-scripts → npm run build，断言关键产物（失败即不发布）
+#   publish     建 GitHub Release（预发布加 --prerelease）→ 清理其余 Release 及其 tag（只保留最新）
 # 站点部署由 deploy.yml 独立负责（触发条件限定 branches: [main]），tag 推送不会触发部署。
 on:
   push:
@@ -66,7 +71,7 @@ jobs:
       - name: Real build
         run: npm run build
 
-  publish:
+  archive:
     needs: [validate, gates]
     runs-on: ubuntu-latest
     steps:
@@ -78,13 +83,70 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Build release archive (allowlist assertion inside)
+      - name: Build release archive (allowlist + version consistency assertions inside)
         run: node scripts/release-archive.js --ref "$GITHUB_REF_NAME"
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-archive
+          path: release-artifacts/S-ynapse-*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  buildability:
+    needs: archive
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Download release archive
+        uses: actions/download-artifact@v4
+        with:
+          name: release-archive
+          path: release-archive
+      - name: Extract archive
+        run: |
+          mkdir -p extracted
+          unzip -q release-archive/S-ynapse-*.zip -d extracted
+      - name: Fresh install and build from extracted archive
+        run: |
+          cd extracted/S-ynapse-*/
+          npm ci --ignore-scripts
+          npm run build
+          test -f dist/index.html
+          test -f dist/report.txt
+          test -f dist/zh/search-index.json
+          echo "[buildability] 解压后构建通过：dist/index.html / dist/report.txt / dist/zh/search-index.json 均存在"
+
+  publish:
+    needs: [buildability]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download release archive
+        uses: actions/download-artifact@v4
+        with:
+          name: release-archive
+          path: release-artifacts
       - name: Create GitHub Release with archive asset
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          prerelease_flag=""
+          case "$GITHUB_REF_NAME" in
+            *-*) prerelease_flag="--prerelease" ;;
+          esac
           gh release create "$GITHUB_REF_NAME" release-artifacts/S-ynapse-*.zip \
             --verify-tag \
+            $prerelease_flag \
             --title "S-ynapse $GITHUB_REF_NAME" \
-            --notes "经人工核验与全套质量门禁验证的版本；校验依据见 tag 内 RELEASE.json。"
+            --notes "经人工核验与全套质量门禁验证的版本；归档已通过解压可构建校验。校验依据见 tag 内 RELEASE.json。"
+      - name: Prune older releases (keep latest only)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/release-prune.js --keep "$GITHUB_REF_NAME"

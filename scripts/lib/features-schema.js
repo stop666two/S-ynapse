@@ -495,7 +495,13 @@ const DEFAULT_FEATURES = {
   loading: { enabled: true, delayMs: 120, minShowMs: 250, maxShowMs: 2000, reducedMotion: 'skip', text: '', ariaBusy: true, spinner: true, spinnerStyle: 'orbit', showTitle: false, overlayColor: '', fadeMs: 380, zIndex: 3000, failsafeBufferMs: 60 },
   boot: { enabled: true, idleTimeoutMs: 800, interactionWake: true, log: false, budgetMs: 40, heavyMode: 'idle', idleFallbackMs: 120, interactionEvents: ['pointerdown', 'keydown', 'touchstart', 'wheel'], configTimeoutMs: 3000 },
   imageFit: { enabled: true, content: { upscale: 'never', cap: 1.5, maxHeightVh: 0, align: 'center' }, cover: { fit: 'cover', position: 'center', maxHeightVh: 0, aspect: '', applyToCards: true }, gallery: { stretch: false, maxHeightPx: 0 }, lightbox: { fit: 'contain', maxWidthPct: 92, maxHeightVh: 82 } },
-  bilingual: { enabled: true, switch: true, sideBySide: true, breakpointPx: 1280 }
+  bilingual: { enabled: true, switch: true, sideBySide: true, breakpointPx: 1280 },
+  saveDataMode: {
+    enabled: true, auto: true, manual: true, storageKey: 'ss-save-data',
+    degrade: {
+      animations: true, particles: true, lowResImages: true, lazyAggressive: true, systemFontsOnly: true
+    }
+  }
 };
 
 const FEATURE_MODULES = Object.keys(DEFAULT_FEATURES);

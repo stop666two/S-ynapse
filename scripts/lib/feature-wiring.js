@@ -1041,6 +1041,30 @@ function bilingualConfig(features) {
   };
 }
 
+// saveDataMode 省流模式归一化（canonical；与 js/domains/core/save-data-core.js 的
+// resolveSaveDataConfig 同语义，由 scripts/save-data.test.js 对拍）：
+//   enabled/auto/manual 默认 true；storageKey 空值回退 'ss-save-data'；
+//   degrade 五项默认 true——唯一关闭方式为显式 false（与 features.json5 逐项对应）。
+const SAVE_DATA_DEFAULT_KEY = 'ss-save-data';
+function saveDataModeConfig(features) {
+  const S = (features && features.saveDataMode) || {};
+  const D = S.degrade || {};
+  const key = S.storageKey == null ? '' : String(S.storageKey).trim();
+  return {
+    enabled: S.enabled !== false,
+    auto: S.auto !== false,
+    manual: S.manual !== false,
+    storageKey: key || SAVE_DATA_DEFAULT_KEY,
+    degrade: {
+      animations: D.animations !== false,
+      particles: D.particles !== false,
+      lowResImages: D.lowResImages !== false,
+      lazyAggressive: D.lazyAggressive !== false,
+      systemFontsOnly: D.systemFontsOnly !== false
+    }
+  };
+}
+
 // commandPalette 回退值归一化（缺配置/非法时与 JSON5/schema 默认一致：ctrl+shift+p / 10 / true）。
 function commandPaletteConfig(features) {
   const C = (features && features.commandPalette) || {};
@@ -1342,6 +1366,7 @@ module.exports = {
   readModeConfig,
   themeLabConfig,
   bilingualConfig,
+  saveDataModeConfig,
   commandPaletteConfig,
   searchIndexConfig,
   searchLoadErrorText,

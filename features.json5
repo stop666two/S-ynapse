@@ -3021,4 +3021,44 @@
     // 类型: number | 可填: 480–3840 的整数(越界夹取;非法回退 1280) | 推荐: 1280(桌面宽屏)
     breakpointPx: 1280
   },
+
+  // ---------------------------------------------------------------------------
+  // 67. 省流模式(自动跟随系统省流偏好 + 阅读设置面板手动开关)
+  // ---------------------------------------------------------------------------
+  saveDataMode: {
+    // 省流模式总开关。
+    // true(默认) = 首屏早置脚本同步置 html.save-data 防闪烁,运行时模块跟随变化;
+    // false = 不注入早置脚本、不注册运行时,零开销。
+    // 类型: boolean | 可填: true(默认)/false | 推荐: true
+    enabled: true,
+    // 是否自动跟随系统省流偏好(navigator.connection.saveData,含 change 变化)。
+    // 类型: boolean | 可填: true(默认)/false | 推荐: true
+    auto: true,
+    // 是否在阅读设置面板显示「省流模式」手动开关(localStorage 持久)。
+    // 显式手动选择优先于自动跟随(可开可关);false = 不渲染开关且忽略已存偏好。
+    // 类型: boolean | 可填: true(默认)/false | 推荐: true
+    manual: true,
+    // 手动偏好存储键(值 '1' = 开 / '0' = 关;修改键名会使旧偏好失效)。
+    // 类型: string | 推荐: 'ss-save-data' | 不可填: 空串(回退默认键)
+    storageKey: 'ss-save-data',
+    // 降级组合:各子项唯一关闭方式 = 显式 false;开关切换即时生效/还原。
+    // 说明: 与 prefers-reduced-motion 的 light 降级语义区分——save-data 更彻底。
+    degrade: {
+      // 停用全部 CSS 动画/过渡与视图过渡。
+      // 类型: boolean | 可填: true(默认)/false | 推荐: true
+      animations: true,
+      // 停止粒子背景绘制并隐藏画布(features.background.particles)。
+      // 类型: boolean | 可填: true(默认)/false | 推荐: true
+      particles: true,
+      // 图片重写为最小分辨率变体(src/srcset,关闭时回补原值)。
+      // 类型: boolean | 可填: true(默认)/false | 推荐: true
+      lowResImages: true,
+      // 更激进懒加载:取消首屏 eager 预载,全部 loading=lazy + fetchpriority=low。
+      // 类型: boolean | 可填: true(默认)/false | 推荐: true
+      lazyAggressive: true,
+      // 网页字体降级为系统字体栈(覆盖 --ff/--ff-d/--ff-h/--ff-mono,不再下载 webfont)。
+      // 类型: boolean | 可填: true(默认)/false | 推荐: true
+      systemFontsOnly: true
+    }
+  },
 }

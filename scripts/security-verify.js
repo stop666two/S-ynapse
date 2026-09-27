@@ -14,7 +14,24 @@ const TEMP_SLUG_FILE = path.join(ROOT, 'articles', 'zh', '_sec-slug.md');
 const TEMP_SLUG = '_sec-verify';
 const ESCAPE_NAME = '_sec_escape_out';
 const DIST_INDEX = path.join(ROOT, 'dist', 'zh', TEMP_SLUG, 'index.html');
-const DIST_SEARCH = path.join(ROOT, 'dist', 'zh', 'search-index.json');
+// 搜索索引为内容寻址产物（dist/assets/search-index.<hash>.json）：优先按 zh 页面注入的 URL 定位，
+// 回退扫描 assets 目录（页面缺失/构建降级时仍能覆盖索引内容检查）。
+function findSearchIndexFile() {
+  const zhIndexHtml = path.join(ROOT, 'dist', 'zh', 'index.html');
+  if (fs.existsSync(zhIndexHtml)) {
+    const m = fs.readFileSync(zhIndexHtml, 'utf-8').match(/__SEARCH_INDEX_URL__\s*=\s*"([^"]+)"/);
+    if (m) {
+      const file = path.join(ROOT, 'dist', m[1].replace(/^\//, '').split('/').join(path.sep));
+      if (fs.existsSync(file)) return file;
+    }
+  }
+  const assetsDir = path.join(ROOT, 'dist', 'assets');
+  if (!fs.existsSync(assetsDir)) return '';
+  for (const name of fs.readdirSync(assetsDir)) {
+    if (/^search-index\.[0-9a-f]+\.json$/.test(name)) return path.join(assetsDir, name);
+  }
+  return '';
+}
 
 const MALICIOUS = `---
 title: 'S-ynapse sec verify </script><script>window.__SEC_PWNED__=1</script>'
@@ -130,7 +147,8 @@ try {
 
   if (!fs.existsSync(DIST_INDEX)) fail(`post page not generated: ${DIST_INDEX}`);
   const html = fs.readFileSync(DIST_INDEX, 'utf-8');
-  const searchRaw = fs.existsSync(DIST_SEARCH) ? fs.readFileSync(DIST_SEARCH, 'utf-8') : '';
+  const searchFile = findSearchIndexFile();
+  const searchRaw = searchFile ? fs.readFileSync(searchFile, 'utf-8') : '';
   // HTML semantics: <title> is RCDATA, and quoted attribute values never
   // start elements — minify-html re-serializes character references there,
   // so a naked `<script>window.__SEC_PWNED__` inside them is inert text, not
@@ -206,15 +224,15 @@ try {
     fail('whitelisted dl/dt/dd was stripped');
   }
   verifyCspNonceCoverage();
-  const searchJson = searchRaw ? JSON.parse(searchRaw) : [];
-  if (!Array.isArray(searchJson)) fail('search index is not valid JSON array');
-  // Regression: cache-bust must rewrite featuredImage paths inside search-index.json,
-  // otherwise lazy search thumbnails 404 in production.
-  for (const item of searchJson) {
+  const searchJson = searchRaw ? JSON.parse(searchRaw) : null;
+  if (!searchJson || !Array.isArray(searchJson.docs)) fail('search index is not a valid v2 index (docs array missing)');
+  // Regression: search index featuredImage paths must resolve to files in dist
+  // (build-time content addressing must match the final cache-busted media names).
+  for (const item of searchJson.docs) {
     if (item && item.featuredImage) {
       const rel = String(item.featuredImage).replace(/^\//, '');
       if (!fs.existsSync(path.join(ROOT, 'dist', rel))) {
-        fail('search index featuredImage missing in dist (cache-bust rewrite broken): ' + item.featuredImage);
+        fail('search index featuredImage missing in dist (content addressing broken): ' + item.featuredImage);
       }
     }
   }

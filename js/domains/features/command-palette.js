@@ -67,10 +67,15 @@ export function init() {
     }
     return actItems;
   }
+  function searchIndexUrl() {
+    return window.__SEARCH_INDEX_URL__ || (langPrefix() + 'search-index.json');
+  }
   function loadPosts() {
     if (!F.includeSearch || posts !== null) return Promise.resolve(posts || []);
-    return fetch(langPrefix() + 'search-index.json').then(function (r) { return r.ok ? r.json() : {}; }).then(function (data) {
-      posts = Object.keys(data || {}).map(function (k) { return data[k]; }).filter(function (p) {
+    // 搜索索引为构建期内容寻址 JSON（{docs, fields}）；兼容旧版数组结构（同构建周期内不应出现）。
+    return fetch(searchIndexUrl()).then(function (r) { return r.ok ? r.json() : {}; }).then(function (data) {
+      var docs = Array.isArray(data) ? data : (data && Array.isArray(data.docs) ? data.docs : []);
+      posts = docs.filter(function (p) {
         return p && p.title;
       }).map(function (p) {
         return { type: 'post', label: p.title, url: p.url, hint: p.excerpt || '' };

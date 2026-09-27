@@ -756,7 +756,8 @@ function createMinifyModule(ctx) {
       console.log(`  Renamed ${Object.keys(mapping).length} files, updated HTML refs`);
       // Search indexes reference media paths (featuredImage) generated before hashing;
       // rewrite them with the same mapping so lazy-loaded search results never 404.
-      const jsonIndexes = ctx.getAllFiles(ctx.distDir).filter(f => /search-index\.json$/i.test(f));
+      // v2 索引在生成期已预计算最终路径；此处保留兜底重写（不影响文件名与内容哈希一致性检查）。
+      const jsonIndexes = ctx.getAllFiles(ctx.distDir).filter(f => /(^|\/)search-index(\.[0-9a-f]+)?\.json$/i.test(f));
       for (const jf of jsonIndexes) {
         try {
           let jsonText = fs.readFileSync(jf, 'utf-8');

@@ -248,6 +248,12 @@
     clear: '清除',
   },
 
+  // 继续阅读卡片（首页最近阅读；title 标题，progress 进度文案含 {percent} 占位符）
+  continueReading: {
+    title: '继续阅读',
+    progress: '已读 {percent}%',
+  },
+
   // 防护模块（右键菜单/水印/门槛等）
   guard: {
     menuLabel: '操作菜单',
@@ -454,6 +460,10 @@
     readingHistory: {
       title: 'Continue reading',
       clear: 'Clear',
+    },
+    continueReading: {
+      title: 'Continue reading',
+      progress: '{percent}% read',
     },
     guard: {
       menuLabel: 'Actions menu',

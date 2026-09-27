@@ -15,21 +15,60 @@ export function init() {
   function save(a) {
     try { localStorage.setItem(KEY, JSON.stringify(a.slice(0, maxStored))); } catch (e) { /* storage 满或被禁用时静默降级 */ }
   }
+  function currentUrl() {
+    var can = document.querySelector('link[rel="canonical"]');
+    var url = can ? can.getAttribute('href') : location.pathname;
+    try { url = new URL(url, location.origin).pathname; } catch (e) { /* 保留原值 */ }
+    return url;
+  }
+  function lang() {
+    return (document.documentElement.getAttribute('lang') || 'zh').slice(0, 2) === 'en' ? 'en' : 'zh';
+  }
+  // 阅读进度百分比（0-100）：与站点进度条同口径；短页（无可滚动距离）按 0。
+  function pct() {
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (!(max > 0)) return 0;
+    return Math.round(Math.min(1, Math.max(0, window.scrollY / max)) * 100);
+  }
+  // 将当前页进度写回其历史记录（供继续阅读卡片展示）；记录不存在（非文章/未记录）时不写入。
+  function updateProgress() {
+    var url = currentUrl();
+    var a = load(), hit = false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] && a[i].url === url) {
+        var v = pct();
+        if (a[i].p !== v) { a[i].p = v; hit = true; }
+        break;
+      }
+    }
+    if (hit) save(a);
+  }
   function record() {
     if (document.prerendering) {
       document.addEventListener('prerenderingchange', function () { record(); }, { once: true });
       return;
     }
     if (!document.querySelector('.post-content')) return;
-    var can = document.querySelector('link[rel="canonical"]');
-    var url = can ? can.getAttribute('href') : location.pathname;
-    try { url = new URL(url, location.origin).pathname; } catch (e) { /* 保留原值 */ }
+    var url = currentUrl();
     var h1 = document.querySelector('h1');
     var title = h1 ? h1.textContent.trim() : document.title;
-    var a = load().filter(function (x) { return x && x.url !== url; });
-    a.unshift({ url: url, title: title, t: Date.now() });
+    var prev = null;
+    var old = load();
+    for (var i = 0; i < old.length; i++) {
+      if (old[i] && old[i].url === url) { prev = old[i]; break; }
+    }
+    var a = old.filter(function (x) { return x && x.url !== url; });
+    // 重访保留既有进度；首次进入从 0 起，随滚动更新。
+    a.unshift({ url: url, title: title, t: Date.now(), lang: lang(), p: prev && isFinite(+prev.p) ? Math.min(100, Math.max(0, Math.round(+prev.p))) : 0 });
     save(a);
   }
+  // 滚动进度更新节流（800ms），pagehide 立即落盘最终进度；软导航前的最后进度已由滚动节流保存。
+  var progTimer = 0;
+  window.addEventListener('scroll', function () {
+    if (progTimer || !document.querySelector('.post-content')) return;
+    progTimer = setTimeout(function () { progTimer = 0; updateProgress(); }, 800);
+  }, { passive: true });
+  window.addEventListener('pagehide', function () { updateProgress(); });
   function timeAgo(ts) {
     var diff = Date.now() - ts;
     var m = Math.floor(diff / 60000);

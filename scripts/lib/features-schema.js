@@ -208,6 +208,9 @@ const DEFAULT_FEATURES = {
     enabled: true, maxItems: 5, storageKey: 's-history',
     showOnHome: true, clearable: true, maxStored: 50
   },
+  continueReading: {
+    enabled: true, count: 3, showProgress: true, storageKey: 's-history'
+  },
   printStyle: {
     enabled: true, hideInteractive: true, expandLinks: true, avoidBreaks: true
   },

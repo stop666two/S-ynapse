@@ -75,6 +75,7 @@ const idleQueue = [
   dyn('comments', '../domains/features/comments.js'),
   dyn('daily-quote', '../domains/features/daily-quote.js'),
   dyn('reading-history', '../domains/features/reading-history.js'),
+  dyn('continue-reading', '../domains/features/continue-reading.js'),
   dyn('command-palette', '../domains/features/command-palette.js'),
   dyn('morphicons', '../domains/features/morphicons.js'),
   dyn('favorites', '../domains/features/favorites.js'),

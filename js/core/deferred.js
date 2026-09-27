@@ -17,6 +17,7 @@ import { init as pwaInit } from '../domains/features/pwa.js';
 import { init as commentsInit } from '../domains/features/comments.js';
 import { init as dailyQuoteInit } from '../domains/features/daily-quote.js';
 import { init as readingHistoryInit } from '../domains/features/reading-history.js';
+import { init as continueReadingInit } from '../domains/features/continue-reading.js';
 import { init as commandPaletteInit } from '../domains/features/command-palette.js';
 import { init as morphiconsInit } from '../domains/features/morphicons.js';
 import { init as favoritesInit } from '../domains/features/favorites.js';
@@ -43,6 +44,7 @@ const registry = {
   comments: commentsInit,
   'daily-quote': dailyQuoteInit,
   'reading-history': readingHistoryInit,
+  'continue-reading': continueReadingInit,
   'command-palette': commandPaletteInit,
   morphicons: morphiconsInit,
   favorites: favoritesInit,

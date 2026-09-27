@@ -21,7 +21,10 @@
   <% } %>
 </section>
 <% } %>
-<% if (typeof features!=='undefined'&&features.readingHistory&&features.readingHistory.enabled!==false) { %>
+<% var _crOn = typeof features!=='undefined'&&features.continueReading&&features.continueReading.enabled!==false; %>
+<% if (_crOn) { %>
+<section id="continueReading" class="continue-reading" aria-label="<%= ui('continueReading.title','继续阅读') %>" hidden></section>
+<% } else if (typeof features!=='undefined'&&features.readingHistory&&features.readingHistory.enabled!==false) { %>
 <div class="reading-history" id="readingHistory" hidden></div>
 <% } %>
 <% if (articles && articles.length) { %>

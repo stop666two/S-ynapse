@@ -13,7 +13,7 @@ const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
-const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette, exportArticleConfig } = require('../lib/feature-wiring');
+const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette, exportArticleConfig, bilingualConfig } = require('../lib/feature-wiring');
 const { collectSeriesPages } = require('../lib/series-page');
 const { writeArticleMarkdown } = require('../lib/md-export');
 const { stableSerialize, pageCacheKey, hashTemplateDir } = require('../lib/incremental');
@@ -295,6 +295,8 @@ function createPagesModule(ctx) {
       backToTopCfg: backToTopConfig(config.features),
       mobileCfg: mobileConfig(config.features),
       contactPopupCfg: contactPopupConfig(config.features),
+      // 双语对照（features.bilingual）：断点/开关归一化，模板与样式共用。
+      bilingualCfg: bilingualConfig(config.features),
       // 归档热力图（层数/图例/月份数字/tooltip）与统计卡（显隐/文案链/跳转）。
       heatmapCfg: heatCfg,
       heatmapPalette: heatPalette.colors,
@@ -684,16 +686,20 @@ function createPagesModule(ctx) {
             recordBuildFailure('export', 'Markdown export failed for ' + article.lang + '/' + article.slug + ': ' + err.message, { fatal: false });
           }
         }
+        const altArticle = (() => {
+          const alt = getPublished(articles).find(a => a.lang !== article.lang && a.slug === article.slug && !a.draft);
+          return alt ? { url: alt.url, lang: alt.lang, title: alt.title } : null;
+        })();
         const data = {
           ...langData,
           article,
           title: article.title,
           prevArticle: prev && !prev.draft ? { title: prev.title, url: prev.url, featuredImage: prev.featuredImage || '' } : null,
           nextArticle: next && !next.draft ? { title: next.title, url: next.url, featuredImage: next.featuredImage || '' } : null,
-          altArticle: (() => {
-            const alt = getPublished(articles).find(a => a.lang !== article.lang && a.slug === article.slug && !a.draft);
-            return alt ? { url: alt.url, lang: alt.lang, title: alt.title } : null;
-          })(),
+          altArticle,
+          // 语言切换直达地址（features.bilingual.enabled 时注入；hreflang 与语言按钮/对照切换共用；
+          // 无对照为空串 → 模板按「缺失」分支隐藏相关入口，回退既有前缀替换行为）。
+          altLangUrl: (langData.bilingualCfg && langData.bilingualCfg.enabled && altArticle) ? altArticle.url : '',
           currentUrl: article.url,
           currentPage: 'post'
         };

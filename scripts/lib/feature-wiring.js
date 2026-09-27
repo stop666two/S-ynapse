@@ -993,6 +993,21 @@ function readModeConfig(features) {
   return { persist: R.persist !== false, storageKey: key || 'readingMode' };
 }
 
+// bilingual 双语对照配置归一化（构建期模板/CSS 与运行时共用语义）：
+//   enabled/switch/sideBySide 默认 true；
+//   breakpointPx 夹取到 480–3840 的整数（非法/缺失回退 1280）。
+function bilingualConfig(features) {
+  const B = (features && features.bilingual) || {};
+  const n = parseFloat(B.breakpointPx);
+  const bp = isNaN(n) ? 1280 : Math.min(3840, Math.max(480, Math.round(n)));
+  return {
+    enabled: B.enabled !== false,
+    switch: B.switch !== false,
+    sideBySide: B.sideBySide !== false,
+    breakpointPx: bp
+  };
+}
+
 // commandPalette 回退值归一化（缺配置/非法时与 JSON5/schema 默认一致：ctrl+shift+p / 10 / true）。
 function commandPaletteConfig(features) {
   const C = (features && features.commandPalette) || {};
@@ -1292,6 +1307,7 @@ module.exports = {
   continueReadingConfig,
   exportArticleConfig,
   readModeConfig,
+  bilingualConfig,
   commandPaletteConfig,
   searchIndexConfig,
   searchLoadErrorText,

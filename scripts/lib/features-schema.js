@@ -486,7 +486,8 @@ const DEFAULT_FEATURES = {
   guards: { enabled: true, preset: 'soft', contextMenu: true, copyGuard: true, selectionGuard: true, hotkeyGuard: true, watermark: true, devtoolsDetect: true, consoleGuard: true, privacyCurtain: true, tamperWatch: true, accessGate: true },
   loading: { enabled: true, delayMs: 120, minShowMs: 250, maxShowMs: 2000, reducedMotion: 'skip', text: '', ariaBusy: true, spinner: true, spinnerStyle: 'orbit', showTitle: false, overlayColor: '', fadeMs: 380, zIndex: 3000, failsafeBufferMs: 60 },
   boot: { enabled: true, idleTimeoutMs: 800, interactionWake: true, log: false, budgetMs: 40, heavyMode: 'idle', idleFallbackMs: 120, interactionEvents: ['pointerdown', 'keydown', 'touchstart', 'wheel'], configTimeoutMs: 3000 },
-  imageFit: { enabled: true, content: { upscale: 'never', cap: 1.5, maxHeightVh: 0, align: 'center' }, cover: { fit: 'cover', position: 'center', maxHeightVh: 0, aspect: '', applyToCards: true }, gallery: { stretch: false, maxHeightPx: 0 }, lightbox: { fit: 'contain', maxWidthPct: 92, maxHeightVh: 82 } }
+  imageFit: { enabled: true, content: { upscale: 'never', cap: 1.5, maxHeightVh: 0, align: 'center' }, cover: { fit: 'cover', position: 'center', maxHeightVh: 0, aspect: '', applyToCards: true }, gallery: { stretch: false, maxHeightPx: 0 }, lightbox: { fit: 'contain', maxWidthPct: 92, maxHeightVh: 82 } },
+  bilingual: { enabled: true, switch: true, sideBySide: true, breakpointPx: 1280 }
 };
 
 const FEATURE_MODULES = Object.keys(DEFAULT_FEATURES);

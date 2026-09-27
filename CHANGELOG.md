@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **release 测试消除仓库状态依赖（CI 门禁红修复）**：`scripts/release-mark.test.js` 改为临时夹具仓库（复制被测脚本与其 `lib/` 依赖，配固定 `package.json`/`package-lock.json`/含 `[Unreleased]` 的 CHANGELOG fixture），不再读取真实仓库的 `[Unreleased]` 段——发布归段后该段不存在，原实现导致 5 个用例 `match(...)` 空值连环失败、`compat-node20` 与 Release 门禁同时红、首轮 `v1.1.0-a1` 未能发布；修复后 11/11 用例在「有/无 `[Unreleased]`」两态均通过，主仓零写入（夹具自动清理）。
 
+- **本地启动脚本不再自动 `npm ci`（依赖卡死事故修复）**：`build.bat` / `serve.bat` 在缺少构建产物时原先无条件 `call npm ci 2>nul`（清空重装，曾因网络卡死 2 小时并留下残缺 `node_modules`：sharp 缺 `detect-libc`、Inter 字体包半解压导致页面 404/OG 失败）；现改为 `:ensure_deps` 子程序——仅当 `node_modules\sharp\package.json` 缺失时才执行 `npm install --no-audit --no-fund --prefer-offline`（增量修复、不整包重装），失败即停止并给出手动指引；两脚本实测通过（`build.bat` 无人值守 exit 0；`serve.bat` 起服/端口监听与释放正常）。
+
 - **空站压缩验证 softNav 冒烟误判**：`scripts/lib/compression-verify.js` 在首页无文章卡片（空站骨架）时 softNav 判为「不适用」并跳过该断言，有文章或返回值缺失目标信息（异常兜底）时仍要求 softNav 通过；新增 3 例单测锁定两态（空站跳过、有目标/异常仍判失败）。
 
 ## [1.1.0] - 2026-09-27

@@ -3,8 +3,10 @@ name: Release
 # 仅由版本 tag 触发（正式版 vX.Y.Z 与预发布 vX.Y.Z-<预发布> 同样支持）：
 #   validate    RELEASE.json 双重校验（status/version/tag/commit/checks）
 #   gates       全套质量门禁（与 release:mark 的 RELEASE_GATES 同源）
-#   archive     按白名单生成归档，并校验 RELEASE.json = package.json = tag 三方版本一致
-#   buildability 解压归档 → npm ci --ignore-scripts → npm run build，断言关键产物（失败即不发布）
+#   archive     按白名单生成归档（articles/media 只保留 .gitkeep 骨架），并校验
+#               RELEASE.json = package.json = tag 三方版本一致
+#   buildability 解压归档 → npm ci --ignore-scripts → npm test → npm run build，
+#               断言关键产物（失败即不发布）
 #   publish     建 GitHub Release（预发布加 --prerelease）→ 清理其余 Release 及其 tag（只保留最新）
 # 站点部署由 deploy.yml 独立负责（触发条件限定 branches: [main]），tag 推送不会触发部署。
 on:
@@ -110,15 +112,22 @@ jobs:
         run: |
           mkdir -p extracted
           unzip -q release-archive/S-ynapse-*.zip -d extracted
-      - name: Fresh install and build from extracted archive
+      - name: Fresh install from extracted archive
         run: |
           cd extracted/S-ynapse-*/
           npm ci --ignore-scripts
+      - name: Run tests from extracted archive (empty-site skeleton)
+        run: |
+          cd extracted/S-ynapse-*/
+          npm test
+      - name: Build from extracted archive and assert key outputs
+        run: |
+          cd extracted/S-ynapse-*/
           npm run build
           test -f dist/index.html
           test -f dist/report.txt
           test -f dist/zh/search-index.json
-          echo "[buildability] 解压后构建通过：dist/index.html / dist/report.txt / dist/zh/search-index.json 均存在"
+          echo "[buildability] 解压后 npm test 与 npm run build 通过：dist/index.html / dist/report.txt / dist/zh/search-index.json 均存在"
 
   publish:
     needs: [buildability]

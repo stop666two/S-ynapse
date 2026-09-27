@@ -832,14 +832,19 @@
     // 增量构建:指纹未变化的页面跳过重新渲染并复用现有产物。
     // 启用条件:enabled=true 且 skipUnchanged=true 且非强制全量；请求来源为 --watch(watch=true)或显式 --incremental。
     // 增量模式不清空 dist(否则无产物可复用);删除内容后请用 --full 全量重建以清理残留。
+    // 类型: boolean | 默认: true（普通一次性构建不走增量，本键不影响其产物）。
     enabled: true,
     // 强制全量构建的参数(--full 始终有效;此处可自定义额外参数名)。
+    // 类型: string | 默认: '--full' | 不可填: 空字符串（无法识别强制全量请求）。
     fullFlag: '--full',
     // 是否允许 --watch 时增量。
+    // 类型: boolean | 默认: true | 注意: false 时 watch 每轮均全量重建（更慢但无复用边界问题）。
     watch: true,
     // 页面指纹算法:sha1/sha256/md5(非法回退 sha1)。
+    // 类型: string(枚举) | 默认: 'sha1' | 切换算法会使既有指纹缓存全部失效（下一轮全量重建）。
     fingerprintHash: 'sha1',
     // 指纹一致时跳过该页。
+    // 类型: boolean | 默认: true | 注意: 仅增量来源生效；跳过页复用 dist 既有产物。
     skipUnchanged: true
   },
 

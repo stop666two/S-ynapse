@@ -10,6 +10,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const zlib = require('node:zlib');
 const { execFileSync } = require('node:child_process');
 const { resolveChromePath } = require('./lib/mermaid-render');
 
@@ -49,6 +50,23 @@ function treeDigest(dir) {
     }
   })(dir, '');
   return out;
+}
+
+// 搜索索引（v2 倒排、内容寻址）：页面注入的 __SEARCH_INDEX_URL__ 是唯一事实来源，
+// 索引文件必须存在、为新格式（docs+fields）、且 gzip 体积不超过 features.search.index.maxGzipKb（默认 60KB）。
+function extractSearchIndexUrl(html) {
+  const m = html.match(/__SEARCH_INDEX_URL__\s*=\s*"([^"]+)"/);
+  return m ? m[1] : '';
+}
+
+function readSearchIndex(dir, lang) {
+  const html = fs.readFileSync(path.join(dir, lang, 'index.html'), 'utf-8');
+  const url = extractSearchIndexUrl(html);
+  assert.ok(url, lang + ' page must expose __SEARCH_INDEX_URL__');
+  const file = path.join(dir, url.replace(/^\//, '').split('/').join(path.sep));
+  assert.ok(fs.existsSync(file), 'search index file must exist: ' + url);
+  const text = fs.readFileSync(file, 'utf-8');
+  return { url, file, text, json: JSON.parse(text) };
 }
 
 // HTML 归一化：构建进程每次随机生成 CSP nonce，跨构建比较前必须替换为占位符。
@@ -125,7 +143,6 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     const required = [
       path.join(tmpDir, 'zh', 'index.html'),
       path.join(tmpDir, 'en', 'index.html'),
-      path.join(tmpDir, 'zh', 'search-index.json'),
       path.join(tmpDir, 'zh', 'sitemap.xml'),
       path.join(tmpDir, 'zh', 'feed.xml'),
       path.join(tmpDir, '404.html'),
@@ -134,6 +151,18 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     for (const file of required) {
       assert.ok(fs.existsSync(file), 'missing artifact: ' + path.relative(tmpDir, file));
     }
+    // 搜索索引（v2）：内容寻址文件存在、页面 URL 指向它、格式为 docs+fields、gzip 体积达标；
+    // 旧固定路径 /{lang}/search-index.json 不再产出。
+    for (const lang of ['zh', 'en']) {
+      const idx = readSearchIndex(tmpDir, lang);
+      assert.match(idx.url, /^\/assets\/search-index\.[0-9a-f]{10}\.json$/, lang + ' search index URL must be content-addressed');
+      assert.ok(Array.isArray(idx.json.docs) && idx.json.docs.length > 0, lang + ' search index must contain docs');
+      assert.ok(idx.json.fields && typeof idx.json.fields === 'object', lang + ' search index must contain field postings');
+      assert.ok(!('content' in idx.json.docs[0]), lang + ' docs metadata must not carry full content');
+      const gzipBytes = zlib.gzipSync(Buffer.from(idx.text, 'utf-8')).length;
+      assert.ok(gzipBytes <= 60 * 1024, lang + ' search index gzip must stay within 60KB, got ' + gzipBytes);
+    }
+    assert.ok(!fs.existsSync(path.join(tmpDir, 'zh', 'search-index.json')), 'legacy fixed-path search index must not be emitted');
     // dist/report.txt 构建摘要：固定段标必须存在；默认态（增强开）标注启用并产出压缩统计。
     const summaryText = fs.readFileSync(path.join(tmpDir, 'report.txt'), 'utf-8');
     for (const marker of ['S-YNAPSE 构建摘要', '[阶段耗时]', '[压缩统计]', '[无头验证]', '[告警]', '[预算与目标]']) {
@@ -385,8 +414,8 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     assert.ok(enSitemapText.includes('/en/series/site-building-notes/'),
       'sitemap must include the en series hub');
     for (const lang of ['zh', 'en']) {
-      const indexEntries = JSON.parse(fs.readFileSync(path.join(tmpDir, lang, 'search-index.json'), 'utf-8'));
-      assert.ok(!indexEntries.some((e) => /\/series\//.test(e.url)),
+      const idx = readSearchIndex(tmpDir, lang);
+      assert.ok(!idx.json.docs.some((e) => /\/series\//.test(e.url)),
         lang + ' search index must not include series hub pages');
     }
   });
@@ -436,12 +465,12 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       // 混淆默认关：两态 bundle 文件名一致（未发生混淆重命名）。
       const bundleNames = (dir) => fs.readdirSync(path.join(dir, 'assets', 'js')).filter((f) => /^(app|deferred)\./.test(f)).sort();
       assert.deepStrictEqual(bundleNames(offDir), bundleNames(tmpDir), 'obfuscation-off default must keep bundle names across states');
-      // 已紧凑的单行 JSON（search-index）不因压缩步骤变化。
-      assert.deepStrictEqual(
-        fs.readFileSync(path.join(offDir, 'zh', 'search-index.json')),
-        fs.readFileSync(path.join(tmpDir, 'zh', 'search-index.json')),
-        'compact JSON must stay untouched by the JSON enhancement'
-      );
+      // 内容寻址的搜索索引（单行 JSON）不因压缩步骤变化：两态 URL 与字节一致。
+      const searchOn = readSearchIndex(tmpDir, 'zh');
+      const searchOff = readSearchIndex(offDir, 'zh');
+      assert.strictEqual(searchOff.url, searchOn.url, 'content-addressed search index URL must be identical across compression states');
+      assert.deepStrictEqual(searchOff.text, searchOn.text,
+        'compact JSON must stay untouched by the JSON enhancement');
       // feed.json 是 JSON 增强目标：默认态单行化；关闭态保留换行（证明开关真实生效）。
       const defaultFeed = fs.readFileSync(path.join(tmpDir, 'zh', 'feed.json'), 'utf-8');
       const offFeed = fs.readFileSync(path.join(offDir, 'zh', 'feed.json'), 'utf-8');

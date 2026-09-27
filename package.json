@@ -20,6 +20,7 @@
     "verify:config": "node scripts/check-config-consistency.js",
     "verify:config-refs": "node scripts/check-config-refs.js",
     "verify:config-comments": "node scripts/check-config-comments.js",
+    "verify:config-docs": "node scripts/check-config-docs.js",
     "verify:compression": "node scripts/verify-compression.js",
     "audit:a11y": "node scripts/a11y-audit.js",
     "perf:audit": "node scripts/perf-audit.js",

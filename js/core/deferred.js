@@ -3,6 +3,7 @@
 // window.__DEFERRED_URL__ 动态载入本 chunk 后调用 load(name)。
 // 未打包回退模式（--no-bundle）下本文件不参与产物，main.js 走原生动态 import。
 import { init as searchInit } from '../domains/features/search.js';
+import { init as searchPageInit } from '../domains/features/search-page.js';
 import { init as lightboxInit } from '../domains/features/lightbox.js';
 import { init as readingPanelInit } from '../domains/features/reading-panel.js';
 import { init as ttsInit } from '../domains/features/tts.js';
@@ -30,6 +31,7 @@ import { init as touchFallbackInit } from '../domains/features/touch-fallback.js
 
 const registry = {
   search: searchInit,
+  'search-page': searchPageInit,
   lightbox: lightboxInit,
   'reading-panel': readingPanelInit,
   tts: ttsInit,

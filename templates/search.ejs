@@ -9,19 +9,6 @@
 </div>
 
 <script>
-var searchData = window.__SEARCH_DATA__ || [];
-var __sdProm = null;
-function ensureSearchData(cb){
-  if(searchData.length||window.__SEARCH_DATA_READY__){cb();return}
-  if(!__sdProm){
-    var url=window.__SEARCH_INDEX_URL__;
-    if(!url){var m=location.pathname.match(/^\/([a-z]{2})(\/|$)/);url='/'+(m?m[1]:'zh')+'/search-index.json'}
-    __sdProm=fetch(url,{credentials:'same-origin'}).then(function(r){return r.ok?r.json():[]}).then(function(d){
-      searchData=Array.isArray(d)?d:[];window.__SEARCH_DATA__=searchData;window.__SEARCH_DATA_READY__=true;return searchData;
-    }).catch(function(){window.__SEARCH_DATA_READY__=true;return []});
-  }
-  __sdProm.then(function(){cb()});
-}
 function initPagefindPage(){
   var wrap=document.getElementById('searchPageResults');
   if(!wrap)return;
@@ -43,85 +30,22 @@ function initPagefindPage(){
   s.onerror=function(){pfFallback();};
   document.body.appendChild(s);
 }
-function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-function hlOnce(s,qq){
-  var SH=(window.__FEATURES__||{}).searchHighlight||{};
-  var mc=String(SH.markClass==null?'':SH.markClass).replace(/[^\w-]/g,'');
-  var open=mc?'<mark data-mm class="'+mc+'">':'<mark data-mm>';
-  var esc=escHtml(s), t=qq.toLowerCase();
-  var idx=esc.toLowerCase().indexOf(t);
-  if(idx<0)return esc;
-  var q=esc.substr(idx,qq.length);
-  return esc.slice(0,idx)+open+q+'</mark>'+esc.slice(idx+qq.length);
-}
-function wrapExcerpt(ex,q,max){
-  max=max||120;
-  if(ex.length<=max)return ex;
-  var idx=ex.toLowerCase().indexOf(q.toLowerCase());
-  if(idx<0)return ex.slice(0,max)+'…';
-  var st=Math.max(0,idx-45),en=Math.min(ex.length,idx+q.length+55);
-  return (st>0?'…':'')+ex.slice(st,en)+(en<ex.length?'…':'');
-}
-function searchPage(query){
-  var rDiv=document.getElementById('searchPageResults');
-  if(!rDiv)return;
-  if(!query||query.length<2){
-    rDiv.innerHTML='<p class="empty-state">'+__T('search.startHint','输入关键词开始搜索')+'</p>';
-    return;
-  }
-  if(!searchData.length&&!window.__SEARCH_DATA_READY__){ensureSearchData(function(){searchPage(query)});return}
-  // features.search 检索参数（与浮层搜索同一语义）：weightTitle/weightExcerpt/weightContent 加权，
-  // 权重 0 = 字段不参与匹配与计分；matchTags/matchCategories 控制标签/分类命中（仅参与命中、计 0 分）；
-  // showCount 控制结果计数显隐。canonical 语义见 scripts/lib/feature-wiring.js → rankSearchEntries。
-  var SCF=(window.__FEATURES__||{}).search||{};
-  function cfgNum(raw,dflt){return (raw===''||raw==null||isNaN(+raw))?dflt:Math.max(0,+raw)}
-  var wT=cfgNum(SCF.weightTitle,5),wE=cfgNum(SCF.weightExcerpt,2),wC=cfgNum(SCF.weightContent,1);
-  var mTags=SCF.matchTags!==false,mCats=SCF.matchCategories!==false,showCnt=SCF.showCount!==false;
-  function cntOcc(hay,q){var n=0,i=0;while((i=hay.indexOf(q,i))!==-1){n++;i+=q.length}return n}
-  function hasAny(list,q){if(!list||!list.length)return false;for(var j=0;j<list.length;j++)if(String(list[j]).toLowerCase().indexOf(q)!==-1)return true;return false}
-  var lq=query.toLowerCase(),results=[];
-  for(var i=0;i<searchData.length;i++){
-    var it=searchData[i],score=0,hit=false;
-    var t=String(it.title||'').toLowerCase(),ex=String(it.excerpt||'').toLowerCase(),co=String(it.content||'').toLowerCase();
-    if(wT>0){var nt=cntOcc(t,lq);if(nt){score+=nt*wT;hit=true}}
-    if(wE>0){var ne=cntOcc(ex,lq);if(ne){score+=ne*wE;hit=true}}
-    if(wC>0){var nc=cntOcc(co,lq);if(nc){score+=nc*wC;hit=true}}
-    if(mTags&&hasAny(it.tags,lq))hit=true;
-    if(mCats&&hasAny(it.categories,lq))hit=true;
-    if(hit){results.push({it:it,score:score})}
-  }
-  // 总分降序；同分保持索引原序（search-index.json 按日期倒序生成）。
-  results.sort(function(a,b){return b.score-a.score});
-  if(results.length){
-    var cntTpl=<%- JSON.stringify(ui('search.foundCount','找到 {count} 个结果')).replace(/<\//g,'<\\/') %>;
-    rDiv.innerHTML=(showCnt?'<p class="search-count">'+cntTpl.replace('{count}',results.length)+'</p>':'')+
-      results.map(function(r0){
-        var r=r0.it;
-        var meta='';
-        if(r.date)meta+='<span class="post-card-meta-item">'+escHtml(r.date)+'</span>';
-        if(r.categories&&r.categories.length)meta+='<span class="post-card-meta-item">'+r.categories.map(escHtml).join(' · ')+'</span>';
-        return '<article class="post-card">'+
-          (r.featuredImage?'<a href="'+escHtml(r.url)+'"><img src="'+escHtml(r.featuredImage)+'" alt="'+escHtml(r.title)+'" class="post-card-image" loading="lazy"></a>':'')+
-          '<h2 class="post-card-title"><a href="'+escHtml(r.url)+'">'+hlOnce(r.title,query)+'</a></h2>'+
-          (r.excerpt?'<p class="post-card-excerpt">'+hlOnce(wrapExcerpt(r.excerpt,query,170),query)+'</p>':'')+
-          (meta?'<div class="post-card-meta">'+meta+'</div>':'')+
-          (r.tags&&r.tags.length?'<div class="post-tags search-result-tags">'+r.tags.slice(0,6).map(function(t){return '<span class="post-tag">'+escHtml(t)+'</span>'}).join('')+'</div>':'')+
-        '</article>';
-      }).join('');
-  }else{
-    rDiv.innerHTML='<p class="empty-state">'+__T('search.notFound','未找到相关文章')+'</p>';
-  }
-}
-var __spInp=document.getElementById('searchPageInput');
-if(__spInp)__spInp.addEventListener('input',function(){searchPage(this.value)});
-window.addEventListener('DOMContentLoaded',function(){
-  var _PF=(window.__FEATURES__||{}).pagefind||{};
-  if(window.__SEARCH_PROVIDER__==='pagefind'&&_PF.integrate!==false){initPagefindPage();return;}
-  var params=new URLSearchParams(window.location.search);
-  var q=params.get('q');
-  if(q){
-    document.getElementById('searchPageInput').value=q;
-    searchPage(q);
-  }else{ensureSearchData(function(){})}
-});
+(function(){
+  var PF=(window.__FEATURES__||{}).pagefind||{};
+  if(window.__SEARCH_PROVIDER__==='pagefind'&&PF.integrate!==false){initPagefindPage();return}
+  // 本地搜索链路按需加载：打包模式取 deferred 聚合入口的 search-page 注册项；
+  // --no-bundle 回退模式直接 import 拷贝后的 ESM 源码（两条路径均只加载检索所需模块）。
+  var d=window.__DEFERRED_URL__;
+  var p=d
+    ?import(d).then(function(m){return m.load('search-page')})
+    :import('/assets/js/domains/features/search-page.js').then(function(m){return m.init()});
+  p.catch(function(){
+    var wrap=document.getElementById('searchPageResults');
+    if(!wrap||wrap.querySelector('.search-result-error'))return;
+    wrap.innerHTML='';
+    var box=document.createElement('p');box.className='empty-state search-result-error';
+    box.textContent=(typeof __T==='function')?__T('search.loadError','搜索索引加载失败，请检查网络后重试'):'搜索索引加载失败，请检查网络后重试';
+    wrap.appendChild(box);
+  });
+})();
 </script>

@@ -1,47 +1,42 @@
+import { ensureIndex, searchIndex, isValidIndex, highlightHtml } from './search-core.js';
+
 export function init() {
   var TNS = (window.__TUNING__ || {}).search || {};
   var searchKbIdx = -1;
   var searchKbList = [];
-  var lcIndex = null;
-  var dataPromise = null;
-  function ensureData() {
-    var cur = window.__SEARCH_DATA__;
-    if (cur && cur.length) return Promise.resolve(cur);
-    if (window.__SEARCH_DATA_READY__) return Promise.resolve(cur || []);
-    if (dataPromise) return dataPromise;
+  function searchIndexUrl() {
     var url = window.__SEARCH_INDEX_URL__;
     if (!url) {
       var m = location.pathname.match(/^\/([a-z]{2})(\/|$)/);
       url = '/' + (m ? m[1] : 'zh') + '/search-index.json';
     }
+    return url;
+  }
+  // 索引加载：倒排索引（构建期内容寻址 JSON）；缓存到 window.__SEARCH_DATA__（失败置 __SEARCH_ERROR__）。
+  function ensureData(force) {
+    var cur = window.__SEARCH_DATA__;
+    if (!force && cur && isValidIndex(cur)) return Promise.resolve(cur);
+    if (!force && window.__SEARCH_DATA_READY__ && isValidIndex(cur)) return Promise.resolve(cur);
+    if (cur && !isValidIndex(cur)) {
+      window.__SEARCH_DATA__ = null;
+      window.__SEARCH_DATA_READY__ = false;
+    }
     var tRaw = +TNS.indexTimeoutMs;
     var timeoutMs = isNaN(tRaw) || tRaw <= 0 ? 5000 : tRaw;
     var rRaw = parseInt(TNS.indexRetry, 10);
     var retries = isNaN(rRaw) || rRaw < 0 ? 1 : rRaw;
-    function fetchOnce(attempt) {
-      var opts = { credentials: 'same-origin' };
-      if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) opts.signal = AbortSignal.timeout(timeoutMs);
-      return fetch(url, opts).then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      }).catch(function (err) {
-        if (attempt < retries) return fetchOnce(attempt + 1);
-        throw err;
-      });
-    }
     window.__SEARCH_ERROR__ = false;
-    dataPromise = fetchOnce(0).then(function (d) {
-      window.__SEARCH_DATA__ = Array.isArray(d) ? d : [];
-      window.__SEARCH_DATA_READY__ = true;
-      return window.__SEARCH_DATA__;
-    }).catch(function () {
-      window.__SEARCH_DATA__ = [];
+    return ensureIndex(searchIndexUrl(), { timeoutMs: timeoutMs, retries: retries, force: !!force }).then(function (data) {
+      if (data) {
+        window.__SEARCH_DATA__ = data;
+        window.__SEARCH_DATA_READY__ = true;
+        return data;
+      }
+      window.__SEARCH_DATA__ = null;
       window.__SEARCH_DATA_READY__ = false;
       window.__SEARCH_ERROR__ = true;
-      dataPromise = null;
-      return [];
+      return null;
     });
-    return dataPromise;
   }
   function searchKbDir(dir) {
     var items = document.querySelectorAll('.search-result-item');
@@ -213,76 +208,41 @@ export function init() {
       return;
     }
     if (en) saveHistory(q);
-    var w = window.__SEARCH_DATA__ || [];
-    if (!w.length && !window.__SEARCH_DATA_READY__) {
+    var idx = window.__SEARCH_DATA__;
+    if (!isValidIndex(idx) && !window.__SEARCH_DATA_READY__) {
       ensureData().then(function () {
-        if ((window.__SEARCH_DATA__ || []).length) { doSearchNow(q); return; }
+        // 加载竞态防护：请求返回时输入框内容已变化，则放弃本次渲染（新输入会重新检索）。
+        var input = document.getElementById('searchInput');
+        if (input && input.value !== q) return;
+        if (isValidIndex(window.__SEARCH_DATA__)) { doSearchNow(q); return; }
         if (window.__SEARCH_ERROR__) renderSearchError(d, q);
       });
       return;
     }
-    var lq = q.toLowerCase();
     var mrst = isNaN(+TNS.resultLimit) ? (isNaN(+SC.maxResults) ? 30 : +SC.maxResults) : +TNS.resultLimit;
     var el = isNaN(+TNS.excerptLength) ? (isNaN(+SC.excerptLength) ? 120 : +SC.excerptLength) : +TNS.excerptLength;
     var shl = (F && F.searchHighlight) || {};
     var mm = isNaN(+shl.maxMatches) ? 20 : +shl.maxMatches;
     var hlOn = shl.enabled !== false && SC.highlightMatches !== false;
-    // searchHighlight.markClass：只保留安全类名字符；空=不附加 class（默认，保持历史输出）。
-    var mkCls = String(shl.markClass == null ? '' : shl.markClass).replace(/[^\w-]/g, '');
-    var markOpen = mkCls ? '<mark class="' + mkCls + '">' : '<mark>';
-    function hl(sx, qq) {
-      var esc = sx.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      if (!hlOn) return esc;
-      var re;
-      try { re = new RegExp('(' + qq.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'); }
-      catch (e) { return esc; }
-      var n = 0;
-      return esc.replace(re, function (m) { return n++ < mm ? markOpen + m + '</mark>' : m; });
-    }
-    if (!lcIndex || lcIndex.length !== w.length) {
-      lcIndex = [];
-      for (var ci = 0; ci < w.length; ci++) {
-        var it0 = w[ci] || {};
-        lcIndex.push({
-          it: it0,
-          t: String(it0.title || '').toLowerCase(),
-          e: String(it0.excerpt || '').toLowerCase(),
-          c: String(it0.content || '').toLowerCase(),
-          g: (Array.isArray(it0.tags) ? it0.tags : []).map(function (x) { return String(x).toLowerCase(); }),
-          k: (Array.isArray(it0.categories) ? it0.categories : []).map(function (x) { return String(x).toLowerCase(); })
-        });
-      }
+    // searchHighlight.markClass：core 侧只保留安全类名字符；空=不附加 class（默认，保持历史输出）。
+    var mkCls = String(shl.markClass == null ? '' : shl.markClass);
+    var idxCfg = SC.index || {};
+    var hlBigram = idxCfg.bigram !== false;
+    function hl(sx) {
+      return highlightHtml(sx, q, { enabled: hlOn, maxMatches: mm, markClass: mkCls, bigram: hlBigram });
     }
     // features.search.weightTitle/weightExcerpt/weightContent（默认 5/2/1；权重 0 = 该字段不参与匹配与计分）
     // 与 matchTags/matchCategories（tags/categories 仅参与命中判定，计 0 分）。
-    // canonical 纯函数语义见 scripts/lib/feature-wiring.js → rankSearchEntries（本函数为镜像实现）。
+    // canonical 纯函数语义见 scripts/lib/feature-wiring.js → rankSearchEntries；倒排查询实现见 js/domains/features/search-core.js。
     var __wNum = function (raw, dflt) { return (raw === '' || raw == null || isNaN(+raw)) ? dflt : Math.max(0, +raw); };
     var wT = __wNum(SC.weightTitle, 5), wE = __wNum(SC.weightExcerpt, 2), wC = __wNum(SC.weightContent, 1);
     var mTags = SC.matchTags !== false, mCats = SC.matchCategories !== false, showCnt = SC.showCount !== false;
-    function __cnt(hay) {
-      var n = 0, i = 0;
-      while ((i = hay.indexOf(lq, i)) !== -1) { n++; i += lq.length; }
-      return n;
-    }
-    function __has(list) {
-      for (var j = 0; j < list.length; j++) if (list[j].indexOf(lq) !== -1) return true;
-      return false;
-    }
-    var scored = [];
-    for (var i = 0; i < lcIndex.length; i++) {
-      var row = lcIndex[i];
-      var score = 0, hit = false;
-      if (wT > 0) { var nt = __cnt(row.t); if (nt) { score += nt * wT; hit = true; } }
-      if (wE > 0) { var ne = __cnt(row.e); if (ne) { score += ne * wE; hit = true; } }
-      if (wC > 0) { var ncc = __cnt(row.c); if (ncc) { score += ncc * wC; hit = true; } }
-      if (mTags && __has(row.g)) hit = true;
-      if (mCats && __has(row.k)) hit = true;
-      if (hit) scored.push({ it: row.it, score: score, idx: i });
-    }
-    // 总分降序；同分保持索引原序（search-index.json 按日期倒序生成）→ 等价同分按日期。
-    scored.sort(function (a, b) { return (b.score - a.score) || (a.idx - b.idx); });
-    if (scored.length > mrst) scored = scored.slice(0, mrst);
-    var r = scored.map(function (x) { return x.it; });
+    var r = searchIndex(isValidIndex(idx) ? idx : { docs: [], fields: {} }, q, {
+      weights: { title: wT, excerpt: wE, content: wC },
+      matchTags: mTags,
+      matchCategories: mCats,
+      limit: mrst
+    });
     var cnt = document.getElementById('searchCount');
     if (r.length) {
       // 清空旧结果，避免连续查询时旧结果节点叠加（回归：重复查询追加）。
@@ -304,12 +264,12 @@ export function init() {
           a.href = item.url;
           var t2 = document.createElement('div');
           t2.className = 'search-result-title';
-          t2.innerHTML = hl(item.title, q);
+          t2.innerHTML = hl(item.title);
           a.appendChild(t2);
           if (item.excerpt) {
             var e = document.createElement('div');
             e.className = 'search-result-excerpt';
-            e.innerHTML = hl(item.excerpt.substring(0, el), q);
+            e.innerHTML = hl(item.excerpt.substring(0, el));
             a.appendChild(e);
           }
           d.appendChild(a);
@@ -343,7 +303,13 @@ export function init() {
     btn.type = 'button';
     btn.className = 'search-retry-btn';
     btn.textContent = __T('search.retry', '重试');
-    btn.addEventListener('click', function () { doSearchNow(q); });
+    // 重试：force 丢弃失败缓存后重新加载索引；成功则重放查询，仍失败保持错误态。
+    btn.addEventListener('click', function () {
+      ensureData(true).then(function () {
+        if (isValidIndex(window.__SEARCH_DATA__)) doSearchNow(q);
+        else renderSearchError(d, q);
+      });
+    });
     box.appendChild(msg);
     box.appendChild(btn);
     d.appendChild(box);

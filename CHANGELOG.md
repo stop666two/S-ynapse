@@ -145,6 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CSS 合并配平误判安全页面导致 `verify:security`/CI 红（压缩 C9，2026-09-27）**：`scripts/lib/css-merge.js` 的标签配平检查原以正则全量计数（`<script\b` 等）对照令牌匹配数，安全夹具页面 `<title>` 的 RCDATA 惰性文本（`</script><script>` 字面）以及属性值/注释/JS 字符串中的标签字面会被误计为真实标签，真实页面被误判「不平衡」并抛错（CI run 36286368788）；现改为上下文感知扫描（对齐浏览器分词：注释、`title`/`textarea` RCDATA、`script`/`style` rawtext 内容与带引号属性值中的 `<` 不再计为标签），真实缺失闭合标签/开闭计数不平衡仍保守抛错。同时 `scripts/build/minify.js` 中 CSS 合并/去重的单文件解析异常不再调用 `recordBuildFailure('compression')`（原行为使构建 exit 1，与该步骤「跳过 + 告警」的设计语义矛盾），改为告警 + 跳过计数与原因汇总，写入 `dist/report.txt` 压缩统计段（`scripts/lib/build-report-text.js` 扩展 `cssSkips` 字段，缺失容错）。回归测试：`scripts/css-merge.test.js` 42 例（+6 配平边界）、`scripts/compression-pipeline.test.js` 跳过路径断言（不进入失败账本、原文件保留）、`scripts/build-report-text.test.js` 17 例（+2 跳过明细渲染/容错）；85 个 dist 页面新旧实现输出逐字节等价。
 - **增量构建被后续阶段抵消（`cacheBust` 非幂等，构建正确性）**：增量模式不清空 dist，上一轮已内容寻址的文件再次进入扫描时被重复追加哈希并连锁改写全部 HTML 引用（每次构建全量重写、文件名哈希层层累积）。现按「文件名已带本轮内容哈希」跳过；新增回归测试 `scripts/cache-bust.test.js`（3 例：首轮改名、二次幂等、内容变化单层新哈希）。
 - **增量指纹数据泄漏（改 `pages/*.md` 使全部页面失效）**：`customPages` 曾被整体注入 `baseData`（无任何模板消费点），且 `pagesContent` 以完整对象进入每页数据（实际仅 `templates/post.ejs` 文章页脚按 `theme.articleFooter.source` 取用）。现移除 `baseData.customPages` 注入、`pagesContent` 仅投影文章页脚所需单键——改单页只重建该页（runner 断言 rebuilt=1、mtime 与页面指纹仅目标页变化），全量产物与修复前逐字节等价。
 - **归档热力图图例显示字面 `{count} 文章`（用户可感知，W4 顺带修复）**：图例首项误用 `ui-strings archive.count`（`{count} 文章` 模板串）未做替换；现改用 `archive.textArticle`（文章 / articles）；见 `templates/archive.ejs`。

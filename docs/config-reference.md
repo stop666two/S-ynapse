@@ -1029,7 +1029,7 @@ listCover: {
 - 仅作用于 `dist/` 产物；`exclude` 命中的路径按原字节复制。
 - `--serve` / `--watch` 自动关闭：本地调试所见即未压缩产物，无需改配置。
 - 压缩发生在内容哈希（cacheBust）之前：文件名哈希对应压缩后的最终字节；改配置 → 产物字节变化 → 哈希换代，不会出现「哈希未变、内容已变」的脏缓存。
-- `dist/report.txt` 与 `build-report.html` 在报告阶段生成（压缩与 cacheBust 之后），天然豁免压缩。`report.txt` 汇总：阶段耗时（配置/预校验/页面/媒体/OG/压缩增强/cacheBust/PWA/报告/其它）、HTML/CSS/JS/JSON 的压缩前后 raw/gzip 与节省率（含变更/新增/移除/跳过/豁免计数）、压缩阶段失败清单、无头验证摘要（读取 `.cache/compression-verify/last.json`；本轮未运行则如实标注）、非阻断告警、perfBudget 5 项对照与压缩目标现状值（本阶段口径：基线压缩前 → 增强/压缩后；HTML gzip ≥10%、JS gzip ≥20% 混淆关态，三态对照与未达原因见 `docs/plans/2026-09-27-compression.md`「C8 结果」）。`report.txt` 已列入默认 `exclude`，且被产物等价护栏 `scripts/lib/dist-hash.js` 的默认忽略项覆盖（与 `build-report.html` 同为含时间戳的非确定性产物）。
+- `dist/report.txt` 与 `build-report.html` 在报告阶段生成（压缩与 cacheBust 之后），天然豁免压缩。`report.txt` 汇总：阶段耗时（配置/预校验/页面/媒体/OG/压缩增强/cacheBust/PWA/报告/其它）、HTML/CSS/JS/JSON 的压缩前后 raw/gzip 与节省率（含变更/新增/移除/跳过/豁免计数）、CSS 合并/去重跳过计数与明细（文件 + 原因）、压缩阶段失败清单、无头验证摘要（读取 `.cache/compression-verify/last.json`；本轮未运行则如实标注）、非阻断告警、perfBudget 5 项对照与压缩目标现状值（本阶段口径：基线压缩前 → 增强/压缩后；HTML gzip ≥10%、JS gzip ≥20% 混淆关态，三态对照与未达原因见 `docs/plans/2026-09-27-compression.md`「C8 结果」）。`report.txt` 已列入默认 `exclude`，且被产物等价护栏 `scripts/lib/dist-hash.js` 的默认忽略项覆盖（与 `build-report.html` 同为含时间戳的非确定性产物）。
 
 **语义：基线压缩 vs 增强步骤**
 - **基线压缩**：`site.build.minifyHTML/minifyCSS/minifyJS` 驱动的既有 minify-html / CleanCSS / Terser 行为，恒定执行且**不受本文件开关影响**（默认态产物字节与引入本文件前一致）。`exclude` 只约束增强步骤，不改变基线。
@@ -1038,12 +1038,12 @@ listCover: {
   - `html.removeComments=false`：保留 HTML 注释（压缩阶段的基线选项回退，仅 `enabled` 时生效；默认 true 与基线一致）。
   - `json.enabled=true`：`dist/**/*.json` 去空白（`JSON.parse → JSON.stringify`，键序保持、输出合法 JSON、Unicode 原样）。跳过：已是紧凑单行、`exclude` 命中项、`assets/config.<hash>.json`（文件名由内容哈希派生，是 HTML 的引用键；重写会破坏一致性——该文件写入时已紧凑，天然无需处理）。逐文件失败只告警并保留原文件。
   - `css.mergeInlineStyles`（C3 已实装）：同页内联 `<style>` 安全合并——只合并「同组（nonce 与 media 一致）且中间无其它样式源」的相邻块，合并块落在首块位置并保留 nonce/media；SVG 与 `<noscript>` 内的 style、外链 `<link rel=stylesheet>` 一律视为截断源（不跨越，避免层叠顺序改变）；非 nonce/media 属性（如 `id=customCSS`）在合并时丢弃。因此数学页（正文含 KaTeX 外链）等被 stylesheet 截断的页面保持两块，这是顺序安全的必然结果。
-  - `css.dedupe`（C3 已实装）：保守去重——①同一规则内同属性且同 `!important` 状态的重复声明保留最后一条（重要性与普通混合时一律不动，避免破坏层叠）；②相邻（仅空白分隔）且完全相同的规则保留前一条；非相邻重复不折叠、`@keyframes` 内部与 at-rule 结构不动、规则顺序不动。作用于页面内联 style 与 dist 外链 CSS 文件（`assets/**` 不参与 cacheBust，外链 CSS 只改内容不改名，与基线 CleanCSS 行为一致）；解析异常（标签/括号/引号/注释不配平）跳过该文件并告警，不阻断构建。
+  - `css.dedupe`（C3 已实装）：保守去重——①同一规则内同属性且同 `!important` 状态的重复声明保留最后一条（重要性与普通混合时一律不动，避免破坏层叠）；②相邻（仅空白分隔）且完全相同的规则保留前一条；非相邻重复不折叠、`@keyframes` 内部与 at-rule 结构不动、规则顺序不动。作用于页面内联 style 与 dist 外链 CSS 文件（`assets/**` 不参与 cacheBust，外链 CSS 只改内容不改名，与基线 CleanCSS 行为一致）；解析异常（真实标签缺失闭合/计数不平衡、括号/引号/注释不配平）跳过该文件并告警，跳过计数与原因写入 `dist/report.txt`，不计入失败账本、不阻断构建。标签配平采用上下文感知扫描（注释、`title`/`textarea` RCDATA、`script`/`style` 内容与带引号属性值中的 `<` 不计为标签），避免 `</script><script>` 一类惰性文本误判。
   - `js.minify`（runtime 引导脚本压缩，C8 实装）：`copyRuntimeBootstrap` 原样复制的 `runtime.<hash>.js`（classic script，基线打包的 esbuild minify 不覆盖）走 Terser 压缩（`module:false`，不改顶层标识符），压缩后按最终字节以 md5-10 重命名并同步改写全部 HTML 引用（`<script src>`），维持「文件名哈希=最终字节」；失败保留原文件并告警。实测 raw 3.75KB → 2.85KB、gzip 1.79KB → 1.34KB。
   - `js.obfuscate.enabled=true`（C4 已实装）：对**本轮 esbuild 产物** `app.<hash>.js` / `deferred.<hash>.js` 执行混淆，随后按混淆后字节重算文件名（md5-10）并同步改写全部 HTML 引用（app `src` 与 `window.__DEFERRED_URL__` 内联 URL），维持「文件名哈希=最终字节」。`runtime.<hash>.js` 因文件名哈希由内容派生、HTML 以该名引用（参与内容哈希引用），排除在混淆之外（其内容寻址改名由上一项 `js.minify` 压缩步骤承担）；vendor、`--no-bundle` 源码拷贝与增量残留旧文件永不命中（白名单=本轮 bundle 清单）。依赖 `javascript-obfuscator` 为 devDependency，仅在开关开启时惰性加载；单文件失败保留原名原文件并告警。
 - `html.collapseWhitespace=false` 暂不受支持：minify-html 恒折叠安全空白，配置为 false 时输出 `[WARN]` 并保持折叠。
 - `verify.headless` / `verify.fallbackOnFailure`（无头对比门禁 + 自动回退，已实装）：见下节「无头对比门禁与自动回退」。
-- 失败处理：配置加载/覆盖校验错误 → 记录构建失败 + 告警 + 降级内置默认值（不中止构建流程；`--allow-degraded` 可让退出码为 0）；逐文件压缩失败 → 告警 + 保留原文件 + 记录构建失败。
+- 失败处理：配置加载/覆盖校验错误 → 记录构建失败 + 告警 + 降级内置默认值（不中止构建流程；`--allow-degraded` 可让退出码为 0）；逐文件压缩失败 → 告警 + 保留原文件 + 记录构建失败；例外：CSS 合并/去重解析异常按「跳过 + 告警 + 计入 skipped 明细」降级（产物正确性不受影响），不记录失败账本。
 - `--compression-override <path>`：隔离验证/预览构建的第二态压缩配置（JSON5 深合并、仍过 `validateCompression`、不写仓库 `compression.json5`）；文件缺失或解析错误在构建 try 内按 `--features-override`/`--theme-override` 同模式中止（watch 下被 rebuild 循环捕获，不再使监听进程退出）。
 
 **无头对比门禁与自动回退（verify）**

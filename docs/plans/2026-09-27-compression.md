@@ -186,3 +186,29 @@ compression: {
 - **JS gzip −20%：未达**。splitting + runtime Terser 达 −10.2%；叠加成熟工具剩余空间（esbuild 产物二次 Terser，C6 实测约 −4.5%）上限约 −14%；再往上需代码级裁剪（功能删减/懒加载重排/共享数据外置），不得为达标牺牲行为与兼容。**候选决策项**：接受现状，或启动代码级裁剪评估。
 - **构建 ≤8s**：口径需拍板——纯构建（验证关）暖缓存 4.9s 达标；含 C5 无头验证 18.1s（验证净 ~13s；servers 0.2s、browser 0.4s、静态对比 2.8s、运行时控制台 4.4s、交互 3.7s、清理 0.6s）。已并行两态断言与复用持久 profile；剩余为真实页面加载与交互观察，不缩短等待（避免假通过）。
 - **部署确认**：待用户拍板后进行。
+
+## 十一、C9 回归修复（2026-09-27）
+
+**问题与根因**
+
+- **现象**：CI run 36286368788 failure——`npm run verify:security` 注入恶意标题（`</script><script>window.__SEC_PWNED__=1</script>`）后，构建以 exit 1 失败，`[FAILURES] 1 build failure(s) recorded: - [compression] CSS zh/_sec-verify/index.html: HTML 标签配平检查失败（script/style/svg/noscript）`。
+- **根因 1（配平误判）**：`scripts/lib/css-merge.js` 的标签配平检查用正则全量计数（`html.match(/<script\b/gi)` 等）对照令牌匹配数；`<title>` 的 RCDATA 惰性文本（安全夹具标题即含 `</script><script>` 字面）、带引号属性值、注释、JS 字符串中的标签字面都被误计为真实标签，导致真实页面被判「不平衡」并抛错。
+- **根因 2（降级语义矛盾）**：`scripts/build/minify.js` 对 CSS 合并/去重的单文件解析异常调用 `recordBuildFailure('compression', …)`，而该步骤的设计语义是「跳过 + 告警」（解析异常只影响单页优化，不影响产物正确性）；失败账本使构建非零退出、门禁红。
+
+**修复**
+
+- `scripts/lib/css-merge.js`：扫描改写为上下文感知分词——HTML 注释、RCDATA（`title`/`textarea` 内容）、rawtext（`script`/`style` 内容，含 JS 字符串）、带引号属性值中的 `<` 一律不计为标签；`script`/`style` 内容未闭合、`svg`/`noscript` 开闭计数不平衡等真实异常仍保守抛错。扫描模型参考 `scripts/security-verify.js` 的 `scanScripts`（引号属性 + 元素边界）并补齐其未覆盖分支（注释、`title`/`textarea`、跨元素开闭计数）；未直接抽为共享函数是为避免改动线上安全检查门禁、扩大修复面，等价性以「85 个真实 dist 页面新旧实现输出逐字节一致」实测证明。
+- `scripts/build/minify.js`：CSS 合并/去重被跳过的文件不再调用 `recordBuildFailure('compression')`，改为 `console.warn` + `skipped` 计数与明细（文件名 + 原因）；`minifyAll` 返回的压缩统计新增 `cssSkips`，`dist/report.txt` 压缩统计段如实渲染（`scripts/lib/build-report-text.js` 新增「CSS 合并/去重跳过」计数与明细行，字段缺失时容错为「未记录」）。JSON 去空白等其他压缩步骤异常仍按原语义记入失败账本。
+- 测试：`scripts/css-merge.test.js` 42 例（+6：title RCDATA / 属性值 / 注释 / JS 字符串中的标签字面不误判，真实缺失闭合、多余闭合仍抛错）；`scripts/compression-pipeline.test.js` 新增「跳过降级」集成断言（不调用 `recordBuildFailure`、原文件保留、报告含明细且未渲染为失败）；`scripts/build-report-text.test.js` 17 例（+2：跳过明细渲染与缺省容错）。
+
+**门禁证据（主仓实测）**
+
+- `npm run verify:security` exit 0（`[PASS] Security verification: no XSS payload reached dist/; whitelist preserved.`）。
+- `npm test` 590/590（107 suites）、`npm run test:build` 3/3、`npm run lint` / `npm run typecheck` exit 0、`verify:config` / `verify:config-refs` PASS、`npm run verify:compression` PASS（6 页断言、端口释放）、`node scripts/build.js --out <tmp>` exit 0（CSS 合并 ×96 / 80 页、去重声明 ×13、report.txt 显示「CSS 合并/去重跳过:（无）」）。
+- 等价对照：85 个 dist HTML 页面在旧（HEAD）与新合并/去重实现下输出逐字节一致（0 diff / 0 error）。
+
+**教训**
+
+- **全门禁必须含 `verify:security`**：该回归未在本地「全门禁」清单中暴露，因为清单漏跑了 `npm run verify:security`，直到 CI 才变红。安全夹具本身就是敌意输入，是压缩/合并等启发式解析的天然边界用例。后续「全门禁」必须与 CI `build` 作业同集：`lint`、`typecheck`、`test`、`test:coverage`、`test:build`、`verify:config`、`verify:config-refs`、`verify:security`、`build`、`verify:compression`。
+- 配平/计数类启发式检查必须建立在对浏览器分词的准确建模上（注释、RCDATA、rawtext、属性引号），正则全量计数不能作为「不平衡」的判定依据。
+- 「跳过并保留原文件」的降级路径不得复用「阻断失败」的账本通道；降级与失败应在数据结构与报告呈现上分离。

@@ -1,0 +1,90 @@
+name: Release
+
+# 仅由版本 tag 触发：先做 RELEASE.json 双重校验，再跑全套质量门禁，最后建 GitHub Release。
+# 站点部署由 deploy.yml 独立负责（触发条件限定 branches: [main]），tag 推送不会触发部署。
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate RELEASE.json at tag (status + version + commit + checks)
+        run: node scripts/lib/release-validate.js --tag "$GITHUB_REF_NAME"
+
+  gates:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Lint (ESLint)
+        run: npm run lint
+      - name: Type check (tsc checkJs)
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Build smoke
+        run: npm run test:build
+      - name: Config consistency
+        run: npm run verify:config
+      - name: Config references
+        run: npm run verify:config-refs
+      - name: Config comments
+        run: npm run verify:config-comments
+      - name: Config docs
+        run: npm run verify:config-docs
+      - name: Security verification
+        run: npm run verify:security
+      - name: Compression verification (Chrome-only, skip-with-notice otherwise)
+        run: |
+          if [ -n "$CHROME_PATH" ] || command -v google-chrome >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1; then
+            npm run verify:compression
+          else
+            echo "[SKIP] 未检测到 Chrome（CHROME_PATH/google-chrome/chromium），跳过压缩无头对比验证（按既有条件策略）"
+          fi
+      - name: Real build
+        run: npm run build
+
+  publish:
+    needs: [validate, gates]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Build release archive (allowlist assertion inside)
+        run: node scripts/release-archive.js --ref "$GITHUB_REF_NAME"
+      - name: Create GitHub Release with archive asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-artifacts/S-ynapse-*.zip \
+            --verify-tag \
+            --title "S-ynapse $GITHUB_REF_NAME" \
+            --notes "经人工核验与全套质量门禁验证的版本；校验依据见 tag 内 RELEASE.json。"

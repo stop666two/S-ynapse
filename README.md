@@ -14,6 +14,7 @@
 | --- | --- |
 | [配置参考](docs/config-reference.md) | 全部 14 个配置文件（site/theme/tuning/navigation/sidebar/footer/security/features/ui-strings/content-policy/tag-aliases/friends/guard/compression）的逐字段权威说明：每个配置项的含义、可填值、推荐值与默认值，以及值域校验、环境变量、重定向/友链/标签别名示例 |
 | [移动端真机点检清单](docs/mobile-checklist.md) | iOS Safari / Android Chrome 各 15 项发布前真机点检：安全区、软导航、TOC 抽屉、弹窗公告、CJK 字体、暗色、横屏、双击缩放、滚动性能、分享/TTS 权限等，含预期结果与问题记录表 |
+| [发布流程（Release）](docs/runbook/release.md) | 完成标记 + 自动发布机制：RELEASE.json 字段与双重校验、`release:mark` 全流程与人工核验含义、双通道发布（Actions on tag / 本地 gh）、归档白名单、失败排障、Release 与站点部署的关系 |
 | [变更日志](CHANGELOG.md) | 按版本号记录本项目的全部变更：安全修复、新增功能、配置项变化，遵循 Keep a Changelog 格式，每个条目注明涉及的源文件 |
 | [增量构建设计](docs/incremental-build-design.md) | 增量构建（`--watch`）的架构设计文档：哈希指纹缓存、按页面拆分构建、默认跳过未变化源的完整方案 |
 
@@ -74,12 +75,23 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html`（详细统计 + 内容策略拦截清单）与 `report.txt`（阶段耗时、压缩前后 raw/gzip 对照、无头验证摘要、告警与预算结论）
-- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（611 项 / 111 组）；`npm run lint` 提供 ESLint 静态检查
+- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（692 项 / 117 组）；`npm run lint` 提供 ESLint 静态检查
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
 
 ## 快速开始
+
+> [!IMPORTANT]
+> **下载与安装（中文）**：`main` 分支可能包含**未完成或尚未验证**的改动。请优先从
+> [Releases](https://github.com/stop666two/S-ynapse/releases) 下载已通过全套质量门禁与人工核验的版本包
+> （`S-ynapse-<版本>.zip`，校验记录见包内 `RELEASE.json`）；从源码构建请以下载包为准，避免直接使用 main 的中间状态。
+>
+> **Downloads & installation (English)**: `main` may contain work-in-progress changes. Prefer the verified
+> archive from [Releases](https://github.com/stop666two/S-ynapse/releases) (`S-ynapse-<version>.zip` with
+> `RELEASE.json` provenance) instead of building from the moving tip of `main`.
+>
+> 发布流程、人工核验含义与排障见 **[docs/runbook/release.md](docs/runbook/release.md)**。
 
 ```bash
 # 1. 安装依赖（自动配置 git hooks）
@@ -474,11 +486,14 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（611 项 / 111 组） |
+| `npm test` | 运行单元测试（692 项 / 117 组） |
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前总量约 98%） |
 | `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、CSP nonce 与 report.txt 两态；CI 运行，不进 `npm test`） |
 | `npm run verify:compression` | 压缩无头对比门禁（完整构建 + 压缩产物 vs 未压缩副本的 DOM/样式/控制台/交互断言；passed=0、failed=1、skipped=0；`--out`/`--chrome`/`--keep-baseline`/`--json` 可选） |
 | `npm run sbom` | 生成 CycloneDX 1.5（ECMA-424）SBOM → `build-artifacts/sbom.cdx.json`（不入库；CI 上传为 `sbom-cyclonedx` artifact） |
+| `npm run release:mark -- <major\|minor\|patch\|X.Y.Z> --human-verified "<姓名>" --confirm <版本>` | 完成标记：顺序跑完全套质量门禁 → 同步 package.json/CHANGELOG/RELEASE.json → `chore(release)` 提交 + 附注 tag（默认不 push；`--dry-run` 仅演练；`--push --confirm-push` 才推送） |
+| `npm run release:archive -- --ref <tag\|HEAD>` | 按白名单生成 `release-artifacts/S-ynapse-<版本>.zip`（含前缀目录）并复核归档内容无越界 |
+| `npm run release:publish -- vX.Y.Z` | 本地备用发布通道（远端已有 tag 后复用双重校验并 `gh release create`；默认通道为 tag 触发 Actions 自动发布） |
 | `npm run lint` | ESLint 静态检查（js/scripts/workers；CI 门禁） |
 | `npm run audit` | 依赖漏洞扫描（固定官方 registry：本机 npm 镜像会阻断 audit 接口） |
 | `npm run typecheck` | TypeScript checkJs 类型检查（scripts/lib；CI 门禁） |
@@ -498,7 +513,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 611 项 / 111 组，全部通过
+npm test            # 692 项 / 117 组，全部通过
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
 npm run typecheck   # TypeScript checkJs（scripts/lib，渐进引入）
@@ -557,7 +572,7 @@ npm run verify:security   # 集成安全回归
 | serve-compression | 4 | 本地 serve 压缩响应两态 |
 | theme-override | 5 | `--theme-override` / `--features-override` 深合并与校验 |
 
-> `npm test` 共 **611 项 / 111 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
+> `npm test` 共 **692 项 / 117 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
 
 ### SBOM（软件物料清单）
 

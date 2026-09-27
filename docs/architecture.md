@@ -106,13 +106,21 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `node scripts/dist-hash-guard.js` | 重构/迁移的产物等价护栏（归一化 nonce/换行） |
 | `node scripts/perf-audit.js` | 可复现性能基线（Slow 4G + 4× CPU） |
 
-CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + test:build + build）与 `build`（Node 24：audit → lint → typecheck → test → test:coverage → test:build → verify:config → verify:config-refs → verify:config-comments → verify:security → build → verify:compression 条件步骤 → sbom → 上传 artifact → Pages 部署）。生产 Worker 为手动 `wrangler deploy`（见 README）。
+CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + test:build + build）与 `build`（Node 24：audit → lint → typecheck → test → test:coverage → test:build → verify:config → verify:config-refs → verify:config-comments → verify:security → build → verify:compression 条件步骤 → sbom → 上传 artifact → Pages 部署）。生产 Worker 为手动 `wrangler deploy`（见 README）。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
 
 ## 9. 部署与回滚
 
 - 生产：`npm ci && npm run build && npx wrangler deploy --config workers/wrangler.toml --env production`（Worker `blog`）。
 - 回滚：`wrangler deployments list` → `wrangler rollback <id>`（脚本 + 资产整体回退）；详见 `docs/runbook/rollback.md`。
 - real-site：本地生产副本，含真实数据，永不入库；主仓库为代码事实源，同步方式见 README「派生副本与回滚」。
+
+### 9.1 Release 发布工作流
+
+- **完成标记**：`npm run release:mark`（`scripts/release-mark.js`）在干净工作区上顺序执行 `RELEASE_GATES`（11 项门禁，单一来源 `scripts/lib/release-version.js`）→ 同步 package.json/lock 版本 → CHANGELOG `[Unreleased]` 内容归入 `[X.Y.Z] - 日期` → 生成 `RELEASE.json`（status=verified、checks 全 true、commit 回填后 amend）→ 提交 `chore(release)` + 附注 tag `vX.Y.Z`；默认不 push，推送需 `--push --confirm-push` 二次确认。
+- **双重校验**：根 `RELEASE.json` 是机器可读完成标记（初始 `unverified`，默认拒绝发布）；`scripts/lib/release-validate.js` 校验 status/version/tag/commit/checks/verifiedAt，只有「tag 存在」且「tag 指向提交内的标记自洽」同时成立才允许创建 Release。
+- **归档白名单**：`scripts/lib/release-manifest.js` 为唯一来源（包含/排除清单与理由）；`scripts/release-archive.js` 用 `git archive` + pathspec 生成 `S-ynapse-<版本>.zip`，再解析 zip 中央目录逐条复核（`assertArchiveContents`），越界或缺少必需文件即失败。
+- **自动发布**：`.github/workflows/release.yml` 仅由 `push tags v*` 触发（validate → gates → publish：`gh release create --verify-tag` 附 zip）；`deploy.yml` 触发条件限定 `branches: [main]`，tag 推送不会误触发站点部署。
+- **本地备用通道**：`npm run release:publish -- vX.Y.Z`（远端 tag 存在 + 同一套校验 + `gh`）；完整流程与排障见 `docs/runbook/release.md`。
 
 ## 10. 已知边界与后续项
 

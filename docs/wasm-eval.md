@@ -2,6 +2,8 @@
 
 > 评估对象：CSS `clean-css`（现状）vs `lightningcss`；JS `terser`（现状）vs `oxc-minify`。
 > **本报告只做基准测量与结论建议，未切换任何生产依赖或构建逻辑**；`package.json` / `package-lock.json` 零改动（评估工具安装在隔离目录 `.cache/wasm-eval/tools`，已随 `.cache/` 忽略）。
+>
+> **当前状态**：生产组合仍为 clean-css 5.3.3 + terser 5.49.0，未引入 lightningcss/oxc-minify；后续重新评估的触发条件见第 5 节。
 
 ## 1. 环境与样本
 
@@ -67,10 +69,10 @@
 
 **后续触发条件（满足其一再重新评估）**：① 站点 CSS 规模增长 ≥2 倍且 CleanCSS 耗时成为构建瓶颈；② 需要严格 CSS 校验作为质量门禁（配合修复 `site-css.ejs` 悬垂逗号）；③ 引入 JS 大规模压缩场景（如 Pagefind/vendor 纳入压缩范围）使 Terser 耗时超过 1.5s；④ lightningcss/oxc 出现显著体积优势（如 CSS nesting、`@property` 等新语法优化）。
 
-**顺手发现（供 C8/后续批次）：**
+**顺手发现：**
 
-1. `templates/site-css.ejs:206` 悬垂逗号导致 `.cal-cell:hover` 规则在浏览器中被整体丢弃（悬停放大失效），建议独立缺陷修复 + 回归断言（修正后 lightningcss/CleanCSS 均能严格解析）。——**已处置（压缩 C8）**：模板已修复，`build-smoke` 增加产物 CSS 无 `},.` 模式与 `.cal-cell:hover` 存在性断言。
-2. `runtime.*.js` 未压缩，两个候选工具均可再省约 24% raw / 25% gzip；若维持「文件名哈希基于源码」，可考虑在拷贝时以 Terser 压缩后改名并同步哈希引用（需评估启动期稳定性）。——**已处置（压缩 C8）**：runtime 已纳入 Terser 压缩并按最终字节 md5-10 改名、同步全部 HTML 引用（实测 raw 3,748→2,845B、gzip 1,789→1,339B）。
+1. `templates/site-css.ejs:206` 悬垂逗号导致 `.cal-cell:hover` 规则在浏览器中被整体丢弃（悬停放大失效），建议独立缺陷修复 + 回归断言（修正后 lightningcss/CleanCSS 均能严格解析）。——**已修复**：模板已修复，`build-smoke` 增加产物 CSS 无 `},.` 模式与 `.cal-cell:hover` 存在性断言。
+2. `runtime.*.js` 未压缩，两个候选工具均可再省约 24% raw / 25% gzip；若维持「文件名哈希基于源码」，可考虑在拷贝时以 Terser 压缩后改名并同步哈希引用（需评估启动期稳定性）。——**已落地**：runtime 已纳入 Terser 压缩并按最终字节 md5-10 改名、同步全部 HTML 引用（实测 raw 3,748→2,845B、gzip 1,789→1,339B）。
 
 ## 6. 复现与清理
 

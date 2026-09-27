@@ -2,7 +2,7 @@
 
 > 任务来源：用户诉求「有很多配置项被硬编码在代码里：要么 JSON5 文件里没有、要么既硬编码又 JSON 两边不统一。**必须只能在 JSON5 文件里调**，并且要有完整的注释。」
 > 审计范围：`js/**`、`templates/**`、`scripts/build/**`、`scripts/lib/**`（排除 `*.test.js`、`.tmp-scripts/`、`node_modules/`、`dist/`、`real-site/`）。
-> 配置体系：13 个 JSON5 + `features-schema.js` / `site-defaults.js` / `tuning-defaults.js` / `guard-defaults.js` 注册表 + `npm run verify:config` 门禁 + `docs/config-reference.md`。
+> 配置体系：14 个 JSON5 + `features-schema.js` / `site-defaults.js` / `tuning-defaults.js` / `guard-defaults.js` 注册表 + 门禁链（`verify:config` / `verify:config-refs` / `verify:config-comments` / `scripts/check-config-docs.js`）+ `docs/config-reference.md`。
 
 ## 一、审计统计
 
@@ -11,7 +11,7 @@
 | A 类 | 同一可调项既在 JSON5 又有代码硬编码（漂移风险） | 13 项 | 13 项（100%） | 0 |
 | B 类·可感知 | 仅代码硬编码，用户可感知（时序/尺寸/上限/层级） | 46 项 | 46 项 | 0 |
 | B 类·低感知 | 仅代码硬编码，内部/低感知（见「低感知项清单」） | 18 项 | 0 | 18 项（保守保留） |
-| C 类 | 13 个 JSON5 注释不完整 | 4 个文件实测缺口 | 4 个已补齐 | 0（其余 9 文件经人工核验为块注释/行内注释策略，完整） |
+| C 类 | 14 个 JSON5 注释不完整 | 4 个文件实测缺口 | 4 个已补齐 | 0；现状由 `npm run verify:config-comments` 逐键注释门禁持续保证（其余文件为块注释/行内注释策略，完整） |
 
 > C 类说明：启发式统计（`键的紧邻上一行是否为注释`）会把「块注释 + 行内注释」策略误报为缺失（如 sidebar/tag-aliases/friends/guard/security 实际已逐字段说明）。人工核验后真实缺口为：`ui-strings.json5`（8 处分区注释缺失）、`features.json5`（`guards` 顶层键缺标题注释）、`navigation.json5`（菜单项 `target` 字段缺说明）、以及 `ui-strings.search.kbdHint` 新键。
 
@@ -309,7 +309,7 @@ npm run build -- --out .tmp-scripts/out/audit-build
 
 | 删除 | 迁移 |
 |---|---|
-| `features.feed` 模块（9 键） | `site.rss.enabled/path/fullContent/maxItems/injectHeadLinks`、`site.rss.jsonFeed.*`、`features.subscribe.*`；映射表见 `config-reference.md` §3.29 与 CHANGELOG Removed |
+| `features.feed` 模块（9 键） | `site.rss.enabled/path/fullContent/maxItems/injectHeadLinks`、`site.rss.jsonFeed.*`、`features.subscribe.*`；映射见 CHANGELOG Removed |
 
 ### 10.3 默认值口径修正（均有 CHANGELOG 记录）
 
@@ -318,7 +318,7 @@ npm run build -- --out .tmp-scripts/out/audit-build
 
 ### 10.4 自动守卫
 
-- `scripts/check-config-refs.js`（`npm run verify:config-refs`，CI 紧随 `verify:config`）：13 个 JSON5 → 2448 叶子键 × 141 个源码文件；通用短键名不参与；允许名单 `scripts/config-refs-allowlist.json`（数据/展示层整段经整体对象注入；features 仅登记动态拼接的 `stats.label*En`）。
+- `scripts/check-config-refs.js`（`npm run verify:config-refs`，CI 紧随 `verify:config`）：14 个 JSON5 → 2465 叶子键 × 152 个源码文件；通用短键名不参与；允许名单 `scripts/config-refs-allowlist.json`（数据/展示层整段经整体对象注入；features 仅登记动态拼接的 `stats.label*En`）。
 - 当前结果：**PASS，零未接线（exit 0）**。
 
 ### 10.5 门禁与验证证据
@@ -358,7 +358,7 @@ npm run build -- --out .tmp-scripts/out/audit-build
 | 未知双链 `unknownMode=link/hide` | 已收口 | 夹具文章含 `[[ghost-target]]`：text 默认降级纯文本；link 模式 SSR 产物与 HTTP 响应均含 `search/?q=ghost-target`；hide 模式整体移除；已知链接 `[[fresh-top]]` 三态均正确解析 |
 | `incrementalBuild` 逐页证据 | 已收口（并修复两处缺陷） | 冷缓存首轮 rebuilt=33 → 无变更次轮 skipped=33/rebuilt=0（HTML mtime 不变）→ 改 `pages/about.md` rebuilt=1（mtime 与页面指纹仅目标页变化，另一语言同 slug 页复用）→ 改一篇文章 rebuilt=20/skipped=13（另一语言全部跳过，mtime/指纹不变）→ `--full` 强制全量重写 |
 | `heatmap.scaling=auto` 与 `palette` 组合边界 | 已覆盖 | `scripts/config-wiring.test.js → resolveHeatmapPalette`（auto 忽略 palette；fixed 长度不足回退自动色阶并告警；空/非字符串过滤） |
-| JS 预算 | 残余（非阻断） | 58.8KB 按实测调至 60KB（`warnOnly=true`）；压缩治理列入后续 |
+| JS 预算 | 已达标 | 分包 `splitting` + `runtime` Terser 压缩后全站 JS gzip 合计 52.8KB < 60KB（`dist/report.txt` 预算段实测；压缩治理见 CHANGELOG 与 `docs/plans/2026-09-27-compression.md`） |
 | 增量粒度边界 | 残余（设计约束） | 修改一篇文章仍重建该语言全部页面（文章列表进入每语言页面指纹）；按模板数据投影/步骤级增量见 `docs/incremental-build-design.md` 远期方案 |
 | 静态扫描盲区 | 残余（工具约束） | 通用短键名与运行时动态拼接键无法按名判定；允许名单登记 + 人工巡检 |
 
@@ -368,3 +368,13 @@ npm run build -- --out .tmp-scripts/out/audit-build
 2. **页面指纹数据泄漏**：`customPages` 被整体注入 `baseData`（无任何模板消费点）、`pagesContent` 以完整对象进入每页数据（实际仅文章页脚按 `articleFooter.source` 取用）。现移除前者、后者仅投影单键，使改单页 rebuilt=1。
 
 **夹具 runner 自收尾**：`.tmp-scripts/run-w6.js`（夹具与覆盖文件运行时生成、不入库）28 PASS / 0 FAIL；端口 3329 三次串行复用，每次关闭后校验释放；空闲/父进程看门狗；构建 spawnSync 300s 超时。
+
+---
+
+## 十二、现状结论（本报告结论更新）
+
+- **配置规模**：14 个 JSON5（含 `compression.json5`），合计 2692 项（口径：对象逐层展开、数组元素逐项计入）——`features` 97 模块/919 项、`tuning` 37 分类/269 项、`guard` 11 模块/172 项。
+- **门禁链（全部 PASS）**：`verify:config`（结构/默认值一致性）、`verify:config-refs`（2465 叶子键 × 152 源码文件，零未接线）、`verify:config-comments`（逐键注释覆盖率）、`node scripts/check-config-docs.js`（1854 个顶层/模块键在 `docs/config-reference.md` 全覆盖，零残留已删除模块小节）、`verify:security`、`verify:compression`。
+- **文档**：`docs/config-reference.md` 13 章逐字段参考（含 compression 全字段表、tuning 完整键名索引、弹窗公告/软导航/锚点稳定/LCP 治理字段表）。
+- **测试**：`npm test` 611 项 / 111 组全部通过（本报告结论更新时实测）。
+- **保留的已知盲区**：通用短键名与运行时动态拼接键不参与静态引用判定（允许名单登记）；`scripts/build.js` 编排器仍有拆分空间。

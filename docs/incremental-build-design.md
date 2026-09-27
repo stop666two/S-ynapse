@@ -2,7 +2,7 @@
 
 > **状态**：页面级最小增量（指纹缓存 + 跳过未变页面 + `--full`）已实现并经隔离夹具验证（见文末「当前实现与验证状态」）。配置与口径见 `docs/config-reference.md` §3.95 与 `scripts/lib/incremental.js`。
 > 本文保留远期「步骤级增量」设计（文章解析/聚合页/静态复制的细粒度跳过），当前未实现——页面渲染已是全管线耗时大头，步骤级收益待内容规模到 100+ 篇后评估。
-> 当前全量构建约 3-7 秒，对中小站点（< 100 篇文章）性能可接受。
+> 当前全量构建约 5 秒（压缩增强开、无头验证关；含无头验证约 18 秒），对中小站点（< 100 篇文章）性能可接受。
 
 ## 目标
 
@@ -93,7 +93,9 @@ build(changedFiles) {
 
 | 文件 | 作用 |
 |------|------|
-| `scripts/build.js` | 主构建脚本，增量逻辑需在此实现 |
+| `scripts/lib/incremental.js` | 指纹算法（sha1/sha256/md5）、稳定序列化与跳过决策纯函数（单测覆盖） |
+| `scripts/build/pages.js` | 页面渲染入口（`renderAndWrite`）按指纹跳过/复用 |
+| `scripts/build.js` | 构建编排与 `.build-cache.json` 读写 |
 | `scripts/lib/utils.js` | 工具函数（哈希计算可复用 crypto） |
 | `site.json5` | 构建配置（`build.enableCacheBusting` 已提供哈希计算基础设施） |
 

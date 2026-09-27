@@ -439,6 +439,29 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       assert.ok(!idx.json.docs.some((e) => /\/series\//.test(e.url)),
         lang + ' search index must not include series hub pages');
     }
+    // 文章导出（features.exportArticle 默认开）：/md/<lang>/<slug>.md 为源文件按字节原样复制
+    // （保留原始 frontmatter，约定见 scripts/lib/md-export.js 头注释）；文章页渲染打印/复制按钮
+    // 与打印来源脚注；打印样式输出自足隐藏清单（含 .post-actions）且脚注屏幕隐藏。
+    for (const lang of ['zh', 'en']) {
+      const mdPath = path.join(tmpDir, 'md', lang, 'hello-world.md');
+      assert.ok(fs.existsSync(mdPath), lang + ' markdown export must exist: /md/' + lang + '/hello-world.md');
+      const mdText = fs.readFileSync(mdPath, 'utf-8');
+      assert.ok(mdText.length > 0, lang + ' markdown export must be non-empty');
+      assert.match(mdText, /^---\n/, lang + ' markdown export must keep the original frontmatter');
+      assert.deepStrictEqual(
+        fs.readFileSync(mdPath),
+        fs.readFileSync(path.join(ROOT, 'articles', lang, 'hello-world.md')),
+        lang + ' markdown export must be a byte-identical copy of the source file'
+      );
+      const postHtml = fs.readFileSync(path.join(tmpDir, lang, 'hello-world', 'index.html'), 'utf-8');
+      assert.ok(postHtml.includes('data-export-print'), lang + ' post page must render the print button');
+      assert.ok(postHtml.includes('data-md-url="/md/' + lang + '/hello-world.md"'),
+        lang + ' post page must render the markdown copy button with its export URL');
+      assert.ok(postHtml.includes('post-source-url'), lang + ' post page must render the print source footnote');
+    }
+    assert.ok(siteCss.includes('@page{margin:16mm}') && siteCss.includes('.post-actions'),
+      'print stylesheet must ship the self-contained export print block (hide in-article toolbar)');
+    assert.ok(siteCss.includes('.post-source-url{display:none}'), 'print source footnote must be screen-hidden');
   });
 
   it('compression-off second state keeps non-enhanced artifacts byte-identical', () => {

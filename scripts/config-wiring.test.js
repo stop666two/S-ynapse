@@ -968,6 +968,17 @@ test('softNavCacheConfig / readingHistoryConfig / readModeConfig：默认与覆�
   assert.deepStrictEqual(w.readModeConfig({ readMode: { storageKey: '  ' } }), { persist: true, storageKey: 'readingMode' });
 });
 
+test('bilingualConfig：默认三开 + 1280；关闭生效；断点夹取 480–3840', () => {
+  assert.deepStrictEqual(w.bilingualConfig({}), { enabled: true, switch: true, sideBySide: true, breakpointPx: 1280 });
+  assert.deepStrictEqual(
+    w.bilingualConfig({ bilingual: { enabled: false, switch: false, sideBySide: false, breakpointPx: 1440 } }),
+    { enabled: false, switch: false, sideBySide: false, breakpointPx: 1440 }
+  );
+  assert.strictEqual(w.bilingualConfig({ bilingual: { breakpointPx: 'abc' } }).breakpointPx, 1280, '非法回退');
+  assert.strictEqual(w.bilingualConfig({ bilingual: { breakpointPx: 100 } }).breakpointPx, 480, '下限夹取');
+  assert.strictEqual(w.bilingualConfig({ bilingual: { breakpointPx: 9999 } }).breakpointPx, 3840, '上限夹取');
+});
+
 test('continueReadingConfig：条数/进度开关/存储键回退链', () => {
   assert.deepStrictEqual(w.continueReadingConfig({}), { displayCount: 3, showProgress: true, storageKey: 's-history' });
   assert.deepStrictEqual(

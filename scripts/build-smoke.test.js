@@ -462,6 +462,25 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     assert.ok(siteCss.includes('@page{margin:16mm}') && siteCss.includes('.post-actions'),
       'print stylesheet must ship the self-contained export print block (hide in-article toolbar)');
     assert.ok(siteCss.includes('.post-source-url{display:none}'), 'print source footnote must be screen-hidden');
+    // 双语对照（features.bilingual 默认开）：文章页 data-alt-lang 互指 + 对照工具条/右栏骨架，
+    // 非文章页不渲染对照属性；样式含并排规则与断点媒体查询（断点取 bilingualCfg.breakpointPx）。
+    const helloZh = fs.readFileSync(path.join(tmpDir, 'zh', 'hello-world', 'index.html'), 'utf-8');
+    const helloEn = fs.readFileSync(path.join(tmpDir, 'en', 'hello-world', 'index.html'), 'utf-8');
+    assert.ok(helloZh.includes('data-alt-lang="/en/hello-world/"'),
+      'zh post must point data-alt-lang at the en article');
+    assert.ok(helloEn.includes('data-alt-lang="/zh/hello-world/"'),
+      'en post must point data-alt-lang at the zh article (mutual reference)');
+    assert.ok(helloZh.includes('data-bilingual-alt="/en/hello-world/"'),
+      'zh post must expose the bilingual alternate URL');
+    assert.ok(helloZh.includes('id="bilingualSwitch"') && helloZh.includes('id="bilingualSide"') && helloZh.includes('id="bilingualPaneBody"'),
+      'zh post must render the bilingual bar and pane skeleton');
+    assert.ok(helloEn.includes('>EN/中<'), 'en post must render the EN/中 switch label');
+    const helloIndexZh = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');
+    assert.ok(!helloIndexZh.includes('data-bilingual-alt') && !helloIndexZh.includes('bilingual-bar'),
+      'index page must not render bilingual attributes or bar');
+    assert.ok(siteCss.includes('.bilingual-wrap.bilingual-on') && siteCss.includes('.bilingual-pane'),
+      'stylesheet must ship the side-by-side rules');
+    assert.ok(siteCss.includes('max-width:1279px'), 'stylesheet must ship the breakpoint media query');
   });
 
   it('compression-off second state keeps non-enhanced artifacts byte-identical', () => {

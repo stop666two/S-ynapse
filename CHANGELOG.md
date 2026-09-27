@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **每日一言扩充（数据层）**：新增 `data/quotes.json5`——**100 条**中英双语引语（中文 60 / 西方 40），逐条真实出处（《论语》《道德经》《庄子》《孟子》唐诗宋词、《菜根谭》、莎士比亚/培根/梭罗/爱默生/王尔德/马可·奥勒留等公版经典与 1611 钦定版《圣经》），中文经典的英译由本项目提供并在 `sourceEn` 标注；附 6 条本项目原创。标签固定 9 类枚举（哲思/励志/自然/时间/读书/自由/智慧/幽默/情感），严禁来源不明的网络误传名句。`features.dailyQuote.source='builtin'` 现在优先读取 `dataFile`（默认 `data/quotes.json5`，缺失/加载失败告警并回退代码内置最小集 5 条）；`count` 语义改为「注入池大小」——**0=全部（新默认）**，>0 按稳定顺序取前 N（兼容旧配置 `count: 7`）。新增单测 `scripts/daily-quote.test.js`（14 例：条数/标签枚举与分布/字段非空/text 唯一/中西比例/译文标注、日期稳定、换一句不重复、语言回退链、count 语义、回退告警链、schema 默认值）。
+- **每日一言交互（用户可感知）**：侧栏 widget 新增「换一句」（随机下一条、保证不与当前相同、不写存储、键盘可达）与「复制」（剪贴板 API + `textarea` 回退，成功后按钮短暂提示并弹 toast，中英双语 `aria-label`）；文案与数据源配置键 `refreshLabel(En)`/`copyLabel(En)`/`copiedLabel(En)`/`dataFile` 接入 `features.json5`、`features-schema.js`、`docs/config-reference.md`（§3.48 重写 + 新增 §14 `data/quotes.json5` 数据章节）；样式入 `templates/site-css.ejs`（兼容 `card`/`plain`，减少动效安全）；软导航经 `__SOFTNAV_HOOKS__` 重绑并保持已选条目。自收尾 runner `.tmp-scripts/run-daily-quote.js`（端口 3335）**27 断言全绿**：两处展示（首页侧栏 + 文章页文末 DOM 次序）、日期固定、换一句/键盘、复制拦截断言与 toast、en 页英文与英文按钮、暗色对比、减少动效、软导航后可用、0 控制台错误、端口释放。
+- **Release 归档纳入 data/**：`scripts/lib/release-manifest.js` 白名单新增 `data/**` 与必需文件 `data/quotes.json5`（默认数据属于可体验功能），`scripts/release-manifest.test.js` 增加包含性断言，`docs/runbook/release.md` §6 清单同步。
+
 ## [1.1.0-a2] - 2026-09-27
 
 ### Changed

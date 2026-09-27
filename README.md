@@ -21,8 +21,8 @@
 ## 特性
 
 **全配置驱动**
-- 14 个 JSON5 配置文件（支持注释），**2600+ 可配置项**（实测 2728 项；口径：对象逐层展开、数组元素逐项计入且元素为对象时不再展开），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
-- `features.json5` 功能总控域：**97 个模块、944 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（37 分类 / 273 项）
+- 14 个 JSON5 配置文件（支持注释），**2600+ 可配置项**（实测 2735 项；口径：对象逐层展开、数组元素逐项计入且元素为对象时不再展开），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- `features.json5` 功能总控域：**97 个模块、951 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（37 分类 / 273 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
 - 详细参考文档：`docs/config-reference.md`（13 章，逐字段权威参考）
@@ -52,7 +52,7 @@
 - 归档热力图（按年 12 月色阶）+ 统计卡（文章/天数/字数/日均/标签/分类）
 - 图库页 `/gallery/`（聚合所有文章图片，瀑布流 + 灯箱）
 - 分享按钮（7 平台零依赖）、打赏弹窗、友情链接页、联系方式弹窗
-- **每日一言**（侧栏，内置 7 条按日期轮换）、**收藏**（纯前端 localStorage，`/favorites/`）
+- **每日一言**（侧栏，默认 100 条中英双语公版/原创引语逐条可核验出处，按日期固定一条 + 「换一句」/「复制」；数据文件 `data/quotes.json5`，可用 `features.dailyQuote.source` 更换）、**收藏**（纯前端 localStorage，`/favorites/`）
 - RSS + JSON Feed、**sitemap 按类型拆分**（URL 超阈值自动分文件）、搜索索引、PWA、构建报告
 - **侧栏拖拽重排**（桌面拖拽 + 移动端长按，localStorage 持久化）、**404 页美化**（插图 + 搜索 + 热门文章）
 - **Pagefind 全文搜索**（`navigation.search.provider='pagefind'` 且 `features.pagefind.enabled` 时生效，离线索引；**构建在压缩与哈希之后自动生成索引到 `features.pagefind.indexPath`（默认 `/pagefind`，不参与 cache-bust）；未安装 `pagefind` 依赖时告警跳过（按需安装：`npm install -D --save-exact pagefind`）；serve/watch 模式同样生成，保证预览与生产一致**）
@@ -190,9 +190,10 @@ S-ynapse/
 ├── .github/workflows/ # CI/CD 自动部署与 Release（deploy.yml 含 AGENTS.md 检测 + npm audit 门禁；release.yml 含骨架归档、解压构建 + 测试门禁与旧版清理）
 ├── .githooks/         # Git hooks（pre-commit 保护 AGENTS.md）
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
+├── data/              # 默认站点数据（quotes.json5：100 条中英双语公版/原创引语，逐条可核验出处）
 ├── site.json5          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
 ├── theme.json5         # 主题配置（颜色/字体/布局/文章页脚）
-├── features.json5     # 功能总控（97 模块/944 项，可开关/微调，可选文件）
+├── features.json5     # 功能总控（97 模块/951 项，可开关/微调，可选文件）
 ├── ui-strings.json5   # 界面文案词典（zh/en 双语词典，服务端 ui() + 运行时 __T()，可选）
 ├── tuning.json5       # UI 微调参数层（37 分类/273 项，注入 CSS 变量；行为参数运行时读取，可选）
 ├── guard.json5        # 防护与交互控制域（11 个模块/179 项：右键/复制/选择/快捷键/水印/检测/控制台/隐私帘/篡改监视/访问门槛，逐项注释，可选）
@@ -297,7 +298,7 @@ S-ynapse/
 
 ### features.json5 — 功能总控魔方
 
-`features.json5` 是全部交互与内容功能的统一开关域：97 个模块、944 个配置项，逐项中文注释。几例：
+`features.json5` 是全部交互与内容功能的统一开关域：97 个模块、951 个配置项，逐项中文注释。几例：
 
 ```json5
 {
@@ -481,7 +482,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | 打赏 | 文章底部按钮弹窗（二维码 / 外链，`site.reward` 配置） |
 | 汇总图库 | `/gallery/` 瀑布流，点击图片进灯箱 |
 | 收藏 | 卡片/文章星标按钮，localStorage 持久化，`/favorites/` 页管理 |
-| 每日一言 | 侧栏 quote 组件（内置语句按日期轮换） |
+| 每日一言 | 侧栏 quote 组件（默认 100 条双语公版/原创引语按日期轮换，「换一句」+「复制」） |
 
 ---
 

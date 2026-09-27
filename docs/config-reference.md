@@ -1,6 +1,6 @@
 # S-ynapse 配置文件完整参考
 
-> 全部配置文件位于项目根目录,采用 **JSON5**(支持注释与单引号/无引号键)。
+> 全部配置文件位于项目根目录（默认站点数据位于 `data/`），采用 **JSON5**(支持注释与单引号/无引号键)。
 > 构建时自动加载+深度合并;缺省任意字段时使用与本站行为一致的内置默认值。
 > 配置文件语法错误(缺逗号、引号未闭合等)会**立即终止构建**,并输出:文件名+行列+上下文+原因+修复提示。
 > 注释约定:字段均带中文注释(作用/类型/可填值/不可填值/推荐/注意);`ui-strings.json5` 为文案表,以「键名即文档」为策略(仅分节注释)。
@@ -22,6 +22,7 @@
 11. [guard.json5 — 防护与交互控制域](#11-guardjson5--防护与交互控制域)
 12. [compression.json5 — 构建产物压缩](#12-compressionjson5--构建产物压缩)
 13. [ui-strings.json5 — 界面文案词典](#13-ui-stringsjson5--界面文案词典)
+14. [data/quotes.json5 — 每日一言数据](#14-dataquotesjson5--每日一言数据)
 
 ---
 
@@ -788,7 +789,7 @@ sitemap: {
 `enabled true` / `ease cubic-bezier(.4,0,.2,1)` / `pageEnterDurationMs 240`(页面入场时长 ms) / `cardHoverScale 1.02`(卡片悬停缩放) / `linkUnderlineOffset 3px`(下划线偏移) / `cardHoverLift true` / `cardHoverLiftPx 4` / `linkUnderline true` / `linkUnderlineThickness 2px` / `buttonRipple true` / `rippleDurationMs 500` / `scrollReveal true` / `revealCards true` / `revealHeadings true` / `revealImages true` / `revealBlocks false` / `revealDurationMs 250` / `revealDelayMs 0` / `revealStaggerMax 500`(错峰总附加延迟上限 ms：单项 delay=min(revealDelayMs, 剩余预算)，预算耗尽后其余同时入场) / `revealOffset 10px` / `revealOnce true` / `revealThreshold 0.08` / `revealCleanupMs 1400`(reveal 结束清理 transitionDelay 延迟 ms) / `reducedMotion 'light'`(`light|off|full`,轻量版:更短/幅度更小)。滚动渐入/悬停上浮/涟漪/下划线动效总控。**注意**:顶部导航高亮与滑动指示器已抽为独立模块 `js/domains/core/nav-state.js`(构建期 `templates/layout.ejs` 输出 `nav-active`/`aria-current` 兜底),不受本开关影响——`enabled:false` 或 `reducedMotion:'off'` 时高亮仍由 SSR 保证,软导航后仍会更新。
 
 ### 3.48 dailyQuote — 每日一言
-`enabled true` / `widgetStyle 'card'`（侧栏外观：`card` 卡片外框（默认/现行为）/`plain` 无外框仅文字与署名；兼容旧值 `sidebar`（=card）；运行时给 `.quote-widget` 附加 `quote-widget-card`/`quote-widget-plain`） / `label '每日一言'`（`labelEn` en 站文案，空回退中文） / `source 'builtin'`(内置 7 条;也支持相对项目根或绝对路径的 `.json`/`.json5`,格式 `["引语"]` 或 `[{text,author}]` 或 `{quotes:[...]}`;加载失败回退内置并告警) / `count 7` / `quoteColor ''`。侧栏每日名言(内置 7 条,按日期轮换)。
+`enabled true` / `widgetStyle 'card'`（侧栏外观：`card` 卡片外框（默认/现行为）/`plain` 无外框仅文字与署名；兼容旧值 `sidebar`（=card）；运行时给 `.quote-widget` 附加 `quote-widget-card`/`quote-widget-plain`） / `label '每日一言'`（`labelEn` en 站文案，空回退中文） / `source 'builtin'`（默认；优先读取 `dataFile`，也支持相对项目根或绝对路径的 `.json`/`.json5`；文件缺失/加载失败回退内置最小集（5 条）并告警；格式 `["引语"]` 或 `[{text,author,textEn,...}]` 或 `{quotes:[...]}`） / `dataFile 'data/quotes.json5'`（builtin 数据文件，格式与标签枚举见 §14） / `count 0`（注入池大小：0=全部（默认，当前数据文件 100 条）；>0=按数据顺序取前 N（稳定顺序），兼容旧配置写法 `count: 7`） / `refreshLabel '换一句'`（`refreshLabelEn 'Another'`，空回退中文） / `copyLabel '复制'`（`copyLabelEn 'Copy'`） / `copiedLabel '已复制'`（`copiedLabelEn 'Copied'`，复制成功后按钮短暂替换并伴随 toast） / `quoteColor ''`（文本颜色，空=继承）。侧栏每日名言：按日期固定一条（同日稳定，`tuning.dailyQuote.refreshDaily=false` 时改随机）；「换一句」随机下一条且不与当前重复、不写存储；「复制」走剪贴板 API（`textarea` 回退）并短暂提示；语言按 `document.documentElement.lang` 取 `*En`（空回退中文）；软导航替换内容区后经 `__SOFTNAV_HOOKS__` 重渲染并保持已选条目。
 
 ### 3.49 favorites — 收藏(纯前端)
 `enabled true` / `position 'toolbar'`(`toolbar`=文章底部工具栏,默认/`meta`=标题下元信息行) / `storageKey 's-favorites'` / `label '收藏'` / `listIcon true`（/favorites 收藏页列表项显示收藏图标（inline SVG，aria-hidden）；false=纯文字列表） / `notText '收藏'` / `favedText '已收藏'`（`labelEn`/`notTextEn`/`favedTextEn` 为 en 站兜底文案，空回退中文；en 站优先取 ui-strings `favorites.*`）。文章收藏按钮+收藏页(仅 localStorage,无后端);按钮切换收藏/取消(状态+aria-pressed+统一 toast)、收藏页列表渲染与移除、空状态。
@@ -1358,6 +1359,23 @@ listCover: {
 | `en` | 英文镜像（结构与中文区一致；未覆盖键回退中文） |
 
 > 修改文案后需重新构建；`guard` 区文案与 `guard.json5` 的模块一一对应（`guard.json5` 内的 `noticeText` 等专用键可覆盖词典）。
+
+## 14. data/quotes.json5 — 每日一言数据
+`features.dailyQuote.dataFile` 默认指向本文件（构建期读取，随 Release 归档发布；`verify:config-docs` 校验本章节存在，数据质量由 `scripts/daily-quote.test.js` 断言）。文件为 JSON5 **数组**，每条引语字段如下：
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `text` | string | 是 | 中文站展示文本：中文经典为原文；西方公版经典为英文原文；本项目原创为中文原文。全文唯一。 |
+| `textEn` | string | 是 | 英文站展示文本。中文经典与原创短句的英译为**本项目自译/原创**（`sourceEn` 以 `· trans. S-ynapse` / `Original by S-ynapse` 标注）；西方条目与 `text` 相同（不另译）。 |
+| `author` | string | 否 | 中文站作者名（西方作者用通行中文译名）；无名/原创条目省略。 |
+| `authorEn` | string | 否 | 英文站作者名；有 `author` 时必填，两者同时省略。 |
+| `source` | string | 是 | 中文站出处（如 `《论语·学而》`）；原创条目为 `S-ynapse 原创`。 |
+| `sourceEn` | string | 是 | 英文站出处（如 `The Analects · Xue Er`）；中文条目附英译标注。 |
+| `tags` | string[] | 是 | 标签数组，取值仅限下列 9 个枚举（中文站口径）：`哲思`（Philosophy）/ `励志`（Motivation）/ `自然`（Nature）/ `时间`（Time）/ `读书`（Reading）/ `自由`（Freedom）/ `智慧`（Wisdom）/ `幽默`（Humor）/ `情感`（Emotion）。 |
+
+- **注入池**：构建期按 `features.dailyQuote.count` 截取（0=全部）后写入运行时 `window.__QUOTES__`；运行时按 `document.documentElement.lang` 选择 `*En` 字段，为空回退中文。
+- **版权**：所选文本均为公有领域作品（中国古典、莎士比亚/培根/梭罗/爱默生/王尔德等公版西方作者、1611 年钦定版《圣经》）或本项目原创；中文经典的英译为本项目自译，随项目以 MIT 许可证提供。**严禁**收录来源不明或网络误传的名句。
+- **自定义**：将 `features.dailyQuote.source` 指向自有的 `.json`/`.json5`（相对项目根或绝对路径），即可整体替换本数据；格式兼容 `["引语"]` 与 `[{ text, author }]` 简写。
 
 ## 校验与错误上报行为
 1. **配置错误 → 立即终止**:缺逗号/引号未闭合/非法字符 → `[FATAL]` + 文件名、行列、上下文(带 `^` 定位)、原因、中文修复提示。

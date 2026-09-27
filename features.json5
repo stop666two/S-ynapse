@@ -90,6 +90,21 @@
     showCaption: true,
     // 说明条最大显示行数(超出截断省略,1~3 推荐 2)。
     captionMaxLines: 2,
+    // 触屏横向滑动切图的最小位移(px;小于该值视为点击,不切图)。
+    // 类型: number | 推荐: 50
+    swipeThresholdPx: 50,
+    // 下拉关闭灯箱的最小位移(px;仅未放大时生效,与横向滑动互斥判定)。
+    // 类型: number | 推荐: 80
+    swipeCloseThresholdPx: 80,
+    // 桌面鼠标横向拖拽切图的最小位移(px;仅未放大且未旋转时生效)。
+    // 类型: number | 推荐: 80
+    mouseSwipeThresholdPx: 80,
+    // 双击放大到的倍数(已放大时双击复位)。
+    // 类型: number | 可填: 1–zoomMax | 推荐: 2
+    dblClickZoomLevel: 2,
+    // 遮罩点击判定容差(px;按下与抬起位移超过该值视为拖拽,不关闭)。
+    // 类型: number | 推荐: 6
+    clickTolerancePx: 6,
     // 灯箱打开/关闭过渡时长(ms,CSS transition-duration)。
     transitionDurationMs: 220
   },
@@ -122,6 +137,18 @@
     rememberPosition: true,
     // 阅读位置最大记忆时长(小时;超时不再恢复)。
     rememberPositionMaxAgeHours: 72,
+    // 进度条聚焦后键盘 ←/→ 的单步进度比例(0~1;Home/End 不受影响)。
+    // 类型: number | 推荐: 0.05(5%)
+    keyboardStep: 0.05,
+    // 恢复阅读位置的最小滚动距离(px;小于该值不恢复,避免短页抖动)。
+    // 类型: number | 推荐: 160
+    minRestorePx: 160,
+    // 本地记忆的路径条数上限(超出按最旧时间淘汰)。
+    // 类型: number | 推荐: 80
+    maxStoredPositions: 80,
+    // 滚动保存阅读位置的节流间隔(ms;越小越精确,读写越频繁)。
+    // 类型: number | 推荐: 400
+    saveThrottleMs: 400,
     // 滚动时实时更新节流间隔(ms)。
     updateThrottleMs: 30,
     // 是否通过 ARIA 播报进度(屏幕阅读器)。
@@ -337,7 +364,10 @@
     // 外链提醒浮层「复制链接」按钮文本（空 = 回退 ui-strings.toolbar.copyLink 双语/内置文案）。
     copyButtonText: '复制',
     // 复制按钮文本（en 站；空 = 回退中文键/内置双语）。
-    copyButtonTextEn: 'Copy'
+    copyButtonTextEn: 'Copy',
+    // 复制成功后按钮显示「已复制」的停留时长(ms;超时还原原文案)。
+    // 类型: number | 推荐: 1500
+    copyFeedbackMs: 1500
   },
 
   // ---------------------------------------------------------------------------
@@ -480,6 +510,12 @@
     showTopButton: true,
     // 向下滚动时隐藏,向上滚动/到底时显示。
     hideOnScrollDown: true,
+    // 阅读坞始终显示的最大滚动距离(px;低于该值不触发隐藏,避免首屏抖动)。
+    // 类型: number | 推荐: 80
+    hideBelowPx: 80,
+    // 判定滚动方向的最小位置增量(px;小于该值不改显隐,抵抗抖动)。
+    // 类型: number | 推荐: 12
+    directionDeltaPx: 12,
     // 位置:right(右下)。
     position: 'right'
   },
@@ -647,7 +683,7 @@
   // ---------------------------------------------------------------------------
   hotSearches: {
     // 本地记录搜索词并按词频生成「热门搜索」，搜索框下拉展示。
-    // 实现: 最近搜索存 storageKey（数组），词频存 storageKey+':hot'（对象，最多 50 词）；
+    // 实现: 最近搜索存 storageKey（数组），词频存 storageKey+':hot'（对象，最多 maxWords 词）；
     //       空输入/聚焦时渲染「热门搜索」（top 条）+「最近搜索」，showClear 提供清空热门词按钮。
     enabled: true,
     // 热门搜索显示条数。
@@ -657,7 +693,10 @@
     // 是否在搜索下拉中展示热门搜索（false = 仅显示最近搜索）。
     showInDropdown: true,
     // 是否提供清空热门词的按钮。
-    showClear: true
+    showClear: true,
+    // 词频表最多保留的搜索词数（超出按词频从低到高淘汰）。
+    // 类型: number | 可填: ≥1 的整数 | 推荐: 50
+    maxWords: 50
   },
 
   // ---------------------------------------------------------------------------
@@ -889,6 +928,9 @@
     enabled: true,
     // 是否记住上次状态(localStorage)。
     persist: true,
+    // 状态持久化键名（persist=true 时读写；persist=false 时仅当次会话生效并清理旧值）。
+    // 类型: string | 推荐: 'readingMode'
+    storageKey: 'readingMode',
     // 按钮文本。
     label: '阅读模式',
     // 按钮文本（en 站；空 = 回退中文）。
@@ -1067,8 +1109,10 @@
     // true(默认) = 构建期 SSR（识别显式 ```mermaid 围栏）；false = 构建期不渲染、保留围栏回退客户端渲染
     //（仍仅识别显式 ```mermaid 标注，不扫描普通文本）。
     autoDetect: true,
-    // CDN 版本。
-    version: '11.4.1',
+    // Mermaid 版本标识（信息性，镜像 package.json 安装版本；构建期 SSR 与缓存键、
+    // 客户端 vendor 均直接使用安装版本，改此值不改变加载来源）。新增守卫测试锁定二者一致。
+    // 类型: string | 推荐: 与 package.json 的 mermaid 依赖保持一致
+    version: '11.17.2',
     // 图表主题是否跟随站点主题。
     // true(默认) = 明/暗双主题（受 darkMode 控制）；false = 仅明色主题，暗色沿用同一张图。
     followTheme: true,
@@ -2056,7 +2100,10 @@
       tts: true,
       // 移动端菜单 汉堡 → X。
       menu: true
-    }
+    },
+    // vendor 懒加载的空闲预加载超时(ms;仅 preload='idle' 生效,浏览器长时间无空闲时强制加载)。
+    // 类型: number | 推荐: 3000
+    idleTimeoutMs: 3000
   },
 
   // ---------------------------------------------------------------------------
@@ -2327,7 +2374,10 @@
     // 是否在首页显示(仅首页/分页列表;false = 只记录不展示)。
     showOnHome: true,
     // 是否显示「清除」按钮。
-    clearable: true
+    clearable: true,
+    // 本地最多保存的阅读记录条数(超出按最旧淘汰;展示条数由 maxItems 控制)。
+    // 类型: number | 可填: ≥1 的整数 | 推荐: 50
+    maxStored: 50
   },
 
   // ---------------------------------------------------------------------------
@@ -2552,7 +2602,11 @@
 
     // 交换成功后是否滚动到页面顶部
     // 类型: boolean | 推荐: true
-    scrollToTop: true
+    scrollToTop: true,
+
+    // 内存缓存最多保留的页面数(超出按最旧淘汰;越大越省流量、内存占用越高)
+    // 类型: number | 可填: ≥1 的整数 | 推荐: 16
+    cacheMaxEntries: 16
   },
 
   // ---------------------------------------------------------------------------

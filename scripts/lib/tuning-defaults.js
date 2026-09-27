@@ -113,7 +113,11 @@ const DEFAULT_TUNING = {
     "excerptLength": "120",
     "resultLimit": "30",
     "emptyText": "未找到匹配内容",
-    "emptyTextEn": "No matching content"
+    "emptyTextEn": "No matching content",
+    "indexTimeoutMs": 5000,
+    "indexRetry": 1,
+    "errorText": "",
+    "errorTextEn": ""
   },
   "reading": {
     "progressHeight": "3px",

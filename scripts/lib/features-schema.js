@@ -15,7 +15,8 @@ const DEFAULT_FEATURES = {
     maxWidthVw: '92', maxSizePx: '1600', maxHeightVh: '82',
     openDurationMs: 180, switchDurationMs: 120, backdropOpacity: '0.9',
     preloadAdjacent: true, rememberPosition: false,
-    showCaption: true, captionMaxLines: 2, transitionDurationMs: 220
+    showCaption: true, captionMaxLines: 2, transitionDurationMs: 220,
+    swipeThresholdPx: 50, swipeCloseThresholdPx: 80, mouseSwipeThresholdPx: 80, dblClickZoomLevel: 2, clickTolerancePx: 6
   },
   readingProgress: {
     enabled: true, articleOnly: true, clickToJump: true, showDot: true,
@@ -23,7 +24,8 @@ const DEFAULT_FEATURES = {
     gradientStart: 'var(--color-s)', gradientEnd: 'var(--color-a)',
     tipDisplayMs: 500, updateThrottleMs: 30, ariaAnnounce: true, topOffset: '0',
     zIndex: 1000, showTip: true,
-    rememberPosition: true, rememberPositionMaxAgeHours: 72
+    rememberPosition: true, rememberPositionMaxAgeHours: 72,
+    keyboardStep: 0.05, minRestorePx: 160, maxStoredPositions: 80, saveThrottleMs: 400
   },
   backToTop: {
     enabled: true, showAfterPx: 400,
@@ -57,7 +59,8 @@ const DEFAULT_FEATURES = {
     enabled: true, whitelist: [], blacklist: [], mode: 'warn',
     message: '即将离开本站,前往外部链接：', messageEn: 'You are leaving this site. External link:', confirmText: '继续访问', confirmTextEn: 'Continue',
     cancelText: '返回', cancelTextEn: 'Back', showFullUrl: true, openInNewTab: true,
-    whitelistNewTab: false, copyButtonText: '复制', copyButtonTextEn: 'Copy'
+    whitelistNewTab: false, copyButtonText: '复制', copyButtonTextEn: 'Copy',
+    copyFeedbackMs: 1500
   },
   themeToggle: {
     enabled: true, persistKey: 'ss-theme', toggleIconSwap: true, zIndex: 100
@@ -90,7 +93,8 @@ const DEFAULT_FEATURES = {
   },
   readDock: {
     enabled: true, showProgressRing: true, showTocButton: true,
-    showTopButton: true, hideOnScrollDown: true, position: 'right'
+    showTopButton: true, hideOnScrollDown: true, position: 'right',
+    hideBelowPx: 80, directionDeltaPx: 12
   },
   dailyQuote: {
     enabled: true, widgetStyle: 'card', label: '每日一言', labelEn: 'Daily Quote',
@@ -142,7 +146,8 @@ const DEFAULT_FEATURES = {
   },
   morphIcons: {
     enabled: true, vendorPath: '/assets/vendor/morphicons', spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},
-    icons: { theme: true, copy: true, favorite: true, tts: true, menu: true }
+    icons: { theme: true, copy: true, favorite: true, tts: true, menu: true },
+    idleTimeoutMs: 3000
   },
   viewTransition: {
     enabled: true, type: 'fade', durationMs: 180, shared: true, reducedMotion: 'light',
@@ -157,7 +162,8 @@ const DEFAULT_FEATURES = {
     enabled: true,
     toggle: { show: true, defaultOn: true, storageKey: 's-soft-nav' },
     prefetchOnHover: true, prefetchDelayMs: 80, cacheTtlMs: 300000, timeoutMs: 10000,
-    viewTransition: true, excludeSelectors: ['[data-no-soft-nav]', '.no-soft-nav'], scrollToTop: true
+    viewTransition: true, excludeSelectors: ['[data-no-soft-nav]', '.no-soft-nav'], scrollToTop: true,
+    cacheMaxEntries: 16
   },
   cardFx: {
     enabled: true, coverOverlay: true, categoryChip: true, readTimeBadge: true, hoverShine: true
@@ -192,7 +198,7 @@ const DEFAULT_FEATURES = {
   },
   readingHistory: {
     enabled: true, maxItems: 5, storageKey: 's-history',
-    showOnHome: true, clearable: true
+    showOnHome: true, clearable: true, maxStored: 50
   },
   printStyle: {
     enabled: true, hideInteractive: true, expandLinks: true, avoidBreaks: true
@@ -250,7 +256,7 @@ const DEFAULT_FEATURES = {
   },
   hotSearches: {
     enabled: true, top: 5, storageKey: 's-hotSearches', showInDropdown: true,
-    showClear: true
+    showClear: true, maxWords: 50
   },
   readingTime: {
     enabled: true, wordsPerMinuteCJK: 250, wordsPerMinuteLatin: 200,
@@ -302,7 +308,7 @@ const DEFAULT_FEATURES = {
   },
   readMode: {
     enabled: true, persist: true, label: '阅读模式', labelEn: 'Reading Mode', focusOnlyContent: true,
-    fontScale: 1
+    fontScale: 1, storageKey: 'readingMode'
   },
   tts: {
     enabled: true, rate: 0.5, pitch: 1, volume: 1, preferDefaultVoice: true,
@@ -327,7 +333,7 @@ const DEFAULT_FEATURES = {
     selector: '.post-content', mathml: true
   },
   mermaid: {
-    enabled: true, autoDetect: true, version: '11.4.1', followTheme: true,
+    enabled: true, autoDetect: true, version: '11.17.2', followTheme: true,
     lightTheme: 'default', darkTheme: 'dark', securityLevel: 'strict',
     copyAfterRender: false, errorText: '[图表渲染失败]', errorTextEn: '[Diagram failed to render]',
     mode: 'build', darkMode: true, chromePath: '',

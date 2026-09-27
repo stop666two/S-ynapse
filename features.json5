@@ -39,6 +39,14 @@
     zoomMin: 1,
     // 最大缩放倍数。
     zoomMax: 4,
+    // 缩放增强分组（新键；与上方平铺键并存以兼容旧配置）：
+    //   enabled 未设时回退 zoomEnabled；maxScale 未设时回退 zoomMax，再回退 4。
+    zoom: {
+      // 缩放总开关（未设回退 zoomEnabled）。
+      enabled: true,
+      // 最大缩放倍数（未设回退 zoomMax，再回退 4；下限 1）。
+      maxScale: 4
+    },
     // 是否支持双击图片放大/还原。
     dblClickZoom: true,
     // 是否支持鼠标滚轮缩放。
@@ -110,7 +118,17 @@
     // 类型: number | 推荐: 6
     clickTolerancePx: 6,
     // 灯箱打开/关闭过渡时长(ms,CSS transition-duration)。
-    transitionDurationMs: 220
+    transitionDurationMs: 220,
+    // 幻灯片（打开灯箱后自动轮播；工具栏按钮启停；页面隐藏自动暂停；
+    // 系统减少动效时不自动播放，按钮仍可手动启停）。
+    slideshow: {
+      // 幻灯片总开关（关闭时隐藏播放按钮并禁用轮播）。
+      enabled: true,
+      // 轮播间隔(ms；合法范围 1000–60000，非法回退 4000)。
+      intervalMs: 4000
+    },
+    // 是否显示原图下载按钮（下载当前图片的原始文件；图片无可用路径时按钮隐藏）。
+    downloadButton: true
   },
 
   // ---------------------------------------------------------------------------

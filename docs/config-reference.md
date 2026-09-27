@@ -366,6 +366,7 @@
 | `pinchEnabled` | `true` | 双指捏合缩放（触屏） |
 | `zoomStep` | `0.25` | 按钮/滚轮单步缩放倍数 |
 | `zoomMin` / `zoomMax` | `1` / `4` | 缩放范围（1 = 原始尺寸） |
+| `zoom` | `{ enabled: true, maxScale: 4 }` | 缩放增强分组（新键）：`enabled` 未设时回退 `zoomEnabled`；`maxScale` 未设时回退 `zoomMax`，再回退 4（下限 1；滚轮/双击/按钮/捏合统一钳制） |
 | `dblClickZoom` | `true` | 双击切换放大/复位 |
 | `wheelZoom` | `true` | 滚轮缩放（桌面） |
 | `showZoomButtons` | `true` | 显示 ＋/− 按钮 |
@@ -383,6 +384,8 @@
 | `maxWidthVw` / `maxSizePx` / `maxHeightVh` | `92`/`1600`/`82` | 图片约束 |
 | `openDurationMs` / `switchDurationMs` | `180`/`120` | 打开/切换动画时长(ms;0=瞬时) |
 | `transitionDurationMs` | `220` | 通用过渡时长兜底（`openDurationMs`/`switchDurationMs` 未设时回退） |
+| `slideshow` | `{ enabled: true, intervalMs: 4000 }` | 幻灯片分组：打开灯箱后自动轮播、工具栏按钮启停；`enabled=false` 隐藏按钮；`intervalMs` 钳制 1000–60000（非法回退 4000）；页面隐藏暂停、恢复可见续播；系统减少动效时不自动播放（按钮仍可手动启停） |
+| `downloadButton` | `true` | 原图下载按钮：`download` 属性 + 图片 `src` 原图路径；无可用路径（含内联 data URI）时按钮隐藏 |
 | `backdropOpacity` | `0.9` | 遮罩透明度 |
 | `preloadAdjacent` | `true` | 预载相邻图 |
 | `rememberPosition` | `false` | 记忆上次位置 |
@@ -399,6 +402,7 @@
 > - `maxWidthVw` = 灯箱图片最大宽度（vw）：构建期归一化为 CSS 变量 `--lightbox-maxWidthVw`（可被 customCSS 覆盖），专键优先；未设/非法时回退兼容旧键 `imageFit.lightbox.maxWidthPct`，再回退 92。默认两者同值（92），渲染不变。
 > - `openDurationMs` / `switchDurationMs` = 打开 / 切换（上一张/下一张）的轻量透明度补间（WAAPI）：**专键优先，未设回退通用 `transitionDurationMs`（再回退 220）**；0 = 瞬时。系统减少动效（`prefers-reduced-motion: reduce`）下不播放动画。此前打开/切换无可感知过渡，为默认 180/120ms 淡入（见 CHANGELOG Changed）。
 > - canonical：`scripts/lib/feature-wiring.js → lightboxConfig/lightboxGestureConfig`（单测覆盖；手势阈值默认 50/80/80/2/6 = 历史行为）。
+> - `zoom` / `slideshow` / `downloadButton`（缩放增强、幻灯片、原图下载）：`zoom.enabled` 未设回退 `zoomEnabled`、`zoom.maxScale` 未设回退 `zoomMax`（再回退 4，下限 1）；`slideshow.intervalMs` 钳制 1000–60000（非法回退 4000）。缩放/平移/手势/Esc 两段退出/幻灯片状态机的纯函数实现于 `js/domains/features/lightbox-core.js`（单测 `scripts/lightbox-core.test.js` 覆盖）：滚轮/双击/双指捏合统一钳制 1x–`maxScale`；缩放态禁用翻页滑动手势与 ←/→（避免切走视图），Esc 缩放态先复位视图再关闭；拖拽平移经边界钳制（内容大于视口时限制到边缘贴齐，小于视口时锁定居中，不得拖出视口）；幻灯片打开自动播放、按钮启停、页面隐藏暂停/恢复可见续播、缩放态本次跳过推进；下载按钮取图片 `src`（构建期写入的原始分辨率路径）写入 `href` 与 `download` 文件名；软导航交换后关闭灯箱并清理轮播计时器。
 
 ### 3.2 readingProgress — 阅读进度条
 `enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500`(点击跳转后百分比气泡停留时长；悬停/聚焦期间常显) / `showTip true`(是否显示跟随进度圆点的百分比提示气泡) / `updateThrottleMs 30` / `ariaAnnounce true`(进度条输出 `aria-valuenow`，屏幕阅读器可读) / `topOffset 0`(进度条距视口顶部偏移，构建期写入 `.reading-progress` 的 `top`，值需含单位如 `8px`/`2vh`，`0` 默认贴顶) / `zIndex 1000`(进度条层级，与其他浮层冲突时调大) / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发) / `keyboardStep 0.05`(进度条聚焦后 ←/→ 单步比例;Home/End 不受影响) / `minRestorePx 160`(恢复位置的最小 y，低于不恢复) / `maxStoredPositions 80`(本地记忆路径上限,超出按最旧淘汰) / `saveThrottleMs 400`(滚动保存节流 ms)。点击跳转支持键盘（聚焦进度条后 ←/→ 按 keyboardStep 步进、Home/End 首尾）

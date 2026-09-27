@@ -7,6 +7,7 @@ const DEFAULT_FEATURES = {
     enabled: true,
     zoomEnabled: true, panEnabled: true, rotateEnabled: true,
     pinchEnabled: true, zoomStep: 0.25, zoomMin: 1, zoomMax: 4,
+    zoom: { enabled: true, maxScale: 4 },
     dblClickZoom: true, wheelZoom: true, showZoomButtons: true,
     selectors: '.post-content img, .gallery-item img',
     minSize: 60, prevNextButtons: true, closeButton: true,
@@ -17,6 +18,7 @@ const DEFAULT_FEATURES = {
     preloadAdjacent: true, rememberPosition: false,
     positionStorageKey: 's-lb-pos',
     showCaption: true, captionMaxLines: 2, transitionDurationMs: 220,
+    slideshow: { enabled: true, intervalMs: 4000 }, downloadButton: true,
     swipeThresholdPx: 50, swipeCloseThresholdPx: 80, mouseSwipeThresholdPx: 80, dblClickZoomLevel: 2, clickTolerancePx: 6
   },
   readingProgress: {

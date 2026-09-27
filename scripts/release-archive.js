@@ -6,8 +6,9 @@
 //   2. 用 `git archive` + 白名单 pathspec 生成 S-ynapse-<version>.zip（含统一前缀目录）；
 //   3. 解析 zip 中央目录逐条复核白名单（assertArchiveContents）并断言必需文件/目录存在。
 //
-// 用法：node scripts/release-archive.js --ref <tag|HEAD> [--out <zip 路径>]
-// 默认输出：release-artifacts/S-ynapse-<version>.zip（目录已加入 .gitignore）。
+// 用法：node scripts/release-archive.js --ref <tag|HEAD> [--out <zip 路径|输出目录>]
+// 默认输出：release-artifacts/S-ynapse-<version>.zip（目录已加入 .gitignore）；
+// --out 指向目录（已存在目录 / 以分隔符结尾）时在该目录内使用默认文件名。
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -118,13 +119,24 @@ function readZipEntries(filePath) {
   return names;
 }
 
-// 执行归档并完成全部校验；返回 { file, version, files, bytes }。
+// 解析输出路径：--out 缺省或指向目录（已存在目录 / 以分隔符结尾）时，
+// 在目标目录内使用默认文件名 S-ynapse-<version>.zip；否则视为完整文件路径。
+function resolveOutPath(out, version) {
+  const defaultName = 'S-ynapse-' + version + '.zip';
+  if (!out) return path.join(DEFAULT_OUT_DIR, defaultName);
+  const hasTrailingSeparator = /[\\/]$/.test(out);
+  if (hasTrailingSeparator) return path.join(out, defaultName);
+  if (fs.existsSync(out) && fs.statSync(out).isDirectory()) return path.join(out, defaultName);
+  return out;
+}
+
+// 执行归档并完成全部校验；返回 { file, version, files, bytes, skeleton, tests }。
 function archiveRelease(options) {
   const opts = options || {};
   const ref = opts.ref || 'HEAD';
   const version = resolveVersion(ref);
   const prefix = 'S-ynapse-' + version + '/';
-  const out = opts.out || path.join(DEFAULT_OUT_DIR, 'S-ynapse-' + version + '.zip');
+  const out = resolveOutPath(opts.out, version);
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.rmSync(out, { force: true });
 
@@ -153,7 +165,17 @@ function archiveRelease(options) {
     throw new Error('归档缺少必需目录内容：' + missingDirs.join(', '));
   }
 
-  return { file: out, version, files: files.length, bytes: fs.statSync(out).size };
+  // 骨架统计：articles/media 只应出现 .gitkeep 标记（实体内容已被 pathspec 过滤，
+  // assertArchiveContents 的白名单判定是兜底），tests 计数用于确认测试随包分发。
+  const skeleton = {};
+  for (const dir of manifest.RELEASE_SKELETON_DIRS) {
+    skeleton[dir] = files.filter(function (file) {
+      return file.startsWith(dir + '/') && file.endsWith('/' + manifest.RELEASE_SKELETON_MARKER);
+    }).length;
+  }
+  const tests = files.filter(function (file) { return file.endsWith('.test.js'); }).length;
+
+  return { file: out, version, files: files.length, bytes: fs.statSync(out).size, skeleton, tests };
 }
 
 function main() {
@@ -162,6 +184,11 @@ function main() {
   const kb = (result.bytes / 1024).toFixed(1);
   console.log('[release:archive] ' + options.ref + ' → ' + result.file);
   console.log('[release:archive] 版本 ' + result.version + '，共 ' + result.files + ' 个文件，' + kb + ' KB');
+  const skeletonParts = Object.keys(result.skeleton).map(function (dir) {
+    return dir + '/ ' + result.skeleton[dir] + ' 个 .gitkeep';
+  });
+  console.log('[release:archive] 骨架目录：' + skeletonParts.join('、') + '（不含示例文章/媒体）');
+  console.log('[release:archive] 测试随包：' + result.tests + ' 个 *.test.js 文件（解压后 npm test 可运行）');
   console.log('[release:archive] 白名单校验通过：0 个越界条目，必需文件齐全');
 }
 
@@ -174,4 +201,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { archiveRelease, readZipEntries, readJsonAtRef, assertVersionConsistency, resolveVersion, parseArgs };
+module.exports = { archiveRelease, readZipEntries, readJsonAtRef, assertVersionConsistency, resolveVersion, resolveOutPath, parseArgs };

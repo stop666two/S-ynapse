@@ -1,16 +1,21 @@
 'use strict';
 // Release 归档白名单与归档内容断言的单元测试。
-// 覆盖：包含矩阵（必需目录/根文件/根 JSON5/构建入口/内容目录）、排除矩阵（docs/.github/real-site 等）、
-// 路径归一化与默认拒绝、必需清单自洽、assertArchiveContents 的越界检测、pathspec 生成。
+// 覆盖：包含矩阵（必需目录/根文件/根 JSON5/构建入口）、骨架目录（仅 .gitkeep，
+// 示例文章与演示媒体一律拒绝）、排除矩阵（docs/.github/real-site 等）、
+// 路径归一化与默认拒绝、必需清单自洽、assertArchiveContents 的越界检测与骨架违规说明、
+// pathspec 生成（骨架目录只注入 .gitkeep 标记）。
 const test = require('node:test');
 const assert = require('node:assert');
 const {
   RELEASE_DIRS,
   RELEASE_REQUIRED_DIRS,
+  RELEASE_SKELETON_DIRS,
+  RELEASE_SKELETON_MARKER,
   RELEASE_ROOT_FILES,
   RELEASE_REQUIRED_FILES,
   isReleaseAllowed,
   normalizeRelPath,
+  describeSkeletonViolation,
   listReleaseIncludePaths,
   assertArchiveContents
 } = require('./lib/release-manifest.js');
@@ -29,7 +34,7 @@ test('白名单包含：必需目录（任意深度）、根 JSON5、根文件�
   }
 });
 
-test('白名单包含：构建入口/检查配置/git hooks/站点内容（README 能力所需文件）', () => {
+test('白名单包含：构建入口/检查配置/git hooks/示例页面与默认资源（README 能力所需文件）', () => {
   const included = [
     'build.bat',
     'serve.bat',
@@ -39,17 +44,38 @@ test('白名单包含：构建入口/检查配置/git hooks/站点内容（READM
     '.githooks/pre-commit',
     'scripts/build.test.js',
     'scripts/release-archive.js',
-    'articles/zh/hello-world.md',
-    'articles/en/deep/nested.md',
     'pages/about.md',
-    'media/test-photo-1.jpg',
     'static/icons/favicon.svg',
+    'static/media/avatar.svg',
     'templates/layout.ejs',
     'js/core/main.js'
   ];
   for (const file of included) {
     assert.strictEqual(isReleaseAllowed(file), true, file + ' 应包含（解压可构建）');
   }
+});
+
+test('骨架目录：只允许 .gitkeep 标记，示例文章与演示媒体一律拒绝', () => {
+  for (const dir of RELEASE_SKELETON_DIRS) {
+    assert.strictEqual(isReleaseAllowed(dir + '/' + RELEASE_SKELETON_MARKER), true, dir + ' 根标记应包含');
+    assert.strictEqual(isReleaseAllowed(dir + '/nested/' + RELEASE_SKELETON_MARKER), true, dir + ' 深层标记应包含');
+    assert.strictEqual(isReleaseAllowed(dir + '/uploaded.js'), false, dir + ' 实体文件必须拒绝');
+  }
+  const denied = [
+    'articles/zh/hello-world.md',
+    'articles/en/deep/nested.md',
+    'articles/zh/code-showcase.md',
+    'media/test-photo-1.jpg',
+    'media/sub/nested.webp',
+    'media/archive.tar.gz'
+  ];
+  for (const file of denied) {
+    assert.strictEqual(isReleaseAllowed(file), false, file + ' 属示例内容，不得入包');
+  }
+  assert.strictEqual(describeSkeletonViolation('articles/zh/hello-world.md'), '骨架目录 articles/ 只允许 .gitkeep 标记，实体内容不得入包');
+  assert.strictEqual(describeSkeletonViolation('media/test-photo-1.jpg'), '骨架目录 media/ 只允许 .gitkeep 标记，实体内容不得入包');
+  assert.strictEqual(describeSkeletonViolation('articles/zh/.gitkeep'), null, '合法标记不应判为违规');
+  assert.strictEqual(describeSkeletonViolation('js/core/main.js'), null, '非骨架目录不应判为违规');
 });
 
 test('白名单排除：开发目录/派生副本/构建产物一律拒绝', () => {
@@ -91,7 +117,7 @@ test('默认拒绝：未知根文件与非白名单顶层目录', () => {
   assert.strictEqual(isReleaseAllowed(null), false);
 });
 
-test('必需清单自洽：必需文件均在白名单内，必需目录均为包含目录', () => {
+test('必需清单自洽：必需文件均在白名单内，必需目录均为包含目录，骨架标记齐备', () => {
   for (const file of RELEASE_REQUIRED_FILES) {
     assert.strictEqual(isReleaseAllowed(file), true, file + ' 必须在白名单内');
   }
@@ -101,10 +127,16 @@ test('必需清单自洽：必需文件均在白名单内，必需目录均为�
   for (const file of ['build.bat', 'serve.bat', 'eslint.config.js', 'tsconfig.json', 'package-lock.json', 'scripts/build.test.js']) {
     assert.ok(RELEASE_REQUIRED_FILES.includes(file), file + ' 应列入必需文件');
   }
-  assert.strictEqual(RELEASE_REQUIRED_DIRS.includes('articles'), true);
+  for (const marker of ['articles/zh/.gitkeep', 'articles/en/.gitkeep', 'media/.gitkeep']) {
+    assert.ok(RELEASE_REQUIRED_FILES.includes(marker), marker + ' 应列入必需文件（空站骨架）');
+  }
   assert.strictEqual(RELEASE_REQUIRED_DIRS.includes('pages'), true);
-  assert.strictEqual(RELEASE_REQUIRED_DIRS.includes('media'), true);
   assert.strictEqual(RELEASE_REQUIRED_DIRS.includes('static'), true);
+  assert.strictEqual(RELEASE_REQUIRED_DIRS.includes('articles'), false, 'articles 应为骨架目录而非必需内容目录');
+  assert.strictEqual(RELEASE_REQUIRED_DIRS.includes('media'), false, 'media 应为骨架目录而非必需内容目录');
+  for (const dir of RELEASE_SKELETON_DIRS) {
+    assert.strictEqual(RELEASE_DIRS.includes(dir), false, dir + ' 不应与整目录包含列表混淆');
+  }
 });
 
 test('路径归一化：反斜杠/./ 前缀可接受，绝对路径与 .. 拒绝', () => {
@@ -117,27 +149,30 @@ test('路径归一化：反斜杠/./ 前缀可接受，绝对路径与 .. 拒绝
   assert.strictEqual(isReleaseAllowed('js\\deep\\file.js'), true);
 });
 
-test('assertArchiveContents：合法归档通过（含目录条目与统一前缀）', () => {
+test('assertArchiveContents：合法归档通过（含目录条目、统一前缀与骨架标记）', () => {
   const entries = [
     'S-ynapse-1.1.0/',
     'S-ynapse-1.1.0/README.md',
     'S-ynapse-1.1.0/package.json',
     'S-ynapse-1.1.0/js/app.js',
     'S-ynapse-1.1.0/scripts/lib/release-manifest.js',
+    'S-ynapse-1.1.0/scripts/lib/release-manifest.test.js',
     'S-ynapse-1.1.0/workers/wrangler.toml',
     'S-ynapse-1.1.0/features.json5',
-    'S-ynapse-1.1.0/articles/zh/hello-world.md',
-    'S-ynapse-1.1.0/build.bat'
+    'S-ynapse-1.1.0/articles/zh/.gitkeep',
+    'S-ynapse-1.1.0/media/.gitkeep'
   ];
   const result = assertArchiveContents(entries, { prefix: 'S-ynapse-1.1.0/' });
-  assert.deepStrictEqual(result, { ok: true, checked: 8 });
+  assert.deepStrictEqual(result, { ok: true, checked: 9 });
 });
 
-test('assertArchiveContents：越界条目抛错并列出 offenders（前缀不匹配也算越界）', () => {
+test('assertArchiveContents：越界条目抛错并列出 offenders（骨架实体内容带专项说明）', () => {
   const entries = [
     'S-ynapse-1.1.0/README.md',
     'S-ynapse-1.1.0/docs/secret.md',
     'S-ynapse-1.1.0/real-site/js/app.js',
+    'S-ynapse-1.1.0/articles/zh/hello-world.md',
+    'S-ynapse-1.1.0/media/test-photo-1.jpg',
     'other-prefix/README.md'
   ];
   let thrown = null;
@@ -147,13 +182,15 @@ test('assertArchiveContents：越界条目抛错并列出 offenders（前缀不�
     thrown = err;
   }
   assert.ok(thrown, '越界条目必须抛错');
-  assert.strictEqual(thrown.offenders.length, 3);
+  assert.strictEqual(thrown.offenders.length, 5);
   assert.ok(thrown.message.includes('docs/secret.md'));
   assert.ok(thrown.message.includes('real-site/js/app.js'));
+  assert.ok(thrown.message.includes('articles/zh/hello-world.md（骨架目录 articles/'));
+  assert.ok(thrown.message.includes('media/test-photo-1.jpg（骨架目录 media/'));
   assert.ok(thrown.message.includes('前缀'));
 });
 
-test('listReleaseIncludePaths：pathspec 锚定仓库根，覆盖目录/根 JSON5/根文件', () => {
+test('listReleaseIncludePaths：pathspec 锚定仓库根，骨架目录只注入 .gitkeep 标记', () => {
   const paths = listReleaseIncludePaths();
   for (const dir of RELEASE_DIRS) {
     assert.ok(paths.includes(':(top,glob)' + dir + '/**'), dir + ' pathspec 缺失');
@@ -165,6 +202,10 @@ test('listReleaseIncludePaths：pathspec 锚定仓库根，覆盖目录/根 JSON
   assert.ok(paths.includes(':(top)build.bat'), 'build.bat pathspec 缺失');
   assert.ok(paths.includes(':(top)eslint.config.js'), 'eslint.config.js pathspec 缺失');
   assert.ok(paths.includes(':(top,glob).githooks/**'), '.githooks pathspec 缺失');
+  assert.ok(paths.includes(':(top,glob)articles/**/.gitkeep'), 'articles 骨架 pathspec 缺失');
+  assert.ok(paths.includes(':(top,glob)media/**/.gitkeep'), 'media 骨架 pathspec 缺失');
+  assert.ok(!paths.includes(':(top,glob)articles/**'), 'articles 不得使用整目录 pathspec');
+  assert.ok(!paths.includes(':(top,glob)media/**'), 'media 不得使用整目录 pathspec');
   assert.ok(paths.includes(':(top)workers/wrangler.toml') === false, 'workers 下文件由目录 pathspec 覆盖，不重复列出');
   assert.ok(paths.some(function (p) { return p.startsWith(':(top,glob)workers/'); }), 'workers 目录 pathspec 应覆盖 wrangler.toml');
 });

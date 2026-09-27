@@ -6,11 +6,12 @@
 //   2. isReleaseAllowed() 对归档内每个条目做白名单判定（默认拒绝）；
 //   3. assertArchiveContents() 在 zip 生成后复核，任何越界条目立即抛错，阻止发布。
 //
-// 设计（口径：README 中除文档类外的每项能力，其所需文件都必须随包分发，
-// 解压后 `npm ci && npm run build` 必须成功并产出可部署站点）：
+// 设计（口径：基础包 = 可完整体验 README 全部功能的最基本骨架）：
 //   - 包含：应用代码（js/scripts/templates/workers）、构建与发布入口（build.bat/serve.bat、
-//     eslint.config.js、tsconfig.json、wrangler.toml）、站点内容与构建输入
-//     （articles/pages/media/static）、git hook（.githooks）、根全部 *.json5 与锁文件；
+//     eslint.config.js、tsconfig.json、wrangler.toml）、示例页面与默认资源（pages/static）、
+//     git hook（.githooks）、根全部 *.json5 与锁文件；
+//   - 骨架目录：articles/ 与 media/ 在包内只保留 .gitkeep 标记（空目录语义），
+//     示例文章与演示媒体一律不入包，用户放入自己的内容后即可构建；
 //   - 排除：文档（docs/**、CHANGELOG.md、SECURITY.md）、CI 配置（.github/**）、
 //     本地派生副本/缓存/构建产物（real-site/dist/node_modules/.cache/backups 等）
 //     与构建期生成物（workers/security-config.js）；
@@ -21,15 +22,23 @@
 //   - 根目录 `*.json5` 采用非递归匹配（只允许根文件），避免任意深度的同名文件被放行；
 //   - 未知路径一律拒绝，新增目录必须显式加入白名单，防止无意打包。
 
-// 允许整目录递归包含且必须有内容的顶层目录（应用源码 + 站点内容）。
+// 骨架目录：允许存在但只保留标记文件（.gitkeep），实体内容（文章 Markdown、图片）不入包。
+// 这样发布包不含任何示例内容，解压后是可直接写入自有内容的空站点。
+const RELEASE_SKELETON_DIRS = Object.freeze([
+  'articles', // Markdown 文章目录（按语言分子目录）
+  'media'     // 站点图片目录
+]);
+
+// 骨架目录内唯一允许的文件名（目录占位标记，解压后空目录可被 git 跟踪/构建识别）。
+const RELEASE_SKELETON_MARKER = '.gitkeep';
+
+// 允许整目录递归包含且必须有内容的顶层目录（应用源码 + 保留的示例页面与默认资源）。
 const RELEASE_REQUIRED_DIRS = Object.freeze([
   '.githooks', // git hooks（npm run init / postinstall 安装 pre-commit 保护）
-  'articles',  // Markdown 文章（解压即可构建的非空站点内容）
   'js',        // 浏览器端运行时模块
-  'media',     // 站点图片（构建预校验会因缺失 /media 引用直接失败）
-  'pages',     // 自定义页面内容
+  'pages',     // 自定义示例页面（关于/免责声明/隐私/条款）
   'scripts',   // 构建、验证与发布脚本（含 *.test.js，便于解压后运行 npm test）
-  'static',    // 静态文件（构建直接复制进 dist/）
+  'static',    // 默认静态资源（图标/头像/OG 底图）
   'templates', // EJS 模板（构建站点必需）
   'workers'    // Cloudflare Worker 安全层与 wrangler.toml（通用版，无真实账户信息）
 ]);
@@ -75,7 +84,8 @@ const RELEASE_EXCLUDE_PATTERNS = Object.freeze([
 ]);
 
 // 归档必须包含的文件（发布包「解压即可构建」的最低断言）。
-// 覆盖：元数据与锁文件、平台快捷脚本、构建/检查/部署配置、内容与模板入口、发布链路脚本与测试。
+// 覆盖：元数据与锁文件、平台快捷脚本、构建/检查/部署配置、骨架标记、
+// 内容与模板入口、发布链路脚本与测试。
 const RELEASE_REQUIRED_FILES = Object.freeze([
   'README.md',
   'LICENSE',
@@ -91,6 +101,9 @@ const RELEASE_REQUIRED_FILES = Object.freeze([
   'site.json5',
   'theme.json5',
   '.githooks/pre-commit',
+  'articles/zh/.gitkeep',
+  'articles/en/.gitkeep',
+  'media/.gitkeep',
   'js/core/main.js',
   'templates/layout.ejs',
   'templates/post.ejs',
@@ -160,12 +173,19 @@ function isReleaseAllowed(relPath) {
     return target.endsWith('.json5');
   }
   const topLevel = target.slice(0, slash);
+  if (RELEASE_SKELETON_DIRS.includes(topLevel)) {
+    return target.endsWith('/' + RELEASE_SKELETON_MARKER);
+  }
   return RELEASE_DIRS.includes(topLevel);
 }
 
 // 生成 `git archive` 使用的 pathspec（:(top) 锚定仓库根，防止在子目录执行时解析偏移）。
+// 骨架目录只纳入 .gitkeep 标记：示例文章与演示媒体被 pathspec 直接过滤，不会进入 zip。
 function listReleaseIncludePaths() {
   const paths = RELEASE_DIRS.map(function (dir) { return ':(top,glob)' + dir + '/**'; });
+  for (const dir of RELEASE_SKELETON_DIRS) {
+    paths.push(':(top,glob)' + dir + '/**/' + RELEASE_SKELETON_MARKER);
+  }
   paths.push(':(top,glob)' + RELEASE_ROOT_GLOB);
   for (const file of RELEASE_ROOT_FILES) paths.push(':(top)' + file);
   return paths;
@@ -178,6 +198,19 @@ class ReleaseArchiveContentError extends Error {
     this.name = 'ReleaseArchiveContentError';
     this.offenders = offenders;
   }
+}
+
+// 骨架目录违规说明：返回 null 表示该路径不属于骨架目录或就是合法的 .gitkeep 标记。
+// 用于在越界错误里把「示例内容混入骨架目录」与普通越界区分开，便于快速定位。
+function describeSkeletonViolation(relPath) {
+  const target = normalizeRelPath(relPath);
+  if (target === null) return null;
+  const slash = target.indexOf('/');
+  if (slash === -1) return null;
+  const topLevel = target.slice(0, slash);
+  if (!RELEASE_SKELETON_DIRS.includes(topLevel)) return null;
+  if (target.endsWith('/' + RELEASE_SKELETON_MARKER)) return null;
+  return '骨架目录 ' + topLevel + '/ 只允许 ' + RELEASE_SKELETON_MARKER + ' 标记，实体内容不得入包';
 }
 
 // 归档后复核：entries 为 zip 内条目名数组（可含目录条目与统一前缀）。
@@ -200,7 +233,8 @@ function assertArchiveContents(entries, options) {
       rel = raw.slice(prefix.length);
     }
     if (!isReleaseAllowed(rel)) {
-      offenders.push(raw);
+      const skeletonNote = describeSkeletonViolation(rel);
+      offenders.push(skeletonNote ? raw + '（' + skeletonNote + '）' : raw);
       continue;
     }
     checked += 1;
@@ -217,12 +251,15 @@ function assertArchiveContents(entries, options) {
 module.exports = {
   RELEASE_DIRS,
   RELEASE_REQUIRED_DIRS,
+  RELEASE_SKELETON_DIRS,
+  RELEASE_SKELETON_MARKER,
   RELEASE_ROOT_FILES,
   RELEASE_ROOT_GLOB,
   RELEASE_EXCLUDE_PATTERNS,
   RELEASE_REQUIRED_FILES,
   ReleaseArchiveContentError,
   normalizeRelPath,
+  describeSkeletonViolation,
   isReleaseAllowed,
   listReleaseIncludePaths,
   assertArchiveContents

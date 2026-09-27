@@ -5,12 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Fixed
-
-- **release 测试消除仓库状态依赖（CI 门禁红修复）**：`scripts/release-mark.test.js` 改为临时夹具仓库（复制被测脚本与其 `lib/` 依赖，配固定 `package.json`/`package-lock.json`/含 `[Unreleased]` 的 CHANGELOG fixture），不再读取真实仓库的 `[Unreleased]` 段——发布归段后该段不存在，原实现导致 5 个用例 `match(...)` 空值连环失败、`compat-node20` 与 Release 门禁同时红、首轮 `v1.1.0-a1` 未能发布；修复后 11/11 用例在「有/无 `[Unreleased]`」两态均通过，主仓零写入（夹具自动清理）。
-
 ## [1.1.0-a1] - 2026-09-27
 
 ### Added
@@ -27,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **配置默认化核对**：`site.json5` 社交链接 GitHub 项由维护者主页改为占位示例（`https://github.com/your-username`）；14 个 JSON5 逐项复核无个人/真实数据残留（其余为 `example.com`、示例备案号与占位账号）。
 
 ### Fixed
+
+- **release 测试消除仓库状态依赖（CI 门禁红修复）**：`scripts/release-mark.test.js` 改为临时夹具仓库（复制被测脚本与其 `lib/` 依赖，配固定 `package.json`/`package-lock.json`/含 `[Unreleased]` 的 CHANGELOG fixture），不再读取真实仓库的 `[Unreleased]` 段——发布归段后该段不存在，原实现导致 5 个用例 `match(...)` 空值连环失败、`compat-node20` 与 Release 门禁同时红、首轮 `v1.1.0-a1` 未能发布；修复后 11/11 用例在「有/无 `[Unreleased]`」两态均通过，主仓零写入（夹具自动清理）。
 
 - **空站压缩验证 softNav 冒烟误判**：`scripts/lib/compression-verify.js` 在首页无文章卡片（空站骨架）时 softNav 判为「不适用」并跳过该断言，有文章或返回值缺失目标信息（异常兜底）时仍要求 softNav 通过；新增 3 例单测锁定两态（空站跳过、有目标/异常仍判失败）。
 

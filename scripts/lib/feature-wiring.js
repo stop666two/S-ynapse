@@ -872,6 +872,121 @@ function contactCopyText(features, lang, dict) {
   return v || (dict == null ? '' : String(dict));
 }
 
+// ---------------------------------------------------------------------------
+// 隐藏开关收敛：手势阈值 / 存储上限 / 反馈时长 / 空闲超时 / 缓存条数 /
+// 阅读模式持久化 / 命令面板回退值 / 搜索索引加载参数。
+// 默认值 = 历史行为（与 features-schema.js / tuning-defaults.js 同值）。
+// ---------------------------------------------------------------------------
+
+// 非负整数解析：非法/低于下限回退 fallback（下限默认 0）。
+function pickCount(raw, fallback, min) {
+  const n = parseInt(raw, 10);
+  const floor = min == null ? 0 : min;
+  return isNaN(n) || n < floor ? fallback : n;
+}
+
+// lightbox 手势阈值归一化（触屏横滑/下拉关闭/鼠标拖拽/双击倍数/遮罩容差）。
+function lightboxGestureConfig(features) {
+  const L = (features && features.lightbox) || {};
+  const dbl = +L.dblClickZoomLevel;
+  return {
+    swipeThresholdPx: pickNonNegative(L.swipeThresholdPx, 50),
+    swipeCloseThresholdPx: pickNonNegative(L.swipeCloseThresholdPx, 80),
+    mouseSwipeThresholdPx: pickNonNegative(L.mouseSwipeThresholdPx, 80),
+    dblClickZoomLevel: isNaN(dbl) || dbl < 1 ? 2 : dbl,
+    clickTolerancePx: pickNonNegative(L.clickTolerancePx, 6)
+  };
+}
+
+// readingProgress 阅读位置参数归一化（键盘步进 / 恢复下限 / 存储上限 / 保存节流）。
+function readingRestoreConfig(features) {
+  const R = (features && features.readingProgress) || {};
+  const step = +R.keyboardStep;
+  return {
+    keyboardStep: isNaN(step) || step <= 0 ? 0.05 : Math.min(1, step),
+    minRestorePx: pickNonNegative(R.minRestorePx, 160),
+    maxStoredPositions: pickCount(R.maxStoredPositions, 80, 1),
+    saveThrottleMs: pickNonNegative(R.saveThrottleMs, 400)
+  };
+}
+
+// readDock 滚动显隐阈值归一化（近顶部恒显距离 / 方向判定增量）。
+function readDockScrollConfig(features) {
+  const D = (features && features.readDock) || {};
+  return {
+    hideBelowPx: pickNonNegative(D.hideBelowPx, 80),
+    directionDeltaPx: pickNonNegative(D.directionDeltaPx, 12)
+  };
+}
+
+// externalLink 复制反馈时长归一化（0 = 立即还原）。
+function externalLinkCopyConfig(features) {
+  const E = (features && features.externalLink) || {};
+  return { copyFeedbackMs: pickNonNegative(E.copyFeedbackMs, 1500) };
+}
+
+// hotSearches 词频表上限归一化（≥1；非法回退 50）。
+function hotSearchesConfig(features) {
+  const H = (features && features.hotSearches) || {};
+  return { maxWords: pickCount(H.maxWords, 50, 1) };
+}
+
+// morphIcons 空闲预加载超时归一化（非法回退 3000）。
+function morphIconsConfig(features) {
+  const M = (features && features.morphIcons) || {};
+  return { idleTimeoutMs: pickNonNegative(M.idleTimeoutMs, 3000) };
+}
+
+// softNavigation 内存缓存条数归一化（≥1；非法回退 16）。
+function softNavCacheConfig(features) {
+  const S = (features && features.softNavigation) || {};
+  return { cacheMaxEntries: pickCount(S.cacheMaxEntries, 16, 1) };
+}
+
+// readingHistory 本地存储上限归一化（≥1；非法回退 50）。
+function readingHistoryConfig(features) {
+  const R = (features && features.readingHistory) || {};
+  return { maxStored: pickCount(R.maxStored, 50, 1) };
+}
+
+// readMode 持久化归一化：persist 默认 true；storageKey 空回退历史键名 'readingMode'。
+function readModeConfig(features) {
+  const R = (features && features.readMode) || {};
+  const key = R.storageKey == null ? '' : String(R.storageKey).trim();
+  return { persist: R.persist !== false, storageKey: key || 'readingMode' };
+}
+
+// commandPalette 回退值归一化（缺配置/非法时与 JSON5/schema 默认一致：ctrl+shift+p / 10 / true）。
+function commandPaletteConfig(features) {
+  const C = (features && features.commandPalette) || {};
+  const hotkey = C.hotkey === undefined || C.hotkey === null ? 'ctrl+shift+p' : String(C.hotkey);
+  const n = Number(C.maxResults);
+  return {
+    hotkey: hotkey,
+    maxResults: Number.isFinite(n) && n > 0 ? n : 10,
+    autoFocus: C.autoFocus !== false
+  };
+}
+
+// 搜索索引加载参数归一化：tuning.search.indexTimeoutMs（>0，非法回退 5000）、
+// indexRetry（≥0 的额外重试次数，非法回退 1）。
+function searchIndexConfig(tuning) {
+  const T = (tuning && tuning.search) || {};
+  const to = +T.indexTimeoutMs;
+  const retry = parseInt(T.indexRetry, 10);
+  return {
+    timeoutMs: isNaN(to) || to <= 0 ? 5000 : to,
+    retry: isNaN(retry) || retry < 0 ? 1 : retry
+  };
+}
+
+// 索引加载失败文案链：tuning.search.errorText(En) 按语言取值，空串 = 不参与（调用方回退 i18n）。
+function searchLoadErrorText(tuning, lang) {
+  const T = (tuning && tuning.search) || {};
+  const raw = String(lang || '') === 'en' ? T.errorTextEn : T.errorText;
+  return raw == null ? '' : String(raw);
+}
+
 // 解析热力色阶：scaling='fixed' 且 palette 长度 >= levels 时使用固定色表（取前 levels 项）；
 // 长度不足/非法时回退 auto 色阶并返回构建期提示（warning 由调用方打印一次）。
 function resolveHeatmapPalette(cfg) {
@@ -1042,5 +1157,18 @@ module.exports = {
   buildAnalyticsTag,
   performanceWarnings,
   debugConfig,
-  configSummary
+  configSummary,
+  pickCount,
+  lightboxGestureConfig,
+  readingRestoreConfig,
+  readDockScrollConfig,
+  externalLinkCopyConfig,
+  hotSearchesConfig,
+  morphIconsConfig,
+  softNavCacheConfig,
+  readingHistoryConfig,
+  readModeConfig,
+  commandPaletteConfig,
+  searchIndexConfig,
+  searchLoadErrorText
 };

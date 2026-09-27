@@ -879,3 +879,119 @@ test('删除模块无残留引用（feed：js/templates/scripts 源码扫描）'
   }
   assert.deepStrictEqual(offenders, []);
 });
+
+// ---------------------------------------------------------------------------
+// 隐藏开关收敛：JSON5/schema 同步、canonical 纯函数默认态=历史行为、覆盖生效、
+// 非法值回退；mermaid 版本与安装版本一致性。
+// ---------------------------------------------------------------------------
+
+test('features.json5 与 schema：隐藏开关批次新键齐全且默认值一致', () => {
+  const expected = {
+    lightbox: { swipeThresholdPx: 50, swipeCloseThresholdPx: 80, mouseSwipeThresholdPx: 80, dblClickZoomLevel: 2, clickTolerancePx: 6 },
+    readingProgress: { keyboardStep: 0.05, minRestorePx: 160, maxStoredPositions: 80, saveThrottleMs: 400 },
+    readDock: { hideBelowPx: 80, directionDeltaPx: 12 },
+    externalLink: { copyFeedbackMs: 1500 },
+    hotSearches: { maxWords: 50 },
+    morphIcons: { idleTimeoutMs: 3000 },
+    softNavigation: { cacheMaxEntries: 16 },
+    readingHistory: { maxStored: 50 },
+    readMode: { storageKey: 'readingMode' }
+  };
+  for (const [mod, keys] of Object.entries(expected)) {
+    for (const [key, value] of Object.entries(keys)) {
+      assert.strictEqual(features[mod][key], value, 'features.json5 ' + mod + '.' + key);
+      assert.strictEqual(DEFAULT_FEATURES[mod][key], value, 'schema ' + mod + '.' + key);
+    }
+  }
+});
+
+test('tuning.json5 与注册表：search 索引加载参数键齐全', () => {
+  const tuning = json5.parse(fs.readFileSync(path.join(ROOT, 'tuning.json5'), 'utf-8'));
+  for (const key of ['indexTimeoutMs', 'indexRetry', 'errorText', 'errorTextEn']) {
+    assert.ok(key in tuning.search, 'tuning.json5 search.' + key + ' 应存在');
+    assert.ok(key in require('./lib/tuning-defaults.js').DEFAULT_TUNING.search, '注册表 search.' + key + ' 应存在');
+  }
+  assert.strictEqual(tuning.search.indexTimeoutMs, 5000);
+  assert.strictEqual(tuning.search.indexRetry, 1);
+  assert.strictEqual(tuning.search.errorText, '');
+  assert.strictEqual(tuning.search.errorTextEn, '');
+});
+
+test('lightboxGestureConfig：默认=历史行为、覆盖生效、非法回退', () => {
+  assert.deepStrictEqual(w.lightboxGestureConfig({}), {
+    swipeThresholdPx: 50, swipeCloseThresholdPx: 80, mouseSwipeThresholdPx: 80, dblClickZoomLevel: 2, clickTolerancePx: 6
+  });
+  const custom = w.lightboxGestureConfig({ lightbox: { swipeThresholdPx: 30, swipeCloseThresholdPx: 120, mouseSwipeThresholdPx: 60, dblClickZoomLevel: 3, clickTolerancePx: 10 } });
+  assert.deepStrictEqual(custom, { swipeThresholdPx: 30, swipeCloseThresholdPx: 120, mouseSwipeThresholdPx: 60, dblClickZoomLevel: 3, clickTolerancePx: 10 });
+  assert.deepStrictEqual(
+    w.lightboxGestureConfig({ lightbox: { swipeThresholdPx: 'x', swipeCloseThresholdPx: -5, dblClickZoomLevel: 0.5, clickTolerancePx: null } }),
+    { swipeThresholdPx: 50, swipeCloseThresholdPx: 80, mouseSwipeThresholdPx: 80, dblClickZoomLevel: 2, clickTolerancePx: 6 }
+  );
+});
+
+test('readingRestoreConfig：键盘步进/恢复下限/存储上限/保存节流', () => {
+  assert.deepStrictEqual(w.readingRestoreConfig({}), { keyboardStep: 0.05, minRestorePx: 160, maxStoredPositions: 80, saveThrottleMs: 400 });
+  assert.deepStrictEqual(w.readingRestoreConfig({ readingProgress: { keyboardStep: 0.1, minRestorePx: 0, maxStoredPositions: 20, saveThrottleMs: 1000 } }),
+    { keyboardStep: 0.1, minRestorePx: 0, maxStoredPositions: 20, saveThrottleMs: 1000 });
+  assert.deepStrictEqual(w.readingRestoreConfig({ readingProgress: { keyboardStep: 2, minRestorePx: -1, maxStoredPositions: 0, saveThrottleMs: 'x' } }),
+    { keyboardStep: 1, minRestorePx: 160, maxStoredPositions: 80, saveThrottleMs: 400 });
+});
+
+test('readDockScrollConfig：近顶部恒显距离与方向判定增量', () => {
+  assert.deepStrictEqual(w.readDockScrollConfig({}), { hideBelowPx: 80, directionDeltaPx: 12 });
+  assert.deepStrictEqual(w.readDockScrollConfig({ readDock: { hideBelowPx: 0, directionDeltaPx: 30 } }), { hideBelowPx: 0, directionDeltaPx: 30 });
+  assert.deepStrictEqual(w.readDockScrollConfig({ readDock: { hideBelowPx: -1, directionDeltaPx: 'x' } }), { hideBelowPx: 80, directionDeltaPx: 12 });
+});
+
+test('externalLinkCopyConfig / hotSearchesConfig / morphIconsConfig：默认与覆盖', () => {
+  assert.strictEqual(w.externalLinkCopyConfig({}).copyFeedbackMs, 1500);
+  assert.strictEqual(w.externalLinkCopyConfig({ externalLink: { copyFeedbackMs: 0 } }).copyFeedbackMs, 0);
+  assert.strictEqual(w.externalLinkCopyConfig({ externalLink: { copyFeedbackMs: -1 } }).copyFeedbackMs, 1500);
+  assert.strictEqual(w.hotSearchesConfig({}).maxWords, 50);
+  assert.strictEqual(w.hotSearchesConfig({ hotSearches: { maxWords: 2 } }).maxWords, 2);
+  assert.strictEqual(w.hotSearchesConfig({ hotSearches: { maxWords: 0 } }).maxWords, 50);
+  assert.strictEqual(w.morphIconsConfig({}).idleTimeoutMs, 3000);
+  assert.strictEqual(w.morphIconsConfig({ morphIcons: { idleTimeoutMs: 0 } }).idleTimeoutMs, 0);
+  assert.strictEqual(w.morphIconsConfig({ morphIcons: { idleTimeoutMs: -5 } }).idleTimeoutMs, 3000);
+});
+
+test('softNavCacheConfig / readingHistoryConfig / readModeConfig：默认与覆盖', () => {
+  assert.strictEqual(w.softNavCacheConfig({}).cacheMaxEntries, 16);
+  assert.strictEqual(w.softNavCacheConfig({ softNavigation: { cacheMaxEntries: 64 } }).cacheMaxEntries, 64);
+  assert.strictEqual(w.softNavCacheConfig({ softNavigation: { cacheMaxEntries: 0 } }).cacheMaxEntries, 16);
+  assert.strictEqual(w.readingHistoryConfig({}).maxStored, 50);
+  assert.strictEqual(w.readingHistoryConfig({ readingHistory: { maxStored: 10 } }).maxStored, 10);
+  assert.deepStrictEqual(w.readModeConfig({}), { persist: true, storageKey: 'readingMode' });
+  assert.deepStrictEqual(w.readModeConfig({ readMode: { persist: false, storageKey: ' rm-x ' } }), { persist: false, storageKey: 'rm-x' });
+  assert.deepStrictEqual(w.readModeConfig({ readMode: { storageKey: '  ' } }), { persist: true, storageKey: 'readingMode' });
+});
+
+test('commandPaletteConfig：回退值与 JSON5/schema 默认一致（修复 8/‘k’ 漂移）', () => {
+  assert.deepStrictEqual(w.commandPaletteConfig({}), { hotkey: 'ctrl+shift+p', maxResults: 10, autoFocus: true });
+  assert.strictEqual(features.commandPalette.hotkey, w.commandPaletteConfig({}).hotkey);
+  assert.strictEqual(features.commandPalette.maxResults, w.commandPaletteConfig({}).maxResults);
+  assert.deepStrictEqual(w.commandPaletteConfig({ commandPalette: { hotkey: '', maxResults: 3, autoFocus: false } }), { hotkey: '', maxResults: 3, autoFocus: false });
+  assert.deepStrictEqual(w.commandPaletteConfig({ commandPalette: { maxResults: 0 } }).maxResults, 10);
+});
+
+test('searchIndexConfig / searchLoadErrorText：索引加载参数与失败文案链', () => {
+  assert.deepStrictEqual(w.searchIndexConfig({}), { timeoutMs: 5000, retry: 1 });
+  assert.deepStrictEqual(w.searchIndexConfig({ search: { indexTimeoutMs: 1200, indexRetry: 3 } }), { timeoutMs: 1200, retry: 3 });
+  assert.deepStrictEqual(w.searchIndexConfig({ search: { indexTimeoutMs: 0, indexRetry: -1 } }), { timeoutMs: 5000, retry: 1 });
+  assert.strictEqual(w.searchLoadErrorText({}, 'zh'), '');
+  assert.strictEqual(w.searchLoadErrorText({ search: { errorText: '加载失败', errorTextEn: 'Load failed' } }, 'zh'), '加载失败');
+  assert.strictEqual(w.searchLoadErrorText({ search: { errorText: '加载失败', errorTextEn: 'Load failed' } }, 'en'), 'Load failed');
+  assert.strictEqual(w.searchLoadErrorText({ search: { errorText: '加载失败', errorTextEn: '' } }, 'en'), '', 'en 空串不参与（回退 i18n）');
+});
+
+test('features.mermaid.version 与 package.json 安装版本一致（事实锁定）', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'));
+  assert.strictEqual(features.mermaid.version, pkg.dependencies.mermaid, 'features.json5 mermaid.version 必须镜像安装版本');
+  assert.strictEqual(DEFAULT_FEATURES.mermaid.version, pkg.dependencies.mermaid, 'schema mermaid.version 必须镜像安装版本');
+});
+
+test('模板接线：mermaid 复制反馈时长取 codeCopy.buttonTimeout（单一来源）', () => {
+  const layout = fs.readFileSync(path.join(ROOT, 'templates', 'layout.ejs'), 'utf-8');
+  assert.ok(layout.includes('features.codeCopy&&features.codeCopy.buttonTimeout'), 'layout.ejs 应读取 codeCopy.buttonTimeout');
+  assert.ok(!/b\.classList\.remove\('mm-copied'\)\},1500\)/.test(layout), '不得残留硬编码 1500');
+});

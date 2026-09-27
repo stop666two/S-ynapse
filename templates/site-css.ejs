@@ -271,6 +271,14 @@
     .widget-quote-author{display:block;margin-top:.6rem;font-size:var(--dailyQuote-authorFontSize,.8rem);color:var(--color-ts);text-align:right}
     .quote-widget.quote-widget-plain{background:none;box-shadow:none;padding:0}
     .quote-widget.quote-widget-plain .quote-mark{display:none}
+    .quote-widget-actions{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.75rem}
+    .quote-widget-btn{padding:.3rem .75rem;border:1px solid color-mix(in srgb,var(--color-a) 30%,transparent);border-radius:999px;background:var(--color-hover);color:var(--color-ts);font-size:.8125rem;line-height:1.4;font-family:var(--ff);cursor:pointer;transition:color .2s,border-color .2s}
+    .quote-widget-btn:hover{color:var(--color-a);border-color:var(--color-a)}
+    .quote-widget-btn:focus-visible{outline:var(--ap-frw,2px) solid var(--color-a);outline-offset:var(--ap-fro,2px)}
+    .quote-widget-btn[disabled]{opacity:.5;cursor:default}
+    .quote-widget.quote-widget-plain .quote-widget-actions{justify-content:flex-start}
+    .quote-copy-proxy{position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none}
+    @media (prefers-reduced-motion: reduce){.quote-widget-btn{transition:none}}
     /* favorites */
     .fav-item-icon{display:inline-flex;align-items:center;color:var(--color-a);flex-shrink:0}
     .fav-item-icon svg{display:block}

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Release 统一以 Latest 发布**：CI（`.github/workflows/release.yml`）与本地 `release:publish` 创建 Release 时固定 `--latest`，不再按预发布版本加 `--prerelease`——SemVer 预发布版本名（如 `1.1.0-a1`）同样在下载页置顶；`release:mark` 的预发布提示同步为「以 Latest 发布」。历史误标可用 `gh release edit vX.Y.Z --prerelease=false --latest` 修正（见 `docs/runbook/release.md` §4.2/§8）。
+- **旧 tag 清理范围扩展**：`release-prune` 在删除旧 Release（`--cleanup-tag`）后，继续删除远端其余 `v*` tag（`git push origin :refs/tags/<tag>`），覆盖没有 Release 的残留 tag；固定「先 Release 后 tag」顺序，`--keep` 与非 `v*` tag 受保护，`--dry-run` 打印两阶段清单，远端列表失败在删除前中止。新增纯函数 `selectObsoleteRemoteTags` / `planRemoteTagDeletions`，`release-prune.test.js` 扩至 13 例覆盖选择/顺序/失败路径。
+
 ## [1.1.0-a1] - 2026-09-27
 
 ### Added
@@ -653,4 +660,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [1.1.0]: https://github.com/stop666two/S-ynapse/releases/tag/v1.1.0
 [1.0.1]: https://github.com/stop666two/S-ynapse/releases/tag/v1.0.1
+[Unreleased]: https://github.com/stop666two/S-ynapse/compare/v1.1.0-a1...HEAD
 [1.1.0-a1]: https://github.com/stop666two/S-ynapse/releases/tag/v1.1.0-a1

@@ -500,8 +500,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run sbom` | 生成 CycloneDX 1.5（ECMA-424）SBOM → `build-artifacts/sbom.cdx.json`（不入库；CI 上传为 `sbom-cyclonedx` artifact） |
 | `npm run release:mark -- <major\|minor\|patch\|X.Y.Z\|X.Y.Z-预发布> --human-verified "<姓名>" --confirm <版本>` | 完成标记：顺序跑完全套质量门禁 → 同步 package.json/CHANGELOG/RELEASE.json → `chore(release)` 提交 + 附注 tag（默认不 push；`--dry-run` 仅演练；`--push --confirm-push` 才推送；支持同版本/预发布标记，如 `1.1.0-a1`） |
 | `npm run release:archive -- --ref <tag\|HEAD>` | 按白名单生成 `release-artifacts/S-ynapse-<版本>.zip`（含前缀目录）：`articles/`、`media/` 只保留 `.gitkeep` 空骨架，复核内容无越界、必需文件与测试齐全、RELEASE.json=package.json=tag 版本一致 |
-| `npm run release:publish -- vX.Y.Z` | 本地备用发布通道（远端已有 tag 后复用双重校验并 `gh release create`，预发布自动加 `--prerelease`，成功后清理旧版；默认通道为 tag 触发 Actions 自动发布） |
-| `npm run release:prune -- --keep vX.Y.Z` | 只保留最新版本：删除其余 Release 及其远端 tag（`--cleanup-tag`；`--dry-run` 预览；CI/`release:publish` 已自动执行） |
+| `npm run release:publish -- vX.Y.Z` | 本地备用发布通道（远端已有 tag 后复用双重校验并 `gh release create --latest`，成功后清理旧 Release 与远端 v* tag；默认通道为 tag 触发 Actions 自动发布） |
+| `npm run release:prune -- --keep vX.Y.Z` | 只保留最新版本：先删其余 Release（`--cleanup-tag`）再删远端残留 v* tag（`--dry-run` 预览两阶段清单；CI/`release:publish` 已自动执行） |
 | `npm run lint` | ESLint 静态检查（js/scripts/workers；CI 门禁） |
 | `npm run audit` | 依赖漏洞扫描（固定官方 registry：本机 npm 镜像会阻断 audit 接口） |
 | `npm run typecheck` | TypeScript checkJs 类型检查（scripts/lib；CI 门禁） |

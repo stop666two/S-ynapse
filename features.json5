@@ -12,6 +12,8 @@
 //            每个字段均有真实效果,无摆设项;修改后需重新构建。
 // 双语约定 : 任一文案字段均可追加同名 En 后缀(如 buttonTextEn)提供英文站文案;
 //            类型与中文值一致;空字符串 = en 站回退中文值(英文页兜底不空白)。
+// 消费方   : scripts/build/config.js（加载合并）;scripts/lib/features-schema.js（默认值与校验）。
+// 文档     : docs/config-reference.md §3 features.json5（各模块逐项取值说明）。
 // 边界提示 : 视觉数值微调 → tuning.json5;站点级开关 → site.json5;
 //            主题色/字体 → theme.json5;界面文案 → ui-strings.json5。
 // =============================================================================
@@ -141,7 +143,6 @@
     // 滚动多少像素后显示按钮。
     showAfterPx: 400,
     // 距右边缘距离与距底边距离：唯一来源为 tuning.backToTop.offsetSide / offsetBottom。
-    // （features.backToTop.rightOffset/bottomOffset 为已移除的重复键，迁移说明见 CHANGELOG。）
     // 按钮尺寸(px)。
     size: '44px',
     // 滚动回顶部动画时长(ms;0=瞬时;rAF 缓动实现)。
@@ -351,8 +352,7 @@
     toggleIconSwap: true,
     // 切换按钮的 CSS z-index。
     zIndex: 100
-    // 说明：默认主题/是否记忆/图标样式/过渡四项的唯一来源为 theme.json5 → darkMode.default/rememberChoice/iconStyle/transitionAll；
-    // themeToggle 同名键为已移除的重复键，迁移说明见 CHANGELOG。
+    // 说明：默认主题/是否记忆/图标样式/过渡四项的唯一来源为 theme.json5 → darkMode.default/rememberChoice/iconStyle/transitionAll。
   },
 
   // ---------------------------------------------------------------------------
@@ -458,7 +458,7 @@
     ,
     // 目录侧栏标题文本(zh 语言)。
     titleText: '目录',
-    // 目录侧栏标题文本(en 语言)。
+    // 目录侧栏标题文本(en 语言；空 = en 站内置回退 'Contents')。
     titleTextEn: 'Contents',
     // 是否显示标题行(整块隐藏,含折叠按钮)。
     showTitle: true,
@@ -694,8 +694,7 @@
     buttonTimeout: 1500,
     // 是否显示行号。
     showLineNumbers: false
-    // 说明：代码窗栏复用（window bar）唯一来源为 features.codeBlock.windowBar（js/domains/core/code-block.js 消费）；
-    // codeCopy.includeWindowBar 为已移除的重复键，迁移说明见 CHANGELOG。
+    // 说明：代码窗栏复用（window bar）唯一来源为 features.codeBlock.windowBar（js/domains/core/code-block.js 消费）。
   },
 
   // ---------------------------------------------------------------------------
@@ -748,8 +747,7 @@
     fallback: 'pattern',
     // 封面懒加载。
     lazy: true,
-    // 说明：封面宽高比唯一来源为 tuning.json5 → card.imageAspect（CSS 变量 --card-imageAspect）；
-    // listCover.aspectRatio 为已移除的重复键，迁移说明见 CHANGELOG。
+    // 说明：封面宽高比唯一来源为 tuning.json5 → card.imageAspect（CSS 变量 --card-imageAspect）。
 
     // 无封面文章自动生成封面（构建期 SVG → sharp 出图）。
     // 作用: 文章 frontmatter 无 featuredImage 时，列表卡片与文章页头图改用自动生成的封面，
@@ -815,8 +813,7 @@
     items: ['home', 'archive', 'search', 'theme'],
     // 是否仅移动端显示；false=桌面端也显示底部导航（≤mobileBreakpoint 断点行为不变）。
     onlyMobile: true,
-    // 说明：iOS 安全区（safe-area-inset-bottom）唯一来源为 features.mobile.safeAreaBottom；
-    // mobileBottomNav.useSafeArea 为已移除的重复键，迁移说明见 CHANGELOG。
+    // 说明：iOS 安全区（safe-area-inset-bottom）唯一来源为 features.mobile.safeAreaBottom。
     // 标签文案覆盖（空=走 ui-strings.json5 的 bottomNav.* 双语词典；推荐保持空）。
     // 标签覆盖:首页。
     labelHome: '',
@@ -1513,10 +1510,6 @@
   // 28. 订阅(RSS + JSON Feed)
   // 说明: 订阅配置的唯一来源为 site.json5 的 rss 段（enabled/path/fullContent/maxItems/
   //       injectHeadLinks 与 jsonFeed.*）；页脚订阅条开关见下方 subscribe 段。
-  //       历史 features.feed 模块已删除，键位迁移映射：
-  //         rssEnabled→site.rss.enabled；rssPath→site.rss.path；rssFullContent→site.rss.fullContent；
-  //         rssMaxItems→site.rss.maxItems；jsonFeedPath/jsonFeedFullContent/jsonFeedMaxItems→site.rss.jsonFeed.*；
-  //         injectHeadLinks→site.rss.injectHeadLinks；injectFooterLink→subscribe.enabled 与 subscribe.rss。
   // ---------------------------------------------------------------------------
 
   // ---------------------------------------------------------------------------
@@ -1703,7 +1696,7 @@
     searchPlaceholderEn: 'Search posts…',
     // Hero 是否显示日期(最新文章日期)。
     showDate: false,
-    // en 语言 CTA 按钮文字。
+    // en 语言 CTA 按钮文字（默认 'View all posts'；置空且 site.hero.ctaLabelEn 也为空时按钮无文字，请保持非空）。
     ctaLabelEn: 'View all posts',
     // Hero 最小高度(vh,内容垂直居中)。
     heightVh: 61.8,
@@ -2202,11 +2195,11 @@
     // 作用: 文章页正文(.post-content)的直接子块——代码块(pre)/表格(table)/Mermaid SSR 图
     //   (.mermaid)/图(picture)——离屏时跳过布局与绘制,contain-intrinsic-size 以 auto+估算值
     //   占位,滚动接近时按真实尺寸渲染(auto 记忆上次尺寸,回滚不再重算估算)。
-    // 收益: 长文页首屏布局/样式计算量下降,缩短 FCP 与 LCP 渲染延迟(弱网实测见 CHANGELOG)。
+    // 收益: 长文页首屏布局/样式计算量下降,缩短 FCP 与 LCP 渲染延迟。
     // 代价: 未渲染块的初始占位高度为估算值,冷锚点直达/首次滚动到未渲染区会出现落点偏移
     //   与布局偏移(估算总高与真实高度差可达千余 px);TOC 高亮/返回顶部/软导航不受影响。
-    // 实测(2026-09,见 CHANGELOG): CLS 显著恶化(冷锚点 0.38→0.68,滚动 0.07→0.28),按验收
-    //   标准「CLS 恶化或锚点/滚动异常则不启用」保持 false;收益备查(长文页 LCP −1.2s)。
+    // 实测结论: CLS 显著恶化(冷锚点 0.38→0.68,滚动 0.07→0.28),按验收标准
+    //   「CLS 恶化或锚点/滚动异常则不启用」保持 false;收益备查(长文页 LCP −1.2s)。
     // 类型: boolean | 可填: true/false | 默认 false(站点同样 false;回退=保持/置 false,条件 CSS 不输出)。
     contentVisibility: false
   },
@@ -2224,7 +2217,7 @@
     // 前置:配合「构建期图片定尺寸」(正文/头图/卡片/画廊 width/height 属性)使用;
     //   图片定尺寸后 CLS 已降至 0.001 量级,本开关只兜底晚到布局造成的偶发落点漂移。
     // 代价:极小(watchdog 逻辑 <1KB gzip;校正为 instant 滚动,不产生 CLS)。
-    // 实测(2026-09,见 CHANGELOG):冷锚点最终落点误差 9.9px(校正瞬间即达理想位 156.1px,
+    // 实测结论:冷锚点最终落点误差 9.9px(校正瞬间即达理想位 156.1px,
     //   其后极晚布局回移约 10px;页面总高 13983px,<0.1% 且不足一行行高;基线中位偏差 1431px);
     //   冷锚点 CLS 0.5367→0.0011,滚动扫描 CLS 增量 0.0240→0.0002。
     // 类型: boolean | 可填: true(推荐)/false | 默认 true(= 保持校正;回退=置 false)。

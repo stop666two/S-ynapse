@@ -966,6 +966,20 @@ test('softNavCacheConfig / readingHistoryConfig / readModeConfig：默认与覆�
   assert.deepStrictEqual(w.readModeConfig({ readMode: { storageKey: '  ' } }), { persist: true, storageKey: 'readingMode' });
 });
 
+test('continueReadingConfig：条数/进度开关/存储键回退链', () => {
+  assert.deepStrictEqual(w.continueReadingConfig({}), { displayCount: 3, showProgress: true, storageKey: 's-history' });
+  assert.deepStrictEqual(
+    w.continueReadingConfig({ continueReading: { count: 5, showProgress: false, storageKey: ' cr-x ' } }),
+    { displayCount: 5, showProgress: false, storageKey: 'cr-x' }
+  );
+  assert.deepStrictEqual(
+    w.continueReadingConfig({ continueReading: { count: 0, showProgress: 'x', storageKey: '' }, readingHistory: { storageKey: ' s-history ' } }),
+    { displayCount: 3, showProgress: true, storageKey: 's-history' },
+    '空存储键回退 readingHistory.storageKey（去空白）'
+  );
+  assert.strictEqual(w.continueReadingConfig({ readingHistory: { storageKey: '' } }).storageKey, 's-history');
+});
+
 test('commandPaletteConfig：回退值与 JSON5/schema 默认一致（修复 8/‘k’ 漂移）', () => {
   assert.deepStrictEqual(w.commandPaletteConfig({}), { hotkey: 'ctrl+shift+p', maxResults: 10, autoFocus: true });
   assert.strictEqual(features.commandPalette.hotkey, w.commandPaletteConfig({}).hotkey);

@@ -949,6 +949,20 @@ function readingHistoryConfig(features) {
   return { maxStored: pickCount(R.maxStored, 50, 1) };
 }
 
+// continueReading 首页卡片归一化：displayCount≥1（非法回退 3）、showProgress 默认 true、
+// storageKey 留空时复用 readingHistory.storageKey（再回退历史默认 's-history'）。
+function continueReadingConfig(features) {
+  const F = (features && features.continueReading) || {};
+  const RH = (features && features.readingHistory) || {};
+  const key = F.storageKey == null ? '' : String(F.storageKey).trim();
+  const rhKey = RH.storageKey == null ? '' : String(RH.storageKey).trim();
+  return {
+    displayCount: pickCount(F.count, 3, 1),
+    showProgress: F.showProgress !== false,
+    storageKey: key || rhKey || 's-history'
+  };
+}
+
 // readMode 持久化归一化：persist 默认 true；storageKey 空回退历史键名 'readingMode'。
 function readModeConfig(features) {
   const R = (features && features.readMode) || {};
@@ -1252,6 +1266,7 @@ module.exports = {
   morphIconsConfig,
   softNavCacheConfig,
   readingHistoryConfig,
+  continueReadingConfig,
   readModeConfig,
   commandPaletteConfig,
   searchIndexConfig,

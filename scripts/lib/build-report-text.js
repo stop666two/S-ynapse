@@ -159,7 +159,7 @@ function renderBudgetSection(budget, compression, totalMs) {
   }
   const htmlCat = compression && compression.categories ? compression.categories.html : null;
   const jsCat = compression && compression.categories ? compression.categories.js : null;
-  lines.push('  压缩目标（现状值；最终口径待 C8 对照构建核定）:');
+  lines.push('  压缩目标（本阶段口径：基线压缩前 → 增强/压缩后）:');
   lines.push('    HTML gzip: ' + (htmlCat ? formatTarget(htmlCat.gzipBefore, htmlCat.gzipAfter, 10) : NOT_RECORDED + '（目标 ≥ 10.00%）'));
   lines.push('    JS gzip（混淆关态）: ' + (jsCat ? formatTarget(jsCat.gzipBefore, jsCat.gzipAfter, 20) : NOT_RECORDED + '（目标 ≥ 20.00%）')
     + '；打包态由 esbuild 执行压缩，本阶段节省接近 0 属预期');

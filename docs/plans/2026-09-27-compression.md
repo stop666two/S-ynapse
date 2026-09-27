@@ -149,3 +149,40 @@ compression: {
 2. **构建时长是否含无头验证**：`≤8s` 目标在验证开启时必然超出（本次 37.21s，其中无头验证 23.23s；验证关闭时构建约 13s）。需用户决定目标按「纯构建」还是「构建+验证」口径考核，或在 C8 调整验证策略（并行/采样/CI 条件执行已是现状）。
 3. **顺带缺陷（非本次修复范围）**：`templates/site-css.ejs:206` 悬垂逗号导致 `.cal-cell:hover` 悬停效果失效，建议独立缺陷修复 + 回归断言；`runtime.*.js` 未压缩，可评估压缩+改名同步哈希引用。
 4. **无头全页回归与部署确认**：C8 按计划复用 a11y/softnav/搜索 runner 模式执行回归，再行部署确认。
+
+## 十、C8 结果（2026-09-27）
+
+**完成范围**
+
+- **缺陷修复**：`templates/site-css.ejs:206` 悬垂逗号修复（`},.` → `}.`）；`scripts/build-smoke.test.js` 增加「产物 CSS 与页面内联样式不含 `},.`」与「`site.*.css` 含 `.cal-cell:hover`」断言（修复前产物实测命中 `},.` 1 处 = 红；修复后 0 处 = 绿）。
+- **HTML 收益冲刺（C5 门禁裁决）**：`html.aggressive=true` 门禁 6 页 PASS（14.6s），但 84 个压缩目标 HTML 的三态对照 gzip 相对现状仅 −0.46%（相对关闭 −0.55%），不满足「收益显著」，`html.aggressive` 默认保持 false；库 API 层已无可加选项（`keep_input_type_text_attr` 对本站实测无差异）。
+- **JS 收益冲刺**：`runtime.*.js` 纳入 Terser（`module:false`、不改顶层标识符，按最终字节 md5-10 改名并同步全部 HTML 引用）；esbuild 开启 `splitting` 并抽 `shared.<hash>.js` 公共 chunk。
+- **口径实测**：`npm run build` 暖缓存各 2 次取中位——验证开 18.07s、验证关 4.94s（验证净 ~13s）。
+- **回归**：`npm test` 581/581、`test:build` 3/3、`lint`/`typecheck` 0 错、`verify:config`/`verify:config-refs`/`verify:compression` PASS、`run-c4` 18 PASS、`run-softnav` 全 PASS（23 项）、`run-search-entry` 全 PASS（9 项）。
+- **文档**：README（打包/压缩/缓存策略/预算数字）、architecture、config-reference、wasm-eval（发现处置状态）、`features.perfBudget` 注释、CHANGELOG、本文件。
+
+**三态对照（84 个压缩目标 HTML；单次构建，构建期 nonce 随机引入 ±0.2KB 级波动）**
+
+| 状态 | raw | gzip | 相对关闭 raw / gzip | 相对现状 raw / gzip |
+|---|---|---|---|---|
+| 关闭增强（仅基线 minify-html） | 4,216,646B | 989,179B | — | — |
+| 现状（默认） | 4,211,024B | 988,339B | −0.13% / −0.08% | — |
+| aggressive（门禁 PASS） | 4,172,647B | 983,698B | −1.04% / −0.55% | −0.91% / −0.46% |
+
+**JS 对照（`assets/js` 全量；混淆关态）**
+
+| 方案 | raw | gzip |
+|---|---|---|
+| 改造前（无 splitting、runtime 未压缩） | 189,553B | 60,238B |
+| 现状（splitting + runtime Terser） | 158,015B | 54,077B |
+| 增益 | −16.6% | **−10.2%** |
+
+- 分项：splitting（app+deferred+12 个 shared chunk）gzip −5,711B；runtime Terser raw −903B / gzip −450B。
+- 首屏：app gzip 26,999→17,458B（−35.3%），app 无静态 shared import（shared 由 deferred 链路按需加载）；本地 `/zh/` JS 传输 61.1→48.0KB（runner 实测）。
+
+**目标达成与未达原因**
+
+- **HTML gzip −10%：未达**。按「本阶段合并口径」（基线压缩前 → 全部压缩后）现状 −5.32%、aggressive −5.76%；aggressive 相对现状仅 −0.46%。结构性原因：页面 gzip 约 78% 为正文/结构内容（gzip 已高度压缩），minify-html 只作用于标记层；更大压缩需结构性调整（减少内联脚本/重复结构等），超出压缩工具范围。
+- **JS gzip −20%：未达**。splitting + runtime Terser 达 −10.2%；叠加成熟工具剩余空间（esbuild 产物二次 Terser，C6 实测约 −4.5%）上限约 −14%；再往上需代码级裁剪（功能删减/懒加载重排/共享数据外置），不得为达标牺牲行为与兼容。**候选决策项**：接受现状，或启动代码级裁剪评估。
+- **构建 ≤8s**：口径需拍板——纯构建（验证关）暖缓存 4.9s 达标；含 C5 无头验证 18.1s（验证净 ~13s；servers 0.2s、browser 0.4s、静态对比 2.8s、运行时控制台 4.4s、交互 3.7s、清理 0.6s）。已并行两态断言与复用持久 profile；剩余为真实页面加载与交互观察，不缩短等待（避免假通过）。
+- **部署确认**：待用户拍板后进行。

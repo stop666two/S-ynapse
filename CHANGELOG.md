@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **压缩收口与验收实测（压缩 C8，2026-09-27）**：
+  - **缺陷修复**：`templates/site-css.ejs:206` 悬垂逗号（`…transition:transform var(--td)},.cal-cell:hover{…}`）使 `.cal-cell:hover` 规则被浏览器整条丢弃；模板已修复，`scripts/build-smoke.test.js` 增加「产物 CSS 与页面内联样式不含 `},.`」及「`site.*.css` 含 `.cal-cell:hover`」断言（修复前产物命中为红、修复后为绿）。
+  - **HTML 三态对照**（84 个压缩目标 HTML，增强关闭 / 现状 / `html.aggressive=true`）：raw 4,216,646 / 4,211,024 / 4,172,647B，gzip 989,179 / 988,339 / 983,698B；aggressive 相对现状 gzip 仅 −0.46%（相对关闭 −0.55%），C5 门禁 6 页 PASS 但收益不显著，`html.aggressive` 默认保持 false。HTML gzip −10% 目标未达（现状 −5.3% 口径含基线压缩；结构性原因：页面 gzip 的约 78% 是正文与结构内容，minify-html 只能作用于标记层）。
+  - **runtime 引导脚本 Terser 压缩（`js.minify` 增强步骤）**：`runtime.<hash>.js` 以 `module:false`、不改顶层标识符压缩，按最终字节 md5-10 改名并同步全部 HTML 引用（84 页）；实测 raw 3,748→2,845B（−24.1%）、gzip 1,789→1,339B（−25.2%）。
+  - **esbuild `splitting`**：app/deferred 共享模块抽为 `shared.<hash>.js` 公共 chunk（12 个，由 ES 模块图自动加载，HTML 仍只引用 app/deferred/runtime，无需 modulepreload）；app+deferred+shared+runtime 合计 gzip 60,238→54,077B（−10.2%），首屏 app gzip 26,999→17,458B（−35.3%），本地 `/zh/` JS 传输 61.1→48.0KB。
+  - **C5 门禁适配**：DOM 归一化白名单覆盖 runtime 改名；新增 `bootstrapAssertions`，runtime 压缩或混淆任一开启时断言 `__T`/`__SB` 与 deferred 动态加载。
+  - **时长口径（暖缓存，各 2 次中位）**：验证开 18.07s / 验证关 4.94s（验证净约 13s；构成 servers 0.2s、browser 0.4s、静态对比 2.8s、运行时控制台 4.4s、交互 3.7s、清理 0.6s；两态断言已并行、持久 profile 已复用，未发现不改验证语义的低风险提速项）。
+  - **门禁与 runner**：`npm test` 581/581（106 suites）、`npm run test:build` 3/3、`npm run lint`/`npm run typecheck` 0 错、`verify:config`/`verify:config-refs`/`verify:compression` PASS；`.tmp-scripts/run-c4.js` 18 PASS / 0 FAIL、`run-softnav.js` ALL PASS（23 项）、`run-search-entry.js` ALL PASS（9 项）。
+  - **JS gzip −20% 目标未达**：splitting + runtime 压缩后合计 −10.2%；叠加成熟工具剩余空间（esbuild 产物二次 Terser 约 −4.5%，C6 基准）约 −14%，差距来自业务代码本身（无死代码/功能可裁）；「接受现状或代码级裁剪」列为用户决策项。
 - **WASM 压缩器替换评估（压缩 C6，2026-09-27）**：新增 `docs/wasm-eval.md`——在默认态 `--out` 构建产物上基准 CSS（clean-css 5.3.3 vs lightningcss 1.33.0）与 JS（terser 5.49.0 vs oxc-minify 0.151.0），每工具每文件预热 1 次后计时 3 次取中位，输出 raw/gzip-9/耗时与相对现状节省率。结果：CSS 合计 gzip 仅再省 0.18%（lightningcss 耗时约为 CleanCSS 的 1/10）；JS 合计 gzip 再省 3.85%（oxc 耗时约为 Terser 的 1/34，但输出体积略大 0.76%）。关键发现：① `templates/site-css.ejs:206` 存在悬垂逗号（`…var(--td)},.cal-cell:hover{…}`），浏览器同样丢弃该 `:hover` 规则，lightningcss 严格解析如实报错、CleanCSS/Terser 不校验选择器故放过；② `runtime.*.js` 为未压缩源码（两工具均可再省约 24-25%）；③ 两者均为 Rust 原生 NAPI 二进制（非 WASM），许可证 lightningcss MPL-2.0 / oxc MIT。结论：暂不切换生产（收益有限、严格解析需配套修复、当前规模无耗时瓶颈），并给出 4 条重新评估触发条件；评估工具隔离安装于 `.cache/wasm-eval/tools`，`package.json`/`package-lock.json` 零改动。
 - **构建摘要 `dist/report.txt`（压缩 C7，2026-09-27）**：
   - **纯渲染库**：新增 `scripts/lib/build-report-text.js`（固定段落：阶段耗时 / 压缩统计 / 无头验证 / 告警 / 预算与目标；缺失字段一律「未记录/未运行/（无）」容错；`scripts/build-report-text.test.js` 15 例覆盖段渲染、缺失容错、失败+回退/跳过分支与格式化边界）。

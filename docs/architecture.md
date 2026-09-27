@@ -43,7 +43,7 @@ articles/ media/ static/ + 14 个 JSON5 配置
 2. **内容预校验**（`preflightContent`，写 dist 之前）：frontmatter 合法性、缺失媒体、重复 slug、未来日期。失败即阻断（`--allow-degraded` 可降级为告警）。
 3. **产物准备**：`setupDist` 清理输出；`copyStatic` / `copyProtectedAssets` / `optimizeMedia`（sharp 多尺寸 webp/avif + LQIP，`.cache/media` 增量）。
 4. **内容处理**：marked 渲染 → CJK 间距 → sanitize-html（白名单 + 媒体 URL 本地化）→ 代码高亮判定（`hasCode` 门控 Prism）；mermaid 代码块全站汇总后经 puppeteer-core 一次性构建期渲染为双主题内联 `<svg>`（`.cache/mermaid` 内容哈希缓存，消毒后注入 CSP nonce；失败或无 Chrome 的条目保留 `data-mm-pending` 并由客户端 vendor 回退）。
-5. **打包**：esbuild 两段 chunk（`app.<hash>.js` / `deferred.<hash>.js`）+ `runtime.<hash>.js` 哈希单发；`--no-bundle` 可回退原生模块。
+5. **打包**：esbuild 打包（`app.<hash>.js` / `deferred.<hash>.js` 入口，`splitting` 抽出的 `shared.<hash>.js` 公共 chunk 由模块图自动加载）+ `runtime.<hash>.js`（Terser 压缩后哈希单发，压缩关闭时保留源哈希名）；`--no-bundle` 可回退原生模块。
 6. **页面与索引生成**：`generatePages`（文章/归档/标签/分类/自定义页/分页）→ RSS/JSON Feed → sitemap → 搜索索引（`.json` + pagefind 兼容清单）→ PWA → CJK 字体子集化（扫描 dist 页面与配置 JSON 的实际用字，仅下载命中的 Noto Sans SC woff2 分片并自托管，`.cache/fonts` 清单+分片缓存，失败仅告警并剥离引用）。
 7. **交付层处理**：HTML/内联 CSS/JS 压缩 → cache-bust 映射 → `_headers`（安全头 + 分级缓存）→ CSP nonce 注入（内联脚本与响应头同 nonce）。
 8. **报告与门禁**：性能预算 5 项、构建报告 `build-report.html` 与构建摘要 `report.txt`（阶段耗时、压缩前后体积对照、无头验证摘要、告警、预算结论）、失败汇总（任一失败默认退出码非 0）。

@@ -69,8 +69,8 @@
 
 **顺手发现（供 C8/后续批次）：**
 
-1. `templates/site-css.ejs:206` 悬垂逗号导致 `.cal-cell:hover` 规则在浏览器中被整体丢弃（悬停放大失效），建议独立缺陷修复 + 回归断言（修正后 lightningcss/CleanCSS 均能严格解析）。
-2. `runtime.*.js` 未压缩，两个候选工具均可再省约 24% raw / 25% gzip；若维持「文件名哈希基于源码」，可考虑在拷贝时以 Terser 压缩后改名并同步哈希引用（需评估启动期稳定性）。
+1. `templates/site-css.ejs:206` 悬垂逗号导致 `.cal-cell:hover` 规则在浏览器中被整体丢弃（悬停放大失效），建议独立缺陷修复 + 回归断言（修正后 lightningcss/CleanCSS 均能严格解析）。——**已处置（压缩 C8）**：模板已修复，`build-smoke` 增加产物 CSS 无 `},.` 模式与 `.cal-cell:hover` 存在性断言。
+2. `runtime.*.js` 未压缩，两个候选工具均可再省约 24% raw / 25% gzip；若维持「文件名哈希基于源码」，可考虑在拷贝时以 Terser 压缩后改名并同步哈希引用（需评估启动期稳定性）。——**已处置（压缩 C8）**：runtime 已纳入 Terser 压缩并按最终字节 md5-10 改名、同步全部 HTML 引用（实测 raw 3,748→2,845B、gzip 1,789→1,339B）。
 
 ## 6. 复现与清理
 

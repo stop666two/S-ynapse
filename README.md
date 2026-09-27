@@ -372,7 +372,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 | 8 | Sitemap | sitemap.xml（含自定义页面 + 图库；超过阈值自动按类型拆分为 sitemap-{n}.xml + 索引）；其后执行自动 OG 图生成与 sitemap ping（可选） |
 | 9 | 搜索索引 | search-index.json（局部模糊匹配；`features.search.includeContent` 控制是否含正文） |
 | 10 | 安全文件 | `_headers`（CSP + HSTS + 安全头，按功能开关自动裁剪）、`robots.txt`（逐语言 Sitemap 行）、`_redirects`（配置重定向）、Worker 配置生成 |
-| 11 | 压缩 | 压缩 HTML（@minify-html）、CSS（CleanCSS）、JS（Terser）；此前先完成前端资产拷贝（js/ ESM → `dist/assets/js/`，vendor 与 KaTeX 字体 → `dist/assets/vendor/`） |
+| 11 | 压缩 | 压缩 HTML（@minify-html）、CSS（CleanCSS）、JS（Terser）；增强步骤（`compression.json5`，默认开）追加 HTML 激进选项（默认关）、CSS 同页合并去重、JSON 去空白、`runtime.<hash>.js` Terser 压缩（重命名 + 同步 HTML 引用）；此前先完成前端资产拷贝（js/ ESM → `dist/assets/js/`，vendor 与 KaTeX 字体 → `dist/assets/vendor/`） |
 | 12 | 缓存破坏 | MD5 内容哈希重命名文件，更新 HTML 引用 |
 | 13 | PWA | manifest.json + Service Worker（启用时；执行顺序在压缩之前） |
 | 14 | 构建报告 | build-report.html（耗时/文章数/体积/功能状态/内容策略拦截清单）+ report.txt（阶段耗时/压缩前后体积对照/验证摘要/告警/预算结论；位于压缩与哈希之后，天然豁免） |
@@ -548,15 +548,15 @@ npm run verify:security   # 集成安全回归
 
 - **失败即阻断**：内容预校验（重复 slug、非法日期、空标签/分类、缺失 `/media` 引用）在清理 `dist/` 之前报错并终止；运行期失败（模板/feed/sitemap/媒体/OG/压缩等）会汇总打印并以非零退出码结束。本地预览可用 `npm run build -- --allow-degraded` 降级继续（退出码保持 0）。
 - **定时发布**：`date` 晚于构建时间的文章视为已排期，自动排除页面、feed、sitemap 与搜索索引，并在构建日志中提示。
-- **缓存策略**：`_headers` 分级缓存：`/assets/css/*`、`/assets/fonts/*`（CJK 子集分片）、打包产物 `app|deferred|runtime.*.js`、`/assets/config.*.json` immutable 1 年；其余 `/assets/js|vendor/*` 1 小时 + `stale-while-revalidate`；`/media|og/*` 7 天 + SWR。可用 `site.build.cacheControl: false` 关闭。
+- **缓存策略**：`_headers` 分级缓存：`/assets/css/*`、`/assets/fonts/*`（CJK 子集分片）、打包产物 `/assets/js/*`（`app`/`deferred`/`shared`/`runtime` 内容哈希名）、`/assets/config.*.json` immutable 1 年；其余 `/assets/js|vendor/*` 1 小时 + `stale-while-revalidate`；`/media|og/*` 7 天 + SWR。可用 `site.build.cacheControl: false` 关闭。
 - **搜索弱网**：索引请求 5 秒超时 + 一次重试，失败展示错误态与「重试」按钮；入口按钮在模块加载前点击不再报错。
 - **Worker 运行时**：`CF-Connecting-IP` 缺失时按共享桶限流（fail-closed）；配置 `LOG_IP_SECRET` 后 IP 日志哈希改用 HMAC-SHA256；`pathRestrictions: []` / `skipPaths: []` 为显式语义，仅缺失字段才回退内置兜底。
 - **配置校验语义**：`npm run verify:config` 校验 features/site 等的结构与死键（键存在性、类型）；值级自定义（站点文案、OG 开关等）列为「覆盖」信息项，不影响通过。
 - **运行时配置外置**：全量配置（features/tuning/guard/presets/quotes/i18n 等）写入内容寻址的 `/assets/config.<hash>.json`（immutable 缓存）；页面仅内联 ≤2KB 降级子集。启动时异步加载，失败自动重试 1 次、3 秒超时后降级为内置最小子集（fail-open），弱网/离线仍可阅读（`window.__CONFIG_OK__` 标记状态）。
-- **JS 两段打包**：esbuild 产出内容哈希的 `app.<hash>.js`（首屏启动链）与 `deferred.<hash>.js`（交互/重模块聚合，按需载入）；`runtime.js` 引导脚本内容哈希单发，避免与 bundle 错配；`--no-bundle` 可回退原生 ESM 拷贝模式。
+- **JS 打包与压缩**：esbuild 开启 `splitting`，产出内容哈希的 `app.<hash>.js`（首屏启动链）、`deferred.<hash>.js`（交互/重模块聚合，按需载入）与 `shared.<hash>.js` 公共 chunk（跨入口共享模块，由 ES 模块图自动加载）；`runtime.js` 引导脚本经 Terser 压缩后按最终字节哈希单发并同步全部 HTML 引用（压缩关闭时保留源哈希名）；`--no-bundle` 可回退原生 ESM 拷贝模式。
 - **vendor 瘦身**：KaTeX 字体仅保留 woff2（654.9→254KB）；mermaid（3.5MB）改为页面 load 后 idle 拉取（仅图表页加载，零成本页不请求）；Prism 改为按页门控（仅含高亮代码块的页面引入，首页/列表零成本，实测首页 −82KB、请求 17→16）。
 - **字体与预加载**：本地变量字体 3 个（Inter/Sora/Manrope，woff2 latin 子集）随字体栈自动生成 preload（含 fonts.css），`font-display` 可配；无冗余 preconnect。中文字体 Noto Sans SC 构建期按 dist 页面/配置 JSON 实际用字子集化并自托管（`site.build.cjkFonts`，首次需联网、缓存 `.cache/fonts/`、之后离线可复用；失败自动回退系统字体链，构建不失败）。
-- **预算门禁**：`[budget]` 检查 5 项：单页 HTML gzip ≤28KB、页面 HTML raw 中位 ≤50KB、内联关键配置 ≤2KB、应用 JS gzip 合计 ≤55KB、单页静态请求 ≤12；阈值见 `features.perfBudget`，`warnOnly: false` 时超限终止构建。
+- **预算门禁**：`[budget]` 检查 5 项：单页 HTML gzip ≤28KB、页面 HTML raw 中位 ≤50KB、内联关键配置 ≤2KB、应用 JS gzip 合计 ≤60KB、单页静态请求 ≤12；阈值见 `features.perfBudget`，`warnOnly: false` 时超限终止构建。
 
 ---
 

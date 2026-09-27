@@ -2156,9 +2156,10 @@
     // 页面内联关键配置(降级子集)上限(KB;完整配置已外置为 /assets/config.<hash>.json)。
     inlineConfigKb: 2,
     // 应用 JS(assets/js)全量 gzip 合计上限(KB;第三方 vendor 库按需懒加载,不计入)。
-    // 60KB 口径说明:统计含 app+deferred+runtime 三包(58.8KB);deferred 为按需懒加载 chunk,
-    // 首屏实际加载 app+runtime 约 28KB。后续治理方向:跨模块工具去重、懒加载分包边界复核,
-    // 达标后再下调回 55。
+    // 60KB 口径说明:统计含 app+deferred+shared+runtime 全部 chunk(54.1KB;esbuild splitting
+    // 抽公共 chunk 与 runtime 压缩后已较 58.8KB 下降);deferred/shared 按需懒加载,
+    // 首屏实际加载 app+runtime 约 19KB。后续治理方向:跨模块工具去重、懒加载分包边界复核,
+    // 阈值下调需另行评估。
     jsKb: 60,
     // 单页静态请求数上限(script src + stylesheet + modulepreload 之和)。
     requests: 12,

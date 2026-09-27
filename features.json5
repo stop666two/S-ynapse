@@ -2907,4 +2907,48 @@
       maxHeightVh: 82
     }
   },
+
+  // ---------------------------------------------------------------------------
+  // 65. 文章导出(打印/另存 PDF + 复制 Markdown 原文)
+  // ---------------------------------------------------------------------------
+  exportArticle: {
+    // 总开关(false = 文章页不渲染打印/复制按钮,同时不输出打印样式增强与 /md 原文文件)。
+    // 类型: boolean | 可填: true(默认)/false | 推荐: true
+    enabled: true,
+    // 打印/另存 PDF 按钮(点击调用 window.print();浏览器打印对话框内可选「另存为 PDF」)。
+    // 依赖总开关;false = 不渲染打印按钮,同时关闭 @media print 排版增强。
+    // 类型: boolean | 可填: true(默认)/false | 推荐: true
+    print: true,
+    // 复制 Markdown 原文按钮:构建期随文章页输出 /md/<lang>/<slug>.md(源文件原样复制,
+    // 保留原始 frontmatter;点击 fetch 原文 → 剪贴板 → toast)。
+    // false = 不渲染按钮且不输出 .md 文件(节省产物体积)。
+    // 类型: boolean | 可填: true(默认)/false | 推荐: true
+    markdown: true,
+    // 打印按钮文案(zh 站)。
+    // 类型: string | 空 = 内置文案「打印 / 另存 PDF」
+    printLabel: '打印 / 另存 PDF',
+    // 打印按钮文案(en 站;空 = 回退中文)。
+    // 类型: string | 空 = 回退 printLabel
+    printLabelEn: 'Print / Save as PDF',
+    // 复制按钮文案(zh 站)。
+    // 类型: string | 空 = 内置文案「复制 Markdown」
+    markdownLabel: '复制 Markdown',
+    // 复制按钮文案(en 站;空 = 回退中文)。
+    // 类型: string | 空 = 回退 markdownLabel
+    markdownLabelEn: 'Copy Markdown',
+    // 复制成功 toast 文案(zh 站)。
+    // 类型: string | 空 = 使用内置兜底文案
+    copiedText: 'Markdown 已复制',
+    // 复制成功 toast 文案(en 站;空 = 回退中文)。
+    copiedTextEn: 'Markdown copied',
+    // 复制失败 toast 文案(fetch 原文失败或剪贴板写入失败均使用;zh 站)。
+    // 类型: string | 空 = 使用内置兜底文案
+    copyFailText: '复制失败',
+    // 复制失败 toast 文案(en 站;空 = 回退中文)。
+    copyFailTextEn: 'Copy failed',
+    // 打印页脚是否输出原文链接脚注(格式「原文链接: <完整 URL>」;仅打印/PDF 可见,
+    // 屏幕隐藏;便于纸质稿件回溯来源)。
+    // 类型: boolean | 可填: true(默认)/false | 推荐: true
+    sourceFootnote: true
+  },
 }

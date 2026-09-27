@@ -964,6 +964,28 @@ function continueReadingConfig(features) {
   };
 }
 
+// exportArticle 归一化（构建期模板/运行时共用语义）：
+//   enabled 总开关；print/markdown 子开关默认开（总开关关闭时两者恒 false）；
+//   文案键：zh 键未设/空串回退内置中文，*En 键空串 = en 站回退中文（模板按语言取用）；
+//   sourceFootnote 仅在 print 开启时生效。
+function exportArticleConfig(features) {
+  const E = (features && features.exportArticle) || {};
+  const enabled = E.enabled !== false;
+  const print = enabled && E.print !== false;
+  const pickZh = function (v, dflt) { const s = v == null ? '' : String(v).trim(); return s || dflt; };
+  const pickEn = function (v) { return v == null ? '' : String(v).trim(); };
+  return {
+    enabled: enabled,
+    print: print,
+    markdown: enabled && E.markdown !== false,
+    printLabel: pickZh(E.printLabel, '打印 / 另存 PDF'),
+    printLabelEn: pickEn(E.printLabelEn),
+    markdownLabel: pickZh(E.markdownLabel, '复制 Markdown'),
+    markdownLabelEn: pickEn(E.markdownLabelEn),
+    sourceFootnote: print && E.sourceFootnote !== false
+  };
+}
+
 // readMode 持久化归一化：persist 默认 true；storageKey 空回退历史键名 'readingMode'。
 function readModeConfig(features) {
   const R = (features && features.readMode) || {};
@@ -1268,6 +1290,7 @@ module.exports = {
   softNavCacheConfig,
   readingHistoryConfig,
   continueReadingConfig,
+  exportArticleConfig,
   readModeConfig,
   commandPaletteConfig,
   searchIndexConfig,

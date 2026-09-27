@@ -18,6 +18,7 @@ const MIME_TYPES = Object.freeze({
   '.mp4': 'video/mp4', '.webm': 'video/webm', '.avi': 'video/x-msvideo', '.mov': 'video/quicktime',
   '.mkv': 'video/x-matroska', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4',
   '.ogg': 'audio/ogg', '.flac': 'audio/flac', '.pdf': 'application/pdf', '.csv': 'text/csv',
+  '.md': 'text/markdown',
   '.zip': 'application/zip', '.7z': 'application/x-7z-compressed', '.rar': 'application/x-rar-compressed',
   '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.otf': 'font/otf',
   '.eot': 'application/vnd.ms-fontobject'

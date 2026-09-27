@@ -13,8 +13,9 @@ const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
-const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette } = require('../lib/feature-wiring');
+const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette, exportArticleConfig } = require('../lib/feature-wiring');
 const { collectSeriesPages } = require('../lib/series-page');
+const { writeArticleMarkdown } = require('../lib/md-export');
 const { stableSerialize, pageCacheKey, hashTemplateDir } = require('../lib/incremental');
 const { pruneTo } = require('../lib/asset-cache');
 
@@ -313,6 +314,8 @@ function createPagesModule(ctx) {
       analyticsTag: analyticsTag,
       // 页脚快捷键提示按钮渲染门控（features.shortcuts.showHelpHint，默认 true）。
       showHelpHint: showHelpHint(config.features),
+      // 文章导出（features.exportArticle：打印按钮/打印样式/@media print 门控与按钮文案）。
+      exportCfg: exportArticleConfig(config.features),
       searchProvider: (config.navigation && config.navigation.search && config.navigation.search.provider) || 'local',
       currentUrl: '/',
       currentPage: 'index',
@@ -569,6 +572,8 @@ function createPagesModule(ctx) {
     }
     // 系列配置（baseData 已由 buildPageData 归一化；generatePages 内模板数据与生成块共用）。
     const seriesCfg = baseData.seriesCfg || seriesConfig(config.features);
+    // 文章导出配置（同上：baseData 归一化，生成块与模板 data 共用）。
+    const exportCfg = baseData.exportCfg || exportArticleConfig(config.features);
 
     for (const lang of siteLangs) {
       const pf = '/' + lang + '/';
@@ -661,6 +666,24 @@ function createPagesModule(ctx) {
         const idx = langPublished.indexOf(article);
         const prev = idx > 0 ? langPublished[idx - 1] : null;
         const next = idx < langPublished.length - 1 ? langPublished[idx + 1] : null;
+        // Markdown 原文导出（features.exportArticle.markdown）：先把源文件原样复制到
+        // /md/<lang>/<slug>.md 并挂 URL，模板据 article.mdExportUrl 渲染复制按钮；
+        // 写失败/路径校验失败不挂 URL → 按钮隐藏（不产生 404 链接）。须在 renderAndWrite
+        // 前落位：页面数据（增量指纹）与模板输出同源，且增量跳过页仍复用 dist 既有 .md。
+        if (exportCfg.markdown) {
+          try {
+            const mdRel = writeArticleMarkdown({
+              lang: article.lang,
+              slug: article.slug,
+              sourceFile: path.join(ctx.articlesDir, article.lang, article.filename),
+              distDir: ctx.distDir
+            });
+            if (mdRel) article.mdExportUrl = '/' + mdRel;
+          } catch (err) {
+            console.warn('  [WARN] Markdown 导出失败 ' + article.lang + '/' + article.slug + ': ' + err.message);
+            recordBuildFailure('export', 'Markdown export failed for ' + article.lang + '/' + article.slug + ': ' + err.message, { fatal: false });
+          }
+        }
         const data = {
           ...langData,
           article,

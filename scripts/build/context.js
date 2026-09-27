@@ -331,12 +331,13 @@ function createBuildContext(deps) {
     logger: console
   });
 
-  // 页面生成模块（scripts/build/pages.js）：注入产物/页面/模板目录、CSP nonce、模板渲染器、
+  // 页面生成模块（scripts/build/pages.js）：注入产物/页面/文章/模板目录、CSP nonce、模板渲染器、
   // 发布过滤器、收集器、页面状态读取器（媒体 manifest getter、内联配置体积 setter）与共享依赖。
   // 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
   const pages = createPagesModule({
     distDir: DIST_DIR,
     pagesDir: PAGES_DIR,
+    articlesDir: ARTICLES_DIR,
     templatesDir: TEMPLATES_DIR,
     cspNonce: CSP_NONCE,
     getTemplate: render.getTemplate,

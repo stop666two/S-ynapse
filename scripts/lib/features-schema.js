@@ -219,6 +219,14 @@ const DEFAULT_FEATURES = {
   printStyle: {
     enabled: true, hideInteractive: true, expandLinks: true, avoidBreaks: true
   },
+  exportArticle: {
+    enabled: true, print: true, markdown: true,
+    printLabel: '打印 / 另存 PDF', printLabelEn: 'Print / Save as PDF',
+    markdownLabel: '复制 Markdown', markdownLabelEn: 'Copy Markdown',
+    copiedText: 'Markdown 已复制', copiedTextEn: 'Markdown copied',
+    copyFailText: '复制失败', copyFailTextEn: 'Copy failed',
+    sourceFootnote: true
+  },
   atmosphere: {
     enabled: true, grain: true, glow: true
   },

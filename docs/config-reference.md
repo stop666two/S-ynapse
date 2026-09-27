@@ -11,7 +11,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson5--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson5--视觉与主题)
-3. [features.json5 — 功能总控(98 模块)](#3-featuresjson5--功能总控98-模块)
+3. [features.json5 — 功能总控(99 模块)](#3-featuresjson5--功能总控99-模块)
 4. [navigation.json5 — 导航](#4-navigationjson5--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson5--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson5--页脚)
@@ -339,7 +339,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(98 模块)
+## 3. features.json5 — 功能总控(99 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -1050,6 +1050,12 @@ listCover: {
 ### 3.98 continueReading — 继续阅读卡片（首页最近阅读）
 
 `enabled true` / `count 3`（展示条数，非法/小于 1 回退 3） / `showProgress true`（进度条与百分比；旧记录无进度字段按 0%） / `storageKey 's-history'`（与 `features.readingHistory.storageKey` 共用同一份阅读历史，留空依次回退 → `'s-history'`）。首页在卡片区上方渲染最近读过的 `count` 篇（按时间倒序、同 URL 去重、排除当前页），每张卡片含标题、进度条（`role="progressbar"` + `aria-valuenow`，文案取 `ui-strings.continueReading.progress`）与相对时间（`Intl.RelativeTimeFormat` 双语）；无记录或无历史宿主时整块保持隐藏；点击链接走软导航（文档级委托自动接管）。进度由 `features.readingHistory` 记录时写入（滚动 800ms 节流 + `pagehide` 落盘，字段 `lang`/`p`），**只读同一份 localStorage，不新建数据源**；`enabled:false` 时首页回退旧的 `readingHistory` 列表块。构建/运行时模块 — `js/domains/features/continue-reading.js` + `templates/index.ejs` + `templates/site-css.ejs`。
+
+### 3.99 exportArticle — 文章导出（打印/另存 PDF + 复制 Markdown 原文）
+
+`enabled true`（总开关；false = 不渲染按钮、不输出打印样式增强与原文文件） / `print true`（「打印 / 另存 PDF」按钮 → `window.print()`，浏览器打印对话框内可另存 PDF） / `markdown true`（「复制 Markdown」按钮：构建期随文章页输出 `/md/<lang>/<slug>.md`，点击 fetch → 剪贴板 → toast） / `printLabel` / `printLabelEn`（打印按钮文案，en 空回退中文） / `markdownLabel` / `markdownLabelEn`（复制按钮文案） / `copiedText` / `copiedTextEn`（复制成功 toast；空回退内置双语） / `copyFailText` / `copyFailTextEn`（复制失败 toast；fetch 失败或剪贴板写入失败均使用） / `sourceFootnote true`（打印页脚输出「原文链接: <完整 URL>」脚注，文案取 `ui-strings.post.sourceUrl` 双语；屏幕隐藏、仅打印可见）。
+
+构建期：`scripts/lib/md-export.js` 把 `articles/<lang>/<file>.md` 按字节原样复制为 `dist/md/<lang>/<slug>.md`——**保留原始 frontmatter**（下载内容与仓库源完全一致；front-matter 解析、wiki 链接与渲染预处理不会污染导出文件）；`lang`/`slug` 双白名单校验防目录穿越，校验或写盘失败仅记非阻断告警并让复制按钮隐藏（不产生 404 链接）。运行时：`js/domains/features/export-article.js` 进 deferred 按需路径（`js/core/deferred.js` + idle 队列），文档级事件委托对软导航安全；剪贴板复用 share/contact 同款 `navigator.clipboard` + `textarea`/`execCommand` 回退；按钮为原生 `<button>`（双语 `aria-label`/`title`，键盘可达），复制期间 `data-busy` 防重复触发。打印样式：`templates/site-css.ejs` 输出自足 `@media print` 块——隐藏导航/侧栏/工具栏/评论/相关推荐（即使 `features.printStyle` 关闭也成立）、保留标题与署名、强制白底黑字（覆盖暗色模式变量）、代码块浅底防跨页断裂、来源脚注显现；`features.printStyle` 保持独立可与之叠加。静态服务 `scripts/lib/static-server.js` 以 `text/markdown` 提供 `.md` 原文。
 
 ---
 

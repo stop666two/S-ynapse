@@ -355,6 +355,40 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
           'gallery image must carry build-time width/height (CLS fix): ' + galleryImg.slice(0, 160));
       }
     }
+    // 系列聚合页（features.series.pageEnabled 默认开）：示例系列 3 篇 -> zh/en 系列页、
+    // 列表完整（序位/进度/上下篇）、语言切换直达地址、sitemap 纳入、搜索索引不纳入。
+    const seriesZhPath = path.join(tmpDir, 'zh', 'series', '建站手记', 'index.html');
+    const seriesEnPath = path.join(tmpDir, 'en', 'series', 'site-building-notes', 'index.html');
+    assert.ok(fs.existsSync(seriesZhPath), 'zh series hub page must exist');
+    assert.ok(fs.existsSync(seriesEnPath), 'en series hub page must exist');
+    const seriesZh = fs.readFileSync(seriesZhPath, 'utf-8');
+    const seriesEn = fs.readFileSync(seriesEnPath, 'utf-8');
+    assert.ok(/<h1[^>]*>建站手记<\/h1>/.test(seriesZh), 'zh series hub must render the series name');
+    assert.ok(seriesEn.includes('Site Building Notes'), 'en series hub must render the series name');
+    assert.strictEqual((seriesZh.match(/class="post-card series-item"/g) || []).length, 3,
+      'series hub must list all 3 articles');
+    for (const slug of ['series-1', 'series-2', 'series-3']) {
+      assert.ok(seriesZh.includes('href="/zh/' + slug + '/"'), 'series hub must link ' + slug);
+    }
+    assert.ok(/series-item-index[^>]*>#1</.test(seriesZh), 'series hub must render the position index');
+    assert.ok(seriesZh.includes('series-item-progress') && seriesZh.includes('1 / 3'),
+      'series hub must render the progress label');
+    assert.ok((seriesZh.match(/series-item-nav/g) || []).length >= 3, 'series hub must render prev/next links');
+    assert.ok(seriesZh.includes('data-alt-lang="/en/series/site-building-notes/"'),
+      'zh series hub must point the language switch at the en hub');
+    assert.ok(seriesEn.includes('data-alt-lang="/zh/series/建站手记/"'),
+      'en series hub must point the language switch at the zh hub');
+    const sitemapText = fs.readFileSync(path.join(tmpDir, 'zh', 'sitemap.xml'), 'utf-8');
+    assert.ok(sitemapText.includes('series/' + encodeURIComponent('建站手记') + '/'),
+      'sitemap must include the zh series hub');
+    const enSitemapText = fs.readFileSync(path.join(tmpDir, 'en', 'sitemap.xml'), 'utf-8');
+    assert.ok(enSitemapText.includes('/en/series/site-building-notes/'),
+      'sitemap must include the en series hub');
+    for (const lang of ['zh', 'en']) {
+      const indexEntries = JSON.parse(fs.readFileSync(path.join(tmpDir, lang, 'search-index.json'), 'utf-8'));
+      assert.ok(!indexEntries.some((e) => /\/series\//.test(e.url)),
+        lang + ' search index must not include series hub pages');
+    }
   });
 
   it('compression-off second state keeps non-enhanced artifacts byte-identical', () => {

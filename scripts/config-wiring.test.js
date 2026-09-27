@@ -423,12 +423,14 @@ test('mermaidConfig / mermaidErrorText：默认与两态', () => {
 
 test('seriesConfig / seriesBadgeText / seriesPanelTitle：模板替换与 en 回退链', () => {
   const def = w.seriesConfig({});
+  assert.strictEqual(def.pageEnabled, true, 'pageEnabled 缺省 true（生成系列聚合页）');
   assert.strictEqual(def.showBadge, true);
   assert.strictEqual(def.sidebarWidget, true);
   assert.strictEqual(def.showPosition, true);
   assert.strictEqual(def.defaultWidgetCount, 8);
-  const c = w.seriesConfig({ series: { showBadge: false, sidebarWidget: false, showPosition: false, defaultWidgetCount: 3 } });
-  assert.deepStrictEqual([c.showBadge, c.sidebarWidget, c.showPosition, c.defaultWidgetCount], [false, false, false, 3]);
+  const c = w.seriesConfig({ series: { pageEnabled: false, showBadge: false, sidebarWidget: false, showPosition: false, defaultWidgetCount: 3 } });
+  assert.deepStrictEqual([c.pageEnabled, c.showBadge, c.sidebarWidget, c.showPosition, c.defaultWidgetCount], [false, false, false, false, 3]);
+  assert.strictEqual(w.seriesConfig({ series: { enabled: false } }).pageEnabled, true, 'enabled 与 pageEnabled 解耦');
   assert.strictEqual(w.seriesBadgeText(def, 'zh', '前端', '系列', 'Series'), '系列 · 前端');
   assert.strictEqual(w.seriesBadgeText(def, 'en', 'Frontend', '系列', 'Series'), 'Series · Frontend');
   assert.strictEqual(w.seriesBadgeText({ badgeFormat: '系列 · {name}', badgeFormatEn: '' }, 'en', 'X', '系列', 'Series'), '系列 · X', 'en 空回退中文');

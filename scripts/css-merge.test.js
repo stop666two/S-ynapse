@@ -82,6 +82,53 @@ describe('mergeStyleBlocks（页面内联 style 合并）', () => {
     assert.ok(result.html.endsWith('<style nonce="N">.a{}.b{}</style>'));
   });
 
+  test('title 的 RCDATA 文本含 script 标签字面不误判（配平只统计真实标签语境）', () => {
+    const html = '<head><title>t </script><script>window.__PWNED__=1</script></title>'
+      + '<script>var ok=1</script><style nonce="N">.a{}</style><style nonce="N">.b{}</style></head>';
+    const result = mergeStyleBlocks(html, {});
+    assert.equal(result.html, '<head><title>t </script><script>window.__PWNED__=1</script></title>'
+      + '<script>var ok=1</script><style nonce="N">.a{}.b{}</style></head>');
+    assert.equal(result.stats.blocksMerged, 1);
+  });
+
+  test('属性值内的标签字面不参与扫描与配平', () => {
+    const html = '<meta content="</script><script>fake</script><style>.f{}</style>">'
+      + '<style nonce="N">.a{}</style><style nonce="N">.b{}</style>';
+    const result = mergeStyleBlocks(html, {});
+    assert.equal(result.html, '<meta content="</script><script>fake</script><style>.f{}</style>">'
+      + '<style nonce="N">.a{}.b{}</style>');
+  });
+
+  test('注释内的标签字面不参与扫描与配平', () => {
+    const html = '<!-- <script></script><style>.x{}</style><svg></svg> -->'
+      + '<style nonce="N">.a{}</style><style nonce="N">.b{}</style>';
+    const result = mergeStyleBlocks(html, {});
+    assert.equal(result.html, '<!-- <script></script><style>.x{}</style><svg></svg> -->'
+      + '<style nonce="N">.a{}.b{}</style>');
+  });
+
+  test('script 元素内容（含 JS 字符串）内的标签字面不参与扫描与配平', () => {
+    const html = '<script>var s = "</style><style>.fake{}</style><svg></svg>";</script>'
+      + '<style nonce="N">.a{}</style><style nonce="N">.b{}</style>';
+    const result = mergeStyleBlocks(html, {});
+    assert.equal(result.html, '<script>var s = "</style><style>.fake{}</style><svg></svg>";</script>'
+      + '<style nonce="N">.a{}.b{}</style>');
+  });
+
+  test('title 内的 svg/noscript/style 字面不参与配平与合并', () => {
+    const html = '<title><svg><script>x</script></svg><noscript><style>.n{}</style></noscript></title>'
+      + '<style nonce="N">.a{}</style><style nonce="N">.b{}</style>';
+    const result = mergeStyleBlocks(html, {});
+    assert.equal(result.html, '<title><svg><script>x</script></svg><noscript><style>.n{}</style></noscript></title>'
+      + '<style nonce="N">.a{}.b{}</style>');
+  });
+
+  test('真实缺失闭合标签仍抛出（script 未闭合 / 多余闭合 / noscript 未闭合）', () => {
+    assert.throws(() => mergeStyleBlocks('<script>var a=1</script><script>var b=2', {}), /配平/);
+    assert.throws(() => mergeStyleBlocks('<style nonce="N">.a{}</style></script>', {}), /配平/);
+    assert.throws(() => mergeStyleBlocks('<svg><circle/></svg><noscript>', {}), /配平/);
+  });
+
   test('无 style 页面为 no-op（stats 全 0）', () => {
     const html = '<html><head></head><body>hi</body></html>';
     const result = mergeStyleBlocks(html, { nonce: 'N' });

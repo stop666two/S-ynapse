@@ -14,9 +14,10 @@
 //   · 相邻（仅空白分隔）且完全相同的普通规则保留前一条；非相邻重复不删除；
 //     @keyframes 内部、at-rule 结构、规则顺序一律不动。
 //
-// 解析异常（括号/引号/注释不配平、属性串非法）一律抛出，由调用方跳过该文件并告警（不阻断构建）。
+// 解析异常（标签未闭合/配平失败、括号/引号/注释不配平、属性串非法）一律抛出，
+// 由调用方跳过该文件并告警（不计入失败账本，不阻断构建）。
 
-const HTML_TOKEN_RE = /<!--[\s\S]*?-->|<script\b[^>]*>[\s\S]*?<\/script\s*>|<style\b([^>]*)>([\s\S]*?)<\/style\s*>|<svg\b[^>]*>|<\/svg\s*>|<noscript\b[^>]*>|<\/noscript\s*>|<link\b([^>]*)>/gi;
+const TAG_NAME_RE = /[a-zA-Z][a-zA-Z0-9:-]*/iy;
 const ATTR_NAME_RE = /^[a-zA-Z_:][-a-zA-Z0-9_:.]*$/;
 const DECL_NAME_RE = /^-{0,2}[a-zA-Z_][-\w]*$/;
 const KEYFRAMES_RE = /^@[-\w]*keyframes\b/i;
@@ -62,49 +63,137 @@ function isStylesheetRel(value) {
   return typeof value === 'string' && value.toLowerCase().split(/\s+/).includes('stylesheet');
 }
 
-// 扫描页面内全部 <style> 位置与截断源；返回按文档顺序排列的条目：
-//   { style: true, start, end, bodyStart, bodyEnd, attrs, excluded }
-//   { style: false, start, end }（截断源：外链样式表 / SVG / noscript 内的 style）
-function scanStyleSources(html) {
-  const entries = [];
-  let svgDepth = 0;
-  let noscriptDepth = 0;
-  let matchedScripts = 0;
-  let m;
-  HTML_TOKEN_RE.lastIndex = 0;
-  while ((m = HTML_TOKEN_RE.exec(html)) !== null) {
-    const token = m[0];
-    if (token.startsWith('<!--')) continue;
-    if (/^<script\b/i.test(token)) { matchedScripts += 1; continue; }
-    if (/^<svg\b/i.test(token)) { svgDepth += 1; continue; }
-    if (/^<\/svg\b/i.test(token)) { svgDepth = Math.max(0, svgDepth - 1); continue; }
-    if (/^<noscript\b/i.test(token)) { noscriptDepth += 1; continue; }
-    if (/^<\/noscript\b/i.test(token)) { noscriptDepth = Math.max(0, noscriptDepth - 1); continue; }
-    if (/^<style\b/i.test(token)) {
-      const openEnd = m.index + token.indexOf('>') + 1;
-      entries.push({
-        style: true,
-        start: m.index,
-        end: m.index + token.length,
-        bodyStart: openEnd,
-        bodyEnd: openEnd + m[2].length,
-        attrs: parseAttributes(m[1]),
-        excluded: svgDepth > 0 || noscriptDepth > 0
-      });
-      continue;
-    }
-    if (isStylesheetRel(parseAttributes(m[3]).rel)) {
-      entries.push({ style: false, start: m.index, end: m.index + token.length });
+// 查找 name 元素内容的结束标签（`</name` + 空白 + `>`）；返回 { bodyEnd, end }，未找到返回 null。
+// 正则 i 标志在原始串上定位，避免整串大小写转换导致的下标漂移（个别 Unicode 字符转换会改变长度）。
+function findElementEnd(html, name, from) {
+  const re = new RegExp('</' + name + '\\s*>', 'gi');
+  re.lastIndex = from;
+  const match = re.exec(html);
+  return match ? { bodyEnd: match.index, end: match.index + match[0].length } : null;
+}
+
+// 从 from 起找开标签的结束 '>'：带引号属性值内的 '>' 不结束标签（对齐浏览器分词）。
+// 返回 { end, quote }；end = -1 表示未找到，quote 非空表示属性引号未闭合。
+function findTagEnd(html, from) {
+  let quote = '';
+  for (let i = from; i < html.length; i++) {
+    const ch = html[i];
+    if (quote) {
+      if (ch === quote) quote = '';
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === '>') {
+      return { end: i, quote: '' };
     }
   }
-  const scriptOpen = (html.match(/<script\b/gi) || []).length;
-  const styleOpen = (html.match(/<style\b/gi) || []).length;
-  const styleClose = (html.match(/<\/style\s*>/gi) || []).length;
-  const svgOpen = (html.match(/<svg\b/gi) || []).length;
-  const svgClose = (html.match(/<\/svg\s*>/gi) || []).length;
-  const noscriptOpen = (html.match(/<noscript\b/gi) || []).length;
-  const noscriptClose = (html.match(/<\/noscript\s*>/gi) || []).length;
-  if (scriptOpen !== matchedScripts || styleOpen !== styleClose || svgOpen !== svgClose || noscriptOpen !== noscriptClose) {
+  return { end: -1, quote };
+}
+
+// 上下文感知扫描页面内全部 <style> 位置与截断源；返回按文档顺序排列的条目：
+//   { style: true, start, end, bodyStart, bodyEnd, attrs, excluded }
+//   { style: false, start, end }（截断源：外链样式表 / SVG / noscript 内的 style）
+//
+// 配平计数只统计「真实标签语境」中的 script/style/svg/noscript，剔除规则对齐浏览器分词：
+//   · HTML 注释（<!-- -->）整体跳过；
+//   · RCDATA（<title>/<textarea>）与 rawtext（<script>/<style>）元素内容整体跳过——
+//     标题文本、JS 字符串里的 `</script><script>`、`<style>` 字面都不再计为标签；
+//   · 开标签内带引号属性值视为属性串，其中的 '<' 不启动新标签。
+// 扫描模型参考 scripts/security-verify.js 的 scanScripts（引号属性 + 元素边界），
+// 并补齐其未覆盖的分支（注释、title/textarea、跨元素开闭计数）。
+// 解析异常（标签/属性引号未闭合、真实缺失闭合标签、开闭计数不平衡）一律抛出，
+// 由调用方跳过该文件并告警。
+function scanStyleSources(html) {
+  const entries = [];
+  const counts = {
+    scriptOpen: 0, scriptClose: 0,
+    styleOpen: 0, styleClose: 0,
+    svgOpen: 0, svgClose: 0,
+    noscriptOpen: 0, noscriptClose: 0
+  };
+  let svgDepth = 0;
+  let noscriptDepth = 0;
+  let i = 0;
+  while (i < html.length) {
+    const lt = html.indexOf('<', i);
+    if (lt === -1) break;
+    if (html.startsWith('<!--', lt)) {
+      const close = html.indexOf('-->', lt + 4);
+      i = close === -1 ? html.length : close + 3;
+      continue;
+    }
+    const next = html[lt + 1];
+    if (next === '!' || next === '?') {
+      const declEnd = findTagEnd(html, lt + 2);
+      i = declEnd.end === -1 ? html.length : declEnd.end + 1;
+      continue;
+    }
+    const closing = next === '/';
+    TAG_NAME_RE.lastIndex = lt + (closing ? 2 : 1);
+    const nameMatch = TAG_NAME_RE.exec(html);
+    if (!nameMatch) {
+      i = lt + 1;
+      continue;
+    }
+    const name = nameMatch[0].toLowerCase();
+    const tag = findTagEnd(html, TAG_NAME_RE.lastIndex);
+    if (tag.end === -1) {
+      if (tag.quote) throw new Error('HTML 标签属性引号未闭合: <' + name);
+      throw new Error('HTML 标签未闭合: <' + name);
+    }
+    const attrsText = html.slice(TAG_NAME_RE.lastIndex, tag.end).replace(/\/\s*$/, '');
+    i = tag.end + 1;
+    if (closing) {
+      if (name === 'script') counts.scriptClose += 1;
+      else if (name === 'style') counts.styleClose += 1;
+      else if (name === 'svg') { counts.svgClose += 1; svgDepth = Math.max(0, svgDepth - 1); }
+      else if (name === 'noscript') { counts.noscriptClose += 1; noscriptDepth = Math.max(0, noscriptDepth - 1); }
+      continue;
+    }
+    if (name === 'script' || name === 'style') {
+      const end = findElementEnd(html, name, i);
+      if (!end) throw new Error('HTML 标签配平检查失败（script/style/svg/noscript）');
+      if (name === 'script') {
+        counts.scriptOpen += 1;
+        counts.scriptClose += 1;
+      } else {
+        counts.styleOpen += 1;
+        counts.styleClose += 1;
+        entries.push({
+          style: true,
+          start: lt,
+          end: end.end,
+          bodyStart: tag.end + 1,
+          bodyEnd: end.bodyEnd,
+          attrs: parseAttributes(attrsText),
+          excluded: svgDepth > 0 || noscriptDepth > 0
+        });
+      }
+      i = end.end;
+      continue;
+    }
+    if (name === 'title' || name === 'textarea') {
+      const end = findElementEnd(html, name, i);
+      if (!end) throw new Error('HTML 标签配平检查失败（RCDATA: ' + name + '）');
+      i = end.end;
+      continue;
+    }
+    if (name === 'svg') {
+      counts.svgOpen += 1;
+      svgDepth += 1;
+      continue;
+    }
+    if (name === 'noscript') {
+      counts.noscriptOpen += 1;
+      noscriptDepth += 1;
+      continue;
+    }
+    if (name === 'link') {
+      const attrs = parseAttributes(attrsText);
+      if (isStylesheetRel(attrs.rel)) entries.push({ style: false, start: lt, end: tag.end + 1 });
+    }
+  }
+  if (counts.scriptOpen !== counts.scriptClose || counts.styleOpen !== counts.styleClose
+    || counts.svgOpen !== counts.svgClose || counts.noscriptOpen !== counts.noscriptClose) {
     throw new Error('HTML 标签配平检查失败（script/style/svg/noscript）');
   }
   return entries;

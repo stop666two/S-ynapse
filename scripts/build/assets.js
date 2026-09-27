@@ -7,14 +7,29 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
+const { buildPrecacheList, renderServiceWorker } = require('../lib/pwa-sw');
+
+// 递归列出目录内全部文件（POSIX 相对路径），目录不存在时返回空。
+function listFilesRecursive(dir, rel, out) {
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return out; }
+  for (const entry of entries) {
+    const abs = path.join(dir, entry.name);
+    const nextRel = rel ? rel + '/' + entry.name : entry.name;
+    if (entry.isDirectory()) listFilesRecursive(abs, nextRel, out);
+    else out.push('/' + nextRel);
+  }
+  return out;
+}
 
 function createAssetsModule(ctx) {
   const { root, distDir, staticDir, cspNonce } = ctx;
 
-// Generate PWA manifest.json and service worker.
-// The service worker implements a cache-first strategy: serves from cache, fetches in background,
-// updates cache on successful fetch. Activated only when site.pwa.enabled is true.
-// Note: the generated SW has a fixed cache name (s-ynapse-v1) and ASSETS list.
+// PWA 生成（manifest.json + 离线页 + Service Worker）：
+//   - manifest 图标按 site.favicon.svg 自动生成并剔除缺失项；
+//   - offline.html 为断网回退页（SW 预缓存）；
+//   - SW 由 scripts/lib/pwa-sw.js 生成：壳预缓存（核心 CSS/JS/字体）+ 页面
+//     network-first + 资产 cache-first，缓存名按内容版本化（更新时清理旧缓存）。
 function copyJsAssets() {
   const SRC = path.join(root, 'js');
   if (!fs.existsSync(SRC)) return;
@@ -160,7 +175,6 @@ async function generatePWA(config) {
     writeFileAtomicSync(manifestPath, JSON.stringify(manifest), 'utf-8');
     console.log('  Created: manifest.json');
   }
-  const swUrl = config.site.pwa.serviceWorker;
   const featPwa = (config.features && config.features.pwa) || {};
   const pwaOffline = featPwa.offlinePage !== false;
   if (pwaOffline) {
@@ -177,56 +191,76 @@ async function generatePWA(config) {
     writeFileAtomicSync(path.join(distDir, 'offline.html'), offlineHtml, 'utf-8');
     console.log('  Created: offline.html');
   }
-  const swContent = `const CACHE = ${JSON.stringify(config.site.pwa.cacheName)};
-const ASSETS = [
-  '/',
-  '/manifest.json'${pwaOffline ? ",\n  '/offline.html'" : ''}
-];
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
-  );
-});
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())
-  );
-});
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).then((response) => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      }).catch(() => ${pwaOffline ? "caches.match('/offline.html').then((off) => off || caches.match('/'))" : "caches.match('/')"})
-    );
-    return;
+  // SW 初版（预缓存留空）：压缩验证的无头对比会在压缩后立即访问页面并注册 SW，
+  // 此端点必须先可解析；真实壳预缓存清单在指纹定稿后由 generateServiceWorker 写入
+  // （压缩阶段的 runtime 重命名会让此刻的文件名失效）。初版产物在最终构建中必被覆盖。
+  writeServiceWorker(config, []);
+  console.log('  Prepared: sw.js (bootstrap; finalized after fingerprinting)');
+}
+
+// SW 定稿：在压缩与缓存指纹之后调用，按磁盘上的最终文件名生成壳预缓存清单与版本化缓存名。
+// 压缩阶段会对 runtime 引导脚本按最终字节重命名，故预缓存清单只能在指纹完成后收集。
+function generateServiceWorker(config) {
+  if (!config.site.pwa || !config.site.pwa.enabled) return;
+  const featPwa = (config.features && config.features.pwa) || {};
+  const swUrl = config.site.pwa.serviceWorker;
+  const pwaOffline = featPwa.offlinePage !== false;
+  let precache = [];
+  if (featPwa.precache !== false) {
+    // 候选：离线回退页 + manifest + 全部 CSS（含 CJK 字体样式）+ 核心 JS（打包模式取
+    // runtime/app/shared/deferred 入口；未打包回退模式取 assets/js 全量）+ 拉丁可变字体。
+    const candidates = [];
+    if (pwaOffline) candidates.push('/offline.html');
+    candidates.push('/manifest.json');
+    listFilesRecursive(path.join(distDir, 'assets', 'css'), 'assets/css', candidates);
+    // 运行时配置（内容寻址 config.<hash>.json）：首屏引导必需，离线壳可直接启动。
+    try {
+      for (const f of fs.readdirSync(path.join(distDir, 'assets'))) {
+        if (/^config\.[0-9A-Za-z]+\.json$/.test(f)) candidates.push('/assets/' + f);
+      }
+    } catch (e) { /* 忽略：assets 目录缺失时跳过 */ }
+    const jsFiles = listFilesRecursive(path.join(distDir, 'assets', 'js'), 'assets/js', []);
+    const bundleChunks = jsFiles.filter((p) => /^\/assets\/js\/(?:runtime|app|shared|deferred)\.[^/]+\.js$/.test(p));
+    candidates.push.apply(candidates, bundleChunks.length ? bundleChunks : jsFiles);
+    listFilesRecursive(path.join(distDir, 'assets', 'vendor', 'fonts'), 'assets/vendor/fonts', candidates);
+    precache = buildPrecacheList(candidates, { exclude: [swUrl] });
   }
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request).then((response) => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      }).catch(() => cached);
-      return cached || fetchPromise;
-    })
-  );
-});`;
+  writeServiceWorker(config, precache);
+  console.log(`  Created: ${swUrl.replace(/^\//, '')} (${precache.length} precache entries)`);
+}
+
+// 写入 sw.js 内容：缓存名 = site.pwa.cacheName + 清单内容哈希（内容变即换名，旧缓存由
+// SW activate 阶段按前缀清理）；策略开关与清单一并内联进产物。
+function writeServiceWorker(config, precache) {
+  const swUrl = config.site.pwa.serviceWorker;
+  const featPwa = (config.features && config.features.pwa) || {};
+  const offlineUrl = featPwa.offlinePage !== false ? '/offline.html' : '';
+  const pageNetworkFirst = featPwa.pageNetworkFirst !== false;
+  const assetCacheFirst = featPwa.assetCacheFirst !== false;
+  const pageCacheLimit = Number.isFinite(Number(featPwa.pageCacheLimit)) && Number(featPwa.pageCacheLimit) >= 0
+    ? Math.floor(Number(featPwa.pageCacheLimit))
+    : 24;
+  const cacheVersion = crypto.createHash('sha1')
+    .update(JSON.stringify({ precache, offlineUrl, pageNetworkFirst, assetCacheFirst }))
+    .digest('hex')
+    .slice(0, 10);
+  const swContent = renderServiceWorker({
+    cacheName: config.site.pwa.cacheName,
+    version: cacheVersion,
+    precache,
+    offlineUrl,
+    swPath: swUrl,
+    pageNetworkFirst,
+    assetCacheFirst,
+    pageCacheLimit
+  });
   const swPath = path.join(distDir, swUrl.replace(/^\//, ''));
   const swDir = path.dirname(swPath);
   if (!fs.existsSync(swDir)) fs.mkdirSync(swDir, { recursive: true });
   writeFileAtomicSync(swPath, swContent, 'utf-8');
-  console.log(`  Created: ${swUrl.replace(/^\//, '')}`);
 }
 
-  return { copyJsAssets, copyRuntimeBootstrap, copyVendorAssets, generatePWA, VENDOR_FONTS };
+  return { copyJsAssets, copyRuntimeBootstrap, copyVendorAssets, generatePWA, generateServiceWorker, VENDOR_FONTS };
 }
 
 module.exports = { createAssetsModule };

@@ -186,6 +186,12 @@ function generateSecurityHeaders(config) {
     extraSections.push('/og/*\n  Cache-Control: public, max-age=604800, stale-while-revalidate=86400');
   }
 
+  // Service Worker 固定路径：更新检查虽默认绕过 HTTP 缓存，仍显式 no-cache，
+  // 防止中间层/CDN 长时间缓存旧 SW 导致新版本不生效（PWA 启用时才输出）。
+  if (config.site.pwa && config.site.pwa.enabled) {
+    extraSections.push('/sw.js\n  Cache-Control: no-cache');
+  }
+
   if (lines.length > 0) {
     let headerContent = '/*\n' + lines.join('\n') + '\n';
     if (extraSections.length) headerContent += '\n' + extraSections.join('\n\n') + '\n';

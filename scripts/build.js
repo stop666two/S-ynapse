@@ -61,7 +61,7 @@ const {
   buildCjkFonts,
   generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, prepareSearchIndex, generateSearchIndex, generatePagefindIndex,
   checkPerfBudget, checkPerformanceWarnings, generateBuildReport, writeBuildReportText, generateRedirects, buildCspTrimContext, generateSecurityHeaders,
-  minifyAll, cacheBust, copyJsAssets, copyRuntimeBootstrap, copyVendorAssets, generatePWA,
+  minifyAll, cacheBust, copyJsAssets, copyRuntimeBootstrap, copyVendorAssets, generatePWA, generateServiceWorker,
   startServer
 } = ctx;
 
@@ -106,6 +106,8 @@ async function build() {
   const startTime = Date.now();
   const phaseTimings = {};
   const markPhase = function (key, startedAt) { phaseTimings[key] = Date.now() - startedAt; };
+  // 同阶段多段耗时累加（如 PWA 初版 + SW 定稿分居压缩前后）。
+  const addPhase = function (key, startedAt) { phaseTimings[key] = (phaseTimings[key] || 0) + (Date.now() - startedAt); };
   const buildErrors = createBuildErrorCollector();
   BUILD_ERRORS = buildErrors;
   if (!validateJsonSyntax()) {
@@ -292,6 +294,11 @@ async function build() {
     const cacheBustStartedAt = Date.now();
     await cacheBust(config);
     markPhase('cacheBust', cacheBustStartedAt);
+    // SW 定稿在压缩与缓存指纹之后：壳预缓存清单必须引用最终文件名
+    // （压缩阶段会按最终字节重命名 runtime 引导脚本）；sw.js 自身由压缩/cacheBust 显式跳过。
+    const swFinalizeStartedAt = Date.now();
+    await generateServiceWorker(config);
+    addPhase('pwa', swFinalizeStartedAt);
     await generatePagefindIndex(config);
     debugMark('压缩与缓存指纹完成（构建产物就绪）');
     if (hooks && hooks.postBuild) {

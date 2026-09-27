@@ -45,7 +45,7 @@ const DEFAULT_CONFIG = {
       social: { enabled: false, items: {} },
       comments: { enabled: false, provider: 'giscus', giscus: {}, disqus: {}, utterances: {} },
       sitemap: { enabled: true, path: '/sitemap.xml', changefreq: 'weekly', priority: 0.8 },
-      pwa: { enabled: false, manifest: {}, serviceWorker: '/sw.js', cacheName: 's-ynapse-v1' },
+      pwa: { enabled: true, manifest: {}, serviceWorker: '/sw.js', cacheName: 's-ynapse-v1' },
       favicon: { enabled: true, svg: '/icons/favicon.svg', png32: '/icons/favicon-32x32.png', appleTouch: '/icons/apple-touch-icon.png' },
       build: {
         cleanDist: true, cacheControl: true, minifyHTML: false, minifyCSS: false, minifyJS: false,

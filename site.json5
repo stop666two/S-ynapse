@@ -737,9 +737,10 @@
   //          两者同时启用才是完整 PWA 体验（离线/安装）
   "pwa": {
     // 是否生成 PWA 资源
-    // 类型: boolean | 可填: true/false | 推荐: 需要安装/离线能力时 true
-    // 注意: 启用后构建生成 /manifest.json 与 /sw.js
-    "enabled": false,
+    // 类型: boolean | 可填: true/false | 推荐: true(默认开启离线阅读与安装能力)
+    // 注意: 启用后构建生成 /manifest.json、/offline.html 与 /sw.js
+    //      关闭后不产出以上文件,运行时不注册 Service Worker(无离线能力)
+    "enabled": true,
 
     // Web App Manifest（原样输出到 manifest.json,字段遵循 W3C 规范）
     // 字段说明: https://www.w3.org/TR/appmanifest/

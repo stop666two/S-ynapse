@@ -127,7 +127,7 @@
 ### site.pwa / site.build — PWA 与构建开关
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
-| `pwa.enabled` | bool | `false` | 生成 manifest/sw.js |
+| `pwa.enabled` | bool | `true` | 生成 manifest/offline/sw.js |
 | `pwa.manifest` | object | `{}` | manifest 字段 |
 | `pwa.serviceWorker` | string | `/sw.js` | SW 路径 |
 | `pwa.cacheName` | string | `s-ynapse-v1` | SW 缓存名（改版递增可强制废弃旧缓存） |
@@ -824,8 +824,16 @@ sitemap: {
 ### 3.58 pageTransition — 页面切换过渡
 `enabled true` / `type 'slide'`(`slide|fade`) / `durationMs 180`(入场) / `outDurationMs 120`(离开淡出) / `reducedMotion 'light'`(`light|off|full`,轻量版:短纯淡出) / `excludeSelector '[data-no-transition]'` / `leaveGuardMs 2500`(导航失败兜底观察窗口 ms) / `reducedDurationMs 70`(reduced-motion 下离开时长上限 ms)。内链点击淡出 → 导航 → 新页入场;外链/新窗口/hash/下载链接不拦截;原 `motion.pageEnterDurationMs` 与 `theme.animation.pageTransition` 已移除。
 
-### 3.59 pwa — PWA 运行时
-`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `installPrompt true` / `installDismissKey 's-a2hs-dismissed'`(安装按钮关闭记忆键) / `updateToastMs 6000`(更新提示时长 ms)。运行时总开关(需 `site.pwa.enabled` 同时开启);注册 `site.pwa.serviceWorker` 并监听更新(toast 提示)、监听离线/恢复(toast 提示);PWA 关闭时不再生成根 `/manifest.json`/`/site.webmanifest` 重定向别名(`_redirects` 仅保留 `/feed.xml`、`/404.html` 根别名)。启用时若 manifest 图标指向的文件不存在，构建会从 `site.favicon.svg` 自动生成 192/512 PNG 并剔除缺失项。`offlinePage` 构建生成 `offline.html` 兜底页(断网访问未缓存页面时显示双语提示与重试按钮,SW 预缓存并在导航失败时回退);`installPrompt` 支持 beforeinstallprompt 的浏览器显示"安装到桌面"浮动按钮(可关闭,写入 `installDismissKey` 记忆)。
+### 3.59 pwa — PWA 运行时与离线阅读
+`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `precache true` / `pageNetworkFirst true` / `assetCacheFirst true` / `pageCacheLimit 24` / `updateCheckIntervalMs 1800000` / `installPrompt true` / `installDismissKey 's-a2hs-dismissed'`(安装按钮关闭记忆键) / `updateToastMs 0`(更新提示条自动隐藏 ms;0=常驻,由用户刷新/关闭)。
+
+双层开关:`site.pwa.enabled` 控制构建产物(manifest.json / offline.html / sw.js),`features.pwa.enabled` 控制运行时注册;两者默认均开,同时开启为完整 PWA 体验。SW 由 `scripts/lib/pwa-sw.js` 构建期生成(缓存名 = `site.pwa.cacheName` + 内容版本后缀,分壳/页面/资产三类):
+
+- **壳预缓存**(`precache`):构建期收集 `offline.html`、`manifest.json`、全部 `/assets/css/*`(含 CJK 字体样式)、核心 JS(打包模式取 runtime/app/shared/deferred 入口,未打包回退模式取 `/assets/js` 全量)与 `/assets/vendor/fonts/*.woff2`,写入 SW install 阶段 `cache.addAll`;任一资源缺失会在构建期按存在性剔除,避免安装失败。`precache=false` 时仅运行时按需缓存。
+- **页面策略**(`pageNetworkFirst`):硬导航(`mode=navigate`)与软导航请求(`X-Requested-With: soft-navigation`、`Accept: text/html`)走 network-first(在线取最新并写入页面缓存,断网回退缓存、再回退 `offline.html`);`false` 时反转为 cache-first,`pageCacheLimit` 限制页面缓存条数(超出按最早写入淘汰,0=不限)。
+- **资产策略**(`assetCacheFirst`):其余同源 GET 走 cache-first(命中直接返回,内容哈希资产天然 immutable;查询串差异经 `ignoreSearch` 兼容 CJK 字体样式引用);`false` 时反转为 network-first。
+- **更新机制**:新 SW 安装完成不立即接管(`skipWaiting` 改为等待页面消息);运行时 `updatefound`/已存在的 `waiting` 触发顶部提示条(ui-strings `pwa.updateReady`/`pwa.refresh` 双语、`role=status`、可关闭、常驻不打扰),点击「刷新」发送 `SKIP_WAITING`,SW `activate` 阶段按缓存名前缀清理旧版本缓存后 `controllerchange` 整页刷新;`updateCheckIntervalMs>0` 时周期调用 `reg.update()`(0=仅注册/导航时检查)。提示条挂在 body,软导航交换内容区不丢失、不重复提示。
+- **其余**:`offlineNotice` 监听断网/恢复 toast;`installPrompt` 支持 beforeinstallprompt 的浏览器显示"安装到桌面"浮动按钮(可关闭,写入 `installDismissKey`);构建期从 `site.favicon.svg` 自动生成 192/512 PNG 并剔除缺失图标;PWA 开启时 `_headers` 对 `/sw.js` 输出 `Cache-Control: no-cache`。
 
 ---
 

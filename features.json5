@@ -2154,27 +2154,42 @@
   },
 
   // ---------------------------------------------------------------------------
-  // 45. PWA 运行时(SW 注册 / 更新提示 / 离线提示)
+  // 45. PWA 运行时与离线阅读(SW 注册 / 壳预缓存 / 更新提示 / 离线提示)
   // ---------------------------------------------------------------------------
   pwa: {
     // 总开关: PWA 运行时功能(需 site.json5→pwa.enabled 同时开启才会生成 manifest/SW 资源)
     enabled: true,
     // 注册 Service Worker(获得离线缓存能力;由 js 端在支持时注册 /sw.js)
     registerSW: true,
-    // SW 新版本就绪时弹 toast 提示刷新(避免用户停留在旧版本)
+    // SW 新版本就绪时在页面顶部显示提示条(「新版本可用 + 刷新按钮」,可关闭;避免用户停留在旧版本)
     updatePrompt: true,
     // 断网/恢复连接时弹 toast 提示(仅在 navigator.onLine 事件触发)
     offlineNotice: true,
-    // 生成离线兜底页(断网访问未缓存页面时的 /offline 页面)
+    // 生成离线兜底页(断网访问未缓存页面时显示双语提示与重试按钮;同时进入壳预缓存)
     offlinePage: true,
+    // 壳预缓存:构建期把离线回退页与核心 CSS/JS/字体(拉丁可变字体)写入 SW 预缓存清单,
+    // 使首次断网访问即可离线打开;false = 不做预缓存,仅运行时按需缓存访问过的资源。
+    precache: true,
+    // 页面导航策略:true = network-first(在线取最新,断网回退缓存),推荐;
+    // false = cache-first(缓存优先,离线更快但可能看到旧页面)。
+    pageNetworkFirst: true,
+    // 静态资产策略:true = cache-first(命中缓存直接返回,内容哈希资产天然 immutable),推荐;
+    // false = network-first(每次在线取最新,弱网体验较差)。
+    assetCacheFirst: true,
+    // 页面导航缓存的条数上限(超出按最早写入淘汰;0 = 不限制,体积不可控时不推荐)。
+    // 类型: number(整数 ≥0) | 推荐: 16-64
+    pageCacheLimit: 24,
+    // 长驻页面的 SW 周期更新检查间隔(ms;0 = 关闭,仅注册与导航时检查)。
+    // 类型: number(ms) | 推荐: 1800000(30 分钟)
+    updateCheckIntervalMs: 1800000,
     // 显示「安装到桌面」按钮(仅浏览器触发 beforeinstallprompt 后出现)
     installPrompt: true,
     // 「安装到桌面」关闭状态的 localStorage 键(修改会使旧关闭记录失效)。
     // 类型: string | 推荐: 's-a2hs-dismissed'
     installDismissKey: 's-a2hs-dismissed',
-    // SW 更新就绪 toast 的显示时长(ms)。
-    // 类型: number(ms) | 推荐: 6000
-    updateToastMs: 6000
+    // 更新提示条自动隐藏时长(ms):0 = 常驻(由用户点刷新或关闭;推荐),>0 = 显示指定时长后自动隐藏。
+    // 类型: number(ms) | 推荐: 0
+    updateToastMs: 0
   },
 
   // ---------------------------------------------------------------------------

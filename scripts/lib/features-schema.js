@@ -150,7 +150,10 @@ const DEFAULT_FEATURES = {
     leaveGuardMs: 2500, reducedDurationMs: 70
   },
   pwa: {
-    enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true, offlinePage: true, installPrompt: true, installDismissKey: 's-a2hs-dismissed', updateToastMs: 6000
+    enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true, offlinePage: true,
+    precache: true, pageNetworkFirst: true, assetCacheFirst: true, pageCacheLimit: 24,
+    updateCheckIntervalMs: 1800000, installPrompt: true, installDismissKey: 's-a2hs-dismissed',
+    updateToastMs: 0
   },
   morphIcons: {
     enabled: true, vendorPath: '/assets/vendor/morphicons', spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},

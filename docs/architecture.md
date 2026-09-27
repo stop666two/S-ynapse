@@ -1,6 +1,6 @@
 # S-ynapse 架构说明
 
-> 本文档描述当前实现（2026-09-25）。目标平台：Cloudflare Workers（静态资产 + 安全脚本同版本部署）。
+> 本文档描述当前实现。目标平台：Cloudflare Workers（静态资产 + 安全脚本同版本部署）。
 > 相关文档：`docs/config-reference.md`（配置逐字段）、`docs/incremental-build-design.md`（增量构建设计）、`docs/runbook/rollback.md`（回滚）。
 
 ## 1. 总体架构
@@ -24,13 +24,13 @@ articles/ media/ static/ + 14 个 JSON5 配置
 
 | 路径 | 职责 |
 |---|---|
-| `scripts/build.js` | 构建编排器（2286 行，仍在继续拆分）：配置装载/校验、页面生成、报告、serve |
-| `scripts/build/*.js` | 已拆出的构建模块（工厂注入、无全局状态）：`minify` / `media` / `fs-utils` / `feeds` / `security-files` / `assets` |
-| `scripts/lib/*.js` | 纯函数库：`utils` / `perf-budget` / `csp` / `content-policy` / `asset-cache` / `build-errors` / `content-validate` / `publish-window` / `config-split` / `bundle` / `dist-hash` 等（多数有同名单测） |
+| `scripts/build.js` | 构建编排器（约 423 行）：配置装载/校验、阶段编排、报告、serve 入口 |
+| `scripts/build/*.js` | 已拆出的构建模块（工厂注入、无全局状态）：`articles` / `assets` / `auto-cover` / `cache` / `cjk-fonts` / `collectors` / `config` / `context` / `feeds` / `fs-utils` / `helpers` / `markdown` / `media` / `mermaid` / `minify` / `pages` / `render` / `report` / `security-files` / `serve` |
+| `scripts/lib/*.js` | 纯函数库：`utils` / `perf-budget` / `csp` / `content-policy` / `asset-cache` / `build-errors` / `build-report-text` / `content-validate` / `publish-window` / `config-split` / `bundle` / `dist-hash` / `incremental` / `compression-config` / `compression-steps` / `compression-verify` / `css-merge` / `static-server` 等（多数有同名单测） |
 | `scripts/generate-og.js` | OG 图生成（独立进程，`.cache/og` 增量缓存） |
 | `templates/*.ejs` | 页面模板（layout/index/post/archive/search/tag/category/404/PWA 等 15 个） |
 | `js/core/` | 启动器：`runtime.js`（配置加载引导）、`boot.js`（阶段队列）、`main.js`（入口）、`deferred.js`（懒加载模块注册表） |
-| `js/domains/{core,features,guard}/` | 46 个功能模块（core 14 关键 / features 21 延迟 / guard 11 防护；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
+| `js/domains/{core,features,guard}/` | 51 个前端领域模块（core 17 / features 23 / guard 11；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
 | `workers/security-worker.js` + `workers/lib/` | 边缘安全层（`ip-utils` / `rate-limit`） |
 | `workers/wrangler.toml` | 生产部署配置（Worker 名、assets 绑定、环境变量） |
 | `*.json5`（根目录 14 个） | 站点/主题/功能/文案/压缩等配置，全部经 `verify:config` 校验 |
@@ -45,9 +45,10 @@ articles/ media/ static/ + 14 个 JSON5 配置
 4. **内容处理**：marked 渲染 → CJK 间距 → sanitize-html（白名单 + 媒体 URL 本地化）→ 代码高亮判定（`hasCode` 门控 Prism）；mermaid 代码块全站汇总后经 puppeteer-core 一次性构建期渲染为双主题内联 `<svg>`（`.cache/mermaid` 内容哈希缓存，消毒后注入 CSP nonce；失败或无 Chrome 的条目保留 `data-mm-pending` 并由客户端 vendor 回退）。
 5. **打包**：esbuild 打包（`app.<hash>.js` / `deferred.<hash>.js` 入口，`splitting` 抽出的 `shared.<hash>.js` 公共 chunk 由模块图自动加载）+ `runtime.<hash>.js`（Terser 压缩后哈希单发，压缩关闭时保留源哈希名）；`--no-bundle` 可回退原生模块。
 6. **页面与索引生成**：`generatePages`（文章/归档/标签/分类/自定义页/分页）→ RSS/JSON Feed → sitemap → 搜索索引（`.json` + pagefind 兼容清单）→ PWA → CJK 字体子集化（扫描 dist 页面与配置 JSON 的实际用字，仅下载命中的 Noto Sans SC woff2 分片并自托管，`.cache/fonts` 清单+分片缓存，失败仅告警并剥离引用）。
-7. **交付层处理**：HTML/内联 CSS/JS 压缩 → cache-bust 映射 → `_headers`（安全头 + 分级缓存）→ CSP nonce 注入（内联脚本与响应头同 nonce）。
-8. **报告与门禁**：性能预算 5 项、构建报告 `build-report.html` 与构建摘要 `report.txt`（阶段耗时、压缩前后体积对照、无头验证摘要、告警、预算结论）、失败汇总（任一失败默认退出码非 0）。
+7. **交付层处理**：基线压缩（minify-html / CleanCSS / Terser）→ 压缩增强（`compression.json5`：HTML 激进选项默认关、CSS 同页 `<style>` 合并去重、JSON 去空白、`runtime` Terser 压缩、可选 JS 混淆）→ 无头对比门禁（压缩产物 vs 基线快照；失败回退基线并告警，回退后逐字节复核）→ cache-bust 映射 → `_headers`（安全头 + 分级缓存）→ CSP nonce 注入（内联脚本与响应头同 nonce）。增强与回退均位于 cacheBust 之前，文件名哈希=最终字节。
+8. **报告与门禁**：性能预算 5 项、构建报告 `build-report.html` 与构建摘要 `report.txt`（阶段耗时、压缩前后体积对照、CSS 合并/去重跳过明细、无头验证摘要、告警、预算结论）、失败汇总（任一失败默认退出码非 0）。
 9. **OG 图**（生产构建）：`generate-og.js` 独立进程，`.cache/og` 命中复用。
+10. **Pagefind 索引**（可选，`navigation.search.provider='pagefind'` 且 `features.pagefind.enabled`）：压缩与 cacheBust 之后生成到 `features.pagefind.indexPath`（默认 `/pagefind`，不参与 cache-bust）；serve/watch 同样生成。
 
 构建缓存：`.build-cache.json`（媒体指纹）、`.cache/media`（媒体输出持久副本）、`.cache/og`（OG 图）、`.cache/mermaid`（mermaid SSR SVG，键 = 版本+主题+源码哈希）、`.cache/fonts`（CJK 字体清单与 woff2 分片，URL 哈希命名）。自定义输出目录：`--out` / `SYNAPSE_OUT_DIR`（集成测试使用）。
 
@@ -70,7 +71,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 
 - 14 个 JSON5：`site` / `theme` / `features` / `tuning` / `guard` / `ui-strings` / `navigation` / `sidebar` / `footer` / `security` / `content-policy` / `tag-aliases` / `friends` / `compression`。
 - 三层约束：`site-defaults.js`（默认值注册表）、`features-schema.js`（features 结构登记）、`scripts/check-config-consistency.js`（`verify:config`，允许用户值覆盖默认值）。
-- 逐字段说明见 `docs/config-reference.md`；新增字段须三处同步（配置 + 注册表/结构 + 文档）。
+- 新增字段须同步四处：配置文件 + 注册表/结构 + 逐键注释（`verify:config-comments`）+ `docs/config-reference.md`（`scripts/check-config-docs.js` 覆盖校验）。
 
 ## 6. 安全模型
 
@@ -86,20 +87,26 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 
 - `_headers` 分级：`/assets/css/*` 1 年 immutable；`/assets/js/*` 与 `/assets/vendor/*` 1 小时 + SWR；带指纹的 `app|deferred|runtime.*.js` 1 年 immutable；`/media/*`、`/og/*` 7 天 + SWR（均可用 `site.build.cacheControl` 关闭）。
 - 构建侧缓存：媒体/OG 指纹命中跳过重算；配置 JSON 以内容哈希命名参与 cache-bust。
+- 压缩验证缓存：`.cache/compression-baseline/`（验证期基线快照，默认验证后删除）、`.cache/compression-verify/last.json`（结果 JSON）、`.cache/chrome-verify-profile/`（持久浏览器 profile，可安全删除；同一时刻只允许一个构建使用）。
 
 ## 8. 测试与门禁
 
 | 命令 | 内容 |
 |---|---|
-| `npm test` | node:test 单测（构建纯函数、Worker 配置、CSP、机器人、原子写、配置分层、打包、dist 哈希等） |
-| `npm run test:build` | 集成 smoke：干净构建断言产物 + 坏文章阻断且不污染 dist（临时输出目录） |
+| `npm test` | node:test 单测（构建纯函数、Worker 配置、CSP、机器人、原子写、配置分层、打包、dist 哈希、压缩配置/流水线/验证、CSS 合并、增量构建等） |
+| `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（≥80%，CI 阻断） |
+| `npm run test:build` | 集成 smoke：干净构建断言产物 + 坏文章阻断且不污染 dist（临时输出目录；含 report.txt/CSP nonce 两态断言） |
 | `npm run lint` / `npm run typecheck` | ESLint / tsc（checkJs） |
-| `npm run verify:config` / `npm run verify:security` | 配置一致性 / 安全产物与 Worker 行为验证 |
+| `npm run verify:config` / `verify:config-refs` / `verify:config-comments` | 配置一致性 / 零引用键 / 逐键注释覆盖率监守 |
+| `node scripts/check-config-docs.js` | 文档覆盖校验（14 个 JSON5 键 vs `docs/config-reference.md`；npm 别名 `verify:config-docs` 由配置侧接入） |
+| `npm run verify:security` | 安全集成回归（注入恶意文章 → 构建 → 语义断言） |
+| `npm run verify:compression` | 压缩无头对比门禁（6 页 DOM/采样样式/控制台/交互断言；无 Chrome 跳过） |
+| `npm run sbom` | CycloneDX 1.5 SBOM 生成（CI 上传 artifact） |
 | `npm run audit` / `npm run audit:a11y` | 依赖漏洞（官方 registry）/ 真实页面 a11y（puppeteer + axe，含 wcag22aa） |
 | `node scripts/dist-hash-guard.js` | 重构/迁移的产物等价护栏（归一化 nonce/换行） |
 | `node scripts/perf-audit.js` | 可复现性能基线（Slow 4G + 4× CPU） |
 
-CI 顺序：check-agents → `npm ci` → audit → lint → typecheck → test → verify:config → verify:security → build → test:build → Pages 部署（Worker 为手动 `wrangler deploy`，见 README）。
+CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + test:build + build）与 `build`（Node 24：audit → lint → typecheck → test → test:coverage → test:build → verify:config → verify:config-refs → verify:config-comments → verify:security → build → verify:compression 条件步骤 → sbom → 上传 artifact → Pages 部署）。生产 Worker 为手动 `wrangler deploy`（见 README）。
 
 ## 9. 部署与回滚
 
@@ -109,8 +116,8 @@ CI 顺序：check-agents → `npm ci` → audit → lint → typecheck → test 
 
 ## 10. 已知边界与后续项
 
-- `scripts/build.js` 已完成机械拆分（265 行编排器 + `scripts/build/` 工厂模块；等价护栏 `scripts/dist-hash-guard.js` + `.refactor-baseline.json`）。
-- `js/domains` 已按 core（14 关键）/features（21 延迟）/guard（11 防护）物理分层（`deferred.js` 统一注册表）。
+- `scripts/build.js` 已完成机械拆分（约 423 行编排器 + `scripts/build/` 工厂模块；等价护栏 `scripts/dist-hash-guard.js` + `.refactor-baseline.json`）。
+- `js/domains` 已按 core（17 模块）/features（23 模块）/guard（11 模块）物理分层（`deferred.js` 统一注册表）。
 - `style-src` 已随 `<style>` nonce 注入消除 `'unsafe-inline'`；模板与构建产物亦已清除全部内联 `style="..."` 属性（类 / 构建期 nonce `<style>` 规则 / CSSOM 三种手法），`style-src-attr` 不再声明，属性语境回退到 `style-src` 同样拒绝内联（见 SECURITY.md）。Worker 无构建产物时的 FALLBACK 因无 nonce 可注入而保留 `style-src 'unsafe-inline'`，`script-src` 已同步收紧。
 - 增量构建（`features.incrementalBuild`）为预留键位，未实现；方案见 `docs/incremental-build-design.md`。
 - accessGate 为软防护；`?key=`/`?guard=` 参数在判定/解锁读取完成后经 `history.replaceState` 从地址栏清理（保留其它查询串与 hash），但不改变其可被绕过的事实。

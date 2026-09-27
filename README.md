@@ -75,7 +75,7 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html`（详细统计 + 内容策略拦截清单）与 `report.txt`（阶段耗时、压缩前后 raw/gzip 对照、无头验证摘要、告警与预算结论）
-- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（693 项 / 117 组）；`npm run lint` 提供 ESLint 静态检查
+- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（743 项 / 123 组）；`npm run lint` 提供 ESLint 静态检查
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -494,7 +494,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（693 项 / 117 组） |
+| `npm test` | 运行单元测试（743 项 / 123 组） |
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前总量约 98%） |
 | `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、CSP nonce 与 report.txt 两态；CI 运行，不进 `npm test`） |
 | `npm run verify:compression` | 压缩无头对比门禁（完整构建 + 压缩产物 vs 未压缩副本的 DOM/样式/控制台/交互断言；passed=0、failed=1、skipped=0；`--out`/`--chrome`/`--keep-baseline`/`--json` 可选） |
@@ -522,7 +522,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 693 项 / 117 组，全部通过
+npm test            # 743 项 / 123 组，全部通过
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
 npm run typecheck   # TypeScript checkJs（scripts/lib，渐进引入）
@@ -581,7 +581,7 @@ npm run verify:security   # 集成安全回归
 | serve-compression | 4 | 本地 serve 压缩响应两态 |
 | theme-override | 5 | `--theme-override` / `--features-override` 深合并与校验 |
 
-> `npm test` 共 **693 项 / 117 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
+> `npm test` 共 **743 项 / 123 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
 
 ### SBOM（软件物料清单）
 

@@ -482,7 +482,7 @@
       "github": {
         "enabled": true, // 启用该平台
         "type": "link", // 链接型（用 url）
-        "url": "https://github.com/stop666two" // 目标地址
+        "url": "https://github.com/your-username" // 目标地址（示例占位，请改为自己的主页）
       },
       // X（推特）链接
       "x": {

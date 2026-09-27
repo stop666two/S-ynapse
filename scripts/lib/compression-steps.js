@@ -115,6 +115,9 @@ function compressionEnhancementPlan(compression, active) {
     htmlRemoveComments: html.enabled === false ? true : html.removeComments !== false,
     cssMergeInlineStyles: on && css.enabled !== false && css.mergeInlineStyles !== false,
     cssDedupe: on && css.enabled !== false && css.dedupe !== false,
+    // runtime 引导脚本是基线打包的旁路产物（copyRuntimeBootstrap 原样复制），
+    // 独立走 Terser 压缩；受与其它 JS 相同的 js.enabled / js.minify 开关约束。
+    jsMinify: on && jsCfg.enabled !== false && jsCfg.minify !== false,
     jsObfuscate: on && jsCfg.enabled !== false && jsCfg.minify !== false && obfuscate.enabled === true,
     jsObfuscatePreset: OBFUSCATE_PRESETS.includes(obfuscate.preset) ? obfuscate.preset : 'medium',
     jsObfuscateSeed: Number.isInteger(obfuscate.seed) && obfuscate.seed > 0 ? obfuscate.seed : 0,
@@ -137,6 +140,7 @@ function enhancementWorkActive(plan) {
     || plan.htmlRemoveComments === false
     || plan.cssMergeInlineStyles === true
     || plan.cssDedupe === true
+    || plan.jsMinify === true
     || plan.jsObfuscate === true
     || plan.jsonCompact === true;
 }
@@ -147,6 +151,10 @@ function enhancementWorkActive(plan) {
 // 且首屏引导脚本体积小、执行风险高（详见 docs/config-reference.md）。
 const OBFUSCATE_TARGET_RE = /^(app|deferred)\.[0-9A-Za-z]+\.js$/;
 const OBFUSCATE_EXCLUDED_RE = /^runtime\.[0-9A-Za-z]+\.js$/;
+
+// runtime 引导脚本的产物文件名：runtime.<内容哈希>.js（copyRuntimeBootstrap 生成）。
+// 增强阶段以 Terser 压缩后按最终字节改名（不参与混淆），此模式同时服务目标筛选。
+const RUNTIME_TARGET_RE = /^runtime\.[0-9A-Za-z]+\.js$/;
 
 /**
  * 从构建产物文件名中筛选可混淆的自研 bundle（app.*.js / deferred.*.js）。
@@ -223,6 +231,7 @@ module.exports = {
   enhancementWorkActive,
   OBFUSCATE_TARGET_RE,
   OBFUSCATE_EXCLUDED_RE,
+  RUNTIME_TARGET_RE,
   selectObfuscationTargets,
   buildObfuscateOptions
 };

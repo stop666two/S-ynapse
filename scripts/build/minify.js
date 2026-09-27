@@ -19,7 +19,8 @@ const {
   compressionEnhancementPlan,
   enhancementWorkActive,
   jsonSkipReason,
-  selectObfuscationTargets
+  selectObfuscationTargets,
+  RUNTIME_TARGET_RE
 } = require('../lib/compression-steps');
 const {
   createBaselineSnapshot,
@@ -345,7 +346,7 @@ function createMinifyModule(ctx) {
     return totals;
   }
 
-  // 混淆后按最终字节重算 bundle 文件名并同步改写全部 HTML 引用（app src / deferred 内联 URL），
+  // 改名后按最终字节同步改写全部 HTML 引用（app src / deferred 内联 URL / runtime script src），
   // 维持「文件名哈希 = 最终字节」；替换失败只告警，文件保留新名与旧名两份，不影响可用性。
   function updateBundleRefsInHtml(mapping) {
     const entries = Object.entries(mapping);
@@ -369,6 +370,60 @@ function createMinifyModule(ctx) {
       }
     }
     return updated;
+  }
+
+  // runtime 引导脚本压缩：copyRuntimeBootstrap 原样复制 js/core/runtime.js（classic script，
+  // 以 <script src> 先于 app 执行），基线打包的 esbuild minify 不覆盖它。
+  // Terser 选项显式 module=false：引导脚本不是 ESM，压缩器不得按模块语义处理顶层代码；
+  // mangle 不带 toplevel，保留 window.* 赋值与顶层标识符。压缩后按最终字节以 md5 重命名并
+  // 同步 HTML 引用（与混淆同一「文件名哈希 = 最终字节」原则），旧文件删除，失败保留原文件。
+  async function compressRuntimeBootstrap() {
+    if (!terser) return null;
+    const dir = path.join(ctx.distDir, 'assets', 'js');
+    if (!fs.existsSync(dir)) return null;
+    const targets = fs.readdirSync(dir).filter(name => RUNTIME_TARGET_RE.test(name));
+    if (targets.length === 0) return null;
+    const files = [];
+    const mapping = {};
+    let beforeTotal = 0;
+    let afterTotal = 0;
+    const startedAt = Date.now();
+    for (const name of targets) {
+      const rel = 'assets/js/' + name;
+      if (isExcluded(rel, compressionPlan.exclude)) continue;
+      try {
+        const source = fs.readFileSync(path.join(dir, name), 'utf-8');
+        const result = await terser.minify(source, {
+          module: false,
+          compress: true,
+          mangle: true,
+          output: { comments: false }
+        });
+        if (!result.code || result.code.length === 0) throw new Error('压缩输出为空');
+        if (result.code.length >= source.length) continue;
+        const newName = name.replace(/\.[0-9A-Za-z]+\.js$/, '')
+          + '.' + crypto.createHash('md5').update(result.code).digest('hex').slice(0, 10) + '.js';
+        writeFileAtomicSync(path.join(dir, newName), result.code, 'utf-8');
+        if (newName !== name) mapping[rel] = 'assets/js/' + newName;
+        files.push({ name, newName, before: Buffer.byteLength(source), after: Buffer.byteLength(result.code) });
+        beforeTotal += Buffer.byteLength(source);
+        afterTotal += Buffer.byteLength(result.code);
+      } catch (err) {
+        console.warn(`  [WARN] runtime 压缩跳过 ${name}，保留原文件: ${err.message}`);
+        ctx.recordBuildFailure('compression', `JS runtime ${name}: ${err.message}`);
+      }
+    }
+    if (files.length === 0) return null;
+    const refsUpdated = Object.keys(mapping).length > 0 ? updateBundleRefsInHtml(mapping) : 0;
+    for (const item of files) {
+      if (!mapping['assets/js/' + item.name]) continue;
+      try {
+        fs.unlinkSync(path.join(dir, item.name));
+      } catch (err) {
+        console.warn(`  [WARN] 旧 runtime 清理失败 ${item.name}: ${err.message}`);
+      }
+    }
+    return { files, beforeTotal, afterTotal, refsUpdated, ms: Date.now() - startedAt };
   }
 
   // C4：对自研 bundle（本轮 app/deferred，runtime 因参与内容哈希引用而排除）执行可选混淆。
@@ -463,6 +518,18 @@ function createMinifyModule(ctx) {
       const count = await compactJsonInDir(ctx.distDir);
       if (count > 0) steps.push('JSON 去空白 ×' + count);
     }
+    if (compressionPlan.jsMinify) {
+      const runtime = await compressRuntimeBootstrap();
+      if (runtime) {
+        for (const item of runtime.files) {
+          console.log('  [compression] runtime 压缩：' + item.name + ' → ' + item.newName
+            + '（' + formatBytes(item.before) + ' → ' + formatBytes(item.after) + '）');
+        }
+        console.log('  [compression] runtime 压缩合计：' + formatBytes(runtime.beforeTotal) + ' → ' + formatBytes(runtime.afterTotal)
+          + '，更新 ' + runtime.refsUpdated + ' 个 HTML 引用，耗时 ' + runtime.ms + 'ms');
+        steps.push('runtime 压缩 ×' + runtime.files.length);
+      }
+    }
     if (compressionPlan.jsObfuscate) {
       const result = await obfuscateBundles();
       if (result) {
@@ -496,6 +563,7 @@ function createMinifyModule(ctx) {
         baselineDir: baseline.dir,
         chromePath,
         obfuscateEnabled: compressionPlan.jsObfuscate === true,
+        bootstrapAssertions: compressionPlan.jsMinify === true || compressionPlan.jsObfuscate === true,
         profileDir: ctx.compressionVerifyProfileDir,
         cwd: path.resolve(__dirname, '..', '..')
       });

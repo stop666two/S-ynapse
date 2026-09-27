@@ -30,6 +30,7 @@ const DEFAULT_GUARD = {
       "longPress": true,
       "longPressMs": 550
     },
+    "hapticMs": 10,
     "searchFocusDelayMs": 60,
     "behavior": {
       "closeOnEsc": true,
@@ -162,6 +163,7 @@ const DEFAULT_GUARD = {
     "lockTitle": "开发者工具已打开",
     "lockText": "请关闭开发者工具后继续浏览",
     "reloadDelayMs": 800,
+    "reloadStorageKey": "s-dt-reload",
     "pauseWhenHidden": true,
     "logDetect": false
   },

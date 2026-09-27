@@ -987,6 +987,91 @@ function searchLoadErrorText(tuning, lang) {
   return raw == null ? '' : String(raw);
 }
 
+// mermaid 客户端 initialize 内建默认项（canonical；templates/layout.ejs 内联脚本镜像同一语义）：
+//   runtime = { dark, fontFamily, scale } 为调用时环境：
+//   dark 决定 theme（true='dark'、false='neutral'）；fontFamily 空回退 'sans-serif'；
+//   scale（size.fit==='scale'）决定各图种 useMaxWidth。
+//   字段与历史硬编码逐字一致：startOnLoad=false / securityLevel='strict' /
+//   flowchart htmlLabels=false、curve='basis' / class、state htmlLabels=false /
+//   themeVariables.edgeLabelBackground='transparent'。
+function mermaidClientDefaults(runtime) {
+  const r = runtime || {};
+  const scale = r.scale === true;
+  const ff = r.fontFamily == null ? '' : String(r.fontFamily);
+  return {
+    startOnLoad: false,
+    securityLevel: 'strict',
+    theme: r.dark === true ? 'dark' : 'neutral',
+    fontFamily: ff || 'sans-serif',
+    flowchart: { htmlLabels: false, useMaxWidth: scale, curve: 'basis' },
+    sequence: { useMaxWidth: scale },
+    gantt: { useMaxWidth: scale },
+    er: { useMaxWidth: scale },
+    class: { htmlLabels: false, useMaxWidth: scale },
+    state: { htmlLabels: false, useMaxWidth: scale },
+    themeVariables: { edgeLabelBackground: 'transparent' }
+  };
+}
+
+// mermaid 客户端选项深合并（canonical）：
+//   base = mermaidClientDefaults 计算结果；clientOptions = features.mermaid.clientOptions。
+//   规则：纯对象递归合并（配置优先）；数组/标量整体覆盖；
+//   未知键原样透传（由 mermaid 自行校验）；已声明键类型不一致（含 null、数组与非数组互斥、
+//   对象与非对象互斥）→ 忽略该键并记入 warnings（键路径，顶层非法时记 'clientOptions'）。
+//   返回 { options, warnings }；options 始终为合法对象（clientOptions 非法时 = base）。
+function mergeMermaidClientOptions(base, clientOptions) {
+  const warnings = [];
+  const isPlain = function (v) { return v !== null && typeof v === 'object' && !Array.isArray(v); };
+  const kindOf = function (v) {
+    if (Array.isArray(v)) return 'array';
+    if (isPlain(v)) return 'object';
+    return v === null ? 'null' : typeof v;
+  };
+  function merge(target, source, path) {
+    const out = {};
+    for (const k of Object.keys(target)) out[k] = target[k];
+    if (source == null) return out;
+    if (!isPlain(source)) {
+      warnings.push(path || 'clientOptions');
+      return out;
+    }
+    for (const k of Object.keys(source)) {
+      const keyPath = path ? path + '.' + k : k;
+      const v = source[k];
+      if (!Object.prototype.hasOwnProperty.call(out, k)) { out[k] = v; continue; }
+      const cur = out[k];
+      if (isPlain(cur) && isPlain(v)) { out[k] = merge(cur, v, keyPath); continue; }
+      if (kindOf(cur) === kindOf(v)) out[k] = v;
+      else warnings.push(keyPath);
+    }
+    return out;
+  }
+  return { options: merge(base, clientOptions, ''), warnings: warnings };
+}
+
+// guard 水印移动端断点（canonical）：单一来源 tuning.layout.mobileBreakpoint（可能带 px 单位）；
+// 缺省/非法/非正数回退 768（历史硬编码值，降级模式下 tuning 缺失时保持原行为）。
+function watermarkMobileBreakpointPx(tuning) {
+  const raw = ((tuning || {}).layout || {}).mobileBreakpoint;
+  const n = parseFloat(raw);
+  return isNaN(n) || n <= 0 ? 768 : n;
+}
+
+// 触觉反馈时长归一化（guard.contextMenu.hapticMs / features.sidebarDrag.hapticMs）：
+//   非负整数；0 = 禁用震动；非法/负数/空值回退 fallback（默认 10，历史硬编码值）。
+function hapticDurationMs(raw, fallback) {
+  const dflt = fallback == null ? 10 : fallback;
+  const n = parseInt(raw, 10);
+  return isNaN(n) || n < 0 ? dflt : n;
+}
+
+// 存储键归一化（lightbox.positionStorageKey / devtoolsDetect.reloadStorageKey）：
+//   去首尾空白；空值/非法回退 fallback（历史键名）。
+function storageKeyOr(raw, fallback) {
+  const v = raw == null ? '' : String(raw).trim();
+  return v || fallback;
+}
+
 // 解析热力色阶：scaling='fixed' 且 palette 长度 >= levels 时使用固定色表（取前 levels 项）；
 // 长度不足/非法时回退 auto 色阶并返回构建期提示（warning 由调用方打印一次）。
 function resolveHeatmapPalette(cfg) {
@@ -1170,5 +1255,10 @@ module.exports = {
   readModeConfig,
   commandPaletteConfig,
   searchIndexConfig,
-  searchLoadErrorText
+  searchLoadErrorText,
+  mermaidClientDefaults,
+  mergeMermaidClientOptions,
+  watermarkMobileBreakpointPx,
+  hapticDurationMs,
+  storageKeyOr
 };

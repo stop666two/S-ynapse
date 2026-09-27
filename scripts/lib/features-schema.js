@@ -15,6 +15,7 @@ const DEFAULT_FEATURES = {
     maxWidthVw: '92', maxSizePx: '1600', maxHeightVh: '82',
     openDurationMs: 180, switchDurationMs: 120, backdropOpacity: '0.9',
     preloadAdjacent: true, rememberPosition: false,
+    positionStorageKey: 's-lb-pos',
     showCaption: true, captionMaxLines: 2, transitionDurationMs: 220,
     swipeThresholdPx: 50, swipeCloseThresholdPx: 80, mouseSwipeThresholdPx: 80, dblClickZoomLevel: 2, clickTolerancePx: 6
   },
@@ -223,7 +224,7 @@ const DEFAULT_FEATURES = {
   },
   sidebarDrag: {
     enabled: true, persistOrder: true, storageKey: 's-sidebarOrder',
-    touchLongPress: true, touchLongPressMs: 500, showHandleOnHover: true, resetOnLoadFail: true
+    touchLongPress: true, touchLongPressMs: 500, hapticMs: 10, showHandleOnHover: true, resetOnLoadFail: true
   },
   exportBackup: {
     enabled: true, includeMedia: true, includeConfig: true, outputDir: 'exports',
@@ -335,6 +336,13 @@ const DEFAULT_FEATURES = {
   mermaid: {
     enabled: true, autoDetect: true, version: '11.17.2', followTheme: true,
     lightTheme: 'default', darkTheme: 'dark', securityLevel: 'strict',
+    clientOptions: {
+      securityLevel: 'strict',
+      flowchart: { htmlLabels: false, curve: 'basis' },
+      class: { htmlLabels: false },
+      state: { htmlLabels: false },
+      themeVariables: { edgeLabelBackground: 'transparent' }
+    },
     copyAfterRender: false, errorText: '[图表渲染失败]', errorTextEn: '[Diagram failed to render]',
     mode: 'build', darkMode: true, chromePath: '',
     idleTimeoutMs: 1500, idleFallbackMs: 200,

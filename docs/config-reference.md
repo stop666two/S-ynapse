@@ -415,12 +415,14 @@
 > - canonical：`scripts/lib/feature-wiring.js → backToTopConfig`（单测覆盖）。
 
 ### 3.4 search — 客户端搜索
-`enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true`（与 `searchHighlight.enabled` 联动，任一 false 即不高亮） / `showCount true`（结果计数显隐：false 时浮层结果区与 /search 页均不显示；文案取 `ui-strings.search.foundCount`，`{count}` 占位，中英双语） / `emptyHint ''` / `emptyHintEn ''` / `noResultText 未找到匹配内容` / `noResultTextEn No matching content`(空回退中文链) / `excerptLength 120` / `includeContent true`(构建期生效:是否将正文写入 search-index.json) / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `closeOnOverlay true` / `focusOnOpen true` / `focusDelayMs 100`(打开搜索后延迟聚焦输入框 ms) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效) / `debounceMs 120` / `showHistoryOnFocus true` / `maxHistory 5`
+`enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true`（与 `searchHighlight.enabled` 联动，任一 false 即不高亮） / `showCount true`（结果计数显隐：false 时浮层结果区与 /search 页均不显示；文案取 `ui-strings.search.foundCount`，`{count}` 占位，中英双语） / `emptyHint ''` / `emptyHintEn ''` / `noResultText 未找到匹配内容` / `noResultTextEn No matching content`(空回退中文链) / `excerptLength 120` / `includeContent true`(构建期生效:content 文本是否进入倒排索引；正文原文不写入索引文件) / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `index.bigram true`（CJK 二元组 + 英文小写词；false = CJK 段整段成词） / `index.maxGzipKb 60`（索引 gzip 上限 KB；超出按词频裁剪低频词并告警，不阻断构建） / `closeOnOverlay true` / `focusOnOpen true` / `focusDelayMs 100`(打开搜索后延迟聚焦输入框 ms) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效) / `debounceMs 120` / `showHistoryOnFocus true` / `maxHistory 5`
 
-> **检索语义（浮层搜索与 /search 页统一）**：命中字段得分 = 字段权重 × 命中出现次数（线性计数），按总分降序；同分保持索引原序（`search-index.json` 由构建期按日期倒序生成，等价「同分按日期」）。**权重为 0 = 该字段既不参与匹配也不参与计分**（如 `weightContent=0` 时正文不再命中）。`tags`/`categories` 命中仅参与「是否入选」（计 0 分，排在所有加权命中之后），分别由 `matchTags`/`matchCategories` 门控（默认 true → 结果为历史行为的超集）。canonical 纯函数：`scripts/lib/feature-wiring.js → rankSearchEntries`（单测覆盖）。
+> **索引产物**：构建期生成倒排索引 `/assets/search-index.<内容哈希>.json`（按语言各一份，文件名即内容寻址；正文原文不落盘，每页只存标题/URL/摘要/封面/标签/分类）。客户端按需 fetch（浮层首次打开、/search 页进入时），超时与重试取 `tuning.search.indexTimeoutMs/indexRetry`；页面通过 `window.__SEARCH_INDEX_URL__` 获取当前语言索引地址。索引体积超 `index.maxGzipKb` 时按文档频率升序裁剪低频词（记录 `[WARN]` 到构建日志与 report.txt 告警段，构建继续）。旧固定路径 `/{lang}/search-index.json` 不再产出（构建时清理残留）。
+> **检索语义（浮层搜索与 /search 页统一）**：查询经同一分词器切为词项（CJK bigram / 英文小写词，单字 CJK 回退 bigram 首尾扫描），**全部词项 AND 命中**（任一被索引字段命中，或标签/分类子串包含该词项）才入选；得分 = 字段权重 × 该字段命中词项数（去重后），按总分降序，同分保持索引原序（构建期按日期倒序生成，等价「同分按日期」）。**权重为 0 = 该字段既不参与匹配也不参与计分**（如 `weightContent=0` 时正文不再命中且构建期也不索引 content）。`tags`/`categories` 命中仅参与「是否入选」（计 0 分），分别由 `matchTags`/`matchCategories` 门控（默认 true）。canonical 纯函数：`scripts/lib/feature-wiring.js → rankSearchEntries`（历史语义镜像，单测覆盖）；倒排实现与单测：`js/domains/features/search-core.js` + `scripts/search-core.test.js`。
 > **无结果文案优先级链**：`emptyHint(En)` > `noResultText(En)` > `tuning.search.emptyText(En)` > i18n 内置文案；`emptyHint` 非空时也作为「输入为空」的浮层提示（默认空串 = 不显示，保持历史输出「未找到匹配内容」）。注意：features 键优先于 tuning（两者默认文案同值，默认渲染不变）。
-> **连续查询**：每次渲染前清空旧结果节点（修复此前结果容器追加、旧结果残留的缺陷）；`search-index.json` 已含 `tags`/`categories` 字段（构建期由 `scripts/build/feeds.js` 写入）。
-> **检索实现**：子串匹配 + 字段加权（标题/摘要/正文/标签/分类），无拼音模糊；搜索框占位文案的单一来源为 `navigation.json5 → search.placeholder/placeholderEn`（SSR 直接消费，模板不再读本模块）。
+> **连续查询与竞态**：每次渲染前清空旧结果节点（修复此前结果容器追加、旧结果残留的缺陷）；索引加载期间的查询在返回后校验输入框当前值，输入已变化则丢弃迟到结果；加载失败展示错误态与「重试」按钮（force 刷新索引缓存）。
+> **高亮与摘要**：命中词项在标题与摘要中以 `<mark>`（可附加 `searchHighlight.markClass`）合并重叠区间高亮（上限 `searchHighlight.maxMatches`）；摘要窗口取首个命中词项位置（±45/+55 字符）后高亮，输出统一转义。
+> **检索实现**：倒排词项匹配（非子串），无拼音模糊；搜索框占位文案的单一来源为 `navigation.json5 → search.placeholder/placeholderEn`（SSR 直接消费，模板不再读本模块）。
 
 ### 3.5 imageLazy — 懒加载
 `enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
@@ -646,7 +648,7 @@
 | `invalidRule` | string | `abort` | 非法规则策略：`abort`（记录构建失败，非零退出）/`warn-only`（告警并跳过该条） |
 
 > **接线说明**：
-> - `enabled=false`：跳过 `site.redirects` 自定义规则，仍生成框架语言/别名规则（`/ → /{lang}/`、`/feed.xml`、`/search-index.json`、自定义页面别名）。默认 `true`（对齐历史「恒应用自定义规则」行为；原默认 false 与实现漂移已修正，见 CHANGELOG Changed）。
+> - `enabled=false`：跳过 `site.redirects` 自定义规则，仍生成框架语言/别名规则（`/ → /{lang}/`、`/feed.xml`、自定义页面别名）。默认 `true`（对齐历史「恒应用自定义规则」行为；原默认 false 与实现漂移已修正，见 CHANGELOG Changed）。
 > - `generatePagesFile=false`：完全不产出 `dist/_redirects`（含框架别名）；本地 serve 无文件可读。
 > - `applyInServe=false`：`dist/_redirects` 照常生成（部署侧生效），仅本地 serve 跳过应用，便于直测真实页面。
 > - `invalidRule`：`abort`（默认）= 非法规则记录构建失败（`recordBuildFailure`，构建以非零退出；`--allow-degraded` 可降级继续）；`warn-only` = 仅 `[WARN]` 并跳过该条。非法判定与清洗见 `scripts/lib/redirect-rules.js`（单测覆盖：缺失字段、非 `/` 开头、非 http(s) 目标、控制字符剔除）。
@@ -802,10 +804,10 @@ sitemap: {
 `enabled true` / `patterns[]` (gradient/stripes/dots/blob/mesh) / `defaultPattern 'gradient'`（封面样式选择器 initial active；不在 patterns 内时回退 patterns[0]；`preferImage=false` 时文章头图初始即应用该 pattern） / `preview true` / `preferImage true`（true=文章头图显示 featuredImage（现行为），点选样式后切换为 pattern 合成块；false=初始即渲染 defaultPattern 合成块替代图片 — `js/domains/features/cover.js`）。文章封面样式库(渐变/条纹/圆点/气泡/网格),点选即用；选择器按钮的运行时行为已补齐。
 
 ### 3.52 i18n — 内容级双语
-`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true` / `translationNotice true`(文章页翻译互链提示:另一语言存在同 slug 文章时在标题下显示胶囊链接,文案 `post.translationNotice` 支持 `{lang}` 占位) — `features.i18n` 另见 §3.73。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/search-index),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段（页脚自定义 HTML 另支持 `htmlEn`）。站点级文案同样按语言取用：`descriptionEn`/`metaKeywordsEn`/`authorProfile.bioEn` 空则回退中文;`languageEn` 控制 en 页 `<html lang>` 与侧栏日期本地化（缺失时回退 `en-US`，避免英文页出现“2026年9月10日”式中文日期）。**运行时语言以 URL 前缀为准**（localStorage 仅作为无前缀路径的偏好记忆），语言切换保持当前子路径。
+`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true` / `translationNotice true`(文章页翻译互链提示:另一语言存在同 slug 文章时在标题下显示胶囊链接,文案 `post.translationNotice` 支持 `{lang}` 占位) — `features.i18n` 另见 §3.73。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/倒排索引),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段（页脚自定义 HTML 另支持 `htmlEn`）。站点级文案同样按语言取用：`descriptionEn`/`metaKeywordsEn`/`authorProfile.bioEn` 空则回退中文;`languageEn` 控制 en 页 `<html lang>` 与侧栏日期本地化（缺失时回退 `en-US`，避免英文页出现“2026年9月10日”式中文日期）。**运行时语言以 URL 前缀为准**（localStorage 仅作为无前缀路径的偏好记忆），语言切换保持当前子路径。
 
 ### 3.53 pagefind — Pagefind 全文搜索
-`enabled true` / `indexPath '/pagefind'` / `integrate true`（false=即使 provider=pagefind 也回退内置本地搜索链路：搜索浮层与 /search/ 页均不加载 Pagefind UI，构建期同时产出 `search-index.json` 供本地链路使用）。使用 Pagefind 的离线全文搜索(navigation.search.provider='pagefind' 且本模块 enabled 时生效)。**构建在压缩与哈希之后自动生成索引,输出到 `indexPath`(不参与 cache-bust;先清空旧索引再写入);未安装 pagefind 依赖时告警跳过(`npm install -D --save-exact pagefind`;该依赖默认不在 devDependencies 中);serve/watch 模式同样生成,保证本地预览与生产一致。**
+`enabled true` / `indexPath '/pagefind'` / `integrate true`（false=即使 provider=pagefind 也回退内置本地搜索链路：搜索浮层与 /search/ 页均不加载 Pagefind UI，构建期同时产出 `/assets/search-index.<内容哈希>.json` 倒排索引供本地链路使用）。使用 Pagefind 的离线全文搜索(navigation.search.provider='pagefind' 且本模块 enabled 时生效)。**构建在压缩与哈希之后自动生成索引,输出到 `indexPath`(不参与 cache-bust;先清空旧索引再写入);未安装 pagefind 依赖时告警跳过(`npm install -D --save-exact pagefind`;该依赖默认不在 devDependencies 中);serve/watch 模式同样生成,保证本地预览与生产一致。**
 
 ### 3.54 giscus — Giscus 评论
 `enabled false`(默认关) / `repo ''` / `repoId ''` / `category 'Announcements'` / `categoryId ''` / `mapping 'title'` / `theme 'preferred_color_scheme'` / `loading 'lazy'` / `crossorigin 'anonymous'`。与 site.comments(provider='giscus')联动——两者都必须配置才显示。
@@ -823,7 +825,7 @@ sitemap: {
 `enabled true` / `type 'slide'`(`slide|fade`) / `durationMs 180`(入场) / `outDurationMs 120`(离开淡出) / `reducedMotion 'light'`(`light|off|full`,轻量版:短纯淡出) / `excludeSelector '[data-no-transition]'` / `leaveGuardMs 2500`(导航失败兜底观察窗口 ms) / `reducedDurationMs 70`(reduced-motion 下离开时长上限 ms)。内链点击淡出 → 导航 → 新页入场;外链/新窗口/hash/下载链接不拦截;原 `motion.pageEnterDurationMs` 与 `theme.animation.pageTransition` 已移除。
 
 ### 3.59 pwa — PWA 运行时
-`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `installPrompt true` / `installDismissKey 's-a2hs-dismissed'`(安装按钮关闭记忆键) / `updateToastMs 6000`(更新提示时长 ms)。运行时总开关(需 `site.pwa.enabled` 同时开启);注册 `site.pwa.serviceWorker` 并监听更新(toast 提示)、监听离线/恢复(toast 提示);PWA 关闭时不再生成根 `/manifest.json`/`/site.webmanifest` 重定向别名(`_redirects` 仅保留 `/search-index.json`、`/feed.xml`、`/404.html` 根别名)。启用时若 manifest 图标指向的文件不存在，构建会从 `site.favicon.svg` 自动生成 192/512 PNG 并剔除缺失项。`offlinePage` 构建生成 `offline.html` 兜底页(断网访问未缓存页面时显示双语提示与重试按钮,SW 预缓存并在导航失败时回退);`installPrompt` 支持 beforeinstallprompt 的浏览器显示"安装到桌面"浮动按钮(可关闭,写入 `installDismissKey` 记忆)。
+`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `installPrompt true` / `installDismissKey 's-a2hs-dismissed'`(安装按钮关闭记忆键) / `updateToastMs 6000`(更新提示时长 ms)。运行时总开关(需 `site.pwa.enabled` 同时开启);注册 `site.pwa.serviceWorker` 并监听更新(toast 提示)、监听离线/恢复(toast 提示);PWA 关闭时不再生成根 `/manifest.json`/`/site.webmanifest` 重定向别名(`_redirects` 仅保留 `/feed.xml`、`/404.html` 根别名)。启用时若 manifest 图标指向的文件不存在，构建会从 `site.favicon.svg` 自动生成 192/512 PNG 并剔除缺失项。`offlinePage` 构建生成 `offline.html` 兜底页(断网访问未缓存页面时显示双语提示与重试按钮,SW 预缓存并在导航失败时回退);`installPrompt` 支持 beforeinstallprompt 的浏览器显示"安装到桌面"浮动按钮(可关闭,写入 `installDismissKey` 记忆)。
 
 ---
 
@@ -868,7 +870,7 @@ sitemap: {
 
 ### 3.69 commandPalette — 命令面板
 
-`enabled true` / `hotkey 'ctrl+shift+p'`(组合键,支持 `ctrl`/`cmd`/`meta`/`shift`/`alt` 修饰键;不含 `+` 的旧写法如 `'k'` 等价于主修饰键 Ctrl/Cmd+该键;置空 = 不监听;默认避开浏览器打印 Ctrl+P 与全站搜索 Ctrl+K) / `includeNavigation true`(页面导航项) / `includeActions true`(切换主题/回到顶部/打开搜索/我的收藏) / `includeSearch true`(首次打开时懒加载 search-index.json) / `maxResults 10`(结果上限) / `autoFocus true`。快捷键呼出居中面板,支持键盘上下选择、Enter 执行、Esc 关闭,中文输入法(IME)组合期不误触;样式由 `tuning.commandPalette`(`width`/`topOffset`/`backdropMix`)微调 — `js/domains/features/command-palette.js`。
+`enabled true` / `hotkey 'ctrl+shift+p'`(组合键,支持 `ctrl`/`cmd`/`meta`/`shift`/`alt` 修饰键;不含 `+` 的旧写法如 `'k'` 等价于主修饰键 Ctrl/Cmd+该键;置空 = 不监听;默认避开浏览器打印 Ctrl+P 与全站搜索 Ctrl+K) / `includeNavigation true`(页面导航项) / `includeActions true`(切换主题/回到顶部/打开搜索/我的收藏) / `includeSearch true`(首次打开时懒加载当前语言倒排索引 `/assets/search-index.<内容哈希>.json`) / `maxResults 10`(结果上限) / `autoFocus true`。快捷键呼出居中面板,支持键盘上下选择、Enter 执行、Esc 关闭,中文输入法(IME)组合期不误触;样式由 `tuning.commandPalette`(`width`/`topOffset`/`backdropMix`)微调 — `js/domains/features/command-palette.js`。
 
 ### 3.70 subscribe — 订阅组件
 
@@ -952,7 +954,7 @@ sitemap: {
 
 ### 3.90 searchHighlight — 搜索结果高亮
 
-`enabled true` / `markClass ''`（高亮 `<mark>` 附加类名；空=不附加（现行为）；非法字符过滤为 `[A-Za-z0-9_-]`；作用于搜索浮层与 /search/ 页；样式仍由 site.css 的 `mark` 选择器统一提供） / `maxMatches 20`（单页最多高亮处数，防止超长文渲染卡顿）。命中片段在结果列表与正文内以 `<mark>` 标注；`enabled=false` 或 `features.search.highlightMatches=false` 均关闭高亮 — `js/domains/features/search.js` + `templates/search.ejs`。
+`enabled true` / `markClass ''`（高亮 `<mark>` 附加类名；空=不附加（现行为）；非法字符过滤为 `[A-Za-z0-9_-]`；作用于搜索浮层与 /search/ 页；样式仍由 site.css 的 `mark` 选择器统一提供） / `maxMatches 20`（单页最多高亮处数，防止超长文渲染卡顿）。命中片段在结果列表与正文内以 `<mark>` 标注（词项区间合并，重叠 bigram 合并为单段）；`enabled=false` 或 `features.search.highlightMatches=false` 均关闭高亮 — `js/domains/features/search-core.js`（浮层 `search.js` 与 `search-page.js` 共用）。
 
 ### 3.91 darkImageFilter — 暗色图片滤镜
 
@@ -1052,7 +1054,7 @@ listCover: {
 | `navbar.shadow` / `breakpoint` | `true`/`768px` | 底部阴影 / 汉堡菜单断点 |
 | `socialInNav.enabled` / `order[]` | `false`/`[]` | 导航社交图标（数据源 site.social.items） |
 | `search.enabled` | `false` | 搜索开关(需要 features.search.enabled) |
-| `search.provider` | `local` | 搜索后端:`local`(默认,构建 `search-index.json` 本地检索)/`pagefind`(构建期生成 Pagefind 静态索引,需 `npm install -D pagefind`;压缩与哈希之后生成,不参与 cache-bust;serve/watch 同样生成;浮层与独立搜索页均接入;索引生成失败时前端回退本地输入框) |
+| `search.provider` | `local` | 搜索后端:`local`(默认,构建 `/assets/search-index.<内容哈希>.json` 倒排索引本地检索)/`pagefind`(构建期生成 Pagefind 静态索引,需 `npm install -D pagefind`;压缩与哈希之后生成,不参与 cache-bust;serve/watch 同样生成;浮层与独立搜索页均接入;索引生成失败时前端回退本地输入框) |
 | `search.placeholder` | `搜索...` | 占位文本（中文） |
 | `search.placeholderEn` | `Search...` | 占位文本（英文;en 站优先，空回退 `placeholder` → ui-strings） |
 | `navbarOptions.height/glassBlur/glassAlpha` | `60px`/`12px`/`0.8` | 外观选项（优先于 navbar/theme.glass） |

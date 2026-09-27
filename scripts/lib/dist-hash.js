@@ -5,7 +5,7 @@
 //     归一化把 HTML 的 nonce="..." 属性与 CSP 的 nonce-<base64> 令牌（_headers /
 //     Worker / meta 三处同源）替换为固定占位，使哈希对 nonce 不敏感；
 //   - 同时把 CRLF 归一化为 LF（跨平台检出/生成差异），并按 root 相对路径忽略
-//     已知非确定性产物（build-report.html 含构建统计、og/ 为图像管线产物）；
+//     已知非确定性产物（build-report.html / report.txt 含构建统计与时间戳、og/ 为图像管线产物）；
 //   - 二进制文件（无效 UTF-8）按原始字节哈希，避免 UTF-8 替换字符（U+FFFD）把不同
 //     字节序列折叠成相同文本而产生「等价假象」。
 const fs = require('node:fs');
@@ -14,7 +14,7 @@ const crypto = require('node:crypto');
 const { isUtf8 } = require('node:buffer');
 
 // 默认忽略项（root 相对 POSIX 路径；目录项以 / 结尾）
-const DEFAULT_IGNORES = ['build-report.html', 'og/'];
+const DEFAULT_IGNORES = ['build-report.html', 'report.txt', 'og/'];
 
 // nonce 的两种形态：HTML 属性值（双引号）与 CSP 令牌（可带引号包裹，只替换令牌本身）
 const NONCE_ATTR_RE = /nonce="[^"]*"/g;

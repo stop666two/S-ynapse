@@ -122,11 +122,20 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       path.join(tmpDir, 'zh', 'search-index.json'),
       path.join(tmpDir, 'zh', 'sitemap.xml'),
       path.join(tmpDir, 'zh', 'feed.xml'),
-      path.join(tmpDir, '404.html')
+      path.join(tmpDir, '404.html'),
+      path.join(tmpDir, 'report.txt')
     ];
     for (const file of required) {
       assert.ok(fs.existsSync(file), 'missing artifact: ' + path.relative(tmpDir, file));
     }
+    // dist/report.txt 构建摘要：固定段标必须存在；默认态（增强开）标注启用并产出压缩统计。
+    const summaryText = fs.readFileSync(path.join(tmpDir, 'report.txt'), 'utf-8');
+    for (const marker of ['S-YNAPSE 构建摘要', '[阶段耗时]', '[压缩统计]', '[无头验证]', '[告警]', '[预算与目标]']) {
+      assert.ok(summaryText.includes(marker), 'report.txt must contain section marker ' + marker);
+    }
+    assert.ok(summaryText.includes('压缩增强: 启用'), 'default report.txt must mark compression enhancements as enabled');
+    assert.ok(summaryText.includes('HTML: 文件'), 'default report.txt must aggregate HTML compression stats');
+    assert.ok(summaryText.includes('gzip'), 'default report.txt must report gzip before/after');
     const root404 = fs.readFileSync(path.join(tmpDir, '404.html'), 'utf-8');
     assert.ok(root404.includes('S-LANG-REDIRECT-404'), 'root 404 must carry the language redirect hook');
     assert.ok(root404.includes('/en/404.html'), 'root 404 must route en visitors to the localized page');
@@ -369,6 +378,13 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       assert.ok(reportA.includes('\n') && reportB.includes('\n'), 'build-report.html must stay human-readable');
       assert.strictEqual(normalizeReportHtml(reportB), normalizeReportHtml(reportA),
         'build report must be identical across states apart from timing/size stats');
+      // report.txt 两态均产出且保持人类可读；关闭态必须标注增强关闭（豁免名单生效，未被压缩改写）。
+      const offSummary = fs.readFileSync(path.join(offDir, 'report.txt'), 'utf-8');
+      for (const marker of ['S-YNAPSE 构建摘要', '[阶段耗时]', '[压缩统计]', '[无头验证]', '[告警]', '[预算与目标]']) {
+        assert.ok(offSummary.includes(marker), 'compression-off report.txt must contain section marker ' + marker);
+      }
+      assert.ok(offSummary.includes('压缩增强: 关闭'), 'compression-off report.txt must mark enhancements as disabled');
+      assert.ok(offSummary.includes('\n'), 'report.txt must stay human-readable');
     } finally {
       fs.rmSync(offDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
     }

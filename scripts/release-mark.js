@@ -4,17 +4,22 @@
 //   1. 校验工作区干净；
 //   2. 顺序执行全套质量门禁（任一失败即停止，不修改任何文件）；
 //   3. 校验人工核验参数（--human-verified / --confirm）；
-//   4. 同步 package.json / package-lock.json 版本；
-//   5. 将 CHANGELOG 的 [Unreleased] 内容归入新版本段；
+//   4. 同步版本：递增路径用 npm version；显式版本 === 当前版本（同版本标记）时跳过 npm version，
+//      仅当 package-lock 根版本漂移时同步；
+//   5. 改写 CHANGELOG（[Unreleased] 重命名/合并进 [X.Y.Z] 段，或仅确保版本段与链接）；
 //   6. 生成 RELEASE.json（status=verified + 门禁全 true + 记录被核验提交 = tag 父提交）；
 //   7. 提交 chore(release): vX.Y.Z 并创建附注 tag vX.Y.Z；
 //   8. 默认只留在本地并打印后续命令，--push（需 --confirm-push 二次确认）才推送。
+//
+// 同版本标记用于「当前 package.json 版本尚未发布过、为它建立首个 Release」的场景；
+// 已发布版本不可重复使用（tag 已存在时脚本在门禁前拒绝）。
 //
 // --dry-run：跳过重型门禁，仅演练版本/文件/CHANGELOG 变换并输出计划，不写入任何文件。
 //
 // 用法：
 //   npm run release:mark -- <major|minor|patch|X.Y.Z> --human-verified "<姓名>" --confirm <版本号>
 //   npm run release:mark -- patch --human-verified "张三" --confirm 1.1.1 --dry-run
+//   npm run release:mark -- 1.1.0 --human-verified "张三" --confirm 1.1.0   # 同版本标记
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -22,7 +27,9 @@ const { spawnSync } = require('node:child_process');
 const { writeFileAtomicSync } = require('./lib/atomic-write');
 const {
   RELEASE_GATES,
-  computeNextVersion,
+  CHANGELOG_LINK_BASE,
+  resolveReleaseTarget,
+  planChangelogRewrite,
   rewriteChangelog,
   buildReleaseState,
   buildPassedChecks,
@@ -31,6 +38,7 @@ const {
 
 const ROOT = path.resolve(__dirname, '..');
 const PACKAGE_JSON = path.join(ROOT, 'package.json');
+const PACKAGE_LOCK = path.join(ROOT, 'package-lock.json');
 const CHANGELOG = path.join(ROOT, 'CHANGELOG.md');
 const RELEASE_JSON = path.join(ROOT, 'RELEASE.json');
 
@@ -101,6 +109,8 @@ function printUsage() {
   console.log('  --confirm         目标版本号（必填，与计算出的目标版本一致才继续）');
   console.log('  --dry-run         只演练并打印计划，不执行门禁、不写文件');
   console.log('  --push            推送分支与 tag（必须同时给 --confirm-push 二次确认）');
+  console.log('  同版本标记        显式 X.Y.Z 且等于当前 package.json 版本时，跳过 npm version，');
+  console.log('                    为当前版本建首个 Release（CHANGELOG [Unreleased] 合并进已有 [X.Y.Z] 段）');
 }
 
 // 人工核验与确认参数的共享校验：提前执行一次避免跑完门禁才因命令行缺失失败。
@@ -139,6 +149,23 @@ function assertTagFree(tag) {
   }
 }
 
+// 同版本标记路径的版本同步：package.json 已等于目标版本（调用前由 resolveReleaseTarget 保证），
+// 仅当 package-lock 根版本（顶层 version 与 packages[""].version）漂移时写回目标版本。
+function syncLockRootVersion(targetVersion) {
+  const lock = JSON.parse(fs.readFileSync(PACKAGE_LOCK, 'utf-8'));
+  let changed = false;
+  if (lock.version !== targetVersion) {
+    lock.version = targetVersion;
+    changed = true;
+  }
+  if (lock.packages && lock.packages[''] && lock.packages[''].version !== targetVersion) {
+    lock.packages[''].version = targetVersion;
+    changed = true;
+  }
+  if (changed) writeFileAtomicSync(PACKAGE_LOCK, JSON.stringify(lock, null, 2) + '\n');
+  return changed;
+}
+
 function runGates() {
   const checks = buildPassedChecks();
   for (let i = 0; i < RELEASE_GATES.length; i++) {
@@ -155,18 +182,42 @@ function runGates() {
   return checks;
 }
 
-function printDryRun(options, currentVersion, targetVersion, changelogText) {
+const CHANGELOG_MODE_LABELS = {
+  merge: '合并 [Unreleased] 进已有版本段',
+  rename: '重命名 [Unreleased] 为目标版本段',
+  create: '新建目标版本段',
+  ensure: '仅确保目标版本段与链接'
+};
+
+function printDryRun(options, currentVersion, targetVersion, sameVersion, changelogText) {
   const today = formatUtcDate(new Date());
-  const preview = rewriteChangelog(changelogText, targetVersion, today);
-  const heading = /^## \[[^\]]+\] - \d{4}-\d{2}-\d{2}$/m.exec(preview);
+  const plan = planChangelogRewrite(changelogText, targetVersion, today);
   console.log('[release:mark] dry-run：仅演练，不执行门禁、不写入任何文件');
   console.log('  当前版本：' + currentVersion);
-  console.log('  目标版本：' + targetVersion + '（bump=' + options.bump + '，--confirm 一致）');
+  if (sameVersion) {
+    console.log('  目标版本：' + targetVersion + '（同版本标记：显式版本 === 当前版本，--confirm 一致）');
+    console.log('  版本同步：跳过 npm version（package.json 已是 ' + targetVersion + '；package-lock 根版本不一致时同步）');
+  } else {
+    console.log('  目标版本：' + targetVersion + '（bump=' + options.bump + '，--confirm 一致）');
+    console.log('  package.json / package-lock.json → ' + targetVersion + '（npm version --no-git-tag-version）');
+  }
   console.log('  人工核验：' + options.humanVerifiedBy.trim());
   console.log('  门禁（dry-run 跳过，正式执行 ' + RELEASE_GATES.length + ' 项）：');
   for (const gate of RELEASE_GATES) console.log('    - ' + gate.command);
-  console.log('  package.json / package-lock.json → ' + targetVersion + '（npm version --no-git-tag-version）');
-  console.log('  CHANGELOG：[Unreleased] 内容归入 ' + (heading ? heading[0] : '## [' + targetVersion + '] - ' + today) + '，并补版本链接');
+  console.log('  CHANGELOG 变换计划：' + CHANGELOG_MODE_LABELS[plan.mode] + ' → [' + targetVersion + '] - ' + today);
+  if (plan.mode === 'merge') {
+    for (const group of plan.mergedSubsections) {
+      console.log('    合并小节：### ' + group.title + '（+ ' + group.entries + ' 条，保持既有条目）');
+    }
+    console.log('    删除 [Unreleased] 段；[' + targetVersion + '] 日期更新为 ' + today);
+  } else if (plan.mode === 'rename') {
+    console.log('    [Unreleased] → [' + targetVersion + '] - ' + today);
+  } else if (plan.mode === 'create') {
+    console.log('    未找到 [' + targetVersion + '] 段：在最新版本段前新建空段');
+  }
+  console.log('    版本链接：' + (plan.linkAdded
+    ? '补 [' + targetVersion + ']: ' + CHANGELOG_LINK_BASE + 'v' + targetVersion
+    : '[' + targetVersion + '] 链接已存在'));
   console.log('  RELEASE.json：status=verified、checks 全 true、commit=被核验提交（tag 的父提交）');
   console.log('  提交：chore(release): v' + targetVersion + '；附注 tag v' + targetVersion + '（默认不 push）');
   console.log('  后续（人工执行）：git push origin <branch> 且 git push origin v' + targetVersion);
@@ -182,7 +233,9 @@ function main() {
   }
 
   const currentVersion = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf-8')).version;
-  const targetVersion = computeNextVersion(currentVersion, options.bump);
+  const resolved = resolveReleaseTarget(currentVersion, options.bump);
+  const targetVersion = resolved.version;
+  const sameVersion = resolved.sameVersion;
   const tag = 'v' + targetVersion;
 
   const argErrors = collectArgErrors(options, targetVersion);
@@ -194,7 +247,7 @@ function main() {
 
   if (options.dryRun) {
     const changelogText = fs.readFileSync(CHANGELOG, 'utf-8');
-    printDryRun(options, currentVersion, targetVersion, changelogText);
+    printDryRun(options, currentVersion, targetVersion, sameVersion, changelogText);
     return;
   }
 
@@ -213,14 +266,21 @@ function main() {
     return;
   }
 
-  // ④ 同步版本号（package.json + package-lock.json；不产生 commit/tag）。
-  console.log('\n[release:mark] npm version --no-git-tag-version ' + targetVersion);
-  const versionResult = runShell('npm version --no-git-tag-version ' + targetVersion);
-  if (versionResult.error || versionResult.status !== 0) {
-    throw new Error('npm version 失败：' + (versionResult.error ? versionResult.error.message : 'exit ' + versionResult.status));
+  // ④ 同步版本号（不产生 commit/tag）：递增路径走 npm version；
+  //    同版本标记时 package.json 已一致、跳过 npm version，仅同步 package-lock 根版本漂移。
+  if (sameVersion) {
+    const synced = syncLockRootVersion(targetVersion);
+    console.log('\n[release:mark] 同版本标记：跳过 npm version（package.json 已是 ' + targetVersion + '）' +
+      (synced ? '；package-lock 根版本已同步' : '；package-lock 根版本一致'));
+  } else {
+    console.log('\n[release:mark] npm version --no-git-tag-version ' + targetVersion);
+    const versionResult = runShell('npm version --no-git-tag-version ' + targetVersion);
+    if (versionResult.error || versionResult.status !== 0) {
+      throw new Error('npm version 失败：' + (versionResult.error ? versionResult.error.message : 'exit ' + versionResult.status));
+    }
   }
 
-  // ⑤ CHANGELOG：[Unreleased] 内容归入 [X.Y.Z] - 日期。
+  // ⑤ CHANGELOG：按现状重命名/合并 [Unreleased] 或确保 [X.Y.Z] 段与链接。
   const changelogText = fs.readFileSync(CHANGELOG, 'utf-8');
   const updatedChangelog = rewriteChangelog(changelogText, targetVersion, formatUtcDate(new Date()));
   fs.writeFileSync(CHANGELOG, updatedChangelog, 'utf-8');

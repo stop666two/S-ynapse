@@ -67,6 +67,16 @@ function computeNextVersion(currentVersion, bump) {
   throw new Error('无效的版本参数（可用：major|minor|patch|X.Y.Z）：' + String(bump));
 }
 
+// 解析发布目标：仅显式 X.Y.Z 且等于当前版本时走「同版本标记」（sameVersion=true，为当前版本建首个 Release）；
+// 其余输入复用 computeNextVersion 的递增语义（关键字递增或显式更高版本，低于/等于当前版本的非法组合仍抛错）。
+function resolveReleaseTarget(currentVersion, bump) {
+  if (!parseSemver(currentVersion)) throw new Error('当前版本不是合法的 X.Y.Z：' + currentVersion);
+  if (isSemver(bump) && compareSemver(bump, currentVersion) === 0) {
+    return { version: bump, sameVersion: true };
+  }
+  return { version: computeNextVersion(currentVersion, bump), sameVersion: false };
+}
+
 // 从 tag（vX.Y.Z）解析语义版本号；非法 tag 抛错。
 function normalizeTagVersion(tag) {
   if (typeof tag !== 'string' || !/^v\d+\.\d+\.\d+$/.test(tag)) {
@@ -83,26 +93,191 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// CHANGELOG 发布改写：保留 [Unreleased] 标题作为下一次的占位，
-// 将其后的全部内容归入新版本段，并在文末补充版本链接定义。
-function rewriteChangelog(text, version, date) {
+// —— CHANGELOG 发布变换（Keep a Changelog 结构）——
+// 按输入现状分四类处理：
+//   merge  有 [Unreleased] 且已有目标版本段：Unreleased 各小节按标题合并进目标段（新条目在前、既有条目保留），
+//          删除 [Unreleased]，目标段日期更新为发布日；
+//   rename 有 [Unreleased] 且无目标版本段：[Unreleased] 标题重命名为 [X.Y.Z] - 日期；
+//   create 无 [Unreleased] 且无目标版本段：在最新版本段前新建空的目标版本段；
+//   ensure 无 [Unreleased] 且目标版本段已存在：仅确保版本链接存在。
+// 所有分支都不改动其他段落内容，并在缺少 [X.Y.Z] 链接定义时补到链接引用块末尾。
+
+const SECTION_RE = /^## \[([^\]]+)\](?: - (\d{4}-\d{2}-\d{2}))?[^\S\r\n]*$/;
+const SUBSECTION_RE = /^### (.+?)[^\S\r\n]*$/;
+const LINK_REF_RE = /^\[[^\]]+\]:\s*\S/;
+
+// 解析顶层段落（标题/日期/行号）与文末链接引用块起始行；正文范围 = 标题后一行至下一段标题或链接块。
+function parseChangelog(text) {
+  const lines = text.split('\n');
+  /** @type {Array<{ title: string, date: string, headingIndex: number, bodyStart: number, bodyEnd: number }>} */
+  const sections = [];
+  for (let i = 0; i < lines.length; i++) {
+    const match = SECTION_RE.exec(lines[i]);
+    if (match) sections.push({ title: match[1], date: match[2] || '', headingIndex: i, bodyStart: i + 1, bodyEnd: i + 1 });
+  }
+  let linkStart = lines.length;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i].trim() === '') continue;
+    if (LINK_REF_RE.test(lines[i])) {
+      linkStart = i;
+      continue;
+    }
+    break;
+  }
+  for (let i = 0; i < sections.length; i++) {
+    const next = sections[i + 1];
+    sections[i].bodyStart = sections[i].headingIndex + 1;
+    sections[i].bodyEnd = next ? next.headingIndex : linkStart;
+  }
+  return { lines, sections, linkStart };
+}
+
+function trimBlankLines(lines) {
+  let start = 0;
+  let end = lines.length;
+  while (start < end && lines[start].trim() === '') start += 1;
+  while (end > start && lines[end - 1].trim() === '') end -= 1;
+  return lines.slice(start, end);
+}
+
+// 段落正文解析为「头部杂项 + 按出现顺序的小节组」，条目行原样保留（含多行明细与空行）。
+function parseSubsections(bodyLines) {
+  const head = [];
+  const groups = [];
+  let current = null;
+  for (const line of bodyLines) {
+    const match = SUBSECTION_RE.exec(line);
+    if (match) {
+      current = { title: match[1], items: [] };
+      groups.push(current);
+    } else if (current) {
+      current.items.push(line);
+    } else {
+      head.push(line);
+    }
+  }
+  return {
+    head: trimBlankLines(head),
+    groups: groups.map(group => ({ title: group.title, items: trimBlankLines(group.items) }))
+  };
+}
+
+// 渲染为段落正文：小节之间空一行，小节标题与条目之间空一行。
+function renderSubsections(head, groups) {
+  const parts = [];
+  if (head.length > 0) parts.push(head.join('\n'));
+  for (const group of groups) {
+    const block = group.items.length > 0
+      ? '### ' + group.title + '\n\n' + group.items.join('\n')
+      : '### ' + group.title;
+    parts.push(block);
+  }
+  return parts.join('\n\n');
+}
+
+function countEntries(lines) {
+  return lines.filter(line => line.startsWith('- ')).length;
+}
+
+// 合并小节：同标题的 Unreleased 条目插到目标小节已有条目之前（新条目在上），
+// 目标段没有的标题按 Unreleased 中的顺序追加到末尾。
+function mergeSubsections(target, unreleased) {
+  const groups = target.groups.map(group => ({ title: group.title, items: group.items.slice() }));
+  for (const source of unreleased.groups) {
+    if (source.items.length === 0) continue;
+    const existing = groups.find(group => group.title === source.title);
+    if (existing) {
+      const separator = existing.items.length > 0 ? [''] : [];
+      existing.items = source.items.concat(separator, existing.items);
+    } else {
+      groups.push({ title: source.title, items: source.items.slice() });
+    }
+  }
+  const separator = unreleased.head.length > 0 && target.head.length > 0 ? [''] : [];
+  return { head: unreleased.head.concat(separator, target.head), groups };
+}
+
+// 版本链接检查与补齐：已有 [X.Y.Z]: 定义则原样保留，缺失时追加到链接引用块末尾。
+function appendVersionLink(text, version) {
+  if (new RegExp('^\\[' + escapeRegExp(version) + '\\]:', 'm').test(text)) {
+    return { text, added: false };
+  }
+  const link = '[' + version + ']: ' + CHANGELOG_LINK_BASE + 'v' + version;
+  const normalized = text.replace(/\s*$/, '');
+  const tail = normalized.split('\n').pop() || '';
+  const separator = LINK_REF_RE.test(tail) ? '\n' : '\n\n';
+  return { text: normalized + separator + link + '\n', added: true };
+}
+
+// 纯函数：分析 CHANGELOG 现状与目标版本的关系，返回变换计划与改写后的文本。
+// mode：merge / rename / create / ensure（语义见上方说明）；mergedSubsections 为待合并小节及条目数。
+function planChangelogRewrite(text, version, date) {
   if (typeof text !== 'string' || text === '') throw new Error('CHANGELOG 内容为空');
   if (!isSemver(version)) throw new Error('版本号必须是 X.Y.Z：' + version);
   if (typeof date !== 'string' || !DATE_RE.test(date)) throw new Error('日期必须是 YYYY-MM-DD：' + String(date));
-  if (new RegExp('^## \\[' + escapeRegExp(version) + '\\]', 'm').test(text)) {
-    throw new Error('CHANGELOG 已存在 [' + version + '] 段，拒绝重复发布');
+  const parsed = parseChangelog(text);
+  const unreleased = parsed.sections.find(section => section.title === 'Unreleased') || null;
+  const target = parsed.sections.find(section => section.title === version) || null;
+  const plan = {
+    mode: 'ensure',
+    version,
+    date,
+    sectionsRemoved: [],
+    sectionsRenamed: [],
+    mergedSubsections: [],
+    headingCreated: false,
+    linkAdded: false,
+    text: ''
+  };
+  let lines = parsed.lines.slice();
+
+  if (unreleased && target) {
+    plan.mode = 'merge';
+    const unreleasedBody = parseSubsections(parsed.lines.slice(unreleased.bodyStart, unreleased.bodyEnd));
+    const targetBody = parseSubsections(parsed.lines.slice(target.bodyStart, target.bodyEnd));
+    const merged = mergeSubsections(targetBody, unreleasedBody);
+    const rendered = renderSubsections(merged.head, merged.groups);
+    plan.mergedSubsections = unreleasedBody.groups
+      .filter(group => group.items.length > 0)
+      .map(group => ({ title: group.title, entries: countEntries(group.items) }));
+    const rebuilt = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (i >= unreleased.headingIndex && i < unreleased.bodyEnd) continue;
+      if (i === target.headingIndex) {
+        rebuilt.push('## [' + version + '] - ' + date, '');
+        if (rendered !== '') rebuilt.push(rendered);
+        rebuilt.push('');
+        i = target.bodyEnd - 1;
+        continue;
+      }
+      rebuilt.push(lines[i]);
+    }
+    lines = rebuilt;
+    plan.sectionsRemoved.push('Unreleased');
+  } else if (unreleased) {
+    plan.mode = 'rename';
+    lines[unreleased.headingIndex] = '## [' + version + '] - ' + date;
+    plan.sectionsRenamed.push('Unreleased');
+  } else if (!target) {
+    plan.mode = 'create';
+    if (parsed.sections.length > 0) {
+      lines.splice(parsed.sections[0].headingIndex, 0, '## [' + version + '] - ' + date, '');
+    } else {
+      if (lines.length > 0 && lines[lines.length - 1].trim() !== '') lines.push('');
+      lines.push('## [' + version + '] - ' + date, '');
+    }
+    plan.headingCreated = true;
   }
-  const unreleased = /^## \[Unreleased\][^\S\r\n]*$/m.exec(text);
-  if (!unreleased) throw new Error('CHANGELOG 未找到 "## [Unreleased]" 标题，无法改写');
-  let updated = text.replace(
-    unreleased[0],
-    unreleased[0] + '\n\n## [' + version + '] - ' + date
-  );
-  const link = '[' + version + ']: ' + CHANGELOG_LINK_BASE + 'v' + version;
-  if (!updated.includes('[' + version + ']:')) {
-    updated = updated.replace(/\s*$/, '\n') + link + '\n';
-  }
-  return updated;
+
+  const linked = appendVersionLink(lines.join('\n'), version);
+  plan.linkAdded = linked.added;
+  plan.text = linked.text;
+  return plan;
+}
+
+// CHANGELOG 发布改写入口：仅返回改写后的文本（计划与实现同源，见 planChangelogRewrite）。
+function rewriteChangelog(text, version, date) {
+  return planChangelogRewrite(text, version, date).text;
 }
 
 // 生成 RELEASE.json 对象（字段顺序固定，便于差异阅读）。
@@ -134,8 +309,10 @@ module.exports = {
   parseSemver,
   compareSemver,
   computeNextVersion,
+  resolveReleaseTarget,
   normalizeTagVersion,
   formatUtcDate,
+  planChangelogRewrite,
   rewriteChangelog,
   buildReleaseState,
   buildPassedChecks

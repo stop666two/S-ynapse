@@ -78,6 +78,13 @@ jobs:
       - name: Security verification (malicious-content build regression)
         run: npm run verify:security
       - run: npm run build
+      - name: Headless compression verification (Chrome-only, skip-with-notice otherwise)
+        run: |
+          if [ -n "$CHROME_PATH" ] || command -v google-chrome >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1; then
+            npm run verify:compression
+          else
+            echo "[SKIP] 未检测到 Chrome（CHROME_PATH/google-chrome/chromium），跳过压缩无头对比验证"
+          fi
       - name: SBOM (CycloneDX 1.5 / ECMA-424)
         run: npm run sbom
       - name: Upload SBOM artifact

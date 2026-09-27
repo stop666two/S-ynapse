@@ -214,7 +214,12 @@ function createBuildContext(deps) {
   // 压缩配置（第 14 个配置文件 compression.json5）：独立顶层模块，不进入主配置族。
   // 加载/覆盖校验失败 → 记录构建失败 + 告警 + 降级为内置默认值（不中止构建流程）；
   // serve / watch 下 active=false（增强步骤整体跳过，基线压缩行为不变）。
-  const compression = (() => {
+  // 惰性加载：--compression-override 文件缺失/解析错误经 config.abortBuild 抛出或退出，
+  // 必须发生在 build() 的 try 内（watch 模式才能被 rebuild 循环捕获；此前在上下文创建阶段
+  // 加载会让 watch 在模块加载时直接崩溃）。
+  let compressionState = null;
+  function resolveCompressionState() {
+    if (compressionState) return compressionState;
     const loaded = loadCompressionConfig(rootDir);
     const errors = loaded.errors.slice();
     const warnings = loaded.warnings.slice();
@@ -240,7 +245,7 @@ function createBuildContext(deps) {
       effective = JSON.parse(JSON.stringify(DEFAULT_COMPRESSION));
       warnings.push('compression 配置存在 ' + errors.length + ' 项错误，已降级为内置默认值（构建继续，详见构建失败记录）');
     }
-    return {
+    compressionState = {
       config: effective,
       errors,
       warnings,
@@ -249,7 +254,8 @@ function createBuildContext(deps) {
         ? path.relative(rootDir, COMPRESSION_OVERRIDE_PATH).split(path.sep).join('/')
         : ''
     };
-  })();
+    return compressionState;
+  }
 
   // 媒体与静态资产模块（scripts/build/media.js）：路径、缓存加载器与错误收集器通过 ctx 注入。
   // 机械拆分 2/N —— 函数体原样搬移；getAllFiles 移至 scripts/build/fs-utils.js 供跨模块复用。
@@ -371,11 +377,11 @@ function createBuildContext(deps) {
 
   // 构建报告与性能预算模块（scripts/build/report.js）：注入产物目录、发布过滤器、内联配置体积读取器与构建错误收集器。
   // 机械拆分 —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
-  // compression 注入供后续报告阶段输出压缩对照（当前模块暂未消费，接口先行）。
+  // getCompression 注入供后续报告阶段输出压缩对照（当前模块暂未消费，接口先行）。
   const report = createReportModule({
     distDir: DIST_DIR,
     cspNonce: CSP_NONCE,
-    compression,
+    getCompression: () => resolveCompressionState(),
     getPublished: helpers.getPublished,
     getInlineConfigKb: deps.getInlineConfigKb,
     recordBuildFailure: helpers.recordBuildFailure
@@ -383,12 +389,17 @@ function createBuildContext(deps) {
 
   // 压缩与缓存指纹模块（scripts/build/minify.js）：注入路径、开关与共享依赖。
   // 机械拆分 1/N —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
-  // getBundleFiles 为 build.js 活值（本轮 esbuild 产物文件名），供 C4 混淆目标白名单读取。
+  // getCompression 为惰性读取器（构建 try 内首次消费）；getBundleFiles 为 build.js 活值
+  // （本轮 esbuild 产物文件名），供 JS 混淆目标白名单读取；基线快照目录与验证结果路径
+  // 始终位于项目 .cache/（不随 --out 迁移，也不进入部署产物）。
   const minify = createMinifyModule({
     distDir: DIST_DIR,
     cacheBustManifestPath: CACHE_BUST_MANIFEST_PATH,
     bundleActive: BUNDLE_ACTIVE,
-    compression,
+    getCompression: () => resolveCompressionState(),
+    compressionBaselineDir: path.join(rootDir, '.cache', 'compression-baseline'),
+    compressionVerifyReportPath: path.join(rootDir, '.cache', 'compression-verify', 'last.json'),
+    compressionVerifyProfileDir: path.join(rootDir, '.cache', 'chrome-verify-profile'),
     getAllFiles,
     recordBuildFailure: helpers.recordBuildFailure,
     getBundleFiles: deps.getBundleFiles,
@@ -402,7 +413,7 @@ function createBuildContext(deps) {
     distDir: DIST_DIR
   });
 
-  return Object.assign(
+  const api = Object.assign(
     {
       rootDir,
       distDir: DIST_DIR,
@@ -414,8 +425,6 @@ function createBuildContext(deps) {
       outputDirResolved: OUTPUT_DIR_RESOLVED,
       cspNonce: CSP_NONCE,
       pkgVersion: PKG_VERSION,
-      compression,
-      compressionActive: compression.active,
       json5,
       chokidar,
       hooks,
@@ -439,6 +448,14 @@ function createBuildContext(deps) {
     serve,
     cache
   );
+  // compression / compressionActive 以惰性 getter 暴露：任何读取只触发一次加载并缓存；
+  // 覆盖文件错误必须在 build() 的 try 内被 resolveCompressionState() 触发（watch 可恢复）。
+  Object.defineProperties(api, {
+    compression: { enumerable: true, get: () => resolveCompressionState() },
+    compressionActive: { enumerable: true, get: () => resolveCompressionState().active }
+  });
+  api.resolveCompressionState = resolveCompressionState;
+  return api;
 }
 
 module.exports = { createBuildContext };

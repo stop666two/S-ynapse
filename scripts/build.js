@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { createBuildErrorCollector, resolveExitCode, formatFailures } = require('./lib/build-errors');
+const { createBuildErrorCollector, resolveExitCode, formatFailures, formatWarnings } = require('./lib/build-errors');
 const { isScheduled } = require('./lib/publish-window');
 const { resolveOgSize, collectCoverSizesFromManifest } = require('./lib/og-size');
 const { buildBundles } = require('./lib/bundle');
@@ -50,6 +50,7 @@ const {
   showDrafts: SHOW_DRAFTS, allowDegraded: ALLOW_DEGRADED, bundleActive: BUNDLE_ACTIVE,
   outputDirResolved: OUTPUT_DIR_RESOLVED, pkgVersion: PKG_VERSION,
   abortBuild, loadConfig, validateConfig, applyCspNonce,
+  resolveCompressionState,
   getPublished, resolveDailyQuotes, recordBuildFailure,
   setupDist, copyStatic, copyProtectedAssets, optimizeMedia,
   generateAutoCovers,
@@ -109,6 +110,10 @@ async function build() {
     abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
   }
   try {
+    // 压缩配置惰性加载在此显式触发：--compression-override 文件缺失/解析错误经
+    // config.abortBuild 抛出（watch 下由 rebuild 捕获）或退出（普通构建），
+    // 不再发生在 createBuildContext（模块加载）阶段导致 watch 直接崩溃。
+    resolveCompressionState();
     const config = loadConfig();
     if (!validateConfig(config)) {
       abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
@@ -293,8 +298,12 @@ async function build() {
       for (const p of pageList) console.log('  - ' + p);
     }
     if (buildErrors.hasErrors) {
-      console.error('\n[FAILURES] ' + buildErrors.entries.length + ' build failure(s) recorded:');
-      console.error(formatFailures(buildErrors.entries));
+      console.error('\n[FAILURES] ' + buildErrors.fatalEntries.length + ' build failure(s) recorded:');
+      console.error(formatFailures(buildErrors.fatalEntries));
+    }
+    if (buildErrors.hasWarnings) {
+      console.warn('\n[WARNINGS] ' + buildErrors.warningEntries.length + ' non-blocking issue(s) recorded:');
+      console.warn(formatWarnings(buildErrors.warningEntries));
     }
     process.exitCode = resolveExitCode(buildErrors, { allowDegraded: ALLOW_DEGRADED });
     return config;
@@ -346,7 +355,11 @@ if (WATCH_MODE) {
   });
   process.on('SIGINT', () => { watcher.close(); process.exit(0); });
   process.on('SIGTERM', () => { watcher.close(); process.exit(0); });
-  build();
+  // 初始构建失败（如配置错误 / --compression-override 缺失）不得终止 watch：
+  // build() 在 watch 下以 throw 上报失败，这里与 rebuild 循环同语义地捕获并保留监听。
+  build().catch(function () {
+    console.error('[WATCH] 初始构建失败，已保留监听；修改文件后会自动重试。');
+  });
 } else {
   build().then(function (config) {
     if (SERVE_MODE) startServer(config);

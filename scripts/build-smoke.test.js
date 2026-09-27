@@ -24,7 +24,8 @@ function runBuild(outDir, extraArgs) {
   const args = ['scripts/build.js', '--out', outDir].concat(extraArgs || []);
   return execFileSync(process.execPath, args, {
     cwd: ROOT,
-    env: { ...process.env, SYNAPSE_OUT_DIR: outDir, NODE_ENV: 'production' },
+    // 冒烟测试保持无头无关：显式关闭构建内联的压缩对比验证（真实验证由 npm run verify:compression 门禁覆盖）。
+    env: { ...process.env, SYNAPSE_OUT_DIR: outDir, NODE_ENV: 'production', SYNAPSE_COMPRESSION_VERIFY: 'off' },
     stdio: 'pipe',
     timeout: 240000
   });

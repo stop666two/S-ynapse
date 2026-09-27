@@ -16,9 +16,20 @@ const {
   buildObfuscateOptions,
   compactJsonText,
   compressionEnhancementPlan,
+  enhancementWorkActive,
   jsonSkipReason,
   selectObfuscationTargets
 } = require('../lib/compression-steps');
+const {
+  createBaselineSnapshot,
+  restoreBaselineSnapshot,
+  compareSnapshotBytes,
+  verifyCompression,
+  verifyModeFromEnv,
+  summarizeFailures,
+  writeVerifyReport
+} = require('../lib/compression-verify');
+const { resolveChromePath } = require('../lib/mermaid-render');
 
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes)) return '?';
@@ -29,14 +40,41 @@ function formatBytes(bytes) {
 function createMinifyModule(ctx) {
   const { minifyHtmlNode, CleanCSS, terser } = ctx;
 
-  // 压缩配置与增强计划（context.js 注入）：config 为合并后的 compression.json5，
-  // active 为 compressionActive() 的结果（serve/watch 强制 false），errors/warnings 来自加载与覆盖校验。
-  const compressionState = ctx.compression || { config: {}, active: false, errors: [], warnings: [], override: '' };
-  const compressionConfig = compressionState.config || {};
-  const compressionPlan = compressionEnhancementPlan(compressionConfig, compressionState.active);
+  // 压缩配置与增强计划（context.js 惰性注入）：config 为合并后的 compression.json5，
+  // active 为 compressionActive() 的结果（serve/watch 强制 false）。
+  // 首次消费发生在 minifyAll（build() 的 try 内），--compression-override 的缺失/解析错误
+  // 因此可被 watch 的 rebuild 循环捕获；状态一次加载后缓存，同一构建进程内复用。
+  const FALLBACK_COMPRESSION_STATE = { config: {}, active: false, errors: [], warnings: [], override: '' };
+  let compressionState = FALLBACK_COMPRESSION_STATE;
+  let compressionPlan = compressionEnhancementPlan({}, false);
+
+  function refreshCompressionState() {
+    if (typeof ctx.getCompression === 'function') {
+      compressionState = ctx.getCompression() || FALLBACK_COMPRESSION_STATE;
+    } else if (ctx.compression) {
+      compressionState = ctx.compression;
+    }
+    compressionPlan = compressionEnhancementPlan(compressionState.config || {}, compressionState.active === true);
+  }
+
   // 本轮 esbuild 产物白名单（build.js 经活值 getter 注入）：混淆只作用于本轮 app/deferred，
   // 增量构建残留的旧 bundle 与 vendor 不在名单内。
   const getBundleFiles = typeof ctx.getBundleFiles === 'function' ? ctx.getBundleFiles : () => [];
+
+  // 无头对比验证的开关与落盘路径：基线快照与结果 JSON 固定在项目 .cache/（不入部署产物）；
+  // 结果路径可经 SYNAPSE_COMPRESSION_VERIFY_REPORT 覆盖（verify:compression CLI 读取专用路径）。
+  const compressionBaselineDir = ctx.compressionBaselineDir || path.join(ctx.distDir, '..', '.cache', 'compression-baseline');
+  function verifyReportPath() {
+    return process.env.SYNAPSE_COMPRESSION_VERIFY_REPORT
+      || ctx.compressionVerifyReportPath
+      || path.join(ctx.distDir, '..', '.cache', 'compression-verify', 'last.json');
+  }
+
+  function shouldRunVerification() {
+    if (verifyModeFromEnv(process.env) === 'off') return false;
+    if (compressionPlan.active !== true || compressionPlan.verifyHeadless !== true) return false;
+    return enhancementWorkActive(compressionPlan);
+  }
 
   function distRel(file) {
     return path.relative(ctx.distDir, file).split(path.sep).join('/');
@@ -320,7 +358,8 @@ function createMinifyModule(ctx) {
       return;
     }
     if (compressionState.override) console.log('  [compression] override: ' + compressionState.override);
-    if (compressionConfig.html && compressionConfig.html.enabled !== false && compressionConfig.html.collapseWhitespace === false) {
+    const htmlCfg = (compressionState.config && compressionState.config.html) || {};
+    if (htmlCfg.enabled !== false && htmlCfg.collapseWhitespace === false) {
       console.warn('  [WARN] compression.html.collapseWhitespace=false 不受支持：minify-html 始终折叠安全空白，本次构建保持折叠');
     }
     const steps = [];
@@ -361,16 +400,131 @@ function createMinifyModule(ctx) {
     console.log('  [compression] ' + (steps.length ? '已执行增强: ' + steps.join('、') : '无增强步骤执行（基线压缩已完成）'));
   }
 
+  // 无头对比验证（增强完成后、cacheBust 之前）：失败且 fallbackOnFailure=true 时用基线快照
+  // 覆写 dist（回退未压缩产物）并以非阻断记录进入构建报告；false 时保留压缩产物且阻断构建。
+  // 端口/进程清理由 verifyCompression 内部无条件执行，结束后校验端口释放。
+  function reportedPorts(report) {
+    const servers = (report && report.servers) || [];
+    return servers.length ? servers.map((server) => server.role + ':' + server.port).join('，') : '-';
+  }
+
+  async function runCompressionVerification(baseline, chromePath) {
+    let report;
+    try {
+      report = await verifyCompression({
+        distDir: ctx.distDir,
+        baselineDir: baseline.dir,
+        chromePath,
+        obfuscateEnabled: compressionPlan.jsObfuscate === true,
+        profileDir: ctx.compressionVerifyProfileDir,
+        cwd: path.resolve(__dirname, '..', '..')
+      });
+    } catch (err) {
+      report = {
+        version: 1,
+        status: 'failed',
+        checkedAt: new Date().toISOString(),
+        pages: [],
+        failures: [{ kind: 'internal', detail: String((err && err.stack) || err) }],
+        fallback: null
+      };
+    }
+    if (report.status === 'skipped') {
+      console.warn('  [WARN] 压缩无头对比已跳过：' + (report.reason || '未知原因') + '（构建继续）');
+    } else if (report.status === 'passed') {
+      console.log('  [compression-verify] PASS：' + (report.pages || []).length + ' 页断言通过（'
+        + (report.durationsMs || 0) + 'ms，端口 ' + reportedPorts(report) + '，释放 '
+        + (report.portsReleased === false ? '异常' : '正常') + '）');
+    } else {
+      const summary = summarizeFailures(report.failures);
+      if (compressionPlan.fallbackOnFailure === true) {
+        let restored = null;
+        try {
+          restored = restoreBaselineSnapshot(baseline.dir, ctx.distDir);
+        } catch (err) {
+          report.fallback = { applied: false, error: err.message };
+        }
+        if (restored) {
+          const evidence = compareSnapshotBytes(baseline.dir, ctx.distDir);
+          report.fallback = {
+            applied: true,
+            restored: restored.restored,
+            removed: restored.removed,
+            bytesIdentical: evidence.match,
+            mismatches: evidence.mismatches.slice(0, 5)
+          };
+          const message = '压缩无头对比失败：' + summary + '；已回退未压缩产物（恢复 ' + restored.restored
+            + ' 个文件、移除 ' + restored.removed + ' 个增强产物，逐字节复核 '
+            + (evidence.match ? '一致' : '不一致') + '）';
+          console.warn('  [WARN] ' + message);
+          ctx.recordBuildFailure('compression-verify', message, { fatal: false });
+          if (!evidence.match) {
+            console.error('  [ERROR] 回退后仍与基线不一致：' + evidence.mismatches.slice(0, 5).join('、'));
+            ctx.recordBuildFailure('compression-verify', '回退后与基线不一致：' + evidence.mismatches.slice(0, 5).join('、'));
+          }
+        } else {
+          console.error('  [ERROR] 压缩无头对比失败且回退失败：' + summary + '；' + report.fallback.error);
+          ctx.recordBuildFailure('compression-verify', '压缩验证失败且回退失败：' + summary + '；' + report.fallback.error);
+        }
+      } else {
+        const message = '压缩无头对比失败（verify.fallbackOnFailure=false，保留压缩产物）：' + summary;
+        console.error('  [ERROR] ' + message);
+        ctx.recordBuildFailure('compression-verify', message);
+      }
+    }
+    writeVerifyReport(verifyReportPath(), report);
+    const keepBaseline = String(process.env.SYNAPSE_COMPRESSION_BASELINE_KEEP || '') === '1';
+    if (!keepBaseline) {
+      try { fs.rmSync(baseline.dir, { recursive: true, force: true }); }
+      catch (err) { console.warn('  [WARN] 压缩基线快照清理失败 ' + baseline.dir + ': ' + err.message); }
+    }
+  }
+
   // Run all three minifiers (HTML, CSS, JS) across the dist/ directory.
   // Each skips gracefully if its package is missing or the feature is disabled.
   async function minifyAll(config) {
     console.log('[11/14] Minifying assets...');
+    refreshCompressionState();
     reportCompressionIssues();
     await minifyHTMLInDir(ctx.distDir, config);
     await minifyInlineStylesInDir(ctx.distDir, config);
     await minifyCSSInDir(ctx.distDir, config);
     if (!ctx.bundleActive) await minifyJSInDir(path.join(ctx.distDir, 'assets', 'js'), config);
+    // 基线快照紧贴增强阶段之前建立（内容 = 基线压缩后的字节）；无头验证在其后、cacheBust 之前，
+    // 保证「哈希=最终字节」：一旦回退，参与内容哈希的就是回退后的产物。
+    let baseline = null;
+    let verifyChrome = null;
+    if (shouldRunVerification()) {
+      verifyChrome = resolveChromePath('');
+      if (!verifyChrome) {
+        console.warn('  [WARN] compression.verify.headless=true 但未探测到 Chrome：跳过无头对比验证（构建继续）');
+        writeVerifyReport(verifyReportPath(), {
+          version: 1,
+          status: 'skipped',
+          reason: 'chrome-not-found',
+          checkedAt: new Date().toISOString(),
+          pages: [],
+          failures: []
+        });
+      } else {
+        try {
+          baseline = createBaselineSnapshot(ctx.distDir, compressionBaselineDir);
+        } catch (err) {
+          console.warn('  [WARN] 压缩基线快照创建失败，跳过无头验证：' + err.message);
+          ctx.recordBuildFailure('compression-verify', '基线快照创建失败：' + err.message, { fatal: false });
+          writeVerifyReport(verifyReportPath(), {
+            version: 1,
+            status: 'skipped',
+            reason: 'baseline-snapshot-failed: ' + err.message,
+            checkedAt: new Date().toISOString(),
+            pages: [],
+            failures: []
+          });
+        }
+      }
+    }
     await runCompressionEnhancements();
+    if (baseline) await runCompressionVerification(baseline, verifyChrome);
     const types = [];
     if (config.site.build.minifyHTML) types.push('HTML');
     if (config.site.build.minifyCSS) types.push('CSS');

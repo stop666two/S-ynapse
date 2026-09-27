@@ -123,3 +123,23 @@
 - **配置治理收口**：guard 绕过通道全配置化（`core.bypass.enabled/urlParam/localStorage/localhost/cleanUrl/queryParam/storageFlag/accessGateKey`，25 例单测 + 35 断言 runner）；隐藏开关审查（A 类 21 键接入、B 类 6 组去重、C 类 25 项留档 `docs/config-hidden-switches-audit.md`）；审计遗留三项（mermaid.clientOptions、水印断点单一源、触觉/存储键）；新增 `verify:config-comments`（注释守卫）与 `verify:config-docs`（文档键覆盖守卫）并接入 CI。
 - **生产部署**：Worker `blog` 版本 **`7e52ad6f-659d-4a0f-8127-8d0003bab862`**（回滚点 `36cf88fe`）；线上 `probe-live-csp` 0 违规、`verify-live-softnav` ALL PASS、`/admin` 403、缺失路由 404 正常。
 - **残余**：归档不含 docs（README 中 docs 链接包内不可用，属定稿口径）；生产 LCP 目标未达标；`config-count`/`release-archive` 在派生副本按 `SYNAPSE_DERIVED_COPY=1` 显式跳过并声明。
+
+## 11. 功能扩充批次（9 项，2026-09-28，本地提交未推送）
+
+规格与决策：`docs/plans/2026-09-28-feature-expansion.md`（用户确认 9 项全做、互动点赞/表情**关闭不做**、预算维持、顺序执行、小细节自决、**不推送**）。
+
+| 功能 | 关键提交 | 验收要点 |
+|---|---|---|
+| §1 继续阅读 | 73a793c/ff91c2d/b7ff817 | 首页 3 条带进度（复用 s-history 单数据源）、软导航点击、空态隐藏；runner 17/17 |
+| §3 系列聚合页 | cc67120/489b363/12c8a4e/e483346 | `/zh|en/series/<slug>/` 自动生成、上下篇、sitemap 纳入、搜索不纳入；runner 20/20 |
+| §2 搜索升级 | abb3212/00f7feb/b759e0a/09e7565/0db460c | bigram 倒排索引外置（gzip 12.2/5.7KB ≤60）、词项 AND+权重+标签命中、摘要高亮、错误重试；runner 21 断言 |
+| §4 PWA | 85d49da/00ce031/07cf72c/f199616 | SW 壳预缓存 + 页面 network-first + 资产 cache-first、更新提示条；runner 28/28 |
+| §6 灯箱增强 | e48cb74/1182b70/af64c3c/955dc8a | 缩放（滚轮/双击/捏合）+平移边界+幻灯片+原图下载（无 EXIF）；runner 41/41 |
+| §7 文章导出 | 485986b/c50977f/f09318d/279e856 | 打印/另存 PDF 样式 + `/md/<lang>/<slug>.md` 复制（与磁盘逐字节一致）；runner 18/18 |
+| §5 双语对照 | cc4653f/e926bfd/2e4141c/a31d5c5 | 中/EN 切换（软导航直连）+ 宽屏 ≥1280px 并排（净化提取）；runner 34 断言 |
+| §9 主题编辑器 | bbe03a5/a57dbb9/3427ab4/15fcba2 | 面板 tab、12 token 实时预览、保存早置、JSON5 导出；runner 26/26 |
+| §10 省流模式 | 05e0d01/183d585/24b7720/1997b59 | saveData 自动+手动持久、动画/粒子/低清图/系统字体降级、即时还原；runner 25/25 |
+
+- **总门禁**：`npm test` 868/868（124 suites）、`test:build` 3/3、`lint`/`typecheck` 0、四条 config verify 全 PASS；features 102 模块 / 1017 项，全仓 2844 项；deferred 注册表随功能增长，全部新代码走按需加载。
+- **残余（留待决策）**：①性能预算存量超限（JS gzip 69.7/60KB、单页 HTML gzip 36.6/28KB，warnOnly 非阻断，已按「超出后再调并记录」处理）；②`real-site/` 派生副本落后多个批次未同步；③各功能 runner 在 `.tmp-scripts/`（gitignored）仅存本地；④省流手动开关仅在文章页阅读设置面板（首页无入口）；⑤主题编辑器不可编辑含透明度的 `--color-shadow`。
+- **推送状态**：`origin/main` 停在 `14f4102` 后未再推送；本地领先 **50 个提交**，全部可通过 `release:mark` 流程发布。

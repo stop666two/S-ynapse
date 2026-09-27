@@ -97,3 +97,18 @@
 - **softnav 连续链路验收**（`run-softnav-chain.js`）：home→文A→标签→home→文B→归档→后退 全程无整页刷新、0 控制台错误（验收报告「第二次打不开」问题在当前代码不可复现，判定为旧生产版本缺陷）。
 - **最终部署**：生产版本 **`cbc4945d-2501-45f3-8123-649e4054f04a`**；回滚点 `a2ab26b2-a6f0-4b6d-a961-0175314de43e`（更早 `5167ec62`）；线上复测：`probe-live-csp.js` **0 CSP 违规**（唯一无 nonce 为 `type=speculationrules`，由 `'inline-speculation-rules'` 合法放行）、`verify-live-softnav.js` **ALL PASS**、`/admin` 403、CJK 字体 immutable、CSP 无 `unsafe-inline`/无 `style-src-attr`。
 - **残余（低）**：公告条「自动关闭」系按语言关闭记忆生效（正常行为，改文案或清 `s-announce-dismissed` 即重现）；生产 LCP 未达标（待稳定网络复测）；Node 20.19 由 CI `compat-node20` 验证（待推送）；推送/tag 未执行。
+
+## 9. 构建产物压缩功能 C1–C9（2026-09-27，已部署）
+
+- **计划与配置**：`docs/plans/2026-09-27-compression.md`；根 `compression.json5`（第 14 个配置，`verify:config` 结构监守；serve/watch 自动关闭增强步骤）。
+- **流水线**：增强步骤位于 cacheBust 前——HTML 激进选项（默认关）、CSS 同页 `<style>` 合并 + 安全去重、JSON 去空白（`config.<hash>.json` 等跳过）、JS 混淆（javascript-obfuscator 5.8.0，默认关、仅自研 bundle、固定 seed）。vendor/media/og/字体与 `report.txt`、`build-report.html` 全程豁免。
+- **验证与回退**（C5）：增强后 cacheBust 前两态无头对比（6 页 DOM 归一化/前 80 可见元素计算样式/0 控制台错误/软导航+搜索+主题冒烟）；失败用基线快照逐字节回退并告警（`SYNAPSE_COMPRESSION_VERIFY_CORRUPT=1` 实测回退 effective）；无 Chrome 环境跳过并告警；`npm run verify:compression` + CI 条件步骤。
+- **报告**（C7）：新增 `dist/report.txt`（构建/阶段耗时、压缩前后体积、跳过明细、无头验证、预算与目标对照）；README 计数与命令同步。
+- **C8 优化与验收**：`site-css.ejs` 悬垂逗号修复（`.cal-cell:hover` 曾全站失效）；runtime 纳入 Terser（−25%）；esbuild `splitting` 共享 chunk（JS gzip −10.2%，首屏 app −35.3%）。**目标口径经用户确认按 A（接受现状）**：HTML gzip −5.31%（成熟工具上限附近）、JS −10.2%、纯构建 4.9s（含无头验证 18.1s）。
+- **WASM 评估**（`docs/wasm-eval.md`）：lightningcss/oxc 实测收益有限（CSS gzip −0.18%、JS 反而 +0.76%），结论暂不切换并给出重评触发条件。
+- **C9 回归修复（CI 一度红）**：`css-merge` 标签配平用正则计数，被安全夹具 `<title>` RCDATA 中的 `</script><script>` 字面误判 → 失败账本使构建 exit 1 → `verify:security`/CI 红；修复：配平改上下文感知扫描（忽略注释/RCDATA/rawtext/属性值），合并/去重解析异常降级为「跳过 + 报告明细」不再记失败；新增回归测试与「全门禁必须含 verify:security」教训记录。
+- **CI**：修复后 run `36287723966` success（含 `compat-node20` 首次实测通过 + Pages）。
+- **部署**：real-site 全量同步（含 `javascript-obfuscator` devDep）；门禁 9/9（含 verify:security）全绿；生产版本 **`36cf88fe-eabb-45d7-9746-a6a8277e116b`**，回滚点 `2fa78c1d-db76-4108-b32b-42ad5f42a61a`。
+- **线上验证**：CSP 0 违规、软导航 ALL PASS、`/admin` 403、404 语言链路正确（`/nope/` 根 404 带语言跳转；`/en/nope/` 直接英文 404）；`report.txt` 随资产发布（如需私有化需调整部署清单）。
+- **生产性能复测**（Slow 4G + 4× CPU，3 次中位）：**LCP 2808ms**（3372/2372/2808，较上轮 3796ms −26%）、CLS 0.0003、请求 30、总传输 971.7KB；LCP 元素为首张卡片封面（自动封面），分相 TTFB 816 / 加载 670 / 渲染延迟 1089。**≤1.2s 目标仍未达**，候选优化：卡片封面缩略变体、首图 `fetchpriority=high`/preload、封面尺寸策略。
+- **残余**：HTML/JS 目标已按用户 A 选项接受；混淆默认关（开启时 gzip +59.9%）；增量构建文章级粒度；验证耗时约 13s（含验证构建 18.1s）；同 Chrome profile 构建需串行；`report.txt` 公开可访问；真机点检待用户执行。

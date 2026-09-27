@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **guard 绕过通道全配置化与可开关（2026-09-27）**：
+  - **新增 `guard.json5 → core.bypass` 键**（默认值 = 历史行为，逐字段注释）：`enabled`（绕过通道总开关，false 时 URL/localStorage/localhost/解锁码全部无效）、`urlParam`（是否允许 `?guard=off/on`）、`localStorage`（是否允许 `s-guards-off=1` 持久关闭）、`cleanUrl`（判定后是否 `history.replaceState` 清洗 `?guard` 与 accessGate `?key`；false 时保留参数、判定结果不变）、`accessGateKey`（是否允许 accessGate 的 `?key=` 解锁码绕过访问门槛）；原 `localhost`/`queryParam`/`storageFlag` 保留并收敛为唯一来源。
+  - **单一事实源**：新增浏览器纯函数模块 `js/domains/guard/bypass.js`（内置默认注册表 + `normalizeGuardBypass` / `resolveGuardBypass` / `isAccessGateKeyAllowed` / `stripGuardParams`）；`core.js` 与 `access-gate.js` 删除硬编码默认（自定义参数名正则转义、`'key'` 清洗名、`::1`、空串回退语义），全部改读配置，配置缺失时回退与历史一致的内置默认；新增可观测标记 `window.__GUARD_BYPASS__`（判定原因：`url-off`/`url-on`/`storage`/`localhost`/`disabled`/`none`）。
+  - **测试**：`scripts/guard-bypass.test.js` 25 例（默认/非法值回退、三通道判定矩阵、通道优先级、URL 清洗、三处默认值一致性）；浏览器 runner `.tmp-scripts/run-guard-bypass.js`（端口 3332，父死/空闲看门狗 + 端口释放校验）10 场景 35 断言全绿（`?guard=off/on`、localStorage 通道、以及 `urlParam`/`localStorage`/`localhost`/`cleanUrl`/`enabled` 五个配置变体，真实右键菜单探针 + 地址栏断言 + 0 控制台错误）。
+  - **门禁接线**：`npm run verify:config-docs`（`scripts/check-config-docs.js`，14 个 JSON5 键覆盖 vs `docs/config-reference.md`）接入 `package.json` 与 CI（`deploy.yml` 紧随 `verify:config-comments`）。
+  - **文档**：`docs/config-reference.md` §11 补 `core.bypass` 字段表与 §3.77 绕过通道说明；README guard 项数同步。
 - **压缩收口与验收实测（压缩 C8，2026-09-27）**：
   - **缺陷修复**：`templates/site-css.ejs:206` 悬垂逗号（`…transition:transform var(--td)},.cal-cell:hover{…}`）使 `.cal-cell:hover` 规则被浏览器整条丢弃；模板已修复，`scripts/build-smoke.test.js` 增加「产物 CSS 与页面内联样式不含 `},.`」及「`site.*.css` 含 `.cal-cell:hover`」断言（修复前产物命中为红、修复后为绿）。
   - **HTML 三态对照**（84 个压缩目标 HTML，增强关闭 / 现状 / `html.aggressive=true`）：raw 4,216,646 / 4,211,024 / 4,172,647B，gzip 989,179 / 988,339 / 983,698B；aggressive 相对现状 gzip 仅 −0.46%（相对关闭 −0.55%），C5 门禁 6 页 PASS 但收益不显著，`html.aggressive` 默认保持 false。HTML gzip −10% 目标未达（现状 −5.3% 口径含基线压缩；结构性原因：页面 gzip 的约 78% 是正文与结构内容，minify-html 只能作用于标记层）。
@@ -102,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **guard 绕过通道注释语义修正与注册表同步（2026-09-27）**：`core.bypass.queryParam` 注释由「为空则禁用该通道」（与实现不符——空串实际回退默认 `'guard'`）修正为「空串回退默认，禁用请用 `urlParam:false`」；`storageFlag` 补「空字符串 = 关闭该通道」；`scripts/lib/guard-defaults.js` 结构注册表与 `guard.json5` 同步 5 个新键（`verify:config` 结构监守覆盖）。默认行为不变。
 - **14 个 JSON5 配置文件注释完备 + 机械守卫（配置侧收口）**：
   - 注释补齐：全部 14 个文件补「消费方（代码位置）/文档（`docs/config-reference.md` 对应章节）」文件头；`footer.poweredBy`、`site.build.cjkFonts` 子键、`guard.copy.attribution/watermark/consoleGuard/privacyCurtain` 的 `*En` 回退语义等此前缺注释键逐键补齐；页脚/导航/侧栏/友链的 `*En`「空 = 回退中文」统一标注；清理已删除键的残留引用（`features.backToTop.rightOffset/bottomOffset`、`themeToggle` 重复键、`codeCopy.includeWindowBar`、`listCover.aspectRatio`、`mobileBottomNav.useSafeArea`、`features.feed` 迁移映射）与日期/轮次标记；**仅改注释**，14 个文件解析值经 `json5.parse` 深比较与改动前对象等价。
   - 新增守卫 `npm run verify:config-comments`（`scripts/check-config-comments.js` + 核心 `scripts/lib/config-comment-audit.js` + 13 例单测，含真实 14 文件零违规集成断言）：文件头块注释；对象键须有同行/紧邻前置/同缩进分组注释；数组元素按数据行跳过（宿主键仍受检查）；`ui-strings.json5`/`tag-aliases.json5` 按「模块级注释」口径（脚本内显式策略声明）；违规输出 `文件:行:键` 并以非零码退出；CI `deploy.yml` 在 `verify:config-refs` 后新增同名步骤。

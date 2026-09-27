@@ -878,7 +878,7 @@ sitemap: {
 
 ### 3.77 guards — 防护与交互控制总控
 
-`enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）。细节参数（菜单项、复制模式、选择/快捷键/水印/检测/控制台/隐私帘/篡改/门槛、绕过通道等 168 项）全部在 `guard.json5`（见第 11 章）；绕过通道优先级：`?guard=on|off` > `localStorage['s-guards-off']` > `guard.json5` `core.bypass.localhost`。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
+`enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）。细节参数（菜单项、复制模式、选择/快捷键/水印/检测/控制台/隐私帘/篡改/门槛、绕过通道等 176 项）全部在 `guard.json5`（见第 11 章）；绕过通道（`?guard=on` 覆盖一切 > `?guard=off` > `localStorage['s-guards-off']` > `core.bypass.localhost`，accessGate 的 `?key=` 由 `core.bypass.accessGateKey` 控制）均可由 `guard.json5 → core.bypass` 逐项开关，`bypass.enabled=false` 全部失效。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
 
 ### 3.78 loading — 加载遮罩
 
@@ -1195,10 +1195,23 @@ listCover: {
 
 ## 11. guard.json5 — 防护与交互控制域
 
-第 13 个配置文件（11 个模块 / 171 项，统计口径：对象逐层展开、数组元素逐项计入；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
+第 13 个配置文件（11 个模块 / 176 项，统计口径：对象逐层展开、数组元素逐项计入；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
 
 **结构**：
-- `core`（8 项）：`preset 'soft'` / `bypass.localhost false` / `bypass.queryParam 'guard'` / `bypass.storageFlag 's-guards-off'` / `logLevel 'off'` / `respectEditable true` / `i18nFallbackLang 'zh'` / `edgePadding '8px'`。绕过优先级：URL 参数 > localStorage 标志 > localhost（开启时）。`?guard=`（含 `?guard=off`）在绕过判定完成后由 `history.replaceState` 从地址栏移除（保留其它查询串与 hash），参数名跟随 `bypass.queryParam`。
+- `core`（13 项）：`preset 'soft'` / `bypass.enabled true` / `bypass.urlParam true` / `bypass.localStorage true` / `bypass.localhost false` / `bypass.cleanUrl true` / `bypass.queryParam 'guard'` / `bypass.storageFlag 's-guards-off'` / `bypass.accessGateKey true` / `logLevel 'off'` / `respectEditable true` / `i18nFallbackLang 'zh'` / `edgePadding '8px'`。绕过优先级：`?guard=on` 覆盖一切（含其余绕过通道）> `?guard=off` > localStorage 标志 > localhost（开启时）；`bypass.enabled=false` 时四条通道（含 accessGate `?key=`）全部失效，判定原因经 `window.__GUARD_BYPASS__` 可观测（`url-off`/`url-on`/`storage`/`localhost`/`disabled`/`none`）。`?guard=` 与 `?key=` 在绕过判定/解锁读取完成后由 `history.replaceState` 从地址栏移除（保留其它查询串与 hash；`bypass.cleanUrl=false` 时保留），参数名跟随 `bypass.queryParam`。
+
+`core.bypass` 字段表（默认值 = 历史行为；配置缺失时回退内置默认）：
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `bypass.enabled` | bool | `true` | 绕过通道总开关；false = URL/localStorage/localhost 与 accessGate `?key` 全部失效（guard 本身仍按 preset 生效） |
+| `bypass.urlParam` | bool | `true` | 是否允许 `?guard=off/on`（on 覆盖一切；off 覆盖其余绕过通道）；false 时参数被忽略 |
+| `bypass.localStorage` | bool | `true` | 是否允许 `s-guards-off=1` 持久关闭；false 时 `storageFlag` 被忽略 |
+| `bypass.localhost` | bool | `false` | localhost/127.0.0.1/::1 自动关闭全部防护 |
+| `bypass.cleanUrl` | bool | `true` | 判定后是否 `history.replaceState` 清洗 `?guard` 与 accessGate `?key`（保留其它查询串与 hash）；false 保留参数、判定结果不变 |
+| `bypass.queryParam` | string | `'guard'` | URL 参数名；空字符串回退默认（禁用该通道请用 `urlParam:false`） |
+| `bypass.storageFlag` | string | `'s-guards-off'` | localStorage 键名；空字符串 = 关闭该通道 |
+| `bypass.accessGateKey` | bool | `true` | 是否允许 accessGate 的 `?key=` 解锁码绕过访问门槛（是否可用仍由 `accessGate.unlockCodes` 决定） |
 - `contextMenu`（35 项）：`enabled` / `revokeDelayMs 3000`(下载后释放 Blob URL 延迟 ms) / `translateUrl`(划词翻译模板，`{lang}`/`{text}`；空=隐藏翻译项) / `disableNative` / `trigger.longPress`+`longPressMs 550` / `searchFocusDelayMs 60`(「搜索所选文字」打开搜索后聚焦输入框延迟 ms) / `behavior.closeOnEsc|closeOnScroll|closeOnOutside|closeOnBlur` / `style.width|radius|blur|animMs|shadowOpacity`（width/radius 留空=走 `tuning.json5` → `guard` 分类）/ `showOn.selection|link|image|code|blank` / `builtin.*`（copy/copyLink/openNewTab/searchSelected/translate/backToTop/toggleTheme/print/copyCode/copyRaw/download；`viewSource`/`inspect` 默认关）/ `items[]` 自定义项（`label`/`labelEn`/`icon`/`url`|`action`/`selector`；自定义动作派发 `guard:menu-action` 事件）/ `excludeSelectors[]` / `ariaLabel`。
 - `copyGuard`（18 项）：`mode 'attribution'`（`off` | `attribution` 追加出处 | `weakBlock` 首次拦截并提示、再次放行 | `block` 硬拦截）/ `attribution.text`+`textEn`（占位符 `{title}{url}{author}{site}`）/ `position after|before` / `separator` / `minChars 40`（短复制不打扰）/ `onlyArticles true` / `allow.codeBlocks true`+`allow.selectors[]`（代码块与可编辑区始终放行）/ `block.toast|toastText|flash`（复用统一 `__toast`）/ `extra.alsoCut|imageNotice|iOSOverride` / `noticeOncePerSession true` / `logCopyEvents false`（仅本地 console，无网络上报）/ `flashRemoveMs 600`(闪烁遮罩移除延迟 ms)。
 - `selectionGuard`（7 项，**默认关**）：`mode 'content'`（`allow` | `content` 正文禁选 | `strict` 全域）/ `allowSelectors[]`+`allowCode true`（代码白名单）/ `allowCtrlA|allowShiftArrows true`（保留键盘选择，无障碍优先）/ `noticeToast|noticeText`。实现：CSS `user-select:none`（正文/全域）+ `selectstart` 事件双保险，输入框与代码始终豁免。
@@ -1211,6 +1224,8 @@ listCover: {
 - `accessGate`（12 项，**默认关**）：`password.enabled|hash|salt|rememberHours|title|placeholder|errorText`（SHA-256(salt+密码) 十六进制，`crypto.subtle` 校验）/ `focusDelayMs 50`(解锁后聚焦密码框延迟 ms)/ `paths[]`（路径前缀，空=全站）/ `viewsPerDay|viewsAction`（本地限次，`toast`|`lock`）/ `unlockCodes[]`（`?key=` 永久解锁本机；解锁逻辑读取完成后 `history.replaceState` 清除地址栏参数，保留其它查询串与 hash）/ `logDetect`。诚实声明：静态站密码为软防护（哈希在前端源码中可离线分析），敏感内容请用 Cloudflare Access 等后端方案。
 
 **测试**：`.tmp-scripts/verify-guard-p1.js` 17 项 + `verify-guard-p2.js` 20 项 + `verify-guard-p3.js` 11 项 + `verify-guard-p4.js` 13 项断言（P1：原生菜单拦截、菜单项与上下文匹配、Esc/输入框豁免、复制署名改写、代码块放行、`?guard=off` 完全绕过、block 拦截+toast；P2：选择拦截/代码放行/可编辑豁免、F12 与 Ctrl+Shift+I 拦截+提示、Ctrl+A 保留、水印三模式与默认关反例；P3：检测提示/锁屏与关闭键、控制台静音（页面脚本无输出）、隐私帘显示/恢复与默认关反例；P4：门槛显示/错误提示/正确解锁与会话记忆/解锁码/限次锁定、脚本注入与关键节点缺失提示、默认关反例）；界面截图已目检（明暗菜单、拦截提示、对角/固定角水印、锁屏、隐私帘、访问门槛） — `js/domains/guard/{core,context-menu,copy-guard,selection-guard,hotkey-guard,watermark,devtools-detect,console-guard,privacy-curtain,tamper-watch,access-gate}.js`。
+
+**绕过通道配置化测试**：`scripts/guard-bypass.test.js` 25 例（默认/非法值回退、三通道判定矩阵、通道优先级、URL 清洗、`guard.json5` ↔ `scripts/lib/guard-defaults.js` ↔ `bypass.js` 内置默认三处一致性）；浏览器 runner `.tmp-scripts/run-guard-bypass.js`（端口 3332，父死/空闲看门狗 + 端口释放校验）10 场景 35 断言：`?guard=off`（关闭 + 地址栏清洗并保留其它查询串与 hash）、`?guard=on`（强制开启并覆盖 localStorage）、localStorage 通道、未知值回退，以及 `urlParam=false`/`localStorage=false`/`localhost=true`/`cleanUrl=false`/`enabled=false` 五个配置变体（真实右键菜单探针 + `window.__GUARD_BYPASS__` 判定原因 + 0 控制台错误） — `js/domains/guard/bypass.js`。
 
 ---
 

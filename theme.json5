@@ -4,6 +4,9 @@
 // 格式: JSON5（允许注释/尾逗号/无引号键名）
 // 生效: 修改后需重新构建（npm run build / npm run serve）
 // 覆盖链: 本文件 > build.js 内置默认值;任意键可删除以回退默认
+// 消费方: scripts/build/config.js（加载）→ scripts/build/assets.js（CSS 变量注入）
+//         scripts/generate-og.js（OG 配色）;js/domains/core/theme.js（运行时切换）
+// 文档: docs/config-reference.md §2 theme.json5
 // 注释模板: 作用 / 类型 / 可填值及含义 / 不可填值及原因 / 推荐 / 注意
 // =====================================================================
 {

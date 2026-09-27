@@ -5,6 +5,8 @@
 //       例如写 "javascript" / "js" / "JS" 的文章都归到 "JavaScript" 标签页下。
 // 格式: JSON5;生效: 修改后需重新构建
 // 为可选文件;不配置或 enabled=false 时标签按文章原文原样聚合与展示
+// 消费方: scripts/build/config.js（加载）→ scripts/build/articles.js（构建期标签归一化）
+// 文档: docs/config-reference.md §9 tag-aliases.json5 / friends.json5
 // 注释模板: 作用 / 类型 / 可填值及含义 / 不可填值及原因 / 推荐 / 注意
 // =====================================================================
 {

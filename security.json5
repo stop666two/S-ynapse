@@ -5,6 +5,9 @@
 // 生效: 修改后需重新构建（npm run build / npm run serve）
 // 产物: dist/_headers（静态托管头）与 workers/security-config.js（Worker 数据）
 //       两者均由构建从本文件生成,不要手改产物
+// 消费方: scripts/build/config.js（加载）→ scripts/build/security-files.js（生成产物）
+//         workers/security-worker.js（运行时消费生成的配置）
+// 文档: docs/config-reference.md §7 security.json5
 // 注释模板: 作用 / 类型 / 可填值及含义 / 不可填值及原因 / 推荐 / 注意
 // =====================================================================
 {

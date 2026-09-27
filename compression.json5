@@ -16,6 +16,7 @@
 //   verify 无头对比门禁（压缩产物 vs 未压缩副本，失败自动回退）。
 //
 // 注释模板：作用 / 类型 / 可填值 / 不可填值 / 默认 / 注意
+// 文档：docs/config-reference.md §12 compression.json5
 // 加载与校验：scripts/lib/compression-config.js（npm run verify:config 结构监守，
 //   npm test 覆盖默认合并 / 类型 / 枚举 / glob 语义）；执行：scripts/build/minify.js。
 // ============================================================================

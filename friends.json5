@@ -4,6 +4,9 @@
 // 作用: 启用后生成 /links/ 页,并在导航菜单自动插入「友链」项
 //       （若菜单中尚无指向 /links/ 的条目;插入位置在「关于」之后）
 // 格式: JSON5;生效: 修改后需重新构建
+// 消费方: scripts/build/config.js（加载）→ scripts/build/collectors.js + scripts/build/pages.js
+//         （生成 /links/ 页并注入导航「友链」菜单项）
+// 文档: docs/config-reference.md §9 tag-aliases.json5 / friends.json5
 // 注释模板: 作用 / 类型 / 可填值及含义 / 不可填值及原因 / 推荐 / 注意
 // =====================================================================
 {

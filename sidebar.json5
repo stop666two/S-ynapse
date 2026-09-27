@@ -3,6 +3,9 @@
 // ---------------------------------------------------------------------
 // 格式: JSON5（允许注释/尾逗号/无引号键名）
 // 生效: 修改后需重新构建（npm run build / npm run serve）
+// 消费方: scripts/build/config.js（加载）→ templates/layout.ejs（widgets 渲染）
+//         js/domains/features/sidebar-drag.js（拖拽重排，配合 features.sidebarDrag）
+// 文档: docs/config-reference.md §5 sidebar.json5
 // 注释模板: 作用 / 类型 / 可填值及含义 / 不可填值及原因 / 推荐 / 注意
 // 说明: 侧栏位置（left/right）由 theme.layout.sidebarPosition 控制;
 //       移动端抽屉行为由响应式 CSS 自动处理（无需配置）

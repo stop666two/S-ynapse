@@ -20,11 +20,12 @@
 ## 特性
 
 **全配置驱动**
-- 14 个 JSON5 配置文件（支持注释），**2000+ 可配置项**（实测 2525 项，按叶子键递归统计：对象逐层展开、数组元素逐项计入），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
-- `features.json5` 功能总控域：**95 个模块、803 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（32 分类 / 204 项）
+- 14 个 JSON5 配置文件（支持注释），**2600+ 可配置项**（实测 2692 项；口径：对象逐层展开、数组元素逐项计入），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- `features.json5` 功能总控域：**97 个模块、919 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（37 分类 / 269 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
-- 详细参考文档：`docs/config-reference.md`（11 章，逐字段权威参考）
+- 详细参考文档：`docs/config-reference.md`（13 章，逐字段权威参考）
+- 配置周边门禁：`verify:config`（默认值/结构一致性）、`verify:config-refs`（零引用键）、`verify:config-comments`（逐键注释覆盖率）、`verify:config-docs`（14 文件键 vs 配置参考覆盖）
 
 **内容创作**
 - Markdown 扩展：上标/下标（`X^2^` / `H~2~O`）、KaTeX 数学公式（`$`/`$$`）、Mermaid 图表、Wiki 双链（`[[标题]]`）、定义列表、任务列表
@@ -66,12 +67,14 @@
 **性能极致**
 - 全静态 HTML，全球 CDN 加速
 - HTML/CSS/JS 自动压缩（`@minify-html/node`），内容哈希缓存
+- **构建产物压缩增强**（第 14 个配置 `compression.json5`，默认开）：CSS 同页 `<style>` 合并去重、JSON 去空白、`runtime` 引导脚本 Terser 压缩、JS 可选混淆（默认关）；压缩位于内容哈希之前，哈希即最终字节；vendor 与报告文件豁免；实测收益 HTML gzip −5.31%、JS gzip −10.2%、纯构建 4.9s
+- **压缩无头门禁与自动回退**：压缩后以无头浏览器对比压缩/未压缩两态（DOM/采样样式/控制台/交互冒烟），失败自动回退基线产物并告警；`npm run verify:compression` 可独立复核；结果写入 `.cache/compression-verify/last.json` 并汇总到 `dist/report.txt`
 - 图片 WebP + AVIF + 多尺寸响应式；图片懒加载；本地 vendor 资产（Prism/Mermaid/KaTeX/字体）免 CDN
 
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建生成 `build-report.html`（详细统计 + 内容策略拦截清单）与 `report.txt`（阶段耗时、压缩前后 raw/gzip 对照、无头验证摘要、告警与预算结论）
-- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（581 项 / 106 组）；`npm run lint` 提供 ESLint 静态检查
+- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（611 项 / 111 组）；`npm run lint` 提供 ESLint 静态检查
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -171,10 +174,10 @@ S-ynapse/
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
 ├── site.json5          # 站点配置（信息/SEO/RSS/JSON Feed/社交/构建开关）
 ├── theme.json5         # 主题配置（颜色/字体/布局/文章页脚）
-├── features.json5     # 功能总控（95 模块/800 项，可开关/微调，可选文件）
+├── features.json5     # 功能总控（97 模块/919 项，可开关/微调，可选文件）
 ├── ui-strings.json5   # 界面文案词典（zh/en 双语词典，服务端 ui() + 运行时 __T()，可选）
-├── tuning.json5       # UI 微调参数层（32 分类/204 项，注入 CSS 变量；行为参数运行时读取，可选）
-├── guard.json5        # 防护与交互控制域（11 个模块/171 项：右键/复制/选择/快捷键/水印/检测/控制台/隐私帘/篡改监视/访问门槛，逐项注释，可选）
+├── tuning.json5       # UI 微调参数层（37 分类/269 项，注入 CSS 变量；行为参数运行时读取，可选）
+├── guard.json5        # 防护与交互控制域（11 个模块/172 项：右键/复制/选择/快捷键/水印/检测/控制台/隐私帘/篡改监视/访问门槛，逐项注释，可选）
 ├── navigation.json5    # 导航配置
 ├── sidebar.json5       # 侧边栏配置（含 series/friends/stats/quote 组件）
 ├── footer.json5        # 页脚配置
@@ -202,10 +205,10 @@ S-ynapse/
 |------|------|------|
 | `site.json5` | 站点信息、SEO、RSS/JSON Feed、社交、构建开关 | ✅ |
 | `theme.json5` | 颜色（亮/暗）、字体、布局微调、文章页脚说明栏 | ✅ |
-| `features.json5` | 95 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、评论…） | 可选（缺失回退默认，功能保持） |
+| `features.json5` | 97 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、评论…） | 可选（缺失回退默认，功能保持） |
 | `ui-strings.json5` | 界面文案词典（zh/en 双语，i18n 切换的文案来源） | 可选（缺失回退内置文案） |
-| `tuning.json5` | UI 微调参数层（32 分类 / 204 项：排版/间距/圆角/动效/组件细节，注入 CSS 变量） | 可选 |
-| `guard.json5` | 防护与交互控制域（11 个模块 / 171 项（口径：对象逐层展开、数组元素逐项计入）：自定义右键菜单、复制控制/署名、选择控制、快捷键拦截、水印、检测与控制台反制、窗口隐私帘、篡改监视、访问门槛、绕过通道等） | 可选（缺失时防护功能关闭） |
+| `tuning.json5` | UI 微调参数层（37 分类 / 269 项：排版/间距/圆角/动效/组件细节，注入 CSS 变量） | 可选 |
+| `guard.json5` | 防护与交互控制域（11 个模块 / 172 项（口径：对象逐层展开、数组元素逐项计入）：自定义右键菜单、复制控制/署名、选择控制、快捷键拦截、水印、检测与控制台反制、窗口隐私帘、篡改监视、访问门槛、绕过通道等） | 可选（缺失时防护功能关闭） |
 | `navigation.json5` | 菜单、导航栏、社交顺序、搜索 | ✅ |
 | `sidebar.json5` | 侧栏组件序列（author/recent/tags/categories/archive/series/friends/stats/quote…） | ✅ |
 | `footer.json5` | 页脚列、版权、备案、社交、Powered-by | ✅ |
@@ -214,7 +217,7 @@ S-ynapse/
 | `tag-aliases.json5` | 标签别名归一（可选） | 可选 |
 | `friends.json5` | 友情链接（可选） | 可选 |
 
-> 📖 **完整逐字段参考**：`docs/config-reference.md`（11 章：每个配置项的类型、默认值、取值、校验行为）。
+> 📖 **完整逐字段参考**：`docs/config-reference.md`（13 章：每个配置项的类型、默认值、取值、校验行为）。
 
 ### site.json5 — 站点核心信息（节选）
 
@@ -276,7 +279,7 @@ S-ynapse/
 
 ### features.json5 — 功能总控魔方
 
-`features.json5` 是全部交互与内容功能的统一开关域：95 个模块、802 个配置项，逐项中文注释。几例：
+`features.json5` 是全部交互与内容功能的统一开关域：97 个模块、919 个配置项，逐项中文注释。几例：
 
 ```json5
 {
@@ -362,7 +365,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 加载配置 | 14 个 JSON5 配置（含 tuning.json5、guard.json5 与 compression.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 95 模块结构校验 |
+| 1 | 加载配置 | 14 个 JSON5 配置（含 tuning.json5、guard.json5 与 compression.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 97 模块结构校验 |
 | 2 | 设置输出目录 | 清空 `dist/` 并创建子目录 |
 | 3 | 复制静态文件 | `static/` → `dist/`；按 content-policy.json5 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
 | 4 | 媒体优化 | sharp 生成 WebP/AVIF + 多尺寸响应式图片（输出 manifest） |
@@ -372,8 +375,8 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 | 8 | Sitemap | sitemap.xml（含自定义页面 + 图库；超过阈值自动按类型拆分为 sitemap-{n}.xml + 索引）；其后执行自动 OG 图生成与 sitemap ping（可选） |
 | 9 | 搜索索引 | search-index.json（局部模糊匹配；`features.search.includeContent` 控制是否含正文） |
 | 10 | 安全文件 | `_headers`（CSP + HSTS + 安全头，按功能开关自动裁剪）、`robots.txt`（逐语言 Sitemap 行）、`_redirects`（配置重定向）、Worker 配置生成 |
-| 11 | 压缩 | 压缩 HTML（@minify-html）、CSS（CleanCSS）、JS（Terser）；增强步骤（`compression.json5`，默认开）追加 HTML 激进选项（默认关）、CSS 同页合并去重、JSON 去空白、`runtime.<hash>.js` Terser 压缩（重命名 + 同步 HTML 引用）；此前先完成前端资产拷贝（js/ ESM → `dist/assets/js/`，vendor 与 KaTeX 字体 → `dist/assets/vendor/`） |
-| 12 | 缓存破坏 | MD5 内容哈希重命名文件，更新 HTML 引用 |
+| 11 | 压缩 | 压缩 HTML（@minify-html）、CSS（CleanCSS）、JS（Terser）；增强步骤（`compression.json5`，默认开）追加 HTML 激进选项（默认关）、CSS 同页合并去重、JSON 去空白、`runtime.<hash>.js` Terser 压缩（重命名 + 同步 HTML 引用）；增强完成后执行无头对比门禁（失败自动回退未压缩产物，结果写 `.cache/compression-verify/last.json`）；此前先完成前端资产拷贝（js/ ESM → `dist/assets/js/`，vendor 与 KaTeX 字体 → `dist/assets/vendor/`） |
+| 12 | 缓存破坏 | MD5 内容哈希重命名文件，更新 HTML 引用（压缩/回退均发生在它之前，文件名哈希 = 最终字节） |
 | 13 | PWA | manifest.json + Service Worker（启用时；执行顺序在压缩之前） |
 | 14 | 构建报告 | build-report.html（耗时/文章数/体积/功能状态/内容策略拦截清单）+ report.txt（阶段耗时/压缩前后体积对照/验证摘要/告警/预算结论；位于压缩与哈希之后，天然豁免） |
 
@@ -418,7 +421,10 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 
 ### 方式三：GitHub Actions（CI/CD 自动部署）
 
-项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署（Node 24 + `npm audit --audit-level=high` + `npm test` + `npm run test:coverage`（`scripts/lib` 行覆盖率 ≥80%） + `npm run lint` + `npm run typecheck` + `verify:config` + `verify:security` + `npm run test:build` + `npm run sbom`（CycloneDX 1.5，上传 `sbom-cyclonedx` artifact）门禁），并在部署前检查 AGENTS.md 是否被误提交；另有 `compat-node20` 任务在 Node 20.19.0（`engines` 下限）上运行 `npm test` + `npm run verify:config` + `npm run test:build` + `npm run build`，保证 LTS 可用性。
+项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署。CI 作业：
+- `check-agents`：变更集中检测 AI 规则文件（AGENTS.md 及其变体），命中即阻断；
+- `compat-node20`：Node 20.19.0（`engines` 下限）上运行 `npm test` + `npm run verify:config` + `npm run verify:config-refs` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
+- `build`（Node 24）：`npm audit --audit-level=high` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run test:coverage`（`scripts/lib` 行覆盖率 ≥80%）→ `npm run test:build` → `verify:config` → `verify:config-refs` → `verify:config-comments` → `verify:security` → `npm run build` → `verify:compression`（检测到 Chrome 时条件执行，否则跳过并提示）→ `npm run sbom`（CycloneDX 1.5，上传 `sbom-cyclonedx` artifact）→ Pages 部署（仅 `main`）。
 
 **配置步骤**：
 1. 在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加 `CF_API_TOKEN`（如需部署）
@@ -468,7 +474,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（581 项 / 106 组） |
+| `npm test` | 运行单元测试（611 项 / 111 组） |
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前总量约 98%） |
 | `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、CSP nonce 与 report.txt 两态；CI 运行，不进 `npm test`） |
 | `npm run verify:compression` | 压缩无头对比门禁（完整构建 + 压缩产物 vs 未压缩副本的 DOM/样式/控制台/交互断言；passed=0、failed=1、skipped=0；`--out`/`--chrome`/`--keep-baseline`/`--json` 可选） |
@@ -477,6 +483,10 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run audit` | 依赖漏洞扫描（固定官方 registry：本机 npm 镜像会阻断 audit 接口） |
 | `npm run typecheck` | TypeScript checkJs 类型检查（scripts/lib；CI 门禁） |
 | `npm run verify:security` | 集成安全回归（注入恶意文章 → 真实构建 → 语义断言） |
+| `npm run verify:config` | 配置一致性监守（配置值与注册表默认值/结构） |
+| `npm run verify:config-refs` | 零引用键扫描（配置有键、代码无消费的预留键） |
+| `npm run verify:config-comments` | 逐键注释覆盖率门禁（14 个 JSON5；CI 阻断） |
+| `npm run verify:config-docs` | 配置文档覆盖门禁（14 个 JSON5 的顶层键/模块键 vs `docs/config-reference.md`；脚本 `scripts/check-config-docs.js`） |
 | `npm run perf:audit -- --url <URL>` | 可复现性能基线（Slow 4G + CPU 4x 节流 + 禁用缓存；`--runs`/`--out`/`--json`/`--chrome` 可选，Chrome 路径默认系统安装位置、`CHROME_PATH` 可覆盖） |
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
@@ -488,7 +498,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 581 项 / 106 组，全部通过
+npm test            # 611 项 / 111 组，全部通过
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
 npm run typecheck   # TypeScript checkJs（scripts/lib，渐进引入）
@@ -535,8 +545,19 @@ npm run verify:security   # 集成安全回归
 | mermaid-render | 31 | SSR 缓存键/块提取替换/sanitize 回退/Chrome 探测/无 Chrome 降级/假浏览器渲染路径与超时重建 |
 | sbom | 14 | CycloneDX 1.5 构建：组件计数/purl 编码/SHA-512 哈希/去重 bom-ref/稳定排序/落盘 |
 | config-consistency（无 describe，顶层用例） | 7 | features 值与结构/死键判定 |
+| css-merge | 42 | CSS 同页合并/保守去重/标签配平（注释、RCDATA、属性引号上下文） |
+| compression-config | 16 | 压缩配置默认合并/类型/枚举/glob 语义 |
+| compression-pipeline | 28 | 压缩增强步骤装配/豁免/内容寻址跳过/跳过降级 |
+| compression-verify | 16 | 无头对比快照/恢复/归一化/端口纯逻辑 |
+| js-obfuscate | 12 | 混淆目标筛选/选项装配/确定性 |
+| build-report-text | 17 | `report.txt` 摘要段渲染与缺失容错 |
+| incremental-build | 8 | 增量指纹算法/稳定序列化/跳过决策 |
+| check-config-docs | 8 | 文档覆盖校验（键收集/匹配边界/策略表/真实仓库集成） |
+| config-comment-audit | 13 | JSON5 逐键注释覆盖率判定 |
+| serve-compression | 4 | 本地 serve 压缩响应两态 |
+| theme-override | 5 | `--theme-override` / `--features-override` 深合并与校验 |
 
-> `npm test` 共 **581 项 / 106 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
+> `npm test` 共 **611 项 / 111 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
 
 ### SBOM（软件物料清单）
 

@@ -102,6 +102,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **14 个 JSON5 配置文件注释完备 + 机械守卫（配置侧收口）**：
+  - 注释补齐：全部 14 个文件补「消费方（代码位置）/文档（`docs/config-reference.md` 对应章节）」文件头；`footer.poweredBy`、`site.build.cjkFonts` 子键、`guard.copy.attribution/watermark/consoleGuard/privacyCurtain` 的 `*En` 回退语义等此前缺注释键逐键补齐；页脚/导航/侧栏/友链的 `*En`「空 = 回退中文」统一标注；清理已删除键的残留引用（`features.backToTop.rightOffset/bottomOffset`、`themeToggle` 重复键、`codeCopy.includeWindowBar`、`listCover.aspectRatio`、`mobileBottomNav.useSafeArea`、`features.feed` 迁移映射）与日期/轮次标记；**仅改注释**，14 个文件解析值经 `json5.parse` 深比较与改动前对象等价。
+  - 新增守卫 `npm run verify:config-comments`（`scripts/check-config-comments.js` + 核心 `scripts/lib/config-comment-audit.js` + 13 例单测，含真实 14 文件零违规集成断言）：文件头块注释；对象键须有同行/紧邻前置/同缩进分组注释；数组元素按数据行跳过（宿主键仍受检查）；`ui-strings.json5`/`tag-aliases.json5` 按「模块级注释」口径（脚本内显式策略声明）；违规输出 `文件:行:键` 并以非零码退出；CI `deploy.yml` 在 `verify:config-refs` 后新增同名步骤。
+  - 门禁实录：`npm test` 611/611（111 suites）、`npm run lint`/`npm run typecheck` 0 错、`verify:config`（97 模块一致）/`verify:config-refs`（零未接线）/`verify:config-comments`（14 文件 / 2496 键 / 0 违规）全 PASS。
 - **第七轮配置闭环（W5）语义/默认值变更**：
   - `features.redirects.enabled` 默认值 `false`→`true`：原默认与历史实现漂移（`_redirects` 一直应用 `site.json5` 自定义规则）；现 `enabled` 作为自定义规则开关（false 时仍保留框架语言/别名规则），默认行为与历史一致。JSON5 注释/schema/文档同步。
   - `features.perfBudget.jsKb` 55→**60**：实测 `assets/js` 全量 gzip 58.8KB（app 26.4 + deferred 30.7 + runtime 1.7；deferred 为按需懒加载 chunk，首屏实际加载约 28KB）。按实测口径调整上限并保留 `warnOnly=true`；后续治理方向：跨模块工具去重、deferred 分包边界复核、预算分层口径评估（达标后回调 55）。`scripts/lib/perf-budget.js` 兜底默认值同步。

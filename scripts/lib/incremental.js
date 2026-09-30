@@ -35,13 +35,17 @@ function stableSerialize(value) {
     if (typeof v !== 'object') return v;
     if (Buffer.isBuffer(v)) return v.toString('base64');
     if (v instanceof Date) return v.toISOString();
+    // 循环检测必须先于数组分支：数组自引用（a=[]; a.push(a)）不走此检查会无限递归爆栈。
+    if (seen.has(v)) return '[circular]';
     if (Array.isArray(v)) {
-      return v.map(function (item) {
+      seen.add(v);
+      const items = v.map(function (item) {
         const r = norm(item);
         return r === undefined ? null : r;
       });
+      seen.delete(v);
+      return items;
     }
-    if (seen.has(v)) return '[circular]';
     seen.add(v);
     const out = {};
     for (const key of Object.keys(v).sort()) {

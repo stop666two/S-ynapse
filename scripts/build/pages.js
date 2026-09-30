@@ -16,6 +16,7 @@ const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, s
 const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette, exportArticleConfig, bilingualConfig, stripMathText } = require('../lib/feature-wiring');
 const { collectSeriesPages } = require('../lib/series-page');
 const { writeArticleMarkdown } = require('../lib/md-export');
+const { findAlternateArticle } = require('../lib/bilingual-pair');
 const { stableSerialize, pageCacheKey, hashTemplateDir } = require('../lib/incremental');
 const { pruneTo } = require('../lib/asset-cache');
 
@@ -687,10 +688,8 @@ function createPagesModule(ctx) {
             recordBuildFailure('export', 'Markdown export failed for ' + article.lang + '/' + article.slug + ': ' + err.message, { fatal: false });
           }
         }
-        const altArticle = (() => {
-          const alt = getPublished(articles).find(a => a.lang !== article.lang && a.slug === article.slug && !a.draft);
-          return alt ? { url: alt.url, lang: alt.lang, title: alt.title } : null;
-        })();
+        const alt = findAlternateArticle(getPublished(articles), article);
+        const altArticle = alt ? { url: alt.url, lang: alt.lang, title: alt.title } : null;
         const data = {
           ...langData,
           article,

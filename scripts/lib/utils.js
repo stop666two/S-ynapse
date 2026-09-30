@@ -36,7 +36,14 @@ function safeSlug(text) {
   if (!text) return '';
   let slug = text.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '');
   if (!slug || /^[-\s]*$/.test(slug)) {
-    slug = encodeURIComponent(text).toLowerCase().replace(/%[0-9a-f]{2}/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    let encoded;
+    // 孤立代理等无法百分号编码的输入：跳过本分支，直接走确定性哈希兜底（不抛 URIError）。
+    try {
+      encoded = encodeURIComponent(text);
+    } catch (err) {
+      encoded = '';
+    }
+    slug = encoded.toLowerCase().replace(/%[0-9a-f]{2}/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   }
   if (!slug) slug = 'tag-' + createHash('sha1').update(String(text)).digest('hex').slice(0, 6);
   return slug;

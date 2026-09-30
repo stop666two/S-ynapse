@@ -67,9 +67,16 @@ describe('safeSlug / validateSlug 路径安全', () => {
   });
 
   it('注入分隔符/遍历/非法字符的 slug 必被拒绝', () => {
-    const inject = fc.tuple(docSlug, fc.constantFrom('/', '\\', '..', '<', '%2e', ' ', '\u0000'))
-      .map(([base, bad]) => {
-        const at = Math.floor(base.length / 2);
+    // 基准串至少 2 字符，注入位置限制在 1..len-1（前后都有字符）：
+    // validateSlug 会先 trim 首尾空白，边界位置的 ' ' 属归一化路径而非注入路径。
+    const injectBase = fc.string({
+      unit: fc.integer({ min: 0, max: DOC_SLUG_CHARS.length - 1 }).map((i) => DOC_SLUG_CHARS[i]),
+      minLength: 2,
+      maxLength: 60
+    });
+    const inject = fc.tuple(injectBase, fc.constantFrom('/', '\\', '..', '<', '%2e', ' ', '\u0000'), fc.nat())
+      .map(([base, bad, n]) => {
+        const at = 1 + (n % (base.length - 1));
         return base.slice(0, at) + bad + base.slice(at);
       });
     checkProperty('validateSlug-拒绝注入', fc, fc.property(inject, (raw) => {

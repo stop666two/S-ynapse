@@ -74,6 +74,8 @@ jobs:
       - run: npm run test:build
       - name: Fuzz property tests (deterministic seed + replay hints)
         run: npm run test:fuzz
+      - name: Malicious/malformed scenario suite (hard-fail vs degrade policies)
+        run: npm run test:malicious
       - name: Config consistency (code defaults vs config files)
         run: npm run verify:config
       - name: Config references (unwired key scan)

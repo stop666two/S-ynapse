@@ -188,9 +188,11 @@ function failProperty(testName, details, seed, runs) {
     runs,
     error: failureErrorText(details)
   });
+  const cause = failureErrorText(details);
   /** @type {Error & { counterexample?: unknown, fuzzSeed?: number, replayCommand?: string }} */
   const error = new Error(
     '[fuzz] ' + testName + ' 失败：seed=' + seed + ' numRuns=' + runs +
+    (cause ? '\n原因: ' + cause : '') +
     '\ncounterexample: ' + safeJson(details.counterexample) +
     '\n重放：' + replay
   );

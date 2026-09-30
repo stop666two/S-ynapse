@@ -1,5 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { findDuplicateKeys, filterAllowlisted, matchesAllowlistFile } = require('./lib/config-duplicates');
@@ -158,7 +159,14 @@ describe('CLI 真实仓库', () => {
     assert.match(result.stdout, /扫描 \d+ 个 JSON5 文件/);
   });
 
-  it('豁免项在输出中显式打印而非静默跳过', () => {
+  it('豁免项在输出中显式打印而非静默跳过（存在待豁免重复时）', function (t) {
+    const derivedSite = path.join(__dirname, '..', 'real-site', 'site.json5');
+    const pending = fs.existsSync(derivedSite) &&
+      findDuplicateKeys(fs.readFileSync(derivedSite, 'utf-8')).findings.some((item) => item.key === 'descriptionEn');
+    if (!pending) {
+      t.skip('当前工作区无待豁免的 descriptionEn 重复（real-site 不存在或已清理；CI/发布包属此列）');
+      return;
+    }
     const result = runCli([]);
     assert.match(result.stdout, /\[豁免\] .*site\.json5:\d+: descriptionEn/);
   });

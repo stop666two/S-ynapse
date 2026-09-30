@@ -444,7 +444,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署。CI 作业：
 - `check-agents`：变更集中检测 AI 规则文件（AGENTS.md 及其变体），命中即阻断；
 - `compat-node20`：Node 20.19.0（`engines` 下限）上运行 `npm test` + `npm run verify:config` + `npm run verify:config-refs` + `npm run verify:config-dupes` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
-- `build`（Node 24）：`npm audit --audit-level=high` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run test:coverage`（`scripts/lib` 行覆盖率 ≥80%）→ `npm run test:build` → `verify:config` → `verify:config-refs` → `verify:config-dupes` → `verify:config-comments` → `verify:security` → `npm run build` → `verify:compression`（检测到 Chrome 时条件执行，否则跳过并提示）→ `npm run sbom`（CycloneDX 1.5，上传 `sbom-cyclonedx` artifact）→ Pages 部署（仅 `main`）。
+- `build`（Node 24）：`npm audit --audit-level=high` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run test:coverage`（`scripts/lib` 行覆盖率 ≥80%）→ `npm run test:build` → `npm run test:fuzz` → `verify:config` → `verify:config-refs` → `verify:config-dupes` → `verify:config-comments` → `verify:security` → `npm run build` → `npm run test:smoke`（检测到 Chrome 时条件执行，否则跳过并提示）→ `npm run test:cov-web`（同上条件；js/** 行/函数覆盖率门禁）→ `verify:compression`（同上条件）→ `npm run sbom`（CycloneDX 1.5，上传 `sbom-cyclonedx` artifact）→ 上传 `test-artifacts`（`build-artifacts/**`：失败留档/覆盖率/冒烟摘要，`always()`）→ Pages 部署（仅 `main`）。
+- 夜间深度随机测试（`.github/workflows/nightly.yml`，每日 UTC 18:00 + 手动触发）：与本地/CI 同命令 `npm run test:all`，仅深度档不同（`FC_NUM_RUNS=2000`、`STRESS=1`、随机种子），上传 `nightly-test-artifacts`。
 
 **配置步骤**：
 1. 在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加 `CF_API_TOKEN`（如需部署）
@@ -498,6 +499,10 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm test` | 运行单元测试（762 项 / 124 组） |
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前总量约 98%） |
 | `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、CSP nonce 与 report.txt 两态；CI 运行，不进 `npm test`） |
+| `npm run test:fuzz` | 属性/随机测试（fast-check；`scripts/**/*.fuzz.test.js`；默认 100 次迭代、`FC_NUM_RUNS` 可调、`STRESS=1` 开海量用例；失败留档 `build-artifacts/fuzz-failures/`，`TEST_SEED` 复现） |
+| `npm run test:smoke` | 浏览器冒烟（系统 Chrome 无头访问代表页：200/标题/DOM/零控制台错误；无 Chrome 跳过；`--build` 强制重建、`--out` 指定产物目录） |
+| `npm run test:cov-web` | 无头 Web 覆盖率门禁（`js/**` 行/函数覆盖，阈值 `scripts/lib/web-coverage-thresholds.js`；输出 `build-artifacts/web-coverage/`；无 Chrome 跳过） |
+| `npm run test:all` | 本地与 CI 同强度全套：`npm test` + `test:build` + `test:fuzz` + `test:smoke` + `test:cov-web` 串行 |
 | `npm run verify:compression` | 压缩无头对比门禁（完整构建 + 压缩产物 vs 未压缩副本的 DOM/样式/控制台/交互断言；passed=0、failed=1、skipped=0；`--out`/`--chrome`/`--keep-baseline`/`--json` 可选） |
 | `npm run sbom` | 生成 CycloneDX 1.5（ECMA-424）SBOM → `build-artifacts/sbom.cdx.json`（不入库；CI 上传为 `sbom-cyclonedx` artifact） |
 | `npm run release:mark -- <major\|minor\|patch\|X.Y.Z\|X.Y.Z-预发布> --human-verified "<姓名>" --confirm <版本>` | 完成标记：顺序跑完全套质量门禁 → 同步 package.json/CHANGELOG/RELEASE.json → `chore(release)` 提交 + 附注 tag（默认不 push；`--dry-run` 仅演练；`--push --confirm-push` 才推送；支持同版本/预发布标记，如 `1.1.0-a1`） |
@@ -524,13 +529,27 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 757 项 / 124 组，全部通过
+npm test            # 891 项 / 130 组，全部通过
+npm run test:all    # 本地与 CI 同强度：test + test:build + test:fuzz + test:smoke + test:cov-web 串行
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
 npm run typecheck   # TypeScript checkJs（scripts/lib，渐进引入）
 npm run audit:a11y  # WCAG 2.0/2.1/2.2 A+AA 全页无障碍审计：自动构建并自起 serve（端口自动取空闲），扫描 dist 全部 HTML（中英首页/文章/归档/标签/分类/搜索/画廊/系列/收藏/友链/404，排除内部构建报告），逐页 HTTP 2xx 校验，明暗双主题各跑一次 axe（wcag22aa），critical/serious/HTTP 失败即阻断；已有 serve 时用 `node scripts/a11y-audit.js <baseUrl>` 或 A11Y_BASE 复用；Chrome 路径用 CHROME_PATH 覆盖。真机点检见 docs/mobile-checklist.md
 npm run verify:security   # 集成安全回归
 ```
+
+### 随机 / 属性测试（test:fuzz）
+
+- 属性测试位于 `scripts/**/*.fuzz.test.js`（默认不进 `npm test`，避免慢速随机用例混入单测门禁）；`npm run test:fuzz` 用 fast-check 跑默认 100 次迭代，`FC_NUM_RUNS` 调整次数，`STRESS=1` 打开超大/海量用例。
+- 种子管理：未设置 `TEST_SEED` 时每次运行随机生成 32 位种子并打印（`[test-seed]`）；失败时自动把种子、counterexample 与重放命令写入 `build-artifacts/fuzz-failures/<test>-<UTC时间戳>.json`。
+- 复现：`TEST_SEED=<种子> FC_NUM_RUNS=<次数> npm run test:fuzz`（PowerShell：`$env:TEST_SEED='<种子>'; npm run test:fuzz`）。修复后应从同一命令重放确认绿。
+- 恶意/畸形载荷语料库与临时站点夹具（`scripts/lib/test-payloads.js`、`scripts/lib/test-site-builder.js`）供 T2–T5 用例使用；策略标记 `hard-fail`（必须拒绝/阻断）与 `degrade`（不崩溃 + 告警）。
+
+### 浏览器冒烟与 Web 覆盖率（test:smoke / test:cov-web）
+
+- `npm run test:smoke`：真实构建产物 + 系统 Chrome 无头访问代表页（首页/文章/搜索/标签/归档/404），断言 HTTP 200、非空标题、DOM 结构与零控制台错误；失败摘要写入 `build-artifacts/web-smoke/summary.txt`。
+- `npm run test:cov-web`：以 `--no-bundle` + 压缩关闭构建到 `build-artifacts/web-coverage/site`（保证产物 URL 与 `js/**` 源码一一对应），经 CDP 精确覆盖逐页累加，聚合 `js/**`（排除 vendor）行/函数覆盖率，输出 `build-artifacts/web-coverage/{summary.txt,coverage.json}`；阈值见 `scripts/lib/web-coverage-thresholds.js`（首测定档 55% / 55%），未达标 exit 1。
+- 两者无 Chrome 时打印 `[SKIP]` 后 exit 0（与 `verify:compression` 同一降级语义）；`test:all` 串行执行全部五个入口，本地与 CI（`deploy.yml`）命令集合完全一致；夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子）。
 
 | 测试套件 | 测试数 | 覆盖函数 |
 |----------|--------|----------|

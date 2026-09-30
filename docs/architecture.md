@@ -96,6 +96,10 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `npm test` | node:test 单测（构建纯函数、Worker 配置、CSP、机器人、原子写、配置分层、打包、dist 哈希、压缩配置/流水线/验证、CSS 合并、增量构建等） |
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（≥80%，CI 阻断） |
 | `npm run test:build` | 集成 smoke：干净构建断言产物 + 坏文章阻断且不污染 dist（临时输出目录；含 report.txt/CSP nonce 两态断言） |
+| `npm run test:fuzz` | 属性/随机测试：`scripts/**/*.fuzz.test.js`（fast-check；`FC_NUM_RUNS` 默认 100、`STRESS=1` 开海量用例；种子见 `scripts/lib/test-random.js`，失败留档 `build-artifacts/fuzz-failures/`；默认单测不含 fuzz） |
+| `npm run test:smoke` | 浏览器冒烟：真实构建 + 系统 Chrome 代表页（200/标题/DOM/零控制台错误），摘要 `build-artifacts/web-smoke/summary.txt`；无 Chrome 跳过 |
+| `npm run test:cov-web` | 无头 Web 覆盖率：`--no-bundle` + 压缩关闭构建，CDP 精确覆盖聚合 `js/**` 行/函数覆盖（阈值 `scripts/lib/web-coverage-thresholds.js`，首测定档 55%/55%），输出 `build-artifacts/web-coverage/{summary.txt,coverage.json}`；无 Chrome 跳过 |
+| `npm run test:all` | 本地与 CI 同强度：`npm test` + `test:build` + `test:fuzz` + `test:smoke` + `test:cov-web` 串行；夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子） |
 | `npm run lint` / `npm run typecheck` | ESLint / tsc（checkJs） |
 | `npm run verify:config` / `verify:config-refs` / `verify:config-dupes` / `verify:config-comments` | 配置一致性 / 零引用键 / 重复键 / 逐键注释覆盖率监守 |
 | `node scripts/check-config-docs.js` | 文档覆盖校验（14 个 JSON5 键 vs `docs/config-reference.md`；npm 别名 `verify:config-docs` 由配置侧接入） |
@@ -106,7 +110,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `node scripts/dist-hash-guard.js` | 重构/迁移的产物等价护栏（归一化 nonce/换行） |
 | `node scripts/perf-audit.js` | 可复现性能基线（Slow 4G + 4× CPU） |
 
-CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-dupes + test:build + build）与 `build`（Node 24：audit → lint → typecheck → test → test:coverage → test:build → verify:config → verify:config-refs → verify:config-dupes → verify:config-comments → verify:security → build → verify:compression 条件步骤 → sbom → 上传 artifact → Pages 部署）。生产 Worker 为手动 `wrangler deploy`（见 README）。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
+CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-dupes + test:build + build）与 `build`（Node 24：audit → lint → typecheck → test → test:coverage → test:build → test:fuzz → verify:config → verify:config-refs → verify:config-dupes → verify:config-comments → verify:security → build → test:smoke 条件步骤 → test:cov-web 条件步骤 → verify:compression 条件步骤 → sbom → 上传 `sbom-cyclonedx` 与 `test-artifacts` → Pages 部署）。夜间随机深度档（`.github/workflows/nightly.yml`，UTC 18:00 + `workflow_dispatch`）跑 `test:all`，上传 `nightly-test-artifacts`。生产 Worker 为手动 `wrangler deploy`（见 README）。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
 
 ## 9. 部署与回滚
 

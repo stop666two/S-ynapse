@@ -45,7 +45,7 @@ T1 实证：
 
 ### T2：8 域随机属性测试（happy-path 不变量）
 
-**进度：批 A（3/8 域）已完成；批 B（搜索索引查询、压缩/混淆往返、XML/Feed/sitemap、增量指纹、wiki/双语/导出）待推进。**
+**进度：批 A（3/8 域）与批 B（5/8 域）均已完成；T2 八域全部落地。**
 
 批 A 交付与 `npm run test:fuzz` 默认档实测：
 
@@ -64,6 +64,25 @@ T1 实证：
 - `scripts/check-config-refs.js` 为可测性补齐 `require.main === module` 守卫并导出 `collectLeaves`/`isAllowed`/`GENERIC_KEYS`，CLI 行为逐字不变。
 - 保留 slug（`tags`/`categories`/`assets`/`search`）预校验仍留待 T3；本批未改产品行为（测试断言中未涉及该预校验）。
 
+批 B 交付与 `npm run test:fuzz` 默认档实测（含批 A 全量 9 套件 / 129 用例约 10–14 s，预算 120 s）：
+
+| 文件 | 域 | 属性数 | 时长 |
+|---|---|---|---|
+| `scripts/lib/search.fuzz.test.js` | 搜索索引与查询：buildIndex 确定性/字段白名单/自命中、searchIndex 容错与结构、权重单调与零权排除、标签分类开关、空查询与无命中、序列化往返、searchIndexOptions/pruneIndexToBudget | 11 | 约 0.45 s |
+| `scripts/lib/compression.fuzz.test.js` | 压缩装配与 CSS 合并去重：dedupeCss 保守不变量（A;B;A 保留、相邻折叠、!important、@keyframes、不配平必抛、幂等、字节不增）、mergeStyleBlocks 保序/分组/nonce、选项装配确定性 | 18 | 约 0.3 s |
+| `scripts/lib/feeds.fuzz.test.js` | XML/Feed/sitemap 转义：RSS/JSON Feed/sitemap 真实写出与数量一致、XML 非法字符清洗、无头 Chrome DOMParser parsererror 为空与文本往返（无 Chrome 时 DOMParser 用例 skip） | 8 | 约 4.7 s |
+| `scripts/lib/incremental.fuzz.test.js` | 增量指纹与缓存：buildCacheKey 确定性/区分度、变更序列 skip/rebuild、pruneTo、configFingerprint、stableSerialize 键序/nonce/循环、hashContent/pageCacheKey、computeIncrementalContext、真实 cacheBust 内容寻址与幂等 | 15 | 约 1.1 s |
+| `scripts/lib/wiki.fuzz.test.js` | wiki 双链/双语/导出：resolveWikiLinks 三态与大小写/标签/slug/外链/孤立代理、bilingual-core 纯函数、findAlternateArticle 配对不误配、mdExportRelPath 白名单、writeArticleMarkdown 字节一致 | 17 | 约 0.65 s |
+
+批 B 过程记录与产品缺陷（真实缺陷均含最小反例、修复与确定性回归）：
+
+- **XML 非法字符（RSS/sitemap）**：控制字符/孤立代理原样写出致 DOMParser `parsererror`（反例：标题 `A\u0001B\u0007C`）；`scripts/lib/utils.js` 新增 `stripInvalidXmlChars`，`scripts/build/feeds.js` 对 RSS 字段与 sitemap 的 loc/changefreq/priority/索引条目统一清洗转义。
+- **CDATA 连续 `]]>`（xml-js 上游只分割第一个）**：反例标题 `x]]>y]]>z` 产出裸 `]]>`（随机种子运行命中）；`scripts/build/feeds.js` 新增 `escapeCdataSplits` 预分割第 2 个起的结束符，feeds 属性测试断言完整往返。
+- **`stableSerialize` 循环数组栈溢出**：`const a=[]; a.push(a)` 抛 `RangeError`；`scripts/lib/incremental.js` 将循环检测提前到数组分支之前并登记/注销数组。
+- **`resolveWikiLinks` 孤立代理编码崩溃**：`unknownMode='link'` 下 `[[\uD800]]` 抛 `URIError`；`scripts/lib/utils.js` 新增 `encodeSearchTarget`（失败时按 UTF-8 解码语义替换 U+FFFD 再编码）。
+- 测试基础设施：新增 `checkPropertyAsync`（异步属性运行器）与 fast-check v4 `errorInstance` 失败文本记录；`scripts/lib/bilingual-pair.js` 自 pages.js 抽出配对纯函数（构建行为不变）；`writeFileAtomicSync` 补可选 `encoding` 透传；pagefind 动态导入改变量模块名以通过类型检查；`scripts/lib/paths.fuzz.test.js` 注入位置生成器限定 1..len-1（消除首尾空白被 trim 归一化的随机假失败，非产品缺陷）。
+- `STRESS=1` 放大路径以 `FC_NUM_RUNS=20` 实测通过（超长/海量文档、sitemap 分页、随机文件集放大）。
+
 | 域 | 覆盖对象（示例） | 关键不变量 |
 |---|---|---|
 | markdown/frontmatter | `front-matter` 解析、`processPagesContent` 前置转换 | 任意 UTF-8 文本解析不崩溃；frontmatter 往返保序保值 |
@@ -76,6 +95,8 @@ T1 实证：
 | wiki/双语/导出 | `resolveWikiLinks`、`md-export`、双语文案回退 | 未知目标按模式降级；导出路径不出 `dist/md/**`；文案回退链稳定 |
 
 ### T3：恶意场景 fuzz（10 类，hard-fail/degrade）
+
+**进度：待推进（T2 批 B 已先行落地，其中 XML/编码类缺陷的修复与回归已随批 B 完成，但恶意场景载荷消费与 hard-fail/degrade 策略断言仍待本 T3 波次）。**
 
 - 逐条消费 `test-payloads.js` 的载荷，按 `policy` 断言：hard-fail 类必须被预校验/消毒/抛错拒绝，degrade 类必须不崩溃且留下告警。
 - 重点补测：保留 slug（`tags`/`categories`/`assets`）与生成目录的冲突、JSON-LD 注入出口、`%2e%2e` 双重编码、Windows 保留名、孤立代理与非法 UTF-8、损坏媒体降级、原子写失败传播。

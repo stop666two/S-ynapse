@@ -165,6 +165,41 @@ function replayCommand(seed, runs) {
   return 'TEST_SEED=' + seed + ' FC_NUM_RUNS=' + (runs || numRuns()) + ' npm run test:fuzz';
 }
 
+// fast-check v4 的失败详情把异常放在 errorInstance（旧字段 error 已不再填充），两者都兜底。
+function failureErrorText(details) {
+  if (details.errorInstance) return String(details.errorInstance);
+  return details.error ? String(details.error) : '';
+}
+
+// 失败收尾：留档 + 抛出带复现信息的错误（同步与异步属性共用同一路径）。
+/**
+ * @param {string} testName
+ * @param {any} details
+ * @param {number} seed
+ * @param {number} runs
+ * @returns {never}
+ */
+function failProperty(testName, details, seed, runs) {
+  const replay = replayCommand(seed, runs);
+  recordFailure(testName, {
+    seed,
+    counterexample: details.counterexample,
+    replayCommand: replay,
+    runs,
+    error: failureErrorText(details)
+  });
+  /** @type {Error & { counterexample?: unknown, fuzzSeed?: number, replayCommand?: string }} */
+  const error = new Error(
+    '[fuzz] ' + testName + ' 失败：seed=' + seed + ' numRuns=' + runs +
+    '\ncounterexample: ' + safeJson(details.counterexample) +
+    '\n重放：' + replay
+  );
+  error.counterexample = details.counterexample;
+  error.fuzzSeed = seed;
+  error.replayCommand = replay;
+  throw error;
+}
+
 /**
  * 运行一个 fast-check 属性：用基准种子与 FC_NUM_RUNS 迭代；失败时留档并抛出带复现信息的错误。
  * 使用 fc.check（不抛异常）以便在留档完成后再决定失败，避免丢失 counterexample。
@@ -182,24 +217,27 @@ function checkProperty(testName, fcApi, property, options) {
   if (!details.failed) {
     return { failed: false, numRuns: details.numRuns, seed };
   }
-  const replay = replayCommand(seed, runs);
-  recordFailure(testName, {
-    seed,
-    counterexample: details.counterexample,
-    replayCommand: replay,
-    runs,
-    error: details.error ? String(details.error) : ''
-  });
-  /** @type {Error & { counterexample?: unknown, fuzzSeed?: number, replayCommand?: string }} */
-  const error = new Error(
-    '[fuzz] ' + testName + ' 失败：seed=' + seed + ' numRuns=' + runs +
-    '\ncounterexample: ' + safeJson(details.counterexample) +
-    '\n重放：' + replay
-  );
-  error.counterexample = details.counterexample;
-  error.fuzzSeed = seed;
-  error.replayCommand = replay;
-  throw error;
+  return failProperty(testName, details, seed, runs);
+}
+
+/**
+ * checkProperty 的异步属性版本：被测函数本身返回 Promise（构建期 IO 等）时使用，
+ * 种子/迭代次数/失败留档语义与 checkProperty 完全一致。
+ * @param {string} testName
+ * @param {any} fcApi fast-check 模块
+ * @param {any} asyncProperty fc.asyncProperty(...) 生成的属性
+ * @param {{ seed?: number, numRuns?: number, env?: Record<string, string|undefined>, checkOptions?: object }} [options]
+ * @returns {Promise<{ failed: boolean, numRuns: number, seed: number }>}
+ */
+async function checkPropertyAsync(testName, fcApi, asyncProperty, options) {
+  const opts = options || {};
+  const runs = opts.numRuns || numRuns(opts.env);
+  const seed = opts.seed == null ? resolveSeed(opts.env) : opts.seed;
+  const details = await fcApi.check(asyncProperty, Object.assign({ seed: seed >>> 0, numRuns: runs }, opts.checkOptions || {}));
+  if (!details.failed) {
+    return { failed: false, numRuns: details.numRuns, seed };
+  }
+  return failProperty(testName, details, seed, runs);
 }
 
 module.exports = {
@@ -215,5 +253,6 @@ module.exports = {
   failureFileName,
   recordFailure,
   replayCommand,
-  checkProperty
+  checkProperty,
+  checkPropertyAsync
 };

@@ -76,6 +76,23 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Remove characters that XML 1.0 forbids in text: C0 controls other than tab/newline/CR,
+// U+FFFE/U+FFFF and lone surrogates. Feed/sitemap writers must apply this before emitting
+// anything, because neither the `feed` package nor escapeHtml filters them and a raw
+// control byte makes the whole document fail to parse (DOMParser parsererror).
+// 按码点遍历（for...of）：成对代理被合并为一个码点得以保留，孤立代理落入代理区被剔除。
+function stripInvalidXmlChars(value) {
+  let out = '';
+  for (const ch of String(value == null ? '' : value)) {
+    const cp = ch.codePointAt(0);
+    const forbidden = (cp < 0x20 && cp !== 0x09 && cp !== 0x0a && cp !== 0x0d)
+      || cp === 0xfffe || cp === 0xffff
+      || (cp >= 0xd800 && cp <= 0xdfff);
+    if (!forbidden) out += ch;
+  }
+  return out;
+}
+
 // Strip all HTML tags and decode common entities (&amp;, &quot;, &#39;).
 // Returns plain text with normalized whitespace. Used for excerpt generation and search indexing.
 function stripHtml(str) {
@@ -243,6 +260,20 @@ function escapeJsonForScript(value, space) {
 //   caseInsensitive: 标题匹配是否忽略大小写（默认 true）
 //   allowCustomLabel: 是否允许 [[目标|自定义文本]] 覆盖显示文本（默认 true；false 时忽略 | 后文本）
 //   lang: 'link' 模式的站内链接语言前缀（缺省时回退 'zh'）
+// Percent-encode 搜索词：孤立代理无法编码（encodeURIComponent 抛 URIError），
+// 先按 UTF-8 解码语义把孤立代理替换为 U+FFFD 再编码，保证任意字符串都能生成合法查询串。
+function encodeSearchTarget(value) {
+  const text = String(value);
+  try {
+    return encodeURIComponent(text);
+  } catch (err) {
+    return encodeURIComponent(
+      text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, '\uFFFD')
+        .replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '\uFFFD')
+    );
+  }
+}
+
 // Patterns: [[title]] [[title|显示文本]] [[slug]] [[slug|文本]] [[https://...]] [[url|文本]]
 function resolveWikiLinks(content, lookup, options) {
   if (typeof content !== 'string' || !lookup) return content;
@@ -268,7 +299,7 @@ function resolveWikiLinks(content, lookup, options) {
     if (hit) return '[' + (label || hit.title) + '](' + hit.url + ')';
     if (mode === 'hide') return '';
     const text = (label || target) + suffix;
-    if (mode === 'link') return '[' + text + '](/' + lang + '/search/?q=' + encodeURIComponent(target) + ')';
+    if (mode === 'link') return '[' + text + '](/' + lang + '/search/?q=' + encodeSearchTarget(target) + ')';
     return text;
   });
 }
@@ -288,4 +319,4 @@ function hasHighlightableCode(html) {
   return false;
 }
 
-module.exports = { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode };
+module.exports = { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripInvalidXmlChars, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode };

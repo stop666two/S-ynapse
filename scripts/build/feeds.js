@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
-const { escapeHtml, stripHtml } = require('../lib/utils');
+const { escapeHtml, stripHtml, stripInvalidXmlChars } = require('../lib/utils');
 const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('../lib/robots');
 const { resolveJsonFeedOptions } = require('../lib/feed-options');
 const { localSearchIndexNeeded } = require('../lib/feature-wiring');
@@ -16,6 +16,26 @@ const {
 const SEARCH_INDEX_CORE_PATH = path.join(__dirname, '..', '..', 'js', 'domains', 'features', 'search-core.js');
 const SEARCH_INDEX_FILE_RE = /^search-index\.[0-9a-f]+\.json$/;
 const DEFAULT_BUST_PATTERN = '.*\\.(css|js|png|jpg|svg)$';
+
+// feed 包依赖的 xml-js 只对 CDATA 文本里的第一个 "]]>" 做分割（cdata.replace 非全局），
+// 第二个及之后会留下裸 "]]>"，使整个 feed 无法被 XML 解析器读取。此处在交给 feed 之前，
+// 把第二个起的 "]]>" 预分割为 xml-js 约定的 "]]]]><![CDATA[>" 形态；第一个仍由其处理。
+function escapeCdataSplits(value) {
+  const text = String(value == null ? '' : value);
+  const marker = ']]>';
+  const split = ']]]]><![CDATA[>';
+  let at = text.indexOf(marker);
+  if (at === -1) return text;
+  let out = text.slice(0, at + marker.length);
+  let cursor = at + marker.length;
+  at = text.indexOf(marker, cursor);
+  while (at !== -1) {
+    out += text.slice(cursor, at) + split;
+    cursor = at + marker.length;
+    at = text.indexOf(marker, cursor);
+  }
+  return out + text.slice(cursor);
+}
 
 function createFeedsModule(ctx) {
   // Generate an RSS 2.0 feed (per-language).
@@ -35,29 +55,29 @@ function createFeedsModule(ctx) {
       const rssPublished = ctx.getPublished(rssArticles);
       try {
         const feed = new Feed({
-          title: (rssLang === 'en' && config.site.titleEn) ? config.site.titleEn : (config.site.title || 'Blog'),
-          description: (rssLang === 'en' && config.site.descriptionEn) ? config.site.descriptionEn : (config.site.description || ''),
-          id: baseUrl + '/' + rssLang,
-          link: baseUrl + '/' + rssLang + '/',
+          title: stripInvalidXmlChars((rssLang === 'en' && config.site.titleEn) ? config.site.titleEn : (config.site.title || 'Blog')),
+          description: stripInvalidXmlChars((rssLang === 'en' && config.site.descriptionEn) ? config.site.descriptionEn : (config.site.description || '')),
+          id: stripInvalidXmlChars(baseUrl + '/' + rssLang),
+          link: stripInvalidXmlChars(baseUrl + '/' + rssLang + '/'),
           language: rssLang === 'en' ? 'en-US' : (config.site.language || 'zh-CN'),
-          copyright: config.site.copyright || '',
+          copyright: stripInvalidXmlChars(config.site.copyright || ''),
           updated: rssPublished.length > 0 && rssPublished[0].date ? new Date(rssPublished[0].date) : new Date(),
-          generator: (rssLang === 'en' && config.site.titleEn) ? config.site.titleEn : (config.site.title || 'Blog')
+          generator: stripInvalidXmlChars((rssLang === 'en' && config.site.titleEn) ? config.site.titleEn : (config.site.title || 'Blog'))
         });
-        if (config.site.author) feed.author = { name: config.site.author, email: config.site.email || '' };
+        if (config.site.author) feed.author = { name: stripInvalidXmlChars(config.site.author), email: stripInvalidXmlChars(config.site.email || '') };
         const maxItems = config.site.rss.maxItems || 50;
         const items = rssPublished.slice(0, maxItems);
         for (const article of items) {
-          const link = baseUrl + article.url;
+          const link = stripInvalidXmlChars(baseUrl + article.url);
           feed.addItem({
-            title: article.title,
+            title: escapeCdataSplits(stripInvalidXmlChars(article.title)),
             id: link,
             link,
-            description: article.excerpt || '',
-            content: config.site.rss.fullContent ? article.content : (article.excerpt || ''),
+            description: escapeCdataSplits(stripInvalidXmlChars(article.excerpt || '')),
+            content: escapeCdataSplits(stripInvalidXmlChars(config.site.rss.fullContent ? article.content : (article.excerpt || ''))),
             date: article.date ? new Date(article.date) : new Date(),
-            category: article.tags.map(t => ({ name: t })),
-            author: config.site.author ? [{ name: config.site.author }] : undefined
+            category: article.tags.map(t => ({ name: stripInvalidXmlChars(t) })),
+            author: config.site.author ? [{ name: stripInvalidXmlChars(config.site.author) }] : undefined
           });
         }
         const rssPath = config.site.rss.path.replace(/^\//, '');
@@ -198,10 +218,10 @@ function createFeedsModule(ctx) {
         const outDir = path.dirname(entryPath);
         if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
         const writeOne = (item) => {
-          let x = '<loc>' + escapeHtml(encodeLoc(url + item.loc)) + '</loc>';
+          let x = '<loc>' + escapeHtml(stripInvalidXmlChars(encodeLoc(url + item.loc))) + '</loc>';
           const lastmod = toSitemapLastmod(item.lastmod);
           if (lastmod) x += '<lastmod>' + lastmod + '</lastmod>';
-          x += '<changefreq>' + item.changefreq + '</changefreq><priority>' + item.priority + '</priority>';
+          x += '<changefreq>' + escapeHtml(stripInvalidXmlChars(item.changefreq)) + '</changefreq><priority>' + escapeHtml(stripInvalidXmlChars(item.priority)) + '</priority>';
           return x;
         };
         if (!split || urls.length <= perFile) {
@@ -224,7 +244,7 @@ function createFeedsModule(ctx) {
           writeFileAtomicSync(path.join(outDir, partName), part, 'utf-8');
         }
         let index = '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-        for (const item of idxUrls) index += '<sitemap>' + url + item.loc + '</sitemap>';
+        for (const item of idxUrls) index += '<sitemap>' + escapeHtml(stripInvalidXmlChars(encodeLoc(url + item.loc))) + '</sitemap>';
         index += '</sitemapindex>';
         writeFileAtomicSync(entryPath, index, 'utf-8');
         console.log(`  Created: /${lang}/${sitemapPath} (index ${parts.length} parts, ${urls.length} urls)`);
@@ -394,7 +414,10 @@ function createFeedsModule(ctx) {
     const outDir = path.join(ctx.distDir, indexPath);
     let mod;
     try {
-      mod = await import('pagefind');
+      // 可选依赖：pagefind 未安装时动态导入失败并走降级告警。模块名经变量传入，
+      // 避免类型检查在未安装依赖时报「找不到模块」（运行时语义不变）。
+      const pagefindModule = 'pagefind';
+      mod = await import(pagefindModule);
     } catch (err) {
       console.warn('  [WARN] navigation.search.provider=pagefind 但未安装 pagefind；跳过索引生成（npm install -D pagefind）');
       return null;

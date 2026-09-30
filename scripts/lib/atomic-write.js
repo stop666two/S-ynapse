@@ -54,9 +54,16 @@ function discardAtomicTemp(tmpPath) {
   }
 }
 
-function writeFileAtomicSync(filePath, data) {
+/**
+ * 原子写入：data 支持字符串与 Buffer；encoding 可选（构建调用方统一传 'utf-8'，
+ * 省略时沿用 Node 默认值），透传给 fs.writeFileSync。
+ * @param {string} filePath
+ * @param {string|Buffer} data
+ * @param {BufferEncoding} [encoding]
+ */
+function writeFileAtomicSync(filePath, data, encoding) {
   const tmpPath = atomicTempPath(filePath);
-  fs.writeFileSync(tmpPath, data);
+  fs.writeFileSync(tmpPath, data, encoding);
   commitAtomicTemp(tmpPath, filePath);
 }
 

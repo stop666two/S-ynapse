@@ -8,7 +8,7 @@ const frontMatter = require('front-matter');
 const { marked } = require('marked');
 const { getAllFiles } = require('./fs-utils');
 const { preflightArticles, createMediaResolver } = require('../lib/content-validate');
-const { formatDate, safeSlug, validateSlug, applyCjkSpacingToHtml, extractToc, sanitizeHtml, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode } = require('../lib/utils');
+const { formatDate, safeSlug, validateSlug, applyCjkSpacingToHtml, extractToc, sanitizeHtml, truncateCodePoints, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode } = require('../lib/utils');
 const { makeArticleComparator, stripMarkdownText, mathConfig, mathNeeded, wordCountConfig } = require('../lib/feature-wiring');
 
 function createArticlesModule(ctx) {
@@ -257,7 +257,9 @@ function createArticlesModule(ctx) {
             .trim();
           const as = (config.features && config.features.autoSummary) || {};
           const excerptLen = as.maxLength || config.site.build.excerptLength || config.theme.card?.excerptLength || 150;
-          excerptText = textOnly.length > excerptLen ? textOnly.slice(0, excerptLen) + (as.ellipsis || '...') : textOnly;
+          // 按码点截断：字符串 slice 可能把 emoji/CJK 扩展区代理对切成孤立代理（写盘变 U+FFFD）。
+          const truncated = truncateCodePoints(textOnly, excerptLen);
+          excerptText = truncated.length < textOnly.length ? truncated + (as.ellipsis || '...') : textOnly;
         }
         // Read time: prefers the per-script speeds from features.readingTime
         // (wordsPerMinuteCJK / wordsPerMinuteLatin); falls back to the legacy

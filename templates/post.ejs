@@ -149,7 +149,7 @@
     <% article.relatedArticles.forEach(function(r) { %>
     <a href="<%= r.url %>" class="related-post-card">
       <div class="related-post-title"><%= r.title %></div>
-      <% if (features.related && features.related.showExcerpt!==false && r.excerpt) { %><div class="related-post-excerpt"><%= r.excerpt.length > (features.related.excerptLength||80) ? r.excerpt.slice(0, features.related.excerptLength||80) + '…' : r.excerpt %></div><% } %>
+      <% if (features.related && features.related.showExcerpt!==false && r.excerpt) { %><div class="related-post-excerpt"><%= truncateCodePoints(r.excerpt, features.related.excerptLength||80).length < r.excerpt.length ? truncateCodePoints(r.excerpt, features.related.excerptLength||80) + '…' : r.excerpt %></div><% } %>
       <% if (r.tags && r.tags.length) { %><div class="related-post-tags"><% r.tags.forEach(function(t) { %><span class="related-post-tag"><%= t %></span><% }) %><% if (features.related && features.related.showCount) { %><span class="related-post-count"><%= r.tags.length %></span><% } %></div><% } %>
     </a>
     <% }) %>

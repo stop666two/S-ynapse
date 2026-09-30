@@ -61,7 +61,8 @@ function needsJsonCompaction(text) {
 
 /**
  * JSON 去空白：JSON.parse → JSON.stringify。
- * 输出始终是合法 JSON；非数值键保持插入顺序；Unicode 内容原样保留（不做 \uXXXX 转义）。
+ * 输出始终是合法 JSON；非数值键保持插入顺序；Unicode 内容原样保留（不做 \uXXXX 转义）；
+ * `<` 统一重写为 JSON 等价的 \u003c（解析后值不变），防止压缩阶段把上游的防注入转义还原成裸标签串。
  * 已是紧凑单行时直接返回原文（changed=false）；非法 JSON 抛出 SyntaxError，由调用方保留原文件。
  * @param {string} text
  * @returns {{ text: string, changed: boolean }}
@@ -71,7 +72,7 @@ function needsJsonCompaction(text) {
 function compactJsonText(text) {
   if (typeof text !== 'string') throw new TypeError('compactJsonText 需要字符串入参');
   if (!needsJsonCompaction(text)) return { text, changed: false };
-  const output = JSON.stringify(JSON.parse(text));
+  const output = JSON.stringify(JSON.parse(text)).replace(/</g, '\\u003c');
   return { text: output, changed: output !== text };
 }
 

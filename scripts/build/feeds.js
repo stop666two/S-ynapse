@@ -5,12 +5,12 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
-const { escapeHtml, stripHtml, stripInvalidXmlChars } = require('../lib/utils');
+const { escapeHtml, stripHtml, stripInvalidXmlChars, truncateCodePoints } = require('../lib/utils');
 const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('../lib/robots');
 const { resolveJsonFeedOptions } = require('../lib/feed-options');
 const { localSearchIndexNeeded } = require('../lib/feature-wiring');
 const {
-  searchIndexOptions, buildLanguageIndex, measureGzip, hashIndexText, pruneIndexToBudget, resolveFinalAssetUrl
+  searchIndexOptions, buildLanguageIndex, measureGzip, serializeIndexText, hashIndexText, pruneIndexToBudget, resolveFinalAssetUrl
 } = require('../lib/search-index');
 
 const SEARCH_INDEX_CORE_PATH = path.join(__dirname, '..', '..', 'js', 'domains', 'features', 'search-core.js');
@@ -141,7 +141,9 @@ function createFeedsModule(ctx) {
         const outputPath = path.join(ctx.distDir, lang, jfPath);
         const outDir = path.dirname(outputPath);
         if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-        writeFileAtomicSync(outputPath, feed.json1(), 'utf-8');
+        // JSON Feed 同样做 `<` → \u003c 防注入（JSON 等价转义，解析后值不变），
+        // 避免站点标题/正文中的 `<script>` 以可执行标签起始串形式出现在产物中。
+        writeFileAtomicSync(outputPath, feed.json1().replace(/</g, '\\u003c'), 'utf-8');
         console.log(`  Created: /${lang}/${jfPath}`);
       }
     } catch (err) {
@@ -332,15 +334,15 @@ function createFeedsModule(ctx) {
         const docs = published.map(a => ({
           title: a.title,
           url: a.url,
-          excerpt: stripHtml(a.excerpt || '').substring(0, 200),
+          excerpt: truncateCodePoints(stripHtml(a.excerpt || ''), 200),
           featuredImage: resolveFinalAssetUrl(ctx.distDir, a.featuredImage || '', bustOpts),
-          content: fullContent ? stripHtml(a.content).substring(0, 5000) : '',
+          content: fullContent ? truncateCodePoints(stripHtml(a.content), 5000) : '',
           tags: a.tags,
           categories: a.categories,
           lang
         }));
         const index = buildLanguageIndex(core, docs, { lang, fields: indexFields, bigram: opts.bigram });
-        const fullBytes = measureGzip(JSON.stringify(index));
+        const fullBytes = measureGzip(serializeIndexText(index));
         const pruned = pruneIndexToBudget(index, maxBytes);
         if (pruned.pruned > 0) {
           const detail = `搜索索引（${lang}）gzip ${(fullBytes / 1024).toFixed(1)}KB 超出 features.search.index.maxGzipKb=${opts.maxGzipKb}：已裁剪 ${pruned.pruned} 个低频词 → ${(pruned.gzipBytes / 1024).toFixed(1)}KB`;

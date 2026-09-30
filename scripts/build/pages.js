@@ -12,7 +12,7 @@ const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
-const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
+const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, truncateCodePoints, hasHighlightableCode } = require('../lib/utils');
 const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette, exportArticleConfig, bilingualConfig, stripMathText } = require('../lib/feature-wiring');
 const { collectSeriesPages } = require('../lib/series-page');
 const { writeArticleMarkdown } = require('../lib/md-export');
@@ -325,6 +325,7 @@ function createPagesModule(ctx) {
       presets: buildRuntimePresets(),
       formatDate: (d) => formatDate(d, config.site.dateFormat),
       generateSlug: safeSlug,
+      truncateCodePoints: truncateCodePoints,
       categoryHue: categoryHue,
       escapeAttr: escapeAttr,
       ui: function(path, fallback, lang) {

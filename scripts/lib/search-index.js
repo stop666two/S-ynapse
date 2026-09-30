@@ -49,6 +49,13 @@ function measureGzip(text) {
   return zlib.gzipSync(Buffer.from(String(text), 'utf-8')).length;
 }
 
+// JSON 文本防注入：`<` 一律序列化为 JSON 等价的 \u003c 转义，产物中不存在可执行标签起始串；
+// JSON.parse 后值完全一致（搜索匹配、展示不受影响）。
+// JSON 的结构字符只有 {}[],:" 与空白，`<` 只可能出现在字符串字面量内，替换不会破坏语法。
+function serializeIndexText(index) {
+  return JSON.stringify(index).replace(/</g, '\\u003c');
+}
+
 // 内容寻址：语言参与哈希（同内容不同语言不得碰撞），返回 10 位十六进制短哈希。
 function hashIndexText(lang, text) {
   return crypto.createHash('sha256')
@@ -62,7 +69,7 @@ function hashIndexText(lang, text) {
 function pruneIndexToBudget(index, maxBytes, options) {
   const opts = options || {};
   const budget = maxBytes > 0 ? Math.floor(maxBytes) : 0;
-  let text = JSON.stringify(index);
+  let text = serializeIndexText(index);
   let gzipBytes = measureGzip(text);
   if (gzipBytes <= budget) return { index: index, text: text, gzipBytes: gzipBytes, pruned: 0, reached: true };
   const units = [];
@@ -87,7 +94,7 @@ function pruneIndexToBudget(index, maxBytes, options) {
       delete index.fields[units[cursor].f][units[cursor].term];
       removed++;
     }
-    text = JSON.stringify(index);
+    text = serializeIndexText(index);
     gzipBytes = measureGzip(text);
   }
   return { index: index, text: text, gzipBytes: gzipBytes, pruned: removed, reached: gzipBytes <= budget };
@@ -125,6 +132,7 @@ module.exports = {
   searchIndexOptions,
   buildLanguageIndex,
   measureGzip,
+  serializeIndexText,
   hashIndexText,
   pruneIndexToBudget,
   resolveFinalAssetUrl

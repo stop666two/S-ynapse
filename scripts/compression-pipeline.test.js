@@ -42,6 +42,15 @@ describe('JSON 去空白（compactJsonText / needsJsonCompaction）', () => {
     assert.deepEqual(JSON.parse(text), JSON.parse(input));
   });
 
+  test('`<` 统一转义为 \\u003c：压缩不得还原上游防注入转义（解析后值不变）', () => {
+    const input = '{\n  "title": "<script>alert(1)</script>",\n  "nested": {"x": "a<b>c"}\n}';
+    const { text } = compactJsonText(input);
+    assert.ok(!text.includes('<'), '压缩输出不得含裸 "<"：' + text);
+    assert.ok(text.includes('\\u003cscript'), '必须保留 JSON 等价转义');
+    assert.deepEqual(JSON.parse(text), JSON.parse(input), '解析后值必须一致');
+    assert.deepEqual(compactJsonText(text), { text, changed: false }, '转义后必须幂等');
+  });
+
   test('键序保持（非数值键按插入顺序）', () => {
     const { text } = compactJsonText('{\n  "b": 1,\n  "a": 2,\n  "c": 3\n}');
     assert.equal(text, '{"b":1,"a":2,"c":3}');

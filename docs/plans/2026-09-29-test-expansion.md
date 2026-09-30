@@ -1,7 +1,7 @@
 # 测试极大扩充计划（随机/属性 + 恶意载荷 + 冒烟 + 覆盖率）
 
 > 目标：把测试从「快乐路径的示例断言」扩充为「用户不会那么老实」的随机与对抗性验证体系。
-> 本文件是 T1–T5 的总体计划与预算基线；T1（基础设施与骨架）已完成，T2–T5 按本文件推进。
+> 本文件是 T1–T5 的总体计划与预算基线；T1（基础设施与骨架）与 T2 批 A（markdown/frontmatter、slug/路径/URL、配置合并校验三域）已完成，其余按本文件推进。
 
 ## 1. 已确认决策（8 项）
 
@@ -45,6 +45,25 @@ T1 实证：
 
 ### T2：8 域随机属性测试（happy-path 不变量）
 
+**进度：批 A（3/8 域）已完成；批 B（搜索索引查询、压缩/混淆往返、XML/Feed/sitemap、增量指纹、wiki/双语/导出）待推进。**
+
+批 A 交付与 `npm run test:fuzz` 默认档实测：
+
+| 文件 | 域 | 属性数 | 时长 |
+|---|---|---|---|
+| `scripts/lib/markdown.fuzz.test.js` | markdown/frontmatter 解析、marked 渲染围栏与确定性、sanitize 净化、extractMediaRefs | 14 | 约 0.5 s |
+| `scripts/lib/paths.fuzz.test.js` | safeSlug/validateSlug 路径安全、encodeLoc、sitemap、toSitemapLastmod、nav-match、mediaResolver | 14 | 约 0.35 s |
+| `scripts/lib/config.fuzz.test.js` | compression 深合并/校验、validateFeatures、buildRuntimeConfig、findDuplicateKeys、check-config-refs 纯函数 | 23 | 约 0.4 s |
+
+全量 fuzz（含 T1 slug 套件）4 套件 / 60 用例约 1.1 s，远低于 90 s 预算。
+
+批 A 过程记录（均为测试侧断言或生成器修正，非产品缺陷）：
+
+- `front-matter` 允许 YAML 根为标量：`---\n(\n---\n` 解析成功且 `attributes` 为 string；产品侧统一以 `fm.attributes || {}` 消费，属性断言按此真实契约放宽（不视为缺陷）。
+- `validateSlug` 先 `trim()`：尾随空格输入 `'a '` 归一化为合法 `'a'`；拒绝注入属性改为把注入字符插入中段（尾随空格走归一化路径）。
+- `scripts/check-config-refs.js` 为可测性补齐 `require.main === module` 守卫并导出 `collectLeaves`/`isAllowed`/`GENERIC_KEYS`，CLI 行为逐字不变。
+- 保留 slug（`tags`/`categories`/`assets`/`search`）预校验仍留待 T3；本批未改产品行为（测试断言中未涉及该预校验）。
+
 | 域 | 覆盖对象（示例） | 关键不变量 |
 |---|---|---|
 | markdown/frontmatter | `front-matter` 解析、`processPagesContent` 前置转换 | 任意 UTF-8 文本解析不崩溃；frontmatter 往返保序保值 |
@@ -85,9 +104,9 @@ npm run test:all
 
 | 步骤 | 说明 | 本地实测（T1，热缓存） |
 |---|---|---|
-| `npm test` | 单元测试（891 项 / 130 组，含 T1 前既有全部用例；fuzz 文件默认排除） | 约 12 s |
+| `npm test` | 单元测试（894 项 / 130 组，含既有全部用例；fuzz 文件默认排除） | 约 13–16 s |
 | `npm run test:build` | 构建管线集成冒烟（临时目录两态 + 坏文章阻断） | 约 2–3 min |
-| `npm run test:fuzz` | 属性测试（默认 `FC_NUM_RUNS=100`） | 约 0.4 s |
+| `npm run test:fuzz` | 属性测试（fast-check；默认 `FC_NUM_RUNS=100`；T2 批 A 后 4 套件 / 60 用例） | 约 1.1 s |
 | `npm run test:smoke` | 浏览器冒烟（Chrome；dist 缺失时自建） | 新建约 1–2 min；复用 dist 约 30 s |
 | `npm run test:cov-web` | 覆盖率采集（no-bundle + 压缩关闭构建 + 两遍页面集合；产物新鲜时复用） | 冷构建约 3–4 min；热约 1.5 min |
 

@@ -32,8 +32,12 @@ let BUNDLE_FILES = [];
 
 // 构建上下文（scripts/build/context.js）：可选依赖加载、路径/标志计算与全部模块接线在工厂内完成，
 // 本文件只保留编排逻辑（validateJsonSyntax + build() + watch/serve 入口）。
+// 站点根目录：SYNAPSE_ROOT（测试隔离用）优先，默认仓库根；PROJECT_DIR 始终指向本仓库，
+// 供需要定位构建器自身脚本（如 generate-og.js）的路径使用，避免站点根被覆盖后找不到脚本。
+const PROJECT_DIR = path.resolve(__dirname, '..');
+const ROOT = process.env.SYNAPSE_ROOT ? path.resolve(process.env.SYNAPSE_ROOT) : PROJECT_DIR;
 const ctx = createBuildContext({
-  rootDir: path.resolve(__dirname, '..'),
+  rootDir: ROOT,
   argv: process.argv,
   getBuildErrors: () => BUILD_ERRORS,
   getMediaManifest: () => MEDIA_MANIFEST,
@@ -46,7 +50,7 @@ const ctx = createBuildContext({
 
 const {
   cspNonce: CSP_NONCE_VALUE, json5, chokidar, hooks, generateWorkerSecurity,
-  rootDir: ROOT, distDir: DIST_DIR, watchMode: WATCH_MODE, serveMode: SERVE_MODE,
+  distDir: DIST_DIR, watchMode: WATCH_MODE, serveMode: SERVE_MODE,
   showDrafts: SHOW_DRAFTS, allowDegraded: ALLOW_DEGRADED, bundleActive: BUNDLE_ACTIVE,
   outputDirResolved: OUTPUT_DIR_RESOLVED, pkgVersion: PKG_VERSION,
   abortBuild, loadConfig, validateConfig, applyCspNonce,
@@ -264,7 +268,7 @@ async function build() {
       // 自定义输出目录（--out / SYNAPSE_OUT_DIR）时把解析后的绝对路径传给子进程，
       // 保证 generate-og.js 的产图目录与本次构建的 DIST_DIR 完全一致。
       if (OUTPUT_DIR_RESOLVED.custom) process.env.SYNAPSE_OUT_DIR = DIST_DIR;
-      const ogArgs = [path.join(ROOT, 'scripts', 'generate-og.js')];
+      const ogArgs = [path.join(PROJECT_DIR, 'scripts', 'generate-og.js')];
       if (SHOW_DRAFTS) ogArgs.push('--drafts');
       const ogStartedAt = Date.now();
       const ogRes = spawnSync(process.execPath, ogArgs, { stdio: 'inherit' });
@@ -279,7 +283,7 @@ async function build() {
     generateSecurityHeaders(config);
     generateRedirects(config, customPages);
     if (generateWorkerSecurity && !OUTPUT_DIR_RESOLVED.custom) {
-      generateWorkerSecurity(config.security, path.join(ROOT, 'workers', 'security-config.js'), buildCspTrimContext(config), config.features);
+      generateWorkerSecurity(config.security, path.join(PROJECT_DIR, 'workers', 'security-config.js'), buildCspTrimContext(config), config.features);
     } else if (generateWorkerSecurity) {
       console.log('  [INFO] 自定义输出目录构建：跳过 workers/security-config.js 写入（避免污染部署配置的 CSP nonce）');
     }

@@ -1,14 +1,19 @@
 'use strict';
 // 临时站点夹具生成器（仅供测试使用，永不写入正式目录）：
 // 在 <项目根>/.tmp-test/ 下创建随机命名的临时站点目录，生成最小可解析的
-// articles/、pages/、site.json5、features.json5（可选坏配置）与 media/ 素材，
+// articles/、pages/、全部必需 *.json5（可选坏配置）与 media/ 素材，
 // 返回 { root, name, options, files, cleanup }。cleanup 幂等且只删除本夹具目录。
+// linkProject=true 时以目录联接（Windows junction / POSIX symlink）挂载仓库的
+// templates/static/js/node_modules，使构建 CLI 能用 SYNAPSE_ROOT 指向本夹具完整跑通。
 
 const fs = require('node:fs');
 const path = require('node:path');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 const TMP_ROOT = path.join(PROJECT_ROOT, '.tmp-test');
+
+// 构建必需的仓库级目录：夹具以联接方式复用（只读来源，不会写回仓库）。
+const PROJECT_LINK_DIRS = Object.freeze(['templates', 'static', 'js', 'node_modules']);
 
 const VALID_PIXEL_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
@@ -71,31 +76,41 @@ function pageMarkdown(index, lang) {
   ].join('\n');
 }
 
+// 夹具 site.json5：JSON 文本即合法 JSON5；siteOverrides 提供场景级深覆盖（如 build.cleanDist）。
 function siteConfig(options) {
-  return [
-    '{',
-    '  // 夹具站点标题（测试用）',
-    '  title: ' + JSON.stringify(options.siteName) + ',',
-    '  description: ' + JSON.stringify('夹具站点 description') + ',',
-    '  url: ' + JSON.stringify('https://example.test') + ',',
-    '  lang: ' + JSON.stringify('zh') + ',',
-    '}',
-    ''
-  ].join('\n');
+  const site = Object.assign({
+    title: options.siteName,
+    description: '夹具站点 description',
+    url: 'https://example.test',
+    lang: 'zh',
+    build: { cjkFonts: { enabled: false } }
+  }, options.siteOverrides || {});
+  return JSON.stringify(site, null, 2) + '\n';
 }
 
-function featuresConfig(badConfig) {
-  if (badConfig) {
+// 夹具 features.json5：默认关闭构建期外呼与重活（OG 出图 / CJK 字体子集），
+// 保留搜索索引（恶意场景需要断言 search-index）。
+function featuresConfig(options) {
+  if (options.featuresContent != null) return options.featuresContent;
+  if (options.badConfig) {
     // 故意语法非法（裸词值 + 未闭合括号）：配置校验必须显式报错。
     return '{ enabled: tru, broken: [ }\n';
   }
-  return [
-    '{',
-    '  // 夹具 features：仅覆盖测试需要的开关，其余走注册表默认值',
-    '  search: { enabled: true },',
-    '}',
-    ''
-  ].join('\n');
+  const features = Object.assign({
+    search: { enabled: true },
+    ogImage: { enabled: false }
+  }, options.featuresOverrides || {});
+  return JSON.stringify(features, null, 2) + '\n';
+}
+
+// 其余四个必需配置文件：空对象即全量回退内置默认值（validateJsonSyntax 只要求可解析）。
+function emptyConfig(name) {
+  return '{\n  // 夹具 ' + name + '：空对象表示全部走内置默认值\n}\n';
+}
+
+// navigation.json5：默认开启内置本地搜索，恶意场景需要断言 search-index 产物。
+function navigationConfig() {
+  return JSON.stringify({ search: { enabled: true, provider: 'local' } }, null, 2) + '\n';
 }
 
 /**
@@ -109,14 +124,23 @@ function assertInsideTmp(target) {
   }
 }
 
+// 目录联接：Windows 用 junction（无需管理员权限），POSIX 用目录 symlink；失败时抛错由调用方感知。
+function linkProjectDir(name, linkPath) {
+  const target = path.join(PROJECT_ROOT, name);
+  if (!fs.existsSync(target)) return false;
+  fs.symlinkSync(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+  return true;
+}
+
 /**
  * 创建临时站点夹具。
  * @param {{
  *   articles?: number, pages?: number, langs?: string[], media?: boolean, mediaBroken?: boolean,
  *   badConfig?: boolean, encoding?: 'utf8'|'utf8-bom'|'crlf'|'mixed'|'lone-surrogate',
- *   siteName?: string, seed?: number, extraFiles?: Record<string, string>
+ *   siteName?: string, seed?: number, extraFiles?: Record<string, string|Buffer>,
+ *   linkProject?: boolean, siteOverrides?: object, featuresContent?: string, featuresOverrides?: object
  * }} [options]
- * @returns {{ root: string, name: string, options: object, files: string[], cleanup: () => boolean }}
+ * @returns {{ root: string, name: string, options: object, files: string[], linked: string[], cleanup: () => boolean }}
  */
 function createTestSite(options) {
   const opts = Object.assign({
@@ -129,7 +153,11 @@ function createTestSite(options) {
     encoding: 'utf8',
     siteName: '夹具站点',
     seed: 0,
-    extraFiles: null
+    extraFiles: null,
+    linkProject: false,
+    siteOverrides: null,
+    featuresContent: null,
+    featuresOverrides: null
   }, options || {});
   if (!ENCODING_CHOICES.includes(opts.encoding)) {
     throw new Error('未知 encoding 选项：' + opts.encoding + '（可选：' + ENCODING_CHOICES.join('/') + '）');
@@ -138,6 +166,7 @@ function createTestSite(options) {
   const root = fs.mkdtempSync(path.join(TMP_ROOT, 'site-'));
   assertInsideTmp(root);
   const files = [];
+  const linked = [];
 
   const write = (rel, content) => {
     const target = path.join(root, rel);
@@ -149,7 +178,11 @@ function createTestSite(options) {
   };
 
   write('site.json5', siteConfig(opts));
-  write('features.json5', featuresConfig(opts.badConfig));
+  write('features.json5', featuresConfig(opts));
+  write('navigation.json5', navigationConfig());
+  for (const name of ['theme.json5', 'sidebar.json5', 'footer.json5', 'security.json5']) {
+    write(name, emptyConfig(name));
+  }
   const langs = opts.langs.length ? opts.langs : ['zh'];
   for (const lang of langs) {
     for (let i = 1; i <= opts.articles; i++) {
@@ -168,6 +201,13 @@ function createTestSite(options) {
   if (opts.extraFiles) {
     for (const rel of Object.keys(opts.extraFiles)) write(rel, opts.extraFiles[rel]);
   }
+  if (opts.linkProject) {
+    for (const name of PROJECT_LINK_DIRS) {
+      const linkPath = path.join(root, name);
+      assertInsideTmp(linkPath);
+      if (linkProjectDir(name, linkPath)) linked.push(name);
+    }
+  }
 
   let cleaned = false;
   const cleanup = () => {
@@ -183,7 +223,7 @@ function createTestSite(options) {
     }
   };
 
-  return { root, name: path.basename(root), options: opts, files, cleanup };
+  return { root, name: path.basename(root), options: opts, files, linked, cleanup };
 }
 
 /**
@@ -208,6 +248,7 @@ module.exports = {
   PROJECT_ROOT,
   TMP_ROOT,
   ENCODING_CHOICES,
+  PROJECT_LINK_DIRS,
   VALID_PIXEL_PNG,
   BROKEN_PNG_HEAD,
   assertInsideTmp,

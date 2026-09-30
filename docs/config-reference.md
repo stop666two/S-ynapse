@@ -1048,9 +1048,11 @@ listCover: {
 
 实测（2026-09，本地 gzip serve + Slow4G + 4× CPU，每页 3 次中位）：冷锚点最终落点误差 9.9px（校正瞬间即达理想位 156.1px，其后极晚布局回移约 10px，页面总高 13983px、不可感知；基线中位偏差 1431px、偶发 1903px）；冷锚点 CLS(sum) 0.5367 → 0.0011；滚动扫描 CLS 增量 0.0240 → 0.0002；TOC 高亮/返回顶部/软导航进出不受影响 — `js/domains/core/anchor-stabilize.js` + `js/core/main.js` + `scripts/lib/features-schema.js`。
 
-### 3.98 continueReading — 继续阅读卡片（首页最近阅读）
+### 3.98 continueReading — 继续阅读卡片（首页最近阅读 + 单条移除/一键清空）
 
-`enabled true` / `count 3`（展示条数，非法/小于 1 回退 3） / `showProgress true`（进度条与百分比；旧记录无进度字段按 0%） / `storageKey 's-history'`（与 `features.readingHistory.storageKey` 共用同一份阅读历史，留空依次回退 → `'s-history'`）。首页在卡片区上方渲染最近读过的 `count` 篇（按时间倒序、同 URL 去重、排除当前页），每张卡片含标题、进度条（`role="progressbar"` + `aria-valuenow`，文案取 `ui-strings.continueReading.progress`）与相对时间（`Intl.RelativeTimeFormat` 双语）；无记录或无历史宿主时整块保持隐藏；点击链接走软导航（文档级委托自动接管）。进度由 `features.readingHistory` 记录时写入（滚动 800ms 节流 + `pagehide` 落盘，字段 `lang`/`p`），**只读同一份 localStorage，不新建数据源**；`enabled:false` 时首页回退旧的 `readingHistory` 列表块。构建/运行时模块 — `js/domains/features/continue-reading.js` + `templates/index.ejs` + `templates/site-css.ejs`。
+`enabled true` / `count 3`（展示条数，非法/小于 1 回退 3） / `showProgress true`（进度条与百分比；旧记录无进度字段按 0%） / `storageKey 's-history'`（与 `features.readingHistory.storageKey` 共用同一份阅读历史，留空依次回退 → `'s-history'`） / `removeLabel '移除'` / `removeLabelEn ''`（单条移除按钮文案；zh 空回退内置、en 空回退 `ui-strings.continueReading.remove`） / `clearLabel '清空'` / `clearLabelEn ''`（一键清空按钮文案，回退链同上，取 `ui-strings.continueReading.clear`）。
+
+首页在卡片区上方渲染最近读过的 `count` 篇（按时间倒序、同 URL 去重、排除当前页），每张卡片含标题、进度条（`role="progressbar"` + `aria-valuenow`，文案取 `ui-strings.continueReading.progress`）与相对时间（`Intl.RelativeTimeFormat` 双语）。管理交互：区头右侧「清空」按钮（轻确认：首次点击进入 armed 态并显示 `ui-strings.continueReading.clearConfirm`，3 秒内再次点击执行，超时自动复位；非阻塞弹窗）；每卡右上「×」移除按钮（`aria-label` = 移除文案 + 标题，原生按钮键盘可达）；两者均写回同一存储键——移除经 `removeByUrl` 保留其余记录原始字段（不经归一化重写数据源）并按 `features.readingHistory.maxStored` 重算上限，清空写入空列表；单条移除带动画后即时更新，全部移除或清空后整块隐藏。点击卡片链接走软导航（文档级委托自动接管）。进度由 `features.readingHistory` 记录时写入（滚动 800ms 节流 + `pagehide` 落盘，字段 `lang`/`p`），**只读同一份 localStorage，不新建数据源**；`enabled:false` 时首页回退旧的 `readingHistory` 列表块。构建/运行时模块 — `js/domains/features/continue-reading.js` + `templates/index.ejs` + `templates/site-css.ejs`。
 
 ### 3.99 exportArticle — 文章导出（打印/另存 PDF + 复制 Markdown 原文）
 

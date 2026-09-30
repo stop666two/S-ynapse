@@ -33,6 +33,7 @@ logs/
 *.tmp
 *.bak
 .tmp-scripts/
+.tmp-test/
 test-out.txt
 
 # Environment (keep .env.example as the only committed template)
@@ -74,7 +75,7 @@ system_prompts_leaks/
 media-manifest.json
 cache-bust-manifest.json
 build-report.html
-test-*.js
+/test-*.js
 .env
 .env.local
 .env.*.local

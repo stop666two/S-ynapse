@@ -290,9 +290,11 @@ describe('压缩选项装配属性', () => {
 
   it('compactJsonText：合法 JSON 往返保值且二次压缩不再变化', () => {
     checkProperty('compactJsonText-往返幂等', fc, fc.property(fc.jsonValue({ maxDepth: 5 }), (value) => {
-      const pretty = JSON.stringify(value, null, 2);
+      // JSON 文本无法表达 -0（JSON.stringify(-0) 即 "0"），基准取 JSON 规范化后的值。
+      const normalized = JSON.parse(JSON.stringify(value));
+      const pretty = JSON.stringify(normalized, null, 2);
       const result = compactJsonText(pretty);
-      assert.deepStrictEqual(JSON.parse(result.text), value);
+      assert.deepStrictEqual(JSON.parse(result.text), normalized);
       assert.strictEqual(compactJsonText(result.text).changed, false);
       return true;
     }));

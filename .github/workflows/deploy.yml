@@ -48,6 +48,7 @@ jobs:
         run: |
           npm run verify:config
           npm run verify:config-refs
+          npm run verify:config-dupes
           npm run test:build
           npm run build
 
@@ -75,6 +76,8 @@ jobs:
         run: npm run verify:config
       - name: Config references (unwired key scan)
         run: npm run verify:config-refs
+      - name: Config duplicates (same-object duplicate key scan)
+        run: npm run verify:config-dupes
       - name: Config comments (per-key comment coverage guard)
         run: npm run verify:config-comments
       - name: Config docs coverage (config-reference key coverage)

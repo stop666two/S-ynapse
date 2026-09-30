@@ -1,0 +1,10 @@
+{
+  "note": "verify:config-dupes 豁免名单：登记「已确认存在重复、但按当前决定暂不清理」的键。file 支持精确相对路径或路径后缀（site.json5 同时命中仓库根与 real-site/site.json5）；key 为解码后的键名；reason 必填且会随守卫输出显式打印。清理完成后应同步删除对应条目。",
+  "allow": [
+    {
+      "file": "site.json5",
+      "key": "descriptionEn",
+      "reason": "real-site 首页描述文案待用户确认合并口径（多处取值不一），清理需改值故另行提交；主仓 site.json5 仅单处定义不受影响"
+    }
+  ]
+}

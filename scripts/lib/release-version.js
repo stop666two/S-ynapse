@@ -18,6 +18,7 @@ const RELEASE_GATES = Object.freeze([
   { key: 'test-build', command: 'npm run test:build', label: '构建冒烟' },
   { key: 'verify-config', command: 'npm run verify:config', label: '配置一致性' },
   { key: 'verify-config-refs', command: 'npm run verify:config-refs', label: '配置零引用键' },
+  { key: 'verify-config-dupes', command: 'npm run verify:config-dupes', label: '配置重复键' },
   { key: 'verify-config-comments', command: 'npm run verify:config-comments', label: '配置逐键注释' },
   { key: 'verify-config-docs', command: 'npm run verify:config-docs', label: '配置文档覆盖' },
   { key: 'verify-security', command: 'npm run verify:security', label: '安全集成回归' },

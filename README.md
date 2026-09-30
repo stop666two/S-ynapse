@@ -26,7 +26,7 @@
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
 - 详细参考文档：`docs/config-reference.md`（13 章，逐字段权威参考）
-- 配置周边门禁：`verify:config`（默认值/结构一致性）、`verify:config-refs`（零引用键）、`verify:config-comments`（逐键注释覆盖率）、`verify:config-docs`（14 文件键 vs 配置参考覆盖）
+- 配置周边门禁：`verify:config`（默认值/结构一致性）、`verify:config-refs`（零引用键）、`verify:config-dupes`（重复键）、`verify:config-comments`（逐键注释覆盖率）、`verify:config-docs`（14 文件键 vs 配置参考覆盖）
 
 **内容创作**
 - Markdown 扩展：上标/下标（`X^2^` / `H~2~O`）、KaTeX 数学公式（`$`/`$$`）、Mermaid 图表、Wiki 双链（`[[标题]]`）、定义列表、任务列表
@@ -443,8 +443,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 
 项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署。CI 作业：
 - `check-agents`：变更集中检测 AI 规则文件（AGENTS.md 及其变体），命中即阻断；
-- `compat-node20`：Node 20.19.0（`engines` 下限）上运行 `npm test` + `npm run verify:config` + `npm run verify:config-refs` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
-- `build`（Node 24）：`npm audit --audit-level=high` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run test:coverage`（`scripts/lib` 行覆盖率 ≥80%）→ `npm run test:build` → `verify:config` → `verify:config-refs` → `verify:config-comments` → `verify:security` → `npm run build` → `verify:compression`（检测到 Chrome 时条件执行，否则跳过并提示）→ `npm run sbom`（CycloneDX 1.5，上传 `sbom-cyclonedx` artifact）→ Pages 部署（仅 `main`）。
+- `compat-node20`：Node 20.19.0（`engines` 下限）上运行 `npm test` + `npm run verify:config` + `npm run verify:config-refs` + `npm run verify:config-dupes` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
+- `build`（Node 24）：`npm audit --audit-level=high` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run test:coverage`（`scripts/lib` 行覆盖率 ≥80%）→ `npm run test:build` → `verify:config` → `verify:config-refs` → `verify:config-dupes` → `verify:config-comments` → `verify:security` → `npm run build` → `verify:compression`（检测到 Chrome 时条件执行，否则跳过并提示）→ `npm run sbom`（CycloneDX 1.5，上传 `sbom-cyclonedx` artifact）→ Pages 部署（仅 `main`）。
 
 **配置步骤**：
 1. 在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加 `CF_API_TOKEN`（如需部署）
@@ -510,6 +510,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run verify:security` | 集成安全回归（注入恶意文章 → 真实构建 → 语义断言） |
 | `npm run verify:config` | 配置一致性监守（配置值与注册表默认值/结构） |
 | `npm run verify:config-refs` | 零引用键扫描（配置有键、代码无消费的预留键） |
+| `npm run verify:config-dupes` | 重复键扫描（同一对象内重复键，作用域感知；豁免名单 `scripts/config-duplicates-allowlist.json`） |
 | `npm run verify:config-comments` | 逐键注释覆盖率门禁（14 个 JSON5；CI 阻断） |
 | `npm run verify:config-docs` | 配置文档覆盖门禁（14 个 JSON5 的顶层键/模块键 vs `docs/config-reference.md`；脚本 `scripts/check-config-docs.js`） |
 | `npm run perf:audit -- --url <URL>` | 可复现性能基线（Slow 4G + CPU 4x 节流 + 禁用缓存；`--runs`/`--out`/`--json`/`--chrome` 可选，Chrome 路径默认系统安装位置、`CHROME_PATH` 可覆盖） |

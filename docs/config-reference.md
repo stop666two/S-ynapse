@@ -353,6 +353,7 @@
 > - **已接线**：代码读取且生效（见各模块小节）；
 > - **已删除**：与唯一来源重复或语义与实现相悖的键（迁移映射见 CHANGELOG 与对应小节）；
 > - **自动守卫**：`npm run verify:config-refs`（`scripts/check-config-refs.js`）按「叶子键名零引用」扫描，发现未接线键即失败；允许名单见 `scripts/config-refs-allowlist.json`（数据/展示层配置经整体对象注入，不按键名引用）。
+> - **自动守卫**：`npm run verify:config-dupes`（`scripts/check-config-duplicates.js`）按「同一对象内重复键」扫描，作用域感知（数组内不同对象的同名键各自独立）；重复键会让较早定义静默失效，发现即失败；暂不清理项在 `scripts/config-duplicates-allowlist.json` 登记理由并随守卫输出显式打印。
 > 已知盲区：通用短键名（`enabled`/`size` 等）不参与静态判定；features 动态拼接键（`stats.label*En`）已在允许名单登记。
 
 

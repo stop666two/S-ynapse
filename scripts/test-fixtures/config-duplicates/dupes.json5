@@ -1,0 +1,15 @@
+// 重复键守卫夹具：同一对象内的真重复（引号与无引号混合），数组内对象不算重复
+{
+  site: {
+    title: "one",
+    "title": "two",
+    nested: {
+      mode: "a",
+      mode: "b",
+    },
+  },
+  items: [
+    { key: "same" },
+    { key: "same" },
+  ],
+}

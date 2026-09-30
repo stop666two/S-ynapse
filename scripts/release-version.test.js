@@ -298,5 +298,5 @@ test('buildPassedChecks：门禁键与 RELEASE_GATES 一一对应且恒为 true'
   const checks = buildPassedChecks();
   assert.deepStrictEqual(Object.keys(checks), RELEASE_GATES.map(function (gate) { return gate.key; }));
   for (const value of Object.values(checks)) assert.strictEqual(value, true);
-  assert.strictEqual(Object.keys(checks).length, 11, '前置门禁共 11 项');
+  assert.strictEqual(Object.keys(checks).length, 12, '前置门禁共 12 项');
 });

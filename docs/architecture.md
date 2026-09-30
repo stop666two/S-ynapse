@@ -97,7 +97,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（≥80%，CI 阻断） |
 | `npm run test:build` | 集成 smoke：干净构建断言产物 + 坏文章阻断且不污染 dist（临时输出目录；含 report.txt/CSP nonce 两态断言） |
 | `npm run lint` / `npm run typecheck` | ESLint / tsc（checkJs） |
-| `npm run verify:config` / `verify:config-refs` / `verify:config-comments` | 配置一致性 / 零引用键 / 逐键注释覆盖率监守 |
+| `npm run verify:config` / `verify:config-refs` / `verify:config-dupes` / `verify:config-comments` | 配置一致性 / 零引用键 / 重复键 / 逐键注释覆盖率监守 |
 | `node scripts/check-config-docs.js` | 文档覆盖校验（14 个 JSON5 键 vs `docs/config-reference.md`；npm 别名 `verify:config-docs` 由配置侧接入） |
 | `npm run verify:security` | 安全集成回归（注入恶意文章 → 构建 → 语义断言） |
 | `npm run verify:compression` | 压缩无头对比门禁（6 页 DOM/采样样式/控制台/交互断言；无 Chrome 跳过） |
@@ -106,7 +106,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `node scripts/dist-hash-guard.js` | 重构/迁移的产物等价护栏（归一化 nonce/换行） |
 | `node scripts/perf-audit.js` | 可复现性能基线（Slow 4G + 4× CPU） |
 
-CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + test:build + build）与 `build`（Node 24：audit → lint → typecheck → test → test:coverage → test:build → verify:config → verify:config-refs → verify:config-comments → verify:security → build → verify:compression 条件步骤 → sbom → 上传 artifact → Pages 部署）。生产 Worker 为手动 `wrangler deploy`（见 README）。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
+CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-dupes + test:build + build）与 `build`（Node 24：audit → lint → typecheck → test → test:coverage → test:build → verify:config → verify:config-refs → verify:config-dupes → verify:config-comments → verify:security → build → verify:compression 条件步骤 → sbom → 上传 artifact → Pages 部署）。生产 Worker 为手动 `wrangler deploy`（见 README）。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
 
 ## 9. 部署与回滚
 
@@ -116,7 +116,7 @@ CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测
 
 ### 9.1 Release 发布工作流
 
-- **完成标记**：`npm run release:mark`（`scripts/release-mark.js`）在干净工作区上顺序执行 `RELEASE_GATES`（11 项门禁，单一来源 `scripts/lib/release-version.js`）→ 同步 package.json/lock 版本 → CHANGELOG `[Unreleased]` 内容归入 `[X.Y.Z] - 日期` → 生成 `RELEASE.json`（status=verified、checks 全 true、commit=被核验提交即 tag 的父提交）→ 单提交 `chore(release)` + 附注 tag `vX.Y.Z`；默认不 push，推送需 `--push --confirm-push` 二次确认。
+- **完成标记**：`npm run release:mark`（`scripts/release-mark.js`）在干净工作区上顺序执行 `RELEASE_GATES`（12 项门禁，单一来源 `scripts/lib/release-version.js`）→ 同步 package.json/lock 版本 → CHANGELOG `[Unreleased]` 内容归入 `[X.Y.Z] - 日期` → 生成 `RELEASE.json`（status=verified、checks 全 true、commit=被核验提交即 tag 的父提交）→ 单提交 `chore(release)` + 附注 tag `vX.Y.Z`；默认不 push，推送需 `--push --confirm-push` 二次确认。
 - **双重校验**：根 `RELEASE.json` 是机器可读完成标记（初始 `unverified`，默认拒绝发布）；`scripts/lib/release-validate.js` 校验 status/version/tag/commit/checks/verifiedAt，只有「tag 存在」且「tag 指向提交内的标记自洽」同时成立才允许创建 Release。
 - **归档白名单**：`scripts/lib/release-manifest.js` 为唯一来源（包含/排除清单与理由）；`scripts/release-archive.js` 用 `git archive` + pathspec 生成 `S-ynapse-<版本>.zip`，再解析 zip 中央目录逐条复核（`assertArchiveContents`），越界或缺少必需文件即失败。
 - **自动发布**：`.github/workflows/release.yml` 仅由 `push tags v*` 触发（validate → gates → publish：`gh release create --verify-tag` 附 zip）；`deploy.yml` 触发条件限定 `branches: [main]`，tag 推送不会误触发站点部署。

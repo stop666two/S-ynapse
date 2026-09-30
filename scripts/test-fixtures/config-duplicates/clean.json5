@@ -1,0 +1,15 @@
+// 重复键守卫夹具：无重复键（数组内对象同名键、字符串与注释中的伪键均不应误报）
+{
+  // id: 1 —— 注释中的伪键不参与判定
+  site: {
+    title: "demo",
+    // description: 这是注释中的伪键
+    tags: ["a", "b"],
+    payload: "text with { brace, key: fake, // not-comment /* not-block */",
+  },
+  list: [
+    { id: 1, name: "x", nested: { id: 9 } },
+    { id: 2, name: "y", nested: { id: 9 } },
+  ],
+  escaped: "quote \" and backslash \\ end",
+}

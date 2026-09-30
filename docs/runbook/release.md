@@ -24,11 +24,12 @@
 | 4 | `npm run test:build` | 构建冒烟（临时输出目录） |
 | 5 | `npm run verify:config` | 配置默认值/结构一致性 |
 | 6 | `npm run verify:config-refs` | 零引用键扫描 |
-| 7 | `npm run verify:config-comments` | 逐键注释覆盖率 |
-| 8 | `npm run verify:config-docs` | 配置参考文档覆盖 |
-| 9 | `npm run verify:security` | 安全集成回归（恶意内容注入构建） |
-| 10 | `npm run verify:compression` | 压缩无头对比（无 Chrome 时跳过并声明） |
-| 11 | `npm run build` | 一次真实构建（不需要生产部署/线上验证） |
+| 7 | `npm run verify:config-dupes` | 重复键扫描（同一对象内重复键） |
+| 8 | `npm run verify:config-comments` | 逐键注释覆盖率 |
+| 9 | `npm run verify:config-docs` | 配置参考文档覆盖 |
+| 10 | `npm run verify:security` | 安全集成回归（恶意内容注入构建） |
+| 11 | `npm run verify:compression` | 压缩无头对比（无 Chrome 时跳过并声明） |
+| 12 | `npm run build` | 一次真实构建（不需要生产部署/线上验证） |
 
 清单的单一来源是 `scripts/lib/release-version.js → RELEASE_GATES`：`release:mark` 按此顺序执行，
 CI 与 RELEASE.json 的 `checks` 键也以此为准（缺项或不全 true 即拒绝发布）。
@@ -45,7 +46,7 @@ CI 与 RELEASE.json 的 `checks` 键也以此为准（缺项或不全 true 即�
 | `humanVerifiedBy` | string | 人工核验人姓名（非空；机器无法替代人工确认） |
 | `verifiedAt` | string | 人工核验时间，ISO 8601 UTC（如 `2026-09-27T12:00:00.000Z`，日历严格校验） |
 | `commit` | string | 40 位小写 SHA；必须等于 tag 指向提交的**父提交**（被核验提交）。git 提交的内容无法包含自身 SHA（数学上不可自引用），因此记录父提交，校验以 `git rev-parse vX.Y.Z^{commit}^` 比对 |
-| `checks` | object | 11 项门禁键 → `true`；任一缺失或 false 即失败 |
+| `checks` | object | 12 项门禁键 → `true`；任一缺失或 false 即失败 |
 
 **双重校验** = ① tag 存在（CI 触发/`--verify-tag`）+ ② 该 tag 指向提交内的 RELEASE.json 满足上表全部约束（`commit` 的比对基准是 tag 的父提交，原因见字段表）。校验逻辑唯一实现：`scripts/lib/release-validate.js → validateReleaseState`；CI 用 `node scripts/lib/release-validate.js --tag vX.Y.Z` 执行（预发布 tag 同样支持）。
 
@@ -54,7 +55,7 @@ CI 与 RELEASE.json 的 `checks` 键也以此为准（缺项或不全 true 即�
 `release:mark` 只记录「谁在何时确认了什么版本」，它不替代人工判断。执行者必须确认：
 
 1. `npm test` 等门禁全绿（脚本会强制，但需人工确认没有「将就放过」的情况）；
-2. `RELEASE.json.checks` 的 11 项与实际执行结果一致；
+2. `RELEASE.json.checks` 的 12 项与实际执行结果一致；
 3. 版本号选择正确（破坏性变更必须 major，见 SemVer 2.0.0；预发布/正式版关系见 §4.2）；
 4. 工作区没有夹带无关变更，且 `--confirm <版本号>` 与目标版本一致。
 
@@ -66,14 +67,14 @@ CI 与 RELEASE.json 的 `checks` 键也以此为准（缺项或不全 true 即�
 # 演练（不执行门禁、不写文件，用于核对版本/CHANGELOG/提交计划）
 npm run release:mark -- patch --human-verified "张三" --confirm 1.1.1 --dry-run
 
-# 正式发布（顺序执行 11 项门禁；任一失败即停止且不修改任何文件）
+# 正式发布（顺序执行 12 项门禁；任一失败即停止且不修改任何文件）
 npm run release:mark -- patch --human-verified "张三" --confirm 1.1.1
 
 # 预发布（演练；显式 X.Y.Z-<预发布>，核心版本等于当前正式版时允许）
 npm run release:mark -- 1.1.0-a1 --human-verified "张三" --confirm 1.1.0-a1 --dry-run
 ```
 
-脚本步骤：① 工作区干净 + tag 未被占用 → ② 顺序执行 11 项门禁 → ③ 校验人工核验参数 →
+脚本步骤：① 工作区干净 + tag 未被占用 → ② 顺序执行 12 项门禁 → ③ 校验人工核验参数 →
 ④ `npm version --no-git-tag-version` 同步 package.json/lock → ⑤ CHANGELOG `[Unreleased]` 内容归入 `[版本] - 日期` 并补版本链接 →
 ⑥ 生成 RELEASE.json（verified + checks 全 true，commit=被核验提交=当前 HEAD，即后续 release 提交的父提交）→ ⑦ **单提交** `chore(release): v<版本>`（不做 amend，避免提交 SHA 漂移导致标记失配）→ ⑧ 创建附注 tag → ⑨ 默认不 push，打印后续命令。
 
@@ -123,7 +124,7 @@ npm run release:mark -- 1.1.0 --human-verified "张三" --confirm 1.1.0
 
 ```
 validate（RELEASE.json 双重校验）
-→ gates（11 项门禁）
+→ gates（12 项门禁）
 → archive（白名单归档：articles/media 仅 .gitkeep 骨架 + RELEASE.json=package.json=tag
            版本一致性校验，上传 artifact）
 → buildability（下载归档 → 解压 → npm ci --ignore-scripts → npm test → npm run build

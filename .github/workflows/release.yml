@@ -57,6 +57,8 @@ jobs:
         run: npm run verify:config
       - name: Config references
         run: npm run verify:config-refs
+      - name: Config duplicates
+        run: npm run verify:config-dupes
       - name: Config comments
         run: npm run verify:config-comments
       - name: Config docs

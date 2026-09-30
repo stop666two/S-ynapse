@@ -1,0 +1,41 @@
+name: Nightly Deep Test
+
+# 夜间深度随机测试：与本地/CI 同命令（npm run test:all），差异仅在深度档环境变量——
+#   FC_NUM_RUNS=2000（属性测试迭代次数，本地/PR 默认 100）
+#   STRESS=1（打开超大/海量用例）
+#   不设 TEST_SEED：每夜抽取新随机种子，失败由留档 JSON 记录种子与重放命令。
+on:
+  schedule:
+    # 每日 UTC 18:00（北京时间次日 02:00）
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+      - run: npm ci
+      - name: Deep randomized suite (test:all, FC_NUM_RUNS=2000, STRESS=1)
+        run: npm run test:all
+        env:
+          FC_NUM_RUNS: '2000'
+          STRESS: '1'
+      - name: Upload nightly artifacts (fuzz failures / web coverage / smoke)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-test-artifacts
+          path: |
+            build-artifacts/fuzz-failures/**
+            build-artifacts/web-coverage/**
+            build-artifacts/web-smoke/**
+          if-no-files-found: ignore

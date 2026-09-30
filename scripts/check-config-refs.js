@@ -130,4 +130,8 @@ function main() {
   }
 }
 
-main();
+// 纯函数导出：供属性测试与其它脚本复用；CLI 直跑时才执行 main()，
+// 被 require 时不产生扫描副作用。
+if (require.main === module) main();
+
+module.exports = { collectLeaves, isAllowed, GENERIC_KEYS, main };

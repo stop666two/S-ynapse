@@ -1,7 +1,7 @@
 # 测试极大扩充计划（随机/属性 + 恶意载荷 + 冒烟 + 覆盖率）
 
 > 目标：把测试从「快乐路径的示例断言」扩充为「用户不会那么老实」的随机与对抗性验证体系。
-> 本文件是 T1–T5 的总体计划与预算基线；T1（基础设施与骨架）与 T2 批 A（markdown/frontmatter、slug/路径/URL、配置合并校验三域）已完成，其余按本文件推进。
+> 本文件是 T1–T5 的总体计划与预算基线；T1（基础设施与骨架）、T2（八域属性测试）与本计划 T3（恶意场景套件，任务书称为 T4）已完成，T4（冒烟增强）与 T5（CI 加固）待推进。
 
 ## 1. 已确认决策（8 项）
 
@@ -96,17 +96,38 @@ T1 实证：
 
 ### T3：恶意场景 fuzz（10 类，hard-fail/degrade）
 
-**进度：待推进（T2 批 B 已先行落地，其中 XML/编码类缺陷的修复与回归已随批 B 完成，但恶意场景载荷消费与 hard-fail/degrade 策略断言仍待本 T3 波次）。**
+**进度：已完成（本波 T4 恶意场景批次；对应本计划 T3 条目）。** 本轮命名与计划编号存在错位：任务书称本波为「T4 恶意/畸形场景套件」，落地内容即本节 T3；计划中的 T4（冒烟增强）仍待推进，回填时以交付物为准。
 
-- 逐条消费 `test-payloads.js` 的载荷，按 `policy` 断言：hard-fail 类必须被预校验/消毒/抛错拒绝，degrade 类必须不崩溃且留下告警。
-- 重点补测：保留 slug（`tags`/`categories`/`assets`）与生成目录的冲突、JSON-LD 注入出口、`%2e%2e` 双重编码、Windows 保留名、孤立代理与非法 UTF-8、损坏媒体降级、原子写失败传播。
-- 回归：`safeSlug` 孤立代理（T1 已修）必须保留专门用例。
+交付：
+
+| 交付 | 文件 |
+|---|---|
+| 确定性场景套件（隔离夹具真实构建，10 类逐条策略断言） | `scripts/malicious.test.js` |
+| 随机载荷 × 策略断言（随 `test:fuzz`） | `scripts/lib/malicious.fuzz.test.js` |
+| 隔离站点根构建能力（`SYNAPSE_ROOT`） | `scripts/build.js` |
+| 夹具扩展：6 个必需配置、目录联接、场景级覆盖 | `scripts/lib/test-site-builder.js` |
+| 统一入口 + CI 接入 | `package.json`（`test:malicious`）；`.github/workflows/deploy.yml`；夜间随 `test:all` |
+
+默认档实测：22 用例 / 约 28–32 s（预算 ≤4 分钟；`STRESS=1` 放大超长/海量档）。策略落实：安全类 hard-fail（非零退出 + `file`/`file:line` 定位 + 预校验先于 dist 清理、既有产物逐字节不变）；资源类 degrade（构建成功 + `report.txt` `[告警]` 条目）。
+
+T4 缺陷清单（最小反例均已固化为确定性回归）：
+
+1. **生成 HTML 出口 XSS（hard-fail）**：站点标题拼接进入 `offline.html`/`build-report.html` 的 `<title>`/`<h1>`/`<style>`，`<script>alert(1)</script>` 成为真实脚本元素 → `assets.js`/`report.js` 全量 `escapeHtml`。
+2. **JSON 出口防注入转义被还原**：JSON Feed/搜索索引写入裸 `<script>`；压缩 `compactJsonText` 把 `\u003c` 还原 → `feeds.js`/`search-index.js`/`compression-steps.js` 统一 `<`→`\u003c`（解析后值不变）。
+3. **保留 slug/设备名/超长派生 slug（hard-fail）**：`slug: tags` 与生成目录冲突、`CON`/`NUL` 设备名、2 万字标题无界 → `validateSlug` 拒设备名 + preflight 保留路由检查 + `safeSlug` 120 上限与确定性哈希。
+4. **重复配置键静默覆盖（hard-fail）**：JSON5 最后值胜出 → `config.js` 解析前扫描并输出 `file:行号` 硬失败。
+5. **可执行协议链接（hard-fail）**：社交/导航/页脚 `javascript:` 进入 `<a href>` → `hasUnsafeLinkScheme` + `validateConfig` 拒绝。
+6. **缺失 content-policy.json5 时媒体白名单被空数组覆盖（degrade 误伤）** → `site-defaults.js` 引用 `DEFAULT_POLICY`。
+7. **损坏媒体 fatal 阻断整站（策略偏差）** → `media.js` 改 `{ fatal: false }`，报告留条目。
+8. **摘要/Feed 截断切断代理对（degrade）** → `truncateCodePoints` 应用于 `articles.js`/`feeds.js`/`templates/post.ejs`。
+
+既定例外（不视为缺陷）：`slug` 尾随空白由 `validateSlug` 的既有 `trim()` 归一化接受（T2 已确立语义，非遍历向量）；JSON 文本值中的 `on\w+=` 字面串属惰性数据，仅对「可执行标签起始串/URL 协议字段」断言。
+
+重点补测落地：保留 slug 与生成目录冲突、JSON-LD 注入出口（引号感知 tokenizer + ld+json JSON.parse）、`%2e%2e` 双重编码、Windows 保留名、孤立代理与非法 UTF-8、损坏媒体降级、原子写失败传播（只读目标跨平台分支）。
 
 ### T4：冒烟增强（构建 + 浏览器）
 
-- 构建冒烟扩展：临时站点夹具 + `--features-override` 多态构建（空站/坏配置/超长标题/带媒体），断言 hard-fail 阻断与 degrade 告警。
-- 浏览器冒烟扩展：在 `smoke-web.js` 上增加交互断言（搜索输入、主题切换、省流、双语、软导航链），保持「0 控制台错误」硬门槛。
-- STRESS=1 时启用海量夹具（数百文章、超长正文），验证构建时长与内存不失控。
+进度：待推进（本波恶意场景批次未触及本节；T3 的 build 级恶意场景已覆盖部分构建冒烟语义）。
 
 ### T5：CI 加固与夜间消费
 
@@ -120,14 +141,15 @@ T1 实证：
 
 ```bash
 npm run test:all
-# = npm test + npm run test:build + npm run test:fuzz + npm run test:smoke + npm run test:cov-web（串行）
+# = npm test + npm run test:build + npm run test:fuzz + npm run test:malicious + npm run test:smoke + npm run test:cov-web（串行）
 ```
 
 | 步骤 | 说明 | 本地实测（T1，热缓存） |
 |---|---|---|
-| `npm test` | 单元测试（894 项 / 130 组，含既有全部用例；fuzz 文件默认排除） | 约 13–16 s |
-| `npm run test:build` | 构建管线集成冒烟（临时目录两态 + 坏文章阻断） | 约 2–3 min |
-| `npm run test:fuzz` | 属性测试（fast-check；默认 `FC_NUM_RUNS=100`；T2 批 A 后 4 套件 / 60 用例） | 约 1.1 s |
+| `npm test` | 单元测试（897 项 / 134 组，含既有全部用例；fuzz 文件默认排除） | 约 10–16 s |
+| `npm run test:build` | 构建管线集成冒烟（临时目录两态 + 坏文章阻断） | 约 20–180 s |
+| `npm run test:fuzz` | 属性测试（fast-check；默认 `FC_NUM_RUNS=100`；含恶意策略域，10 套件 / 140 用例） | 约 6–20 s |
+| `npm run test:malicious` | 恶意/畸形场景套件（隔离夹具真实构建；默认档约 30 s，`STRESS=1` 放大） | 约 30 s |
 | `npm run test:smoke` | 浏览器冒烟（Chrome；dist 缺失时自建） | 新建约 1–2 min；复用 dist 约 30 s |
 | `npm run test:cov-web` | 覆盖率采集（no-bundle + 压缩关闭构建 + 两遍页面集合；产物新鲜时复用） | 冷构建约 3–4 min；热约 1.5 min |
 

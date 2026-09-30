@@ -46,6 +46,15 @@ function sanitizePane(source, target) {
   target.replaceChildren(source);
 }
 
+// 右栏数学渲染：复用 math-render 的 window.__mathRender(root)（构建期占位 → KaTeX）。
+// 钩子缺失（math 功能关闭）或渲染抛错时静默跳过，不影响并排本身。
+function renderPaneMath(root) {
+  if (typeof window.__mathRender !== 'function') return;
+  try {
+    window.__mathRender(root);
+  } catch (e) { /* 忽略：数学渲染失败不影响并排 */ }
+}
+
 function disable() {
   if (!state || !state.on) return;
   seq++;
@@ -88,6 +97,7 @@ async function enable() {
   if (state.root) state.root.classList.add('bilingual-on');
   state.on = true;
   if (state.toggle) state.toggle.setAttribute('aria-pressed', 'true');
+  renderPaneMath(paneBody);
 }
 
 function onToggle() {

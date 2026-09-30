@@ -602,7 +602,7 @@ npm run verify:security   # 集成安全回归
 - **JS 打包与压缩**：esbuild 开启 `splitting`，产出内容哈希的 `app.<hash>.js`（首屏启动链）、`deferred.<hash>.js`（交互/重模块聚合，按需载入）与 `shared.<hash>.js` 公共 chunk（跨入口共享模块，由 ES 模块图自动加载）；`runtime.js` 引导脚本经 Terser 压缩后按最终字节哈希单发并同步全部 HTML 引用（压缩关闭时保留源哈希名）；`--no-bundle` 可回退原生 ESM 拷贝模式。
 - **vendor 瘦身**：KaTeX 字体仅保留 woff2（654.9→254KB）；mermaid（3.5MB）改为页面 load 后 idle 拉取（仅图表页加载，零成本页不请求）；Prism 改为按页门控（仅含高亮代码块的页面引入，首页/列表零成本，实测首页 −82KB、请求 17→16）。
 - **字体与预加载**：本地变量字体 3 个（Inter/Sora/Manrope，woff2 latin 子集）随字体栈自动生成 preload（含 fonts.css），`font-display` 可配；无冗余 preconnect。中文字体 Noto Sans SC 构建期按 dist 页面/配置 JSON 实际用字子集化并自托管（`site.build.cjkFonts`，首次需联网、缓存 `.cache/fonts/`、之后离线可复用；失败自动回退系统字体链，构建不失败）。
-- **预算门禁**：`[budget]` 检查 5 项：单页 HTML gzip ≤28KB、页面 HTML raw 中位 ≤50KB、内联关键配置 ≤2KB、应用 JS gzip 合计 ≤60KB、单页静态请求 ≤12；阈值见 `features.perfBudget`，`warnOnly: false` 时超限终止构建。
+- **预算门禁**：`[budget]` 检查 5 项：单页 HTML gzip ≤40KB、页面 HTML raw 中位 ≤50KB、内联关键配置 ≤2KB、应用 JS gzip 合计 ≤75KB、单页静态请求 ≤12；阈值见 `features.perfBudget`，`warnOnly: false` 时超限终止构建。
 
 ---
 

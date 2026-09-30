@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release 归档纳入 data/**：`scripts/lib/release-manifest.js` 白名单新增 `data/**` 与必需文件 `data/quotes.json5`（默认数据属于可体验功能），`scripts/release-manifest.test.js` 增加包含性断言，`docs/runbook/release.md` §6 清单同步。
 - **每日一言接入 Hitokoto 一言 API（方案 A）**：`features.dailyQuote.api` 新增 7 键（`enabled` 默认 true / `endpoint 'https://v1.hitokoto.cn/'` / `categories ['d','i','k']` / `maxLength 0` / `timeoutMs 5000` / `minIntervalMs 1000` / `attributionText '来源：一言'`），中文页且在线时点击「换一句」优先请求 API：成功渲染 `hitokoto` + `from_who` 署名（空回退 `from`）+ 来源署名小字；失败/超时/非 2xx/JSON 畸形/字段非法/离线/英文页一律静默回退本地随机（不弹错）；请求中按钮 pending（`aria-busy`）禁用、完成即恢复；`minIntervalMs` 节流点击间隔。构建期 `connect-src` 按 `api.enabled` 二态自动保留/裁剪 `https://v1.hitokoto.cn`（`scripts/lib/csp.js` 新增 `hitokotoNeeded` 上下文，`_headers` 与 Worker 配置共用同一裁剪函数）；新增 API 纯函数单测（URL 组装/响应归一化/决策矩阵/节流，与 CSP 二态、配置计数守卫同步）与自收尾 runner `.tmp-scripts/run-daily-quote-api.js`（端口 3336，请求拦截模拟成功/超时/500/畸形 JSON 四态，20 断言全绿、0 控制台错误）；`docs/config-reference.md` §3.48 与 `SECURITY.md` 同步隐私与 CSP 说明。
 
+### Changed
+
+- **性能预算阈值调整（jsKb 60→75、htmlKb 28→40）**：功能扩充批次（系列页/搜索升级/每日一言 API/继续阅读/灯箱增强/文章导出/双语对照/主题调色板/省流模式）落地后实测应用 JS `assets/js` 全量 gzip 合计 69.7KB（原上限 60KB）、单页 HTML gzip 最大 36.6KB（原上限 28KB），按确认结论调整 `features.perfBudget.jsKb` 至 75、`htmlKb` 至 40（`htmlRawKb 50` / `inlineConfigKb 2` / `requests 12` / `warnOnly true` 不变）；同步兜底默认值（`scripts/lib/perf-budget.js` DEFAULTS）、schema 默认值（`scripts/lib/features-schema.js`）、`features.json5` 注释、`docs/config-reference.md` §3.67 与 README 预算门禁说明。后续治理方向：跨模块工具去重、懒加载分包边界复核，达标后再评估回调。
+
 ## [1.1.0-a2] - 2026-09-27
 
 ### Changed

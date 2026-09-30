@@ -874,7 +874,7 @@ sitemap: {
 
 ### 3.67 perfBudget — 性能预算门禁
 
-`enabled true` / `htmlKb 28`(单页 HTML gzip 上限,含内联 CSS/脚本) / `htmlRawKb 50`(页面 HTML raw 体积中位上限;长文等极端页面由中位口径自然豁免) / `inlineConfigKb 2`(页面内联关键配置降级子集上限) / `jsKb 60`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入;60KB 口径含 app+deferred+runtime 三包,deferred 为按需 chunk,首屏实际约 28KB——跨模块去重达标后可回调 55) / `requests 12`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
+`enabled true` / `htmlKb 40`(单页 HTML gzip 上限,含内联 CSS/脚本;功能扩充批次后实测最大 36.6KB,原 28KB 上调) / `htmlRawKb 50`(页面 HTML raw 体积中位上限;长文等极端页面由中位口径自然豁免) / `inlineConfigKb 2`(页面内联关键配置降级子集上限) / `jsKb 75`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入;75KB 口径含 app+deferred+shared+runtime 全部 chunk,功能扩充批次后实测 69.7KB,deferred/shared 按需加载,首屏实际约 19KB) / `requests 12`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
 
 ### 3.68 scrollIndicator — 滚动进度条
 

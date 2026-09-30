@@ -5,6 +5,8 @@
 const fs = require('fs');
 const path = require('path');
 const { formatConfigError } = require('../lib/config-error');
+const { findDuplicateKeys } = require('../lib/config-duplicates');
+const { hasUnsafeLinkScheme } = require('../lib/utils');
 const { trimCspDirectives } = require('../lib/csp');
 const { DEFAULT_FEATURES, validateFeatures } = require('../lib/features-schema');
 const { validatePopupNotice } = require('../lib/popup-notice-config');
@@ -36,6 +38,17 @@ function createConfigModule(ctx) {
     process.exit(1);
   }
 
+  // 同一对象作用域内的重复键是 JSON5 合法但构建器拒绝的配置：后值会静默覆盖前值。
+  // 在解析前扫描并给出每处重复的 file:line，避免“改了配置却不生效”的静默事故。
+  function assertNoDuplicateKeys(filename, raw) {
+    const { findings } = findDuplicateKeys(raw);
+    if (!findings.length) return;
+    const lines = findings.map((f) => '  - key "' + f.key + '": ' + filename + ':' + f.duplicateLine +
+      ' redefines the value from ' + filename + ':' + f.firstLine);
+    abortBuild('\n[FATAL] Duplicate keys in ' + filename + ':\n' + lines.join('\n') +
+      '\n          Remove the later definition (or rename the key); duplicate keys are rejected to prevent silent overrides.\n');
+  }
+
   function loadConfigFile(filename) {
     const filePath = path.join(ctx.rootDir, filename);
     if (!fs.existsSync(filePath)) {
@@ -46,13 +59,18 @@ function createConfigModule(ctx) {
       }
       abortBuild(message);
     }
+    let raw = '';
     try {
-      let raw = fs.readFileSync(filePath, 'utf-8');
+      raw = fs.readFileSync(filePath, 'utf-8');
       if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
       raw = raw.replace(/\r\n/g, '\n');
+    } catch (err) {
+      abortBuild(formatConfigError(filename, err, { filePath, fileText: '' }));
+    }
+    assertNoDuplicateKeys(filename, raw);
+    try {
       return ctx.getJson5().parse(raw);
     } catch (err) {
-      const filePath = path.join(ctx.rootDir, filename);
       const fileText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '';
       abortBuild(formatConfigError(filename, err, { filePath, fileText }));
     }
@@ -69,13 +87,18 @@ function createConfigModule(ctx) {
       }
       return null;
     }
+    let raw = '';
     try {
-      let raw = fs.readFileSync(filePath, 'utf-8');
+      raw = fs.readFileSync(filePath, 'utf-8');
       if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
       raw = raw.replace(/\r\n/g, '\n');
+    } catch (err) {
+      abortBuild(formatConfigError(filename, err, { filePath, fileText: '' }));
+    }
+    assertNoDuplicateKeys(filename, raw);
+    try {
       return ctx.getJson5().parse(raw);
     } catch (err) {
-      const filePath = path.join(ctx.rootDir, filename);
       const fileText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '';
       abortBuild(formatConfigError(filename, err, { filePath, fileText }));
     }
@@ -361,6 +384,24 @@ function createConfigModule(ctx) {
       for (const item of config.navigation.menu) {
         if (!item.label) errors.push('navigation.menu item missing label');
         if (!item.url) errors.push('navigation.menu item missing url');
+        if (item.url && hasUnsafeLinkScheme(item.url)) errors.push('navigation.menu item url uses an unsafe scheme (javascript:/vbscript:/data:): ' + String(item.url).slice(0, 80));
+      }
+    }
+    // 社交/页脚链接直接进入 <a href>：配置层拒绝可执行协议，避免构建产物自带 XSS 向量。
+    const socialItems = config.site && config.site.social && config.site.social.items;
+    if (socialItems && typeof socialItems === 'object') {
+      for (const [key, item] of Object.entries(socialItems)) {
+        if (item && item.url && hasUnsafeLinkScheme(item.url)) {
+          errors.push('site.social.items.' + key + '.url uses an unsafe scheme (javascript:/vbscript:/data:): ' + String(item.url).slice(0, 80));
+        }
+      }
+    }
+    const footerLinkItems = []
+      .concat((config.footer && config.footer.bottomLinks && config.footer.bottomLinks.items) || [])
+      .concat((config.footer && config.footer.columnItems && config.footer.columnItems.items) || []);
+    for (const item of footerLinkItems) {
+      if (item && item.url && hasUnsafeLinkScheme(item.url)) {
+        errors.push('footer link url uses an unsafe scheme (javascript:/vbscript:/data:): ' + String(item.url).slice(0, 80));
       }
     }
 

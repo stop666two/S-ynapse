@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
-const { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWordsDetail, hasHighlightableCode } = require('./lib/utils');
+const { formatDate, safeSlug, validateSlug, isReservedOsName, hasUnsafeLinkScheme, escapeAttr, escapeHtml, stripHtml, truncateCodePoints, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWordsDetail, hasHighlightableCode } = require('./lib/utils');
 const { extractWorkerSecurity, renderWorkerConfig, applyHeaderHardening } = require('./generate-security-config');
 const { validateFeatures, DEFAULT_FEATURES, FEATURE_MODULES } = require('./lib/features-schema');
 const { formatConfigError } = require('./lib/config-error');
@@ -339,11 +339,60 @@ describe('validateSlug', () => {
       assert.strictEqual(validateSlug(s).ok, false, s);
     }
   });
+  it('rejects Windows reserved device names (CON/NUL/COM1/LPT9, case-insensitive, with extension)', () => {
+    for (const s of ['CON', 'con', 'NUL', 'PRN.txt', 'COM1', 'lpt9', 'AUX']) {
+      assert.strictEqual(isReservedOsName(s), true, s);
+      assert.strictEqual(validateSlug(s).ok, false, s);
+    }
+    assert.strictEqual(isReservedOsName('console'), false);
+    assert.strictEqual(validateSlug('console').ok, true);
+  });
   it('rejects empty and non-string input', () => {
     assert.strictEqual(validateSlug('').ok, false);
     assert.strictEqual(validateSlug('   ').ok, false);
     assert.strictEqual(validateSlug(null).ok, false);
     assert.strictEqual(validateSlug(123).ok, false);
+  });
+});
+
+describe('safeSlug 长度上限与截断', () => {
+  it('超长输入截断到 120 且附加确定性哈希，二次处理稳定', () => {
+    const huge = '中'.repeat(20000);
+    const slug = safeSlug(huge);
+    assert.ok(slug.length <= 120, '实际长度 ' + slug.length);
+    assert.strictEqual(safeSlug(slug), slug, '截断结果必须幂等');
+    assert.strictEqual(safeSlug(huge), slug, '同一输入必须确定性');
+    assert.notStrictEqual(safeSlug('中'.repeat(19999)), slug, '不同输入不得因截断碰撞');
+  });
+});
+
+describe('truncateCodePoints', () => {
+  it('按码点截断：不切断代理对且幂等', () => {
+    const text = '👨‍👩‍👧‍👦'.repeat(40);
+    const cut = truncateCodePoints(text, 10);
+    assert.deepStrictEqual(Array.from(cut), Array.from(text).slice(0, 10));
+    for (const ch of cut) {
+      const cp = ch.codePointAt(0);
+      assert.ok(cp < 0xd800 || cp > 0xdfff, '不得含孤立代理');
+    }
+    assert.strictEqual(truncateCodePoints(cut, 10), cut);
+    assert.strictEqual(truncateCodePoints('abc', 10), 'abc', '短于上限时原样返回');
+    assert.strictEqual(truncateCodePoints('abc', 0), '');
+    assert.strictEqual(truncateCodePoints(null, 5), '');
+  });
+});
+
+describe('hasUnsafeLinkScheme', () => {
+  it('检出混淆的 javascript/vbscript/data 协议，放行常规与站内链接', () => {
+    assert.strictEqual(hasUnsafeLinkScheme('javascript:alert(1)'), true);
+    assert.strictEqual(hasUnsafeLinkScheme('  JaVaScRiPt:alert(1)'), true);
+    assert.strictEqual(hasUnsafeLinkScheme('java\nscript:alert(1)'), true);
+    assert.strictEqual(hasUnsafeLinkScheme('vbscript:msgbox(1)'), true);
+    assert.strictEqual(hasUnsafeLinkScheme('data:text/html,<script>'), true);
+    assert.strictEqual(hasUnsafeLinkScheme('https://example.test/?q=javascript:'), false);
+    assert.strictEqual(hasUnsafeLinkScheme('/zh/about/'), false);
+    assert.strictEqual(hasUnsafeLinkScheme('mailto:a@example.test'), false);
+    assert.strictEqual(hasUnsafeLinkScheme(null), false);
   });
 });
 
@@ -376,6 +425,16 @@ describe('content-policy classifyFile', () => {
   });
   it('rejects known system filenames', () => {
     assert.strictEqual(classifyFile('Thumbs.db', 'assets', null).reason, 'blocked-filename');
+  });
+  it('缺失 content-policy.json5 时必须回退内建默认策略（默认值注册表不得清空白名单）', () => {
+    const { DEFAULT_CONFIG } = require('./lib/site-defaults');
+    // 回归：site-defaults 曾把 contentPolicy 白名单默认成空数组，空数组是真值，
+    // 使 normalizePolicy 的回退分支失效 → 缺少配置文件时所有媒体被误拦。
+    assert.strictEqual(classifyFile('photo.png', 'media', DEFAULT_CONFIG.contentPolicy).category, 'media-optimized');
+    assert.strictEqual(classifyFile('logo.svg', 'media', DEFAULT_CONFIG.contentPolicy).category, 'media-raw');
+    assert.strictEqual(classifyFile('guide.pdf', 'assets', DEFAULT_CONFIG.contentPolicy).category, 'asset');
+    assert.strictEqual(classifyFile('movie.avi', 'videos', DEFAULT_CONFIG.contentPolicy).category, 'video');
+    assert.strictEqual(classifyFile('evil.exe', 'media', DEFAULT_CONFIG.contentPolicy).reason, 'blocked-executable');
   });
 });
 

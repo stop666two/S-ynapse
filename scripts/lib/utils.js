@@ -32,6 +32,9 @@ function formatDate(dateStr, fmt) {
 // Last resort: deterministic SHA-1 suffix (same input always yields the same slug,
 // so repeated builds and same-build collisions resolve identically; only used for
 // non-alphanumeric non-CJK input such as emoji-only titles).
+// 长度上限与显式 slug 的 validateSlug 对齐（120）：超长标题截断后附加确定性哈希，
+// 避免生成超出文件系统名称上限的目录/URL（长标题仍可区分且幂等）。
+const SLUG_MAX_LENGTH = 120;
 function safeSlug(text) {
   if (!text) return '';
   let slug = text.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '');
@@ -46,7 +49,31 @@ function safeSlug(text) {
     slug = encoded.toLowerCase().replace(/%[0-9a-f]{2}/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   }
   if (!slug) slug = 'tag-' + createHash('sha1').update(String(text)).digest('hex').slice(0, 6);
+  if (slug.length > SLUG_MAX_LENGTH) {
+    slug = slug.slice(0, SLUG_MAX_LENGTH - 7) + '-' + createHash('sha1').update(String(text)).digest('hex').slice(0, 6);
+  }
   return slug;
+}
+
+// Windows 保留设备名（CON/PRN/AUX/NUL/COM1-9/LPT1-9，可带扩展名，大小写不敏感）：
+// 这些名字即使作为目录段也会被 Win32 解释为设备，必须拒绝；大小写均拒绝以保持跨平台一致。
+const WINDOWS_RESERVED_NAME_RX = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
+
+/**
+ * 判断路径段是否为操作系统保留名（当前覆盖 Windows 设备名）。
+ * @param {string} slug
+ * @returns {boolean}
+ */
+function isReservedOsName(slug) {
+  return WINDOWS_RESERVED_NAME_RX.test(String(slug == null ? '' : slug).trim());
+}
+
+// 可执行协议检测（链接 href/src 用）：去掉控制/格式字符与空白后按小写前缀判断，
+// 覆盖 `java\nscript:`、`JaVaScRiPt:` 等混淆写法。data: 一律视为不安全链接协议。
+function hasUnsafeLinkScheme(url) {
+  if (typeof url !== 'string') return false;
+  const normalized = url.replace(/[\p{Cc}\s]+/gu, '').toLowerCase();
+  return /^(javascript|vbscript|data):/.test(normalized);
 }
 
 // Validate a hand-written front-matter slug before it is used as a URL path
@@ -58,6 +85,7 @@ function validateSlug(rawSlug) {
   if (slug.length > 120) return { ok: false, reason: 'longer than 120 characters' };
   if (slug.includes('/') || slug.includes('\\')) return { ok: false, reason: 'contains a path separator (/ or \\)' };
   if (slug.includes('..')) return { ok: false, reason: 'contains ".."' };
+  if (isReservedOsName(slug)) return { ok: false, reason: 'is a reserved OS device name (CON/PRN/AUX/NUL/COM1-9/LPT1-9)' };
   if (!/^[A-Za-z0-9_\u4e00-\u9fa5-]+$/.test(slug)) {
     return { ok: false, reason: 'contains characters other than letters, digits, CJK, "_" and "-"' };
   }
@@ -98,6 +126,17 @@ function stripInvalidXmlChars(value) {
 function stripHtml(str) {
   if (typeof str !== 'string') return '';
   return str.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
+}
+
+// 按 Unicode 码点截断文本：绝不会把代理对（emoji/CJK 扩展区/ZWJ 序列）切成孤立代理。
+// 孤立代理写入 UTF-8 文件会变成 U+FFFD，摘要、卡片、feed 都必须用本函数而非 String.slice。
+function truncateCodePoints(text, maxCodePoints) {
+  const s = String(text == null ? '' : text);
+  const limit = Math.floor(Number(maxCodePoints));
+  if (!Number.isFinite(limit) || limit <= 0) return '';
+  const chars = Array.from(s);
+  if (chars.length <= limit) return s;
+  return chars.slice(0, limit).join('');
 }
 
 const CJK_RX = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]/g;
@@ -319,4 +358,4 @@ function hasHighlightableCode(html) {
   return false;
 }
 
-module.exports = { formatDate, safeSlug, validateSlug, escapeAttr, escapeHtml, stripInvalidXmlChars, stripHtml, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode };
+module.exports = { formatDate, safeSlug, validateSlug, isReservedOsName, hasUnsafeLinkScheme, SLUG_MAX_LENGTH, escapeAttr, escapeHtml, stripInvalidXmlChars, stripHtml, truncateCodePoints, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode };

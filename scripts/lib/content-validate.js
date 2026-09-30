@@ -1,10 +1,16 @@
 'use strict';
 
 const path = require('path');
-const { safeSlug, validateSlug } = require('./utils');
+const { safeSlug, validateSlug, isReservedOsName } = require('./utils');
 
 const MEDIA_PREFIX = '/media/';
 const VARIANT_RX = /(?:^|\/)variants\/(.+)-(\d+)\.(?:webp|avif|jpe?g|png)$/i;
+
+// 文章页固定落在 /{lang}/{slug}/，以下路径段已被构建器占用（聚合页/分页/资产目录），
+// 同名 slug 会与生成目录互相覆盖：预校验直接阻断，而不是产出丢页面的站点。
+const RESERVED_ROUTE_SEGMENTS = Object.freeze([
+  'archive', 'tags', 'categories', 'gallery', 'search', 'series', 'page', 'assets'
+]);
 
 /**
  * 提取正文中的 /media/ 引用（先去围栏代码块与行内代码，避免示例误报）。
@@ -115,6 +121,24 @@ function preflightArticles(items, options) {
       continue;
     }
 
+    if (RESERVED_ROUTE_SEGMENTS.includes(identity.slug)) {
+      errors.push({
+        stage: 'slug',
+        file,
+        message: file + ': slug "' + identity.slug + '" collides with the generated /' + lang + '/' + identity.slug + '/ route; rename the article or choose another slug'
+      });
+      continue;
+    }
+
+    if (isReservedOsName(identity.slug)) {
+      errors.push({
+        stage: 'slug',
+        file,
+        message: file + ': slug "' + identity.slug + '" is a reserved OS device name; rename the article or choose another slug'
+      });
+      continue;
+    }
+
     const key = String(lang) + '/' + identity.slug;
     const first = seen.get(key);
     if (first) {
@@ -156,4 +180,4 @@ function preflightArticles(items, options) {
   return { errors, warnings };
 }
 
-module.exports = { extractMediaRefs, createMediaResolver, resolveArticleIdentity, preflightArticles };
+module.exports = { extractMediaRefs, createMediaResolver, resolveArticleIdentity, preflightArticles, RESERVED_ROUTE_SEGMENTS };

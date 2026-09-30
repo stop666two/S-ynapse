@@ -222,7 +222,8 @@ const DEFAULT_FEATURES = {
     showOnHome: true, clearable: true, maxStored: 50
   },
   continueReading: {
-    enabled: true, count: 3, showProgress: true, storageKey: 's-history'
+    enabled: true, count: 3, showProgress: true, storageKey: 's-history',
+    removeLabel: '移除', removeLabelEn: '', clearLabel: '清空', clearLabelEn: ''
   },
   printStyle: {
     enabled: true, hideInteractive: true, expandLinks: true, avoidBreaks: true

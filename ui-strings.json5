@@ -258,10 +258,14 @@
     clear: '清除',
   },
 
-  // 继续阅读卡片（首页最近阅读；title 标题，progress 进度文案含 {percent} 占位符）
+  // 继续阅读卡片（首页最近阅读；title 标题，progress 进度文案含 {percent} 占位符，
+  // remove 单条移除、clear 一键清空、clearConfirm 二次点击确认文案）
   continueReading: {
     title: '继续阅读',
     progress: '已读 {percent}%',
+    remove: '移除',
+    clear: '清空',
+    clearConfirm: '再次点击确认清空',
   },
 
   // 防护模块（右键菜单/水印/门槛等）
@@ -482,6 +486,9 @@
     continueReading: {
       title: 'Continue reading',
       progress: '{percent}% read',
+      remove: 'Remove',
+      clear: 'Clear',
+      clearConfirm: 'Click again to confirm',
     },
     guard: {
       menuLabel: 'Actions menu',

@@ -2567,7 +2567,7 @@
   },
 
   // ---------------------------------------------------------------------------
-  // 57. 继续阅读卡片(首页最近阅读;标题/进度%/时间,数据复用阅读历史存储)
+  // 57. 继续阅读卡片(首页最近阅读;标题/进度%/时间,数据复用阅读历史存储;支持单条移除与一键清空)
   // ---------------------------------------------------------------------------
   continueReading: {
     // 总开关(false = 首页不渲染继续阅读卡片区;仅读取,不产生任何写入)。
@@ -2581,7 +2581,19 @@
     // localStorage 键名: 复用 features.readingHistory.storageKey 的同一份阅读历史(勿另建数据源);
     // 留空时依次回退 readingHistory.storageKey → 's-history'。
     // 类型: string | 推荐: 's-history'
-    storageKey: 's-history'
+    storageKey: 's-history',
+    // 单条移除按钮文案(zh;空串回退 ui-strings.continueReading.remove 中文词典)。
+    // 类型: string | 可填: 任意短文案 | 推荐: '移除'
+    removeLabel: '移除',
+    // 单条移除按钮文案(en;空串回退 ui-strings.continueReading.remove 英文词典)。
+    // 类型: string | 可填: 任意短文案 | 推荐: 留空由词典提供
+    removeLabelEn: '',
+    // 一键清空按钮文案(zh;空串回退 ui-strings.continueReading.clear 中文词典;点击后二次确认)。
+    // 类型: string | 可填: 任意短文案 | 推荐: '清空'
+    clearLabel: '清空',
+    // 一键清空按钮文案(en;空串回退 ui-strings.continueReading.clear 英文词典)。
+    // 类型: string | 可填: 任意短文案 | 推荐: 留空由词典提供
+    clearLabelEn: ''
   },
 
   // ---------------------------------------------------------------------------

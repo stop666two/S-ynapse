@@ -1040,16 +1040,28 @@ test('bilingualConfig：默认三开 + 1280；关闭生效；断点夹取 480–
   assert.strictEqual(w.bilingualConfig({ bilingual: { breakpointPx: 9999 } }).breakpointPx, 3840, '上限夹取');
 });
 
-test('continueReadingConfig：条数/进度开关/存储键回退链', () => {
-  assert.deepStrictEqual(w.continueReadingConfig({}), { displayCount: 3, showProgress: true, storageKey: 's-history' });
+test('continueReadingConfig：条数/进度开关/存储键回退链/文案键/存储上限', () => {
+  assert.deepStrictEqual(w.continueReadingConfig({}), {
+    displayCount: 3, showProgress: true, storageKey: 's-history', maxStored: 50,
+    removeLabel: '移除', removeLabelEn: '', clearLabel: '清空', clearLabelEn: ''
+  });
   assert.deepStrictEqual(
-    w.continueReadingConfig({ continueReading: { count: 5, showProgress: false, storageKey: ' cr-x ' } }),
-    { displayCount: 5, showProgress: false, storageKey: 'cr-x' }
+    w.continueReadingConfig({
+      continueReading: { count: 5, showProgress: false, storageKey: ' cr-x ', removeLabel: ' 删除 ', removeLabelEn: ' Delete ', clearLabel: '全部清空', clearLabelEn: 'Clear all' },
+      readingHistory: { maxStored: 20 }
+    }),
+    {
+      displayCount: 5, showProgress: false, storageKey: 'cr-x', maxStored: 20,
+      removeLabel: '删除', removeLabelEn: 'Delete', clearLabel: '全部清空', clearLabelEn: 'Clear all'
+    }
   );
   assert.deepStrictEqual(
     w.continueReadingConfig({ continueReading: { count: 0, showProgress: 'x', storageKey: '' }, readingHistory: { storageKey: ' s-history ' } }),
-    { displayCount: 3, showProgress: true, storageKey: 's-history' },
-    '空存储键回退 readingHistory.storageKey（去空白）'
+    {
+      displayCount: 3, showProgress: true, storageKey: 's-history', maxStored: 50,
+      removeLabel: '移除', removeLabelEn: '', clearLabel: '清空', clearLabelEn: ''
+    },
+    '空存储键回退 readingHistory.storageKey（去空白）；文案键回退默认'
   );
   assert.strictEqual(w.continueReadingConfig({ readingHistory: { storageKey: '' } }).storageKey, 's-history');
 });

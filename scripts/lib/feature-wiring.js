@@ -995,16 +995,25 @@ function readingHistoryConfig(features) {
 }
 
 // continueReading 首页卡片归一化：displayCount≥1（非法回退 3）、showProgress 默认 true、
-// storageKey 留空时复用 readingHistory.storageKey（再回退历史默认 's-history'）。
+// storageKey 留空时复用 readingHistory.storageKey（再回退历史默认 's-history'）；
+// maxStored 复用 readingHistory.maxStored（缺省/非法回退 50，供移除后上限重算）；
+// 文案键 removeLabel/clearLabel：zh 键空回退内置中文，*En 键空串 = en 站回退 ui-strings。
 function continueReadingConfig(features) {
   const F = (features && features.continueReading) || {};
   const RH = (features && features.readingHistory) || {};
   const key = F.storageKey == null ? '' : String(F.storageKey).trim();
   const rhKey = RH.storageKey == null ? '' : String(RH.storageKey).trim();
+  const pickZh = function (v, dflt) { const s = v == null ? '' : String(v).trim(); return s || dflt; };
+  const pickEn = function (v) { return v == null ? '' : String(v).trim(); };
   return {
     displayCount: pickCount(F.count, 3, 1),
     showProgress: F.showProgress !== false,
-    storageKey: key || rhKey || 's-history'
+    storageKey: key || rhKey || 's-history',
+    maxStored: pickCount(RH.maxStored, 50, 1),
+    removeLabel: pickZh(F.removeLabel, '移除'),
+    removeLabelEn: pickEn(F.removeLabelEn),
+    clearLabel: pickZh(F.clearLabel, '清空'),
+    clearLabelEn: pickEn(F.clearLabelEn)
   };
 }
 

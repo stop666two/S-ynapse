@@ -220,8 +220,10 @@ function createMediaModule(ctx) {
         mediaCache[cacheId] = { key: cacheKey, entry: entry, outputs: outputs };
         count++;
       } catch (err) {
+        // 损坏/零字节/非图片等无法优化的源文件：降级为告警并计入构建报告，
+        // 不阻断整站构建（缺失引用已由内容预校验以 fatal 阻断）。
         console.error(`  [ERROR] Failed to optimize ${relPath}: ${err.message}`);
-        ctx.recordBuildFailure('media', `Failed to optimize ${relPath}: ${err.message}`);
+        ctx.recordBuildFailure('media', `Failed to optimize ${relPath}: ${err.message}`, { fatal: false });
       }
     };
     await Promise.all(images.map(p => processImage(p)));

@@ -10,6 +10,7 @@
 'use strict';
 
 const { DEFAULT_FEATURES } = require('./features-schema.js');
+const { DEFAULT_POLICY } = require('./content-policy.js');
 
 const DEFAULT_CONFIG = {
     site: {
@@ -97,8 +98,10 @@ const DEFAULT_CONFIG = {
     // back to its own built-in default policy when keys are absent.
     contentPolicy: {
       enabled: true,
-      mediaExts: [], videoMode: '', assetExts: [], blockedExts: [],
-      documentRenderedTypes: [], blockedFilenames: [], svgSanitize: true
+      mediaExts: DEFAULT_POLICY.mediaExts.slice(), videoMode: DEFAULT_POLICY.videoMode,
+      assetExts: DEFAULT_POLICY.assetExts.slice(), blockedExts: DEFAULT_POLICY.blockedExts.slice(),
+      documentRenderedTypes: DEFAULT_POLICY.documentRenderedTypes.slice(),
+      blockedFilenames: DEFAULT_POLICY.blockedFilenames.slice(), svgSanitize: true
     },
     tagAliases: { enabled: true, aliases: {} },
     friends: { enabled: false, title: '友情链接', labels: {}, description: '', descriptionEn: '', applyNote: '', applyNoteEn: '', friends: [] },

@@ -894,9 +894,15 @@ module.exports = {
   assertDistinctPorts,
   discoverArticlePath,
   discoverVerifyPages,
+  pageExists,
   runInteractions,
   waitForPortRelease,
   summarizeFailures,
   writeVerifyReport,
-  verifyCompression
+  verifyCompression,
+  attachConsole,
+  closeBrowserSafely,
+  settleRuntimePage,
+  sampleRuntimeErrors,
+  sleep
 };

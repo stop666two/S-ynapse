@@ -483,11 +483,12 @@
 ### 3.17 math — KaTeX
 `enabled true` / `autoDetect true` / `version 0.16.22` / `inlineDelimiters ['$']` / `blockDelimiters ['$$']` / `throwOnError false` / `strict false` / `renderRoundParens true` / `renderSquareBrackets true` / `selector .post-content` / `mathml true`
 
-> 接线说明（构建期 mathGuard + 客户端 auto-render 共用同一份配置，经外置 `window.__FEATURES__.math`）：
-> - `autoDetect=true`（默认）= 解析 `inlineDelimiters`（对称、不跨行；单字符 `$` 结尾避免数字，防金额误报）与 `blockDelimiters`（对称、可跨行、须位于行首）；`\(`/`\[` 由 `renderRoundParens`/`renderSquareBrackets` 独立控制。`false` = **不自动解析任何定界符**（不保护、不加载 KaTeX 按需渲染），仅渲染 ` ```math ` 围栏块：构建期输出 `<div class="math-block" data-tex="…">`，客户端 KaTeX 渲染（`throwOnError`/`strict`/`mathml` 同样生效）。
+> 接线说明（构建期 mathGuard 输出占位 + 客户端 math-render 渲染，共用同一份配置，经外置 `window.__FEATURES__.math`）：
+> - `autoDetect=true`（默认）= 解析 `inlineDelimiters`（对称、不跨行；单字符 `$` 结尾避免数字，防金额误报）与 `blockDelimiters`（对称、可跨行、须位于行首）；`\(`/`\[` 由 `renderRoundParens`/`renderSquareBrackets` 独立控制。构建期输出占位元素 `<span class="math-inline" data-tex="…">` / `<div class="math-block" data-tex="…">`（回退文本为去定界符的 TeX），产物正文不含裸 `$` / `$$`；客户端由 `js/domains/core/math-render.js` 用 KaTeX 渲染占位（直接加载与软导航后均生效，vendor 未预载时按需注入），并保留 `renderMathInElement` 兜底（缩进块等构建期未捕获的裸定界符）。`false` = **不自动解析任何定界符**（不保护、不加载 KaTeX 按需渲染），仅渲染 ` ```math ` 围栏块：构建期输出 `<div class="math-block" data-tex="…">`，客户端 KaTeX 渲染（`throwOnError`/`strict`/`mathml` 同样生效）。
 > - 定界符数组去空去重；全部经正则转义（如 `['**']` 按字面量匹配）；空数组回退 `['$']`/`['$$']`。
 > - `mathml=true`（默认，历史行为）= KaTeX `output='htmlAndMathml'`；`false` = `'html'`（不输出 MathML 节点）。
-> - KaTeX 按需加载口径：`$$` / `\(` / `\[` / 配置的自定义定界符成对出现即触发；**单字符 `$` 与默认 `$$` 不走自定义检测**，单 `$` 单独出现不触发（历史口径，可配置非 `$` 的 `inlineDelimiters` 规避）。canonical：`scripts/lib/feature-wiring.js → mathNeeded/mathConfig/buildMathGuardPatterns`（单测覆盖）。
+> - KaTeX 按需加载口径：`$$` / `\(` / `\[` / 配置的自定义定界符成对出现即触发；**默认行内 `$` 成对出现（含无空格 `$E=mc^2$`）同样触发**，货币启发式不误报（闭合 `$` 后随数字不成对、单个 `$` 不触发）。canonical：`scripts/lib/feature-wiring.js → mathNeeded/mathConfig/buildMathGuardPatterns/extractMathTex`（单测覆盖）。
+> - 摘要 surfaces（卡片/相关推荐/搜索/RSS/JSON feed/meta）统一不输出裸 LaTeX：正文占位回退为去定界符纯文本，frontmatter excerpt 与页面 description 经 `stripMathText` 剥离数学段（`scripts/lib/feature-wiring.js`）。
 > - `inlineDelimiters` 置空串/缺失回退默认；`autoDetect`/`mathml` 仅在显式 `false` 时关闭。
 
 ### 3.18 mermaid

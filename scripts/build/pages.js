@@ -13,7 +13,7 @@ const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, hasHighlightableCode } = require('../lib/utils');
-const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette, exportArticleConfig, bilingualConfig } = require('../lib/feature-wiring');
+const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette, exportArticleConfig, bilingualConfig, stripMathText } = require('../lib/feature-wiring');
 const { collectSeriesPages } = require('../lib/series-page');
 const { writeArticleMarkdown } = require('../lib/md-export');
 const { stableSerialize, pageCacheKey, hashTemplateDir } = require('../lib/incremental');
@@ -373,7 +373,8 @@ function createPagesModule(ctx) {
       const attrs = fm.attributes || {};
       const content = fm.body || '';
       const title = attrs.title || path.basename(file, '.md');
-      const description = attrs.description || config.site.description || '';
+      // meta/og/JSON-LD 共用描述：剥离数学段，避免裸 LaTeX 进入摘要 surfaces（策略同 stripMarkdownText）。
+      const description = stripMathText(attrs.description || config.site.description || '');
       const slugCheck = validateSlug(slugOverride || attrs.slug || safeSlug(title));
       if (!slugCheck.ok) {
         throw new Error(`invalid page slug "${String(slugOverride || attrs.slug || '').slice(0, 80)}" in ${file}: ${slugCheck.reason}`);
@@ -787,10 +788,10 @@ function createPagesModule(ctx) {
           const ov = (cp.langs && cp.langs[lang]) || cp.default;
           // 页面自身未写 description 时，parseOne 会固化为站点描述（中文）；
           // 此处按语言取本地化后的站点描述，避免 en 页继承中文回退值。
-          // 页面自带描述（与 site.description 不同）视为作者文案，原样保留。
-          const pageDescription = (ov.description && ov.description !== config.site.description)
+          // 页面自带描述（与 site.description 不同）视为作者文案；数学段统一剥离（避免裸 LaTeX 进 meta）。
+          const pageDescription = stripMathText((ov.description && ov.description !== config.site.description)
             ? ov.description
-            : langData.site.description;
+            : langData.site.description);
           const pageData = {
             ...langData,
             title: ov.title,

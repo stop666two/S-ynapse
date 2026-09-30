@@ -21,6 +21,7 @@ import { init as softNavInit } from './soft-nav.js';
 import { init as externalLinkInit } from '../domains/core/external-link.js';
 import { init as readingModeInit } from '../domains/core/reading-mode.js';
 import { init as codeBlockInit } from '../domains/core/code-block.js';
+import { init as mathRenderInit } from '../domains/core/math-render.js';
 import { boot } from './boot.js';
 
 const DEFERRED_URL = (typeof window !== 'undefined' && window.__DEFERRED_URL__) || '';
@@ -92,7 +93,7 @@ const criticalQueue = [
   () => themeInit(), () => navigationInit(), () => i18nInit(), () => announcementInit(),
   () => readPositionInit(), () => anchorStabilizeInit(), () => tocInit(), () => readingInit(), () => navStateInit(), () => motionInit(),
   () => imageLazyInit(), () => saveDataInit(), () => seamlessNavInit(), () => pageTransitionInit(), () => vtNamesInit(),
-  () => externalLinkInit(), () => readingModeInit(), () => codeBlockInit(), () => softNavInit()
+  () => externalLinkInit(), () => readingModeInit(), () => codeBlockInit(), () => mathRenderInit(), () => softNavInit()
 ];
 // 配置外置后 __GUARD__ 在 boot 等待 __CONFIG_READY__ 后才存在，因此延迟到执行期判定；
 // favorites 同理（favorites.init 内部按 features.favorites.enabled 自行短路）。

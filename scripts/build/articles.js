@@ -238,12 +238,13 @@ function createArticlesModule(ctx) {
         htmlContent = sanitizeHtml(htmlContent);
         const hasCode = hasHighlightableCode(htmlContent);
         // Auto-generate excerpt from rendered HTML (strip tags, truncate).
-        // Code blocks (incl. mermaid sources) and math are stripped first so
+        // Code blocks (incl. mermaid sources) and math placeholders are stripped first so
         // raw code / TeX never leaks into cards, meta, feeds or search index.
         let excerptText = excerpt;
         if (!excerptText) {
           const noBlocks = htmlContent
             .replace(/<pre[\s\S]*?<\/pre>/gi, ' ')
+            .replace(/<(span|div)[^>]*\bdata-tex=("[^"]*"|'[^']*'|[^\s>]+)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
             .replace(/<a[^>]*class="heading-anchor"[^>]*>[\s\S]*?<\/a>/gi, ' ');
           const textOnly = noBlocks
             .replace(/<[^>]+>/g, ' ')

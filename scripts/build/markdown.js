@@ -7,7 +7,7 @@ const { marked } = require('marked');
 const { escapeAttr, escapeHtml, safeSlug } = require('../lib/utils');
 const {
   supSubConfig, supSubMatchers, matchSupSub, transformSupSubInMathRaw,
-  mathConfig, buildMathGuardPatterns
+  mathConfig, buildMathGuardPatterns, extractMathTex
 } = require('../lib/feature-wiring');
 
 function createMarkdownModule() {
@@ -31,19 +31,30 @@ function createMarkdownModule() {
     const supMatchers = supCfg.enabled ? supSubMatchers(supCfg) : [];
 
     // Math-guard extension: captures KaTeX-style math spans (*before* supSub / other
-    // inline extensions) so that superscript/subscript syntax inside formulas stays
-    // untouched for client-side auto-render (KaTeX).
+    // inline extensions) and emits build-time placeholders (.math-inline / .math-block
+    // with data-tex) so the build artifact carries no bare $ / $$; client-side KaTeX
+    // renders the placeholders on demand (js/domains/core/math-render.js).
     // - Block level: configured blockDelimiters (default $$ ... $$, may span lines)
     // - Inline level: configured inlineDelimiters (default $ ... $) plus \\( \\) / \\[ \\]
     //   controlled by renderRoundParens / renderSquareBrackets
     // math.autoDetect=false 时整组不注册（不解析、不保护；仅 ```math 围栏块经客户端渲染）。
-    // supSub.skipInsideMath=false 时数学段内应用上下标转换（renderer 内处理，仍保护 marked 解析）。
+    // supSub.skipInsideMath=false 时维持历史原文输出（数学段内应用上下标转换，仍保护 marked 解析）。
     const mathDelims = { block: mathCfg.blockDelimiters, inline: mathCfg.inlineDelimiters };
     function renderMathRaw(raw) {
       if (supMatchers.length && !supCfg.skipInsideMath) {
         return transformSupSubInMathRaw(raw, supMatchers, supCfg.preserveUnmatched, mathDelims);
       }
       return raw;
+    }
+    function renderMathPlaceholder(token, blockLevel) {
+      if (supMatchers.length && !supCfg.skipInsideMath) return renderMathRaw(token.raw);
+      const parsed = extractMathTex(token.raw, mathDelims);
+      if (!parsed) return renderMathRaw(token.raw);
+      const tex = parsed.tex.trim();
+      if (!tex) return renderMathRaw(token.raw);
+      const cls = parsed.display ? 'math-block' : 'math-inline';
+      const tag = blockLevel ? 'div' : 'span';
+      return '<' + tag + ' class="' + cls + '" data-tex="' + escapeAttr(tex) + '">' + escapeHtml(tex) + '</' + tag + '>';
     }
     if (mathCfg.enabled && mathCfg.autoDetect) {
       const pat = buildMathGuardPatterns(mathCfg);
@@ -62,7 +73,7 @@ function createMarkdownModule() {
               if (m) return { type: 'mathGuardBlock', raw: m[0] };
               return undefined;
             },
-            renderer(token) { return renderMathRaw(token.raw); }
+            renderer(token) { return renderMathPlaceholder(token, true); }
           },
           {
             name: 'mathGuardInline',
@@ -88,7 +99,7 @@ function createMarkdownModule() {
               if (m) return { type: 'mathGuardInline', raw: m[0] };
               return undefined;
             },
-            renderer(token) { return renderMathRaw(token.raw); }
+            renderer(token) { return renderMathPlaceholder(token, false); }
           }
         ]
       });

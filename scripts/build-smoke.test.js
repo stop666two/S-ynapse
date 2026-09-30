@@ -327,6 +327,21 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       }
     }
     assert.ok(!fs.existsSync(path.join(tmpDir, 'assets', 'js', 'core', 'main.js')), 'raw ESM sources must not be copied when bundling');
+    // 数学占位（KaTeX 按需渲染）：构建期剥离定界符输出 data-tex 占位，产物正文不得残留裸 $ / $$；
+    // hello-world（行内 + 块级公式）必须引用条件预载的 KaTeX 资产，且摘要素材不含 LaTeX。
+    const helloPage = path.join(tmpDir, 'zh', 'hello-world', 'index.html');
+    if (fs.existsSync(helloPage)) {
+      const helloHtml = fs.readFileSync(helloPage, 'utf-8');
+      assert.ok(helloHtml.includes('/assets/vendor/katex/katex.min.css'), 'math page must preload the KaTeX stylesheet');
+      assert.ok(helloHtml.includes('/assets/vendor/katex/katex.min.js'), 'math page must preload the KaTeX runtime');
+      assert.ok(helloHtml.includes('class="math-inline"') && helloHtml.includes('data-tex="E = mc^2"'),
+        'inline math must be emitted as a data-tex placeholder');
+      assert.ok(helloHtml.includes('class="math-block"') && helloHtml.includes('data-tex="\\int_0^1'),
+        'block math must be emitted as a data-tex placeholder');
+      const bodyText = helloHtml.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
+      assert.ok(!bodyText.includes('$$'), 'math artifacts must not contain bare $$ outside scripts/styles');
+      assert.ok(!/\$[^$<"\n]{1,60}\$/.test(bodyText), 'math artifacts must not contain bare inline $ pairs');
+    }
     const katexFonts = path.join(tmpDir, 'assets', 'vendor', 'katex', 'fonts');
     if (fs.existsSync(katexFonts)) {
       const badFonts = fs.readdirSync(katexFonts).filter((f) => !/\.woff2$/.test(f));

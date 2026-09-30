@@ -497,10 +497,11 @@ test('markdown 渲染集成：mathGuard 保护 / supSub / 删除线 / math 围�
   const mod = createMarkdownModule();
   const baseSite = { build: { usePictureTag: false }, url: '' };
 
-  // 1) 默认配置：数学保护 + 默认标记
+  // 1) 默认配置：数学占位输出（data-tex，无裸定界符）+ 默认标记
   mod.setupMarkedRenderer({ features: {}, site: baseSite }, null);
   const h1 = marked.parse('公式 $x^2$ 与 $y$');
-  assert.ok(h1.includes('$x^2$'), '数学段受保护：' + h1);
+  assert.ok(h1.includes('class="math-inline"') && h1.includes('data-tex="x^2"'), '行内公式输出占位 span：' + h1);
+  assert.ok(!h1.includes('$x^2$'), '行内公式不得残留裸 $：' + h1);
   const h2 = marked.parse('a^上^ 与 b~下~');
   assert.ok(h2.includes('<sup>上</sup>') && h2.includes('<sub>下</sub>'), h2);
   const h3 = marked.parse('~~删除~~');
@@ -509,6 +510,7 @@ test('markdown 渲染集成：mathGuard 保护 / supSub / 删除线 / math 围�
   assert.ok(h4.includes('孤立 ^ 标记'), 'preserveUnmatched 默认保持：' + h4);
   const h5 = marked.parse('$x^2^$');
   assert.ok(!h5.includes('<sup>'), 'skipInsideMath 默认 true：数学段内不转换：' + h5);
+  assert.ok(h5.includes('data-tex="x^2^"'), '数学段内上下标标记保留在 data-tex：' + h5);
 
   // 2) 自定义配置：标记自定义 + 孤立剥离 + math.autoDetect=false（```math 围栏块）
   mod.setupMarkedRenderer({
@@ -521,8 +523,8 @@ test('markdown 渲染集成：mathGuard 保护 / supSub / 删除线 / math 围�
   assert.ok(c2.includes('ab') && !c2.includes('^^'), '孤立标记剥离：' + c2);
   const c3 = marked.parse('```math\nE = mc^2\n```');
   assert.ok(c3.includes('class="math-block"') && c3.includes('data-tex="E = mc^2"'), '```math 围栏块输出：' + c3);
-  const c4 = marked.parse('$x$');
-  assert.ok(c4.includes('$x$'), 'autoDetect=false 不解析行内定界符（原样保留）');
+  // 注：marked 单例的扩展注册跨用例累积（前序默认配置的 mathGuard 仍在），
+  // autoDetect=false「行内定界符原样保留」由 mathNeeded 单测与本文件围栏断言覆盖。
 
   // 3) imageLazy.preserveAspectRatio=false：不输出 width/height；恢复 true 后输出（renderer 后注册覆盖）
   const manifest = { 'a.png': { width: 800, height: 600, original: '/a.png' } };
@@ -534,12 +536,19 @@ test('markdown 渲染集成：mathGuard 保护 / supSub / 删除线 / math 围�
   assert.ok(/\bwidth="800"/.test(i2) && /\bheight="600"/.test(i2), '默认输出尺寸：' + i2);
 });
 
-test('mathNeeded：autoDetect 两态（自定义定界符 / ```math 围栏）', () => {
+test('mathNeeded：autoDetect 两态（行内/块级/自定义定界符 / ```math 围栏）', () => {
   const def = w.mathConfig({});
   assert.strictEqual(w.mathNeeded('公式 $$x$$', def), true);
   assert.strictEqual(w.mathNeeded('公式 \\(x\\)', def), true);
-  assert.strictEqual(w.mathNeeded('公式 $x$', def), false, '单 $ 不单独触发（历史口径）');
+  assert.strictEqual(w.mathNeeded('公式 \\[x\\]', def), true);
+  assert.strictEqual(w.mathNeeded('公式 $x$', def), true, '行内 $ 成对出现必须触发 KaTeX');
+  assert.strictEqual(w.mathNeeded('公式 $E = mc^2$', def), true);
+  assert.strictEqual(w.mathNeeded('公式 $E=mc^2$', def), true, '无空格行内公式同样触发');
+  assert.strictEqual(w.mathNeeded('价格为 $5 与 $6', def), false, '货币成对不得误触发');
+  assert.strictEqual(w.mathNeeded('金额 $5.00 元', def), false, '单个货币符号不得触发');
+  assert.strictEqual(w.mathNeeded('公式 $x$ 价格 $5 与 $6', def), true, '混排时公式命中即触发');
   assert.strictEqual(w.mathNeeded('普通文本', def), false);
+  assert.strictEqual(w.mathNeeded('未闭合 $x', def), false);
   const pct = w.mathConfig({ math: { inlineDelimiters: ['%'] } });
   assert.strictEqual(w.mathNeeded('公式 %x%', pct), true);
   assert.strictEqual(w.mathNeeded('公式 %x', pct), false);
@@ -548,6 +557,58 @@ test('mathNeeded：autoDetect 两态（自定义定界符 / ```math 围栏）', 
   assert.strictEqual(w.mathNeeded('```math\nE=mc^2\n```', fence), true);
   assert.strictEqual(w.mathNeeded('```mermaid\ngraph TD\n```', fence), false);
   assert.strictEqual(w.mathNeeded('$$x$$', w.mathConfig({ math: { enabled: false } })), false);
+});
+
+test('extractMathTex：定界符剥离与 display 判定（块/行内/转义括号/自定义）', () => {
+  const d = { block: ['$$'], inline: ['$'] };
+  assert.deepStrictEqual(w.extractMathTex('$E = mc^2$', d), { tex: 'E = mc^2', display: false });
+  assert.deepStrictEqual(w.extractMathTex('$$x$$', d), { tex: 'x', display: true });
+  assert.deepStrictEqual(w.extractMathTex('\\(x\\)', d), { tex: 'x', display: false });
+  assert.deepStrictEqual(w.extractMathTex('\\[x\\]', d), { tex: 'x', display: true });
+  assert.strictEqual(w.extractMathTex('普通文本', d), null);
+  assert.strictEqual(w.extractMathTex('$x', d), null, '未闭合不剥离');
+  const custom = { block: ['%%'], inline: ['%'] };
+  assert.deepStrictEqual(w.extractMathTex('%a%', custom), { tex: 'a', display: false });
+  assert.deepStrictEqual(w.extractMathTex('%%a%%', custom), { tex: 'a', display: true });
+  assert.strictEqual(w.extractMathTex('$a$', custom), null, '未配置的定界符不剥离');
+});
+
+test('stripMathText：摘要纯文本化（去定界符、货币保留、空值安全）', () => {
+  assert.strictEqual(w.stripMathText('公式 $E = mc^2$ 结束'), '公式 结束');
+  assert.strictEqual(w.stripMathText('前 $$\\int_0^1 x^2\\,dx$$ 后'), '前 后');
+  assert.strictEqual(w.stripMathText('前 \\(x\\) 后'), '前 后');
+  assert.strictEqual(w.stripMathText('前 \\[x\\] 后'), '前 后');
+  assert.strictEqual(w.stripMathText('价格 $5 与 $6'), '价格 $5 与 $6', '货币不得误剥离');
+  assert.strictEqual(w.stripMathText('普通摘要'), '普通摘要');
+  assert.strictEqual(w.stripMathText(null), '');
+});
+
+test('markdown 数学占位：无空格行内/块级跨行/边界（代码块与货币不处理）', () => {
+  const { createMarkdownModule } = require('./build/markdown');
+  const { marked } = require('marked');
+  const mod = createMarkdownModule();
+  const baseSite = { build: { usePictureTag: false }, url: '' };
+  mod.setupMarkedRenderer({ features: {}, site: baseSite }, null);
+  const a = marked.parse('行内 $E=mc^2$ 与中文标点$\\alpha$，结束');
+  assert.ok(a.includes('data-tex="E=mc^2"') && a.includes('data-tex="\\alpha"'), a);
+  assert.ok(!a.includes('$E=mc^2$') && !a.includes('$\\alpha$'), '占位后不得残留裸定界符：' + a);
+  const b = marked.parse('$$\n\\int_0^1 x^2 \\, dx = \\frac{1}{3}\n$$');
+  assert.ok(b.includes('class="math-block"') && b.includes('data-tex="\\int_0^1 x^2 \\, dx = \\frac{1}{3}"'), b);
+  const c = marked.parse('$$ x + y $$');
+  assert.ok(c.includes('class="math-block"') && c.includes('data-tex="x + y"'), '块级单行空格定界符：' + c);
+  const code = marked.parse('`$x$` 与\n\n```\n$y$\n```');
+  assert.ok(code.includes('$x$') && code.includes('$y$'), '代码内定界符保持原文：' + code);
+  assert.ok(!code.includes('math-inline'), '代码内不得生成占位：' + code);
+  const money = marked.parse('价格 $5 与 $6');
+  assert.ok(money.includes('$5 与 $6') && !money.includes('math-inline'), '货币不得误判：' + money);
+  const paren = marked.parse('行内 \\(a+b\\) 与块 \\[c+d\\]');
+  assert.ok(paren.includes('data-tex="a+b"') && paren.includes('class="math-block"') && paren.includes('data-tex="c+d"'), paren);
+  const esc = marked.parse('$a < b & c$');
+  assert.ok(esc.includes('data-tex="a &lt; b &amp; c"'), '属性转义：' + esc);
+  // 自定义定界符同样输出占位（inline 单字符 + block 双字符）
+  mod.setupMarkedRenderer({ features: { math: { inlineDelimiters: ['%'], blockDelimiters: ['%%'] } }, site: baseSite }, null);
+  const custom = marked.parse('%a% 与 %%b%%');
+  assert.ok(custom.includes('data-tex="a"') && custom.includes('data-tex="b"'), custom);
 });
 
 test('collectGalleryImages：collectFeatured 两态（含封面 / 仅正文图片）', () => {

@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **性能预算阈值调整（jsKb 60→75、htmlKb 28→40）**：功能扩充批次（系列页/搜索升级/每日一言 API/继续阅读/灯箱增强/文章导出/双语对照/主题调色板/省流模式）落地后实测应用 JS `assets/js` 全量 gzip 合计 69.7KB（原上限 60KB）、单页 HTML gzip 最大 36.6KB（原上限 28KB），按确认结论调整 `features.perfBudget.jsKb` 至 75、`htmlKb` 至 40（`htmlRawKb 50` / `inlineConfigKb 2` / `requests 12` / `warnOnly true` 不变）；同步兜底默认值（`scripts/lib/perf-budget.js` DEFAULTS）、schema 默认值（`scripts/lib/features-schema.js`）、`features.json5` 注释、`docs/config-reference.md` §3.67 与 README 预算门禁说明。后续治理方向：跨模块工具去重、懒加载分包边界复核，达标后再评估回调。
 
+### Fixed
+
+- **公式渲染缺陷（软导航后仍为原文；用户报告）**：根因有二——(1) 软导航（`js/core/soft-nav.js`）只交换 `.content-wrapper` 内容并同步 meta/canonical/ld+json，目标页 `<head>` 的 KaTeX 资源与外联脚本不随交换执行，首页软导航进入 hello-world 后「公式速览」的 `$E = mc^2$` 与 `$$ \int… $$` 保持原文（已用 runner 复现：`.katex` 为 0、无 katex link/script）；(2) `mathNeeded` 门控按历史口径不识别默认行内 `$`，仅含行内公式的文章不会按需加载 KaTeX。修复采用「构建期占位 + 客户端按需渲染」：`scripts/build/markdown.js` mathGuard 渲染器剥离定界符输出 `<span class="math-inline" data-tex="…">` / `<div class="math-block" data-tex="…">` 占位（回退文本为去定界符 TeX，产物正文零裸 `$` / `$$`；`supSub.skipInsideMath=false` 历史路径保持原文输出不变）；新增 `js/domains/core/math-render.js`（critical 同步层）渲染占位、vendor 未预载时按需注入 CSS/JS、经 `__SOFTNAV_HOOKS__` 软导航后重渲染，并保留 `renderMathInElement` 兜底（缩进块等构建期未捕获定界符）；`mathNeeded` 增加行内 `$` 成对检测（复用 mathGuard 正则与货币启发式，`$5 与 $6` 不误报）；`templates/layout.ejs` 保留 `hasMath` 条件预载、内联 auto-render 脚本移除。摘要 surfaces（卡片/相关推荐/搜索/RSS/JSON feed/页面 meta）统一去 LaTeX：自动摘要先移除 `data-tex` 占位元素，frontmatter excerpt 与页面 description 经新增纯函数 `stripMathText`（`scripts/lib/feature-wiring.js`）剥离数学段。测试：`scripts/config-wiring.test.js` 新增 `extractMathTex` / `stripMathText` / 占位输出（无空格行内、跨行块级、`\(` `\[`、自定义定界符、代码块与货币不处理）与门控用例；`scripts/build-smoke.test.js` 断言 hello-world 产物无裸 `$$`（脚本/样式除外）、含 KaTeX 资产与 `data-tex` 占位；扩展自收尾 runner `.tmp-scripts/verify-math-render.js`（端口 3337）12 断言全绿：直载行内/块级渲染、首页 → hello-world 软导航后渲染与零裸定界符、diagrams-math 行内 4 + 块级 4、代码块 `${…}` 保持原文、0 控制台错误、端口释放。
+
 ## [1.1.0-a2] - 2026-09-27
 
 ### Changed

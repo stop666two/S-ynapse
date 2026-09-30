@@ -129,9 +129,9 @@ function showHelpHint(features) {
 }
 
 // frontmatter excerpt 的 Markdown 纯文本化（features.autoSummary.stripMarkdown=true 时启用）。
-// 覆盖：围栏/行内代码、图片/链接、标题、引用、列表、强调、删除线、分隔线、内联 HTML；最后压缩空白。
+// 覆盖：围栏/行内代码、图片/链接、标题、引用、列表、强调、删除线、分隔线、内联 HTML、数学段；最后压缩空白。
 function stripMarkdownText(text) {
-  return String(text == null ? '' : text)
+  const stripped = String(text == null ? '' : text)
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/~~~[\s\S]*?~~~/g, ' ')
     .replace(/`([^`\n]*)`/g, '$1')
@@ -144,7 +144,19 @@ function stripMarkdownText(text) {
     .replace(/(\*|_)([^*_\n]+)\1/g, '$2')
     .replace(/~~(.*?)~~/g, '$1')
     .replace(/^\s*([-*_]){3,}\s*$/gm, ' ')
-    .replace(/<[^>]+>/g, ' ')
+    .replace(/<[^>]+>/g, ' ');
+  return stripMathText(stripped);
+}
+
+// 数学段的纯文本剥离（摘要 surfaces 统一策略）：块级/行内定界符连内容一并移除，
+// 输出不含裸 $ / $$；货币口径与构建期 mathGuard 一致（闭合 $ 后随数字不成对）。
+// 仅覆盖默认定界符（$$ / $ / \( \[）；自定义定界符的摘要请使用构建期占位（data-tex）链路。
+function stripMathText(text) {
+  return String(text == null ? '' : text)
+    .replace(/\$\$[\s\S]*?\$\$/g, ' ')
+    .replace(/\\\[[\s\S]*?\\\]/g, ' ')
+    .replace(/\\\([\s\S]*?\\\)/g, ' ')
+    .replace(/\$(?!\$)(?:\\.|[^$\\\n])+\$(?!\d)/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -445,8 +457,35 @@ function buildMathGuardPatterns(cfg) {
   };
 }
 
-// 配置定界符的自定义检测（单 $ 保持历史口径不单独触发 KaTeX 按需加载）：
-// 非默认项（inline 非 '$' / block 非 '$$'）成对出现即视为存在数学。
+// 从 mathGuard 捕获的原文中剥离定界符，返回 { tex, display }（无法识别返回 null）。
+// 判定顺序：块级定界符（长优先）→ 行内定界符（长优先）→ \( \) 行内 → \[ \] 块级。
+// delimiters 形如 { block: ['$$'], inline: ['$'] }；缺省与 mathConfig 一致。
+function extractMathTex(raw, delimiters) {
+  const text = String(raw == null ? '' : raw);
+  const d = delimiters || {};
+  const block = (Array.isArray(d.block) && d.block.length ? d.block : ['$$']).slice().sort(function (a, b) { return b.length - a.length; });
+  const inline = (Array.isArray(d.inline) && d.inline.length ? d.inline : ['$']).slice().sort(function (a, b) { return b.length - a.length; });
+  for (const open of block) {
+    if (open && text.length > open.length * 2 && text.startsWith(open) && text.endsWith(open)) {
+      return { tex: text.slice(open.length, text.length - open.length), display: true };
+    }
+  }
+  for (const open of inline) {
+    if (open && text.length > open.length * 2 && text.startsWith(open) && text.endsWith(open)) {
+      return { tex: text.slice(open.length, text.length - open.length), display: false };
+    }
+  }
+  if (text.length > 4 && text.startsWith('\\(') && text.endsWith('\\)')) {
+    return { tex: text.slice(2, text.length - 2), display: false };
+  }
+  if (text.length > 4 && text.startsWith('\\[') && text.endsWith('\\]')) {
+    return { tex: text.slice(2, text.length - 2), display: true };
+  }
+  return null;
+}
+
+// 配置定界符的自定义检测（非默认项 inline 非 '$' / block 非 '$$' 成对出现即视为存在数学；
+// 默认 $ 与 $$ 的口径由 mathNeeded 的块级正则 + mathGuard 行内正则覆盖）。
 function hasCustomMathDelimiters(content, cfg) {
   const text = String(content == null ? '' : content);
   const inline = (cfg && Array.isArray(cfg.inlineDelimiters)) ? cfg.inlineDelimiters : ['$'];
@@ -466,14 +505,19 @@ function hasCustomMathDelimiters(content, cfg) {
 
 // KaTeX 按需加载判定（canonical；articles.js 的 hasMath 与模板共用同一语义）：
 //   math.enabled=false → 不加载；
-//   autoDetect=true → 历史口径（$$ / \( / \[）+ 自定义定界符成对检测；
+//   autoDetect=true → 块级（$$ / \( / \[ / 自定义）+ 行内成对定界符（含默认 $，货币启发式不触发）；
 //   autoDetect=false → 仅 ```math 围栏块触发（客户端渲染 .math-block[data-tex]）。
 function mathNeeded(content, cfg) {
   const text = String(content == null ? '' : content);
   const c = cfg || {};
   if (c.enabled === false) return false;
   if (c.autoDetect !== false) {
-    return /(\$\$[\s\S]+?\$\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/.test(text) || hasCustomMathDelimiters(text, c);
+    if (/(\$\$[\s\S]+?\$\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/.test(text)) return true;
+    if (hasCustomMathDelimiters(text, c)) return true;
+    // 默认行内 $ 成对出现（与构建期 mathGuard 同一正则，含货币/数字启发式）：门控必须覆盖，
+    // 否则仅含行内公式的文章不会按需加载 KaTeX。
+    const pat = buildMathGuardPatterns(c);
+    return new RegExp(pat.inlineToken.source.replace(/^\^/, '')).test(text);
   }
   return /```[ \t]*math\b/i.test(text);
 }
@@ -1300,6 +1344,7 @@ module.exports = {
   localSearchIndexNeeded,
   showHelpHint,
   stripMarkdownText,
+  stripMathText,
   normalizeSearchConfig,
   searchEmptyText,
   rankSearchEntries,
@@ -1315,6 +1360,7 @@ module.exports = {
   mathConfig,
   buildMathGuardPatterns,
   hasCustomMathDelimiters,
+  extractMathTex,
   mathNeeded,
   mermaidConfig,
   mermaidErrorText,

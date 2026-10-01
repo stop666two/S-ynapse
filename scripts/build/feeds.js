@@ -330,8 +330,9 @@ function createFeedsModule(ctx) {
     };
     const maxBytes = opts.maxGzipKb * 1024;
     const siteLangsSI = resolveSiteLanguages(config.site);
-    const prepared = { langs: {} };
-    const urls = {};
+      // 空原型：语言键来自站点配置，'__proto__' 在普通对象上会触发原型 setter。
+      const prepared = { langs: Object.create(null) };
+      const urls = Object.create(null);
     for (const lang of siteLangsSI) {
       try {
         const published = ctx.getPublished(articles.filter(a => a.lang === lang));
@@ -386,7 +387,7 @@ function createFeedsModule(ctx) {
     console.log('[9/14] Generating search index...');
     try {
       if (!preparedSearchIndexes) await prepareSearchIndex(config, articles);
-      const prepared = preparedSearchIndexes || { langs: {} };
+      const prepared = preparedSearchIndexes || { langs: Object.create(null) };
       const assetsDir = path.join(ctx.distDir, 'assets');
       fs.mkdirSync(assetsDir, { recursive: true });
       // 上一轮内容寻址索引清理（增量构建不清理 dist；文件名随内容变化，避免残留堆积）。

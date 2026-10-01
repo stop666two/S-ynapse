@@ -47,6 +47,14 @@ test('深合并：仅覆盖显式字段，其余回退默认', () => {
   assert.equal(config.verify.headless, true);
 });
 
+test("深合并：'__proto__' 键保留为自有属性且不改写原型", () => {
+  const { config, errors } = loadCompressionConfig(tempRoot("{ '__proto__': { marker: true } }"));
+  assert.deepStrictEqual(errors, []);
+  assert.ok(Object.prototype.hasOwnProperty.call(config, '__proto__'));
+  assert.deepStrictEqual(config.__proto__, { marker: true });
+  assert.strictEqual(Object.getPrototypeOf(config), Object.prototype);
+});
+
 test('exclude 为整体替换：不与默认项拼接', () => {
   const { config, errors } = loadCompressionConfig(tempRoot("{ exclude: ['keep/**'] }"));
   assert.deepStrictEqual(errors, []);

@@ -143,6 +143,17 @@ describe('dist-hash hashDist', () => {
     assert.deepStrictEqual(Object.keys(result.files), ['index.html']);
     cleanup(dir);
   });
+
+  test("'__proto__' 文件名仍进入清单（自有属性写入，不改写原型）", () => {
+    const dir = tmpDir();
+    writeFixture(dir, '__proto__', 'payload');
+    writeFixture(dir, 'a.txt', 'a');
+    const result = hashDist(dir);
+    assert.deepStrictEqual(Object.keys(result.files).sort(), ['__proto__', 'a.txt']);
+    assert.match(result.files['__proto__'], /^[0-9a-f]{64}$/);
+    assert.strictEqual(Object.getPrototypeOf(result.files), null);
+    cleanup(dir);
+  });
 });
 
 describe('dist-hash diffManifests', () => {

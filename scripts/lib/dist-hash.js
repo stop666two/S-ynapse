@@ -96,8 +96,9 @@ function hashFile(relPath, buffer) {
  */
 function hashDist(rootDir, ignores = DEFAULT_IGNORES) {
   const relPaths = listDistFiles(rootDir, ignores);
+  // 空原型：产物路径可能为 '__proto__'，普通对象赋值会触发原型 setter 丢键。
   /** @type {Record<string, string>} */
-  const files = {};
+  const files = Object.create(null);
   for (const rel of relPaths) {
     files[rel] = hashFile(rel, fs.readFileSync(path.join(rootDir, rel)));
   }

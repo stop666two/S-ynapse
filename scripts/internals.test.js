@@ -60,7 +60,8 @@ test('loadInternals：类型/范围/枚举/pathLike 校验失败均抛错', () =
     '{ paths: { cacheDir: "../outside" } }',
     '{ paths: { outDir: "/abs/path" } }',
     '{ unknownModule: {} }',
-    '{ ports: { serve: 3000, extra: 1 } }'
+    '{ ports: { serve: 3000, extra: 1 } }',
+    '{ "__proto__": {} }'
   ];
   for (const content of cases) {
     withTempInternals(content + '\n', (file) => {

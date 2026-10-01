@@ -7,6 +7,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const json5 = require('json5');
+const { setOwnProperty } = require('./utils');
 
 const CONFIG_FILENAME = 'compression.json5';
 const OBFUSCATE_PRESETS = ['low', 'medium', 'high'];
@@ -44,12 +45,17 @@ function cloneDefaults() {
 }
 
 // 深合并：对象逐键递归，数组与标量整体替换（exclude 自定义时不做默认项拼接）。
+// 拷贝与写入均按自有属性语义：配置键可含 '__proto__'，Object.assign/普通赋值会触发原型 setter。
 function deepMerge(base, override) {
-  const out = isPlainObject(base) ? Object.assign({}, base) : {};
+  const out = {};
+  if (isPlainObject(base)) {
+    for (const key of Object.keys(base)) setOwnProperty(out, key, base[key]);
+  }
   if (!isPlainObject(override)) return out;
   for (const key of Object.keys(override)) {
     const next = override[key];
-    out[key] = isPlainObject(next) && isPlainObject(out[key]) ? deepMerge(out[key], next) : next;
+    const current = Object.prototype.hasOwnProperty.call(out, key) ? out[key] : undefined;
+    setOwnProperty(out, key, isPlainObject(next) && isPlainObject(current) ? deepMerge(current, next) : next);
   }
   return out;
 }
@@ -63,7 +69,7 @@ function collectUnknown(user, def, prefix, warnings) {
   if (!isPlainObject(user)) return;
   for (const key of Object.keys(user)) {
     const label = prefix + '.' + key;
-    if (!isPlainObject(def) || !(key in def)) {
+    if (!isPlainObject(def) || !Object.prototype.hasOwnProperty.call(def, key)) {
       warnings.push(label + ' 不是已知配置键（将被忽略）');
       continue;
     }

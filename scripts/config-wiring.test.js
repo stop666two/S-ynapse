@@ -410,6 +410,17 @@ test('hasCustomMathDelimiters：单 $ 不触发、自定义成对触发', () => 
   assert.strictEqual(w.hasCustomMathDelimiters('%%\nx\n%%', block), true);
 });
 
+test("mergeMermaidClientOptions：'__proto__' 键保留为自有属性且不改写原型", () => {
+  const client = JSON.parse('{"__proto__":{"marker":true},"theme":"dark"}');
+  const merged = w.mergeMermaidClientOptions({ theme: 'default' }, client);
+  const options = merged.options;
+  assert.ok(Object.prototype.hasOwnProperty.call(options, '__proto__'));
+  assert.deepStrictEqual(options.__proto__, { marker: true });
+  assert.strictEqual(Object.getPrototypeOf(options), Object.prototype);
+  assert.strictEqual(options.theme, 'dark', '普通键合并语义不变');
+  assert.deepStrictEqual(merged.warnings, []);
+});
+
 test('mermaidConfig / mermaidErrorText：默认与两态', () => {
   const def = w.mermaidConfig({});
   assert.deepStrictEqual([def.enabled, def.autoDetect, def.followTheme, def.copyAfterRender], [true, true, true, false]);

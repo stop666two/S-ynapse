@@ -37,6 +37,7 @@ const { createServeModule } = require('./serve');
 const { createCacheModule } = require('./cache');
 const { resolveOutputDir } = require('../lib/output-dir');
 const { loadInternals } = require('../lib/internals');
+const { setOwnProperty } = require('../lib/utils');
 
 // Optional dependency loading — each fails gracefully to null/fallback
 // This allows the build to run with missing packages (features degrade instead of crashing)
@@ -52,12 +53,14 @@ try { deepmerge = require('deepmerge'); } catch (e) {
     for (const obj of objs) {
       if (!obj || typeof obj !== 'object') continue;
       for (const key of Object.keys(obj)) {
-        if (Array.isArray(obj[key])) {
-          result[key] = obj[key].slice();
-        } else if (obj[key] && typeof obj[key] === 'object') {
-          result[key] = deepMerge(result[key] || {}, obj[key]);
+        const value = obj[key];
+        if (Array.isArray(value)) {
+          setOwnProperty(result, key, value.slice());
+        } else if (value && typeof value === 'object') {
+          const base = Object.prototype.hasOwnProperty.call(result, key) ? result[key] : {};
+          setOwnProperty(result, key, deepMerge(base, value));
         } else {
-          result[key] = obj[key];
+          setOwnProperty(result, key, value);
         }
       }
     }

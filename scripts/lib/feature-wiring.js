@@ -1,6 +1,6 @@
 'use strict';
 // 配置键 → 运行时/模板值的归一化函数集合（构建期纯函数，单测覆盖在 scripts/config-wiring.test.js）。
-const { escapeJsonForScript } = require('./utils');
+const { escapeJsonForScript, setOwnProperty } = require('./utils');
 
 // 配置接线纯函数：
 // 供构建期（scripts/build/**.js、templates/*.ejs 经 baseData 注入）与单测复用；
@@ -1317,7 +1317,8 @@ function mergeMermaidClientOptions(base, clientOptions) {
   };
   function merge(target, source, path) {
     const out = {};
-    for (const k of Object.keys(target)) out[k] = target[k];
+    // 自有属性写入：clientOptions 键可含 '__proto__'（JSON5 解析为自有键），普通赋值会改写原型并丢键。
+    for (const k of Object.keys(target)) setOwnProperty(out, k, target[k]);
     if (source == null) return out;
     if (!isPlain(source)) {
       warnings.push(path || 'clientOptions');
@@ -1326,10 +1327,10 @@ function mergeMermaidClientOptions(base, clientOptions) {
     for (const k of Object.keys(source)) {
       const keyPath = path ? path + '.' + k : k;
       const v = source[k];
-      if (!Object.prototype.hasOwnProperty.call(out, k)) { out[k] = v; continue; }
+      if (!Object.prototype.hasOwnProperty.call(out, k)) { setOwnProperty(out, k, v); continue; }
       const cur = out[k];
-      if (isPlain(cur) && isPlain(v)) { out[k] = merge(cur, v, keyPath); continue; }
-      if (kindOf(cur) === kindOf(v)) out[k] = v;
+      if (isPlain(cur) && isPlain(v)) { setOwnProperty(out, k, merge(cur, v, keyPath)); continue; }
+      if (kindOf(cur) === kindOf(v)) setOwnProperty(out, k, v);
       else warnings.push(keyPath);
     }
     return out;

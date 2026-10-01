@@ -8,7 +8,7 @@ const frontMatter = require('front-matter');
 const { marked } = require('marked');
 const { getAllFiles } = require('./fs-utils');
 const { preflightArticles, createMediaResolver } = require('../lib/content-validate');
-const { formatDate, safeSlug, validateSlug, applyCjkSpacingToHtml, extractToc, sanitizeHtml, truncateCodePoints, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode } = require('../lib/utils');
+const { formatDate, safeSlug, validateSlug, applyCjkSpacingToHtml, extractToc, sanitizeHtml, truncateCodePoints, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode, setOwnProperty } = require('../lib/utils');
 const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
 const { makeArticleComparator, stripMarkdownText, mathConfig, mathNeeded, wordCountConfig } = require('../lib/feature-wiring');
 
@@ -31,11 +31,12 @@ function createArticlesModule(ctx) {
         const fm = frontMatter(raw);
         const body = fm.body || '';
         const name = path.basename(file, '.md');
-        result[name] = {
+        // 文件名可为 '__proto__'：必须写成自有属性，否则改写结果对象原型且键丢失。
+        setOwnProperty(result, name, {
           title: (fm.attributes && fm.attributes.title) || name,
           content: applyCjkSpacingToHtml ? sanitizeHtml(applyCjkSpacingToHtml(marked.parse(body))) : sanitizeHtml(marked.parse(body)),
           body: body
-        };
+        });
       } catch (err) {
         console.error(`  [ERROR] Failed to process page content ${file}: ${err.message}`);
         ctx.recordBuildFailure('page', `Failed to process page content ${file}: ${err.message}`);

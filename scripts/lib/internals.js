@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const json5 = require('json5');
 const { DEFAULTS, SCHEMA } = require('./internals-defaults');
+const { setOwnProperty } = require('./utils');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const DEFAULT_FILE = path.join(ROOT, 'internals.json5');
@@ -25,12 +26,14 @@ function isPlainObject(value) {
 
 function deepMerge(base, override) {
   if (!isPlainObject(base) || !isPlainObject(override)) return override;
+  // 自有属性判断与写入：配置键可含 '__proto__'（JSON5 解析为自有键），
+  // in 运算符会命中原型链、普通赋值会触发原型 setter，导致键校验与合并错乱。
   const out = {};
   for (const key of Object.keys(base)) {
-    out[key] = key in override ? deepMerge(base[key], override[key]) : base[key];
+    setOwnProperty(out, key, Object.prototype.hasOwnProperty.call(override, key) ? deepMerge(base[key], override[key]) : base[key]);
   }
   for (const key of Object.keys(override)) {
-    if (!(key in out)) out[key] = override[key];
+    if (!Object.prototype.hasOwnProperty.call(out, key)) setOwnProperty(out, key, override[key]);
   }
   return out;
 }
@@ -38,7 +41,7 @@ function deepMerge(base, override) {
 function findUnknownKeys(merged, defaults, prefix, out) {
   for (const key of Object.keys(merged)) {
     const current = prefix ? prefix + '.' + key : key;
-    if (!(key in defaults)) {
+    if (!Object.prototype.hasOwnProperty.call(defaults, key)) {
       out.push(current);
       continue;
     }

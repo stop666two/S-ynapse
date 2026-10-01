@@ -358,4 +358,12 @@ function hasHighlightableCode(html) {
   return false;
 }
 
-module.exports = { formatDate, safeSlug, validateSlug, isReservedOsName, hasUnsafeLinkScheme, SLUG_MAX_LENGTH, escapeAttr, escapeHtml, stripInvalidXmlChars, stripHtml, truncateCodePoints, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode };
+// 以「自有可枚举属性」语义写入键：普通赋值遇 key='__proto__' 会触发原型 setter
+// （对象值改写原型、标量静默丢弃），而 JSON.parse/JSON5.parse 产物可携带该自有键。
+// 序列化、映射与深合并等重建对象时必须经本函数，保证任意数据键不丢失。
+function setOwnProperty(obj, key, value) {
+  Object.defineProperty(obj, key, { value: value, enumerable: true, writable: true, configurable: true });
+  return obj;
+}
+
+module.exports = { formatDate, safeSlug, validateSlug, isReservedOsName, hasUnsafeLinkScheme, SLUG_MAX_LENGTH, escapeAttr, escapeHtml, stripInvalidXmlChars, stripHtml, truncateCodePoints, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode, setOwnProperty };

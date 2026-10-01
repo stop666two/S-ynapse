@@ -20,6 +20,8 @@
 // 契约：纯函数。不修改入参；返回新对象；被裁空的指令整条删除（CSP 允许省略）。
 'use strict';
 
+const { setOwnProperty } = require('./utils');
+
 const GISCUS = 'https://giscus.app';
 const JSDELIVR = 'https://cdn.jsdelivr.net';
 const GFONTS = 'https://fonts.googleapis.com';
@@ -67,9 +69,10 @@ function trimCspDirectives(directives, context) {
   Object.keys(src).forEach(function (key) {
     const vals = Array.isArray(src[key]) ? src[key] : [];
     const kept = vals.filter(function (v) {
-      return !(v in needs) || needs[v];
+      return !Object.prototype.hasOwnProperty.call(needs, v) || needs[v];
     });
-    if (kept.length > 0) out[key] = kept;
+    // 指令键可含 '__proto__'（JSON5 自有键）：自有属性写入避免原型 setter 改写与丢键。
+    if (kept.length > 0) setOwnProperty(out, key, kept);
   });
   return out;
 }

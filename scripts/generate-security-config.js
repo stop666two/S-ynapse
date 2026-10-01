@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { trimCspDirectives } = require('./lib/csp');
+const { setOwnProperty } = require('./lib/utils');
 const { RATE_LIMIT_FALLBACKS, MAINTENANCE_FALLBACKS, CSP_REPORT_MAX_BYTES } = require('../workers/lib/security-fallbacks');
 
 // ==================== 双配置漂移消除 ====================
@@ -69,7 +70,10 @@ function validateHeaderEntries(headers) {
  */
 function applyHeaderHardening(security) {
   const s = security && typeof security === 'object' ? security : {};
-  const headers = Object.assign({}, s.headers && typeof s.headers === 'object' ? s.headers : {});
+  const headers = {};
+  const baseHeaders = s.headers && typeof s.headers === 'object' ? s.headers : {};
+  // 头名可为 '__proto__'（JSON5 自有键 + RFC 7230 token）：逐键自有属性拷贝，避免 Object.assign 触发原型 setter。
+  for (const key of Object.keys(baseHeaders)) setOwnProperty(headers, key, baseHeaders[key]);
   const hd = s.hardening && typeof s.hardening === 'object' ? s.hardening : {};
   if (hd.hstsMaxAge) {
     const baseHsts = String(headers['Strict-Transport-Security'] || '');
@@ -87,7 +91,7 @@ function applyHeaderHardening(security) {
   }
   const custom = s.customHeaders && typeof s.customHeaders === 'object' ? s.customHeaders : {};
   for (const [key, val] of Object.entries(custom)) {
-    if (val) headers[key] = val;
+    if (val) setOwnProperty(headers, key, val);
   }
   return validateHeaderEntries(headers);
 }

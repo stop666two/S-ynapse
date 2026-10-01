@@ -403,7 +403,8 @@ function createPagesModule(ctx) {
             slug: def.slug,
             date: def.date,
             default: { title: def.title, description: def.description, content: def.content },
-            langs: {}
+            // 语言键来自站点配置，可能为 '__proto__'：空原型避免原型 setter 改写与丢键。
+            langs: Object.create(null)
           };
           for (const lang of langs) {
             const langFile = path.join(ctx.pagesDir, lang, file);
@@ -589,7 +590,8 @@ function createPagesModule(ctx) {
     }
 
     // 每语言系列列表预计算（系列聚合页与跨语言 alt 匹配共用；避免循环内重复分组）。
-    const seriesByLang = {};
+    // 空原型：语言键来自站点配置，'__proto__' 在普通对象上会触发原型 setter。
+    const seriesByLang = Object.create(null);
     for (const l of siteLangs) {
       seriesByLang[l] = collectSeries(getPublished(articles.filter(a => a.lang === l)));
     }
@@ -640,9 +642,10 @@ function createPagesModule(ctx) {
     }
 
     // 根页回退数据：默认语言缺失对应语言数据时（空配置等）仍给出可渲染的最小对象。
-    const langDataByLang = {};
-    const publishedByLang = {};
-    const topTagsByLang = {};
+    // 空原型：语言键来自站点配置，'__proto__' 在普通对象上会触发原型 setter。
+    const langDataByLang = Object.create(null);
+    const publishedByLang = Object.create(null);
+    const topTagsByLang = Object.create(null);
 
     for (const lang of siteLangs) {
       const pf = '/' + lang + '/';

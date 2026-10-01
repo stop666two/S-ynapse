@@ -47,7 +47,8 @@ function getFresh(cache, id, key) {
 }
 
 function updateEntry(cache, id, key) {
-  cache[id] = key;
+  // 条目 id 为文件/文章路径，可为 '__proto__'：自有属性写入避免触发原型 setter 丢键。
+  Object.defineProperty(cache, id, { value: key, enumerable: true, writable: true, configurable: true });
   return cache;
 }
 

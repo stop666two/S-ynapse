@@ -8,7 +8,8 @@ function createCollectorsModule(ctx) {
   // Aggregate tags across all articles with count and slugified URL.
   // Returns array sorted by count descending.
   function collectTopTags(articles, limit, lang) {
-    const counts = {};
+    // 空原型：标签键来自文章内容，'__proto__' 等键在普通对象上会命中原型链导致计数读写错乱。
+    const counts = Object.create(null);
     const published = ctx.getPublished(articles).filter(a => !lang || a.lang === lang);
     published.forEach(function(a) {
       (a.tags || []).forEach(function(t) { counts[t] = (counts[t] || 0) + 1; });

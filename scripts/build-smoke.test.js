@@ -19,6 +19,14 @@ const BAD_SLUG = 'zz-smoke-bad-' + process.pid;
 const BAD_ARTICLE = path.join(ROOT, 'articles', 'zh', BAD_SLUG + '.md');
 const SKIP_IN_UNIT_SUITE = process.env.npm_lifecycle_event === 'test';
 
+// 产物经 HTML 压缩后，简单属性值的引号可能被剥离（随平台/实现差异），
+// 属性断言一律走引号无关匹配，避免仅在部分环境通过。
+function hasAttr(html, name, value) {
+  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = name + '=(?:"' + escaped + '"|\'' + escaped + '\'|' + escaped + ')(?=[\\s>])';
+  return new RegExp(pattern).test(html);
+}
+
 let tmpDir = null;
 
 function runBuild(outDir, extraArgs) {
@@ -322,7 +330,7 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
         assert.ok(!mmHtml.includes('/assets/vendor/mermaid.min.js') && !mmHtml.includes('data-mm-src'), 'SSR page must not request the mermaid vendor');
         assert.ok(!mmHtml.includes('data-mm-pending'), 'all diagrams must render server-side in a Chrome-enabled environment');
       } else {
-        assert.ok(mmHtml.includes('data-mm-src="/assets/vendor/mermaid.min.js"'), 'no-Chrome env must fall back to the lazy client vendor');
+        assert.ok(hasAttr(mmHtml, 'data-mm-src', '/assets/vendor/mermaid.min.js'), 'no-Chrome env must fall back to the lazy client vendor');
         assert.ok(mmHtml.includes('data-mm-pending'), 'no-Chrome env must mark blocks pending for client rendering');
       }
     }
@@ -441,15 +449,15 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       assert.strictEqual((seriesZh.match(/class="post-card series-item"/g) || []).length, 3,
         'series hub must list all 3 articles');
       for (const slug of ['series-1', 'series-2', 'series-3']) {
-        assert.ok(seriesZh.includes('href="/zh/' + slug + '/"'), 'series hub must link ' + slug);
+        assert.ok(hasAttr(seriesZh, 'href', '/zh/' + slug + '/'), 'series hub must link ' + slug);
       }
       assert.ok(/series-item-index[^>]*>#1</.test(seriesZh), 'series hub must render the position index');
       assert.ok(seriesZh.includes('series-item-progress') && seriesZh.includes('1 / 3'),
         'series hub must render the progress label');
       assert.ok((seriesZh.match(/series-item-nav/g) || []).length >= 3, 'series hub must render prev/next links');
-      assert.ok(seriesZh.includes('data-alt-lang="/en/series/site-building-notes/"'),
+      assert.ok(hasAttr(seriesZh, 'data-alt-lang', '/en/series/site-building-notes/'),
         'zh series hub must point the language switch at the en hub');
-      assert.ok(seriesEn.includes('data-alt-lang="/zh/series/建站手记/"'),
+      assert.ok(hasAttr(seriesEn, 'data-alt-lang', '/zh/series/建站手记/'),
         'en series hub must point the language switch at the zh hub');
       const sitemapText = fs.readFileSync(path.join(tmpDir, 'zh', 'sitemap.xml'), 'utf-8');
       assert.ok(sitemapText.includes('series/' + encodeURIComponent('建站手记') + '/'),
@@ -483,7 +491,7 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
         );
         const postHtml = fs.readFileSync(path.join(tmpDir, lang, 'hello-world', 'index.html'), 'utf-8');
         assert.ok(postHtml.includes('data-export-print'), lang + ' post page must render the print button');
-        assert.ok(postHtml.includes('data-md-url="/md/' + lang + '/hello-world.md"'),
+        assert.ok(hasAttr(postHtml, 'data-md-url', '/md/' + lang + '/hello-world.md'),
           lang + ' post page must render the markdown copy button with its export URL');
         assert.ok(postHtml.includes('post-source-url'), lang + ' post page must render the print source footnote');
       }
@@ -491,13 +499,13 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       // 非文章页不渲染对照属性；样式含并排规则与断点媒体查询（断点取 bilingualCfg.breakpointPx）。
       const helloZh = fs.readFileSync(path.join(tmpDir, 'zh', 'hello-world', 'index.html'), 'utf-8');
       const helloEn = fs.readFileSync(path.join(tmpDir, 'en', 'hello-world', 'index.html'), 'utf-8');
-      assert.ok(helloZh.includes('data-alt-lang="/en/hello-world/"'),
+      assert.ok(hasAttr(helloZh, 'data-alt-lang', '/en/hello-world/'),
         'zh post must point data-alt-lang at the en article');
-      assert.ok(helloEn.includes('data-alt-lang="/zh/hello-world/"'),
+      assert.ok(hasAttr(helloEn, 'data-alt-lang', '/zh/hello-world/'),
         'en post must point data-alt-lang at the zh article (mutual reference)');
-      assert.ok(helloZh.includes('data-bilingual-alt="/en/hello-world/"'),
+      assert.ok(hasAttr(helloZh, 'data-bilingual-alt', '/en/hello-world/'),
         'zh post must expose the bilingual alternate URL');
-      assert.ok(helloZh.includes('id="bilingualSwitch"') && helloZh.includes('id="bilingualSide"') && helloZh.includes('id="bilingualPaneBody"'),
+      assert.ok(hasAttr(helloZh, 'id', 'bilingualSwitch') && hasAttr(helloZh, 'id', 'bilingualSide') && hasAttr(helloZh, 'id', 'bilingualPaneBody'),
         'zh post must render the bilingual bar and pane skeleton');
       assert.ok(helloEn.includes('>EN/中<'), 'en post must render the EN/中 switch label');
     }

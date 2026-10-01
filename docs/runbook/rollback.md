@@ -49,7 +49,7 @@
 构建增强步骤（`compression.json5`，默认开）完成后会执行无头对比门禁；失败时按 `verify.fallbackOnFailure` 自动回退未压缩基线并告警，构建仍成功。排障路径：
 
 1. **看结果 JSON**：`.cache/compression-verify/last.json` —— `status`（`passed`/`failed`/`skipped`）、失败页面与断言类型、`phaseDurationsMs` 阶段耗时、端口释放结论。
-2. **看构建摘要**：`dist/report.txt` —— 「无头验证摘要」段（本轮未运行会如实标注）与「CSS 合并/去重跳过」明细（文件 + 原因）；跳过项不代表产物损坏（该文件保持原样，不计入失败账本）。
+2. **看构建报告**：`dist/build-report.html` —— 「压缩统计与无头验证」区块（本轮未运行会如实标注）与「CSS 合并/去重跳过」明细（文件 + 原因）；跳过项不代表产物损坏（该文件保持原样，不计入失败账本）。
 3. **独立复核**：`npm run verify:compression -- --json`（完整构建 + 两态断言；`passed=0`、`failed=1`、`skipped=0`）。无 Chrome 环境会跳过并告警，不阻断构建；可用 `CHROME_PATH` 指定浏览器。
 4. **回退是否生效**：回退后构建日志有 `[WARN]`，且快照产物的逐字节复核通过；若复核不一致会升级为阻断失败（此时不要部署，按第 5 步回滚现有版本或修复后重建）。
 5. **确认是压缩还是内容问题**：`--compression-override` 传一份 `enabled:false` 的配置重跑构建（隔离验证第二态，不写回仓库配置）；仍失败说明与压缩无关，按内容/模板问题排查。
@@ -78,5 +78,5 @@
 | 内容错误（文章/配置） | `git revert` + `npm run build` + `wrangler deploy` | 5–15 分钟 |
 | 误拦截/限流过严 | 改 `security.json5` 重建后部署；或临时维护模式 | < 5 分钟 |
 | 日志隐私（未配密钥） | `wrangler secret put LOG_IP_SECRET` 后重新部署 | < 5 分钟 |
-| 压缩验证 failed（构建已自动回退） | 查 `.cache/compression-verify/last.json` 与 `report.txt`；独立 `verify:compression` 复核 | 10–30 分钟 |
+| 压缩验证 failed（构建已自动回退） | 查 `.cache/compression-verify/last.json` 与 `build-report.html`；独立 `verify:compression` 复核 | 10–30 分钟 |
 | 压缩回退复核不一致（构建阻断） | 不部署；修复后重建，或 `wrangler rollback` 回上一版本 | < 10 分钟 |

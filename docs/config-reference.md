@@ -434,7 +434,7 @@
 ### 3.4 search — 客户端搜索
 `enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true`（与 `searchHighlight.enabled` 联动，任一 false 即不高亮） / `showCount true`（结果计数显隐：false 时浮层结果区与 /search 页均不显示；文案取 `ui-strings.search.foundCount`，`{count}` 占位，中英双语） / `emptyHint ''` / `emptyHintEn ''` / `noResultText 未找到匹配内容` / `noResultTextEn No matching content`(空回退中文链) / `excerptLength 120` / `includeContent true`(构建期生效:content 文本是否进入倒排索引；正文原文不写入索引文件) / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `index.bigram true`（CJK 二元组 + 英文小写词；false = CJK 段整段成词） / `index.maxGzipKb 60`（索引 gzip 上限 KB；超出按词频裁剪低频词并告警，不阻断构建） / `closeOnOverlay true` / `focusOnOpen true` / `focusDelayMs 100`(打开搜索后延迟聚焦输入框 ms) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效) / `resultTagCount 6`(/search 页结果卡片内最多展示标签数；≥1，非法回退 6) / `debounceMs 120` / `showHistoryOnFocus true` / `maxHistory 5`
 
-> **索引产物**：构建期生成倒排索引 `/assets/search-index.<内容哈希>.json`（按语言各一份，文件名即内容寻址；正文原文不落盘，每页只存标题/URL/摘要/封面/标签/分类）。客户端按需 fetch（浮层首次打开、/search 页进入时），超时与重试取 `tuning.search.indexTimeoutMs/indexRetry`；页面通过 `window.__SEARCH_INDEX_URL__` 获取当前语言索引地址。索引体积超 `index.maxGzipKb` 时按文档频率升序裁剪低频词（记录 `[WARN]` 到构建日志与 report.txt 告警段，构建继续）。旧固定路径 `/{lang}/search-index.json` 不再产出（构建时清理残留）。
+> **索引产物**：构建期生成倒排索引 `/assets/search-index.<内容哈希>.json`（按语言各一份，文件名即内容寻址；正文原文不落盘，每页只存标题/URL/摘要/封面/标签/分类）。客户端按需 fetch（浮层首次打开、/search 页进入时），超时与重试取 `tuning.search.indexTimeoutMs/indexRetry`；页面通过 `window.__SEARCH_INDEX_URL__` 获取当前语言索引地址。索引体积超 `index.maxGzipKb` 时按文档频率升序裁剪低频词（记录 `[WARN]` 到构建日志与构建报告告警清单，构建继续）。旧固定路径 `/{lang}/search-index.json` 不再产出（构建时清理残留）。
 > **检索语义（浮层搜索与 /search 页统一）**：查询经同一分词器切为词项（CJK bigram / 英文小写词，单字 CJK 回退 bigram 首尾扫描），**全部词项 AND 命中**（任一被索引字段命中，或标签/分类子串包含该词项）才入选；得分 = 字段权重 × 该字段命中词项数（去重后），按总分降序，同分保持索引原序（构建期按日期倒序生成，等价「同分按日期」）。**权重为 0 = 该字段既不参与匹配也不参与计分**（如 `weightContent=0` 时正文不再命中且构建期也不索引 content）。`tags`/`categories` 命中仅参与「是否入选」（计 0 分），分别由 `matchTags`/`matchCategories` 门控（默认 true）。canonical 纯函数：`scripts/lib/feature-wiring.js → rankSearchEntries`（历史语义镜像，单测覆盖）；倒排实现与单测：`js/domains/features/search-core.js` + `scripts/search-core.test.js`。
 > **无结果文案优先级链**：`emptyHint(En)` > `noResultText(En)` > `tuning.search.emptyText(En)` > i18n 内置文案；`emptyHint` 非空时也作为「输入为空」的浮层提示（默认空串 = 不显示，保持历史输出「未找到匹配内容」）。注意：features 键优先于 tuning（两者默认文案同值，默认渲染不变）。
 > **连续查询与竞态**：每次渲染前清空旧结果节点（修复此前结果容器追加、旧结果残留的缺陷）；索引加载期间的查询在返回后校验输入框当前值，输入已变化则丢弃迟到结果；加载失败展示错误态与「重试」按钮（force 刷新索引缓存）。
@@ -1332,13 +1332,13 @@ listCover: {
 
 ## 12. compression.json5 — 构建产物压缩
 
-第 14 个配置文件。对 `dist/` 产物做可配置压缩：HTML/CSS/JS/JSON 单行化与去注释、CSS 同页 `<style>` 合并去重（C3 已实装）、可选 JS 混淆（C4 已实装，默认关）；增强阶段完成后执行无头对比门禁，失败自动回退未压缩产物（已实装）。加载与校验由 `scripts/lib/compression-config.js` 承担，压缩执行位于 `scripts/build/minify.js` 的压缩阶段，无头对比/回退核心位于 `scripts/lib/compression-verify.js`，`dist/report.txt` 摘要渲染位于 `scripts/lib/build-report-text.js`（`scripts/compression-config.test.js` 覆盖默认合并/类型/枚举/glob 语义，`scripts/compression-pipeline.test.js` 覆盖增强步骤装配，`scripts/css-merge.test.js` 与 `scripts/js-obfuscate.test.js` 覆盖 C3/C4 纯函数，`scripts/compression-verify.test.js` 覆盖快照/恢复/归一化/端口纯逻辑，`scripts/build-report-text.test.js` 覆盖摘要段渲染与缺失容错）。
+第 14 个配置文件。对 `dist/` 产物做可配置压缩：HTML/CSS/JS/JSON 单行化与去注释、CSS 同页 `<style>` 合并去重（C3 已实装）、可选 JS 混淆（C4 已实装，默认关）；增强阶段完成后执行无头对比门禁，失败自动回退未压缩产物（已实装）。加载与校验由 `scripts/lib/compression-config.js` 承担，压缩执行位于 `scripts/build/minify.js` 的压缩阶段，无头对比/回退核心位于 `scripts/lib/compression-verify.js`，`dist/build-report.html` 渲染位于 `scripts/lib/build-report-html.js`（`scripts/compression-config.test.js` 覆盖默认合并/类型/枚举/glob 语义，`scripts/compression-pipeline.test.js` 覆盖增强步骤装配，`scripts/css-merge.test.js` 与 `scripts/js-obfuscate.test.js` 覆盖 C3/C4 纯函数，`scripts/compression-verify.test.js` 覆盖快照/恢复/归一化/端口纯逻辑，`scripts/build-report-html.test.js` 覆盖报告区块渲染与缺失容错）。
 
 **生效范围（重要）**
 - 仅作用于 `dist/` 产物；`exclude` 命中的路径按原字节复制。
 - `--serve` / `--watch` 自动关闭：本地调试所见即未压缩产物，无需改配置。
 - 压缩发生在内容哈希（cacheBust）之前：文件名哈希对应压缩后的最终字节；改配置 → 产物字节变化 → 哈希换代，不会出现「哈希未变、内容已变」的脏缓存。
-- `dist/report.txt` 与 `build-report.html` 在报告阶段生成（压缩与 cacheBust 之后），天然豁免压缩。`report.txt` 汇总：阶段耗时（配置/预校验/页面/媒体/OG/压缩增强/cacheBust/PWA/报告/其它）、HTML/CSS/JS/JSON 的压缩前后 raw/gzip 与节省率（含变更/新增/移除/跳过/豁免计数）、CSS 合并/去重跳过计数与明细（文件 + 原因）、压缩阶段失败清单、无头验证摘要（读取 `.cache/compression-verify/last.json`；本轮未运行则如实标注）、非阻断告警、perfBudget 5 项对照与压缩目标现状值（本阶段口径：基线压缩前 → 增强/压缩后；HTML gzip ≥10%、JS gzip ≥20% 混淆关态，三态对照与未达原因见 `docs/plans/` 下的压缩计划文档「C8 结果」）。`report.txt` 已列入默认 `exclude`，且被产物等价护栏 `scripts/lib/dist-hash.js` 的默认忽略项覆盖（与 `build-report.html` 同为含时间戳的非确定性产物）。
+- `build-report.html` 在报告阶段生成（压缩与 cacheBust 之后），天然豁免压缩。唯一构建报告汇总：元信息（版本/commit/Node/开始结束时间 UTC/总耗时）、14 步阶段耗时、产物体积（HTML 页数与 raw/gzip 最大/中位、CSS、JS app/deferred/shared/runtime、vendor、字体、图片/OG 数量与体积 Top N）、HTML/CSS/JS/JSON 的压缩前后 raw/gzip 与节省率（含变更/新增/移除/跳过/豁免计数与 CSS 合并/去重/JSON/runtime 增强统计）、缓存命中（media/og/fonts/mermaid/covers reused）、无头验证摘要（读取 `.cache/compression-verify/last.json`；本轮未运行则如实标注）、告警与失败清单（含阶段）、perfBudget 5 项对照与压缩目标现状值（本阶段口径：基线压缩前 → 增强/压缩后；HTML gzip ≥10%、JS gzip ≥20% 混淆关态，三态对照与未达原因见 `docs/plans/` 下的压缩计划文档「C8 结果」）。`build-report.html` 已列入默认 `exclude`，且被产物等价护栏 `scripts/lib/dist-hash.js` 的默认忽略项覆盖（含时间戳的非确定性产物）。
 
 **语义：基线压缩 vs 增强步骤**
 - **基线压缩**：`site.build.minifyHTML/minifyCSS/minifyJS` 驱动的既有 minify-html / CleanCSS / Terser 行为，恒定执行且**不受本文件开关影响**（默认态产物字节与引入本文件前一致）。`exclude` 只约束增强步骤，不改变基线。
@@ -1347,7 +1347,7 @@ listCover: {
   - `html.removeComments=false`：保留 HTML 注释（压缩阶段的基线选项回退，仅 `enabled` 时生效；默认 true 与基线一致）。
   - `json.enabled=true`：`dist/**/*.json` 去空白（`JSON.parse → JSON.stringify`，键序保持、输出合法 JSON、Unicode 原样）。跳过：已是紧凑单行、`exclude` 命中项、`assets/config.<hash>.json`（文件名由内容哈希派生，是 HTML 的引用键；重写会破坏一致性——该文件写入时已紧凑，天然无需处理）。逐文件失败只告警并保留原文件。
   - `css.mergeInlineStyles`（C3 已实装）：同页内联 `<style>` 安全合并——只合并「同组（nonce 与 media 一致）且中间无其它样式源」的相邻块，合并块落在首块位置并保留 nonce/media；SVG 与 `<noscript>` 内的 style、外链 `<link rel=stylesheet>` 一律视为截断源（不跨越，避免层叠顺序改变）；非 nonce/media 属性（如 `id=customCSS`）在合并时丢弃。因此数学页（正文含 KaTeX 外链）等被 stylesheet 截断的页面保持两块，这是顺序安全的必然结果。
-  - `css.dedupe`（C3 已实装）：保守去重——①同一规则内同属性且同 `!important` 状态的重复声明保留最后一条（重要性与普通混合时一律不动，避免破坏层叠）；②相邻（仅空白分隔）且完全相同的规则保留前一条；非相邻重复不折叠、`@keyframes` 内部与 at-rule 结构不动、规则顺序不动。作用于页面内联 style 与 dist 外链 CSS 文件（`assets/**` 不参与 cacheBust，外链 CSS 只改内容不改名，与基线 CleanCSS 行为一致）；解析异常（真实标签缺失闭合/计数不平衡、括号/引号/注释不配平）跳过该文件并告警，跳过计数与原因写入 `dist/report.txt`，不计入失败账本、不阻断构建。标签配平采用上下文感知扫描（注释、`title`/`textarea` RCDATA、`script`/`style` 内容与带引号属性值中的 `<` 不计为标签），避免 `</script><script>` 一类惰性文本误判。
+  - `css.dedupe`（C3 已实装）：保守去重——①同一规则内同属性且同 `!important` 状态的重复声明保留最后一条（重要性与普通混合时一律不动，避免破坏层叠）；②相邻（仅空白分隔）且完全相同的规则保留前一条；非相邻重复不折叠、`@keyframes` 内部与 at-rule 结构不动、规则顺序不动。作用于页面内联 style 与 dist 外链 CSS 文件（`assets/**` 不参与 cacheBust，外链 CSS 只改内容不改名，与基线 CleanCSS 行为一致）；解析异常（真实标签缺失闭合/计数不平衡、括号/引号/注释不配平）跳过该文件并告警，跳过计数与原因写入 `dist/build-report.html` 压缩统计区块，不计入失败账本、不阻断构建。标签配平采用上下文感知扫描（注释、`title`/`textarea` RCDATA、`script`/`style` 内容与带引号属性值中的 `<` 不计为标签），避免 `</script><script>` 一类惰性文本误判。
   - `js.minify`（runtime 引导脚本压缩，C8 实装）：`copyRuntimeBootstrap` 原样复制的 `runtime.<hash>.js`（classic script，基线打包的 esbuild minify 不覆盖）走 Terser 压缩（`module:false`，不改顶层标识符），压缩后按最终字节以 md5-10 重命名并同步改写全部 HTML 引用（`<script src>`），维持「文件名哈希=最终字节」；失败保留原文件并告警。实测 raw 3.75KB → 2.85KB、gzip 1.79KB → 1.34KB。
   - `js.obfuscate.enabled=true`（C4 已实装）：对**本轮 esbuild 产物** `app.<hash>.js` / `deferred.<hash>.js` 执行混淆，随后按混淆后字节重算文件名（md5-10）并同步改写全部 HTML 引用（app `src` 与 `window.__DEFERRED_URL__` 内联 URL），维持「文件名哈希=最终字节」。`runtime.<hash>.js` 因文件名哈希由内容派生、HTML 以该名引用（参与内容哈希引用），排除在混淆之外（其内容寻址改名由上一项 `js.minify` 压缩步骤承担）；vendor、`--no-bundle` 源码拷贝与增量残留旧文件永不命中（白名单=本轮 bundle 清单）。依赖 `javascript-obfuscator` 为 devDependency，仅在开关开启时惰性加载；单文件失败保留原名原文件并告警。
 - `html.collapseWhitespace=false` 暂不受支持：minify-html 恒折叠安全空白，配置为 false 时输出 `[WARN]` 并保持折叠。
@@ -1397,7 +1397,7 @@ listCover: {
 **默认豁免与理由**
 - `assets/vendor/**`：第三方库/字体/图标已自带压缩版，二次压缩收益小且易破坏 source map；`assets/fonts/**` 同属二进制或已子集化资源。
 - `media/**`、`og/**` 与 `**/*.woff2|avif|webp|png|jpg|svg`：二进制或被外部按原字节引用的资源，压缩无收益且可能损坏。
-- `report.txt` / `build-report.html`：构建报告必须保持人类可读（报告阶段生成，天然不经过压缩阶段）。
+- `build-report.html`：构建报告必须保持人类可读（报告阶段生成，天然不经过压缩阶段）。
 
 **与 perfBudget（`features.perfBudget`）的关系**：两者独立——perfBudget 是**结果口径**的体积门禁（统计压缩后的 dist 产物，超预算按 `warnOnly` 提醒或阻断构建），compression.json5 是**达成手段**（决定压缩开关与豁免范围）。关闭压缩或扩大豁免会让预算更易超线；预算数值本身不在本文件配置，HTML gzip 体积与请求数仍以 perfBudget 的实测为准。
 
@@ -1469,7 +1469,7 @@ listCover: {
 | `chrome` | `path` | null | Chrome 可执行文件绝对路径；null=自动探测（--chrome/CHROME_PATH > 本项 > 平台默认 > PATH） |
 | `paths` | `outDir` | null | 默认输出目录；null=dist。优先级：`--out` > `SYNAPSE_OUT_DIR` > 本项 |
 | | `cacheDir` | `.cache` | 构建缓存根（media/og/fonts/mermaid/压缩基线等子目录父级） |
-| | `artifactsDir` | `build-artifacts` | CI/测试工件目录（fuzz 留档、覆盖率、冒烟、ci-report、SBOM） |
+| | `artifactsDir` | `build-artifacts` | CI/测试工件目录（fuzz 留档、覆盖率、冒烟、ci-checks、SBOM） |
 | `cache` | `mediaTtlDays` | 0 | media 处理缓存兜底重验证天数；0=仅按内容键判定 |
 | | `ogTtlDays` | 0 | OG 图片缓存兜底重验证天数；0=仅按内容键判定 |
 | | `fontsTtlDays` | 7 | CJK 字体分片清单缓存有效期（天） |

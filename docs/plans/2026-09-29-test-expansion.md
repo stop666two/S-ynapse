@@ -108,7 +108,7 @@ T1 实证：
 | 夹具扩展：6 个必需配置、目录联接、场景级覆盖 | `scripts/lib/test-site-builder.js` |
 | 统一入口 + CI 接入 | `package.json`（`test:malicious`）；`.github/workflows/deploy.yml`；夜间随 `test:all` |
 
-默认档实测：22 用例 / 约 28–32 s（预算 ≤4 分钟；`STRESS=1` 放大超长/海量档）。策略落实：安全类 hard-fail（非零退出 + `file`/`file:line` 定位 + 预校验先于 dist 清理、既有产物逐字节不变）；资源类 degrade（构建成功 + `report.txt` `[告警]` 条目）。
+默认档实测：22 用例 / 约 28–32 s（预算 ≤4 分钟；`STRESS=1` 放大超长/海量档）。策略落实：安全类 hard-fail（非零退出 + `file`/`file:line` 定位 + 预校验先于 dist 清理、既有产物逐字节不变）；资源类 degrade（构建成功 + `build-report.html` 告警清单条目）。
 
 T4 缺陷清单（最小反例均已固化为确定性回归）：
 

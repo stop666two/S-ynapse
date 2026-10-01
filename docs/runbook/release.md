@@ -10,9 +10,9 @@
 保留的示例页面（`pages/**`）与默认资源（`static/**`）；但不含任何示例文章与演示媒体，
 `articles/**` 与 `media/**` 在包内以 `.gitkeep` 标记的空目录呈现，由使用者放入自己的内容。
 由此，归档必须满足三条硬约束，`buildability` 作业逐条验证（见 §5）：**空站可构建**（0 文章时 `npm run build` 成功并产出
-`dist/index.html`、`dist/report.txt`、`dist/zh/search-index.json`）、**测试可跑**（解压后 `npm test` 全绿）、**配置为默认初始态**（无个人/真实数据）。
+`dist/index.html`、`dist/build-report.html`、`dist/zh/search-index.json`）、**测试可跑**（解压后 `npm test` 全绿）、**配置为默认初始态**（无个人/真实数据）。
 
-发布策略：**只保留最新版本**——新 Release 创建成功后，CI 自动删除其余 Release 及其 tag（见 §7）。
+发布策略：**只保留最新 Release**——新 Release 创建成功后，CI 自动删除其余 Release 页面；**tag 永不删除**（见 §7）。
 
 ## 1. 前置门禁（发布前必须全部通过）
 
@@ -128,15 +128,15 @@ validate（RELEASE.json 双重校验）
 → archive（白名单归档：articles/media 仅 .gitkeep 骨架 + RELEASE.json=package.json=tag
            版本一致性校验，上传 artifact）
 → buildability（下载归档 → 解压 → npm ci --ignore-scripts → npm test → npm run build
-                 断言 dist/index.html、dist/report.txt、dist/zh/search-index.json；
+                 断言 dist/index.html、dist/build-report.html、dist/zh/search-index.json；
                  任一环节失败即不发布）
-→ publish（gh release create --verify-tag --latest → release-prune 清理其余 Release 与远端 v* tag）
+→ publish（gh release create --verify-tag --latest → release-prune 清理其余 Release；tag 永不删除）
 ```
 
 任一环节失败都不会创建 Release。
 
 **通道 B（备用，本地）：`npm run release:publish -- vX.Y.Z`。** 适用于 Actions 不可用时：
-先 `git push origin vX.Y.Z`（远端必须存在 tag，本地脚本会检查），脚本复用同一套双重校验后调用 `gh release create --latest`，随后执行同款旧版清理（Release + 远端 v* tag）。
+先 `git push origin vX.Y.Z`（远端必须存在 tag，本地脚本会检查），脚本复用同一套双重校验后调用 `gh release create --latest`，随后执行同款旧 Release 清理（tag 永不删除）。
 两条通道二选一，不要同时使用（同名 Release 会创建失败）。
 
 ## 6. 归档包与白名单
@@ -155,22 +155,21 @@ npm run release:archive -- --ref v1.1.0 --out dist/release.zip
 - 归档生成后逐条复核（`assertArchiveContents`），任一条目越界或缺少必需文件（含 `.gitkeep` 骨架标记、`scripts/**/*.test.js`）即失败；同时校验版本三方一致（RELEASE.json = package.json = tag 名，见 `assertVersionConsistency`）。
 - 本地核对归档清单：`release:archive` 输出骨架目录统计（`articles/` 与 `media/` 各几个 `.gitkeep`）、测试文件数与总文件数。
 
-## 7. 只保留最新版本（旧版清理）
+## 7. 只保留最新 Release（tag 永不删除）
 
-- **策略**：同一仓库任意时刻只保留**最新一个** Release 及其 tag；其余 Release 与旧 `v*` tag（含没有 Release 的残留 tag）随新版本发布自动下线。非 `v*` 命名的 tag 视为用户资产，不在清理范围。
-- **执行顺序**：固定「先 Release 后 tag」——① `gh release delete <tag> --yes --cleanup-tag` 删除旧 Release 并连带其 tag；② 对没有 Release 的残留 `v*` tag 执行 `git push origin :refs/tags/<tag>`；`--keep` 指定的当前 tag 全程受保护，避免删 tag 后 Release 悬空。
+- **策略**：同一仓库任意时刻只保留**最新一个** Release 页面；其余 Release 随新版本发布自动下线。**tag 永不删除**：`release-prune` 不使用 `--cleanup-tag`，也不执行任何远端 tag 删除命令——旧版本仍可通过 tag 检出与追溯（tag 是版本历史资产）。
+- **执行**：`gh release delete <tag> --yes` 逐一删除除 `--keep` 外的 Release 页面；`--keep` 指定的当前版本始终保留。删除失败项如实报告并以非零退出码结束（不自动重试）。
 - **CI（通道 A）**：publish 最后一步执行 `node scripts/release-prune.js --keep "$GITHUB_REF_NAME"`（排除刚发布的版本）。
 - **本地（通道 B）**：`release:publish` 成功后自动执行同一清理；也可手动执行：
 
 ```bash
-npm run release:prune -- --keep v1.1.0            # 实际删除：先旧 Release，再残留 v* tag
-npm run release:prune -- --keep v1.1.0 --dry-run  # 仅打印两阶段删除清单
+npm run release:prune -- --keep v1.1.0            # 实际删除除 v1.1.0 外的全部旧 Release（tag 保留）
+npm run release:prune -- --keep v1.1.0 --dry-run  # 仅打印删除清单
 ```
 
-- 依赖 `gh` 认证（CI 注入 `GH_TOKEN`）与可访问的 `origin` 远端；两阶段任一删除失败以非零退出码报告（失败项不会自动重试，需人工重跑）。
-- 远端列表先于删除动作读取：`gh release list` 或 `git ls-remote --tags --refs origin` 任一失败即中止，不会出现删了一半的状态。
-- 注意：`--cleanup-tag` 会删除远端 tag。本地若仍保留旧 tag，需自行 `git tag -d` 或 `git fetch --prune --prune-tags` 同步。
-- 示例：仓库有 `v1.1.0`（正式版 Release）、`v1.0.0`（旧 Release）与游离 tag `v0.9.0`（无 Release），发布 `v1.1.0-a1` 后执行 `--keep v1.1.0-a1`：`v1.1.0`、`v1.0.0` 的 Release 与 tag 被删除，`v0.9.0` 残留 tag 由 `git push` 删除，最终只保留 `v1.1.0-a1`。
+- 依赖 `gh` 认证（CI 注入 `GH_TOKEN`）；删除失败以非零退出码报告，需人工重跑。
+- 列表先于删除动作读取：`gh release list` 失败即中止，不会出现删了一半的状态。
+- 示例：仓库有 `v1.1.0`（正式版 Release）、`v1.0.0`（旧 Release）与游离 tag `v0.9.0`（无 Release），发布 `v1.1.0-a1` 后执行 `--keep v1.1.0-a1`：`v1.1.0`、`v1.0.0` 的 Release 页面被删除；`v0.9.0` 与全部旧 tag 保持不动；最终只保留 `v1.1.0-a1` 的 Release，tag 历史完整保留。
 
 ## 8. 失败排障
 
@@ -180,12 +179,12 @@ npm run release:prune -- --keep v1.1.0 --dry-run  # 仅打印两阶段删除清�
 | 门禁失败（release:mark 中途停止） | 已停止且未写文件；修复后重跑完整命令（从第一项门禁重新执行） |
 | `tag 已存在` | 脚本拒绝重复发布；确认版本号或删除本地错误 tag（`git tag -d`，未推送时安全） |
 | `版本不一致` / `tag 与版本不一致`（archive 作业） | RELEASE.json、package.json、tag 三者必须一致；用 `release:mark` 重新标记，不要手工改版本号 |
-| `buildability` 作业失败 | 归档解压后 `npm ci --ignore-scripts` / `npm test` / `npm run build` 失败、或缺少 `dist/index.html`/`report.txt`/`zh/search-index.json`；**不会创建 Release**。按日志修复（多为白名单漏文件或空站构建回归）后重新标记新版本/重推 tag |
+| `buildability` 作业失败 | 归档解压后 `npm ci --ignore-scripts` / `npm test` / `npm run build` 失败、或缺少 `dist/index.html`/`build-report.html`/`zh/search-index.json`；**不会创建 Release**。按日志修复（多为白名单漏文件或空站构建回归）后重新标记新版本/重推 tag |
 | `git archive` 缺 RELEASE.json | ref 指向发布机制引入前的旧提交；改用含标记的 tag/HEAD |
 | `gh release create` 失败 | 检查 `gh auth status`、tag 是否已推送、同名 Release 是否已存在；Actions 通道已建 Release 时不要再用通道 B |
 | Release 已建但下载页未置顶 Latest | 历史 Release 受 `--prerelease` 影响；手动修正示例：`gh release edit vX.Y.Z --prerelease=false --latest`（或删掉该 Release 后重跑发布）。现行 CI/本地通道已固定 `--latest`，不再出现该现象 |
-| 旧 tag 残留（无对应 Release） | 重跑 `npm run release:prune -- --keep vX.Y.Z`（第一阶段删 Release，第二阶段 `git push origin :refs/tags/<tag>` 删残留 `v*` tag）；或手动 `git push origin :refs/tags/vX.Y.Z`。非 `v*` tag 不会被清理 |
-| 旧版清理失败（publish 最后一步） | Release 已创建但策略未完全生效；检查 `GH_TOKEN` 权限与 `origin` 可访问后手动执行 `npm run release:prune -- --keep vX.Y.Z` |
+| 旧 Release 残留 | 重跑 `npm run release:prune -- --keep vX.Y.Z`（只删除 Release 页面；**tag 永不删除**，无需也不会有任何 tag 操作） |
+| 旧 Release 清理失败（publish 最后一步） | Release 已创建但策略未完全生效；检查 `GH_TOKEN` 权限后手动执行 `npm run release:prune -- --keep vX.Y.Z`；tag 不受影响 |
 | `verify:compression` 跳过 | 无 Chrome 属预期；阅读命令输出中的 `[SKIP]` 声明，必要时设置 `CHROME_PATH` 后重跑 |
 
 ## 9. 与站点部署的关系
@@ -205,6 +204,6 @@ npm run release:prune -- --keep v1.1.0 --dry-run  # 仅打印两阶段删除清�
 | 推送分支与 tag | `git push origin <branch>` + `git push origin vX.Y.Z`（或 `release:mark --push --confirm-push`） |
 | 本地生成归档 | `npm run release:archive -- --ref <tag\|HEAD>` |
 | 本地建 Release（备用） | `npm run release:publish -- vX.Y.Z` |
-| 清理旧版（只留最新） | `npm run release:prune -- --keep vX.Y.Z`（先删旧 Release，再删残留 v* tag；加 `--dry-run` 预览两阶段清单） |
+| 清理旧 Release（只留最新） | `npm run release:prune -- --keep vX.Y.Z`（只删除旧 Release 页面；tag 永不删除；加 `--dry-run` 预览清单） |
 | 手动修正 Latest 标记 | `gh release edit vX.Y.Z --prerelease=false --latest` |
 | 校验某 tag 的标记 | `node scripts/lib/release-validate.js --tag vX.Y.Z` |

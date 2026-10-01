@@ -9,7 +9,7 @@
 articles/ media/ static/ + 14 个 JSON5 配置
         │
         ▼  npm run build（Node，scripts/build.js 编排）
-   dist/（静态站点 + _headers + 404 + PWA + 搜索索引 + 哈希资源 + 构建摘要 report.txt）
+   dist/（静态站点 + _headers + 404 + PWA + 搜索索引 + 哈希资源 + 构建报告 build-report.html）
         │
         ▼  wrangler deploy --config workers/wrangler.toml --env production
    Worker `blog`（workers/security-worker.js）
@@ -46,7 +46,7 @@ articles/ media/ static/ + 14 个 JSON5 配置
 5. **打包**：esbuild 打包（`app.<hash>.js` / `deferred.<hash>.js` 入口，`splitting` 抽出的 `shared.<hash>.js` 公共 chunk 由模块图自动加载）+ `runtime.<hash>.js`（Terser 压缩后哈希单发，压缩关闭时保留源哈希名）；`--no-bundle` 可回退原生模块。
 6. **页面与索引生成**：`generatePages`（文章/归档/标签/分类/自定义页/分页）→ RSS/JSON Feed → sitemap → 搜索索引（`.json` + pagefind 兼容清单）→ PWA（manifest + 离线页 + SW 初版）→ CJK 字体子集化（扫描 dist 页面与配置 JSON 的实际用字，仅下载命中的 Noto Sans SC woff2 分片并自托管，`.cache/fonts` 清单+分片缓存，失败仅告警并剥离引用）。
 7. **交付层处理**：基线压缩（minify-html / CleanCSS / Terser）→ 压缩增强（`compression.json5`：HTML 激进选项默认关、CSS 同页 `<style>` 合并去重、JSON 去空白、`runtime` Terser 压缩、可选 JS 混淆）→ 无头对比门禁（压缩产物 vs 基线快照；失败回退基线并告警，回退后逐字节复核）→ cache-bust 映射 → SW 定稿（按最终文件名生成壳预缓存清单与版本化缓存名）→ `_headers`（安全头 + 分级缓存，含 `/sw.js` no-cache）→ CSP nonce 注入（内联脚本与响应头同 nonce）。增强与回退均位于 cacheBust 之前，文件名哈希=最终字节。
-8. **报告与门禁**：性能预算 5 项、构建报告 `build-report.html` 与构建摘要 `report.txt`（阶段耗时、压缩前后体积对照、CSS 合并/去重跳过明细、无头验证摘要、告警、预算结论）、失败汇总（任一失败默认退出码非 0）。
+8. **报告与门禁**：性能预算 5 项、唯一构建报告 `build-report.html`（元信息、14 步阶段耗时、产物体积、压缩前后体积对照、CSS 合并/去重跳过明细、缓存命中、无头验证摘要、告警与失败清单、页面清单、预算结论）、失败汇总（任一失败默认退出码非 0）。
 9. **OG 图**（生产构建）：`generate-og.js` 独立进程，`.cache/og` 命中复用。
 10. **Pagefind 索引**（可选，`navigation.search.provider='pagefind'` 且 `features.pagefind.enabled`）：压缩与 cacheBust 之后生成到 `features.pagefind.indexPath`（默认 `/pagefind`，不参与 cache-bust）；serve/watch 同样生成。
 
@@ -95,7 +95,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 |---|---|
 | `npm test` | node:test 单测（构建纯函数、Worker 配置、CSP、机器人、原子写、配置分层、打包、dist 哈希、压缩配置/流水线/验证、CSS 合并、增量构建等） |
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（≥80%，CI 阻断） |
-| `npm run test:build` | 集成 smoke：干净构建断言产物 + 坏文章阻断且不污染 dist（临时输出目录；含 report.txt/CSP nonce 两态断言） |
+| `npm run test:build` | 集成 smoke：干净构建断言产物 + 坏文章阻断且不污染 dist（临时输出目录；含唯一构建报告/CSP nonce 两态断言） |
 | `npm run test:fuzz` | 属性/随机测试：`scripts/**/*.fuzz.test.js`（fast-check；`FC_NUM_RUNS` 默认 100、`STRESS=1` 开海量用例；种子见 `scripts/lib/test-random.js`，失败留档 `build-artifacts/fuzz-failures/`；默认单测不含 fuzz） |
 | `npm run test:smoke` | 浏览器冒烟：真实构建 + 系统 Chrome 代表页（200/标题/DOM/零控制台错误），摘要 `build-artifacts/web-smoke/summary.txt`；无 Chrome 跳过 |
 | `npm run test:cov-web` | 无头 Web 覆盖率：`--no-bundle` + `--no-minify-js` + 压缩关闭构建（产物保留源码行结构），CDP 精确覆盖聚合 `js/**` 行/函数覆盖（阈值 `scripts/lib/web-coverage-thresholds.js`，首测定档 55%/55%），输出 `build-artifacts/web-coverage/{summary.txt,coverage.json}`（含逐函数未覆盖明细）；无 Chrome 跳过 |
@@ -111,7 +111,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `node scripts/dist-hash-guard.js` | 重构/迁移的产物等价护栏（归一化 nonce/换行） |
 | `node scripts/perf-audit.js` | 可复现性能基线（Slow 4G + 4× CPU） |
 
-CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-dupes + verify:internals + test:build + build）与 `build`（Node 版本由 `.nvmrc` 经 `node-version-file` 单源控制；`node scripts/ci-env.js` 导出 internals → 单步 `node scripts/ci-checks.js` 跑完整套并统一失败：lint / typecheck / test / test:coverage / test:build / test:fuzz / test:malicious / verify:config 家族（config/refs/dupes/comments/docs 与 verify:internals）/ verify:process-guards / verify:security / test:smoke / test:cov-web / verify:compression / build / sbom；`audit` 与 `audit:a11y` 为建议项（入报告不阻断）；报告写 `build-artifacts/ci-report.{json,txt}` → 始终上传 `ci-report` 与 `test-artifacts` → Pages 部署（`npm run deploy:pages`，部署前 verify:internals））。夜间随机深度档（`.github/workflows/nightly.yml`，UTC 18:00 + `workflow_dispatch`）用同一聚合器（`FC_NUM_RUNS=2000`、`STRESS=1`），上传 `nightly-test-artifacts`。生产 Worker 为手动 `wrangler deploy`（见 README）。预检作业（`preflight`，`scripts/ci-skip.js`）在 HEAD 未变化的重复运行上按连击阈值（连错 2/连净 5，告警中性）自动跳过，`workflow_dispatch`/`CI_FORCE`/`[ci force]` 强跑；聚合检查带每项超时并清理进程树，结论以提交状态 `ci/aggregate` 供下一次判定读取。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
+CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-dupes + verify:internals + test:build + build）与 `build`（Node 版本由 `.nvmrc` 经 `node-version-file` 单源控制；`node scripts/ci-env.js` 导出 internals → 单步 `node scripts/ci-checks.js` 跑完整套并统一失败：lint / typecheck / test / test:coverage / test:build / test:fuzz / test:malicious / verify:config 家族（config/refs/dupes/comments/docs 与 verify:internals）/ verify:process-guards / verify:security / test:smoke / test:cov-web / verify:compression / build / sbom；`audit` 与 `audit:a11y` 为建议项（入报告不阻断）；报告写 `build-artifacts/ci-checks.{json,txt}` → 始终上传 `ci-checks` 与 `test-artifacts` → Pages 部署（`npm run deploy:pages`，部署前 verify:internals））。夜间随机深度档（`.github/workflows/nightly.yml`，UTC 18:00 + `workflow_dispatch`）用同一聚合器（`FC_NUM_RUNS=2000`、`STRESS=1`），上传 `nightly-test-artifacts`。生产 Worker 为手动 `wrangler deploy`（见 README）。预检作业（`preflight`，`scripts/ci-skip.js`）在 HEAD 未变化的重复运行上按连击阈值（连错 2/连净 5，告警中性）自动跳过，`workflow_dispatch`/`CI_FORCE`/`[ci force]` 强跑；聚合检查带每项超时并清理进程树，结论以提交状态 `ci/aggregate` 供下一次判定读取。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
 
 ## 9. 部署与回滚
 

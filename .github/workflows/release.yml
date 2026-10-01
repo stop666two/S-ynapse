@@ -166,6 +166,13 @@ jobs:
         with:
           name: release-archive
           path: release-artifacts
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install runtime dependencies (prune script needs json5)
+        run: npm ci --omit=dev
       - name: Create GitHub Release with archive asset
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

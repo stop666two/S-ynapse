@@ -77,7 +77,7 @@ scripts/build.js（14 阶段编排 + watch/serve + require('lib/process-guard')�
         scripts/lib/*（76 文件；测试直连，无 fs/网络副作用或经依赖注入）
 ```
 
-**构建缓存**（`.cache/`，均不入库）：`.cache/media`（媒体输出持久副本）、`.cache/covers`（自动封面）、`.cache/og`（OG 图与 `last-run.json`）、`.cache/mermaid`（SSR SVG，键 = 版本+主题+源码哈希）、`.cache/fonts`（CJK 清单与 woff2 分片，URL 哈希命名）、`.cache/compression-baseline`（验证期基线快照，默认验证后删除）、`.cache/compression-verify/last.json`（无头验证结果）、`.cache/chrome-verify-profile`（无头持久 profile）；`.build-cache.json` 为媒体指纹总表。自定义输出目录：`--out` / `SYNAPSE_OUT_DIR`（集成测试使用）。
+**构建缓存**（`.cache/`，均不入库）：`.cache/media`（媒体输出持久副本）、`.cache/covers`（自动封面）、`.cache/og`（OG 图与 `last-run.json`）、`.cache/mermaid`（SSR SVG，键 = 版本+主题+源码哈希）、`.cache/fonts`（CJK 清单与 woff2 分片，URL 哈希命名）、`.cache/compression-baseline`（验证期基线快照按运行隔离为 `run-*` 子目录，默认验证后删除）、`.cache/compression-verify/last.json`（无头验证结果）、`.cache/chrome-verify-profile`（无头 profile 基目录，每次运行随机子目录且运行结束即清理）；`.build-cache.json` 为媒体指纹总表。自定义输出目录：`--out` / `SYNAPSE_OUT_DIR`（集成测试使用）。
 
 ## 4. 前端启动架构
 
@@ -116,7 +116,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 
 - `_headers` 分级：`/assets/css/*` 1 年 immutable；`/assets/js/*` 与 `/assets/vendor/*` 1 小时 + SWR；带指纹的 `app|deferred|runtime.*.js` 1 年 immutable；`/media/*`、`/og/*` 7 天 + SWR（均可用 `site.build.cacheControl` 关闭）。
 - 构建侧缓存：媒体 / OG / 自动封面 / mermaid / CJK 字体五类内容指纹命中即跳过重算（构建报告「缓存命中」区块逐项列出 reused 与新生成数量）；配置 JSON 以内容哈希命名参与 cache-bust。
-- 压缩验证缓存：`.cache/compression-baseline/`（验证期基线快照，默认验证后删除）、`.cache/compression-verify/last.json`（结果 JSON）、`.cache/chrome-verify-profile/`（持久浏览器 profile，可安全删除；同一时刻只允许一个构建使用）。
+- 压缩验证缓存：`.cache/compression-baseline/run-*`（验证期基线快照按运行隔离，默认验证后删除；超过 1 小时的陈旧残留自动清理）、`.cache/compression-verify/last.json`（结果 JSON）、`.cache/chrome-verify-profile/run-*`（每次运行随机浏览器 profile，运行结束包含失败情形无条件清理；并发构建互不干扰）。
 
 ## 8. 测试与门禁
 

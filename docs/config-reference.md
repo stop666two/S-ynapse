@@ -1381,12 +1381,13 @@ listCover: {
 
 **无头对比门禁与自动回退（verify）**
 
-- **时机**：增强步骤前把将被增强触及的 dist 文本产物（HTML/CSS/JS/JSON）快照到项目 `.cache/compression-baseline/`；增强完成后、cacheBust 之前启动两个本地静态服务（压缩产物 / 基线叠加层，端口由系统分配且互不相同，子进程注入 `SYNAPSE_SERVE_PARENT_PID`/`SYNAPSE_SERVE_IDLE_MS`/`SYNAPSE_SERVE_MAX_MS` 看门狗），用系统 Chrome（`puppeteer-core`）逐页断言。因验证先于 cacheBust，回退后参与内容哈希的即回退产物（哈希=最终字节不破）。
+- **时机**：增强步骤前把将被增强触及的 dist 文本产物（HTML/CSS/JS/JSON）快照到项目 `.cache/compression-baseline/run-*/`（按运行随机隔离，避免并发构建互相删除快照）；增强完成后、cacheBust 之前启动两个本地静态服务（压缩产物 / 基线叠加层，端口由系统分配且互不相同，启动后经 HTTP 就绪轮询确认可服务页面，失败即抛并附服务 stderr；子进程注入 `SYNAPSE_SERVE_PARENT_PID`/`SYNAPSE_SERVE_IDLE_MS`/`SYNAPSE_SERVE_MAX_MS` 看门狗），用系统 Chrome（`puppeteer-core`）逐页断言。因验证先于 cacheBust，回退后参与内容哈希的即回退产物（哈希=最终字节不破）。
 - **页面集（≥6 页）**：`/zh/`、`/en/`、一篇文章（首页卡片链接发现）、`/zh/search/`、`/zh/archive/`、`/zh/404.html`。
 - **断言**：① 两态静态页（JavaScript 关闭以隔离运行时注入噪声）DOM 归一化结构一致——剔除注释/空白文本节点/属性顺序，白名单仅内联 `<style>` 元素整体剔除（同页合并为预期结构变化）、构建期 nonce 归一化、`app`/`deferred` bundle 与 `runtime` 引导脚本的文件名哈希归一化（混淆/压缩按最终字节改名是预期差异）；② 静态页可见元素前 80 个的 `getComputedStyle` 关键属性串一致；③ 两态（JavaScript 开启）逐页 0 控制台错误（唯一过滤项：浏览器默认 favicon 探测噪声）；④ 压缩态交互冒烟：软导航点击文章无整页刷新、搜索可打开、主题切换可用；⑤ runtime 压缩或 `js.obfuscate.enabled=true` 时压缩态额外断言 `__T`/`__SB` 可用与 deferred 动态加载成功。
 - **跳过语义**：Chrome 探测失败（`CHROME_PATH`/系统路径/PATH 均无）、puppeteer-core 不可用或 Chrome 启动失败 → 跳过验证并 `[WARN]`，构建照常成功；结果 JSON 标注 `status=skipped` 与原因。可用环境变量 `SYNAPSE_COMPRESSION_VERIFY=off` 显式关闭构建内联验证（测试/隔离构建）。
 - **回退语义**：验证失败且 `fallbackOnFailure=true` → 用基线快照覆写 dist 文本产物（并删除快照后新增的增强产物），以 `[WARN]` + 非阻断记录（`compression-verify`，构建退出码保持 0）继续；回退后逐字节复核，不一致则升级为阻断失败。`fallbackOnFailure=false` → 不回退、保留压缩产物并记录阻断失败（构建退出码非零）。Chrome 缺失属环境原因，不进入回退。
-- **产物与缓存**：验证结果 JSON 写入 `.cache/compression-verify/last.json`（含 `phaseDurationsMs` 阶段耗时、端口与释放结论、逐页对比摘要）；基线快照默认验证后删除（`SYNAPSE_COMPRESSION_BASELINE_KEEP=1` 保留供人工比对）；Chrome 使用项目内持久 profile `.cache/chrome-verify-profile`（跳过首次导航初始化，可安全删除；同一时刻只允许一个构建使用）。
+- **导航健壮性**：`page.goto` 统一经重试执行——瞬态失败（超时 / `net::ERR_*` / `Execution context destroyed` / `Target closed`）按线性退避最多重试 2 次，重试前以 `about:blank` 复位页面；仍失败时错误携带 URL、尝试次数与底层原因，报告 `failures[].stage` 标注失败阶段（servers / server-readiness / browser-launch / static-compare / runtime-console / interactions），仅真实差异与无法恢复的环境异常才进入回退。
+- **产物与缓存**：验证结果 JSON 写入 `.cache/compression-verify/last.json`（含 `phaseDurationsMs` 阶段耗时、端口与释放结论、`profileDir`/`profileCleaned`、逐页对比摘要）；基线快照默认验证后删除（`SYNAPSE_COMPRESSION_BASELINE_KEEP=1` 保留供人工比对）；Chrome 每次运行在 `.cache/chrome-verify-profile/` 基目录下新建随机子目录作为 userDataDir（CDP 调试端口由 Puppeteer 随机分配），运行结束（含失败）无条件清理，可安全删除；并发构建各自隔离、无需串行。
 - **独立命令**：`npm run verify:compression`（`scripts/verify-compression.js`）执行一次完整构建并读取验证结果：`passed → 0`、`failed → 1`（即使构建已回退，显式门禁仍报失败供人工介入）、`skipped → 0`；支持 `--out <dir>`、`--chrome <path>`、`--keep-baseline`、`--json`。CI（`.github/workflows/deploy.yml`）在 Chrome 可用时条件执行该命令。
 
 | 字段 | 类型 | 默认 | 说明 |

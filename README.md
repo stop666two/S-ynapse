@@ -76,7 +76,7 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建只生成一份 `build-report.html`（元信息、14 步阶段耗时、产物体积、性能预算、压缩统计、缓存命中、告警与失败清单、页面清单，以及内容策略拦截清单）
-- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（762 项 / 124 组）；`npm run lint` 提供 ESLint 静态检查
+- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（1013 项 / 149 组）；`npm run lint` 提供 ESLint 静态检查
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -509,7 +509,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（996 项 / 144 组；集成套件按生命周期自动跳过） |
+| `npm test` | 运行单元测试（1013 项 / 149 组；集成套件按生命周期自动跳过） |
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前实测 93.9%） |
 | `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、唯一构建报告、CSP nonce 与压缩开关两态；CI 运行，不进 `npm test`） |
 | `npm run test:fuzz` | 属性/随机测试（fast-check；`scripts/**/*.fuzz.test.js`；默认 100 次迭代、`FC_NUM_RUNS` 可调、`STRESS=1` 开海量用例；失败留档 `build-artifacts/fuzz-failures/`，`TEST_SEED` 复现） |
@@ -547,7 +547,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 1003 项 / 144 组（本机 1 项按环境跳过）
+npm test            # 1013 项 / 149 组（本机 1 项按环境跳过）
 npm run test:all    # 本地与 CI 同强度：test + test:build + test:fuzz + test:malicious + test:smoke + test:cov-web + verify:internals 串行
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
@@ -590,7 +590,7 @@ npm run verify:security   # 集成安全回归
 | 发布与运维 | release-mark / release-archive / release-manifest / release-validate / release-version / release-prune / sbom / process-guard / ci-skip / guard-bypass |
 | 特色功能 | theme-lab / save-data / continue-reading / popup-notice-config / lightbox-core / bilingual-core / export-article / series-page / dailyQuote / i18n-residuals / mermaid-render / nav-match |
 
-> `npm test` 共 **996 项 / 144 组**（Node 内置 test runner；集成套件 `build-smoke` 与 `T4 恶意/畸形场景` 在 `npm test` 生命周期下自动跳过，分别由 `npm run test:build` / `npm run test:malicious` 运行）。
+> `npm test` 共 **1013 项 / 149 组**（Node 内置 test runner；集成套件 `build-smoke` 与 `T4 恶意/畸形场景` 在 `npm test` 生命周期下自动跳过，分别由 `npm run test:build` / `npm run test:malicious` 运行）。
 
 ### SBOM（软件物料清单）
 

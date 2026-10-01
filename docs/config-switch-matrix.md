@@ -751,7 +751,7 @@
 | `site.build.copyStatic` | bool | true | scripts/build/media.js:35<br>scripts/build.js:64<br>scripts/build.js:204 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.build.criticalCss.asyncNonCritical` | bool | true | scripts/build/pages.js:185 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.build.criticalCss.enabled` | bool | false | js/core/boot.js:78<br>js/core/boot.js:167<br>js/core/main.js:99 | scripts/build-smoke.test.js:174<br>scripts/auto-cover.test.js:22 | 既有引用 |
-| `site.build.enableCacheBusting` | bool | false | scripts/build/feeds.js:328<br>scripts/build/minify.js:717 | scripts/cache-bust.test.js:15<br>scripts/compression-pipeline.test.js:270 | 既有引用 |
+| `site.build.enableCacheBusting` | bool | false | scripts/build/feeds.js:328<br>scripts/build/minify.js:743 | scripts/cache-bust.test.js:15<br>scripts/compression-pipeline.test.js:270 | 既有引用 |
 | `site.build.forceContentWidth` | bool | true | templates/layout.ejs:170<br>templates/site-css.ejs:36 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.build.generateArchive` | bool | true | scripts/build/feeds.js:201<br>scripts/build/pages.js:804 | scripts/lib/feeds.fuzz.test.js:86<br>scripts/h2-dataflow.test.js:57 | 既有引用 |
 | `site.build.generateCategories` | bool | true | scripts/build/feeds.js:207<br>scripts/build/pages.js:819 | scripts/lib/feeds.fuzz.test.js:86<br>scripts/h2-dataflow.test.js:59 | 既有引用 |
@@ -760,12 +760,12 @@
 | `site.build.generateTags` | bool | true | scripts/build/feeds.js:203<br>scripts/build/pages.js:809 | scripts/lib/feeds.fuzz.test.js:86<br>scripts/h2-dataflow.test.js:58 | 既有引用 |
 | `site.build.hashLength` | number | 10 | scripts/build/pages.js:170 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.build.mediaQuality` | number | 85 | scripts/build/media.js:159 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.build.minifyCSS` | bool | false | scripts/build/minify.js:193<br>scripts/build/minify.js:242<br>scripts/build/minify.js:702 | scripts/compression-pipeline.test.js:270 | 既有引用 |
-| `site.build.minifyHTML` | bool | false | scripts/build/minify.js:166<br>scripts/build/minify.js:171<br>scripts/build/minify.js:701 | scripts/compression-pipeline.test.js:270<br>scripts/config-switch-guards.test.js:23 | 既有引用 |
-| `site.build.minifyJS` | bool | false | scripts/build.js:278<br>scripts/build/minify.js:215<br>scripts/build/minify.js:703 | scripts/compression-pipeline.test.js:270 | 既有引用 |
+| `site.build.minifyCSS` | bool | false | scripts/build/minify.js:214<br>scripts/build/minify.js:263<br>scripts/build/minify.js:728 | scripts/compression-pipeline.test.js:270 | 既有引用 |
+| `site.build.minifyHTML` | bool | false | scripts/build/minify.js:187<br>scripts/build/minify.js:192<br>scripts/build/minify.js:727 | scripts/compression-pipeline.test.js:270<br>scripts/config-switch-guards.test.js:23 | 既有引用 |
+| `site.build.minifyJS` | bool | false | scripts/build.js:278<br>scripts/build/minify.js:236<br>scripts/build/minify.js:729 | scripts/compression-pipeline.test.js:270 | 既有引用 |
 | `site.build.optimizeMedia` | bool | false | scripts/build/media.js:148<br>scripts/build.js:64<br>scripts/build.js:208 | scripts/malicious.test.js:301<br>scripts/malicious.test.js:587 | 既有引用 |
 | `site.build.relatedArticles` | bool | true | scripts/build.js:245<br>scripts/lib/related.js:13<br>scripts/lib/related.js:35 | scripts/build.test.js:695<br>scripts/build.test.js:696 | 既有引用 |
-| `site.build.removeConsole` | bool | false | scripts/build/minify.js:213<br>scripts/build/minify.js:223 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.build.removeConsole` | bool | false | scripts/build/minify.js:234<br>scripts/build/minify.js:244 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.build.reportTopN` | number | 10 | scripts/build/report.js:183<br>scripts/build/report.js:207<br>scripts/lib/feature-wiring.js:1222 | scripts/config-wiring.test.js:1170 | 已测（marker） |
 | `site.build.usePictureTag` | bool | true | scripts/build/markdown.js:25 | scripts/config-wiring.test.js:538<br>scripts/config-wiring.test.js:631 | 既有引用 |
 | `site.comments.enabled` | bool | false | js/core/boot.js:78<br>js/core/boot.js:167<br>js/core/main.js:99 | scripts/auto-cover.test.js:22<br>scripts/auto-cover.test.js:25 | 既有引用 |

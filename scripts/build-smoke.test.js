@@ -471,6 +471,27 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       }
       assert.ok(taxonomyChecked > 0, 'at least one tag/category archive page must be checked');
     }
+    // 无封面文章自动生成封面（features.listCover.autoGenerate）：文章页头图带
+    // data-auto-cover 标记，样式豁免统一裁切比例、按图片自身宽高比完整展示（生成图
+    // 自带标题排版，套用 --card-imageAspect 会裁掉标题与站名）；构建期宽高保留（CLS）。
+    {
+      const allHtml = collectHtml(tmpDir);
+      const autoCoverTags = [];
+      const explicitCoverTags = [];
+      for (const text of Object.values(allHtml)) {
+        for (const tag of text.match(/<img[^>]*post-featured-image[^>]*>/g) || []) {
+          (/\bdata-auto-cover\b/.test(tag) ? autoCoverTags : explicitCoverTags).push(tag);
+        }
+      }
+      for (const tag of autoCoverTags) {
+        assert.ok(/\bwidth="?\d+/.test(tag) && /\bheight="?\d+/.test(tag),
+          'auto cover featured image must keep build-time width/height (CLS): ' + tag.slice(0, 160));
+      }
+      assert.ok(explicitCoverTags.every((tag) => !/\bdata-auto-cover\b/.test(tag)),
+        'explicit featured images must not carry the auto-cover marker');
+      assert.ok(siteCss.includes('.post-featured-image[data-auto-cover]{aspect-ratio:auto}'),
+        'stylesheet must exempt auto covers from the uniform crop ratio');
+    }
     // 系列聚合页（features.series.pageEnabled 默认开）：示例系列 3 篇 -> zh/en 系列页、
     // 列表完整（序位/进度/上下篇）、语言切换直达地址、sitemap 纳入、搜索索引不纳入。
     // 示例系列缺失（派生副本自备内容）时跳过本节断言；构建成功本身已覆盖生成流程。

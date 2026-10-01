@@ -135,7 +135,8 @@ function createPagesModule(ctx) {
   }
 
   // 文章页头图属性：显式 featuredImage 保持原输出（src + manifest 宽高，无 srcset）；
-  // 自动封面输出 src + 配置宽高。
+  // 自动封面输出 src + 配置宽高，并以 data-auto-cover 标记来源——该标记让站点样式豁免
+  // 统一裁切宽高比，改按图片自身宽高比完整展示（生成图自带标题排版，裁切会切掉文字）。
   function postCoverAttrs(article) {
     if (article && article.featuredImage) {
       const dims = imgDimsAttrs(article.featuredImage);
@@ -144,7 +145,7 @@ function createPagesModule(ctx) {
     const auto = getAutoCover(article);
     if (!auto) return '';
     const dims = PRESERVE_AR ? ` width="${auto.width}" height="${auto.height}"` : '';
-    return `src="${escapeAttr(auto.url)}"${dims}`;
+    return `src="${escapeAttr(auto.url)}"${dims} data-auto-cover`;
   }
 
   function buildSiteCss(config, baseData) {

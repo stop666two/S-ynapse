@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 // 配置文档完备性校验（check-config-docs）：对照 docs/config-reference.md 检查
-// 全部 14 个 JSON5 配置文件的键是否均有文档覆盖。
+// 全部 15 个 JSON5 配置（14 个站点配置 + internals.json5 工程内部参数）的键是否均有文档覆盖。
 //
 // 口径（显式声明，避免歧义）：
 //   1) full 文件（site/theme/features/navigation/sidebar/footer/security/tuning/
@@ -34,6 +34,7 @@ const FILE_POLICIES = [
   { file: 'tuning', depth: 2 },
   { file: 'guard', depth: 2 },
   { file: 'compression', depth: 2 },
+  { file: 'internals', depth: 2 },
   { file: 'ui-strings', depth: 1 },
   { file: 'tag-aliases', depth: 1 },
   { file: 'friends', depth: 1 },
@@ -126,7 +127,7 @@ function checkDocs({ root = ROOT, docText } = {}) {
 
 function main() {
   const result = checkDocs();
-  console.log('[check-config-docs] 解析 14 个 JSON5：full 文件 10 个（顶层+模块键）、data 文件 4 个（章节+模块标题）；' +
+  console.log('[check-config-docs] 解析 15 个 JSON5：full 文件 11 个（顶层+模块键；含 internals.json5 工程内部参数）、data 文件 4 个（章节+模块标题）；' +
     '外加 data 数据文件 ' + DATA_FILE_POLICIES.length + ' 个（章节存在性）；共校验 ' + result.checked + ' 个键');
   const failed = result.missing.length > 0 || result.missingSections.length > 0 || result.staleModules.length > 0;
   if (result.missingSections.length) {
@@ -146,7 +147,7 @@ function main() {
     process.exitCode = 1;
     return;
   }
-  console.log('[check-config-docs] PASS：14 个配置文件的键均已在 docs/config-reference.md 覆盖，且无残留模块小节');
+  console.log('[check-config-docs] PASS：15 个配置文件的键均已在 docs/config-reference.md 覆盖，且无残留模块小节');
 }
 
 if (require.main === module) main();

@@ -41,8 +41,8 @@ describe('check-config-docs keyAppears', () => {
 });
 
 describe('check-config-docs 策略表', () => {
-  it('覆盖全部 14 个 JSON5 且数据文件 depth=1', () => {
-    assert.strictEqual(FILE_POLICIES.length, 14);
+  it('覆盖全部 15 个 JSON5（14 站点配置 + internals）且数据文件 depth=1', () => {
+    assert.strictEqual(FILE_POLICIES.length, 15);
     const depth1 = FILE_POLICIES.filter(p => p.depth === 1).map(p => p.file).sort();
     assert.deepStrictEqual(depth1, ['content-policy', 'friends', 'tag-aliases', 'ui-strings']);
   });
@@ -53,7 +53,7 @@ describe('check-config-docs 策略表', () => {
 });
 
 describe('check-config-docs 真实仓库', () => {
-  it('14 个配置文件键均被 config-reference 覆盖（集成）', function (t) {
+  it('15 个配置文件键均被 config-reference 覆盖（集成）', function (t) {
     if (!fs.existsSync(DOCS_REFERENCE)) {
       t.skip('发布包不含 docs/config-reference.md（文档不进包），文档覆盖集成检查在源码仓库执行');
       return;

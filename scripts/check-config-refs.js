@@ -20,13 +20,15 @@ const ROOT = path.resolve(__dirname, '..');
 const CONFIG_FILES = [
   'features.json5', 'site.json5', 'theme.json5', 'navigation.json5', 'sidebar.json5',
   'footer.json5', 'security.json5', 'tuning.json5', 'guard.json5', 'ui-strings.json5',
-  'tag-aliases.json5', 'friends.json5', 'content-policy.json5', 'compression.json5'
+  'tag-aliases.json5', 'friends.json5', 'content-policy.json5', 'compression.json5',
+  'internals.json5'
 ];
 const SCAN_DIRS = ['js', 'templates', 'scripts', 'workers'];
 const EXCLUDE_DIRS = new Set(['node_modules', '.git', 'dist', 'real-site', '.tmp-scripts', '.cache', 'build-artifacts', '.playwright-mcp']);
 const EXCLUDE_FILES = new Set([
   'check-config-refs.js',
-  'features-schema.js', 'site-defaults.js', 'tuning-defaults.js', 'guard-defaults.js', 'config-refs-allowlist.json'
+  'features-schema.js', 'site-defaults.js', 'tuning-defaults.js', 'guard-defaults.js', 'config-refs-allowlist.json',
+  'internals-defaults.js'
 ]);
 // 通用短键名/数据键名：无法可靠按名判定（模板与运行时经整体对象消费）。
 const GENERIC_KEYS = new Set([

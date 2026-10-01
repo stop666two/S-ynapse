@@ -23,6 +23,7 @@
 12. [compression.json5 — 构建产物压缩](#12-compressionjson5--构建产物压缩)
 13. [ui-strings.json5 — 界面文案词典](#13-ui-stringsjson5--界面文案词典)
 14. [data/quotes.json5 — 每日一言数据](#14-dataquotesjson5--每日一言数据)
+15. [internals.json5 — 工程内部参数](#15-internalsjson5--工程内部参数)
 
 ---
 
@@ -1430,6 +1431,42 @@ listCover: {
 - **注入池**：构建期按 `features.dailyQuote.count` 截取（0=全部）后写入运行时 `window.__QUOTES__`；运行时按 `document.documentElement.lang` 选择 `*En` 字段，为空回退中文。
 - **版权**：所选文本均为公有领域作品（中国古典、莎士比亚/培根/梭罗/爱默生/王尔德等公版西方作者、1611 年钦定版《圣经》）或本项目原创；中文经典的英译为本项目自译，随项目以 MIT 许可证提供。**严禁**收录来源不明或网络误传的名句。
 - **自定义**：将 `features.dailyQuote.source` 指向自有的 `.json`/`.json5`（相对项目根或绝对路径），即可整体替换本数据；格式兼容 `["引语"]` 与 `[{ text, author }]` 简写。
+
+## 15. internals.json5 — 工程内部参数
+与站点内容无关的**工具链内部参数**（端口、路径、缓存天数、审计上限、部署项目名、CI 版本、工程内生成色）。由 `scripts/lib/internals.js` 深合并 `scripts/lib/internals-defaults.js` 的默认值并逐键校验（类型/范围/枚举），校验失败构建与 CI 立即失败。
+
+| 模块 | 键 | 默认 | 说明 |
+|---|---|---|---|
+| `ports` | `serve` | 3000 | 本地预览服务默认端口；`--port` 可覆盖 |
+| | `a11y` | 3224 | 无障碍审计自起 serve 的起始端口（占用时自动+1） |
+| | `perf` | 3000 | `perf:audit` 未传 `--url` 时的本地目标端口 |
+| `chrome` | `path` | null | Chrome 可执行文件绝对路径；null=自动探测（--chrome/CHROME_PATH > 本项 > 平台默认 > PATH） |
+| `paths` | `outDir` | null | 默认输出目录；null=dist。优先级：`--out` > `SYNAPSE_OUT_DIR` > 本项 |
+| | `cacheDir` | `.cache` | 构建缓存根（media/og/fonts/mermaid/压缩基线等子目录父级） |
+| | `artifactsDir` | `build-artifacts` | CI/测试工件目录（fuzz 留档、覆盖率、冒烟、ci-report、SBOM） |
+| `cache` | `mediaTtlDays` | 0 | media 处理缓存兜底重验证天数；0=仅按内容键判定 |
+| | `ogTtlDays` | 0 | OG 图片缓存兜底重验证天数；0=仅按内容键判定 |
+| | `fontsTtlDays` | 7 | CJK 字体分片清单缓存有效期（天） |
+| | `mermaidTtlDays` | 0 | mermaid SVG 缓存兜底重验证天数；0=仅按键判定 |
+| `audit` | `a11y` | 见下 | 无障碍审计参数（`pages` 页数上限，0=全部；`nodesPerRuleMax` 节点样例上限；`htmlSummaryMax` HTML 摘要字符数） |
+| | `distHash` | 见下 | 产物哈希护栏参数（`previewLimit` diff 清单打印上限） |
+| `release` | `listLimit` | 200 | `gh release list` 返回上限 |
+| | `previewLimit` | 20 | dry-run 计划逐条打印上限 |
+| `report` | `topN` | 10 | 构建报告「输出体积」Top N |
+| | `maxBuildMsWarn` | 0 | 构建耗时告警阈值（毫秒）；0=不告警 |
+| `deploy` | `pagesProject` | `s-ynapse` | Cloudflare Pages 项目名（`deploy:pages` 使用） |
+| | `workerAssetsDir` | `dist` | Worker assets 目录，必须与构建输出目录及 `workers/wrangler.toml` 的 `[assets] directory` 一致 |
+| | `verifyOnDeploy` | true | 部署前是否先跑 `verify:internals` 守卫 |
+| `ci` | `nodeVersion` | `24` | 主 CI 与 `.nvmrc` 使用的 Node 版本（两者必须一致） |
+| | `compatNodeVersion` | `20.19.0` | 兼容性任务最低 Node 版本（与 deploy.yml compat 断言一致） |
+| | `aggregate` | true | `scripts/ci-checks.js` 是否跑完整套后统一失败（false=首个失败即停） |
+| `ui` | `reportColors` | 见下 | 构建报告状态色（`good` / `warn`，`#rrggbb`） |
+| | `faviconFallbackColor` | `#2d3748` | 无可用 favicon 文件时内联 SVG 兜底图标底色 |
+| | `faviconForegroundColor` | `#ffffff` | 兜底 SVG 图形（连线与圆点）前景色 |
+
+- **校验**：`npm run verify:internals`（守卫 `.nvmrc`、`workers/wrangler.toml` 的 assets 目录、CI 版本与关键写死形态）；`verify:config-refs` / `verify:config-comments` / `verify:config-docs` 同样覆盖本文件。
+- **不参与站点计数**：站点可配置项统计口径（README 的「14 个配置文件 / 2854 项」）不包含本文件——它属于工程内部参数，不面向站点作者。
+- **覆盖**：本地临时改动优先用环境变量（`CHROME_PATH` / `SYNAPSE_OUT_DIR`）而非修改本文件。
 
 ## 校验与错误上报行为
 1. **配置错误 → 立即终止**:缺逗号/引号未闭合/非法字符 → `[FATAL]` + 文件名、行列、上下文(带 `^` 定位)、原因、中文修复提示。

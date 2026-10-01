@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-// 配置注释守卫（verify:config-comments）：检查 14 个 JSON5 配置的注释覆盖。
+// 配置注释守卫（verify:config-comments）：检查 15 个 JSON5 配置（14 个站点配置 + internals.json5 工程内部参数）的注释覆盖。
 //
 // 规则见 scripts/lib/config-comment-audit.js 顶部说明，摘要：
 //   - 每个文件须有文件头块注释（首个键之前 ≥2 行连续注释）；
@@ -20,6 +20,7 @@ const CONFIG_FILES = [
   'compression.json5', 'content-policy.json5', 'features.json5', 'footer.json5',
   'friends.json5', 'guard.json5', 'navigation.json5', 'security.json5', 'sidebar.json5',
   'site.json5', 'tag-aliases.json5', 'theme.json5', 'tuning.json5', 'ui-strings.json5',
+  'internals.json5',
 ];
 
 function readText(file) {

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`stableSerialize` 丢 `__proto__` 键（fuzz 反例 `[{"__proto__":null}]`）**：JSON 值重建对象时普通赋值会触发原型 setter（JSON.parse 可产生该自有键），改用 `Object.defineProperty` 建自有属性；键排序、不可序列化值、循环引用与 nonce 归一化语义不变，并补确定性回归用例。重放 `TEST_SEED=3739047957 FC_NUM_RUNS=100 npm run test:fuzz` 通过。
+- **security-verify 构建污染真实 `dist`（test:smoke 成片 404 根因）**：CI 导出的 `SYNAPSE_OUT_DIR=<仓库>/dist` 使夹具站点被构建进真实 dist，随后 test:smoke 复用污染产物；`scripts/security-verify.js` 改用独立输出 `build-artifacts/sec-verify/site`（`--out` 显式隔离，不读取环境输出目录；成功即清理、失败保留现场），`_headers`/nonce/搜索索引/HTML 断言全部指向新目录。
+- **smoke-web 默认输出复用环境产物**：`scripts/smoke-web.js` 未显式传 `--out` 时默认输出改为 `build-artifacts/web-smoke/site`（缺失即构建，显式 `--out` 语义不变），CI 步骤顺序无关，不再复用任何环境 dist。
+- **外部键写入的原型 setter 同类隐患**：序列化/映射写入点（tag 计数、pages 文件名映射、dist 哈希清单、internals/compression/mermaid 客户端/语言映射等配置深合并、CSP 指令裁剪、安全头自定义键、构建缓存条目）统一改为自有属性语义（`Object.defineProperty` 或空原型），`in`/`hasOwnProperty` 校验口径同步修正；`search-index`/`og-format` 经排查无此模式。
+
 ### Added
 
 - **无头覆盖率场景扩充、断言化与行度量校正（test:cov-web：行 69% / 函数 65.2%；派生副本行 65.8% / 函数 60.8%）**：`scripts/coverage-web.js` 交互升级为有序动作 DSL（viewport/preload/storage/goto/click/select/press/eval/check，兼容旧 `clicks`/`type`），每个异步场景经 `waitForFunction` 真实断言（55 项，失败计入未达标），`coverage.json` 新增逐函数未覆盖明细（行号+源码文本）。新增场景：语言切换软导航 + hreflang 同步 + 根 404 存储语言分支、404 推荐位/插图 aria/站内搜索、软导航往返（popstate）、主题预设切换与持久化、省流自动（模拟 `navigator.connection.saveData`）/手动覆盖/清除、搜索浮层真实内容查询与 `<mark>` 高亮、灯箱开关/翻页/缩放、双语并排（paneTitle）、主题实验室（取色/预设/保存/导出/重置）、继续阅读单条移除与一键清空。行度量校正：新增构建开关 `--no-minify-js`（覆盖率隔离构建专用）关闭 no-bundle 下功能模块的 Terser 压缩，使 CDP 偏移精确映射回 `js/**` 源码行；覆盖并集按 V8 前序嵌套区间以 count=0 子区间反标未执行分支/未调用函数体，跨 take 以局部命中 OR 合并——修复旧实现「父区间覆盖全文件、行覆盖≈模块加载」与偏移↔源码错位的口径缺陷。`scripts/lib/web-harness.js` 的 `launchChrome` 支持 `--explicitly-allowed-ports`（修复系统随机端口落入 Chrome 禁用表如 6697 时导航 `ERR_UNSAFE_PORT`），`scripts/smoke-web.js` 同步传参。

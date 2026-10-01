@@ -78,7 +78,7 @@ function winQuote(value) {
 }
 const actualCmd = isWindows ? (process.env.ComSpec || 'cmd.exe') : cmd;
 const actualArgs = isWindows
-  ? ['/d', '/s', '/c', [cmd, ...args].map(winQuote).join(' ')]
+  ? ['/d', '/s', '/c', `"${[cmd, ...args].map(winQuote).join(' ')}"`]
   : args;
 
 const child = spawn(actualCmd, actualArgs, {
@@ -86,6 +86,7 @@ const child = spawn(actualCmd, actualArgs, {
   env,
   detached,
   windowsHide: true,
+  windowsVerbatimArguments: isWindows
 });
 
 let timedOut = false;

@@ -72,6 +72,7 @@ jobs:
         run: |
           npm run verify:config
           npm run verify:config-refs
+          npm run verify:config-single-source
           npm run verify:config-dupes
           npm run verify:internals
           npm run test:build

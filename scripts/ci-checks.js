@@ -69,6 +69,7 @@ const CHECKS = [
   { name: 'test:malicious', args: ['run', 'test:malicious'] },
   { name: 'verify:config', args: ['run', 'verify:config'] },
   { name: 'verify:config-refs', args: ['run', 'verify:config-refs'] },
+  { name: 'verify:config-single-source', args: ['run', 'verify:config-single-source'] },
   { name: 'verify:config-dupes', args: ['run', 'verify:config-dupes'] },
   { name: 'verify:config-comments', args: ['run', 'verify:config-comments'] },
   { name: 'verify:config-docs', args: ['run', 'verify:config-docs'] },

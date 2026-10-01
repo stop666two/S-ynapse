@@ -2,9 +2,14 @@
 // 职责：档位解析（off/soft/strict）、绕过通道（URL/localStorage/localhost/解锁码）、
 //      共享上下文（i18n、toast、可编辑区判断、日志）与子模块懒加载。
 import { normalizeGuardBypass, resolveGuardBypass, stripGuardParams } from './bypass.js';
+import { DEFAULT_GUARD } from './defaults.js';
 
 const F = window.__FEATURES__ || {};
-const G = window.__GUARD__ || {};
+// 外置配置加载失败（__CONFIG_OK__=false）时按 __FEATURES__.guards 档位使用内置默认档，
+// 避免弱网降级路径上防护整体失效；正常态缺 guard.json5（__GUARD__ 为空对象）保持既有语义（不激活）。
+const G = (window.__GUARD__ && Object.keys(window.__GUARD__).length)
+  ? window.__GUARD__
+  : (window.__CONFIG_OK__ === false && F.guards && F.guards.enabled !== false ? DEFAULT_GUARD : {});
 const CORE = G.core || {};
 
 // 读取绕过判定所需环境值（localStorage 访问在隐私模式下可能抛错，读取点单独包裹）。
@@ -27,13 +32,10 @@ function stripUrlParams() {
   try { history.replaceState(history.state, '', r.href); } catch (e) { /* 忽略：URL 清理失败不影响防护判定与解锁 */ }
 }
 
-// 当前页是否为英文语言页。判定按可靠性排序：
-//   data-lang（core/i18n.js 运行时写入）→ <html lang>（构建期输出 en-US）→ URL 前缀。
+// 当前页是否为英文页（guard 文案字典仅中/英变体）：统一走 runtime.js 的 langOf
+// （判定 data-lang → html lang BCP 47 前缀 → URL 前缀 → 默认语言）。
 function isEnglishPage() {
-  const el = document.documentElement;
-  if (el.getAttribute('data-lang') === 'en') return true;
-  if (/^en\b/i.test(el.getAttribute('lang') || '')) return true;
-  return /^\/en(\/|$)/.test(location.pathname);
+  return window.langOf() === 'en';
 }
 
 // 按键取 guard 文案；英文页优先取 __I18N__.en.guard（与 __T 共用同一份外置字典），
@@ -67,7 +69,7 @@ export function init() {
   const resolved = resolveGuardBypass(CORE.bypass, readBypassEnv());
   try { window.__GUARD_BYPASS__ = resolved.reason; } catch (e) { /* 忽略：可观测标记写入失败不影响防护 */ }
   if (resolved.bypassed) { log('bypassed'); stripUrlParams(); markReady(); return; }
-  const preset = (F.guards && F.guards.preset) || 'soft';
+  const preset = (F.guards && F.guards.enabled === false) ? 'off' : ((F.guards && F.guards.preset) || 'soft');
   if (preset === 'off') { log('preset off'); stripUrlParams(); markReady(); return; }
 
   function active(mod) {

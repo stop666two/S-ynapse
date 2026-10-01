@@ -98,7 +98,9 @@ const criticalQueue = [
 // 配置外置后 __GUARD__ 在 boot 等待 __CONFIG_READY__ 后才存在，因此延迟到执行期判定；
 // favorites 同理（favorites.init 内部按 features.favorites.enabled 自行短路）。
 criticalQueue.push(function () {
-  if (!window.__GUARD__) return undefined;
+  // 降级路径（外置配置失败）__GUARD__ 不存在但 features.guards 可用：guard core 以内置默认档接管。
+  var guardsOn = window.__FEATURES__ && window.__FEATURES__.guards && window.__FEATURES__.guards.enabled !== false;
+  if (!guardsOn) return undefined;
   if (DEFERRED_URL) return loadFeature('guard');
   return import('../domains/guard/core.js').then(function (m) { return m.init(); });
 });

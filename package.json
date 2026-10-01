@@ -16,7 +16,7 @@
     "test:malicious": "node --test scripts/malicious.test.js",
     "test:smoke": "node scripts/smoke-web.js",
     "test:cov-web": "node scripts/coverage-web.js",
-    "test:all": "npm test && npm run test:build && npm run test:fuzz && npm run test:malicious && npm run test:smoke && npm run test:cov-web",
+    "test:all": "npm test && npm run test:build && npm run test:fuzz && npm run test:malicious && npm run test:smoke && npm run test:cov-web && npm run verify:internals",
     "test:coverage": "node scripts/run-tests.js --experimental-test-coverage --test-coverage-include=scripts/lib/** --test-coverage-lines=80",
     "lint": "eslint js scripts workers",
     "audit": "node scripts/audit.js",
@@ -27,6 +27,7 @@
     "verify:config-dupes": "node scripts/check-config-duplicates.js",
     "verify:config-comments": "node scripts/check-config-comments.js",
     "verify:config-docs": "node scripts/check-config-docs.js",
+    "verify:internals": "node scripts/check-internals.js",
     "verify:compression": "node scripts/verify-compression.js",
     "audit:a11y": "node scripts/a11y-audit.js",
     "perf:audit": "node scripts/perf-audit.js",
@@ -39,8 +40,8 @@
     "release:prune": "node scripts/release-prune.js",
     "dev": "node scripts/build.js --watch --drafts",
     "serve": "node scripts/build.js --serve",
-    "start": "node scripts/build.js --serve --port 3000",
-    "deploy:pages": "wrangler pages deploy dist --project-name=s-ynapse",
+    "start": "node scripts/build.js --serve",
+    "deploy:pages": "node scripts/deploy-pages.js",
     "deploy:worker": "wrangler deploy --config workers/wrangler.toml --env production"
   },
   "dependencies": {

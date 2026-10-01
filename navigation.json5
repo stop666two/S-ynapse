@@ -66,7 +66,7 @@
     "showLogo": true,
 
     // Logo 文字
-    // 作用: 品牌区文字;留空回退 site.title（v1.0.3+ 正式接线）
+    // 作用: 品牌区文字;留空回退 site.title
     // 类型: string | 可填: 短品牌词 | 推荐: 与站点同名
     "logoText": "S-ynapse",
 

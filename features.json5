@@ -23,111 +23,146 @@
   // 1. 图片灯箱(点击正文/图库图片放大预览)
   // ---------------------------------------------------------------------------
   lightbox: {
-    // 启用图片灯箱。关闭后点击图片无放大效果。
+    // 启用图片灯箱（关闭后点击图片无放大效果）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值（构建校验拒绝） | 推荐: true
     enabled: true,
-    // 放大功能(工具栏放大/缩小按钮 + 双击 + 滚轮 + 双指捏合)。false 时隐藏。
+    // 放大功能（工具栏放大/缩小按钮 + 双击 + 滚轮 + 双指捏合）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     zoomEnabled: true,
-    // 平移拖拽功能(放大后拖动图片查看细节)。false 时禁止拖拽。
+    // 平移拖拽功能（放大后拖动图片查看细节）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     panEnabled: true,
-    // 旋转功能(工具栏旋转 90°按钮)。
+    // 旋转功能（工具栏旋转 90° 按钮）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     rotateEnabled: true,
     // 移动端双指捏合缩放。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     pinchEnabled: true,
-    // 每次点击按钮的缩放步长(0.25 = 25%)。
+    // 每次点击按钮的缩放步长（0.25 = 25%）。
+    // 类型: number | 可填: 0.05–1（建议 0.2–0.5） | 不可填: 0/负数/非数字（回退默认 0.25） | 推荐: 0.25
     zoomStep: 0.25,
-    // 最小缩放倍数(1 = 原始尺寸)。
+    // 最小缩放倍数（1 = 原始尺寸）。
+    // 类型: number | 可填: 0.5–1（<1 可缩小到原始尺寸以下） | 不可填: 大于 zoomMax（区间倒置） | 推荐: 1
     zoomMin: 1,
     // 最大缩放倍数。
+    // 类型: number | 可填: 1–10（建议 3–5） | 不可填: 小于 zoomMin（区间倒置） | 推荐: 4
     zoomMax: 4,
-    // 缩放增强分组（新键；与上方平铺键并存以兼容旧配置）：
+    // 缩放增强分组（与上方平铺键并存以兼容旧配置）：
     //   enabled 未设时回退 zoomEnabled；maxScale 未设时回退 zoomMax，再回退 4。
     zoom: {
       // 缩放总开关（未设回退 zoomEnabled）。
+      // 类型: boolean | 可填: true/false | 不可填: 非布尔值 | 推荐: true
       enabled: true,
       // 最大缩放倍数（未设回退 zoomMax，再回退 4；下限 1）。
+      // 类型: number | 可填: 1–10（建议 3–5） | 不可填: <1 或非数字（回退 4） | 推荐: 4
       maxScale: 4
     },
     // 是否支持双击图片放大/还原。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     dblClickZoom: true,
     // 是否支持鼠标滚轮缩放。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     wheelZoom: true,
     // 是否显示缩放/旋转/重置按钮组。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showZoomButtons: true,
-    // 收集目标的选择器。默认正文图片 + 图库图片;其他容器可追加类名,逗号分隔。
+    // 收集目标的选择器（默认正文图片 + 图库图片;其他容器可追加类名,逗号分隔）。
+    // 类型: string(CSS 选择器) | 可填: 任意合法选择器组合 | 不可填: 空串（灯箱无目标）或非法选择器（运行时静默无匹配） | 推荐: '.post-content img, .gallery-item img'
     selectors: '.post-content img, .gallery-item img',
-    // 控制在图片周围触发灯箱的最小边长(px)。用于过滤小图标。
+    // 触发灯箱的最小图片边长（px;用于过滤小图标）。
+    // 类型: number(px) | 可填: 0–500（0 = 不过滤;建议 40–100） | 不可填: 负数（回退默认 60） | 推荐: 60
     minSize: 60,
     // 是否支持上一张/下一张切换按钮。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     prevNextButtons: true,
-    // 是否支持关闭按钮(右上角 ×)。
+    // 是否支持关闭按钮（右上角 ×）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     closeButton: true,
-    // 是否支持键盘方向键切换(左=上一张,右=下一张)。
+    // 是否支持键盘方向键切换（左=上一张,右=下一张）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     keyboardNavigate: true,
     // 是否支持 ESC 关闭。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     escToClose: true,
     // 是否支持移动端左右滑动切换。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     swipeToNavigate: true,
-    // 是否支持下/上滑动关闭灯箱(移动端下拉关闭,放大状态下不触发)。
+    // 是否支持下/上滑动关闭灯箱（移动端下拉关闭,放大状态下不触发）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     swipeClose: true,
     // 点击遮罩区域是否关闭灯箱。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     closeOnBackdrop: true,
     // 是否显示"第 N / M 张"计数器。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showCounter: true,
-    // 计数器文本模板。{current} 当前索引,{total} 总数。
+    // 计数器文本模板（{current} 当前索引,{total} 总数）。
+    // 类型: string(占位符模板) | 可填: 含 {current}/{total} 的任意文本 | 不可填: 空串（计数不可读） | 推荐: '{current} / {total}'
     counterFormat: '{current} / {total}',
-    // 图片最大宽度(占视口百分比)。
-    // 专键优先；未设/非法回退兼容旧键 features.imageFit.lightbox.maxWidthPct，再回退 92。
+    // 图片最大宽度（占视口百分比）。
+    // 类型: string(number,%) | 可填: 50–100 | 不可填: 裸数字（须带 %;非法回退兼容键 imageFit.lightbox.maxWidthPct,再回退 92） | 推荐: '92'
     maxWidthVw: '92',
-    // 图片最大尺寸上限(px)。
+    // 图片最大尺寸上限（px）。
+    // 类型: string(number,px) | 可填: 320–6000（建议 1200–2560） | 不可填: 0/负值或裸数字 | 推荐: '1600'
     maxSizePx: '1600',
-    // 图片最大高度(占视口百分比)。
+    // 图片最大高度（占视口百分比）。
+    // 类型: string(number,%) | 可填: 50–100 | 不可填: 裸数字（须带 %;非法回退 82） | 推荐: '82'
     maxHeightVh: '82',
-    // 打开动画时长(ms;0=瞬时)。
-    // 专键优先；未设回退通用 transitionDurationMs，再回退 220；尊重系统减少动效。
+    // 打开动画时长（ms;0=瞬时）。
+    // 类型: number(ms) | 可填: 0–1000（0 = 瞬时） | 不可填: 负数/非数字（回退通用 transitionDurationMs,再回退 220） | 推荐: 180
     openDurationMs: 180,
-    // 切换动画时长(ms;0=瞬时)。
-    // 专键优先；未设回退通用 transitionDurationMs，再回退 220；尊重系统减少动效。
+    // 切换动画时长（ms;0=瞬时）。
+    // 类型: number(ms) | 可填: 0–1000（0 = 瞬时） | 不可填: 负数/非数字（回退通用 transitionDurationMs,再回退 220） | 推荐: 120
     switchDurationMs: 120,
-    // 遮罩背景透明度(0~1)。
+    // 遮罩背景透明度（0~1）。
+    // 类型: string(number) | 可填: 0–1（建议 .8–.95;0 = 全透明） | 不可填: 负数或 >1（CSS 无效） | 推荐: '0.9'
     backdropOpacity: '0.9',
-    // 是否预加载相邻图片(切换前预缓存)。
+    // 是否预加载相邻图片（切换前预缓存）。
+    // 类型: boolean | 可填: true(默认，切换更流畅)/false(省流量) | 不可填: 非布尔值 | 推荐: true
     preloadAdjacent: true,
-    // 是否记忆上次浏览位置(刷新后仍从上次索引打开)。
+    // 是否记忆上次浏览位置（刷新后仍从上次索引打开）。
+    // 类型: boolean | 可填: true/false(默认) | 不可填: 非布尔值 | 推荐: false（隐私更佳）
     rememberPosition: false,
-    // 位置记忆的存储键前缀(仅 rememberPosition=true 时生效)。
+    // 位置记忆的存储键前缀（仅 rememberPosition=true 时生效）。
     // 实际键 = `<positionStorageKey>:<当前路径名>`；改键 = 旧记忆不再读取(等同清空一次)。
-    // 类型: string(非空) | 推荐: 's-lb-pos'
+    // 类型: string(非空) | 可填: 任意合法 localStorage 键 | 不可填: 空串（回退 's-lb-pos'） | 推荐: 's-lb-pos'
     positionStorageKey: 's-lb-pos',
-    // 是否在图片下方显示说明条(显示当前图片的 alt 文本)。
+    // 是否在图片下方显示说明条（显示当前图片的 alt 文本）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showCaption: true,
-    // 说明条最大显示行数(超出截断省略,1~3 推荐 2)。
+    // 说明条最大显示行数（超出截断省略）。
+    // 类型: number | 可填: 1–3（建议 2） | 不可填: 0/负数/小数（回退 2） | 推荐: 2
     captionMaxLines: 2,
-    // 触屏横向滑动切图的最小位移(px;小于该值视为点击,不切图)。
-    // 类型: number | 推荐: 50
+    // 触屏横向滑动切图的最小位移（px;小于该值视为点击,不切图）。
+    // 类型: number(px) | 可填: 10–200（建议 40–80） | 不可填: 负数（回退 50） | 推荐: 50
     swipeThresholdPx: 50,
-    // 下拉关闭灯箱的最小位移(px;仅未放大时生效,与横向滑动互斥判定)。
-    // 类型: number | 推荐: 80
+    // 下拉关闭灯箱的最小位移（px;仅未放大时生效,与横向滑动互斥判定）。
+    // 类型: number(px) | 可填: 20–300（建议 60–120） | 不可填: 负数（回退 80） | 推荐: 80
     swipeCloseThresholdPx: 80,
-    // 桌面鼠标横向拖拽切图的最小位移(px;仅未放大且未旋转时生效)。
-    // 类型: number | 推荐: 80
+    // 桌面鼠标横向拖拽切图的最小位移（px;仅未放大且未旋转时生效）。
+    // 类型: number(px) | 可填: 20–300（建议 60–120） | 不可填: 负数（回退 80） | 推荐: 80
     mouseSwipeThresholdPx: 80,
-    // 双击放大到的倍数(已放大时双击复位)。
-    // 类型: number | 可填: 1–zoomMax | 推荐: 2
+    // 双击放大到的倍数（已放大时双击复位）。
+    // 类型: number | 可填: 1–zoomMax | 不可填: 大于 zoomMax（超出被钳制） | 推荐: 2
     dblClickZoomLevel: 2,
-    // 遮罩点击判定容差(px;按下与抬起位移超过该值视为拖拽,不关闭)。
-    // 类型: number | 推荐: 6
+    // 遮罩点击判定容差（px;按下与抬起位移超过该值视为拖拽,不关闭）。
+    // 类型: number(px) | 可填: 0–20（0 = 零容差;建议 4–10） | 不可填: 负数（回退 6） | 推荐: 6
     clickTolerancePx: 6,
-    // 灯箱打开/关闭过渡时长(ms,CSS transition-duration)。
+    // 灯箱打开/关闭过渡时长（ms,CSS transition-duration）。
+    // 类型: number(ms) | 可填: 0–1000（0 = 瞬时） | 不可填: 负数（回退 220） | 推荐: 220
     transitionDurationMs: 220,
     // 幻灯片（打开灯箱后自动轮播；工具栏按钮启停；页面隐藏自动暂停；
     // 系统减少动效时不自动播放，按钮仍可手动启停）。
     slideshow: {
       // 幻灯片总开关（关闭时隐藏播放按钮并禁用轮播）。
+      // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true（按需）
       enabled: true,
-      // 轮播间隔(ms；合法范围 1000–60000，非法回退 4000)。
+      // 轮播间隔（ms）。
+      // 类型: number(ms) | 可填: 1000–60000 | 不可填: 越界/非数字（回退 4000） | 推荐: 4000
       intervalMs: 4000
     },
     // 是否显示原图下载按钮（下载当前图片的原始文件；图片无可用路径时按钮隐藏）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     downloadButton: true
   },
 
@@ -216,71 +251,93 @@
   // 4. 客户端全文搜索
   // ---------------------------------------------------------------------------
   search: {
-    // 启用搜索(index/index 数据由导航配置 search.provider=local 控制)。
+    // 启用搜索（索引数据由导航配置 search.provider=local 控制）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
-    // 在搜索框输入时达到多少字符才开始检索。
+    // 输入达到多少字符才开始检索。
+    // 类型: number | 可填: 1–5 的整数 | 不可填: 0/负数/小数（回退默认 1） | 推荐: 1
     minChars: 1,
     // 搜索结果数量上限。
+    // 类型: number | 可填: 5–100 的整数（建议 20–50,过大影响渲染） | 不可填: 0/负数（回退默认 30） | 推荐: 30
     maxResults: 30,
     // 是否高亮命中词。
-    // 说明: 与 features.searchHighlight 联动——两者任一为 false 即不高亮（maxMatches 仍由 searchHighlight 控制）。
+    // 与 features.searchHighlight 联动——两者任一为 false 即不高亮（maxMatches 仍由 searchHighlight 控制）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     highlightMatches: true,
     // 是否显示结果数量提示（false = 结果区与 /search 页均不显示「找到 N 条」；计数文案取 ui-strings.search.foundCount 双语）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showCount: true,
-    // 无输入提示 + 无结果提示。
-    // ①输入为空时显示本键非空值（空 = 不显示，保持历史行为）；
+    // 无输入提示文本。
+    // ①输入为空时显示本键非空值（空 = 不显示）；
     // ②无结果文案优先级链：emptyHint > noResultText > tuning.search.emptyText > i18n 内置兜底。
-    // 空 = 沿用 noResultText（默认空串，保持历史输出「未找到匹配内容」）。
+    // 类型: string | 可填: 任意短文本或 ''(空串 = 沿用 noResultText) | 不可填: HTML 标签（按纯文本转义输出） | 推荐: ''
     emptyHint: '',
-    // 无输入/无结果提示（en 站；空 = 回退中文链）。
+    // 无输入提示文本（en 站；空 = 回退中文链）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: ''
     emptyHintEn: '',
     // 无结果时提示文本（无结果链中 emptyHint(En) 优先于本键）。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '未找到匹配内容'
     noResultText: '未找到匹配内容',
     // 无结果提示（en 站，空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'No matching content'
     noResultTextEn: 'No matching content',
-    // 结果命中截断长度(字符)。
+    // 结果命中截断长度（字符）。
+    // 类型: number | 可填: 40–300（建议 80–160） | 不可填: 0/负数（回退 120） | 推荐: 120
     excerptLength: 120,
-    // 是否包含正文全文(否则仅标题/摘要/标签)。
-    // 说明: 由构建期消费——索引生成时决定 content 是否进入倒排索引(正文原文不写入索引文件)。
+    // 是否包含正文全文（否则仅标题/摘要/标签）。
+    // 由构建期消费——索引生成时决定 content 是否进入倒排索引（正文原文不写入索引文件）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     includeContent: true,
     // 是否匹配标签（false = 标签字段不参与浮层搜索与 /search 页命中判定；标签按子串包含判定,计 0 分）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     matchTags: true,
     // 是否匹配分类（false = 分类字段不参与浮层搜索与 /search 页命中判定；分类按子串包含判定,计 0 分）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     matchCategories: true,
-    // 标题匹配权重(≥0；0 = 标题字段不参与匹配与计分；得分 = 权重 × 该字段命中查询词项数)。
+    // 标题匹配权重（得分 = 权重 × 该字段命中查询词项数）。
+    // 类型: number | 可填: ≥0（0 = 标题不参与匹配计分;相对值,建议 3–10） | 不可填: 负数（回退 5） | 推荐: 5
     weightTitle: 5,
-    // 摘要匹配权重(≥0；0 = 摘要字段不参与匹配与计分；得分 = 权重 × 该字段命中查询词项数)。
+    // 摘要匹配权重（语义同上）。
+    // 类型: number | 可填: ≥0（0 = 摘要不参与匹配计分;建议 1–4,低于标题） | 不可填: 负数（回退 2） | 推荐: 2
     weightExcerpt: 2,
-    // 正文匹配权重(≥0；0 = 正文字段不参与匹配与计分；得分 = 权重 × 该字段命中查询词项数)。
+    // 正文匹配权重（语义同上）。
+    // 类型: number | 可填: ≥0（0 = 正文不参与匹配计分;建议 0.5–2,最低权重） | 不可填: 负数（回退 1） | 推荐: 1
     weightContent: 1,
-    // 倒排索引参数(构建期生成 /assets/search-index.<内容哈希>.json,客户端按需 fetch,不进入首屏加载)。
+    // 倒排索引参数（构建期生成 /assets/search-index.<内容哈希>.json,客户端按需 fetch,不进入首屏加载）。
     index: {
-      // 分词模式:true = CJK 二元组(bigram)+ 英文小写词(AI/构建/查询使用同一分词);
-      // false = CJK 段整段成词(仅英文行为不变,用于体积排障或纯空格分词语言)。
-      // 注意:修改后需重新构建,且客户端查询分词与构建期必须一致(均由本键驱动)。
+      // 分词模式:true = CJK 二元组(bigram)+ 英文小写词（构建/查询使用同一分词）；
+      // false = CJK 段整段成词（仅英文行为不变,用于体积排障或纯空格分词语言）。
+      // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
+      // 注意: 修改后需重新构建,且客户端查询分词与构建期必须一致（均由本键驱动）。
       bigram: true,
-      // 索引 gzip 体积上限(KB)。超出时按词频裁剪低频词并在构建报告与日志告警(不阻断构建)。
-      // 类型: number(KB) | 推荐: 40-80;过小会导致裁剪过多低频词,搜索结果漏召回。
+      // 索引 gzip 体积上限（KB）。超出时按词频裁剪低频词并在构建报告与日志告警（不阻断构建）。
+      // 类型: number(KB) | 可填: 20–200（建议 40–80） | 不可填: 0/负数（回退 60） | 推荐: 60
+      // 注意: 过小会导致裁剪过多低频词,搜索结果漏召回。
       maxGzipKb: 60
     },
-    // 关闭方式:点击遮罩（false = 点击遮罩不关闭）。
+    // 关闭方式：点击遮罩（false = 点击遮罩不关闭）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     closeOnOverlay: true,
     // 打开后是否自动聚焦输入框（false = 需手动点击输入框）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     focusOnOpen: true,
     // 打开动画方式。
-    // 类型: string | 可填: 'fade'(默认,弹层淡入)/'slide'(自下而上滑入)
+    // 类型: string | 可填: 'fade'(默认,弹层淡入)/'slide'(自下而上滑入) | 不可填: 其他值（回退 fade） | 推荐: 'fade'
     openAnimation: 'fade',
-    // 搜索结果条目内最多显示的标签数(超出以省略;作用于 /search 独立搜索页的结果卡片)。
-    // 类型: number | 可填: ≥1 的整数 | 推荐: 6 | 不可填: 0/负数(回退 6)
+    // 搜索结果条目内最多显示的标签数（超出以省略;作用于 /search 独立搜索页的结果卡片）。
+    // 类型: number | 可填: ≥1 的整数 | 不可填: 0/负数（回退 6） | 推荐: 6
     resultTagCount: 6,
-    // 输入防抖间隔(ms)。停止输入该时长后才执行检索,减少频繁重查。
+    // 输入防抖间隔（ms）。停止输入该时长后才执行检索,减少频繁重查。
+    // 类型: number(ms) | 可填: 0–500（0 = 不防抖;建议 80–200） | 不可填: 负数（回退 120） | 推荐: 120
     debounceMs: 120,
     // 聚焦输入框时是否自动显示搜索历史。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showHistoryOnFocus: true,
-    // 搜索历史最多保留条数(超出丢弃最旧)。
+    // 搜索历史最多保留条数（超出丢弃最旧）。
+    // 类型: number | 可填: 1–20 的整数（建议 5–10） | 不可填: 0/负数（回退 5） | 推荐: 5
     maxHistory: 5,
-    // 打开搜索后延迟聚焦输入框的等待(ms)：等待弹层动画开始后再聚焦,避免移动端键盘顶起闪烁。
-    // 类型: number(ms) | 推荐: 50-200
+    // 打开搜索后延迟聚焦输入框的等待（ms）：等待弹层动画开始后再聚焦,避免移动端键盘顶起闪烁。
+    // 类型: number(ms) | 可填: 0–500（建议 50–200） | 不可填: 负数（回退 100） | 推荐: 100
     focusDelayMs: 100
   },
 
@@ -289,27 +346,35 @@
   // ---------------------------------------------------------------------------
   imageLazy: {
     // 启用原生 loading=lazy（加载时机由浏览器管理,无 JS 观察器,不提供自定义预取边距）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
     // 是否淡入显示。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     fadeIn: true,
-    // 淡入时长(ms)。
+    // 淡入时长（ms）。
+    // 类型: number(ms) | 可填: 0–1000（0 = 瞬时;建议 200–400） | 不可填: 负数（回退 300） | 推荐: 300
     fadeInDurationMs: 300,
     // 图片占位背景色。
+    // 类型: string(CSS 颜色) | 可填: 颜色关键字/hex/rgb()/var(--color-*) | 不可填: 空串（占位透明） | 推荐: 'var(--color-hover)'
     placeholderColor: 'var(--color-hover)',
-    // 加载中占位 class(配合 CSS 做淡入/占位)。
+    // 加载中占位 class（配合 CSS 做淡入/占位）。
+    // 类型: string(CSS 类名) | 可填: 任意合法类名 | 不可填: 空串（占位样式失配） | 推荐: 'img-loading'
     loadingClass: 'img-loading',
     // 加载失败 class。
+    // 类型: string(CSS 类名) | 可填: 任意合法类名 | 不可填: 空串（失败样式失配） | 推荐: 'img-error'
     errorClass: 'img-error',
-    // 前 N 张图片立即加载(视口顶部),不做懒加载。
+    // 前 N 张图片立即加载（视口顶部）,不做懒加载。
     // 首页卡片模板与运行时懒加载共用同一计数:合计恰好前 N 张为 eager,其余 lazy。
-    // 类型: number | 可填: ≥0 的整数(0 = 全部懒加载) | 推荐: 1(仅首张,与历史行为一致)
+    // 类型: number | 可填: ≥0 的整数(0 = 全部懒加载) | 不可填: 负数/小数（回退 1） | 推荐: 1(仅首张)
     eagerFirst: 1,
     // 是否保留 width/height 防止布局抖动。
-    // true(默认，历史行为) = 构建期输出 width/height（CLS 保护）；false = 不输出，交由 CSS 自适应。
+    // 类型: boolean | 可填: true(默认) = 构建期输出 width/height（CLS 保护）/false = 不输出,交由 CSS 自适应 | 不可填: 非布尔值 | 推荐: true
     preserveAspectRatio: true,
-    // 构建期生成 LQIP 模糊占位(内联 base64 背景;图片加载时先模糊后清晰,推荐)。
+    // 构建期生成 LQIP 模糊占位（内联 base64 背景;图片加载时先模糊后清晰）。
+    // 类型: boolean | 可填: true(默认,推荐)/false | 不可填: 非布尔值 | 推荐: true
     lqip: true,
-    // LQIP 缩略图宽度(px;8-64,越小体积越小)。
+    // LQIP 缩略图宽度（px;越小体积越小）。
+    // 类型: number(px) | 可填: 8–64 | 不可填: 0/负数（回退 24） | 推荐: 24
     lqipWidth: 24
   },
 
@@ -317,41 +382,57 @@
   // 6. 代码块
   // ---------------------------------------------------------------------------
   codeBlock: {
-    // 启用代码块整体增强(复制按钮/语言标签)。
+    // 启用代码块整体增强（复制按钮/语言标签）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
-    // 复制按钮显示方式:hover/always/never。
+    // 复制按钮显示方式。
+    // 类型: string | 可填: 'hover'(默认,悬停显示)/'always'(常显)/'never'(不显示) | 不可填: 其他值（回退 hover） | 推荐: 'hover'
     copyButtonVisibility: 'hover',
     // 复制成功提示文本。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签（纯文本渲染） | 推荐: '已复制'
     copySuccessText: '已复制',
     // 复制成功提示（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Copied'
     copySuccessTextEn: 'Copied',
     // 复制失败提示文本。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '复制失败'
     copyFailText: '复制失败',
     // 复制失败提示（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Copy failed'
     copyFailTextEn: 'Copy failed',
     // 下载触发后释放 Blob URL 的延迟(ms)。100ms 在慢盘/大文件下可能先于浏览器读取完成即被撤销,导致下载中断。
     // 类型: number(ms) | 推荐: 1000
     blobRevokeDelayMs: 1000,
     // 是否显示语言标签。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showLanguageTag: true,
-    // 是否显示 macOS 三圆点窗口栏(代码块顶部装饰栏)。
+    // 是否显示 macOS 三圆点窗口栏（代码块顶部装饰栏）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     windowBar: true,
-    // 是否显示行号（Prism line-numbers 插件,本地 vendor;默认开启）。
+    // 是否显示行号（Prism line-numbers 插件,本地 vendor）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     lineNumbers: true,
     // 长代码是否自动换行（true=软换行替代横向滚动;换行时行号由 Prism 插件按行高对齐,仍然显示）。
+    // 类型: boolean | 可填: true/false(默认) | 不可填: 非布尔值 | 推荐: false
     wrapLongLines: false,
     // 代码块悬停时的背景提亮底色（与 code-bg 混合,混合力度见 tuning.code.hoverBgMix）。
+    // 类型: string(CSS 颜色) | 可填: 颜色关键字/hex/rgb()/var(--color-*) | 不可填: 空串（回退内置底色） | 推荐: 'var(--color-hover)'
     highlightBackground: 'var(--color-hover)',
     // 代码块圆角。
+    // 类型: string(CSS 长度) | 可填: 任意合法 border-radius（0 = 直角） | 不可填: 空串或负值 | 推荐: '0.375rem'
     borderRadius: '0.375rem',
-    // 代码块最大高度(超出滚动)。
+    // 代码块最大高度（超出滚动;空 = 不限制）。
+    // 类型: string(CSS 长度) | 可填: ''(默认,不限制) 或任意合法高度（如 '600px'） | 不可填: 负值（CSS 无效） | 推荐: ''
     maxHeight: '' /* 例如 '600px' 空=不限制 */,
-    // 代码块容器最大高度(CSS 值,如 '60vh' 或 'none'=不限制)。同时作为
-    // 长代码折叠的触发阈值(数字部分按行数计,如 '60vh' 视为 60 行)。
+    // 代码块容器最大高度（CSS 值,如 '60vh' 或 'none'=不限制）。同时作为
+    // 长代码折叠的触发阈值（数字部分按行数计,如 '60vh' 视为 60 行）。
+    // 类型: string(CSS 长度) | 可填: 'none'(默认,不限制) 或 '20vh'–'80vh' | 不可填: '0'（折叠阈值退化为 0 行,全量折叠） | 推荐: 'none'
     maxHeightVh: 'none',
-    // 代码块窗口栏(标题栏)高度(px)。
+    // 代码块窗口栏（标题栏）高度（px）。
+    // 类型: string(CSS 长度) | 可填: 24–64px（建议 32–44px） | 不可填: 负值或裸数字 | 推荐: '36px'
     headerHeight: '36px',
-    // 代码块正文字号(em 相对单位)。
+    // 代码块正文字号（em 相对单位）。
+    // 类型: string(CSS 长度) | 可填: .75–1.15em（建议 .85–1em,略小于正文） | 不可填: 负值或非法值 | 推荐: '0.92em'
     fontSize: '0.92em',
     // Prism 高亮分批预算(ms)：单次空闲回调最多占用主线程的时间,超出则让出（页面底部内联脚本消费;越小越不易卡顿但高亮更慢）。
     // 类型: number(ms) | 推荐: 4-16
@@ -370,8 +451,10 @@
     // 类型: number(px) | 可填: ≥0 的整数 | 推荐: 8 | 不可填: 负数(回退 8)
     scrollHintTolerancePx: 8,
     // 代码块上方"复制全部代码"按钮（多代码块页面适用;true=首块上方显示按钮,一键复制全页所有代码块）。
+    // 类型: boolean | 可填: true/false(默认) | 不可填: 非布尔值 | 推荐: false（单块页面无意义）
     copyAllButton: false,
     // 下载按钮。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     downloadButton: true
   },
 
@@ -379,41 +462,55 @@
   // 7. 外部链接安全(白名单/弹窗)
   // ---------------------------------------------------------------------------
   externalLink: {
-    // 启用外部链接警告弹窗(与 site.json5 的 externalLinkWarning.enabled 同时为 true 才生效)。
+    // 启用外部链接警告弹窗（与 site.json5 的 externalLinkWarning.enabled 同时为 true 才生效）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
-    // 白名单域名/IP 主机名(命中则直接放行,不弹窗)
+    // 白名单域名/IP 主机名（命中则直接放行,不弹窗）。
     // 类型: string[] | 可填: "github.com"(整域精确) / "*.github.com"(* 通配子域) / "example.com/path"(* 可出现在路径段)
     // 不可填: 带协议(https://)或完整 URL;空数组 = 回退 site.json5→externalLinkWarning.whitelist
     // 推荐: 仅放行完全信任的站点;黑名单优先级高于白名单,命中黑名单先拦截
     whitelist: [],
-    // 黑名单域名(命中即直接拦截提示,不跳转)。
+    // 黑名单域名（命中即直接拦截提示,不跳转）。
+    // 类型: string[] | 可填: 域名写法同 whitelist | 不可填: 带协议或完整 URL | 推荐: []
     blacklist: [],
-    // 拦截模式:warn=弹窗确认/prohibit=直接禁止跳转/hint=仅提示不拦截。
+    // 拦截模式。
+    // 类型: string | 可填: 'warn'(默认,弹窗确认)/'prohibit'(直接禁止跳转)/'hint'(仅提示不拦截) | 不可填: 其他值（回退 warn） | 推荐: 'warn'
     mode: 'warn',
     // 弹窗内显示的提示文本。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '即将离开本站,前往外部链接：'
     message: '即将离开本站,前往外部链接：',
     // 外链弹窗提示文本（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'You are leaving this site. External link:'
     messageEn: 'You are leaving this site. External link:',
     // 确认按钮文本。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '继续访问'
     confirmText: '继续访问',
     // 确认按钮文本（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Continue'
     confirmTextEn: 'Continue',
     // 取消按钮文本。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '返回'
     cancelText: '返回',
     // 取消按钮文本（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Back'
     cancelTextEn: 'Back',
     // 是否显示完整 URL。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true（安全提示更充分）
     showFullUrl: true,
     // 是否默认 target=_blank。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     openInNewTab: true,
     // 白名单链接是否也强制新标签页打开（true = target=_blank + noopener/noreferrer 等效；false = 浏览器默认行为）。
+    // 类型: boolean | 可填: true/false(默认) | 不可填: 非布尔值 | 推荐: false
     whitelistNewTab: false,
     // 外链提醒浮层「复制链接」按钮文本（空 = 回退 ui-strings.toolbar.copyLink 双语/内置文案）。
+    // 类型: string | 可填: 任意短文本或 ''(默认回退词典) | 不可填: HTML 标签 | 推荐: ''（由词典提供双语）
     copyButtonText: '复制',
     // 复制按钮文本（en 站；空 = 回退中文键/内置双语）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Copy'
     copyButtonTextEn: 'Copy',
     // 复制成功后按钮显示「已复制」的停留时长(ms;超时还原原文案)。
-    // 类型: number | 推荐: 1500
+    // 类型: number(ms) | 可填: 500–5000（建议 1000–2000） | 不可填: 负数（回退 1500） | 推荐: 1500
     copyFeedbackMs: 1500
   },
 
@@ -421,13 +518,17 @@
   // 8. 明暗主题切换
   // ---------------------------------------------------------------------------
   themeToggle: {
-    // 启用明暗切换按钮(需 theme.json5 darkMode.enabled)。
+    // 启用明暗切换按钮（需 theme.json5 darkMode.enabled）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
     // 主题选择的 localStorage 键名（theme.darkMode.rememberChoice=false 时改用 sessionStorage 同键名）。
+    // 类型: string | 可填: 任意合法存储键 | 不可填: 空串（回退 'ss-theme'） | 推荐: 'ss-theme'
     persistKey: 'ss-theme',
     // 切换时是否交替显示太阳/月亮图标（仅 theme.darkMode.iconStyle='sun-moon' 生效）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     toggleIconSwap: true,
     // 切换按钮的 CSS z-index。
+    // 类型: number | 可填: 0–99999 的整数 | 不可填: 负数（部分浏览器忽略） | 推荐: 100
     zIndex: 100
     // 说明：默认主题/是否记忆/图标样式/过渡四项的唯一来源为 theme.json5 → darkMode.default/rememberChoice/iconStyle/transitionAll。
   },
@@ -436,40 +537,52 @@
   // 8b. 主题预设切换器
   // ---------------------------------------------------------------------------
   themePresets: {
-    // 启用主题预设切换器(导航栏调色盘按钮,选择后即换色板,localStorage 记忆)。
+    // 启用主题预设切换器（导航栏调色盘按钮,选择后即换色板,localStorage 记忆）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
-    // 是否显示切换按钮(false 则隐藏按钮但保留已存选择)。
+    // 是否显示切换按钮（false 则隐藏按钮但保留已存选择）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     pickerVisible: true,
     // 是否在 localStorage 记住用户选择。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     persistChoice: true,
-    // 已选预设的 localStorage 键名(更改会使旧选择失效并按无已选预设处理)。
-    // 类型: string | 推荐: 'ss-preset' | 不可填: 空串(空值回退默认键)
+    // 已选预设的 localStorage 键名（更改会使旧选择失效并按无已选预设处理）。
+    // 类型: string | 不可填: 空串（回退 'ss-preset'） | 推荐: 'ss-preset'
     storageKey: 'ss-preset',
-    // 是否显示在导航栏(否则仅出现在设置页/其他入口)。
+    // 是否显示在导航栏（否则仅出现在设置页/其他入口）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showInNavbar: true,
     // 色卡悬停是否提示预设名。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     previewOnHover: true
   },
 
   // 8c. 主题定时切换
   // ---------------------------------------------------------------------------
   themeSchedule: {
-    // 启用按时间自动切换明暗(默认关闭,避免无感改用户主题)。
+    // 启用按时间自动切换明暗（默认关闭,避免无感改用户主题）。
+    // 类型: boolean | 可填: true/false(默认) | 不可填: 非布尔值 | 推荐: false（尊重用户选择）
     enabled: false,
-    // 启动暗色模式的时刻(24h,HH:MM),如 22:00。
+    // 启动暗色模式的时刻（24h,HH:MM）。
+    // 类型: string(时间) | 可填: '00:00'–'23:59' | 不可填: 12 小时制或非法时刻（解析失败按 22:00） | 推荐: '22:00'
     darkFrom: '22:00',
-    // 启动亮色模式的时刻(24h,HH:MM),如 06:00。
+    // 启动亮色模式的时刻（24h,HH:MM,应晚于 darkFrom 在一天中的下一段）。
+    // 类型: string(时间) | 可填: '00:00'–'23:59' | 不可填: 12 小时制或非法时刻（解析失败按 06:00） | 推荐: '06:00'
     lightFrom: '06:00',
-    // 用户手动切换过主题后,当天不再自动覆盖(尊重用户选择)。
+    // 用户手动切换过主题后,当天不再自动覆盖（尊重用户选择）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     respectManualOverride: true,
-    // 到达时刻立即应用(否则延迟到下一次检查)。
+    // 到达时刻立即应用（否则延迟到下一次检查）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     applyInstantly: true,
-    // 检查周期(毫秒,默认 60000 = 每分钟)。
+    // 检查周期（毫秒）。
+    // 类型: number(ms) | 可填: 10000–3600000（建议 30000–300000） | 不可填: 0/负数（回退 60000） | 推荐: 60000
     checkIntervalMs: 60000,
-    // 自动切换主题时平滑过渡的启用时长(ms,与 CSS .theme-switching 过渡匹配)。
-    // 类型: number(ms) | 推荐: 350
+    // 自动切换主题时平滑过渡的启用时长（ms,与 CSS .theme-switching 过渡匹配）。
+    // 类型: number(ms) | 可填: 0–1000（0 = 无过渡） | 不可填: 负数（回退 350） | 推荐: 350
     smoothTransitionMs: 350,
-    // 定时切换时给 html 加 theme-switching 类,300ms 过渡动画。
+    // 定时切换时给 html 加 theme-switching 类,执行过渡动画。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     smoothTransition: true
   },
 
@@ -524,29 +637,40 @@
   // ---------------------------------------------------------------------------
   shortcuts: {
     // 启用全局快捷键。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
-    // 打开搜索(键值格式: 单字符或 KeyboardEvent.key 名;空字符串 = 禁用该键)。
+    // 打开搜索（键值格式: 单字符或 KeyboardEvent.key 名）。
+    // 类型: string(键盘键名) | 可填: 单字符或合法 key 名;''(空串) = 禁用该键 | 不可填: 与浏览器内置快捷键冲突的组合（如 'ctrl+p' 打印,focus 时未必可拦） | 推荐: '/'
     openSearch: '/',
     // 切换主题。
+    // 类型: string(键盘键名) | 可填: 单字符或合法 key 名;'' = 禁用 | 不可填: 与输入类按键冲突的值 | 推荐: 'd'
     toggleTheme: 'd',
-    // 上一篇(文章页)。
+    // 上一篇（文章页）。
+    // 类型: string(键盘键名) | 可填: 单字符或合法 key 名;'' = 禁用 | 不可填: 非法 key 名（静默不生效） | 推荐: 'k'
     prevPost: 'k',
-    // 下一篇(文章页)。
+    // 下一篇（文章页）。
+    // 类型: string(键盘键名) | 可填: 单字符或合法 key 名;'' = 禁用 | 不可填: 非法 key 名（静默不生效） | 推荐: 'j'
     nextPost: 'j',
     // 打开/关闭快捷键帮助。
+    // 类型: string(键盘键名) | 可填: 单字符或合法 key 名;'' = 禁用 | 不可填: 非法 key 名 | 推荐: '?'
     help: '?',
-    // 关闭弹窗/抽屉(通用)。
+    // 关闭弹窗/抽屉（通用）。
+    // 类型: string(KeyboardEvent.key 名) | 可填: 合法 key 名（如 'Escape'）;'' = 禁用 | 不可填: 非法 key 名 | 推荐: 'Escape'
     close: 'Escape',
-    // 显示帮助提示按钮（页脚 ? 按钮，可键盘聚焦，点击开关帮助面板）。
+    // 显示帮助提示按钮（页脚 ? 按钮,可键盘聚焦,点击开关帮助面板）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showHelpHint: true,
     // 帮助面板标题。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '快捷键一览'
     helpTitle: '快捷键一览',
     // 帮助面板标题（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Keyboard Shortcuts'
     helpTitleEn: 'Keyboard Shortcuts',
     // 帮助面板是否显示。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showHelpTable: true,
-    // 输入框(INPUT/TEXTAREA/SELECT/contenteditable)内按键是否忽略快捷键。
-    // true(默认)=忽略;false=输入框内也触发。
+    // 输入框（INPUT/TEXTAREA/SELECT/contenteditable）内按键是否忽略快捷键。
+    // 类型: boolean | 可填: true(默认,忽略)/false(输入框内也触发) | 不可填: 非布尔值 | 推荐: true
     ignoreInInputs: true
   },
 
@@ -555,40 +679,56 @@
   // ---------------------------------------------------------------------------
   toc: {
     // 启用目录。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
-    // 目录最小标题层级(2=h2)。
+    // 目录最小标题层级。
+    // 类型: number | 可填: 2–4 的整数（2 = h2;建议 2） | 不可填: <2 或 >maxLevel（目录不可用） | 推荐: 2
     minLevel: 2,
-    // 目录最大标题层级(≤6;小于 minLevel 时目录不可用)。
+    // 目录最大标题层级。
+    // 类型: number | 可填: minLevel–6 的整数 | 不可填: <minLevel 或 >6（目录不可用/越界） | 推荐: 4
     maxLevel: 4,
     // 是否折叠子级。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     collapsible: true,
     // 初始展开层级：0=全折叠；N≥1 表示展开到「minLevel + N - 1」级标题
     // （默认 2 且 minLevel=2 时展开到 h3，h4 初始折叠可点分组箭头展开）。
     // 仅在 collapsible=true 时生效；tuning.toc.collapsedByDefault=true 恒为全折叠（优先级更高）。
+    // 类型: number | 可填: 0–4 的整数 | 不可填: 负数/小数（回退 2） | 推荐: 2
     defaultOpenLevel: 2,
     // 高亮当前阅读章节。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     highlightActive: true,
-    // 高亮滚动偏移(px)。
+    // 高亮滚动偏移（px）。
+    // 类型: number(px) | 可填: 0–300（建议 60–150） | 不可填: 负数（回退 120） | 推荐: 120
     activeOffset: 120,
-    // 目录顶部显示阅读进度线(随滚动量增长)。
+    // 目录顶部显示阅读进度线（随滚动量增长）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     progressLine: true,
-    // 点击目录项时更新 URL 锚点(history.replaceState)。
+    // 点击目录项时更新 URL 锚点（history.replaceState）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     updateUrl: true,
     // 锚点跳转使用平滑滚动。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     smoothScroll: true,
-    // 已读过的目录项淡色标记(visited)。
+    // 已读过的目录项淡色标记（visited）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     visitedFade: true,
-    // 分组折叠:点击二级目录项的箭头收起其下三级项(适合长文)。
+    // 分组折叠：点击二级目录项的箭头收起其下三级项（适合长文）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     groupCollapse: true
     // 宽度见 theme.json5 tocWidth 相关
     ,
-    // 目录侧栏标题文本(zh 语言)。
+    // 目录侧栏标题文本（zh 语言）。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '目录'
     titleText: '目录',
-    // 目录侧栏标题文本(en 语言；空 = en 站内置回退 'Contents')。
+    // 目录侧栏标题文本（en 语言；空 = en 站内置回退 'Contents'）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Contents'
     titleTextEn: 'Contents',
-    // 是否显示标题行(整块隐藏,含折叠按钮)。
+    // 是否显示标题行（整块隐藏,含折叠按钮）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showTitle: true,
-    // 目录侧栏最大宽度(px)。
+    // 目录侧栏最大宽度（px）。
+    // 类型: number(px) | 可填: 200–480（建议 260–360） | 不可填: <移动端断点（会挤压正文） | 推荐: 320
     maxWidthPx: 320
   },
 
@@ -596,23 +736,29 @@
   // 10b. 阅读工具栏(文章页右下浮动)
   // ---------------------------------------------------------------------------
   readDock: {
-    // 启用阅读工具栏(进度环 + 回到目录 + 返回顶部)。
+    // 启用阅读工具栏（进度环 + 回到目录 + 返回顶部）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
-    // 显示进度环(随阅读进度增长的圆环)。
+    // 显示进度环（随阅读进度增长的圆环）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showProgressRing: true,
     // 显示回到目录按钮。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showTocButton: true,
     // 显示返回顶部按钮。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showTopButton: true,
     // 向下滚动时隐藏,向上滚动/到底时显示。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     hideOnScrollDown: true,
-    // 阅读坞始终显示的最大滚动距离(px;低于该值不触发隐藏,避免首屏抖动)。
-    // 类型: number | 推荐: 80
+    // 阅读坞始终显示的最大滚动距离（px;低于该值不触发隐藏,避免首屏抖动）。
+    // 类型: number(px) | 可填: 0–400（0 = 立即允许隐藏;建议 60–120） | 不可填: 负数（回退 80） | 推荐: 80
     hideBelowPx: 80,
-    // 判定滚动方向的最小位置增量(px;小于该值不改显隐,抵抗抖动)。
-    // 类型: number | 推荐: 12
+    // 判定滚动方向的最小位置增量（px;小于该值不改显隐,抵抗抖动）。
+    // 类型: number(px) | 可填: 0–60（建议 8–20） | 不可填: 负数（回退 12） | 推荐: 12
     directionDeltaPx: 12,
-    // 位置:right(右下)。
+    // 阅读坞水平位置。
+    // 类型: string | 可填: 'right'(默认,右下)/'left'(左下) | 不可填: 其他值（回退 right） | 推荐: 'right'
     position: 'right'
   },
   // ---------------------------------------------------------------------------
@@ -707,37 +853,50 @@
 
   // ---------------------------------------------------------------------------
   schemaRich: {
-    // schema.org 结构化数据完善(Article/Breadcrumb/Blog)。
+    // schema.org 结构化数据完善（Article/Breadcrumb/Blog）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
     // 为文章页输出 BreadcrumbList 面包屑。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     breadcrumbs: true,
     // Article schema 增加 dateModified 字段。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     dateModified: true,
     // 首页输出 Blog 类型 schema。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     blogHomepage: true,
     // Article schema 增加作者主页 URL。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     authorUrl: true,
-    // Article schema 增加正文字数(wordCount)。
+    // Article schema 增加正文字数（wordCount）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     wordCount: true,
-    // Article schema 增加预计阅读时长(timeRequired,PT{n}M)。
+    // Article schema 增加预计阅读时长（timeRequired,PT{n}M）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     timeRequired: true,
-    // Article schema 增加关键词(keywords,来自标签)。
+    // Article schema 增加关键词（keywords,来自标签）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     keywords: true,
-    // Article schema 增加所属栏目(articleSection,取首个分类)。
+    // Article schema 增加所属栏目（articleSection,取首个分类）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     articleSection: true,
-    // Article schema 增加封面图(image,指向生成的 OG 图)。
+    // Article schema 增加封面图（image,指向生成的 OG 图）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     image: true
   },
 
   // ---------------------------------------------------------------------------
   ogImage: {
     // 构建时根据封面/文章标题生成 OG 图（社交分享卡片）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
     // 生成宽度(px)。null = 自动：按 autoSize 规则检测文章封面尺寸；填数字 = 显式指定。
     // 类型: number|null | 可填: null 或 1–8192 整数 | 推荐: null(自动) | 示例: 将本行替换为 width: 1200,
     // 注意: 显式宽度与高度必须同时填写才生效；仅填一边会被忽略并回退自动检测。
     width: null,
-    // 生成高度(px)。语义与 width 相同；社交平台推荐 630(宽高比 1.91:1)。示例: height: 630,
+    // 生成高度(px)。语义与 width 相同；社交平台推荐 630(宽高比 1.91:1)。
+    // 类型: number|null | 可填: null 或 1–8192 整数 | 推荐: null(自动) | 示例: 将本行替换为 height: 630,
+    // 注意: 显式宽度与高度必须同时填写才生效；仅填一边会被忽略并回退自动检测。
     height: null,
     // 自动尺寸（width/height 为 null 时生效；显式配置始终优先）。
     // 规则: 全站文章封面仅 1 张 → 用该图尺寸；多张 → 取面积最大者；0 张 → 默认 1200x630。
@@ -770,8 +929,10 @@
       wrap: 20
     },
     // 优先复用文章封面图/首图为基准。
+    // 类型: boolean | 可填: true(默认)/false（false = 始终走渐变合成路径） | 不可填: 非布尔值 | 推荐: true
     useCover: true,
     // 无封面时用站点色渐变+标题文字合成。
+    // 类型: boolean | 可填: true(默认)/false（false = 无封面文章沿用默认底色） | 不可填: 非布尔值 | 推荐: true
     gradientForNoCover: true,
     // 标题文字相对画布缩放(生成 OG 图时)
     // 类型: number(>0) | 可填: 0.5–1.2 | 推荐: 0.75
@@ -855,10 +1016,10 @@
     // 作用于搜索浮层/搜索页结果标题与摘要；样式仍由 site.css 的 mark 规则统一提供。
     markClass: '',
     // 高亮底色(浅色模式;任意合法 CSS 颜色,写入 site.css 的 mark 规则)。
-    // 类型: string | 推荐: 'rgba(255,193,7,.45)'(历史默认琥珀色) | 不可填: 空串(回退默认色)
+    // 类型: string | 推荐: 'rgba(255,193,7,.45)'(默认琥珀色) | 不可填: 空串(回退默认色)
     markColor: 'rgba(255,193,7,.45)',
     // 高亮底色(深色模式;[data-theme=dark] 下生效)。
-    // 类型: string | 推荐: 'rgba(255,193,7,.45)'(与浅色一致=历史行为) | 不可填: 空串(回退 markColor)
+    // 类型: string | 推荐: 'rgba(255,193,7,.45)'(与浅色一致) | 不可填: 空串(回退 markColor)
     markColorDark: 'rgba(255,193,7,.45)',
     // 每篇结果最大高亮次数(防止长文爆量)。
     maxMatches: 20
@@ -1164,7 +1325,7 @@
     // 类型: string(非空) | 推荐: '~'
     subMarker: '~',
     // 数学段内是否跳过上下标解析（仅 math.autoDetect=true 时有效）。
-    // true(默认，历史行为) = 数学段内不处理；false = 段内也解析（可能破坏公式，谨慎）。
+    // true(默认) = 数学段内不处理；false = 段内也解析（可能破坏公式，谨慎）。
     skipInsideMath: true,
     // 包裹不匹配时是否保留原样。
     // true(默认) = 孤立标记保持原文；false = 剥离孤立标记字符。
@@ -1175,32 +1336,41 @@
   // 16. 数学公式(KaTeX,按需 CDN)
   // ---------------------------------------------------------------------------
   math: {
-    // 启用数学公式渲染(KaTeX,按需加载)。
+    // 启用数学公式渲染（KaTeX,按需加载）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
     // 自动检测公式定界符并按需加载 KaTeX。
     // true(默认) = 解析 inlineDelimiters/blockDelimiters 与 \( \) \[ \]；false = 不自动解析，
     // 仅渲染 ```math 围栏块（构建期输出 .math-block[data-tex] 容器，客户端 KaTeX 渲染）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     autoDetect: true,
-    // CDN 版本。
+    // CDN 版本（须与 package.json 的 katex 依赖一致）。
+    // 类型: string(语义化版本) | 可填: 已安装的 katex 版本号 | 不可填: 任意版本（vendored 资源以安装版本为准,改此值不改变加载来源） | 推荐: '0.16.22'
     version: '0.16.22',
     // 行内定界符（数组，≥1 项，正则元字符按字面量匹配；对称闭合、不跨行）。
-    // 类型: string[] | 默认: ['$'] | 示例: ['$'] / ['%'] / ['$$']
+    // 类型: string[] | 可填: 1–3 字符的定界符（默认 ['$']） | 不可填: 空数组（行内公式不可用） | 推荐: ['$']
     inlineDelimiters: ['$'],
     // 块级定界符（数组，≥1 项；对称闭合、可跨行、须位于行首）。
-    // 类型: string[] | 默认: ['$$'] | 示例: ['$$'] / ['%%']
+    // 类型: string[] | 可填: 1–3 字符的定界符（默认 ['$$']） | 不可填: 空数组（块级公式不可用） | 推荐: ['$$']
     blockDelimiters: ['$$'],
     // 渲染错误时不抛出。
+    // 类型: boolean | 可填: true/false(默认,遇错抛出并由调用方兜底) | 不可填: 非布尔值 | 推荐: false
     throwOnError: false,
-    // KaTeX strict 模式(false 静默 / warn / error)。
+    // KaTeX strict 模式。
+    // 类型: boolean|string | 可填: false(默认,静默)/'warn'/'error'(或 true 等同 warn) | 不可填: 其他值（回退 false） | 推荐: false
     strict: false,
-    // 是否渲染 \\( \\) 定界符(mathGuard 保护,默认开)。
+    // 是否渲染 \\( \\) 定界符（mathGuard 保护）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     renderRoundParens: true,
-    // 是否渲染 \[ \] 定界符(mathGuard 保护,默认开)。
+    // 是否渲染 \[ \] 定界符（mathGuard 保护）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     renderSquareBrackets: true,
     // 公式区域选择器。
+    // 类型: string(CSS 选择器) | 可填: 任意合法选择器 | 不可填: 空串或非法选择器（公式不渲染） | 推荐: '.post-content'
     selector: '.post-content',
     // 是否包含浏览器原生 MathML 输出。
-    // true(默认) = KaTeX output='htmlAndMathml'；false = 仅 'html'。
+    // true(默认) = KaTeX output='htmlAndMathml'；false = 仅 'html'（体积更小,牺牲无障碍）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     mathml: true
   },
 
@@ -1209,23 +1379,29 @@
   // ---------------------------------------------------------------------------
   mermaid: {
     // 启用 Mermaid 图表渲染。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
     // 自动检测 ```mermaid 代码块并按需加载 Mermaid。
     // true(默认) = 构建期 SSR（识别显式 ```mermaid 围栏）；false = 构建期不渲染、保留围栏回退客户端渲染
     //（仍仅识别显式 ```mermaid 标注，不扫描普通文本）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     autoDetect: true,
     // Mermaid 版本标识（信息性，镜像 package.json 安装版本；构建期 SSR 与缓存键、
-    // 客户端 vendor 均直接使用安装版本，改此值不改变加载来源）。新增守卫测试锁定二者一致。
-    // 类型: string | 推荐: 与 package.json 的 mermaid 依赖保持一致
+    // 客户端 vendor 均直接使用安装版本，改此值不改变加载来源）。守卫测试锁定二者一致。
+    // 类型: string | 可填: 与 package.json 的 mermaid 依赖一致 | 不可填: 其他版本（守卫校验失败） | 推荐: '11.17.2'
     version: '11.17.2',
     // 图表主题是否跟随站点主题。
     // true(默认) = 明/暗双主题（受 darkMode 控制）；false = 仅明色主题，暗色沿用同一张图。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     followTheme: true,
     // 明色主题名。
+    // 类型: string | 可填: mermaid 内置主题名（'default'/'neutral'/'forest'/'base'） | 不可填: 不存在的主题名（客户端渲染报错） | 推荐: 'default'
     lightTheme: 'default',
     // 暗色主题名。
+    // 类型: string | 可填: mermaid 内置主题名（'dark'/'neutral'/'base'） | 不可填: 不存在的主题名 | 推荐: 'dark'
     darkTheme: 'dark',
-    // 安全级别:strict/loose。
+    // 安全级别。
+    // 类型: string | 可填: 'strict'(默认,禁 HTML 标签/点击回调)/'loose'/'antiscript'/'sandbox' | 不可填: 其他值（回退 strict） | 推荐: 'strict'
     securityLevel: 'strict',
     // 客户端渲染(mode='client' 或 autoDetect=false 回退)传给 mermaid.initialize 的选项。
     // 与内建默认深合并,本对象优先;未知键原样透传(由 mermaid 自行校验);
@@ -1294,25 +1470,34 @@
     // 类型: boolean | 默认: false
     copyAfterRender: false,
     // 渲染失败占位文本。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签（纯文本渲染） | 推荐: '[图表渲染失败]'
     errorText: '[图表渲染失败]',
     // 渲染失败占位文本（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: '[Diagram failed to render]'
     errorTextEn: '[Diagram failed to render]',
-    // 图表尺寸(全局默认;单图可在代码块 info 覆盖,写法 ```mermaid w=900 h=520)
+    // 图表尺寸（全局默认;单图可在代码块 info 覆盖,写法 ```mermaid w=900 h=520）。
     // 子键类型均为 string(CSS 长度)或 'none':
     size: {
-      // 固定宽度;空 = 自适应(推荐)
+      // 固定宽度;空 = 自适应。
+      // 类型: string(CSS 长度) | 可填: ''(默认,自适应) 或任意合法宽度（如 '900px'/'60%'） | 不可填: 负值（CSS 无效） | 推荐: ''
       width: '',
-      // 固定高度;空 = 自适应(推荐)
+      // 固定高度;空 = 自适应。
+      // 类型: string(CSS 长度) | 可填: ''(默认,自适应) 或任意合法高度 | 不可填: 负值 | 推荐: ''
       height: '',
-      // 最小宽度(防止窄图塌陷) | 推荐: '320px'
+      // 最小宽度（防止窄图塌陷）。
+      // 类型: string(CSS 长度) | 可填: 任意合法宽度（建议 200–480px） | 不可填: 空串或负值 | 推荐: '320px'
       minWidth: '320px',
-      // 最大宽度 | 可填: 'none'(不限制,推荐)/CSS 长度
+      // 最大宽度。
+      // 类型: string | 可填: 'none'(默认,不限制) 或任意合法宽度 | 不可填: 小于 minWidth（区间倒置） | 推荐: 'none'
       maxWidth: 'none',
-      // 最小高度 | 推荐: '200px'
+      // 最小高度。
+      // 类型: string(CSS 长度) | 可填: 任意合法高度（建议 120–360px） | 不可填: 空串或负值 | 推荐: '200px'
       minHeight: '200px',
-      // 最大高度 | 可填: 'none'(推荐)/CSS 长度
+      // 最大高度。
+      // 类型: string | 可填: 'none'(默认) 或任意合法高度 | 不可填: 小于 minHeight（区间倒置） | 推荐: 'none'
       maxHeight: 'none',
-      // 溢出策略 | 可填: 'scroll'(超高滚动,推荐)/'scale'(等比缩到容器)
+      // 溢出策略。
+      // 类型: string | 可填: 'scroll'(默认,超高滚动)/'scale'(等比缩到容器) | 不可填: 其他值（回退 scroll） | 推荐: 'scroll'
       fit: 'scroll'
     }
   },
@@ -1419,28 +1604,34 @@
   // ---------------------------------------------------------------------------
   wordCount: {
     // 启用字数统计。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
     // 卡片显示字数（theme.card.showWordCount 亦须为真）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     onCards: true,
     // 文章正文尾部显示字数。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     inArticle: true,
-    // 文本模板:{count} 字数。
-    // 类型: string(非空优先;空回退 ui-strings.card.wordUnit) | 推荐: '{count} 字'
+    // 文本模板（{count} 占位为字数）。
+    // 类型: string(占位符模板) | 可填: 含 {count} 的任意文本;''(空) 回退 ui-strings.card.wordUnit | 不可填: 不含 {count}（数字不显示） | 推荐: '{count} 字'
     textFormat: '{count} 字',
     // 字数模板（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 含 {count} 的英文文本或 '' | 不可填: 不含 {count} | 推荐: '{count} words'
     textFormatEn: '{count} words',
-    // 阅读时长文本:{minutes} 分钟。
-    // 类型: string(非空优先;空回退 ui-strings.card.minute) | 推荐: '{minutes} 分钟阅读'
+    // 阅读时长文本（{minutes} 占位为分钟数）。
+    // 类型: string(占位符模板) | 可填: 含 {minutes} 的任意文本;'' 回退 ui-strings.card.minute | 不可填: 不含 {minutes} | 推荐: '{minutes} 分钟阅读'
     readTimeFormat: '{minutes} 分钟阅读',
     // 阅读时长模板（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 含 {minutes} 的英文文本或 '' | 不可填: 不含 {minutes} | 推荐: '{minutes} min read'
     readTimeFormatEn: '{minutes} min read',
-    // 每分钟阅读字数(中文字数计算基准)。
+    // 每分钟阅读字数（中文字数计算基准）。
+    // 类型: number | 可填: 100–600（建议 200–300） | 不可填: 0/负数（回退 265） | 推荐: 265
     wpm: 265,
-    // 中文英文字数合并统计视读方式。
-    // true(默认) = CJK 字符逐字计数；false = CJK 不计入总数（拉丁词照计）。
+    // 中文 vs 英文的字数合并统计方式。
+    // 类型: boolean | 可填: true(默认,CJK 字符逐字计数)/false(CJK 不计入总数,拉丁词照计) | 不可填: 非布尔值 | 推荐: true
     countCjkChars: true,
     // 是否统计数字。
-    // true(默认，历史行为) = 数字作为普通拉丁词计数（"123" 计 1）；false = 纯数字 token 不计。
+    // 类型: boolean | 可填: true(默认,数字作为拉丁词计数,"123" 计 1)/false(纯数字 token 不计) | 不可填: 非布尔值 | 推荐: true
     countDigits: true
   },
 
@@ -1449,34 +1640,49 @@
   // ---------------------------------------------------------------------------
   share: {
     // 启用分享工具条。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     enabled: true,
-    // 平台顺序:weibo/qq/wechat/x/facebook/mail/copy,缺省全部:
+    // 平台顺序（删除项即彻底移除该平台入口）。
+    // 类型: string[] | 可填: weibo/qq/wechat/x/facebook/mail/copy 的任意子集 | 不可填: 未知平台名（被忽略）;空数组（不渲染按钮） | 推荐: 全量七项
     order: ['weibo', 'qq', 'wechat', 'x', 'facebook', 'mail', 'copy'],
-    // 坐标位置:toolbar(文章尾部)/floating(悬浮)。
+    // 工具条位置。
+    // 类型: string | 可填: 'toolbar'(默认,文章尾部)/'floating'(悬浮) | 不可填: 其他值（回退 toolbar） | 推荐: 'toolbar'
     position: 'toolbar',
-    // 弹窗宽度(px)。
+    // 分享弹窗宽度（px）。
+    // 类型: number(px) | 可填: 400–900（建议 560–720） | 不可填: 0/负数（回退 640） | 推荐: 640
     popupWidth: 640,
-    // 弹窗高度(px)。
+    // 分享弹窗高度（px）。
+    // 类型: number(px) | 可填: 300–900（建议 480–640） | 不可填: 0/负数（回退 520） | 推荐: 520
     popupHeight: 520,
-    // 微信复制文案模板:{title}/{url}。
+    // 微信复制文案模板（{title}/{url} 占位）。
+    // 类型: string(占位符模板) | 可填: 含 {title} 与 {url} 的任意文本 | 不可填: 空串（复制内容为空） | 推荐: '{title} 分享自 {url}'
     wechatText: '{title} 分享自 {url}',
     // 微信复制文案模板（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 含 {title}/{url} 的英文文本或 '' | 不可填: 空串以外的无占位文本 | 推荐: '{title} via {url}'
     wechatTextEn: '{title} via {url}',
     // 复制成功提示文本。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '链接已复制'
     copiedText: '链接已复制',
     // 复制成功提示（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Link copied'
     copiedTextEn: 'Link copied',
-    // 提示显示时长(ms)。
+    // 提示显示时长（ms）。
+    // 类型: number(ms) | 可填: 500–8000（建议 1500–3000） | 不可填: 负数（回退 2500） | 推荐: 2500
     copiedShowMs: 2500,
     // 是否显示分享标题。
+    // 类型: boolean | 可填: true/false(默认,更紧凑) | 不可填: 非布尔值 | 推荐: false
     showLabel: false,
     // 工具条标题。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '分享文章'
     label: '分享文章',
     // 工具条标题（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Share this post'
     labelEn: 'Share this post',
     // 浏览器支持 navigator.share 时优先使用系统原生分享面板。
+    // 类型: boolean | 可填: true/false(默认,始终用站内面板) | 不可填: 非布尔值 | 推荐: false
     useNativeShare: false,
     // 剪贴板 API 不可用时用 textarea 回退复制。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     copyFallback: true
   },
 
@@ -1484,40 +1690,57 @@
   // 23. 打赏
   // ---------------------------------------------------------------------------
   reward: {
-    // 启用打赏(同时需 site.json5 reward.enabled,以本开关为准)。
+    // 启用打赏（同时需 site.json5 reward.enabled,以本开关为准）。
+    // 类型: boolean | 可填: true/false(默认,关闭) | 不可填: 非布尔值 | 推荐: false（按需开启）
     enabled: false,
     // 打赏按钮文本。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '打赏'
     buttonText: '打赏',
     // 打赏按钮文本（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Reward'
     buttonTextEn: 'Reward',
-    // 打赏提示文本(图片下方)。
+    // 打赏提示文本（图片下方）。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '感谢支持'
     note: '感谢支持',
     // 打赏提示文本（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Thank you for your support'
     noteEn: 'Thank you for your support',
     // 弹窗标题。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '打赏支持'
     popupTitle: '打赏支持',
     // 弹窗标题（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Support this site'
     popupTitleEn: 'Support this site',
-    // 弹窗关闭方式:按钮(false = 关闭按钮失效)。
+    // 弹窗关闭方式：关闭按钮。
+    // 类型: boolean | 可填: true(默认)/false(关闭按钮失效) | 不可填: 非布尔值 | 推荐: true
     closeByBtn: true,
-    // 弹窗关闭方式:点击遮罩(false = 点遮罩不关闭)。
+    // 弹窗关闭方式：点击遮罩。
+    // 类型: boolean | 可填: true(默认)/false(点遮罩不关闭) | 不可填: 非布尔值 | 推荐: true
     closeByOverlay: true,
-    // 弹窗关闭方式:Esc 键(false = Esc 不关闭)。
+    // 弹窗关闭方式：Esc 键。
+    // 类型: boolean | 可填: true(默认)/false(Esc 不关闭) | 不可填: 非布尔值 | 推荐: true
     closeByEsc: true,
-    // 二维码尺寸(px)。
+    // 二维码尺寸（px）。
+    // 类型: string(CSS 长度) | 可填: 80–320px（建议 120–220px） | 不可填: 负值或裸数字 | 推荐: '180px'
     qrSize: '180px',
     // 弹窗最大宽度。
+    // 类型: string(CSS 长度) | 可填: 360–900px（建议 480–640px） | 不可填: 负值或裸数字 | 推荐: '560px'
     maxWidth: '560px',
-    // 是否显示打赏说明文字(图片下方 note)。
+    // 是否显示打赏说明文字（图片下方 note）。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     showNote: true,
-    // 二维码图片最大宽度 CSS。
+    // 二维码图片最大宽度（CSS 长度）。
+    // 类型: string(CSS 长度) | 可填: 80–320px（建议与 qrSize 一致） | 不可填: 负值或裸数字 | 推荐: '180px'
     qrMaxWidth: '180px',
     // 弹窗关闭按钮文本。
+    // 类型: string | 可填: 任意短文本 | 不可填: HTML 标签 | 推荐: '关闭'
     closeText: '关闭',
     // 关闭按钮文本（en 站；空 = 回退中文）。
+    // 类型: string | 可填: 任意短文本或 '' | 不可填: HTML 标签 | 推荐: 'Close'
     closeTextEn: 'Close',
-    // 赞助平台链接(显示于打赏弹窗底部;如 GitHub Sponsors / Ko-fi / 爱发电)。
-    // 每项格式: { label: '显示名', url: 'https://...' }; label 可省略(用 url 代替)。
+    // 赞助平台链接（显示于打赏弹窗底部;如 GitHub Sponsors / Ko-fi / 爱发电）。
+    // 每项格式: { label: '显示名', url: 'https://...' };label 可省略（用 url 代替）。
+    // 类型: {label?,url}[] | 可填: 任意 https 链接数组;空数组 = 不显示链接区 | 不可填: javascript: 等危险协议（被过滤） | 推荐: []
     links: []
   },
 
@@ -1731,7 +1954,7 @@
   // ---------------------------------------------------------------------------
   redirects: {
     // 启用 site.json5 redirects 数组的自定义规则（语言根别名/feed 别名不受影响）。
-    // true（默认）=应用全部自定义规则（历史行为）；false=跳过自定义规则、仅保留框架生成的语言与别名规则。
+    // true（默认）=应用全部自定义规则；false=跳过自定义规则、仅保留框架生成的语言与别名规则。
     enabled: true,
     // 生成 CF Pages _redirects 文件。
     generatePagesFile: true,
@@ -1770,7 +1993,7 @@
     // 移动端搜索是否全屏模式：true(默认)=全屏遮罩层(现状)；false=非全屏（透明遮罩 + 头部下方下拉面板）。
     searchFullscreen: true,
     // 移动端目录按钮与返回顶部按钮的堆叠步进（相对 tuning.mobileToc.btnMobileBottom 基准调整）。
-    // 默认 3.4rem = 历史步进（视觉不变）；调大上移目录按钮。
+    // 默认 3.4rem（视觉不变）；调大上移目录按钮。
     buttonStackGap: '3.4rem',
     // 触摸屏 hover-only 控件替代交互：true = 触屏设备点击/聚焦显形（pre 复制、标题锚点、Mermaid 复制、卡片遮罩）。
     touchFallback: true,
@@ -1927,7 +2150,7 @@
     }
   },
 
-  // 40. 界面动效(批C)
+  // 40. 界面动效
   // ---------------------------------------------------------------------------
   // 控制全站微交互动画:卡片悬停上浮、链接下划线滑动、按钮涟漪、滚动渐入。
   // 所有动效尊重 users prefers-reduced-motion(系统减弱动效时自动全部关闭)。
@@ -2412,16 +2635,16 @@
     // 总开关(false = 跳过预算检查)。
     enabled: true,
     // 单页 HTML gzip 大小上限(KB;含内联 CSS/脚本,超出触发提醒/阻断)。
-    // 40KB 说明:功能扩充批次后实测最大 36.6KB;上限由 28KB 调至 40KB(存量调整,随功能扩充重新评估)。
+    // 40KB 说明:实测最大 36.6KB;上限 40KB(随功能扩充重新评估)。
     htmlKb: 40,
     // 页面 HTML raw 体积中位上限(KB;长文压力页等极端页面不受中位代表,仅作回归护栏)。
     htmlRawKb: 50,
     // 页面内联关键配置(降级子集)上限(KB;完整配置已外置为 /assets/config.<hash>.json)。
     inlineConfigKb: 2,
     // 应用 JS(assets/js)全量 gzip 合计上限(KB;第三方 vendor 库按需懒加载,不计入)。
-    // 75KB 口径说明:统计含 app+deferred+shared+runtime 全部 chunk;功能扩充批次后实测
-    // 69.7KB(首屏实际加载 app+runtime 约 19KB,deferred/shared 按需懒加载)。上限由 60KB
-    // 调至 75KB;后续治理方向:跨模块工具去重、懒加载分包边界复核,达标后阈值回调另行评估。
+    // 75KB 口径说明:统计含 app+deferred+shared+runtime 全部 chunk;实测
+    // 69.7KB(首屏实际加载 app+runtime 约 19KB,deferred/shared 按需懒加载)。
+    // 后续治理方向:跨模块工具去重、懒加载分包边界复核,达标后评估回调阈值。
     jsKb: 75,
     // 单页静态请求数上限(script src + stylesheet + modulepreload 之和)。
     requests: 12,
@@ -3105,7 +3328,7 @@
     // 类型: string | 推荐: ''(留空由中文回退)
     suggestTitleEn: '',
     // 404 插图 SVG 的 aria-label(zh;空串回退内置 '404 illustration')。
-    // 类型: string | 推荐: '404 illustration'(历史默认文案)
+    // 类型: string | 推荐: '404 illustration'(默认文案)
     artAriaLabel: '404 illustration',
     // 404 插图 SVG 的 aria-label(en;空串回退 artAriaLabel)。
     // 类型: string | 推荐: ''(留空与中文一致)
@@ -3144,9 +3367,9 @@
       // 类型: boolean | 可填: true(默认)/false | 推荐: true
       lowResImages: true,
       // 低清变体的像素宽度上限(px;仅 lowResImages=true 时生效)。
-      // 0(默认) = 不限制,选择候选集中最小分辨率变体(历史行为);
+      // 0(默认) = 不限制,选择候选集中最小分辨率变体;
       // >0 = 优先选择宽度 ≤ 该值的候选,若全部超限仍回退最小候选(保证可用)。
-      // 类型: number(px) | 可填: 0 或 320–3840 | 推荐: 0(保持与历史一致) | 不可填: 负数(回退 0)
+      // 类型: number(px) | 可填: 0 或 320–3840 | 推荐: 0(保持最小候选语义) | 不可填: 负数(回退 0)
       lowResMaxWidthPx: 0,
       // 更激进懒加载:取消首屏 eager 预载,全部 loading=lazy + fetchpriority=low。
       // 类型: boolean | 可填: true(默认)/false | 推荐: true

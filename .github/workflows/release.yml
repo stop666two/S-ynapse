@@ -7,7 +7,7 @@ name: Release
 #               RELEASE.json = package.json = tag 三方版本一致
 #   buildability 解压归档 → npm ci --ignore-scripts → npm test → npm run build，
 #               断言关键产物（失败即不发布）
-#   publish     建 GitHub Release（始终 --latest，不按预发布标记）→ 清理其余 Release 与远端 v* tag（只保留最新）
+#   publish     建 GitHub Release（始终 --latest，不按预发布标记）→ 清理其余 Release（只保留最新；tag 永不删除）
 # 站点部署由 deploy.yml 独立负责（触发条件限定 branches: [main]），tag 推送不会触发部署。
 on:
   push:
@@ -131,9 +131,9 @@ jobs:
           cd extracted/S-ynapse-*/
           npm run build
           test -f dist/index.html
-          test -f dist/report.txt
+          test -f dist/build-report.html
           test -f dist/zh/search-index.json
-          echo "[buildability] 解压后 npm test 与 npm run build 通过：dist/index.html / dist/report.txt / dist/zh/search-index.json 均存在"
+          echo "[buildability] 解压后 npm test 与 npm run build 通过：dist/index.html / dist/build-report.html / dist/zh/search-index.json 均存在"
 
   publish:
     needs: [buildability]
@@ -157,7 +157,7 @@ jobs:
             --latest \
             --title "S-ynapse $GITHUB_REF_NAME" \
             --notes "经人工核验与全套质量门禁验证的版本；归档已通过解压可构建校验。校验依据见 tag 内 RELEASE.json。"
-      - name: Prune older releases (keep latest only)
+      - name: Prune older releases (keep latest only; tags are never deleted)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/release-prune.js --keep "$GITHUB_REF_NAME"

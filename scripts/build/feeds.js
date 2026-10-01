@@ -9,6 +9,8 @@ const { escapeHtml, stripHtml, stripInvalidXmlChars, truncateCodePoints } = requ
 const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('../lib/robots');
 const { resolveJsonFeedOptions } = require('../lib/feed-options');
 const { localSearchIndexNeeded } = require('../lib/feature-wiring');
+const { DEFAULT_FEATURES } = require('../lib/features-schema');
+const { DEFAULT_CONFIG } = require('../lib/site-defaults');
 const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
 const {
   searchIndexOptions, buildLanguageIndex, measureGzip, serializeIndexText, hashIndexText, pruneIndexToBudget, resolveFinalAssetUrl
@@ -66,7 +68,7 @@ function createFeedsModule(ctx) {
           generator: stripInvalidXmlChars((rssLang === 'en' && config.site.titleEn) ? config.site.titleEn : (config.site.title || 'Blog'))
         });
         if (config.site.author) feed.author = { name: stripInvalidXmlChars(config.site.author), email: stripInvalidXmlChars(config.site.email || '') };
-        const maxItems = config.site.rss.maxItems || 50;
+        const maxItems = config.site.rss.maxItems || DEFAULT_CONFIG.site.rss.maxItems;
         const items = rssPublished.slice(0, maxItems);
         for (const article of items) {
           const link = stripInvalidXmlChars(baseUrl + article.url);
@@ -167,12 +169,12 @@ function createFeedsModule(ctx) {
       const url = config.site.url.replace(/\/+$/, '');
       const feats = (config.features && config.features.sitemap) || {};
       const split = feats.split !== false;
-      const perFile = Math.max(10, feats.maxUrlsPerFile || 500);
-      const postFreq = feats.postFrequency || 'weekly';
+      const perFile = Math.max(10, feats.maxUrlsPerFile || DEFAULT_FEATURES.sitemap.maxUrlsPerFile);
+      const postFreq = feats.postFrequency || DEFAULT_FEATURES.sitemap.postFrequency;
       const postPr = parseFloat(feats.postPriority != null ? feats.postPriority : 0.8);
-      const pageFreq = feats.pageFrequency || 'monthly';
+      const pageFreq = feats.pageFrequency || DEFAULT_FEATURES.sitemap.pageFrequency;
       const pagePr = parseFloat(feats.pagePriority != null ? feats.pagePriority : 0.6);
-      const tagFreq = feats.tagFrequency || 'monthly';
+      const tagFreq = feats.tagFrequency || DEFAULT_FEATURES.sitemap.tagFrequency;
       const tagPr = parseFloat(feats.tagPriority != null ? feats.tagPriority : 0.4);
       const siteLangsSM = resolveSiteLanguages(config.site);
 
@@ -185,7 +187,7 @@ function createFeedsModule(ctx) {
         const urls = [];
         if (config.site.build.generateIndex !== false) {
           urls.push({ loc: pf, changefreq: pageFreq, priority: '1.0' });
-          const postsPerPage = config.site.postsPerPage || 10;
+          const postsPerPage = config.site.postsPerPage || DEFAULT_CONFIG.site.postsPerPage;
           const totalPages = Math.max(1, Math.ceil(langPubs.length / postsPerPage));
           for (let p = 2; p <= totalPages; p++) {
             urls.push({ loc: pf + 'page/' + p + '/', changefreq: pageFreq, priority: String(pagePr) });
@@ -290,7 +292,7 @@ function createFeedsModule(ctx) {
       if (!ep) { console.warn('  [WARN] Unknown ping engine: ' + name); continue; }
       for (const smUrl of sitemapUrls) {
         try {
-          const res = await fetch(ep + encodeURIComponent(smUrl), { method: 'GET', signal: AbortSignal.timeout(ping.timeoutMs || 5000) });
+          const res = await fetch(ep + encodeURIComponent(smUrl), { method: 'GET', signal: AbortSignal.timeout(ping.timeoutMs || DEFAULT_FEATURES.searchEnginePing.timeoutMs) });
           console.log(`  Pinged ${name}: HTTP ${res.status} (${smUrl})`);
           if (!res.ok) console.warn('  [WARN] ' + name + ' ping rejected (HTTP ' + res.status + '); usually fine locally');
         } catch (err) {

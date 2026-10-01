@@ -1,4 +1,5 @@
 'use strict';
+const { DEFAULT_CONFIG } = require('./site-defaults');
 
 // PWA Service Worker 生成器与缓存策略纯函数（构建期）。
 // 职责：
@@ -118,7 +119,7 @@ function renderServiceWorker(options) {
   const base = cacheNameBase(opts.cacheName);
   const precache = Array.isArray(opts.precache) ? opts.precache : [];
   const offlineUrl = typeof opts.offlineUrl === 'string' ? opts.offlineUrl : '';
-  const swPath = pathnameOf(opts.swPath || '/sw.js') || '/sw.js';
+  const swPath = pathnameOf(opts.swPath || DEFAULT_CONFIG.site.pwa.serviceWorker) || DEFAULT_CONFIG.site.pwa.serviceWorker;
   const pageNetworkFirst = opts.pageNetworkFirst !== false;
   const assetCacheFirst = opts.assetCacheFirst !== false;
   const pageCacheLimit = Number.isFinite(Number(opts.pageCacheLimit)) && Number(opts.pageCacheLimit) >= 0

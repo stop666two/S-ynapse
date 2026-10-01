@@ -9,6 +9,8 @@ const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { trimCspDirectives } = require('../lib/csp');
 const { normalizeRedirectRules } = require('../lib/redirect-rules');
 const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
+const { DEFAULT_FEATURES } = require('../lib/features-schema');
+const { DEFAULT_CONFIG } = require('../lib/site-defaults');
 
 function createSecurityFilesModule(ctx) {
   const { distDir, cspNonce, applyHeaderHardening, buildSitemapUrls, bundleActive } = ctx;
@@ -157,13 +159,13 @@ function generateSecurityHeaders(config) {
   // Speculation Rules 响应头下发（delivery=header/both）：写规则文件 + 让 CDN 以
   // application/speculationrules+json 提供；Cloudflare Speed Brain 检测到自有规则后会礼让。
   const spec = (config.features && config.features.speculation) || {};
-  const specDelivery = spec.delivery || 'inline';
+  const specDelivery = spec.delivery || DEFAULT_FEATURES.speculation.delivery;
   if (spec.enabled !== false && (specDelivery === 'header' || specDelivery === 'both')) {
-    const rule = { where: { and: [{ href_matches: '/*' }] }, eagerness: spec.eagerness || 'moderate' };
+    const rule = { where: { and: [{ href_matches: '/*' }] }, eagerness: spec.eagerness || DEFAULT_FEATURES.speculation.eagerness };
     (spec.excludeSelectors || []).forEach(function (sel) { if (sel) rule.where.and.push({ not: { selector_matches: sel } }); });
     rule.where.and.push({ not: { href_matches: '/*\\?*' } });
     const rulesJson = {};
-    const mode = spec.mode || 'both';
+    const mode = spec.mode || DEFAULT_FEATURES.speculation.mode;
     if (mode === 'prefetch' || mode === 'both') rulesJson.prefetch = [rule];
     if (mode === 'prerender' || mode === 'both') rulesJson.prerender = [rule];
       writeFileAtomicSync(path.join(distDir, 'speculation-rules.json'), JSON.stringify(rulesJson), 'utf-8');
@@ -180,7 +182,7 @@ function generateSecurityHeaders(config) {
   // Disable via site.build.cacheControl === false.
   if (config.site.build.cacheControl !== false) {
     // CSS 目录从 site.build.cssOutDir 派生，保证用户改目录后缓存规则仍指向真实产物。
-    const cssOutDir = '/' + String(config.site.build.cssOutDir || 'assets/css').replace(/^\/+/, '');
+    const cssOutDir = '/' + String(config.site.build.cssOutDir || DEFAULT_CONFIG.site.build.cssOutDir).replace(/^\/+/, '');
     // 运行时配置为内容寻址文件名（config.<sha1前10>.json），内容变即换名，可 immutable。
     extraSections.push('/assets/config.*.json\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push(cssOutDir + '/*\n  Cache-Control: public, max-age=31536000, immutable');

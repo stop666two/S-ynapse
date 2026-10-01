@@ -6,6 +6,7 @@
 const path = require('path');
 const { extractMermaidBlocks, replaceMermaidBlocks, createMermaidRenderer } = require('../lib/mermaid-render');
 const { mermaidConfig, mermaidErrorText } = require('../lib/feature-wiring');
+const { DEFAULT_FEATURES } = require('../lib/features-schema');
 const { loadInternals } = require('../lib/internals');
 
 function createMermaidModule(ctx) {
@@ -35,11 +36,11 @@ function createMermaidModule(ctx) {
     for (const target of targets) {
       for (const block of target.blocks) {
         const lightIndex = batch.length;
-        batch.push({ code: block.code, theme: cfg.lightTheme || 'default' });
+        batch.push({ code: block.code, theme: cfg.lightTheme || DEFAULT_FEATURES.mermaid.lightTheme });
         let darkIndex = -1;
         if (darkMode) {
           darkIndex = batch.length;
-          batch.push({ code: block.code, theme: cfg.darkTheme || 'dark' });
+          batch.push({ code: block.code, theme: cfg.darkTheme || DEFAULT_FEATURES.mermaid.darkTheme });
         }
         target.slots.push({ lightIndex, darkIndex });
       }

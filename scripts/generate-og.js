@@ -13,6 +13,7 @@ const { buildOgFingerprint } = require('./lib/og-cache-key');
 const { atomicTempPath, commitAtomicTemp, discardAtomicTemp, writeFileAtomicSync } = require('./lib/atomic-write');
 const { buildCacheKey, getFresh, pruneTo, ttlExpired } = require('./lib/asset-cache');
 const { resolveOutputDir } = require('./lib/output-dir');
+const { DEFAULT_FEATURES } = require('./lib/features-schema');
 const { loadInternals } = require('./lib/internals');
 const { defaultBrokenMediaPath, readBrokenMediaManifest, selectCoverSource, buildArticleOgKey } = require('./lib/og-cover');
 const { createBrokenMediaMatcher } = require('./lib/content-validate');
@@ -282,7 +283,7 @@ function chipLayer(category, style, from) {
 }
 function renderCover(o) {
   const style = o.style || {};
-  const t = o.template || 'aurora';
+  const t = o.template || DEFAULT_FEATURES.ogImageStyle.template;
   const from = o.from, to = o.to;
   const pal = o.palette || {};
   const grad = angleXY(style.gradientAngle);
@@ -413,7 +414,7 @@ async function main() {
   const ogFmt = resolveOgFormat(ogCfg);
   const styleCfg = featuresConfig.ogImageStyle || {};
   if (ogFmt.format === 'jpeg') console.log(`  OG format: jpeg (quality ${ogFmt.quality})`);
-  const paletteMode = styleCfg.palette || 'theme';
+  const paletteMode = styleCfg.palette || DEFAULT_FEATURES.ogImageStyle.palette;
   // 尺寸解析：显式 width+height 优先；否则自动检测文章封面图（单图取该图/多图取最大/无图默认 1200x630），
   // 长边超过 autoSize.maxDimension（默认 2560）时等比缩小。详见 scripts/lib/og-size.js。
   const autoSizeCfg = ogCfg.autoSize || {};
@@ -594,9 +595,9 @@ async function main() {
         if (paletteMode === 'hash' && catRaw) { const h = hashHue(catRaw); palFrom = hsl(h, 52, 34); palTo = hsl(h + 38, 52, 16); }
         const chars = TEMPLATE_CHARS[styleCfg.template] || 12;
         const maxLines = Math.min(4, Math.max(1, +styleCfg.maxLines || 2));
-        const size = Math.round((+styleCfg.fontSizeBase || 64) * ogFontScale);
+        const size = Math.round((+styleCfg.fontSizeBase || DEFAULT_FEATURES.ogImageStyle.fontSizeBase) * ogFontScale);
         const lh = Math.round(size * 1.2);
-        const svg = Buffer.from(renderCover({ template: styleCfg.template || 'aurora', siteTitle, siteUrl, lines: fitLines(wrapTitle(title, chars), maxLines), size, lineHeight: lh, from: palFrom, to: palTo, style: (ogCfg.gradientForNoCover === false ? Object.assign({}, styleCfg, { useGradient: false }) : styleCfg), category: catOf(catRaw), palette }));
+        const svg = Buffer.from(renderCover({ template: styleCfg.template || DEFAULT_FEATURES.ogImageStyle.template, siteTitle, siteUrl, lines: fitLines(wrapTitle(title, chars), maxLines), size, lineHeight: lh, from: palFrom, to: palTo, style: (ogCfg.gradientForNoCover === false ? Object.assign({}, styleCfg, { useGradient: false }) : styleCfg), category: catOf(catRaw), palette }));
         const svgPipe = sharp(svg);
         pendingTmp = atomicTempPath(outPath);
         await (ogFmt.format === 'jpeg'

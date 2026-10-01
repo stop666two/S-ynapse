@@ -12,6 +12,7 @@ const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { getAllFiles } = require('./fs-utils');
 const cjk = require('../lib/cjk-fonts');
 const { loadInternals } = require('../lib/internals');
+const { DEFAULT_CONFIG } = require('../lib/site-defaults');
 
 const DOWNLOAD_CONCURRENCY = 6;
 const MAX_DOWNLOAD_CONCURRENCY = 16;
@@ -23,7 +24,7 @@ function readCjkConfig(config, options) {
   const opts = options || {};
   const raw = (config && config.site && config.site.build && config.site.build.cjkFonts) || {};
   const timeout = Number(raw.fetchTimeoutMs);
-  const display = (config && config.site && config.site.performance && config.site.performance.fontDisplay) || 'swap';
+  const display = (config && config.site && config.site.performance && config.site.performance.fontDisplay) || DEFAULT_CONFIG.site.performance.fontDisplay;
   const weights = Array.isArray(raw.weights) && raw.weights.length ? raw.weights : cjk.DEFAULT_WEIGHTS;
   const concurrency = Number(raw.concurrency);
   const ttl = Number(raw.cacheTtlDays);
@@ -39,7 +40,7 @@ function readCjkConfig(config, options) {
     cacheTtlDays: Number.isFinite(ttl) && ttl >= 0
       ? Math.floor(ttl)
       : (Number.isFinite(fallbackTtl) && fallbackTtl >= 0 ? Math.floor(fallbackTtl) : DEFAULT_CACHE_TTL_DAYS),
-    fontDisplay: FONT_DISPLAY_ALLOWED.indexOf(display) >= 0 ? display : 'swap'
+    fontDisplay: FONT_DISPLAY_ALLOWED.indexOf(display) >= 0 ? display : DEFAULT_CONFIG.site.performance.fontDisplay
   };
 }
 

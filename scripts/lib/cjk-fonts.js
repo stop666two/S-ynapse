@@ -8,6 +8,7 @@
 //   chunk = { family, style, weight, url, unicodeRangeText, unicodeRange:[[start,end],...] }
 //   plan  = { weight, style, url, file, unicodeRangeText, family }（file 为 URL 哈希命名的本地文件名）
 const crypto = require('crypto');
+const { DEFAULT_CONFIG } = require('./site-defaults');
 
 const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -289,7 +290,7 @@ function buildFontCss(plan, options) {
   const opts = options || {};
   const family = opts.fontFamily || 'Noto Sans SC';
   const prefix = String(opts.urlPrefix || '').replace(/\/?$/, '/');
-  const display = opts.fontDisplay || 'swap';
+  const display = opts.fontDisplay || DEFAULT_CONFIG.site.performance.fontDisplay;
   const weightFilter = opts.weight == null ? null : Number(opts.weight);
   const rules = [];
   for (const entry of Array.isArray(plan) ? plan : []) {

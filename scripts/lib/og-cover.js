@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { configFingerprint } = require('./asset-cache');
+const { DEFAULTS: INTERNAL_DEFAULTS } = require('./internals-defaults');
 
 const BROKEN_MEDIA_FILENAME = 'broken-media.json';
 
@@ -16,7 +17,7 @@ const BROKEN_MEDIA_FILENAME = 'broken-media.json';
  * @returns {string} 绝对路径
  */
 function defaultBrokenMediaPath(root, cacheDir) {
-  return path.join(path.resolve(root), String(cacheDir || '.cache'), BROKEN_MEDIA_FILENAME);
+  return path.join(path.resolve(root), String(cacheDir || INTERNAL_DEFAULTS.paths.cacheDir), BROKEN_MEDIA_FILENAME);
 }
 
 /**

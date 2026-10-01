@@ -1,4 +1,5 @@
 'use strict';
+const { DEFAULTS: INTERNAL_DEFAULTS } = require('./internals-defaults');
 
 // CI 连击跳过判定（纯函数，供 scripts/ci-skip.js 使用）：
 //   - error：运行结论为 failure/timed_out/startup_failure；
@@ -114,7 +115,7 @@ function decideForce(input, config) {
   const event = input && input.event;
   const env = (input && input.env) || {};
   const message = (input && input.commitMessage) || '';
-  const forceEnv = (config && config.forceEnv) || 'CI_FORCE';
+  const forceEnv = (config && config.forceEnv) || INTERNAL_DEFAULTS.ci.skip.forceEnv;
   const forceToken = (config && config.forceToken) || '[ci force]';
   if (event === 'workflow_dispatch') return { forced: true, reason: '手动触发（workflow_dispatch）始终执行' };
   const envValue = String(env[forceEnv] || '').toLowerCase();

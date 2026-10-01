@@ -1,4 +1,5 @@
 'use strict';
+const { DEFAULT_CONFIG } = require('../lib/site-defaults');
 // 文章内容管线（自 scripts/build.js 机械拆分；仅移动函数与依赖接线，不含逻辑变更）。
 // 编排器通过 createArticlesModule(ctx) 注入文章/页面/媒体目录、标记渲染器、hooks
 // 与构建失败记录器；front-matter/marked 与 lib/utils 纯函数直连 require。
@@ -287,7 +288,7 @@ function createArticlesModule(ctx) {
             .replace(/\s+/g, ' ')
             .trim();
           const as = (config.features && config.features.autoSummary) || {};
-          const excerptLen = as.maxLength || config.site.build.excerptLength || config.theme.card?.excerptLength || 150;
+          const excerptLen = as.maxLength || config.site.build.excerptLength || config.theme.card?.excerptLength || DEFAULT_CONFIG.site.theme.card.excerptLength;
           // 按码点截断：字符串 slice 可能把 emoji/CJK 扩展区代理对切成孤立代理（写盘变 U+FFFD）。
           const truncated = truncateCodePoints(textOnly, excerptLen);
           excerptText = truncated.length < textOnly.length ? truncated + (as.ellipsis || '...') : textOnly;
@@ -309,7 +310,7 @@ function createArticlesModule(ctx) {
             const detail = countWordsDetail(content);
             readTime = Math.max(1, Math.ceil(detail.cjk / cjkSpeed + detail.latin / latinSpeed));
           } else {
-            const readSpeed = wcCfg.wpm || config.theme.card?.readTimeSpeed || 265;
+            const readSpeed = wcCfg.wpm || config.theme.card?.readTimeSpeed || DEFAULT_CONFIG.site.theme.card.readTimeSpeed;
             readTime = Math.max(1, Math.ceil(wordCount / readSpeed));
           }
         }

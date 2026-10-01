@@ -1,4 +1,5 @@
 const sanitizeHtmlLib = require('sanitize-html');
+const { DEFAULT_CONFIG } = require('./site-defaults');
 const { createHash } = require('node:crypto');
 
 // Format a date string according to a template pattern (YYYY-MM-DD HH:mm).
@@ -21,7 +22,7 @@ function formatDate(dateStr, fmt) {
     'YYYY': d.getFullYear(), 'MM': pad(d.getMonth() + 1), 'DD': pad(d.getDate()),
     'HH': hasTime ? pad(d.getHours()) : '', 'mm': hasTime ? pad(d.getMinutes()) : '', 'ss': hasTime ? pad(d.getSeconds()) : ''
   };
-  let result = fmt || 'YYYY-MM-DD';
+  let result = fmt || DEFAULT_CONFIG.site.dateFormat;
   for (const [k, v] of Object.entries(map)) result = result.replace(k, v);
   if (!hasTime) result = result.replace(/[:]\s*$|:\s*[^\d\s]|[\s]+:/g, '').replace(/\s+/g, ' ').trim();
   return result;

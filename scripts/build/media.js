@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { classifyFile, sanitizeSvg } = require('../lib/content-policy');
+const { DEFAULT_FEATURES } = require('../lib/features-schema');
 const { buildCacheKey, configFingerprint, getFresh, pruneTo, ttlExpired } = require('../lib/asset-cache');
 const { getAllFiles } = require('./fs-utils');
 const { loadInternals } = require('../lib/internals');
@@ -196,7 +197,7 @@ function createMediaModule(ctx) {
         const imageLazyCfg = (config.features && config.features.imageLazy) || {};
         if (imageLazyCfg.lqip !== false) {
           try {
-            const lw = Math.max(8, Math.min(64, parseInt(imageLazyCfg.lqipWidth) || 24));
+            const lw = Math.max(8, Math.min(64, parseInt(imageLazyCfg.lqipWidth) || DEFAULT_FEATURES.imageLazy.lqipWidth));
             const buf = await ctx.sharp(imgPath).resize(lw, null, { withoutEnlargement: true }).blur(12).webp({ quality: 30 }).toBuffer();
             entry.lqip = 'data:image/webp;base64,' + buf.toString('base64');
           } catch (e) { /* LQIP 失败不影响主流程 */ }

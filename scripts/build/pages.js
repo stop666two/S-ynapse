@@ -16,6 +16,8 @@ const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, truncateCodePoints, hasHighlightableCode } = require('../lib/utils');
 const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette, exportArticleConfig, bilingualConfig, stripMathText, friendsSidebarCount, sidebarRecentPoolSize, errorPageConfig } = require('../lib/feature-wiring');
 const { collectSeriesPages } = require('../lib/series-page');
+const { DEFAULT_FEATURES } = require('../lib/features-schema');
+const { DEFAULT_CONFIG } = require('../lib/site-defaults');
 const { writeArticleMarkdown } = require('../lib/md-export');
 const { findAlternateArticle } = require('../lib/bilingual-pair');
 const { stableSerialize, pageCacheKey, hashTemplateDir, replaceNonce } = require('../lib/incremental');
@@ -318,7 +320,7 @@ function createPagesModule(ctx) {
       galleryItems: collectGalleryImages(articles, { collectFeatured: galleryCollectFeatured(config.features) }),
       siteStats: collectSiteStats(articles, tags, categories),
       listCoverEnabled: !!(config.features && config.features.listCover && config.features.listCover.enabled !== false),
-      listCoverFallback: (config.features && config.features.listCover && config.features.listCover.fallback) || 'pattern',
+      listCoverFallback: (config.features && config.features.listCover && config.features.listCover.fallback) || DEFAULT_FEATURES.listCover.fallback,
       // 标签归档列表页封面显隐（features.listCover.showOnArchive；默认 true=现行为）。
       listCoverShowOnArchive: archiveCoverEnabled(config.features),
       // 置顶徽标/排序接线（features.pinned；配置文案优先于 ui-strings 词典）。
@@ -378,7 +380,7 @@ function createPagesModule(ctx) {
       showHelpHint: showHelpHint(config.features),
       // 文章导出（features.exportArticle：打印按钮/打印样式/@media print 门控与按钮文案）。
       exportCfg: exportArticleConfig(config.features),
-      searchProvider: (config.navigation && config.navigation.search && config.navigation.search.provider) || 'local',
+      searchProvider: (config.navigation && config.navigation.search && config.navigation.search.provider) || DEFAULT_CONFIG.navigation.search.provider,
       currentUrl: '/',
       currentPage: 'index',
       presets: buildRuntimePresets(),
@@ -657,7 +659,7 @@ function createPagesModule(ctx) {
     // 首页数据构造（分页 + hero）：语言首页与根页共用同一实现。根页复用默认语言的完整投影
     // （localizeSite/localizeNav/localizeFooter/ui 均已按该语言本地化），不得再读原始站点配置。
     function buildIndexPageData(lang, ld, pubList, topTags, page) {
-      const postsPerPage = config.site.postsPerPage || 10;
+      const postsPerPage = config.site.postsPerPage || DEFAULT_CONFIG.site.postsPerPage;
       const totalPages = Math.max(1, Math.ceil(pubList.length / postsPerPage));
       const start = (page - 1) * postsPerPage;
       const pageArticles = pubList.slice(start, start + postsPerPage);
@@ -749,7 +751,7 @@ function createPagesModule(ctx) {
       topTagsByLang[lang] = langTopTags;
 
       if (config.site.build.generateIndex !== false) {
-        const postsPerPage = config.site.postsPerPage || 10;
+        const postsPerPage = config.site.postsPerPage || DEFAULT_CONFIG.site.postsPerPage;
         const totalPages = Math.max(1, Math.ceil(langPublished.length / postsPerPage));
         for (let page = 1; page <= totalPages; page++) {
           const data = buildIndexPageData(lang, langData, langPublished, langTopTags, page);

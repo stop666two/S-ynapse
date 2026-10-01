@@ -5,6 +5,7 @@
 // imageLazy.preserveAspectRatio；缺省配置 = 历史行为。
 const { marked } = require('marked');
 const { escapeAttr, escapeHtml, safeSlug } = require('../lib/utils');
+const { DEFAULT_CONFIG } = require('../lib/site-defaults');
 const {
   supSubConfig, supSubMatchers, matchSupSub, transformSupSubInMathRaw,
   mathConfig, buildMathGuardPatterns, extractMathTex
@@ -23,7 +24,7 @@ function createMarkdownModule() {
     const preserveAR = !(F.imageLazy && F.imageLazy.preserveAspectRatio === false);
     const usePicture = config.site.build.usePictureTag !== false;
     const showLineNumbers = !!(F.codeBlock && (F.codeBlock.lineNumbers || F.codeBlock.showLineNumbers));
-    const extTarget = config.site.build.externalLinksTarget || '_blank';
+    const extTarget = config.site.build.externalLinksTarget || DEFAULT_CONFIG.site.build.externalLinksTarget;
     const extRel = config.site.build.externalLinksRel || 'noopener noreferrer';
     const siteUrl = (config.site.url || '').replace(/\/+$/, '');
     const mathCfg = mathConfig(F);

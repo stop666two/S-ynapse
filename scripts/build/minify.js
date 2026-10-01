@@ -12,6 +12,7 @@ const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { isExcluded } = require('../lib/compression-config');
 const { gzipSize } = require('../lib/perf-budget');
 const { mergeStyleBlocks, dedupeStyleBlocks, dedupeCss } = require('../lib/css-merge');
+const { DEFAULT_CONFIG } = require('../lib/site-defaults');
 const {
   buildHtmlMinifyOptions,
   buildObfuscateOptions,
@@ -725,7 +726,7 @@ function createMinifyModule(ctx) {
     // SW 文件名与图标文件名均从 site.pwa 派生（serviceWorker / manifest.icons[].src 的 basename）。
     const pwaCfg = config.site.pwa || {};
     const pwaManifest = pwaCfg.manifest || {};
-    const swBaseName = path.basename(String(pwaCfg.serviceWorker || '/sw.js').split('?')[0].split('#')[0]);
+    const swBaseName = path.basename(String(pwaCfg.serviceWorker || DEFAULT_CONFIG.site.pwa.serviceWorker).split('?')[0].split('#')[0]);
     const iconBaseNames = new Set((Array.isArray(pwaManifest.icons) ? pwaManifest.icons : [])
       .map((icon) => (icon && typeof icon.src === 'string' ? path.basename(icon.src.split('?')[0].split('#')[0]) : ''))
       .filter(Boolean));

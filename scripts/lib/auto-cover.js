@@ -12,6 +12,7 @@
 //      旧缓存文件名连同旧图自然失效，无需人工清理。
 
 const crypto = require('crypto');
+const { DEFAULT_FEATURES } = require('./features-schema');
 
 // 样式版本：任何影响成图的视觉规则调整都要 +1（参与缓存键，旧图自动失效）。
 const STYLE_VERSION = 1;
@@ -233,7 +234,7 @@ function autoCoverHash(input) {
     String(src.primary || ''),
     String(src.secondary || ''),
     String(src.titleColor || ''),
-    String(src.backgroundStyle || 'gradient'),
+    String(src.backgroundStyle || DEFAULT_FEATURES.listCover.autoGenerate.backgroundStyle),
     src.showSiteName === false ? '0' : '1',
     src.showCategory === true ? '1' : '0',
     String(Math.round(Number(src.width) || 0)),

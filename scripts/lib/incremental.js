@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { DEFAULT_FEATURES } = require('./features-schema');
 
 // 允许的指纹算法（features.incrementalBuild.fingerprintHash）；非法/缺省回退 sha1。
 const HASH_ALGOS = { sha1: 'sha1', sha256: 'sha256', md5: 'md5' };
@@ -102,7 +103,7 @@ function computeIncrementalContext(features, options) {
     return { active: false, forceFull: argvIncludes('--full'), requested: false, fullFlag: '--full', fingerprintHash: 'sha1' };
   }
   const fullFlagRaw = inc.fullFlag == null ? '' : String(inc.fullFlag).trim();
-  const fullFlag = fullFlagRaw || '--full';
+  const fullFlag = fullFlagRaw || DEFAULT_FEATURES.incrementalBuild.fullFlag;
   const forceFull = argvIncludes(fullFlag) || argvIncludes('--full');
   const requested = opts.watchMode ? inc.watch !== false : argvIncludes('--incremental');
   const active = inc.enabled !== false && inc.skipUnchanged !== false && !forceFull && requested;

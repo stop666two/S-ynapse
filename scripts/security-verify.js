@@ -4,14 +4,17 @@ require('./lib/process-guard.js');
 // Injects a hostile article into an isolated .tmp-test site (never the real
 // articles/), runs a real build, and asserts that no XSS payload reaches the
 // output (post page HTML + search index). The isolated site is removed afterwards.
+// 构建输出固定写入 build-artifacts/sec-verify/site（独立目录）：CI 会导出
+// SYNAPSE_OUT_DIR=<仓库>/dist 供其他步骤使用，若这里沿用环境变量/默认解析，
+// 夹具站点会被构建进真实 dist，污染后续 test:smoke。验证成功即清理，失败保留现场。
 
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { createTestSite } = require('./lib/test-site-builder');
-const { resolveOutputDir } = require('./lib/output-dir');
 
 const PROJECT_DIR = path.resolve(__dirname, '..');
+const ARTIFACTS_DIR = path.join(PROJECT_DIR, 'build-artifacts', 'sec-verify');
 const TEMP_SLUG = '_sec-verify';
 const ESCAPE_NAME = '_sec_escape_out';
 
@@ -76,7 +79,7 @@ fs.writeFileSync(path.join(site.root, 'security.json5'), `{
 }
 `, 'utf-8');
 const ROOT = site.root;
-const DIST = resolveOutputDir([], ROOT).dir;
+const DIST = path.join(ARTIFACTS_DIR, 'site');
 const TEMP_SLUG_FILE = path.join(ROOT, 'articles', 'zh', '_sec-slug.md');
 const DIST_INDEX = path.join(DIST, 'zh', TEMP_SLUG, 'index.html');
 
@@ -104,7 +107,9 @@ function fail(msg) {
 }
 
 function build() {
-  execFileSync(process.execPath, [path.join(PROJECT_DIR, 'scripts', 'build.js')], {
+  // 显式 --out 优先于环境变量（resolveOutputDir 语义：--out > SYNAPSE_OUT_DIR > internals > dist），
+  // 保证 CI 导出的 SYNAPSE_OUT_DIR 不会把构建引向真实 dist。
+  execFileSync(process.execPath, [path.join(PROJECT_DIR, 'scripts', 'build.js'), '--out', DIST], {
     cwd: PROJECT_DIR,
     env: Object.assign({}, process.env, { SYNAPSE_ROOT: ROOT, SYNAPSE_OUT_DIR: DIST }),
     stdio: ['ignore', 'pipe', 'pipe']
@@ -170,6 +175,7 @@ function verifyCspNonceCoverage() {
 }
 
 let failed = false;
+fs.rmSync(ARTIFACTS_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 try {
   build();
 
@@ -280,5 +286,10 @@ try {
   failed = true;
 } finally {
   try { site.cleanup(); } catch { /* 忽略：夹具清理失败不影响验证结论 */ }
+  if (failed) {
+    process.stderr.write('[sec-verify] 失败现场保留：' + path.relative(PROJECT_DIR, ARTIFACTS_DIR).split(path.sep).join('/') + '\n');
+  } else {
+    try { fs.rmSync(ARTIFACTS_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch { /* 忽略：工件清理失败不影响验证结论 */ }
+  }
 }
 process.exit(failed ? 1 : 0);

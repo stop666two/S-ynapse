@@ -284,7 +284,12 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     }
     const ssrPostPage = path.join(tmpDir, 'zh', 'series-1', 'index.html');
     if (fs.existsSync(ssrPostPage)) {
-      assert.strictEqual((fs.readFileSync(ssrPostPage, 'utf-8').match(/nav-active/g) || []).length, 0,
+      // 只检查标记层：内联 <style>（含 criticalCss 的 .nav-link.nav-active 选择器）与脚本
+      // 中的同名字符串不算 SSR 高亮。
+      const ssrMarkup = fs.readFileSync(ssrPostPage, 'utf-8')
+        .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, '')
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '');
+      assert.strictEqual((ssrMarkup.match(/nav-active/g) || []).length, 0,
         'article page must not SSR-highlight any nav item');
     }
     const styleNonce = /'nonce-([^']+)'/.exec(styleSrc);
@@ -296,7 +301,12 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       assert.ok(tag.includes('nonce="' + styleNonce[1] + '"'), 'inline <style> must carry the build-time nonce: ' + tag);
     }
     // C3 同页合并（增强默认开启）：首页无跨 stylesheet 截断，presets 与 customCSS 合并且保留原首尾片段。
-    const pageStyleBlocks = html.match(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi) || [];
+    // criticalCss 开启时 head 最前另有独立的关键样式块（与后续样式之间有 preload/link 截断，不参与合并），
+    // 断言前先剔除它，C3 语义针对其余页内样式块。
+    const allStyleBlocks = html.match(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi) || [];
+    const criticalBlocks = allStyleBlocks.filter((block) => block.includes('--color-bg'));
+    assert.strictEqual(criticalBlocks.length, 1, 'criticalCss 开启时首页应恰有一个关键样式块');
+    const pageStyleBlocks = allStyleBlocks.filter((block) => !criticalBlocks.includes(block));
     assert.strictEqual(pageStyleBlocks.length, 1, 'C3 merge must collapse page inline styles into one block');
     assert.match(pageStyleBlocks[0], /\[data-preset=/, 'merged block must keep the first original rule (presets)');
     assert.match(pageStyleBlocks[0], /border-left-color:\s*var\(--color-accent\)/, 'merged block must keep the last original rule (customCSS)');
@@ -524,8 +534,22 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       'offscreenSkip must emit below-fold card rules when enabled');
     assert.ok(siteCss.includes('.sidebar,.site-footer{content-visibility:auto'),
       'offscreenSkip must emit sidebar/footer rules when enabled');
-    const siteCssTag = (helloIndexZh.match(/<link[^>]*\/assets\/css\/site\.[0-9a-f]+\.css[^>]*>/) || [''])[0];
-    assert.ok(siteCssTag.includes('fetchpriority=high'), 'render-blocking site CSS link must use fetchpriority=high');
+    // 主样式链接两态：criticalCss 关闭 = 阻塞 fetchpriority=high；
+    // 开启 = preload as=style 提前拉取 + media=print 异步应用（无阻塞 link）。
+    // noscript 内的兜底 link 在 JS 可用时不会被请求，先剥离再判定「是否仍有阻塞样式」。
+    const helloIndexZhNoNoscript = helloIndexZh.replace(/<noscript>[\s\S]*?<\/noscript>/gi, '');
+    const siteCssTags = (helloIndexZhNoNoscript.match(/<link[^>]*>/g) || []).filter((tag) => /\/assets\/css\/site\./.test(tag));
+    const asyncSiteTag = siteCssTags.find((tag) => tag.includes('data-async-site-css'));
+    if (asyncSiteTag) {
+      assert.ok(asyncSiteTag.includes('media=print') && asyncSiteTag.includes('fetchpriority=low'),
+        'criticalCss 开启时主样式链接必须 media=print + fetchpriority=low');
+      assert.ok(siteCssTags.some((tag) => tag.includes('as=style') && tag.includes('rel=preload')),
+        'criticalCss 开启时必须输出主样式 preload');
+      assert.ok(!siteCssTags.some((tag) => tag.includes('rel=stylesheet') && !tag.includes('data-async-site-css')),
+        'criticalCss 开启时不得存在阻塞的主样式链接');
+    } else {
+      assert.ok(siteCssTags.some((tag) => tag.includes('fetchpriority=high')), 'render-blocking site CSS link must use fetchpriority=high');
+    }
     const cjkTag = (helloIndexZh.match(/<link[^>]*cjk-fonts\.css[^>]*>/) || [''])[0];
     assert.ok(cjkTag.includes('fetchpriority=low'), 'async CJK CSS link must use fetchpriority=low');
     assert.ok(!helloIndexZh.includes('data-bilingual-alt') && !helloIndexZh.includes('bilingual-bar'),

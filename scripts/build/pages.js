@@ -10,6 +10,7 @@ const frontMatter = require('front-matter');
 const { marked } = require('marked');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
+const { extractCriticalCss } = require('../lib/critical-css');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, truncateCodePoints, hasHighlightableCode } = require('../lib/utils');
@@ -170,6 +171,27 @@ function createPagesModule(ctx) {
     writeFileAtomicSync(file, css, 'utf-8');
     SITE_CSS_HREF = '/' + rel;
     console.log('  Created: ' + rel + ' (' + Math.round(Buffer.byteLength(css) / 1024) + 'KB)');
+    // 关键 CSS 内联（site.build.criticalCss.enabled）：从全量样式中抽取首屏规则交给模板内联，
+    // 非关键整站样式由 layout 改为异步加载（media="print" + nonce 内联脚本翻回 all，
+    // <noscript> 兜底）。提取/解析失败时退化为现状（全量样式保持阻塞加载）。
+    const ccCfg = b.criticalCss || {};
+    if (ccCfg.enabled === true) {
+      try {
+        const result = extractCriticalCss(css);
+        baseData.criticalCss = result.css;
+        baseData.asyncNonCriticalCss = ccCfg.asyncNonCritical !== false;
+        console.log('  Critical CSS: ' + Math.round(result.stats.bytes / 1024) + 'KB / '
+          + result.stats.rulesKept + ' 条规则（非关键异步=' + (baseData.asyncNonCriticalCss ? 'on' : 'off')
+          + '，变量保留 ' + result.stats.varDeclKept + ' 条）');
+      } catch (err) {
+        baseData.criticalCss = '';
+        baseData.asyncNonCriticalCss = false;
+        console.warn('  [WARN] 关键 CSS 提取失败，回退全量阻塞样式: ' + err.message);
+      }
+    } else {
+      baseData.criticalCss = '';
+      baseData.asyncNonCriticalCss = false;
+    }
     return SITE_CSS_HREF;
   }
   // Theme presets for runtime picker + externalized runtime config (global, identical on every page).

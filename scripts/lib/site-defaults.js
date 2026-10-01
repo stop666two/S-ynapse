@@ -62,7 +62,8 @@ const DEFAULT_CONFIG = {
         buildReport: true, reportTopN: 10, forceContentWidth: true,
         enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer',
-        cssOutDir: 'assets/css', cssFileBase: 'site', hashLength: 10, hashAlgorithm: 'md5'
+        cssOutDir: 'assets/css', cssFileBase: 'site', hashLength: 10, hashAlgorithm: 'md5',
+        criticalCss: { enabled: false, asyncNonCritical: true }
       },
       externalLinkWarning: {
         enabled: false, whitelist: [], blacklist: [],

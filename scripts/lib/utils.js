@@ -243,7 +243,7 @@ const ALLOWED_ATTRS = {
 // Media elements may only load site-local sources: absolute/protocol-relative
 // URLs and backslash-prefixed paths are stripped from src/poster.
 function restrictMediaAttrs(tagName, attribs) {
-  const out = Object.assign({}, attribs);
+  const out = copyOwnProperties({}, attribs);
   for (const key of ['src', 'poster']) {
     if (out[key] && /(?:^[a-z][a-z0-9+.-]*:|\/\/|\\)/i.test(out[key].trim())) delete out[key];
   }
@@ -366,4 +366,12 @@ function setOwnProperty(obj, key, value) {
   return obj;
 }
 
-module.exports = { formatDate, safeSlug, validateSlug, isReservedOsName, hasUnsafeLinkScheme, SLUG_MAX_LENGTH, escapeAttr, escapeHtml, stripInvalidXmlChars, stripHtml, truncateCodePoints, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode, setOwnProperty };
+// 以「自有可枚举属性」语义拷贝源对象的字符串键：Object.assign 复制自有 '__proto__'
+// 键时会触发目标原型 setter（对象值改写原型、标量静默丢键）。配置解析（JSON5）与
+// 构建数据重建对象时必须经本函数，保证任意数据键不丢失、目标原型不被改写。
+function copyOwnProperties(target, source) {
+  for (const key of Object.keys(source || {})) setOwnProperty(target, key, source[key]);
+  return target;
+}
+
+module.exports = { formatDate, safeSlug, validateSlug, isReservedOsName, hasUnsafeLinkScheme, SLUG_MAX_LENGTH, escapeAttr, escapeHtml, stripInvalidXmlChars, stripHtml, truncateCodePoints, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode, setOwnProperty, copyOwnProperties, restrictMediaAttrs };

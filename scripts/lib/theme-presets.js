@@ -12,14 +12,7 @@
 // 注意：暗色必须提供 primary（深色背景上的标题色），旧版缺失导致
 //   a:hover 在暗色下几乎不可见——本系统已强制补齐。
 
-const { setOwnProperty } = require('./utils');
-
-// 自有属性拷贝：theme 配置键（JSON5 可含自有 '__proto__'）经 Object.assign
-// 会触发目标原型 setter，导致色板丢键或原型被改写。
-function copyOwn(target, source) {
-  for (const key of Object.keys(source || {})) setOwnProperty(target, key, source[key]);
-  return target;
-}
+const { copyOwnProperties } = require('./utils');
 
 function luminance(hex) {
   const m = /^#([0-9a-f]{6})$/i.exec(hex);
@@ -221,14 +214,14 @@ const COLOR_KEYS = ['primary', 'secondary', 'accent', 'background', 'surface', '
 function resolveTheme(theme) {
   const out = {
     colors: {},
-    darkMode: copyOwn({}, theme.darkMode || {}),
+    darkMode: copyOwnProperties({}, theme.darkMode || {}),
     appliedPreset: null,
     warnings: []
   };
   const presetName = theme.preset == null ? null : String(theme.preset).trim();
   if (!presetName) {
-    out.colors = copyOwn({}, theme.colors);
-    out.darkMode.colors = copyOwn({}, (theme.darkMode && theme.darkMode.colors) || {});
+    out.colors = copyOwnProperties({}, theme.colors);
+    out.darkMode.colors = copyOwnProperties({}, (theme.darkMode && theme.darkMode.colors) || {});
     return out;
   }
   let base = PRESETS[presetName];
@@ -246,8 +239,8 @@ function resolveTheme(theme) {
   COLOR_KEYS.forEach(function (k) {
     if (base.dark[k] != null) darkBase[k] = base.dark[k];
   });
-  out.colors = copyOwn(copyOwn({}, base.light), overrides);
-  out.darkMode.colors = copyOwn(copyOwn({}, darkBase), darkOverrides);
+  out.colors = copyOwnProperties(copyOwnProperties({}, base.light), overrides);
+  out.darkMode.colors = copyOwnProperties(copyOwnProperties({}, darkBase), darkOverrides);
   const appliedKey = PRESETS[presetName] ? presetName : DEFAULT_PRESET;
   out.appliedPreset = PRESETS[appliedKey].label + '(' + appliedKey + ')';
   return out;

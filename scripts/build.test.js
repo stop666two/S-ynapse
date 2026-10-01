@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
-const { formatDate, safeSlug, validateSlug, isReservedOsName, hasUnsafeLinkScheme, escapeAttr, escapeHtml, stripHtml, truncateCodePoints, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWordsDetail, hasHighlightableCode } = require('./lib/utils');
+const { formatDate, safeSlug, validateSlug, isReservedOsName, hasUnsafeLinkScheme, escapeAttr, escapeHtml, stripHtml, truncateCodePoints, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWordsDetail, hasHighlightableCode, copyOwnProperties, restrictMediaAttrs } = require('./lib/utils');
 const { extractWorkerSecurity, renderWorkerConfig, applyHeaderHardening } = require('./generate-security-config');
 const { validateFeatures, DEFAULT_FEATURES, FEATURE_MODULES } = require('./lib/features-schema');
 const { formatConfigError } = require('./lib/config-error');
@@ -320,6 +320,46 @@ describe('sanitizeHtml media elements', () => {
     assert.ok(!out.includes('<iframe'));
     assert.ok(!out.includes('<noscript'));
     assert.ok(out.includes('<video'));
+  });
+});
+
+describe('copyOwnProperties 自有属性语义', () => {
+  it('保留自有 __proto__ 键且不改写目标原型', () => {
+    const source = {};
+    Object.defineProperty(source, '__proto__', { value: { polluted: true }, enumerable: true, writable: true, configurable: true });
+    const out = copyOwnProperties({}, source);
+    assert.deepStrictEqual(Object.keys(out), ['__proto__']);
+    assert.strictEqual(Object.getPrototypeOf(out), Object.prototype);
+    assert.deepStrictEqual(out['__proto__'], { polluted: true });
+    assert.strictEqual(({}).polluted, undefined);
+  });
+  it('普通键照常拷贝，源缺省时返回原目标对象', () => {
+    const out = copyOwnProperties({ a: 1 }, { b: 2 });
+    assert.deepStrictEqual(out, { a: 1, b: 2 });
+    assert.strictEqual(copyOwnProperties(out, null), out);
+  });
+});
+
+describe('restrictMediaAttrs 自有属性语义（sanitize 媒体路径）', () => {
+  it('自有 __proto__ 键保留且返回对象原型不被改写', () => {
+    const attribs = { src: '/v.mp4' };
+    Object.defineProperty(attribs, '__proto__', { value: { src: 'javascript:alert(1)' }, enumerable: true, writable: true, configurable: true });
+    const result = restrictMediaAttrs('video', attribs);
+    assert.strictEqual(Object.getPrototypeOf(result.attribs), Object.prototype);
+    assert.deepStrictEqual(result.attribs['__proto__'], { src: 'javascript:alert(1)' });
+    assert.strictEqual(result.attribs.src, '/v.mp4');
+    assert.strictEqual(({}).src, undefined);
+  });
+  it('绝对/协议相对媒体源被删除，站内相对路径保留', () => {
+    const result = restrictMediaAttrs('video', { src: 'https://evil.example/v.mp4', poster: '/p.jpg' });
+    assert.strictEqual('src' in result.attribs, false);
+    assert.strictEqual(result.attribs.poster, '/p.jpg');
+  });
+  it('HTML 解析后的 __proto__ 属性被丢弃且不污染原型', () => {
+    const out = sanitizeHtml('<video src="/v.mp4" __proto__="alert(1)" controls></video>');
+    assert.ok(out.includes('src="/v.mp4"'));
+    assert.ok(!out.includes('__proto__'));
+    assert.strictEqual(({}).polluted, undefined);
   });
 });
 

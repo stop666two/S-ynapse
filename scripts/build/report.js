@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
-const { escapeHtml } = require('../lib/utils');
+const { escapeHtml, copyOwnProperties } = require('../lib/utils');
 const { gzipSize, evaluatePerfBudget, formatPerfBudget } = require('../lib/perf-budget');
 const { renderBuildReportText } = require('../lib/build-report-text');
 const { performanceWarnings, reportTopN } = require('../lib/feature-wiring');
@@ -106,7 +106,7 @@ function createReportModule(ctx) {
   // 写入 dist/report.txt 构建摘要（报告阶段生成，位于压缩与 cacheBust 之后，天然豁免压缩）。
   // 无头验证摘要仅在「本轮实际运行验证」时读取结果文件，避免历史结果被误当成本轮结论。
   function writeBuildReportText(input) {
-    const data = Object.assign({}, input || {});
+    const data = copyOwnProperties({}, input || {});
     if (input && input.verifyRan === true) {
       const verifyPath = process.env.SYNAPSE_COMPRESSION_VERIFY_REPORT
         || ctx.compressionVerifyReportPath

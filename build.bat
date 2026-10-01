@@ -2,10 +2,20 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 setlocal
+
 echo ========================================
 echo   S-ynapse Builder
 echo ========================================
 echo.
+
+where npm >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] npm not found. Please install Node.js first: https://nodejs.org
+    echo.
+    pause
+    exit /b 1
+)
+
 call :ensure_deps
 if errorlevel 1 (
     echo.
@@ -14,14 +24,19 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+
 echo [INFO] Building... (this may take 1-3 minutes)
-call npm run build
 echo.
-if errorlevel 1 (
-    echo [ERROR] Build failed. Check the logs above.
-) else (
-    echo [OK] Build successful! Output: dist/
+call npm run build
+set "BUILD_CODE=%ERRORLEVEL%"
+echo.
+if not "%BUILD_CODE%"=="0" (
+    echo [ERROR] Build failed with exit code %BUILD_CODE%. Check the messages above.
+    echo.
+    pause
+    exit /b %BUILD_CODE%
 )
+echo [OK] Build successful! Output: dist/
 echo.
 pause
 exit /b 0

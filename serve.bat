@@ -2,44 +2,66 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 setlocal enabledelayedexpansion
+
 set PORT=3000
-if not "%1"=="" set PORT=%1
+if not "%~1"=="" set PORT=%~1
+
+set REBUILD=0
+if /i "%~2"=="rebuild" set REBUILD=1
 
 echo ========================================
-echo   S-ynapse Local Server
+echo   S-ynapse Local Server (port %PORT%)
 echo ========================================
 echo.
 
-:: Kill existing process on the port
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr /c":%PORT% "') do (
+where npm >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] npm not found. Please install Node.js first: https://nodejs.org
+    echo.
+    pause
+    exit /b 1
+)
+
+:: Stop only a LISTENING process that owns this TCP port
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr /r /c:"LISTENING" ^| findstr /c":%PORT% "') do (
     taskkill /f /pid %%a >nul 2>&1
-    if !errorlevel! equ 0 echo [OK] Killed old process on port %PORT%
+    if !errorlevel! equ 0 echo [OK] Stopped old process on port %PORT%
 )
-if exist dist\index.html (
-    echo Starting server at: http://localhost:%PORT%/
-    echo Press Ctrl+C to stop.
+
+if "%REBUILD%"=="1" goto build
+if exist dist\index.html goto serve
+
+:build
+call :ensure_deps
+if errorlevel 1 (
     echo.
-    npm run serve -- --port %PORT%
-) else (
-    echo [INFO] No build found. Building first...
+    echo [ERROR] Dependency install failed. Please run "npm install" manually and retry.
     echo.
-    call :ensure_deps
-    if errorlevel 1 (
-        echo.
-        echo [ERROR] Dependency install failed. Please run "npm install" manually and retry.
-        echo.
-        pause
-        exit /b 1
-    )
-    call npm run build
-    echo.
-    echo Starting server at: http://localhost:%PORT%/
-    echo Press Ctrl+C to stop.
-    echo.
-    npm run serve -- --port %PORT%
+    pause
+    exit /b 1
 )
+echo [INFO] Building before serve...
+echo.
+call npm run build
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Build failed. Check the messages above.
+    echo.
+    pause
+    exit /b 1
+)
+
+:serve
+echo Starting server at: http://localhost:%PORT%/
+echo Press Ctrl+C to stop.
+echo.
+call npm run serve -- --port %PORT%
+set "SERVE_CODE=%ERRORLEVEL%"
+echo.
+echo [INFO] Server exited with code %SERVE_CODE%.
+echo.
 pause
-exit /b 0
+exit /b %SERVE_CODE%
 
 :ensure_deps
 if exist "node_modules\sharp\package.json" exit /b 0

@@ -109,3 +109,13 @@
 - `templates/layout.ejs` 内联 mermaid 客户端脚本的 `securityLevel:'strict'`、flowchart `curve:'basis'` 等为渲染策略常量，未配置化（如需可另立 `features.mermaid.clientOptions` 透传，属新功能面）。
 - `js/domains/guard/watermark.js` 移动端断点硬编码 `768px`，与 `tuning.layout.mobileBreakpoint` 同值双份；guard 运行时当前不读 `__TUNING__`，接入需新增依赖，建议下轮评估（本轮不改，避免守卫模块加载期耦合 tuning）。
 - 本报告 C 类清单中的 `vibrate(10)`、`s-lb-pos:`、`s-dt-reload` 键等如需开放，属新增功能决策，请用户拍板。
+
+## 7. 配置扩张（H3）裁决记录
+
+本轮把 P1–P3 共 29 项隐藏开关接入 JSON5（默认值 = 历史行为，逐键注释，`verify:config-refs` 零未接线）。其中三处「二选一」裁决如下，作为后续维护的单一来源依据：
+
+1. **主题色收编：本波不把窗口点色/高亮色并入 `theme`**。`features.codeBlock.windowDotColors`（代码窗口栏三圆点）与 `features.searchHighlight.markColor/markColorDark`（搜索命中底色）保持 features 单源，不复制为 `theme.colors.*`。理由：两者是「组件装饰色」而非站点调色板语义，并入 theme 会形成双源（theme 调色板切换 vs 组件专用色），违反单一事实源；若未来需要主题级联动，应以 `var(--color-*)` 引用而非新增 theme 键。对应消费点：`templates/site-css.ejs`（`mark` 规则直接内联浅/深两色，`[data-theme="dark"]` 覆盖；`.cw-dot` 三色规则）。
+2. **搜索遮罩底色放 `tuning.search.overlayBackdrop`（而非 `features.search`）**。与同组 `overlayPadding` 一致：纯视觉参数归 tuning 注入 `--search-overlayBackdrop` CSS 变量，features.search 只保留行为开关；消费点 `templates/site-css.ejs → .search-overlay`。
+3. **两份内部参数的公开键回退关系**：新增 `site.build.reportTopN` 优先、缺失回退 `internals.report.topN`；新增 `site.build.cjkFonts.cacheTtlDays` 优先、缺失回退 `internals.cache.fontsTtlDays`。站点配置面向用户、internals 面向工程内部；两个 internals 键保留为降级/派生副本场景的回退，均仍被代码消费（`verify:config-refs` 通过）。
+
+其余口径说明：`sidebar.recentPoolSize`（默认 10）决定 `recentPosts` 数据池，`sidebar.widgets[].count` 只能池内截取（count > 池时按池大小渲染）；`features.errorPage.suggestCount` 复用同一池且被池大小隐含封顶。

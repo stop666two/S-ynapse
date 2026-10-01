@@ -11,7 +11,7 @@
 ## 目录
 1. [site.json5 — 站点主体](#1-sitejson5--站点主体)
 2. [theme.json5 — 视觉与主题](#2-themejson5--视觉与主题)
-3. [features.json5 — 功能总控(100 模块)](#3-featuresjson5--功能总控100-模块)
+3. [features.json5 — 功能总控(103 模块)](#3-featuresjson5--功能总控103-模块)
 4. [navigation.json5 — 导航](#4-navigationjson5--导航)
 5. [sidebar.json5 — 侧栏](#5-sidebarjson5--侧栏)
 6. [footer.json5 — 页脚](#6-footerjson5--页脚)
@@ -157,6 +157,7 @@
 | `build.cjkSpacing` | bool | `true` | 中英文间细空格 |
 | `build.cjkFonts` | object | 见下 | 中文字体（Noto Sans SC）构建期子集化 |
 | `build.buildReport` | bool | `true` | build-report.html |
+| `build.reportTopN` | number | `10` | 构建报告「体积超标图片」列表上限（1–1000；非法回退 `internals.report.topN`） |
 | `build.autoOgImage` | bool | `true` | 自动 OG 图 |
 | `build.forceContentWidth` | bool | `true` | 主内容强制宽高布局 |
 | `build.enableCacheBusting` | bool | `false` | MD5 缓存戳 |
@@ -174,6 +175,8 @@
 | `cjkFonts.family` | string | `Noto Sans SC` | Google Fonts 字体族名（同时作为字体栈首位名与输出目录 slug） |
 | `cjkFonts.weights` | array | `[400,700]` | 需要的字重；空数组回退默认 |
 | `cjkFonts.fetchTimeoutMs` | number | `15000` | 单次网络请求超时（毫秒） |
+| `cjkFonts.concurrency` | number | `6` | 分片下载并发数（1–16；非法/越界回退 6） |
+| `cjkFonts.cacheTtlDays` | number | `7` | 字体清单缓存天数（`0` = 每次构建重拉；非法/负数回退 `internals.cache.fontsTtlDays`） |
 
 构建流程：页面生成后扫描 dist 全部 HTML 与产出 JSON 的实际用字（正文/`<title>`/meta/内联及外部化运行时配置），只下载命中的 Google Fonts woff2 分片，自托管到 `dist/assets/fonts/noto-sans-sc/` 并生成 `dist/assets/css/cjk-fonts.css`（保留 `unicode-range`、`font-display: swap`）；HTML 中的样式引用自动带内容哈希查询串（配合 `/assets/css/*` 与 `/assets/fonts/*` 的 1 年 immutable 缓存）。
 > 注意：首次构建需联网拉取字体清单与分片，结果缓存于 `.cache/fonts/`（不入库，7 天清单 TTL，之后离线可复用）；断网/超时/解析失败时自动跳过并 `console.warn`，页面回退系统字体链，构建不会失败。`/assets/fonts/*` 与 `/assets/css/*` 的长期缓存由 `build.cacheControl`（默认开）统一管理。
@@ -340,7 +343,7 @@
 
 ---
 
-## 3. features.json5 — 功能总控(102 模块)
+## 3. features.json5 — 功能总控(103 模块)
 
 **加载规则**:可选文件;缺失时使用内置默认(与文件内容一致的当前行为)。
 **合并规则**:数组字段(share.order 等)为用户覆盖,不拼接;一切字段均可缺省。
@@ -407,7 +410,7 @@
 > - `zoom` / `slideshow` / `downloadButton`（缩放增强、幻灯片、原图下载）：`zoom.enabled` 未设回退 `zoomEnabled`、`zoom.maxScale` 未设回退 `zoomMax`（再回退 4，下限 1）；`slideshow.intervalMs` 钳制 1000–60000（非法回退 4000）。缩放/平移/手势/Esc 两段退出/幻灯片状态机的纯函数实现于 `js/domains/features/lightbox-core.js`（单测 `scripts/lightbox-core.test.js` 覆盖）：滚轮/双击/双指捏合统一钳制 1x–`maxScale`；缩放态禁用翻页滑动手势与 ←/→（避免切走视图），Esc 缩放态先复位视图再关闭；拖拽平移经边界钳制（内容大于视口时限制到边缘贴齐，小于视口时锁定居中，不得拖出视口）；幻灯片打开自动播放、按钮启停、页面隐藏暂停/恢复可见续播、缩放态本次跳过推进；下载按钮取图片 `src`（构建期写入的原始分辨率路径）写入 `href` 与 `download` 文件名；软导航交换后关闭灯箱并清理轮播计时器。
 
 ### 3.2 readingProgress — 阅读进度条
-`enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500`(点击跳转后百分比气泡停留时长；悬停/聚焦期间常显) / `showTip true`(是否显示跟随进度圆点的百分比提示气泡) / `updateThrottleMs 30` / `ariaAnnounce true`(进度条输出 `aria-valuenow`，屏幕阅读器可读) / `topOffset 0`(进度条距视口顶部偏移，构建期写入 `.reading-progress` 的 `top`，值需含单位如 `8px`/`2vh`，`0` 默认贴顶) / `zIndex 1000`(进度条层级，与其他浮层冲突时调大) / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发) / `keyboardStep 0.05`(进度条聚焦后 ←/→ 单步比例;Home/End 不受影响) / `minRestorePx 160`(恢复位置的最小 y，低于不恢复) / `maxStoredPositions 80`(本地记忆路径上限,超出按最旧淘汰) / `saveThrottleMs 400`(滚动保存节流 ms)。点击跳转支持键盘（聚焦进度条后 ←/→ 按 keyboardStep 步进、Home/End 首尾）
+`enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500`(点击跳转后百分比气泡停留时长；悬停/聚焦期间常显) / `showTip true`(是否显示跟随进度圆点的百分比提示气泡) / `updateThrottleMs 30` / `ariaAnnounce true`(进度条输出 `aria-valuenow`，屏幕阅读器可读) / `topOffset 0`(进度条距视口顶部偏移，构建期写入 `.reading-progress` 的 `top`，值需含单位如 `8px`/`2vh`，`0` 默认贴顶) / `zIndex 1000`(进度条层级，与其他浮层冲突时调大) / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发) / `storageKey 's-readpos'`(阅读位置表 localStorage 键；改键会重置已保存位置；空值回退默认键) / `keyboardStep 0.05`(进度条聚焦后 ←/→ 单步比例;Home/End 不受影响) / `minRestorePx 160`(恢复位置的最小 y，低于不恢复) / `maxStoredPositions 80`(本地记忆路径上限,超出按最旧淘汰) / `saveThrottleMs 400`(滚动保存节流 ms)。点击跳转支持键盘（聚焦进度条后 ←/→ 按 keyboardStep 步进、Home/End 首尾）
 
 > canonical：`scripts/lib/feature-wiring.js → readingRestoreConfig`（单测覆盖；默认 0.05/160/80/400 = 历史行为）。
 
@@ -421,7 +424,7 @@
 > - canonical：`scripts/lib/feature-wiring.js → backToTopConfig`（单测覆盖）。
 
 ### 3.4 search — 客户端搜索
-`enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true`（与 `searchHighlight.enabled` 联动，任一 false 即不高亮） / `showCount true`（结果计数显隐：false 时浮层结果区与 /search 页均不显示；文案取 `ui-strings.search.foundCount`，`{count}` 占位，中英双语） / `emptyHint ''` / `emptyHintEn ''` / `noResultText 未找到匹配内容` / `noResultTextEn No matching content`(空回退中文链) / `excerptLength 120` / `includeContent true`(构建期生效:content 文本是否进入倒排索引；正文原文不写入索引文件) / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `index.bigram true`（CJK 二元组 + 英文小写词；false = CJK 段整段成词） / `index.maxGzipKb 60`（索引 gzip 上限 KB；超出按词频裁剪低频词并告警，不阻断构建） / `closeOnOverlay true` / `focusOnOpen true` / `focusDelayMs 100`(打开搜索后延迟聚焦输入框 ms) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效) / `debounceMs 120` / `showHistoryOnFocus true` / `maxHistory 5`
+`enabled true` / `minChars 1` / `maxResults 30` / `highlightMatches true`（与 `searchHighlight.enabled` 联动，任一 false 即不高亮） / `showCount true`（结果计数显隐：false 时浮层结果区与 /search 页均不显示；文案取 `ui-strings.search.foundCount`，`{count}` 占位，中英双语） / `emptyHint ''` / `emptyHintEn ''` / `noResultText 未找到匹配内容` / `noResultTextEn No matching content`(空回退中文链) / `excerptLength 120` / `includeContent true`(构建期生效:content 文本是否进入倒排索引；正文原文不写入索引文件) / `matchTags true` / `matchCategories true` / `weightTitle 5` / `weightExcerpt 2` / `weightContent 1` / `index.bigram true`（CJK 二元组 + 英文小写词；false = CJK 段整段成词） / `index.maxGzipKb 60`（索引 gzip 上限 KB；超出按词频裁剪低频词并告警，不阻断构建） / `closeOnOverlay true` / `focusOnOpen true` / `focusDelayMs 100`(打开搜索后延迟聚焦输入框 ms) / `openAnimation fade`(`fade`=弹层淡入/`slide`=自下而上滑入;尊重系统减少动效) / `resultTagCount 6`(/search 页结果卡片内最多展示标签数；≥1，非法回退 6) / `debounceMs 120` / `showHistoryOnFocus true` / `maxHistory 5`
 
 > **索引产物**：构建期生成倒排索引 `/assets/search-index.<内容哈希>.json`（按语言各一份，文件名即内容寻址；正文原文不落盘，每页只存标题/URL/摘要/封面/标签/分类）。客户端按需 fetch（浮层首次打开、/search 页进入时），超时与重试取 `tuning.search.indexTimeoutMs/indexRetry`；页面通过 `window.__SEARCH_INDEX_URL__` 获取当前语言索引地址。索引体积超 `index.maxGzipKb` 时按文档频率升序裁剪低频词（记录 `[WARN]` 到构建日志与 report.txt 告警段，构建继续）。旧固定路径 `/{lang}/search-index.json` 不再产出（构建时清理残留）。
 > **检索语义（浮层搜索与 /search 页统一）**：查询经同一分词器切为词项（CJK bigram / 英文小写词，单字 CJK 回退 bigram 首尾扫描），**全部词项 AND 命中**（任一被索引字段命中，或标签/分类子串包含该词项）才入选；得分 = 字段权重 × 该字段命中词项数（去重后），按总分降序，同分保持索引原序（构建期按日期倒序生成，等价「同分按日期」）。**权重为 0 = 该字段既不参与匹配也不参与计分**（如 `weightContent=0` 时正文不再命中且构建期也不索引 content）。`tags`/`categories` 命中仅参与「是否入选」（计 0 分），分别由 `matchTags`/`matchCategories` 门控（默认 true）。canonical 纯函数：`scripts/lib/feature-wiring.js → rankSearchEntries`（历史语义镜像，单测覆盖）；倒排实现与单测：`js/domains/features/search-core.js` + `scripts/search-core.test.js`。
@@ -431,12 +434,12 @@
 > **检索实现**：倒排词项匹配（非子串），无拼音模糊；搜索框占位文案的单一来源为 `navigation.json5 → search.placeholder/placeholderEn`（SSR 直接消费，模板不再读本模块）。
 
 ### 3.5 imageLazy — 懒加载
-`enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 3`(前 N 张图立即加载,不懒加载) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
+`enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 1`(前 N 张图立即加载,不懒加载；首页卡片模板与运行时懒加载合计恰好前 N 张为 `loading=eager`，默认 1 = 仅首张卡片) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
 
 > 接线说明：`preserveAspectRatio=true`（默认，历史行为）构建期输出 width/height（CLS 保护），覆盖 markdown 正文图片与 pages 出图路径（卡片/头图/图库/prev-next 缩略图，经 `scripts/build/pages.js` 的 imgDimsAttrs/buildCardImgAttrs/cardCoverAttrs/postCoverAttrs）；`false` 时不输出 width/height，交由 CSS 自适应。`data-lqip` 与 `data-iw` 不受影响。
 
 ### 3.6 codeBlock — 代码块
-`enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `copyFailTextEn ''`(en 站失败文案，空回退中文) / `showLanguageTag true` / `lineNumbers true`(纯文本块也可用) / `wrapLongLines false`(true=软换行,行号仍按行高对齐) / `highlightBackground var(--color-hover)`(hover 混色基色,力度见 tuning.code.hoverBgMix) / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false`(true=首块上方一键复制全页) / `downloadButton true` / `blobRevokeDelayMs 1000`(下载后释放 Blob URL 延迟 ms) / `prismBatchMs 8`(Prism 高亮单批主线程预算 ms) / `prismIdleTimeoutMs 300`(首帧高亮空闲超时 ms) / `prismIdleFallbackMs 60`(无 requestIdleCallback 时的兜底间隔 ms)
+`enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `copyFailTextEn ''`(en 站失败文案，空回退中文) / `showLanguageTag true` / `lineNumbers true`(纯文本块也可用) / `wrapLongLines false`(true=软换行,行号仍按行高对齐) / `highlightBackground var(--color-hover)`(hover 混色基色,力度见 tuning.code.hoverBgMix) / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false`(true=首块上方一键复制全页) / `downloadButton true` / `blobRevokeDelayMs 1000`(下载后释放 Blob URL 延迟 ms) / `prismBatchMs 8`(Prism 高亮单批主线程预算 ms) / `prismIdleTimeoutMs 300`(首帧高亮空闲超时 ms) / `prismIdleFallbackMs 60`(无 requestIdleCallback 时的兜底间隔 ms) / `windowDotColors ['#ff5f56','#ffbd2e','#27c93f']`(窗口栏三圆点颜色数组，非数组/不足 3 项整体回退默认) / `scrollHintTolerancePx 8`(判定「可横向滚动」的溢出容差 px；非负，非法回退 8)
 
 视觉细化项(tuning.json5)：`code`(lineNumberColor/lineNumberOpacity/hoverBorderMix/hoverShadowMix/hoverBgMix/inlineRadius/inlineHairlineMix/diffAddMix/diffDelMix) / `icons`(strokeWidth/hoverLift)；终端语言自动前缀(bash/sh/shell/zsh/fish→`$ lang`；powershell→`PS> powershell`；console→`> console`)；diff 增删行着色(.token.inserted/.deleted)；菜单图标见 navigation.json5 的 `icon`(内置 home/archive/tags/info/book/link/folder/search/rss/download)。
 
@@ -773,7 +776,7 @@ sitemap: {
 拆分输出:URL 61 条(≤500)→ `sitemap.xml`(单一文件 61 url);URL 600 条(>500)→ `sitemap-1.xml`(500)+`sitemap-2.xml`(100)+`sitemap.xml`(sitemapindex 索引 2 条)。索引格式:`<sitemapindex>` → `<sitemap>https://host/sitemap-1.xml</sitemap>` + `sitemap-2.xml`。
 
 ### 3.40 themePresets — 主题预设切换器
-`enabled true` / `pickerVisible true` / `persistChoice true` / `showInNavbar true` / `previewOnHover true`。6 套调色盘(Classic Blue / Cyber Purple / Forest Green / Sakura Pink / Editorial Gray / Midnight Black),点击即切换 CSS 变量并 localStorage 持久化(`ss-preset`)。
+`enabled true` / `pickerVisible true` / `persistChoice true` / `storageKey 'ss-preset'`（已选预设 localStorage 键；改键使旧选择失效；空值回退默认键） / `showInNavbar true` / `previewOnHover true`。6 套调色盘(Classic Blue / Cyber Purple / Forest Green / Sakura Pink / Editorial Gray / Midnight Black),点击即切换 CSS 变量并 localStorage 持久化(默认键 `ss-preset`)。
 
 ### 3.41 themeSchedule — 深色定时切换
 `enabled false`(默认关) / `darkFrom '22:00'` / `lightFrom '06:00'` / `respectManualOverride true` / `applyInstantly true` / `checkIntervalMs 60000` / `smoothTransitionMs 350`(平滑过渡时长 ms) / `smoothTransition true`。按固定每日时段自动切主题,检查周期以毫秒计(默认 60000 = 每分钟);smoothTransition 开启时切换瞬间给 html 加 `theme-switching` 类,按 `smoothTransitionMs` 过渡。
@@ -811,7 +814,7 @@ sitemap: {
 `enabled true` / `patterns[]` (gradient/stripes/dots/blob/mesh) / `defaultPattern 'gradient'`（封面样式选择器 initial active；不在 patterns 内时回退 patterns[0]；`preferImage=false` 时文章头图初始即应用该 pattern） / `preview true` / `preferImage true`（true=文章头图显示 featuredImage（现行为），点选样式后切换为 pattern 合成块；false=初始即渲染 defaultPattern 合成块替代图片 — `js/domains/features/cover.js`）。文章封面样式库(渐变/条纹/圆点/气泡/网格),点选即用；选择器按钮的运行时行为已补齐。
 
 ### 3.52 i18n — 内容级双语
-`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true` / `translationNotice true`(文章页翻译互链提示:另一语言存在同 slug 文章时在标题下显示胶囊链接,文案 `post.translationNotice` 支持 `{lang}` 占位) — `features.i18n` 另见 §3.73。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/倒排索引),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段（页脚自定义 HTML 另支持 `htmlEn`）。站点级文案同样按语言取用：`descriptionEn`/`metaKeywordsEn`/`authorProfile.bioEn` 空则回退中文;`languageEn` 控制 en 页 `<html lang>` 与侧栏日期本地化（缺失时回退 `en-US`，避免英文页出现“2026年9月10日”式中文日期）。**运行时语言以 URL 前缀为准**（localStorage 仅作为无前缀路径的偏好记忆），语言切换保持当前子路径。
+`enabled false` / `defaultLanguage 'zh'` / `languages[] ('zh','en')` / `navToggle true` / `translationNotice true`(文章页翻译互链提示:另一语言存在同 slug 文章时在标题下显示胶囊链接,文案 `post.translationNotice` 支持 `{lang}` 占位) / `storageKey 's-ss-lang'`(语言偏好 localStorage 键，存目标语言段如 `en`；**更改会重置旧的语言偏好**；空值回退默认键) — `features.i18n` 另见 §3.73。**内容级双语**:文章存于 `articles/zh/` 与 `articles/en/` 双目录,URL 带语言前缀(`/zh/slug/`、`/en/slug/`),每语言生成完整站点(首页/文章/归档/标签/分类/搜索/RSS/sitemap/倒排索引),根路径 `/` 按浏览器语言跳转(localStorage `s-ss-lang` 记忆)。界面文案经 `ui-strings.json5` 词典 + 服务端 `ui()` / 运行时 `__T()` 双语渲染;导航/页脚/侧栏/主题预设支持 `labelEn`/`titleEn` 字段（页脚自定义 HTML 另支持 `htmlEn`）。站点级文案同样按语言取用：`descriptionEn`/`metaKeywordsEn`/`authorProfile.bioEn` 空则回退中文;`languageEn` 控制 en 页 `<html lang>` 与侧栏日期本地化（缺失时回退 `en-US`，避免英文页出现“2026年9月10日”式中文日期）。**运行时语言以 URL 前缀为准**（localStorage 仅作为无前缀路径的偏好记忆），语言切换保持当前子路径。
 
 ### 3.53 pagefind — Pagefind 全文搜索
 `enabled true` / `indexPath '/pagefind'` / `integrate true`（false=即使 provider=pagefind 也回退内置本地搜索链路：搜索浮层与 /search/ 页均不加载 Pagefind UI，构建期同时产出 `/assets/search-index.<内容哈希>.json` 倒排索引供本地链路使用）。使用 Pagefind 的离线全文搜索(navigation.search.provider='pagefind' 且本模块 enabled 时生效)。**构建在压缩与哈希之后自动生成索引,输出到 `indexPath`(不参与 cache-bust;先清空旧索引再写入);未安装 pagefind 依赖时告警跳过(`npm install -D --save-exact pagefind`;该依赖默认不在 devDependencies 中);serve/watch 模式同样生成,保证本地预览与生产一致。**
@@ -832,7 +835,7 @@ sitemap: {
 `enabled true` / `type 'slide'`(`slide|fade`) / `durationMs 180`(入场) / `outDurationMs 120`(离开淡出) / `reducedMotion 'light'`(`light|off|full`,轻量版:短纯淡出) / `excludeSelector '[data-no-transition]'` / `leaveGuardMs 2500`(导航失败兜底观察窗口 ms) / `reducedDurationMs 70`(reduced-motion 下离开时长上限 ms)。内链点击淡出 → 导航 → 新页入场;外链/新窗口/hash/下载链接不拦截;原 `motion.pageEnterDurationMs` 与 `theme.animation.pageTransition` 已移除。
 
 ### 3.59 pwa — PWA 运行时与离线阅读
-`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `precache true` / `pageNetworkFirst true` / `assetCacheFirst true` / `pageCacheLimit 24` / `updateCheckIntervalMs 1800000` / `installPrompt true` / `installDismissKey 's-a2hs-dismissed'`(安装按钮关闭记忆键) / `updateToastMs 0`(更新提示条自动隐藏 ms;0=常驻,由用户刷新/关闭)。
+`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `precache true` / `pageNetworkFirst true` / `assetCacheFirst true` / `pageCacheLimit 24` / `updateCheckIntervalMs 1800000` / `installPrompt true` / `installDismissKey 's-a2hs-dismissed'`(安装按钮关闭记忆键) / `updateToastMs 0`(更新提示条自动隐藏 ms;0=常驻,由用户刷新/关闭) / `reloadFallbackMs 3000`(点击刷新后等待 SW 接管的最长 ms，超时直接整页刷新；≥1，非法回退 3000)。
 
 双层开关:`site.pwa.enabled` 控制构建产物(manifest.json / offline.html / sw.js),`features.pwa.enabled` 控制运行时注册;两者默认均开,同时开启为完整 PWA 体验。SW 由 `scripts/lib/pwa-sw.js` 构建期生成(缓存名 = `site.pwa.cacheName` + 内容版本后缀,分壳/页面/资产三类):
 
@@ -897,7 +900,7 @@ sitemap: {
 
 ### 3.72 readingHistory — 继续阅读(本地阅读历史)
 
-`enabled true` / `maxItems 5`(首页最多条数) / `maxStored 50`(本地最多保存条数；超出按最旧淘汰) / `storageKey 's-history'`(localStorage 键,修改会丢弃旧历史) / `showOnHome true`(false=只记录不展示) / `clearable true`(显示清除按钮)。文章页自动记录(标题+路径+时间,上限 `maxStored` 条),首页在卡片区上方展示最近阅读(相对时间,`Intl.RelativeTimeFormat` 双语);纯本地、无服务端 — `js/domains/features/reading-history.js`。
+`enabled true` / `maxItems 5`(首页最多条数) / `maxStored 50`(本地最多保存条数；超出按最旧淘汰) / `storageKey 's-history'`(localStorage 键,修改会丢弃旧历史) / `showOnHome true`(false=只记录不展示) / `clearable true`(显示清除按钮) / `progressThrottleMs 800`(文章页滚动写回阅读进度的节流 ms；非负，非法回退 800)。文章页自动记录(标题+路径+时间,上限 `maxStored` 条),首页在卡片区上方展示最近阅读(相对时间,`Intl.RelativeTimeFormat` 双语);纯本地、无服务端 — `js/domains/features/reading-history.js`。
 
 ### 3.73 hreflang — 多语言替代声明(SEO)
 
@@ -913,7 +916,7 @@ sitemap: {
 
 ### 3.76 announcement — 公告条
 
-`enabled true` / `text` / `textEn` / `url`(单条模式：中英文文案与可选链接) / `items []`(多条模式，每项 `{text,textEn,url,icon?}`，非空时优先；`icon` 为前缀徽标短文本如 `"NEW"`) / `rotateMs 6000`(多条轮播间隔毫秒，`0`=只显示第一条；`prefers-reduced-motion` 下瞬间切换) / `pauseOnHover true`(悬停/按住暂停轮播与进度条) / `transition 'fade'`(条目切换动画：`fade` 淡入淡出 / `slide` 上滑+淡入) / `tone 'accent'`(`accent` 主题色淡渐变 / `solid` 实心主题色 / `minimal` 素色+下边框 / `gradient` 主→辅强渐变白字) / `showProgress false`(轮播剩余时间进度条；仅多条+自动轮播时渲染) / `showDot true`(左侧装饰圆点) / `newTab true`(外链 `target=_blank rel=noopener`；`false` 则当前窗口) / `dismissible true`(关闭按钮) / `storageKey 's-announce-dismissed'`(关闭记忆键；值为按语言区分的 JSON 对象，如 `{"zh":"…","en":"…"}`，旧版单值记录会在访问时自动迁移) / `removeDelayMs 340`(关闭动画后移除 DOM 延迟 ms)。固定于页面顶部（通过 `--annH` 变量将固定头部、移动菜单、粘性目录整体下移，内容偏移同步；**关闭后 `--annH` 收起为 0，头部自动上移**）；关闭按全部内容哈希记忆（`s-announce-dismissed`）不再出现。视觉细节（字号/字距/高度 `height`，高度同时决定 `--annH` 下移量与公告条实际高度）在 `tuning.json5` 的 `announcement` 分类调整。**防闪机制**：公告条默认隐藏，`<head>` 早检脚本在首帧前确认未被关闭后添加 `html.ann-on` 才显示；关闭记忆按内容哈希（`s-announce-dismissed`），关闭态刷新/导航零可见帧（禁用 JS 时公告不显示，属预期设计） — `templates/layout.ejs` + `js/domains/core/announcement.js`。
+`enabled true` / `text` / `textEn` / `url`(单条模式：中英文文案与可选链接) / `items []`(多条模式，每项 `{text,textEn,url,icon?}`，非空时优先；`icon` 为前缀徽标短文本如 `"NEW"`) / `rotateMs 6000`(多条轮播间隔毫秒，`0`=只显示第一条；`prefers-reduced-motion` 下瞬间切换) / `pauseOnHover true`(悬停/按住暂停轮播与进度条) / `transition 'fade'`(条目切换动画：`fade` 淡入淡出 / `slide` 上滑+淡入) / `transitionMs 450`(fade/slide 统一的条目切换时长 ms；`0` = 无动画直接切换；非负，非法回退 450；reduced-motion 始终禁用动画) / `tone 'accent'`(`accent` 主题色淡渐变 / `solid` 实心主题色 / `minimal` 素色+下边框 / `gradient` 主→辅强渐变白字) / `showProgress false`(轮播剩余时间进度条；仅多条+自动轮播时渲染) / `showDot true`(左侧装饰圆点) / `newTab true`(外链 `target=_blank rel=noopener`；`false` 则当前窗口) / `dismissible true`(关闭按钮) / `storageKey 's-announce-dismissed'`(关闭记忆键；值为按语言区分的 JSON 对象，如 `{"zh":"…","en":"…"}`，旧版单值记录会在访问时自动迁移) / `removeDelayMs 340`(关闭动画后移除 DOM 延迟 ms)。固定于页面顶部（通过 `--annH` 变量将固定头部、移动菜单、粘性目录整体下移，内容偏移同步；**关闭后 `--annH` 收起为 0，头部自动上移**）；关闭按全部内容哈希记忆（`s-announce-dismissed`）不再出现。视觉细节（字号/字距/高度 `height`，高度同时决定 `--annH` 下移量与公告条实际高度）在 `tuning.json5` 的 `announcement` 分类调整。**防闪机制**：公告条默认隐藏，`<head>` 早检脚本在首帧前确认未被关闭后添加 `html.ann-on` 才显示；关闭记忆按内容哈希（`s-announce-dismissed`），关闭态刷新/导航零可见帧（禁用 JS 时公告不显示，属预期设计） — `templates/layout.ejs` + `js/domains/core/announcement.js`。
 
 ### 3.77 guards — 防护与交互控制总控
 
@@ -969,7 +972,7 @@ sitemap: {
 
 ### 3.90 searchHighlight — 搜索结果高亮
 
-`enabled true` / `markClass ''`（高亮 `<mark>` 附加类名；空=不附加（现行为）；非法字符过滤为 `[A-Za-z0-9_-]`；作用于搜索浮层与 /search/ 页；样式仍由 site.css 的 `mark` 选择器统一提供） / `maxMatches 20`（单页最多高亮处数，防止超长文渲染卡顿）。命中片段在结果列表与正文内以 `<mark>` 标注（词项区间合并，重叠 bigram 合并为单段）；`enabled=false` 或 `features.search.highlightMatches=false` 均关闭高亮 — `js/domains/features/search-core.js`（浮层 `search.js` 与 `search-page.js` 共用）。
+`enabled true` / `markClass ''`（高亮 `<mark>` 附加类名；空=不附加（现行为）；非法字符过滤为 `[A-Za-z0-9_-]`；作用于搜索浮层与 /search/ 页；样式仍由 site.css 的 `mark` 选择器统一提供） / `markColor 'rgba(255,193,7,.45)'`（浅色模式高亮底色，任意合法 CSS 颜色；空回退历史默认色） / `markColorDark 'rgba(255,193,7,.45)'`（深色模式高亮底色；空回退 `markColor`；默认同色 = 深色行为不变） / `maxMatches 20`（单页最多高亮处数，防止超长文渲染卡顿）。命中片段在结果列表与正文内以 `<mark>` 标注（词项区间合并，重叠 bigram 合并为单段）；`enabled=false` 或 `features.search.highlightMatches=false` 均关闭高亮 — `js/domains/features/search-core.js`（浮层 `search.js` 与 `search-page.js` 共用）。
 
 ### 3.91 darkImageFilter — 暗色图片滤镜
 
@@ -1052,7 +1055,7 @@ listCover: {
 
 ### 3.98 continueReading — 继续阅读卡片（首页最近阅读 + 单条移除/一键清空）
 
-`enabled true` / `count 3`（展示条数，非法/小于 1 回退 3） / `showProgress true`（进度条与百分比；旧记录无进度字段按 0%） / `storageKey 's-history'`（与 `features.readingHistory.storageKey` 共用同一份阅读历史，留空依次回退 → `'s-history'`） / `removeLabel '移除'` / `removeLabelEn ''`（单条移除按钮文案；zh 空回退内置、en 空回退 `ui-strings.continueReading.remove`） / `clearLabel '清空'` / `clearLabelEn ''`（一键清空按钮文案，回退链同上，取 `ui-strings.continueReading.clear`）。
+`enabled true` / `count 3`（展示条数，非法/小于 1 回退 3） / `showProgress true`（进度条与百分比；旧记录无进度字段按 0%） / `storageKey 's-history'`（与 `features.readingHistory.storageKey` 共用同一份阅读历史，留空依次回退 → `'s-history'`） / `removeLabel '移除'` / `removeLabelEn ''`（单条移除按钮文案；zh 空回退内置、en 空回退 `ui-strings.continueReading.remove`） / `clearLabel '清空'` / `clearLabelEn ''`（一键清空按钮文案，回退链同上，取 `ui-strings.continueReading.clear`） / `removeDelayMs 360`（单条移除动画兜底等待 ms；非负，非法回退 360） / `clearConfirmMs 3000`（清空按钮 armed 态等待窗口 ms；≥1，非法回退 3000）。
 
 首页在卡片区上方渲染最近读过的 `count` 篇（按时间倒序、同 URL 去重、排除当前页），每张卡片含标题、进度条（`role="progressbar"` + `aria-valuenow`，文案取 `ui-strings.continueReading.progress`）与相对时间（`Intl.RelativeTimeFormat` 双语）。管理交互：区头右侧「清空」按钮（轻确认：首次点击进入 armed 态并显示 `ui-strings.continueReading.clearConfirm`，3 秒内再次点击执行，超时自动复位；非阻塞弹窗）；每卡右上「×」移除按钮（`aria-label` = 移除文案 + 标题，原生按钮键盘可达）；两者均写回同一存储键——移除经 `removeByUrl` 保留其余记录原始字段（不经归一化重写数据源）并按 `features.readingHistory.maxStored` 重算上限，清空写入空列表；单条移除带动画后即时更新，全部移除或清空后整块隐藏。点击卡片链接走软导航（文档级委托自动接管）。进度由 `features.readingHistory` 记录时写入（滚动 800ms 节流 + `pagehide` 落盘，字段 `lang`/`p`），**只读同一份 localStorage，不新建数据源**；`enabled:false` 时首页回退旧的 `readingHistory` 列表块。构建/运行时模块 — `js/domains/features/continue-reading.js` + `templates/index.ejs` + `templates/site-css.ejs`。
 
@@ -1066,7 +1069,7 @@ listCover: {
 
 ### 3.100 bilingual — 双语对照（同 slug 文章切换 + 宽屏并排）
 
-`enabled true`（总开关；false = 不渲染对照入口/右栏，语言按钮恢复既有路径前缀替换行为） / `switch true`（文章页「中/EN」对照切换入口，构建期指向同 slug 另一语言文章；无对应文章时整条隐藏） / `sideBySide true`（宽屏「并排对照」开关，视口 ≥ `breakpointPx` 时显示；默认关闭、状态仅当次会话） / `breakpointPx 1280`（并排生效的最小视口宽度 px；480–3840 夹取，非法回退 1280）。
+`enabled true`（总开关；false = 不渲染对照入口/右栏，语言按钮恢复既有路径前缀替换行为） / `switch true`（文章页「中/EN」对照切换入口，构建期指向同 slug 另一语言文章；无对应文章时整条隐藏） / `sideBySide true`（宽屏「并排对照」开关，视口 ≥ `breakpointPx` 时显示；默认关闭、状态仅当次会话） / `breakpointPx 1280`（并排生效的最小视口宽度 px；480–3840 夹取，非法回退 1280） / `fetchTimeoutMs 10000`（拉取对方文章 HTML 的超时 ms；>0，非法回退 10000） / `resizeDebounceMs 120`（视口变化重算断点的防抖 ms；非负，非法回退 120） / `paneTitle '中文'`（右栏标题：对方文章为中文时显示；空回退内置 `中文`） / `paneTitleEn 'English'`（对方文章为英文时显示；空回退内置 `English`）。
 
 构建期：`scripts/build/pages.js` 为每篇文章计算 `altArticle`（同 slug、非草稿、另一语言；缺失为 null）并注入 `altLangUrl`——`templates/layout.ejs` 据此输出 `body[data-alt-lang]`（hreflang/x-default 与语言按钮直达共用）；`templates/post.ejs` 渲染对照工具条与右栏骨架（无对照整条不渲染；并排开关初始 `hidden`，由运行时按断点显隐；无 JS 时切换链接仍为普通 `<a>` 可直接跳转）。运行时 `js/domains/features/bilingual.js`（deferred 按需路径 + `js/core/deferred.js` 注册）：点击切换入口优先走软导航就地交换（不可用/失败回退整页跳转，交换后回到页首）；开启并排时 fetch 对方 HTML → 提取 `.post-content` → 净化（移除 `script`/工具条/评论/系列导航等，剥离 `id`/`data-vt`/`on*`）→ 注入右栏（`role=region` + 标题 landmark），右栏 `position:sticky` 独立滚动；关闭/软导航/视口缩回断点以下自动清理还原单栏。`js/domains/core/i18n.js` 语言切换优先 `data-alt-lang` 并走软导航；同一软导航钩子重扫对照状态并同步「无对照文章隐藏导航语言按钮」。纯函数 `js/domains/features/bilingual-core.js`（配置归一化 / URL 互指判定 / 断点判定 / 提取净化决策）由 `scripts/bilingual-core.test.js` 覆盖，并与 `scripts/lib/feature-wiring.js` 的 `bilingualConfig` 同值对拍。
 
@@ -1084,9 +1087,19 @@ listCover: {
 
 ### 3.102 saveDataMode — 省流模式（自动跟随 + 手动开关）
 
-`enabled true`（总开关；false = 不注入首屏早置脚本、不注册运行时模块，零开销） / `auto true`（自动跟随系统省流偏好 `navigator.connection.saveData`，含 `change` 变化） / `manual true`（阅读设置面板「省流模式」开关，localStorage 持久；**显式手动选择优先于自动**，可开可关；false = 不渲染开关且忽略已存偏好） / `storageKey 'ss-save-data'`（偏好存储键，值 `'1'` = 开 / `'0'` = 关；空串回退默认键） / `degrade.animations true`（停用全部 CSS 动画/过渡并跳过视图过渡） / `degrade.particles true`（停止粒子背景绘制并隐藏画布） / `degrade.lowResImages true`（图片重写为最小分辨率变体） / `degrade.lazyAggressive true`（取消首屏 eager 预载，全部 `loading=lazy` + `fetchpriority=low`） / `degrade.systemFontsOnly true`（网页字体降级为系统字体栈）。各 degrade 子项唯一关闭方式 = 显式 `false`，运行时切换即时生效/还原。与 `prefers-reduced-motion` 的语义区分：后者按各模块的 light/full 策略保留部分动效，save-data 更彻底（全量停用动画与过渡）。
+`enabled true`（总开关；false = 不注入首屏早置脚本、不注册运行时模块，零开销） / `auto true`（自动跟随系统省流偏好 `navigator.connection.saveData`，含 `change` 变化） / `manual true`（阅读设置面板「省流模式」开关，localStorage 持久；**显式手动选择优先于自动**，可开可关；false = 不渲染开关且忽略已存偏好） / `storageKey 'ss-save-data'`（偏好存储键，值 `'1'` = 开 / `'0'` = 关；空串回退默认键） / `degrade.animations true`（停用全部 CSS 动画/过渡并跳过视图过渡） / `degrade.particles true`（停止粒子背景绘制并隐藏画布） / `degrade.lowResImages true`（图片重写为最小分辨率变体；`degrade.lowResMaxWidthPx` 为变体宽度上限 px：`0`（默认）= 不限制、选最小候选，`>0` = 优先选宽度 ≤ 该值的候选、全部超限时仍回退最小候选；非负，非法回退 0） / `degrade.lazyAggressive true`（取消首屏 eager 预载，全部 `loading=lazy` + `fetchpriority=low`） / `degrade.systemFontsOnly true`（网页字体降级为系统字体栈）。各 degrade 子项唯一关闭方式 = 显式 `false`，运行时切换即时生效/还原。与 `prefers-reduced-motion` 的语义区分：后者按各模块的 light/full 策略保留部分动效，save-data 更彻底（全量停用动画与过渡）。
 
 首屏防闪烁：`templates/layout.ejs` 头部内联脚本按与纯函数一致的决策（手动偏好 → 自动 → 默认关）同步置 `html.save-data`。运行时 `js/domains/core/save-data.js`（critical 同步层，`js/core/main.js` 注册）：系统 `saveData` 变化时重新决策；手动开关切换即写 `storageKey` 并即时降级/还原（类移除、图片回补原 `src`/`srcset`）；软导航后经 `__SOFTNAV_HOOKS__` 重绑面板；降级副作用经 `ss:save-data` 事件通知粒子背景（`js/domains/features/background.js`），图片改写/还原委托 `js/domains/core/image-lazy.js`（`window.__imageLazySaveData`，最小候选选择来自 `js/domains/core/save-data-core.js`）；`js/core/runtime.js → window.__SB`、`js/domains/core/page-transition.js`、`js/core/soft-nav.js` 分别将平滑滚动、页面过渡与视图过渡降级为瞬时。CSS 降级块输出于 `templates/site-css.ejs`（`html.save-data` 全域 `animation-duration/transition-duration` 归零、`scroll-behavior:auto`、系统字体栈覆盖 `--ff`/`--ff-d`/`--ff-h`/`--ff-mono`）。纯函数 `js/domains/core/save-data-core.js`（配置归一化 / 决策矩阵 / 变体宽度推断与最小候选）由 `scripts/save-data.test.js` 覆盖，并与 `scripts/lib/feature-wiring.js` 的 `saveDataModeConfig` 同值对拍。
+
+---
+
+### 3.103 errorPage — 错误页（404 推荐阅读与插图无障碍描述）
+
+`enabled` 不存在（无总开关；本模块仅控制 404 页展示细节） / `suggestCount 5`（「推荐阅读」区块最多展示条数；`0` = 不渲染该区块；0–20 夹取，非法/负数回退 5） / `suggestTitle '热门文章'`（区块标题 zh；空回退 `ui-strings.notFound.hotArticles`） / `suggestTitleEn ''`（区块标题 en；空回退中文标题） / `artAriaLabel '404 illustration'`（插图 SVG 的 `aria-label` zh；空回退内置文案） / `artAriaLabelEn ''`（en 站插图 `aria-label`；空回退 `artAriaLabel`）。
+
+数据取首页最近文章池 `sidebar.json5 → recentPoolSize`（默认 10）；`suggestCount` 不能超过池大小。接线：`scripts/build/pages.js` 归一化 `errorPageCfg` → `templates/404.ejs`；每语言 404 页（`/{lang}/404.html`）均生效。
+
+---
 
 ## 4. navigation.json5 — 导航
 
@@ -1114,6 +1127,7 @@ listCover: {
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `enabled` | `true` | 侧栏总开关（关闭后内容区自动加宽居中） |
+| `recentPoolSize` | `10` | `recentPosts` 数据池上限（1–200；`recent` widget 的 `count` 只能在此池内截取，默认 10 与历史行为一致） |
 | `options.width/gap/radius/padding/titleSize/titleWeight` | `318px`/`1.618rem`/`0.618rem`/`1rem`/`.9375rem`/`600` | 外观选项（width 优先于根级旧键） |
 | `options.hoverLift` / `borderShow` | `true`/`false` | 组件悬停上浮 / 描边显示 |
 | `widgets[]` | `[]` | 组件列表（数组顺序即显示顺序;位置由 theme.layout.sidebarPosition 控制;每个部件可选 `icon` 字段,内置: clock/folder/tags/archive/collection/chart/quote/image/link/info/book/search/rss/download/home） |
@@ -1170,15 +1184,17 @@ listCover: {
 | `robots.enabled` / `rules[]` | `false`/`[]` | robots 规则 |
 | `rateLimiting.enabled` | `false` | Worker 限流(100 req/60s) |
 | `rateLimiting.maxRequests/windowMs/blockDuration` | `100`/`60000`/`300000` | 参数（封禁时长毫秒） |
+| `rateLimiting.maxTrackedEntries` | `5000` | Worker 进程内限流跟踪表最大键数（超出触发一次过期清理，防伪造 IP 洪泛撑爆内存；1–200000，非法回退 5000） |
 | `rateLimiting.whitelist[]`/`blacklist[]` | `[]` | IP 或 **CIDR**（IPv4/IPv6，如 `10.0.0.0/8`、`2001:db8::/32`；黑名单始终拦截，白名单跳过限流） |
 | `rateLimiting.skipPaths[]` | `/assets/ /media/ /og/ /icons/ /pagefind/` | 不计限流的静态资源前缀（空数组 = 内置默认）；避免单页上百子资源误触 429 |
 | `pathRestrictions[]` | `[{path}]` | 元素 `{path, requireAuth?, allowedIPs?}`：路径支持 `/*` 后缀、匹配时解码百分号编码并忽略大小写；`allowedIPs` 为 CIDR 时命中者放行；`requireAuth` 无鉴权提供方时保持拦截（fail-closed） |
+| `hardening.cspReportMaxBytes` | `16384` | `/csp-report` 接收体最大字节数（超出响应 413；1024–1048576，非法回退 16384） |
 | `hardening.hstsMaxAge/hstsIncludeSubDomains/hstsPreload` | `31536000`/`true`/`true` | 覆盖 HSTS（优先级高于 headers 段）；preload 默认保留 headers 段声明 |
 | `hardening.referrerPolicy/permissionsPolicy/xssProtection` | — | 覆盖 headers 段同名头（`xssProtection` 默认 `"0"`：该头已被现代浏览器废弃，显式关闭） |
 | `hardening.corsAllowedOrigins` | `[]` | 非空时输出 Access-Control-Allow-Origin（多来源逗号拼接） |
 | `customHeaders` | `{}` | 追加响应头（同步进 Worker） |
 
-> 注意:`workers/security-config.js` 由构建从本文件自动生成,不要手改(生成器:scripts/generate-security-config.js)。Worker 与静态层 `_headers` 共用同一 hardening 合并逻辑（`applyHeaderHardening`），两层头部完全一致；Worker 侧 `_headers` 的路径限制与限流逻辑见 `workers/security-worker.js` 与 `workers/lib/*.mjs`（CIDR/限流均有单元测试）。`/csp-report` 端点受限流保护、载荷上限 16KB、日志只记录关键字段。CSP 默认仅通过响应头下发（`_headers` 或 Worker）；仅在托管环境无法设置响应头时才开启 `csp.metaEnabled` 兜底（meta 无法表达 report-only）。
+> 注意:`workers/security-config.js` 由构建从本文件自动生成,不要手改(生成器:scripts/generate-security-config.js)。Worker 与静态层 `_headers` 共用同一 hardening 合并逻辑（`applyHeaderHardening`），两层头部完全一致；Worker 侧 `_headers` 的路径限制与限流逻辑见 `workers/security-worker.js` 与 `workers/lib/*.mjs`（CIDR/限流均有单元测试）。`/csp-report` 端点受限流保护、载荷上限默认 16KB（`hardening.cspReportMaxBytes` 可调）、日志只记录关键字段。CSP 默认仅通过响应头下发（`_headers` 或 Worker）；仅在托管环境无法设置响应头时才开启 `csp.metaEnabled` 兜底（meta 无法表达 report-only）。
 
 ---
 
@@ -1209,15 +1225,15 @@ listCover: {
 
 **friends.json5**: 友链。
 ```json
-{ "enabled": false, "title": "友情链接", "labels": { "zh": "友情链接", "en": "Friends" }, "description": "", "descriptionEn": "", "applyNote": "", "applyNoteEn": "", "friends": [ { "name": "示例", "nameEn": "", "url": "https://example.com", "desc": "一句话简介", "descEn": "", "logo": "" } ] }
+{ "enabled": false, "title": "友情链接", "labels": { "zh": "友情链接", "en": "Friends" }, "description": "", "descriptionEn": "", "applyNote": "", "applyNoteEn": "", "sidebarCount": 8, "friends": [ { "name": "示例", "nameEn": "", "url": "https://example.com", "desc": "一句话简介", "descEn": "", "logo": "" } ] }
 ```
-影响:自动注入导航「友链」、/links/ 页、侧栏 friends widget。 友链项字段为 `{name,nameEn,url,desc,descEn,logo}`（desc 不是 description）;labels 为多语言标题覆盖（`labels.en` 优先于 `title`，故不再单设 `titleEn`）;`descriptionEn`/`applyNoteEn`/`nameEn`/`descEn` 为 en 站文案，**空 = 回退对应中文值**。
+影响:自动注入导航「友链」、/links/ 页、侧栏 friends widget。 友链项字段为 `{name,nameEn,url,desc,descEn,logo}`（desc 不是 description）;labels 为多语言标题覆盖（`labels.en` 优先于 `title`，故不再单设 `titleEn`）;`descriptionEn`/`applyNoteEn`/`nameEn`/`descEn` 为 en 站文案，**空 = 回退对应中文值**。`sidebarCount`（默认 8）控制侧栏 friends widget 最多展示条数（1–200，非法回退 8；/links/ 页始终全量）。
 
 ---
 
 ## 10. tuning.json5 — UI 微调参数层
 
-独立 UI 参数文件(37 分类 / 273 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
+独立 UI 参数文件(37 分类 / 274 项,逐项中文注释)。构建时全量注入为 `:root` CSS 变量,命名规则 `--{分类}-{参数}`(如 `--hero-maxWidth`、`--toc-indentL3`)。
 
 **优先级语义**:CSS 类参数已绑定到样式规则并优先于 theme/features 的同名默认值(微调层——改 tuning 值即生效);行为类参数(motion/search/toc/tts/dailyQuote/readingPanel/header 滚动)经 `window.__TUNING__` 注入、运行时优先读取(回退 features);与 features/site 重叠的键已全部清理(单一入口归各自模块配置);原「待实现」键已全部接线(导语字号/评论区标记头像与圆角/分隔线/分页窗口省略/标签云字号梯度/系列进度条/打赏弹窗圆角),全部参数均有真实消费点。
 
@@ -1231,7 +1247,7 @@ listCover: {
 - **hero（9 项）**：titleSize 2.618em / subSize 1.05em / maxWidth 760px / actionsGap .75rem / tagGap .5rem / ctaRadius 0.382rem / paddingTop 1rem / paddingBottom 2rem / dateSize .9375rem
 - **card（12 项）**：imageAspect 16/10 / radius 0.618rem / padding 1.5rem / titleSize 1.272rem / excerptLines 3 / metaSize .8125rem / nocoverMinSize 1.272rem / nocoverMaxSize 1.618rem / gridGap 1.618rem / imageHoverScale 1.02 / bentoFeatured true / bentoAspect 21/10
 - **toc（9 项）**：fontSize .8125rem / labelSize .6875rem / indentL2 .5rem / indentL3 1.2rem / indentL4 1.9rem / progressHeight 3px / stickyTop 80px / scrollOffset 80 / collapsedByDefault false
-- **search（19 项）**：overlayPadding 12vh 1rem 2rem / modalPadding 2.5rem 2.5rem 2rem / modalMaxHeight 78vh / closeBtnSize 36px / modalWidth 760px / inputHeight 56px / inputFontSize 1.375rem / historyCount 5 / hotCount 5 / debounceMs 120 / minQueryLength 1 / excerptLength 120 / resultLimit 30 / emptyText 未找到匹配内容 / emptyTextEn No matching content / indexTimeoutMs 5000 / indexRetry 1 / errorText '' / errorTextEn ''
+- **search（20 项）**：overlayPadding 12vh 1rem 2rem / overlayBackdrop rgba(0,0,0,.55) / modalPadding 2.5rem 2.5rem 2rem / modalMaxHeight 78vh / closeBtnSize 36px / modalWidth 760px / inputHeight 56px / inputFontSize 1.375rem / historyCount 5 / hotCount 5 / debounceMs 120 / minQueryLength 1 / excerptLength 120 / resultLimit 30 / emptyText 未找到匹配内容 / emptyTextEn No matching content / indexTimeoutMs 5000 / indexRetry 1 / errorText '' / errorTextEn ''
 - **reading（21 项）**：progressHeight 3px / dockBottom 5.6rem / dockRight 1.35rem / dockBtnSize 40px / dockRightTablet 1rem / dockBottomTablet 6.4rem / gearBottom 14.6rem / gearMobileBottom 10.8rem / panelBottom 13.2rem / panelWidth 280px / dockMobileBottom 14.2rem / ttsRate 1 / ttsPitch 1 / fontSizeStep 1 / lineHeightStep 0.1 / readingMaxWidth 72ch / quoteTint 6% / imageHoverScale 1.01 / h2AccentWidth .25rem / h2AccentHeight 1em / h2AccentColor var(--color-s)
 - **comments（5 项）**：avatarSize 40px / marginTop 2rem / width 100% / borderRadius 0.618rem / dividerShow true
 - **header（7 项）**：height 60px / logoSize 1.272em / iconSize 18px / scrolledHeight 56px / scrollShrink true / scrollThresholdPx 8 / hairlineStrength 30%
@@ -1270,7 +1286,7 @@ listCover: {
 
 ## 11. guard.json5 — 防护与交互控制域
 
-第 13 个配置文件（11 个模块 / 176 项，统计口径：对象逐层展开、数组元素逐项计入；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
+第 13 个配置文件（11 个模块 / 181 项，统计口径：对象逐层展开、数组元素逐项计入；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
 
 **结构**：
 - `core`（13 项）：`preset 'soft'` / `bypass.enabled true` / `bypass.urlParam true` / `bypass.localStorage true` / `bypass.localhost false` / `bypass.cleanUrl true` / `bypass.queryParam 'guard'` / `bypass.storageFlag 's-guards-off'` / `bypass.accessGateKey true` / `logLevel 'off'` / `respectEditable true` / `i18nFallbackLang 'zh'` / `edgePadding '8px'`。绕过优先级：`?guard=on` 覆盖一切（含其余绕过通道）> `?guard=off` > localStorage 标志 > localhost（开启时）；`bypass.enabled=false` 时四条通道（含 accessGate `?key=`）全部失效，判定原因经 `window.__GUARD_BYPASS__` 可观测（`url-off`/`url-on`/`storage`/`localhost`/`disabled`/`none`）。`?guard=` 与 `?key=` 在绕过判定/解锁读取完成后由 `history.replaceState` 从地址栏移除（保留其它查询串与 hash；`bypass.cleanUrl=false` 时保留），参数名跟随 `bypass.queryParam`。
@@ -1287,7 +1303,7 @@ listCover: {
 | `bypass.queryParam` | string | `'guard'` | URL 参数名；空字符串回退默认（禁用该通道请用 `urlParam:false`） |
 | `bypass.storageFlag` | string | `'s-guards-off'` | localStorage 键名；空字符串 = 关闭该通道 |
 | `bypass.accessGateKey` | bool | `true` | 是否允许 accessGate 的 `?key=` 解锁码绕过访问门槛（是否可用仍由 `accessGate.unlockCodes` 决定） |
-- `contextMenu`（36 项）：`enabled` / `revokeDelayMs 3000`(下载后释放 Blob URL 延迟 ms) / `translateUrl`(划词翻译模板，`{lang}`/`{text}`；空=隐藏翻译项) / `disableNative` / `trigger.longPress`+`longPressMs 550` / `hapticMs 10`(长按弹出菜单的触觉反馈时长 ms，0=禁用；仅支持 `navigator.vibrate` 的设备生效) / `searchFocusDelayMs 60`(「搜索所选文字」打开搜索后聚焦输入框延迟 ms) / `behavior.closeOnEsc|closeOnScroll|closeOnOutside|closeOnBlur` / `style.width|radius|blur|animMs|shadowOpacity`（width/radius 留空=走 `tuning.json5` → `guard` 分类）/ `showOn.selection|link|image|code|blank` / `builtin.*`（copy/copyLink/openNewTab/searchSelected/translate/backToTop/toggleTheme/print/copyCode/copyRaw/download；`viewSource`/`inspect` 默认关）/ `items[]` 自定义项（`label`/`labelEn`/`icon`/`url`|`action`/`selector`；自定义动作派发 `guard:menu-action` 事件）/ `excludeSelectors[]` / `ariaLabel`。
+- `contextMenu`（38 项）：`enabled` / `revokeDelayMs 3000`(下载后释放 Blob URL 延迟 ms) / `translateUrl`(划词翻译模板，`{lang}`/`{text}`；空=隐藏翻译项) / `disableNative` / `trigger.longPress`+`longPressMs 550` / `hapticMs 10`(长按弹出菜单的触觉反馈时长 ms，0=禁用；仅支持 `navigator.vibrate` 的设备生效) / `searchFocusDelayMs 60`(「搜索所选文字」打开搜索后聚焦输入框延迟 ms) / `searchTextMaxChars 12`(搜索菜单项中选中文本截断字数，≥1，非法回退 12) / `moveTolerancePx 8`(触屏长按期间的位移容差 px，超过即取消长按；非负，非法回退 8) / `behavior.closeOnEsc|closeOnScroll|closeOnOutside|closeOnBlur` / `style.width|radius|blur|animMs|shadowOpacity`（width/radius 留空=走 `tuning.json5` → `guard` 分类）/ `showOn.selection|link|image|code|blank` / `builtin.*`（copy/copyLink/openNewTab/searchSelected/translate/backToTop/toggleTheme/print/copyCode/copyRaw/download；`viewSource`/`inspect` 默认关）/ `items[]` 自定义项（`label`/`labelEn`/`icon`/`url`|`action`/`selector`；自定义动作派发 `guard:menu-action` 事件）/ `excludeSelectors[]` / `ariaLabel`。
 - `copyGuard`（18 项）：`mode 'attribution'`（`off` | `attribution` 追加出处 | `weakBlock` 首次拦截并提示、再次放行 | `block` 硬拦截）/ `attribution.text`+`textEn`（占位符 `{title}{url}{author}{site}`）/ `position after|before` / `separator` / `minChars 40`（短复制不打扰）/ `onlyArticles true` / `allow.codeBlocks true`+`allow.selectors[]`（代码块与可编辑区始终放行）/ `block.toast|toastText|flash`（复用统一 `__toast`）/ `extra.alsoCut|imageNotice|iOSOverride` / `noticeOncePerSession true` / `logCopyEvents false`（仅本地 console，无网络上报）/ `flashRemoveMs 600`(闪烁遮罩移除延迟 ms)。
 - `selectionGuard`（7 项，**默认关**）：`mode 'content'`（`allow` | `content` 正文禁选 | `strict` 全域）/ `allowSelectors[]`+`allowCode true`（代码白名单）/ `allowCtrlA|allowShiftArrows true`（保留键盘选择，无障碍优先）/ `noticeToast|noticeText`。实现：CSS `user-select:none`（正文/全域）+ `selectstart` 事件双保险，输入框与代码始终豁免。
 - `hotkeyGuard`（12 项，**默认关**）：`keys.f12|ctrlShiftI|ctrlShiftJ|ctrlShiftC` 默认拦截；`ctrlU|ctrlS|ctrlP` 默认放行（分别与查看源码/保存网页/打印冲突，可按需开启）（macOS 自动等效 Cmd）/ `keys.printScreen false`（仅检测提示）/ `keys.custom[]`（`'ctrl+alt+x'` 语法）/ `noticeToast|noticeText|noticeOncePerSession`。仅拦键盘路径（浏览器菜单/独立窗口不可拦，威慑级），输入框豁免。

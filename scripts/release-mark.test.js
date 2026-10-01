@@ -68,6 +68,10 @@ function createFixture() {
     path.join(ROOT, 'scripts', 'lib', 'atomic-write.js'),
     path.join(FIXTURE, 'scripts', 'lib', 'atomic-write.js')
   );
+  fs.copyFileSync(
+    path.join(ROOT, 'scripts', 'lib', 'process-guard.js'),
+    path.join(FIXTURE, 'scripts', 'lib', 'process-guard.js')
+  );
   fs.writeFileSync(FIXTURE_PACKAGE_JSON, JSON.stringify({
     name: 's-ynapse-release-mark-fixture',
     version: FIXTURE_VERSION

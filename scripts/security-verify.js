@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('./lib/process-guard.js');
 // Security regression verification for S-ynapse.
 // Injects a hostile article into an isolated .tmp-test site (never the real
 // articles/), runs a real build, and asserts that no XSS payload reaches the

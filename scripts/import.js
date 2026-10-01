@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 'use strict';
+require('./lib/process-guard.js');
 // Import CLI — migrate posts from Hexo / Hugo / WordPress into articles/.
 //
 // Usage:

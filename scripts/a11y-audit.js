@@ -1,4 +1,5 @@
 'use strict';
+require('./lib/process-guard.js');
 // 全页无障碍审计（axe-core + puppeteer-core）：
 //   1. 页面集合自动从 dist/ 派生——收录全部 .html（仅排除内部构建报告 build-report.html），
 //      中英双语首页/文章/归档/标签/分类/搜索/画廊/系列/收藏/友链等一页不漏；

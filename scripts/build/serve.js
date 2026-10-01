@@ -1,4 +1,5 @@
 'use strict';
+require('../lib/process-guard.js');
 // 开发预览服务器模块（自 scripts/build.js 机械拆分；仅移动函数与依赖接线，不含逻辑变更）。
 // 编排器通过 createServeModule(ctx) 注入产物目录；http 在函数体内按需 require，非 serve 模式零开销。
 // MIME 表、gzip 协商与静态文件解析委托 scripts/lib/static-server.js（与压缩验证服务器共享语义）。

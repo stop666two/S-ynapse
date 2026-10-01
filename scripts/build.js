@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('./lib/process-guard.js');
 // S-ynapse Static Blog Builder — main build pipeline
 // Reads Markdown articles + JSON5 configs + EJS templates → fully static HTML site
 // Pipeline order: config → validate → dist → static → media → articles → pages → RSS → sitemap → search → security headers → minify → cache bust → PWA

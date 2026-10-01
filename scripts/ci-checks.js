@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 'use strict';
+require('./lib/process-guard.js');
 
 // CI 聚合检查器（deploy.yml / nightly.yml 单步调用）：
 //   顺序执行既有质量门禁（lint / typecheck / 单元与属性测试 / 恶意场景 / 配置家族 /
@@ -73,6 +74,7 @@ const CHECKS = [
   { name: 'verify:config-docs', args: ['run', 'verify:config-docs'] },
   { name: 'verify:internals', args: ['run', 'verify:internals'] },
   { name: 'verify:security', args: ['run', 'verify:security'] },
+  { name: 'verify:process-guards', args: ['run', 'verify:process-guards'] },
   // audit 为建议项（advisory）：既有 wrangler/miniflare 链漏洞需依赖升级专项处理
   // （按 CVSS 单独跟踪），结果写入报告但不阻断本聚合器。
   { name: 'audit', args: ['run', 'audit'], advisory: true },

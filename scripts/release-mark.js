@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 'use strict';
+require('./lib/process-guard.js');
 // 发布标记脚本（npm run release:mark）：
 //   1. 校验工作区干净；
 //   2. 顺序执行全套质量门禁（任一失败即停止，不修改任何文件）；

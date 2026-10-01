@@ -1,4 +1,5 @@
 'use strict';
+require('./lib/process-guard.js');
 /* global document, window */
 
 // 用途：在固定网络/CPU 条件下对目标 URL 做可复现的冷加载性能采样，

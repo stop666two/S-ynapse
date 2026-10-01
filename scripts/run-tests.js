@@ -1,3 +1,4 @@
+require('./lib/process-guard.js');
 const { readdirSync } = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');

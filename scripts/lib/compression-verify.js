@@ -12,6 +12,7 @@
 //      关闭 JS 以隔离运行时注入（reveal 动画类、代码块工具栏属性、speculationrules 脚本
 //      等时序相关差异），压缩作用于静态字节，这属于压缩无关差异；
 //   ② 采样元素计算样式一致（JS 关闭的静态页）——每页可见元素前 N 个的 getComputedStyle 关键属性串；
+//      采样前等字体就绪并跨双 rAF 稳定，任一项不一致时退避重采两态（≤2 次），仅持续不一致才判失败；
 //   ③ 两态 0 控制台错误（JS 开启，逐页；唯一过滤项：浏览器默认 favicon 请求噪声）；
 //   ④ 压缩态交互冒烟（JS 开启）——软导航点击文章无整页刷新、搜索可打开、主题切换可用；
 //   ⑤ runtime 压缩或 js.obfuscate.enabled 时压缩态额外断言 __T/__SB 与 deferred 动态加载。
@@ -39,6 +40,12 @@ const DEFAULT_SERVER_START_TIMEOUT_MS = 20000;
 const DEFAULT_PORT_RELEASE_TIMEOUT_MS = 3000;
 const DEFAULT_PAGE_TIMEOUT_MS = 30000;
 const PAGE_SETTLE_MS = 300;
+// 静态对比重采样策略：样式表/字体应用存在采样时差，单次采样可能把「样式未就绪」误判为差异。
+// 任一项不一致时退避重采两态，仅持续不一致才判失败（真实产物差异在重试用尽后照常失败）。
+const STATIC_RETRY_MAX = 2;
+const STATIC_RETRY_BACKOFF_MS = 250;
+// 稳定门在浏览器侧的兜底超时之外的进程侧上限：任何协议级异常都不得让门禁挂起。
+const STABLE_PAINT_TIMEOUT_MS = 1500;
 // 验证服务看门狗：父进程（构建）消失 / 空闲 3 分钟 / 寿命 10 分钟即自退。
 const VERIFY_WATCHDOG = Object.freeze({ idleMs: 180000, maxMs: 600000 });
 const STYLE_SAMPLE_LIMIT = 80;
@@ -496,6 +503,22 @@ function browserSampleStyles(limit, props) {
   return out;
 }
 
+// 采样前的稳定门：字体就绪 → 跨双 rAF（等待样式/布局完成一帧刷帧）。
+// 隐藏页（无头下仅最后打开的页面 visible）的 rAF 会被暂停，不能作为唯一信号：
+// 定时器兜底保证等待有界，避免采样因页面不可见而永久挂起。
+// 必须在页面上下文执行（page.evaluate 序列化），禁止引用本模块作用域。
+function browserWaitForStablePaint() {
+  const fonts = document.fonts;
+  const fontsReady = fonts && fonts.ready ? fonts.ready.then(() => true) : Promise.resolve(true);
+  const rafWait = new Promise((resolve) => {
+    let settled = false;
+    const finish = () => { if (!settled) { settled = true; resolve(true); } };
+    requestAnimationFrame(() => requestAnimationFrame(finish));
+    setTimeout(finish, 100);
+  });
+  return fontsReady.then(() => rafWait);
+}
+
 async function browserInteractions() {
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const doc = document;
@@ -560,18 +583,55 @@ async function preparePage(page, jsEnabled) {
 // 静态对比页面关闭 JavaScript：压缩作用于静态字节，DOM/计算样式须与运行时注入
 // （reveal 动画类、代码块工具栏属性、speculationrules 脚本等时序相关差异）解耦；
 // JS 运行时正确性由控制台错误断言与交互冒烟单独覆盖。
-// 等待 CSSOM 与字体就绪（document.fonts.ready）后采样：字体度量会影响 line-height 等
-// 计算值，必须先稳定再对比；但不等全部图片（load 事件），避免大图拉长门禁时间。
+// 等待字体就绪（document.fonts.ready）与双 rAF 样式刷帧后采样：字体度量会影响
+// line-height 等计算值，样式表应用时刻也会影响 color 等取值，必须先稳定再对比；
+// 但不等全部图片（load 事件），避免大图拉长门禁时间。
 async function sampleStaticPage(page, url, opts) {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
-  await page.evaluate(() => {
-    const fonts = document.fonts;
-    return fonts && fonts.ready ? fonts.ready.then(() => true) : true;
-  }).catch(() => {});
+  await Promise.race([
+    page.evaluate(browserWaitForStablePaint).catch(() => {}),
+    sleep(STABLE_PAINT_TIMEOUT_MS)
+  ]);
   await sleep(150);
   const rawDom = await page.evaluate(browserCanonicalDom);
   const styles = await page.evaluate(browserSampleStyles, STYLE_SAMPLE_LIMIT, STYLE_PROPS);
   return { dom: normalizeWhitelistText(rawDom), styles };
+}
+
+// 两态同页并行采样（压缩态服务与基线态服务各自取一次）。
+async function sampleStaticPair(pageA, urlA, pageB, urlB, opts) {
+  const [compressed, baseline] = await Promise.all([
+    sampleStaticPage(pageA, urlA, opts),
+    sampleStaticPage(pageB, urlB, opts)
+  ]);
+  return { compressed, baseline };
+}
+
+/**
+ * 有界稳定化两态采样：任一项不一致时按退避等待重采（每次重采都会重新导航两态），
+ * 仅最后一次采样仍不一致的项才标记为持续不一致，供调用方判失败。
+ * @param {() => Promise<{compressed: {dom: string, styles: string[]}, baseline: {dom: string, styles: string[]}}>} sample
+ * @param {{maxRetries?: number, backoffMs?: number, sleep?: (ms: number) => Promise<void>}} [options]
+ * @returns {Promise<{attempts: number, compressed: object, baseline: object, persistent: {dom: boolean, style: boolean}}>}
+ */
+async function stabilizeStaticSample(sample, options) {
+  const opts = options || {};
+  const maxRetries = Number.isInteger(opts.maxRetries) && opts.maxRetries >= 0 ? opts.maxRetries : STATIC_RETRY_MAX;
+  const backoffMs = Number.isFinite(opts.backoffMs) && opts.backoffMs >= 0 ? opts.backoffMs : STATIC_RETRY_BACKOFF_MS;
+  const wait = typeof opts.sleep === 'function' ? opts.sleep : sleep;
+  let attempts = 0;
+  let sampled;
+  let persistent;
+  for (;;) {
+    if (attempts > 0) await wait(backoffMs);
+    sampled = await sample();
+    const domMatch = sampled.compressed.dom === sampled.baseline.dom;
+    const styleMatch = JSON.stringify(sampled.compressed.styles) === JSON.stringify(sampled.baseline.styles);
+    persistent = { dom: !domMatch, style: !styleMatch };
+    attempts += 1;
+    if ((domMatch && styleMatch) || attempts > maxRetries) break;
+  }
+  return { attempts, compressed: sampled.compressed, baseline: sampled.baseline, persistent };
 }
 
 // 运行时页面（JS 开启）等待运行时引导就绪后收集控制台错误；不做 DOM/样式采样。
@@ -621,12 +681,12 @@ async function sampleRuntimeErrors(page, url, consoleState, opts) {
   return consoleState.errors.slice();
 }
 
-function compareStaticPage(page, compressed, baseline, report) {
-  if (compressed.dom !== baseline.dom) {
-    report.failures.push({ kind: 'dom', page, detail: firstDifference(compressed.dom, baseline.dom) });
+function compareStaticPage(page, sampled, report) {
+  if (sampled.persistent.dom) {
+    report.failures.push({ kind: 'dom', page, detail: firstDifference(sampled.compressed.dom, sampled.baseline.dom) });
   }
-  if (JSON.stringify(compressed.styles) !== JSON.stringify(baseline.styles)) {
-    report.failures.push({ kind: 'style', page, detail: firstArrayDifference(compressed.styles, baseline.styles) });
+  if (sampled.persistent.style) {
+    report.failures.push({ kind: 'style', page, detail: firstArrayDifference(sampled.compressed.styles, sampled.baseline.styles) });
   }
 }
 
@@ -798,17 +858,17 @@ async function verifyCompression(options) {
     await preparePage(staticB, false);
     for (const pagePath of report.pages) {
       const staticStartedAt = Date.now();
-      const [compressed, baseline] = await Promise.all([
-        sampleStaticPage(staticA, compressedBase + pagePath, opts),
-        sampleStaticPage(staticB, baselineBase + pagePath, opts)
-      ]);
+      const sampled = await stabilizeStaticSample(() => sampleStaticPair(
+        staticA, compressedBase + pagePath, staticB, baselineBase + pagePath, opts
+      ));
       report.comparisons.push({
         page: pagePath,
         staticMs: Date.now() - staticStartedAt,
-        compressed: { domLength: compressed.dom.length, styleSamples: compressed.styles.length },
-        baseline: { domLength: baseline.dom.length, styleSamples: baseline.styles.length }
+        attempts: sampled.attempts,
+        compressed: { domLength: sampled.compressed.dom.length, styleSamples: sampled.compressed.styles.length },
+        baseline: { domLength: sampled.baseline.dom.length, styleSamples: sampled.baseline.styles.length }
       });
-      compareStaticPage(pagePath, compressed, baseline, report);
+      compareStaticPage(pagePath, sampled, report);
     }
     await staticA.close().catch(() => {});
     await staticB.close().catch(() => {});
@@ -904,5 +964,6 @@ module.exports = {
   closeBrowserSafely,
   settleRuntimePage,
   sampleRuntimeErrors,
+  stabilizeStaticSample,
   sleep
 };

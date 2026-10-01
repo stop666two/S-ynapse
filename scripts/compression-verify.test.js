@@ -23,6 +23,7 @@ const {
   discoverArticlePath,
   discoverVerifyPages,
   runInteractions,
+  stabilizeStaticSample,
   waitForPortRelease
 } = require('./lib/compression-verify');
 const {
@@ -254,6 +255,66 @@ describe('static-server（共享静态服务解析）', () => {
     assert.equal(isCompressibleType('image/png'), false);
     assert.equal(isCompressibleType('font/woff2'), false);
     assert.equal(MIME_TYPES['.html'], 'text/html');
+  });
+});
+
+describe('stabilizeStaticSample（静态采样稳定化）', () => {
+  const pair = (dom, style) => ({ compressed: { dom, styles: [style] }, baseline: { dom, styles: [style] } });
+
+  test('首次采样即一致：不等待、不重试', async () => {
+    const waits = [];
+    const result = await stabilizeStaticSample(async () => pair('same', 'color:red'), {
+      sleep: async (ms) => waits.push(ms)
+    });
+    assert.equal(result.attempts, 1);
+    assert.deepEqual(result.persistent, { dom: false, style: false });
+    assert.deepEqual(waits, []);
+  });
+
+  test('样式未就绪：退避重采样至多 2 次，收敛即通过', async () => {
+    let calls = 0;
+    const waits = [];
+    const sample = async () => {
+      calls++;
+      return calls < 3
+        ? { compressed: { dom: 'x', styles: ['color:rgb(0,0,238)'] }, baseline: { dom: 'x', styles: ['color:rgb(25,31,49)'] } }
+        : pair('x', 'color:rgb(25,31,49)');
+    };
+    const result = await stabilizeStaticSample(sample, { sleep: async (ms) => waits.push(ms), backoffMs: 250 });
+    assert.equal(result.attempts, 3);
+    assert.deepEqual(result.persistent, { dom: false, style: false });
+    assert.deepEqual(waits, [250, 250]);
+  });
+
+  test('持续不一致：用尽重试后按分项判失败（真实差异不被弱化）', async () => {
+    let calls = 0;
+    const result = await stabilizeStaticSample(async () => {
+      calls++;
+      return { compressed: { dom: 'a', styles: ['color:red'] }, baseline: { dom: 'b', styles: ['color:blue'] } };
+    }, { sleep: async () => {} });
+    assert.equal(result.attempts, 3);
+    assert.equal(calls, 3);
+    assert.deepEqual(result.persistent, { dom: true, style: true });
+  });
+
+  test('仅部分项持续不一致：按分项标记', async () => {
+    const result = await stabilizeStaticSample(async () => ({
+      compressed: { dom: 'a', styles: ['same'] },
+      baseline: { dom: 'b', styles: ['same'] }
+    }), { sleep: async () => {}, maxRetries: 1 });
+    assert.equal(result.attempts, 2);
+    assert.deepEqual(result.persistent, { dom: true, style: false });
+  });
+
+  test('maxRetries=0：单采样后直接判定（重试可显式关闭）', async () => {
+    let calls = 0;
+    const result = await stabilizeStaticSample(async () => {
+      calls++;
+      return { compressed: { dom: 'a', styles: [] }, baseline: { dom: 'b', styles: [] } };
+    }, { sleep: async () => {}, maxRetries: 0 });
+    assert.equal(calls, 1);
+    assert.equal(result.attempts, 1);
+    assert.deepEqual(result.persistent, { dom: true, style: false });
   });
 });
 

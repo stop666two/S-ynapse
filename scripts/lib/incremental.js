@@ -50,7 +50,11 @@ function stableSerialize(value) {
     const out = {};
     for (const key of Object.keys(v).sort()) {
       const r = norm(v[key]);
-      if (r !== undefined) out[key] = r;
+      // 必须经 defineProperty 建自有属性：普通赋值遇 key='__proto__' 会触发原型 setter
+      // （JSON.parse 产物可含该自有键），导致序列化丢键。
+      if (r !== undefined) {
+        Object.defineProperty(out, key, { value: r, enumerable: true, writable: true, configurable: true });
+      }
     }
     seen.delete(v);
     return out;

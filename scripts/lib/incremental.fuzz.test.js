@@ -64,6 +64,15 @@ describe('asset-cache 属性', () => {
     ));
   });
 
+  it("'__proto__' 条目 id：更新为自有属性并可命中，不改写原型", () => {
+    const cache = {};
+    updateEntry(cache, '__proto__', 'k1');
+    assert.ok(Object.prototype.hasOwnProperty.call(cache, '__proto__'));
+    assert.strictEqual(cache['__proto__'], 'k1', '普通赋值会触发原型 setter 丢键');
+    assert.strictEqual(isFresh(cache, '__proto__', 'k1'), true);
+    assert.strictEqual(Object.getPrototypeOf(cache), Object.prototype);
+  });
+
   it('变更序列：skip/rebuild 次数等于各 id 键值跳变次数，终态缓存等于最后一次键', () => {
     const stateArb = fc.record({
       id: fc.constantFrom('a', 'b', 'c'),
@@ -190,6 +199,18 @@ describe('stableSerialize 属性', () => {
     assert.strictEqual(stableSerialize(undefined), undefined);
     assert.strictEqual(stableSerialize(new Date('2026-01-01T00:00:00.000Z')), '"2026-01-01T00:00:00.000Z"');
     assert.strictEqual(stableSerialize(Buffer.from('ab')), JSON.stringify(Buffer.from('ab').toString('base64')));
+  });
+
+  // 回归：JSON.parse 产生的 '__proto__' 自有键在重建对象时不得触发原型 setter（fuzz 反例 [{"__proto__":null}]）。
+  it('__proto__ 键：重建为自有属性，不改变原型', () => {
+    assert.strictEqual(stableSerialize(JSON.parse('{"__proto__":null}')), '{"__proto__":null}');
+    assert.strictEqual(stableSerialize([JSON.parse('{"__proto__":null}')]), '[{"__proto__":null}]');
+    assert.strictEqual(stableSerialize(JSON.parse('{"a":1,"__proto__":{"x":2}}')), '{"__proto__":{"x":2},"a":1}');
+    const serialized = stableSerialize(JSON.parse('{"__proto__":"v"}'));
+    const parsed = JSON.parse(serialized);
+    assert.ok(Object.prototype.hasOwnProperty.call(parsed, '__proto__'), '__proto__ 必须是自有属性');
+    assert.strictEqual(Object.getPrototypeOf(parsed), Object.prototype, '原型不得被改写');
+    assert.strictEqual(parsed.__proto__, 'v');
   });
 });
 

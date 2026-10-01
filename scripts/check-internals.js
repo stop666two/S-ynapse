@@ -5,6 +5,7 @@
 //   1. .nvmrc 存在且与 internals.ci.nodeVersion 一致（CI 用 node-version-file 读它）；
 //   2. workers/wrangler.toml 的 [assets] directory 解析后与 internals.deploy.workerAssetsDir 一致；
 //   3. CI 兼容任务（deploy.yml compat-node20）的 node-version 与 internals.ci.compatNodeVersion 一致；
+//      派生副本（SYNAPSE_DERIVED_COPY=1）自带 CI 配置（.github 不随主仓同步），跳过本项；
 //   4. 关键写死形态已消失（抽样正则，防止回退成双源字面量）。
 // 退出码：全部通过 → 0；任一失败 → 1（打印逐条原因）。
 
@@ -13,6 +14,7 @@ const path = require('path');
 const { loadInternals } = require('./lib/internals');
 
 const ROOT = path.resolve(__dirname, '..');
+const DERIVED_COPY = process.env.SYNAPSE_DERIVED_COPY === '1';
 const failures = [];
 
 function read(rel) {
@@ -132,7 +134,11 @@ function main() {
   }
   checkNvmrc(internals);
   checkWranglerAssets(internals);
-  checkDeployWorkflow(internals);
+  if (DERIVED_COPY) {
+    console.log('[verify:internals] 派生副本：跳过 deploy.yml 一致性检查（.github 不随主仓同步）');
+  } else {
+    checkDeployWorkflow(internals);
+  }
   checkLiteralGuards();
 
   if (failures.length) {

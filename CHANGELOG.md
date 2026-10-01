@@ -7,12 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **配置单一事实源守卫与行为开关矩阵（819 项）**：新增 `scripts/check-config-single-source.js` + `npm run verify:config-single-source`（接入 `ci-checks.js` 与 `deploy.yml`，紧随 `verify:config-refs`）——① 回退字面量绑定：`scripts/config-fallback-bindings.json` 把浏览器运行时/模板中不可删除的兜底字面量逐条绑定注册表默认值（snippet + literal），值漂移或 snippet 失配即 FAIL；② 矩阵新鲜度：`docs/config-switch-matrix.md` 由 `npm run gen:config-matrix` 生成（键路径/类型/默认/消费 file:line/测试证据/覆盖状态），与生成结果逐字不一致即 FAIL；③ 覆盖完整性：全部布尔/枚举/数值开关必须有测试 marker（`// switch: <键路径>`）、既有测试引用或 `scripts/config-switch-exemptions.json` 豁免理由，缺失/未知 marker/未知或冗余豁免均 FAIL。矩阵当前 819 项：已测 164（新挂 64 个测试用例的 marker，覆盖 lightbox 手势、阅读恢复、双语、saveData/degrade、themeLab、exportArticle、PWA 策略、增量构建、perfBudget、related、feed 等纯函数与构建期双态）、既有引用 291、豁免 364（runtime-dom 164 / ssr-template 93 / build-integration 58 / visual-param 49，逐键登记类别理由）。新增 `scripts/config-switch-guards.test.js`（7 例：盘点类型与段覆盖、marker 注册表校验、resolveDefault、绑定漂移合成用例、豁免表非空理由与冗余检查、矩阵行数一致性、提交版矩阵新鲜度）。
+
 ### Changed
 
+- **回退字面量与注册表默认值去重（单一来源）**：`scripts/lib/feature-wiring.js` 50 处、`scripts/build/*` 与 `scripts/lib/*` 35 处、`templates/layout.ejs` 10 处改为引用 `DEFAULT_FEATURES`/`DEFAULT_TUNING`/`DEFAULT_CONFIG`/`internals DEFAULTS` 或注入合并后的配置值（含 lightbox 手势阈值、阅读恢复、缓存条数、存储键、命令面板热键/结果数、sitemap 频率与拆分上限、speculation 三键、ogImageStyle 四键、mermaid 明暗主题、PWA serviceWorker、字体 fontDisplay、feed/OG/JSON 选项、lazy LQIP 宽度、增量 fullFlag、CI skip forceEnv 等）；`feature-wiring.js` 的规范化函数在缺省配置下输出与历史逐字一致（89 例既有单测全绿）。
+- **模板内联脚本回退值改构建期注入**：`templates/layout.ejs` 的 prism 批处理（8/300/60）、mermaid 空闲（1500/200/300/60）、`codeCopy.buttonTimeout`（1500）与主题持久键（`ss-theme`）改为 `<%= ... %>` 注入合并配置值；`window.__CONFIG_TIMEOUT__` 删除 `||0` 退化回退（合并配置保证键存在），行为不变。
+- **`verify:config-refs` 扫描排除守卫数据文件**：`config-switch-exemptions.json` 与 `config-fallback-bindings.json` 含全部开关路径，若参与引用扫描会掩盖真实零引用键；现已加入排除清单（`verify:config-refs` 仍 PASS，扫描 2690 叶子 / 315 源码文件）。
 - **文档与 JSON5 配置注释全量校准**：15 个 JSON5 逐键复核注释并清除陈旧叙述（历史/批次/旧行为类字样，历史仅保留于 CHANGELOG；`internals.json5` 文件头补充「本文件即默认清单」的默认值口径）；README 命令表与测试计数更新为实测值（`npm test` 996 项 / 144 组、`scripts/lib` 行覆盖率 93.9%），构建管线表对齐 14 阶段（阶段名与唯一报告 `build-report.html` 的阶段耗时表一致），Windows 快捷脚本说明补全（依赖缺失时 `npm install --prefer-offline`、失败 `pause`、端口清理仅 `LISTENING`、`serve.bat [端口] [rebuild]`），发布策略写明「tag 永不删除，仅自动清理旧 Releases」，Node 版本注明 `.nvmrc` 单源，测试概览表改为稳定的功能域清单（不再维护易漂移的逐套件数量）；`docs/config-reference.md` 新增「快速索引：按需求找键」并复核新增特性段落（criticalCss / offscreenSkip / preloadFirstCard / cjkFonts / compression 全字段 / softNavigation / popupNotice / continueReading / release / internals）；`docs/architecture.md` 按当前代码重写构建 14 阶段表与模块拆分图、构建报告区块结构、五作业发布流水线（validate→gates→archive→buildability→publish + 归档白名单 + tag 保护）、关键 CSS 与软导航运行期流程、含自动封面的缓存层清单；runbook/SECURITY/交接文档同步。
 
 ### Fixed
 
+- **`features-schema.js` 导出 `ENUM_FIELDS`**：枚举注册表供单一来源守卫与盘点器机器读取（不影响校验行为）。
 - **`build.bat` / `serve.bat` 加固**：补充 npm 存在性探测（缺失时给出安装指引）、任一步失败打印原因并 `pause`（不再一闪而过）、退出码透传；`serve.bat` 仅清理占用目标端口且状态为 `LISTENING` 的进程（不再误杀其它进程），并支持 `serve.bat [端口] [rebuild]` 与「`dist/index.html` 已存在则跳过重建」。
 - **`release.yml` 的 `publish` 作业缺少运行时依赖**：该作业此前只检出代码便调用 `release-prune.js`，而 prune 需要 `json5`（配置解析 JSON5 单源），发布后的旧 Release 清理可能因此失败；现补 `npm ci --omit=dev` 安装运行时依赖。
 

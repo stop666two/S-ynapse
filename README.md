@@ -26,7 +26,7 @@
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
 - 详细参考文档：`docs/config-reference.md`（15 章，逐字段权威参考）
-- 配置周边门禁：`verify:config`（默认值/结构一致性）、`verify:config-refs`（零引用键）、`verify:config-dupes`（重复键）、`verify:config-comments`（逐键注释覆盖率）、`verify:config-docs`（15 文件键 vs 配置参考覆盖）、`verify:internals`（.nvmrc/wrangler assets/CI 版本与 internals 单源一致）
+- 配置周边门禁：`verify:config`（默认值/结构一致性）、`verify:config-refs`（零引用键）、`verify:config-dupes`（重复键）、`verify:config-comments`（逐键注释覆盖率）、`verify:config-docs`（15 文件键 vs 配置参考覆盖）、`verify:internals`（.nvmrc/wrangler assets/CI 版本与 internals 单源一致）、`verify:config-single-source`（819 个行为开关矩阵 `docs/config-switch-matrix.md` 零缺失 + 回退字面量零漂移；生成器 `npm run gen:config-matrix`）
 
 **内容创作**
 - Markdown 扩展：上标/下标（`X^2^` / `H~2~O`）、KaTeX 数学公式（`$`/`$$`）、Mermaid 图表、Wiki 双链（`[[标题]]`）、定义列表、任务列表
@@ -454,8 +454,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 
 项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署。CI 作业：
 - `check-agents`：变更集中检测 AI 规则文件（AGENTS.md 及其变体），命中即阻断；
-- `compat-node20`：Node 20.19.0（`engines` 下限，与 `internals.ci.compatNodeVersion` 一致）上运行 `npm test` + `verify:config` + `verify:config-refs` + `verify:config-dupes` + `npm run verify:internals` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
-- `build`（Node 版本由 `.nvmrc` 单源控制，经 `node-version-file` 读取；`node scripts/ci-env.js` 导出 internals 环境）→ 单步 `node scripts/ci-checks.js`：**一次跑完整套检查且不提前中断**（lint、typecheck、test、test:coverage（`scripts/lib` 行覆盖率 ≥80%）、test:build、test:fuzz、test:malicious、verify:config 家族（config/refs/dupes/comments/docs 与 verify:internals）、verify:process-guards、verify:security、Chrome 依赖项 test:smoke/test:cov-web/verify:compression（未探测到浏览器时跳过并标注）、build、sbom；`audit`（依赖漏洞）与 `audit:a11y`（无障碍）为**建议项**——结果写入报告但不阻断），每项记录退出码/耗时/输出摘要，写入 `build-artifacts/ci-checks.{json,txt}`，末尾任一阻断项失败整体失败 → 始终上传 `ci-checks` 与 `test-artifacts`（`build-artifacts/**`，`always()`）→ Pages 部署（仅 `main`，调用 `npm run deploy:pages`，部署前自动跑 `verify:internals`）。
+- `compat-node20`：Node 20.19.0（`engines` 下限，与 `internals.ci.compatNodeVersion` 一致）上运行 `npm test` + `verify:config` + `verify:config-refs` + `verify:config-single-source` + `verify:config-dupes` + `npm run verify:internals` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
+- `build`（Node 版本由 `.nvmrc` 单源控制，经 `node-version-file` 读取；`node scripts/ci-env.js` 导出 internals 环境）→ 单步 `node scripts/ci-checks.js`：**一次跑完整套检查且不提前中断**（lint、typecheck、test、test:coverage（`scripts/lib` 行覆盖率 ≥80%）、test:build、test:fuzz、test:malicious、verify:config 家族（config/refs/single-source/dupes/comments/docs 与 verify:internals）、verify:process-guards、verify:security、Chrome 依赖项 test:smoke/test:cov-web/verify:compression（未探测到浏览器时跳过并标注）、build、sbom；`audit`（依赖漏洞）与 `audit:a11y`（无障碍）为**建议项**——结果写入报告但不阻断），每项记录退出码/耗时/输出摘要，写入 `build-artifacts/ci-checks.{json,txt}`，末尾任一阻断项失败整体失败 → 始终上传 `ci-checks` 与 `test-artifacts`（`build-artifacts/**`，`always()`）→ Pages 部署（仅 `main`，调用 `npm run deploy:pages`，部署前自动跑 `verify:internals`）。
 - **进程永不挂死（自动化兜底）**：自动化运行一律走 `node scripts/spawn.js [--max-ms N] -- <命令>`（超时/断链清理整棵进程树、stdin 置空）；仓库高风险入口统一接入 `scripts/lib/process-guard.js`（父进程死亡、绝对生命周期、信号兜底），`npm run verify:process-guards` 巡检并纳入 CI 聚合。详见 `docs/runbook/process-hygiene.md`。
 - **无变化重复运行自动跳过**：`preflight` 作业调用 `scripts/ci-skip.js` 查询本工作流历史；当前 HEAD 与已运行序列一致且满足「连续阻断失败 2 次」或「连续完全无错无警告 5 次」时自动跳过（告警不计错也不计净，但重置失败连击）；`workflow_dispatch`、`CI_FORCE=1`、提交信息含 `[ci force]` 均强制运行。阈值与开关见 `internals.json5` 的 `ci.skip`（`docs/config-reference.md` 末节），聚合结论以提交状态 `ci/aggregate` 记录告警数。
 - 夜间深度随机测试（`.github/workflows/nightly.yml`，每日 UTC 18:00 + 手动触发）：同一聚合器 `node scripts/ci-checks.js`，仅深度档不同（`FC_NUM_RUNS=2000`、`STRESS=1`、随机种子），上传 `nightly-test-artifacts`。
@@ -532,6 +532,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run verify:config-dupes` | 重复键扫描（同一对象内重复键，作用域感知；豁免名单 `scripts/config-duplicates-allowlist.json`） |
 | `npm run verify:config-comments` | 逐键注释覆盖率门禁（15 个 JSON5；CI 阻断） |
 | `npm run verify:config-docs` | 配置文档覆盖门禁（15 个 JSON5 的顶层键/模块键 vs `docs/config-reference.md`；脚本 `scripts/check-config-docs.js`） |
+| `npm run verify:config-single-source` | 单一事实源守卫：行为开关矩阵（`docs/config-switch-matrix.md`，819 项）零缺失、回退字面量绑定零漂移、文档与生成结果一致（脚本 `scripts/check-config-single-source.js`） |
+| `npm run gen:config-matrix` | 重新生成 `docs/config-switch-matrix.md`（改动配置消费点或测试后运行） |
 | `npm run verify:internals` | 工程内部参数守卫（`.nvmrc`/`workers/wrangler.toml` assets 目录/CI 版本与 `internals.json5` 单源一致；关键写死形态抽样） |
 | `node scripts/ci-checks.js` | CI 聚合检查（与 deploy.yml 同命令）：跑完整套门禁后统一失败，报告写入 `build-artifacts/ci-checks.{json,txt}`；`--fail-fast` 可改为首个失败即停 |
 | `npm run perf:audit`（`--url` 可省略，默认 `internals.ports.perf`） | 可复现性能基线（Slow 4G + CPU 4x 节流 + 禁用缓存；`--runs`/`--out`/`--json`/`--chrome` 可选；Chrome 经 internals/CHROME_PATH/平台默认探测） |
@@ -545,7 +547,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 996 项 / 144 组（本机 1 项按环境跳过）
+npm test            # 1003 项 / 144 组（本机 1 项按环境跳过）
 npm run test:all    # 本地与 CI 同强度：test + test:build + test:fuzz + test:malicious + test:smoke + test:cov-web + verify:internals 串行
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）

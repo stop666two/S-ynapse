@@ -33,7 +33,7 @@ articles/ media/ static/ + 14 个 JSON5 配置
 | `js/domains/{core,features,guard}/` | 65 个前端领域模块（core 20 / features 32 / guard 13；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
 | `workers/security-worker.js` + `workers/lib/` | 边缘安全层（`ip-utils` / `rate-limit`） |
 | `workers/wrangler.toml` | 生产部署配置（Worker 名、assets 绑定、环境变量） |
-| `*.json5`（根目录 14 个站点配置 + `internals.json5` 工程内部参数） | 站点/主题/功能/文案/压缩等配置与工具链参数（端口/路径/CI 版本等），全部经 `verify:config` 家族与 `verify:internals` 校验 |
+| `*.json5`（根目录 14 个站点配置 + `internals.json5` 工程内部参数） | 站点/主题/功能/文案/压缩等配置与工具链参数（端口/路径/CI 版本等），全部经 `verify:config` 家族与 `verify:internals` 校验；行为开关另由 `verify:config-single-source` 对照 `docs/config-switch-matrix.md`（819 项）与回退字面量绑定表守卫 |
 
 ## 3. 构建管线
 
@@ -55,6 +55,13 @@ articles/ media/ static/ + 14 个 JSON5 配置
 | 12 | compression 压缩增强（含无头验证） | `build/minify` + `lib/compression-*`：基线压缩 → 增强（HTML 激进默认关、CSS 同页合并去重、JSON 去空白、runtime 压缩、可选混淆）→ 无头对比门禁（失败回退基线并逐字节复核）；详见 `compression.json5` |
 | 13 | cacheBust 缓存指纹 | `lib/dist-hash` 映射与 HTML/feed 引用重写；压缩与回退均在此之前完成（文件名哈希 = 最终字节）；Pagefind 索引（可选）在其后生成 |
 | 14 | report 报告生成 | `build/report` + `lib/build-report-html`：唯一 `dist/build-report.html`（构建元信息、14 阶段耗时、产物体积与 Top 列表、逐项性能预算、压缩统计与无头验证、缓存命中、告警/失败清单、页面清单；暗色适配、无外部依赖与内联脚本），任一失败默认非零退出码 |
+
+### 3.1 配置单一事实源与行为开关矩阵
+
+- **默认值唯一来源**：`scripts/lib/features-schema.js`（features）、`tuning-defaults.js`、`site-defaults.js`（site/navigation/sidebar/footer/theme/security/friends/tagAliases/contentPolicy 全段）、`internals-defaults.js`；构建与工具链代码不得复制默认值字面量，一律引用注册表或读取合并后的配置对象（`feature-wiring.js` 等接线层亦然，`feature-wiring.test.js` 以「缺省 = 默认 = 历史行为」锁定语义）。
+- **浏览器运行时 fail-open 兜底**：外置配置（`/assets/config.<hash>.json`）可能加载失败，`js/**` 保留兜底字面量；这些字面量由 `scripts/config-fallback-bindings.json` 逐条绑定注册表默认值（snippet + literal），`verify:config-single-source` 校验 snippet 仍存在且值严格相等（schema 默认变更或代码重写即 FAIL）。
+- **行为开关矩阵**：`docs/config-switch-matrix.md` 由 `npm run gen:config-matrix` 生成，枚举全部布尔/枚举/数值开关，给出类型、默认、消费 file:line、测试证据与覆盖状态；测试内以 `// switch: <键路径>` 标记声明双态覆盖，无法无头验证的运行时/DOM 键在 `scripts/config-switch-exemptions.json` 逐键登记类别与理由（`runtime-dom`/`ssr-template`/`build-integration`/`visual-param`/`security-policy`）。
+- **门禁规则**：新 schema 布尔/枚举键未挂测试 marker 或豁免理由 → `verify:config-single-source` FAIL；矩阵文档与生成结果不一致（消费位置/测试证据变化后未重生成）同样 FAIL；未知 marker、未知豁免键、冗余豁免均 FAIL。守卫已接入 `ci-checks.js` 与 `deploy.yml`（紧随 `verify:config-refs`）。
 
 **模块拆分图**（`scripts/build.js` 只保留编排与入口）：
 
@@ -123,7 +130,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `npm run test:cov-web` | 无头 Web 覆盖率：`--no-bundle` + `--no-minify-js` + 压缩关闭构建（产物保留源码行结构），CDP 精确覆盖聚合 `js/**` 行/函数覆盖（阈值 `scripts/lib/web-coverage-thresholds.js`，首测定档 55%/55%），输出 `build-artifacts/web-coverage/{summary.txt,coverage.json}`（含逐函数未覆盖明细）；无 Chrome 跳过 |
 | `npm run test:all` | 本地与 CI 同强度：`npm test` + `test:build` + `test:fuzz` + `test:malicious` + `test:smoke` + `test:cov-web` + `verify:internals` 串行；夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子） |
 | `npm run lint` / `npm run typecheck` | ESLint / tsc（checkJs） |
-| `npm run verify:config` / `verify:config-refs` / `verify:config-dupes` / `verify:config-comments` / `verify:config-docs` | 配置一致性 / 零引用键 / 重复键 / 逐键注释覆盖率 / 文档覆盖监守（`scripts/check-config-docs.js`） |
+| `npm run verify:config` / `verify:config-refs` / `verify:config-single-source` / `verify:config-dupes` / `verify:config-comments` / `verify:config-docs` | 配置一致性 / 零引用键 / 开关矩阵与回退字面量单一来源 / 重复键 / 逐键注释覆盖率 / 文档覆盖监守（`scripts/check-config-single-source.js`、`scripts/check-config-docs.js`） |
 | `npm run verify:internals` | `.nvmrc` / `workers/wrangler.toml` assets 目录 / CI 版本与 `internals.json5` 单源守卫（关键写死形态抽样） |
 | `npm run verify:process-guards` | 进程守护巡检（高风险入口 `process-guard` 接入的静态检查；CI 聚合执行） |
 | `npm run verify:security` | 安全集成回归（注入恶意文章 → 构建 → 语义断言） |
@@ -133,7 +140,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `node scripts/dist-hash-guard.js` | 重构/迁移的产物等价护栏（归一化 nonce/换行） |
 | `node scripts/perf-audit.js` | 可复现性能基线（Slow 4G + 4× CPU） |
 
-CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-dupes + verify:internals + test:build + build）与 `build`（Node 版本由 `.nvmrc` 经 `node-version-file` 单源控制；`node scripts/ci-env.js` 导出 internals → 单步 `node scripts/ci-checks.js` 跑完整套并统一失败：lint / typecheck / test / test:coverage / test:build / test:fuzz / test:malicious / verify:config 家族（config/refs/dupes/comments/docs 与 verify:internals）/ verify:process-guards / verify:security / test:smoke / test:cov-web / verify:compression / build / sbom；`audit` 与 `audit:a11y` 为建议项（入报告不阻断）；报告写 `build-artifacts/ci-checks.{json,txt}` → 始终上传 `ci-checks` 与 `test-artifacts` → Pages 部署（`npm run deploy:pages`，部署前 verify:internals））。夜间随机深度档（`.github/workflows/nightly.yml`，UTC 18:00 + `workflow_dispatch`）用同一聚合器（`FC_NUM_RUNS=2000`、`STRESS=1`），上传 `nightly-test-artifacts`。生产 Worker 为手动 `wrangler deploy`（见 README）。预检作业（`preflight`，`scripts/ci-skip.js`）在 HEAD 未变化的重复运行上按连击阈值（连错 2/连净 5，告警中性）自动跳过，`workflow_dispatch`/`CI_FORCE`/`[ci force]` 强跑；聚合检查带每项超时并清理进程树，结论以提交状态 `ci/aggregate` 供下一次判定读取。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
+CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-single-source + verify:config-dupes + verify:internals + test:build + build）与 `build`（Node 版本由 `.nvmrc` 经 `node-version-file` 单源控制；`node scripts/ci-env.js` 导出 internals → 单步 `node scripts/ci-checks.js` 跑完整套并统一失败：lint / typecheck / test / test:coverage / test:build / test:fuzz / test:malicious / verify:config 家族（config/refs/single-source/dupes/comments/docs 与 verify:internals）/ verify:process-guards / verify:security / test:smoke / test:cov-web / verify:compression / build / sbom；`audit` 与 `audit:a11y` 为建议项（入报告不阻断）；报告写 `build-artifacts/ci-checks.{json,txt}` → 始终上传 `ci-checks` 与 `test-artifacts` → Pages 部署（`npm run deploy:pages`，部署前 verify:internals））。夜间随机深度档（`.github/workflows/nightly.yml`，UTC 18:00 + `workflow_dispatch`）用同一聚合器（`FC_NUM_RUNS=2000`、`STRESS=1`），上传 `nightly-test-artifacts`。生产 Worker 为手动 `wrangler deploy`（见 README）。预检作业（`preflight`，`scripts/ci-skip.js`）在 HEAD 未变化的重复运行上按连击阈值（连错 2/连净 5，告警中性）自动跳过，`workflow_dispatch`/`CI_FORCE`/`[ci force]` 强跑；聚合检查带每项超时并清理进程树，结论以提交状态 `ci/aggregate` 供下一次判定读取。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
 
 ## 9. 部署与回滚
 

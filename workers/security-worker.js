@@ -17,8 +17,6 @@ import { RATE_LIMIT_FALLBACKS, MAINTENANCE_FALLBACKS, CSP_REPORT_MAX_BYTES } fro
 
 const DEFAULT_SKIP_PATHS = ["/assets/", "/media/", "/og/", "/icons/", "/pagefind/"];
 
-const limiter = new RateLimiter(5000);
-
 // Safety baseline when security-config.js is absent — values shared with the generator
 // via workers/lib/security-fallbacks.js (single source; never inline literals here).
 const FALLBACK = {
@@ -27,6 +25,7 @@ const FALLBACK = {
     maxRequests: RATE_LIMIT_FALLBACKS.maxRequests,
     windowMs: RATE_LIMIT_FALLBACKS.windowMs,
     blockDuration: RATE_LIMIT_FALLBACKS.blockDuration,
+    maxTrackedEntries: RATE_LIMIT_FALLBACKS.maxTrackedEntries,
     whitelist: [],
     blacklist: [],
     skipPaths: DEFAULT_SKIP_PATHS
@@ -48,6 +47,7 @@ const FALLBACK = {
     reportOnly: false,
     reportUri: "/csp-report"
   },
+  cspReportMaxBytes: CSP_REPORT_MAX_BYTES,
   pathRestrictions: ["/admin/*"],
   forceHttps: true,
   // 维护响应默认设置 Retry-After: 3600；正式产物由构建期按 features.maintenance 覆盖。
@@ -81,10 +81,18 @@ function resolveWorkerConfig(config) {
   const blockedRules = Array.isArray(cfg.pathRestrictions) ? cfg.pathRestrictions : FALLBACK.pathRestrictions;
   const skipPaths = Array.isArray(rl.skipPaths) ? rl.skipPaths : DEFAULT_SKIP_PATHS;
   const maintenance = cfg.maintenance && typeof cfg.maintenance === "object" ? cfg.maintenance : FALLBACK.maintenance;
-  return { rl, cspConfig, blockedRules, skipPaths, maintenance };
+  const reportMaxBytes = Number.isFinite(Number(cfg.cspReportMaxBytes)) && Number(cfg.cspReportMaxBytes) > 0
+    ? Math.floor(Number(cfg.cspReportMaxBytes))
+    : CSP_REPORT_MAX_BYTES;
+  return { rl, cspConfig, blockedRules, skipPaths, maintenance, reportMaxBytes };
 }
 
-const { rl, cspConfig, blockedRules, skipPaths, maintenance: maintenanceCfg } = resolveWorkerConfig(CONFIG);
+const { rl, cspConfig, blockedRules, skipPaths, maintenance: maintenanceCfg, reportMaxBytes: cspReportMaxBytes } = resolveWorkerConfig(CONFIG);
+
+// 限流内存跟踪表上限来自 security.rateLimiting.maxTrackedEntries（非法/缺失回退兜底常量）。
+const limiter = new RateLimiter(Number.isFinite(Number(rl.maxTrackedEntries)) && Number(rl.maxTrackedEntries) > 0
+  ? Math.floor(Number(rl.maxTrackedEntries))
+  : RATE_LIMIT_FALLBACKS.maxTrackedEntries);
 
 /**
  * 解析 Accept-Language，判断首选具体语言是否为英语（RFC 4647 基本过滤的简化实现）：
@@ -300,7 +308,7 @@ async function handleRequest(request, env) {
       log.warn("csp_report_read_failed");
       return edgeResponse("Bad Request", 400, undefined, requestId);
     }
-    if (text.length > CSP_REPORT_MAX_BYTES) {
+    if (text.length > cspReportMaxBytes) {
       log.warn("csp_report_too_large", { bytes: text.length });
       return edgeResponse("Payload Too Large", 413, undefined, requestId);
     }

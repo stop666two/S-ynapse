@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { trimCspDirectives } = require('./lib/csp');
-const { RATE_LIMIT_FALLBACKS, MAINTENANCE_FALLBACKS } = require('../workers/lib/security-fallbacks');
+const { RATE_LIMIT_FALLBACKS, MAINTENANCE_FALLBACKS, CSP_REPORT_MAX_BYTES } = require('../workers/lib/security-fallbacks');
 
 // ==================== 双配置漂移消除 ====================
 // security.json5 是唯一配置源。本模块在每次构建时从 security.json5 提取
@@ -133,6 +133,9 @@ function extractWorkerSecurity(security, cspContext, features) {
       maxRequests: Number.isFinite(rl.maxRequests) ? rl.maxRequests : RATE_LIMIT_FALLBACKS.maxRequests,
       windowMs: Number.isFinite(rl.windowMs) ? rl.windowMs : RATE_LIMIT_FALLBACKS.windowMs,
       blockDuration: Number.isFinite(rl.blockDuration) ? rl.blockDuration : RATE_LIMIT_FALLBACKS.blockDuration,
+      maxTrackedEntries: Number.isFinite(rl.maxTrackedEntries) && rl.maxTrackedEntries > 0
+        ? Math.floor(rl.maxTrackedEntries)
+        : RATE_LIMIT_FALLBACKS.maxTrackedEntries,
       whitelist: filterIpEntries(rl.whitelist, 'rateLimiting.whitelist'),
       blacklist: filterIpEntries(rl.blacklist, 'rateLimiting.blacklist'),
       skipPaths: Array.isArray(rl.skipPaths)
@@ -144,11 +147,20 @@ function extractWorkerSecurity(security, cspContext, features) {
       reportOnly: csp.reportOnly === true,
       reportUri: typeof csp.reportUri === 'string' && csp.reportUri.length > 0 ? csp.reportUri : '/csp-report'
     },
+    // CSP 上报体积上限（security.hardening.cspReportMaxBytes；缺失/非法回退安全兜底常量）。
+    cspReportMaxBytes: hardeningReportMaxBytes(s),
     pathRestrictions: paths,
     forceHttps: s.forceHttps === true,
     headers: applyHeaderHardening(s),
     maintenance: maintenanceWorkerConfig(features)
   };
+}
+
+/** CSP 上报体积上限：security.hardening.cspReportMaxBytes（正整数）否则回退 CSP_REPORT_MAX_BYTES。 */
+function hardeningReportMaxBytes(security) {
+  const hd = (security && security.hardening) || {};
+  const n = Number(hd.cspReportMaxBytes);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : CSP_REPORT_MAX_BYTES;
 }
 
 /** maintenance 的 Worker 侧配置（features.maintenance）：setRetryAfter 默认 true、retryAfter 默认 3600（与 Worker FALLBACK 同源）。 */
@@ -181,7 +193,7 @@ function generateSecurityConfig(securityConfig, outFile, cspContext, features) {
   return file;
 }
 
-module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, maintenanceWorkerConfig, applyHeaderHardening, validateHeaderEntries, isValidIpEntry, OUT_FILE };
+module.exports = { extractWorkerSecurity, renderWorkerConfig, generateSecurityConfig, maintenanceWorkerConfig, applyHeaderHardening, validateHeaderEntries, isValidIpEntry, hardeningReportMaxBytes, OUT_FILE };
 
 if (require.main === module) {
   const ROOT = path.join(__dirname, '..');

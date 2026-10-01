@@ -64,7 +64,8 @@ first.parentNode.insertBefore(row2,first);row2.appendChild(ab)}
    首次横滚后自动隐藏（.code-scrolled）；尺寸依赖字体与容器布局，rAF + fonts.ready + resize 多点扫描，幂等。 */
 var M0=(F&&F.mobile)||{};
 if(M0.enabled!==false&&M0.codeScrollHint!==false){
-var scan=function(){document.querySelectorAll('.post-content pre').forEach(function(p){if(p.getAttribute('data-scrollHint')==='1')return;if(p.scrollWidth-p.clientWidth<=8)return;p.setAttribute('data-scrollHint','1');var h=document.createElement('span');h.className='code-scroll-hint';h.setAttribute('aria-hidden','true');h.textContent=__T('toolbar.codeScrollHint','可横向滚动');p.appendChild(h);p.addEventListener('scroll',function(){if(p.scrollLeft>4)p.classList.add('code-scrolled')},{passive:true})})};
+var _st=+CB0.scrollHintTolerancePx;var SCROLLTOL=(isNaN(_st)||_st<0)?8:_st;
+var scan=function(){document.querySelectorAll('.post-content pre').forEach(function(p){if(p.getAttribute('data-scrollHint')==='1')return;if(p.scrollWidth-p.clientWidth<=SCROLLTOL)return;p.setAttribute('data-scrollHint','1');var h=document.createElement('span');h.className='code-scroll-hint';h.setAttribute('aria-hidden','true');h.textContent=__T('toolbar.codeScrollHint','可横向滚动');p.appendChild(h);p.addEventListener('scroll',function(){if(p.scrollLeft>4)p.classList.add('code-scrolled')},{passive:true})})};
 var reScan=function(){if(window.requestAnimationFrame)window.requestAnimationFrame(scan);else scan()};
 if(!hintBound){hintBound=true;window.addEventListener('resize',reScan);if(document.fonts&&document.fonts.ready&&document.fonts.ready.then)document.fonts.ready.then(function(){reScan()},function(){/* 忽略：字体加载失败时按首轮 rAF 结果 */});}
 reScan();

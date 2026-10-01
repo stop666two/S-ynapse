@@ -14,11 +14,13 @@ export const SYSTEM_FONT_STACK = "-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 export const SYSTEM_MONO_STACK = 'Menlo,Consolas,monospace';
 
 // 配置归一化：enabled/auto/manual 默认 true；storageKey 空值回退默认键；
-// degrade 五项默认 true——唯一关闭方式为显式 false，与 features.json5 逐项对应。
+// degrade 各项默认 true——唯一关闭方式为显式 false，与 features.json5 逐项对应；
+// degrade.lowResMaxWidthPx 非负（0 = 不限制，历史行为；非法/负数回退 0）。
 export function resolveSaveDataConfig(raw) {
   var S = raw || {};
   var D = S.degrade || {};
   var key = S.storageKey == null ? '' : String(S.storageKey).trim();
+  var maxW = Number(D.lowResMaxWidthPx);
   return {
     enabled: S.enabled !== false,
     auto: S.auto !== false,
@@ -29,7 +31,8 @@ export function resolveSaveDataConfig(raw) {
       particles: D.particles !== false,
       lowResImages: D.lowResImages !== false,
       lazyAggressive: D.lazyAggressive !== false,
-      systemFontsOnly: D.systemFontsOnly !== false
+      systemFontsOnly: D.systemFontsOnly !== false,
+      lowResMaxWidthPx: isNaN(maxW) || maxW < 0 ? 0 : Math.floor(maxW)
     }
   };
 }
@@ -83,10 +86,13 @@ function effectiveWidth(url, descriptor, naturalWidth) {
 
 // 从候选集选最小分辨率 URL：候选为字符串或 { url, width }（width 可为 null）；
 // 宽度相同保持先出现者；空集返回 ''。相同宽度时自动处理为稳定顺序。
-export function pickSmallestVariant(entries, naturalWidth) {
+// maxWidth > 0 时优先在宽度 ≤ maxWidth 的候选中选最小；无满足者回退全量最小（保证可用）。
+export function pickSmallestVariant(entries, naturalWidth, maxWidth) {
   var list = Array.isArray(entries) ? entries : [];
   var nat = +naturalWidth > 0 ? +naturalWidth : 0;
+  var cap = +maxWidth > 0 ? +maxWidth : Infinity;
   var best = '', bestW = Infinity;
+  var capped = '', cappedW = Infinity;
   for (var i = 0; i < list.length; i++) {
     var item = list[i];
     if (!item) continue;
@@ -95,8 +101,9 @@ export function pickSmallestVariant(entries, naturalWidth) {
     var descriptor = typeof item === 'object' && item.width != null ? +item.width : null;
     var w = effectiveWidth(url, descriptor, nat);
     if (best === '' || w < bestW) { best = url; bestW = w; }
+    if (w <= cap && (capped === '' || w < cappedW)) { capped = url; cappedW = w; }
   }
-  return best;
+  return capped !== '' ? capped : best;
 }
 
 // srcset 解析：`url 640w` / `url 2x`（2x 无像素宽，按 null 处理）/ 裸 URL；
@@ -120,15 +127,16 @@ export function parseSrcset(srcset) {
 }
 
 // 从 srcset 选最小候选 URL；无法解析时返回 ''（调用方保持原值）。
-export function smallestSrcsetUrl(srcset, naturalWidth) {
-  return pickSmallestVariant(parseSrcset(srcset), naturalWidth);
+// maxWidth > 0 时优先选择宽度 ≤ maxWidth 的候选（低清阈值），无满足者回退最小候选。
+export function smallestSrcsetUrl(srcset, naturalWidth, maxWidth) {
+  return pickSmallestVariant(parseSrcset(srcset), naturalWidth, maxWidth);
 }
 
 // 单图最小候选：有 srcset 时按 srcset 选（原图宽度作无令牌候选兜底）；
-// 无 srcset 时返回原 src（无候选可降）。
-export function smallestImageUrl(src, srcset, naturalWidth) {
+// 无 srcset 时返回原 src（无候选可降）。maxWidth 语义同 pickSmallestVariant。
+export function smallestImageUrl(src, srcset, naturalWidth, maxWidth) {
   var raw = String(src == null ? '' : src);
   var set = String(srcset == null ? '' : srcset).trim();
   if (!set) return raw;
-  return smallestSrcsetUrl(set, naturalWidth) || raw;
+  return smallestSrcsetUrl(set, naturalWidth, maxWidth) || raw;
 }

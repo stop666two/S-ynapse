@@ -14,18 +14,31 @@ const cjk = require('../lib/cjk-fonts');
 const { loadInternals } = require('../lib/internals');
 
 const DOWNLOAD_CONCURRENCY = 6;
+const MAX_DOWNLOAD_CONCURRENCY = 16;
+const DEFAULT_CACHE_TTL_DAYS = 7;
 const FONT_DISPLAY_ALLOWED = ['auto', 'block', 'swap', 'fallback', 'optional'];
 
-function readCjkConfig(config) {
+// 读取 site.build.cjkFonts 归一化配置；options.cacheTtlDays 为缺失/非法时的回退（internals.cache.fontsTtlDays）。
+function readCjkConfig(config, options) {
+  const opts = options || {};
   const raw = (config && config.site && config.site.build && config.site.build.cjkFonts) || {};
   const timeout = Number(raw.fetchTimeoutMs);
   const display = (config && config.site && config.site.performance && config.site.performance.fontDisplay) || 'swap';
   const weights = Array.isArray(raw.weights) && raw.weights.length ? raw.weights : cjk.DEFAULT_WEIGHTS;
+  const concurrency = Number(raw.concurrency);
+  const ttl = Number(raw.cacheTtlDays);
+  const fallbackTtl = Number(opts.cacheTtlDays);
   return {
     enabled: raw.enabled !== false,
     family: typeof raw.family === 'string' && raw.family.trim() ? raw.family.trim() : 'Noto Sans SC',
     weights: cjk.normalizeWeights(weights),
     timeoutMs: Number.isFinite(timeout) && timeout > 0 ? timeout : cjk.DEFAULT_TIMEOUT_MS,
+    concurrency: Number.isFinite(concurrency) && concurrency > 0
+      ? Math.min(MAX_DOWNLOAD_CONCURRENCY, Math.floor(concurrency))
+      : DOWNLOAD_CONCURRENCY,
+    cacheTtlDays: Number.isFinite(ttl) && ttl >= 0
+      ? Math.floor(ttl)
+      : (Number.isFinite(fallbackTtl) && fallbackTtl >= 0 ? Math.floor(fallbackTtl) : DEFAULT_CACHE_TTL_DAYS),
     fontDisplay: FONT_DISPLAY_ALLOWED.indexOf(display) >= 0 ? display : 'swap'
   };
 }
@@ -51,7 +64,7 @@ function createCjkFontsModule(ctx) {
   const cacheDir = ctx.cacheDir;
   const logger = ctx.logger || console;
   const fetchImpl = ctx.fetchImpl || undefined;
-  const chunkListTtlMs = loadInternals().cache.fontsTtlDays * 24 * 60 * 60 * 1000;
+  const internalTtlDays = loadInternals().cache.fontsTtlDays;
   const chunkListCacheFile = path.join(cacheDir, 'chunk-list.json');
   const linkRx = new RegExp('<link\\b[^>]*href=["\']?' + cjk.CJK_CSS_HREF.replace(/\//g, '\\/') + '(?:\\?v=[^"\'\\s>]*)?["\']?[^>]*>', 'gi');
 
@@ -80,9 +93,9 @@ function createCjkFontsModule(ctx) {
     return null;
   }
 
-  async function loadChunkList(cssUrl, timeoutMs) {
+  async function loadChunkList(cssUrl, timeoutMs, ttlMs) {
     const cached = readChunkListCache(cssUrl);
-    if (cached && Date.now() - cached.fetchedAt < chunkListTtlMs) return { chunks: cached.chunks, cached: true };
+    if (cached && Date.now() - cached.fetchedAt < ttlMs) return { chunks: cached.chunks, cached: true };
     try {
       const chunks = await cjk.fetchChunkList({ cssUrl, timeoutMs, fetchImpl });
       fs.mkdirSync(cacheDir, { recursive: true });
@@ -110,7 +123,7 @@ function createCjkFontsModule(ctx) {
       unique.push(entry);
     }
     const stats = { bytes: 0, downloaded: 0, reused: 0, files: unique.length, outDir };
-    await mapPool(unique, DOWNLOAD_CONCURRENCY, async (entry) => {
+    await mapPool(unique, cfg.concurrency, async (entry) => {
       const cacheFile = path.join(cacheDir, entry.file);
       let buf;
       if (fs.existsSync(cacheFile)) {
@@ -168,11 +181,12 @@ function createCjkFontsModule(ctx) {
   }
 
   async function buildCjkFonts(config) {
-    const cfg = readCjkConfig(config);
+    const cfg = readCjkConfig(config, { cacheTtlDays: internalTtlDays });
     if (!cfg.enabled) return { ok: false, skipped: true, reason: 'disabled by config' };
     const cssUrl = cjk.googleFontsCssUrl({ family: cfg.family, weights: cfg.weights });
     try {
-      const chunkList = await loadChunkList(cssUrl, cfg.timeoutMs);
+      const ttlMs = cfg.cacheTtlDays * 24 * 60 * 60 * 1000;
+      const chunkList = await loadChunkList(cssUrl, cfg.timeoutMs, ttlMs);
       const codepoints = cjk.collectUsedCodepoints(collectDistTexts());
       if (!codepoints.length) throw new Error('no CJK codepoints found in dist HTML');
       const plan = cjk.buildSubsetPlan(chunkList.chunks, codepoints);

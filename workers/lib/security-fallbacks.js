@@ -7,7 +7,8 @@
 export const RATE_LIMIT_FALLBACKS = Object.freeze({
   maxRequests: 100,
   windowMs: 60000,
-  blockDuration: 300000
+  blockDuration: 300000,
+  maxTrackedEntries: 5000
 });
 
 export const MAINTENANCE_FALLBACKS = Object.freeze({

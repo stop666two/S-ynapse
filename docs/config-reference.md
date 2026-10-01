@@ -43,7 +43,7 @@
 | `url` | string | `http://localhost` | `必填` 站点根 URL(必须以 http:// 或 https:// 开头) |
 | `language` | string | `en` | 页面语言(如 zh-CN,影响日期/朗读) |
 | `languageEn` | string | `''` | 英文站语言标签(en 页 `<html lang>` 与侧栏“最近文章”日期本地化;空则回退 `en-US`) |
-| `timezone` | string | `UTC` | 未实现聚合;保留字段 |
+| `timezone` | string | `UTC` | 保留字段（当前无消费端;不参与日期/时区计算，修改无实际效果） |
 | `dateFormat` | string | `YYYY-MM-DD` | 日期显示格式(YYYY/MM/DD HH:mm) |
 | `copyright` | string | `''` | 版权文本(页脚) |
 | `postsPerPage` | number | `10` | 首页每页文章数 |
@@ -60,7 +60,7 @@
 | `rss.fullContent` | bool | `true` | RSS 条目含全文(否则摘要) |
 | `rss.maxItems` | number | `50` | RSS 条目数上限 |
 | `rss.injectHeadLinks` | bool | `true` | 是否在 `<head>` 输出 RSS/JSON Feed alternate `<link>`（false=不输出；feed 文件本身仍生成） |
-| `rss.jsonFeed.enabled` | bool | `true` | 是否生成 /feed.json(JSON Feed) |
+| `rss.jsonFeed.enabled` | bool | `false` | 是否生成 /feed.json(JSON Feed)；内置默认 false，站点示例覆盖为 true |
 | `rss.jsonFeed.path` | string | `/feed.json` | JSON Feed 输出路径(按语言自动加前缀) |
 | `rss.jsonFeed.fullContent` | bool | `false` | JSON Feed 条目含全文(否则摘要);非布尔值忽略并回退 `rss.fullContent` |
 | `rss.jsonFeed.maxItems` | number | `20` | JSON Feed 条目数上限;非正数/非数字忽略并回退 `rss.maxItems` |
@@ -82,8 +82,8 @@
 | `seo.structuredData.enabled` | bool | `false` | JSON-LD |
 | `seo.structuredData.type` | string | `BlogPosting` | JSON-LD 类型 |
 | `seo.titleTemplate.index` | string | `{site} · {subtitle}` | 首页 `<title>` 模板;`{site}/{title}/{subtitle}` 占位符 |
-| `seo.titleTemplate.post` | string | `{title} · {site}` | 文章页 |
-| `seo.titleTemplate.default` | string | `{title} · {site}` | 其它页 |
+| `seo.titleTemplate.post` | string | `{title} \| {site}` | 文章页（注册表分隔符为 `\|`） |
+| `seo.titleTemplate.default` | string | `{title} \| {site}` | 其它页（注册表分隔符为 `\|`） |
 
 ### site.social — 社交链接
 | 字段 | 类型 | 默认 | 说明 |
@@ -134,14 +134,13 @@
 | `pwa.cacheName` | string | `s-ynapse-v1` | SW 缓存名（改版递增可强制废弃旧缓存） |
 | `build.cleanDist` | bool | `true` | 构建前清空 dist |
 | `build.cacheControl` | bool | `true` | 分级 Cache-Control 响应头（css 1 年 immutable；js/vendor 1 小时 + SWR；media/og 7 天 + SWR）；`false` 完全不输出 |
-| `build.minifyHTML/CSS/JS` | bool | `true` | 压缩开关：HTML（含残留内联脚本/样式）压缩去注释；站点主样式（外链 `dist/assets/css/site.<hash>.css`）与残留内联 `<style>`（customCSS 等）均经 CleanCSS(level 1) 压缩；JS 压缩范围 = `dist/assets/js`（vendor 上游已压缩、自动跳过）；JSON 输出（search-index/manifest/speculation-rules 等）始终紧凑 |
+| `build.minifyHTML/CSS/JS` | bool | `false` | 压缩开关（内置默认 false，站点示例覆盖为 true）：HTML（含残留内联脚本/样式）压缩去注释；站点主样式（外链 `dist/assets/css/site.<hash>.css`）与残留内联 `<style>`（customCSS 等）均经 CleanCSS(level 1) 压缩；JS 压缩范围 = `dist/assets/js`（vendor 上游已压缩、自动跳过）；JSON 输出（search-index/manifest/speculation-rules 等）始终紧凑 |
 | `build.removeConsole` | bool | `false` | 剥离 console.*（仅作用于 `dist/assets/js`） |
 | `build.generateIndex` | bool | `true` | 生成首页 `/{lang}/index.html` 与分页 |
 | `build.generateArchive` | bool | `true` | 生成归档页 `/{lang}/archive/`（按年归档列表） |
 | `build.generateTags` | bool | `true` | 生成标签云与标签文章列表 |
 | `build.generateCategories` | bool | `true` | 生成分类列表与分类文章列表 |
 | `build.generateGallery` | bool | `true` | 生成图库页 `/{lang}/gallery/` |
-| `build.generateAuthorPages` | bool | `false` | 作者页 |
 | `build.copyStatic` | bool | `true` | 复制 static/ |
 | `build.optimizeMedia` | bool | `false` | sharp 媒体优化 |
 | `build.mediaQuality` | number | `85` | 压缩质量 |
@@ -150,15 +149,12 @@
 | `build.avif.enabled` | bool | `true` | AVIF 输出（图多省流量；构建时间敏感可关） |
 | `build.avif.quality` | number | `50` | AVIF 质量 |
 | `build.avif.effort` | number | `5` | AVIF 编码努力(0-10) |
-| `build.lazyLoadImages` | bool | `true` | loading=lazy |
-| `build.useSrcset` / `usePictureTag` | bool | `true` | 响应式标签 |
-| `build.searchFullContent` | bool | `true` | 搜索索引含正文 |
+| `build.usePictureTag` | bool | `true` | 响应式 `<picture>` 标签 |
 | `build.relatedArticles` | bool | `true` | 相关推荐 |
 | `build.cjkSpacing` | bool | `true` | 中英文间细空格 |
 | `build.cjkFonts` | object | 见下 | 中文字体（Noto Sans SC）构建期子集化 |
 | `build.buildReport` | bool | `true` | build-report.html |
 | `build.reportTopN` | number | `10` | 构建报告「体积超标图片」列表上限（1–1000；非法回退 `internals.report.topN`） |
-| `build.autoOgImage` | bool | `true` | 自动 OG 图 |
 | `build.forceContentWidth` | bool | `true` | 主内容强制宽高布局 |
 | `build.enableCacheBusting` | bool | `false` | MD5 缓存戳 |
 | `build.cacheBustingPattern` | string | `.*\.(css\|js\|png\|jpg\|svg)$` | 戳名模式 |
@@ -188,7 +184,7 @@
 | `performance.fontDisplay` | string | `swap` | @font-face 显示策略:swap/block/fallback/optional/auto(非法值回退 swap) |
 | `performance.imageDecoding` | string | `async` | 图片解码:async/sync/auto |
 | `performance.scriptLoading` | string | `defer` | 外部脚本加载:defer/module/async |
-| `performance.preconnect` | array | `[fonts.googleapis.com, fonts.gstatic.com]` | preconnect 域名列表 |
+| `performance.preconnect` | array | `[]` | preconnect 域名列表（内置默认空数组；字体已本地自托管） |
 | `performance.prefetchNextPage` | bool | `false` | 空闲预取下一页 |
 | `performance.resourceHints` | bool | `true` | 输出 preconnect/dns-prefetch |
 | `performance.imageSizes` | string | `auto` | srcset sizes 策略:auto/自定义表达式 |
@@ -880,7 +876,7 @@ sitemap: {
 
 ### 3.67 perfBudget — 性能预算门禁
 
-`enabled true` / `htmlKb 40`(单页 HTML gzip 上限,含内联 CSS/脚本;功能扩充批次后实测最大 36.6KB,原 28KB 上调) / `htmlRawKb 50`(页面 HTML raw 体积中位上限;长文等极端页面由中位口径自然豁免) / `inlineConfigKb 2`(页面内联关键配置降级子集上限) / `jsKb 75`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入;75KB 口径含 app+deferred+shared+runtime 全部 chunk,功能扩充批次后实测 69.7KB,deferred/shared 按需加载,首屏实际约 19KB) / `requests 12`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
+`enabled true` / `htmlKb 40`(单页 HTML gzip 上限,含内联 CSS/脚本;实测最大 36.6KB) / `htmlRawKb 50`(页面 HTML raw 体积中位上限;长文等极端页面由中位口径自然豁免) / `inlineConfigKb 2`(页面内联关键配置降级子集上限) / `jsKb 75`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入;75KB 口径含 app+deferred+shared+runtime 全部 chunk,实测 69.7KB,deferred/shared 按需加载,首屏实际约 19KB) / `requests 12`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
 
 ### 3.68 scrollIndicator — 滚动进度条
 
@@ -920,7 +916,7 @@ sitemap: {
 
 ### 3.77 guards — 防护与交互控制总控
 
-`enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）。细节参数（菜单项、复制模式、选择/快捷键/水印/检测/控制台/隐私帘/篡改/门槛、绕过通道等 176 项）全部在 `guard.json5`（见第 11 章）；绕过通道（`?guard=on` 覆盖一切 > `?guard=off` > `localStorage['s-guards-off']` > `core.bypass.localhost`，accessGate 的 `?key=` 由 `core.bypass.accessGateKey` 控制）均可由 `guard.json5 → core.bypass` 逐项开关，`bypass.enabled=false` 全部失效。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
+`enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）。细节参数（菜单项、复制模式、选择/快捷键/水印/检测/控制台/隐私帘/篡改/门槛、绕过通道等 181 项）全部在 `guard.json5`（见第 11 章）；绕过通道（`?guard=on` 覆盖一切 > `?guard=off` > `localStorage['s-guards-off']` > `core.bypass.localhost`，accessGate 的 `?key=` 由 `core.bypass.accessGateKey` 控制）均可由 `guard.json5 → core.bypass` 逐项开关，`bypass.enabled=false` 全部失效。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
 
 ### 3.78 loading — 加载遮罩
 

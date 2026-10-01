@@ -10,7 +10,8 @@
 保留的示例页面（`pages/**`）与默认资源（`static/**`）；但不含任何示例文章与演示媒体，
 `articles/**` 与 `media/**` 在包内以 `.gitkeep` 标记的空目录呈现，由使用者放入自己的内容。
 由此，归档必须满足三条硬约束，`buildability` 作业逐条验证（见 §5）：**空站可构建**（0 文章时 `npm run build` 成功并产出
-`dist/index.html`、`dist/build-report.html`、`dist/zh/search-index.json`）、**测试可跑**（解压后 `npm test` 全绿）、**配置为默认初始态**（无个人/真实数据）。
+`dist/index.html`、`dist/build-report.html` 与每语言内容寻址搜索索引）、**测试可跑**（归档含测试所需最小文档集
+`docs/config-reference.md`，解压后 `npm test` 全绿）、**配置为默认初始态**（无个人/真实数据）。
 
 发布策略：**只保留最新 Release**——新 Release 创建成功后，CI 自动删除其余 Release 页面；**tag 永不删除**（见 §7）。
 
@@ -128,7 +129,7 @@ validate（RELEASE.json 双重校验）
 → archive（白名单归档：articles/media 仅 .gitkeep 骨架 + RELEASE.json=package.json=tag
            版本一致性校验，上传 artifact）
 → buildability（下载归档 → 解压 → npm ci --ignore-scripts → npm test → npm run build
-                 断言 dist/index.html、dist/build-report.html、dist/zh/search-index.json；
+                 断言 dist/index.html、dist/build-report.html、每语言 /assets/search-index.<hash>.json；
                  任一环节失败即不发布）
 → publish（gh release create --verify-tag --latest → release-prune 清理其余 Release；tag 永不删除）
 ```
@@ -148,9 +149,9 @@ npm run release:archive -- --ref v1.1.0 --out dist/release.zip
 
 白名单单一来源：`scripts/lib/release-manifest.js`。口径：**基础包 = 可完整体验 README 全部功能的最基本骨架**，解压后 `npm ci --ignore-scripts && npm test && npm run build` 必须全部成功。
 
-- 包含：`js/**`、`scripts/**`（含全部 `*.test.js`，保证解压后 `npm test` 可运行）、`templates/**`、`workers/**`、`.githooks/**`、示例页面 `pages/**`、默认资源 `static/**`、默认数据 `data/**`（如每日一言 `data/quotes.json5`，属可体验的默认功能）；根全部 `*.json5`、`package.json`、`package-lock.json`、`.env.example`、`.gitattributes`、`.gitignore`、`LICENSE`、`README.md`、`RELEASE.json`、`build.bat`、`serve.bat`、`eslint.config.js`、`tsconfig.json`、`wrangler.toml`。
+- 包含：`js/**`、`scripts/**`（含全部 `*.test.js`，保证解压后 `npm test` 可运行）、`templates/**`、`workers/**`、`.githooks/**`、示例页面 `pages/**`、默认资源 `static/**`、默认数据 `data/**`（如每日一言 `data/quotes.json5`，属可体验的默认功能）；测试所需最小文档集 `docs/config-reference.md`（`RELEASE_EXTRA_FILES` 显式放行，测试直接读取）；根全部 `*.json5`、`package.json`、`package-lock.json`、`.env.example`、`.gitattributes`、`.gitignore`、`LICENSE`、`README.md`、`RELEASE.json`、`build.bat`、`serve.bat`、`eslint.config.js`、`tsconfig.json`、`wrangler.toml`。
 - 骨架目录（只保留 `.gitkeep`，实体内容一律过滤）：`articles/**`（如 `articles/zh/.gitkeep`、`articles/en/.gitkeep`）与 `media/**`（`media/.gitkeep`）。pathspec 对这两个目录只注入 `**/.gitkeep`；`assertArchiveContents` 兜底拒绝任何非标记条目，错误信息标注「骨架目录只允许 .gitkeep」。
-- 排除：`docs/**`、`.github/**`、`.tmp-scripts/**`、`.playwright-mcp/**`、`backups/**`、`real-site/**`、`dist/**`、`node_modules/**`、`.cache/**`、`build-artifacts/**`、`release-artifacts/**`、`workers/security-config.js`；未知路径默认拒绝。
+- 排除：`docs/**`（`docs/config-reference.md` 除外，见上）、`.github/**`、`.tmp-scripts/**`、`.playwright-mcp/**`、`backups/**`、`real-site/**`、`dist/**`、`node_modules/**`、`.cache/**`、`build-artifacts/**`、`release-artifacts/**`、`workers/security-config.js`；未知路径默认拒绝。
 - 注意：可选内容目录 `videos/`、`assets/` 当前仓库尚无内容；`git archive` 对未匹配的 pathspec 会直接失败，故不能预先写入，待目录出现内容时显式加入白名单。
 - 归档生成后逐条复核（`assertArchiveContents`），任一条目越界或缺少必需文件（含 `.gitkeep` 骨架标记、`scripts/**/*.test.js`）即失败；同时校验版本三方一致（RELEASE.json = package.json = tag 名，见 `assertVersionConsistency`）。
 - 本地核对归档清单：`release:archive` 输出骨架目录统计（`articles/` 与 `media/` 各几个 `.gitkeep`）、测试文件数与总文件数。
@@ -179,7 +180,7 @@ npm run release:prune -- --keep v1.1.0 --dry-run  # 仅打印删除清单
 | 门禁失败（release:mark 中途停止） | 已停止且未写文件；修复后重跑完整命令（从第一项门禁重新执行） |
 | `tag 已存在` | 脚本拒绝重复发布；确认版本号或删除本地错误 tag（`git tag -d`，未推送时安全） |
 | `版本不一致` / `tag 与版本不一致`（archive 作业） | RELEASE.json、package.json、tag 三者必须一致；用 `release:mark` 重新标记，不要手工改版本号 |
-| `buildability` 作业失败 | 归档解压后 `npm ci --ignore-scripts` / `npm test` / `npm run build` 失败、或缺少 `dist/index.html`/`build-report.html`/`zh/search-index.json`；**不会创建 Release**。按日志修复（多为白名单漏文件或空站构建回归）后重新标记新版本/重推 tag |
+| `buildability` 作业失败 | 归档解压后 `npm ci --ignore-scripts` / `npm test` / `npm run build` 失败、或缺少 `dist/index.html`/`build-report.html`/每语言 `/assets/search-index.<hash>.json` 搜索索引；**不会创建 Release**。按日志修复（多为白名单漏文件或空站构建回归）后重新标记新版本/重推 tag |
 | `git archive` 缺 RELEASE.json | ref 指向发布机制引入前的旧提交；改用含标记的 tag/HEAD |
 | `gh release create` 失败 | 检查 `gh auth status`、tag 是否已推送、同名 Release 是否已存在；Actions 通道已建 Release 时不要再用通道 B |
 | Release 已建但下载页未置顶 Latest | 历史 Release 受 `--prerelease` 影响；手动修正示例：`gh release edit vX.Y.Z --prerelease=false --latest`（或删掉该 Release 后重跑发布）。现行 CI/本地通道已固定 `--latest`，不再出现该现象 |

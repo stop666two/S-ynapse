@@ -132,8 +132,23 @@ jobs:
           npm run build
           test -f dist/index.html
           test -f dist/build-report.html
-          test -f dist/zh/search-index.json
-          echo "[buildability] 解压后 npm test 与 npm run build 通过：dist/index.html / dist/build-report.html / dist/zh/search-index.json 均存在"
+          # 搜索索引为每语言内容寻址产物（v2：/assets/search-index.<内容哈希>.json；旧固定路径
+          # /{lang}/search-index.json 已在 v2 迁移中停止产出，见 docs/config-reference.md 搜索节）。
+          # 空站（0 文章）同样必须为每个语言产出索引（空 docs 数组），否则 fail。
+          shopt -s nullglob
+          indexes=(dist/assets/search-index.*.json)
+          searchPages=(dist/*/search/index.html)
+          shopt -u nullglob
+          langCount=${#searchPages[@]}
+          if [ "$langCount" -lt 1 ]; then
+            echo "[buildability] 未发现语言搜索页（dist/<lang>/search/index.html）"
+            exit 1
+          fi
+          if [ "${#indexes[@]}" -lt "$langCount" ]; then
+            echo "[buildability] 搜索索引数量不足：语言数 $langCount，dist/assets/search-index.<hash>.json 数 ${#indexes[@]}"
+            exit 1
+          fi
+          echo "[buildability] 解压后 npm test 与 npm run build 通过：dist/index.html / dist/build-report.html / $langCount 种语言的 assets/search-index.<hash>.json 均存在"
 
   publish:
     needs: [buildability]

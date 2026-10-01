@@ -33,7 +33,8 @@ test('resolveSaveDataConfig：默认/覆盖/storageKey 回退/degrade 显式 fal
     manual: true,
     storageKey: 'ss-save-data',
     degrade: {
-      animations: true, particles: true, lowResImages: true, lazyAggressive: true, systemFontsOnly: true
+      animations: true, particles: true, lowResImages: true, lazyAggressive: true, systemFontsOnly: true,
+      lowResMaxWidthPx: 0
     }
   });
   assert.deepStrictEqual(c.resolveSaveDataConfig(null), c.resolveSaveDataConfig({}));
@@ -42,8 +43,11 @@ test('resolveSaveDataConfig：默认/覆盖/storageKey 回退/degrade 显式 fal
   assert.strictEqual(c.resolveSaveDataConfig({ storageKey: 42 }).storageKey, '42');
   assert.strictEqual(c.resolveSaveDataConfig({ enabled: false }).enabled, false);
   const off = c.resolveSaveDataConfig({ degrade: { animations: false, particles: false, lowResImages: false, lazyAggressive: false, systemFontsOnly: false } });
-  assert.deepStrictEqual(off.degrade, { animations: false, particles: false, lowResImages: false, lazyAggressive: false, systemFontsOnly: false }, '唯一关闭方式为显式 false');
+  assert.deepStrictEqual(off.degrade, { animations: false, particles: false, lowResImages: false, lazyAggressive: false, systemFontsOnly: false, lowResMaxWidthPx: 0 }, '唯一关闭方式为显式 false');
   assert.strictEqual(c.resolveSaveDataConfig({ degrade: 'oops' }).degrade.animations, true, 'degrade 非对象回退默认全开');
+  assert.strictEqual(c.resolveSaveDataConfig({ degrade: { lowResMaxWidthPx: 640 } }).degrade.lowResMaxWidthPx, 640, '低清阈值透传');
+  assert.strictEqual(c.resolveSaveDataConfig({ degrade: { lowResMaxWidthPx: -1 } }).degrade.lowResMaxWidthPx, 0, '负数回退 0（不限制）');
+  assert.strictEqual(c.resolveSaveDataConfig({ degrade: { lowResMaxWidthPx: 'abc' } }).degrade.lowResMaxWidthPx, 0, '非法回退 0');
 });
 
 test('resolveSaveDataConfig 与 saveDataModeConfig 同值对拍（防两端语义漂移）', async () => {
@@ -57,6 +61,8 @@ test('resolveSaveDataConfig 与 saveDataModeConfig 同值对拍（防两端语�
     { storageKey: '  x  ' },
     { degrade: { animations: false } },
     { degrade: { particles: false, systemFontsOnly: false } },
+    { degrade: { lowResMaxWidthPx: 640 } },
+    { degrade: { lowResMaxWidthPx: -5 } },
     { degrade: null },
     { enabled: false, auto: false, manual: false, storageKey: 'k', degrade: { lazyAggressive: false } }
   ];
@@ -176,7 +182,7 @@ test('配置契约：features.json5 ↔ DEFAULT_FEATURES.saveDataMode 同步；�
   assert.strictEqual(features.saveDataMode.manual, true);
   assert.strictEqual(features.saveDataMode.storageKey, 'ss-save-data');
   assert.deepStrictEqual(features.saveDataMode.degrade, {
-    animations: true, particles: true, lowResImages: true, lazyAggressive: true, systemFontsOnly: true
+    animations: true, particles: true, lowResImages: true, lazyAggressive: true, systemFontsOnly: true, lowResMaxWidthPx: 0
   });
   assert.ok(FEATURE_MODULES.includes('saveDataMode'), 'schema 模块清单包含 saveDataMode');
 });

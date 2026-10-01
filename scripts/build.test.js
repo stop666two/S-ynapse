@@ -80,8 +80,8 @@ describe('features-schema validateFeatures', () => {
     const r = validateFeatures({ lightbox: 42 }, 'features');
     assert.ok(r.errors.some(e => e.includes('must be an object')));
   });
-  it('exposes 102 feature modules for configuration', () => {
-    assert.strictEqual(FEATURE_MODULES.length, 102);
+  it('exposes 103 feature modules for configuration', () => {
+    assert.strictEqual(FEATURE_MODULES.length, 103);
   });
 });
 
@@ -466,8 +466,9 @@ describe('sanitizeSvg', () => {
 
 describe('generate-security-config', () => {
   it('extracts rate limiting fields from security.json5 shape', () => {
-    const out = extractWorkerSecurity({ rateLimiting: { enabled: true, maxRequests: 50, windowMs: 60000, blockDuration: 300000, whitelist: ['10.0.0.1'], blacklist: ['1.2.3.4'] } });
+    const out = extractWorkerSecurity({ rateLimiting: { enabled: true, maxRequests: 50, windowMs: 60000, blockDuration: 300000, maxTrackedEntries: 8000, whitelist: ['10.0.0.1'], blacklist: ['1.2.3.4'] } });
     assert.strictEqual(out.rateLimiting.maxRequests, 50);
+    assert.strictEqual(out.rateLimiting.maxTrackedEntries, 8000);
     assert.deepStrictEqual(out.rateLimiting.whitelist, ['10.0.0.1']);
     assert.deepStrictEqual(out.rateLimiting.blacklist, ['1.2.3.4']);
     assert.strictEqual(out.forceHttps, false);
@@ -476,10 +477,18 @@ describe('generate-security-config', () => {
     const out = extractWorkerSecurity({ rateLimiting: { maxRequests: 'unlimited' } });
     assert.strictEqual(out.rateLimiting.maxRequests, 100);
     assert.strictEqual(out.rateLimiting.windowMs, 60000);
+    assert.strictEqual(out.rateLimiting.maxTrackedEntries, 5000, '缺失回退 5000');
     assert.deepStrictEqual(out.rateLimiting.whitelist, []);
     assert.strictEqual(out.csp.reportOnly, false);
+    assert.strictEqual(out.cspReportMaxBytes, 16384, '缺失回退 16384');
     assert.deepStrictEqual(out.pathRestrictions, [{ path: '/admin/*' }]);
     assert.deepStrictEqual(out.rateLimiting.skipPaths, []);
+  });
+  it('passes security.hardening.cspReportMaxBytes to worker config (valid/invalid)', () => {
+    assert.strictEqual(extractWorkerSecurity({ hardening: { cspReportMaxBytes: 32768 } }).cspReportMaxBytes, 32768);
+    assert.strictEqual(extractWorkerSecurity({ hardening: { cspReportMaxBytes: 0 } }).cspReportMaxBytes, 16384, '0 非法回退');
+    assert.strictEqual(extractWorkerSecurity({ hardening: { cspReportMaxBytes: 'big' } }).cspReportMaxBytes, 16384, '非数字回退');
+    assert.strictEqual(extractWorkerSecurity({ rateLimiting: { maxTrackedEntries: -1 } }).rateLimiting.maxTrackedEntries, 5000, '负数回退');
   });
   it('normalizes path restrictions (keeps requireAuth/allowedIPs) and drops malformed entries', () => {
     const out = extractWorkerSecurity({ pathRestrictions: [{ path: '/admin/*', requireAuth: true, allowedIPs: ['10.0.0.0/8'] }, { path: '/x' }, { noPath: true }, null] });

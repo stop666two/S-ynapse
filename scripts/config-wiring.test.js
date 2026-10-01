@@ -972,7 +972,7 @@ test('features.json5 与 schema：隐藏开关批次新键齐全且默认值一�
 
 test('tuning.json5 与注册表：search 索引加载参数键齐全', () => {
   const tuning = json5.parse(fs.readFileSync(path.join(ROOT, 'tuning.json5'), 'utf-8'));
-  for (const key of ['indexTimeoutMs', 'indexRetry', 'errorText', 'errorTextEn']) {
+  for (const key of ['indexTimeoutMs', 'indexRetry', 'errorText', 'errorTextEn', 'overlayBackdrop']) {
     assert.ok(key in tuning.search, 'tuning.json5 search.' + key + ' 应存在');
     assert.ok(key in require('./lib/tuning-defaults.js').DEFAULT_TUNING.search, '注册表 search.' + key + ' 应存在');
   }
@@ -980,6 +980,191 @@ test('tuning.json5 与注册表：search 索引加载参数键齐全', () => {
   assert.strictEqual(tuning.search.indexRetry, 1);
   assert.strictEqual(tuning.search.errorText, '');
   assert.strictEqual(tuning.search.errorTextEn, '');
+  assert.strictEqual(tuning.search.overlayBackdrop, 'rgba(0,0,0,.55)');
+  assert.strictEqual(w.searchOverlayBackdrop({}), 'rgba(0,0,0,.55)');
+  assert.strictEqual(w.searchOverlayBackdrop({ search: { overlayBackdrop: '  ' } }), 'rgba(0,0,0,.55)', '空值回退历史色');
+  assert.strictEqual(w.searchOverlayBackdrop({ search: { overlayBackdrop: 'rgba(0,0,0,.8)' } }), 'rgba(0,0,0,.8)');
+});
+
+test('配置扩张新键：features.json5 与 schema 默认值一致；errorPage 为新增模块', () => {
+  const expected = {
+    i18n: { storageKey: 's-ss-lang' },
+    themePresets: { storageKey: 'ss-preset' },
+    readingProgress: { storageKey: 's-readpos' },
+    continueReading: { removeDelayMs: 360, clearConfirmMs: 3000 },
+    search: { resultTagCount: 6 },
+    searchHighlight: { markColor: 'rgba(255,193,7,.45)', markColorDark: 'rgba(255,193,7,.45)' },
+    imageLazy: { eagerFirst: 1 },
+    codeBlock: { scrollHintTolerancePx: 8 },
+    readingHistory: { progressThrottleMs: 800 },
+    bilingual: { fetchTimeoutMs: 10000, resizeDebounceMs: 120, paneTitle: '中文', paneTitleEn: 'English' },
+    pwa: { reloadFallbackMs: 3000 },
+    announcement: { transitionMs: 450 },
+    errorPage: { suggestCount: 5, suggestTitle: '热门文章', suggestTitleEn: '', artAriaLabel: '404 illustration', artAriaLabelEn: '' }
+  };
+  for (const [mod, keys] of Object.entries(expected)) {
+    for (const [key, value] of Object.entries(keys)) {
+      assert.deepStrictEqual(features[mod][key], value, 'features.json5 ' + mod + '.' + key);
+      assert.deepStrictEqual(DEFAULT_FEATURES[mod][key], value, 'schema ' + mod + '.' + key);
+    }
+  }
+  assert.deepStrictEqual(features.codeBlock.windowDotColors, ['#ff5f56', '#ffbd2e', '#27c93f']);
+  assert.deepStrictEqual(DEFAULT_FEATURES.codeBlock.windowDotColors, ['#ff5f56', '#ffbd2e', '#27c93f']);
+  assert.strictEqual(features.saveDataMode.degrade.lowResMaxWidthPx, 0);
+  assert.strictEqual(DEFAULT_FEATURES.saveDataMode.degrade.lowResMaxWidthPx, 0);
+  assert.ok(FEATURE_MODULES_INCLUDES('errorPage'), 'schema 应包含 errorPage 模块');
+  assert.ok(!('enabled' in DEFAULT_FEATURES.errorPage), 'errorPage 无总开关（仅展示细节）');
+});
+
+function FEATURE_MODULES_INCLUDES(name) {
+  return require('./lib/features-schema.js').FEATURE_MODULES.includes(name);
+}
+
+test('配置扩张接线源码扫描：每键在真实消费点出现', () => {
+  const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf-8');
+  const sources = {
+    i18n: read('js/domains/core/i18n.js'),
+    themePresets: read('js/domains/features/theme-presets.js'),
+    readPosition: read('js/domains/core/read-position.js'),
+    continueReading: read('js/domains/features/continue-reading.js'),
+    searchPage: read('js/domains/features/search-page.js'),
+    readingHistory: read('js/domains/features/reading-history.js'),
+    bilingual: read('js/domains/features/bilingual.js'),
+    bilingualCore: read('js/domains/features/bilingual-core.js'),
+    pwa: read('js/domains/features/pwa.js'),
+    codeBlock: read('js/domains/core/code-block.js'),
+    imageLazy: read('js/domains/core/image-lazy.js'),
+    contextMenu: read('js/domains/guard/context-menu.js'),
+    saveDataCore: read('js/domains/core/save-data-core.js'),
+    layout: read('templates/layout.ejs'),
+    index: read('templates/index.ejs'),
+    err404: read('templates/404.ejs'),
+    siteCss: read('templates/site-css.ejs'),
+    post: read('templates/post.ejs'),
+    pages: read('scripts/build/pages.js'),
+    report: read('scripts/build/report.js'),
+    cjkFonts: read('scripts/build/cjk-fonts.js')
+  };
+  const require2 = (src, needle, label) => assert.ok(src.includes(needle), label + ' 未接线（缺少 ' + needle + '）');
+  require2(sources.i18n, 'I.storageKey', 'i18n.storageKey');
+  require2(sources.themePresets, '_presetStorageKey', 'themePresets.storageKey');
+  require2(sources.readPosition, 'RP.storageKey', 'readingProgress.storageKey');
+  require2(sources.continueReading, 'removeDelayMs', 'continueReading.removeDelayMs');
+  require2(sources.continueReading, 'clearConfirmMs', 'continueReading.clearConfirmMs');
+  require2(sources.searchPage, 'resultTagCount', 'search.resultTagCount');
+  require2(sources.readingHistory, 'progressThrottleMs', 'readingHistory.progressThrottleMs');
+  require2(sources.bilingualCore, 'fetchTimeoutMs', 'bilingual.fetchTimeoutMs');
+  require2(sources.bilingualCore, 'resizeDebounceMs', 'bilingual.resizeDebounceMs');
+  require2(sources.bilingualCore, 'paneTitleEn', 'bilingual.paneTitle(En)');
+  require2(sources.post, '_biCfg.paneTitle', 'post.ejs pane 标题接线');
+  require2(sources.pwa, 'reloadFallbackMs', 'pwa.reloadFallbackMs');
+  require2(sources.codeBlock, 'SCROLLTOL', 'codeBlock.scrollHintTolerancePx');
+  require2(sources.imageLazy, 'efNeed', 'imageLazy.eagerFirst 合流');
+  require2(sources.imageLazy, 'lowResMaxWidthPx', 'saveDataMode 低清阈值消费');
+  require2(sources.saveDataCore, 'lowResMaxWidthPx', 'save-data-core 低清阈值归一化');
+  require2(sources.contextMenu, 'searchTextMaxChars', 'guard.contextMenu.searchTextMaxChars');
+  require2(sources.contextMenu, 'moveTolerancePx', 'guard.contextMenu.moveTolerancePx');
+  require2(sources.layout, 'friendsSidebarCount', 'friends.sidebarCount');
+  require2(sources.layout, '_swN', 'series widget count');
+  require2(sources.index, '_eagerFirst', 'imageLazy.eagerFirst 模板');
+  require2(sources.err404, 'errorPageCfg', 'features.errorPage 404 接线');
+  require2(sources.err404, 'suggestCount', 'errorPage.suggestCount');
+  require2(sources.err404, 'artAriaLabel', 'errorPage.artAriaLabel');
+  require2(sources.siteCss, '--search-overlayBackdrop', 'tuning.search.overlayBackdrop');
+  require2(sources.siteCss, '_shLight', 'searchHighlight.markColor');
+  require2(sources.siteCss, '_shDark', 'searchHighlight.markColorDark');
+  require2(sources.siteCss, '_wdc0', 'codeBlock.windowDotColors');
+  require2(sources.siteCss, '_annTrans', 'announcement.transitionMs');
+  require2(sources.pages, 'sidebarRecentPoolSize', 'sidebar.recentPoolSize');
+  require2(sources.pages, 'errorPageConfig', 'features.errorPage 构建归一化');
+  require2(sources.report, 'reportTopN', 'site.build.reportTopN');
+  require2(sources.cjkFonts, 'cfg.concurrency', 'site.build.cjkFonts.concurrency');
+  require2(sources.cjkFonts, 'cfg.cacheTtlDays', 'site.build.cjkFonts.cacheTtlDays');
+});
+
+test('配置扩张守卫：site/security/sidebar/friends 注册表默认值同步', () => {
+  const { DEFAULT_CONFIG } = require('./lib/site-defaults.js');
+  const site = json5.parse(fs.readFileSync(path.join(ROOT, 'site.json5'), 'utf-8'));
+  const sidebar = json5.parse(fs.readFileSync(path.join(ROOT, 'sidebar.json5'), 'utf-8'));
+  const friendsRaw = json5.parse(fs.readFileSync(path.join(ROOT, 'friends.json5'), 'utf-8'));
+  const securityRaw = json5.parse(fs.readFileSync(path.join(ROOT, 'security.json5'), 'utf-8'));
+  assert.strictEqual(site.build.reportTopN, 10);
+  assert.strictEqual(DEFAULT_CONFIG.site.build.reportTopN, 10);
+  assert.strictEqual(site.build.cjkFonts.concurrency, 6);
+  assert.strictEqual(site.build.cjkFonts.cacheTtlDays, 7);
+  assert.strictEqual(DEFAULT_CONFIG.site.build.cjkFonts.concurrency, 6);
+  assert.strictEqual(DEFAULT_CONFIG.site.build.cjkFonts.cacheTtlDays, 7);
+  assert.strictEqual(sidebar.recentPoolSize, 10);
+  assert.strictEqual(DEFAULT_CONFIG.sidebar.recentPoolSize, 10);
+  assert.strictEqual(friendsRaw.sidebarCount, 8);
+  assert.strictEqual(DEFAULT_CONFIG.friends.sidebarCount, 8);
+  assert.strictEqual(securityRaw.rateLimiting.maxTrackedEntries, 5000);
+  assert.strictEqual(DEFAULT_CONFIG.security.rateLimiting.maxTrackedEntries, 5000);
+  assert.strictEqual(securityRaw.hardening.cspReportMaxBytes, 16384);
+  assert.strictEqual(DEFAULT_CONFIG.security.hardening.cspReportMaxBytes, 16384);
+  const guardRaw = json5.parse(fs.readFileSync(path.join(ROOT, 'guard.json5'), 'utf-8'));
+  const { DEFAULT_GUARD } = require('./lib/guard-defaults.js');
+  assert.strictEqual(guardRaw.contextMenu.searchTextMaxChars, 12);
+  assert.strictEqual(guardRaw.contextMenu.moveTolerancePx, 8);
+  assert.strictEqual(DEFAULT_GUARD.contextMenu.searchTextMaxChars, 12);
+  assert.strictEqual(DEFAULT_GUARD.contextMenu.moveTolerancePx, 8);
+});
+
+test('配置扩张纯函数：存储键/结果标签/高亮色/圆点色/容差/公告时长/PWA/errorPage/侧栏池/报告上限/guard 阈值', () => {
+  assert.deepStrictEqual(w.coreStorageKeys({}), { i18n: 's-ss-lang', themePresets: 'ss-preset', readingProgress: 's-readpos' });
+  assert.deepStrictEqual(
+    w.coreStorageKeys({ i18n: { storageKey: ' k1 ' }, themePresets: { storageKey: '' }, readingProgress: { storageKey: 'k3' } }),
+    { i18n: 'k1', themePresets: 'ss-preset', readingProgress: 'k3' },
+    '空值回退默认键、值去空白'
+  );
+  assert.deepStrictEqual(w.searchResultConfig({}), { resultTagCount: 6 });
+  assert.strictEqual(w.searchResultConfig({ search: { resultTagCount: 3 } }).resultTagCount, 3);
+  assert.strictEqual(w.searchResultConfig({ search: { resultTagCount: 0 } }).resultTagCount, 6);
+  assert.deepStrictEqual(w.searchHighlightColors({}), { markColor: 'rgba(255,193,7,.45)', markColorDark: 'rgba(255,193,7,.45)' });
+  assert.deepStrictEqual(w.searchHighlightColors({ searchHighlight: { markColor: 'yellow' } }), { markColor: 'yellow', markColorDark: 'yellow' }, 'dark 空回退 light');
+  assert.deepStrictEqual(w.searchHighlightColors({ searchHighlight: { markColor: 'yellow', markColorDark: 'orange' } }), { markColor: 'yellow', markColorDark: 'orange' });
+  assert.deepStrictEqual(w.codeWindowDotColors({}), ['#ff5f56', '#ffbd2e', '#27c93f']);
+  assert.deepStrictEqual(w.codeWindowDotColors({ codeBlock: { windowDotColors: ['#111111', '#222222', '#333333'] } }), ['#111111', '#222222', '#333333']);
+  assert.deepStrictEqual(w.codeWindowDotColors({ codeBlock: { windowDotColors: ['#111111', '#222222'] } }), ['#ff5f56', '#ffbd2e', '#27c93f'], '不足 3 项回退默认');
+  assert.deepStrictEqual(w.codeWindowDotColors({ codeBlock: { windowDotColors: ['#111111', '', '#333333'] } }), ['#ff5f56', '#ffbd2e', '#27c93f'], '空项回退默认');
+  assert.strictEqual(w.scrollHintTolerancePx({}), 8);
+  assert.strictEqual(w.scrollHintTolerancePx({ codeBlock: { scrollHintTolerancePx: 0 } }), 0, '0 合法（任何溢出即提示）');
+  assert.strictEqual(w.scrollHintTolerancePx({ codeBlock: { scrollHintTolerancePx: -2 } }), 8);
+  assert.strictEqual(w.announcementTransitionMs({}), 450);
+  assert.strictEqual(w.announcementTransitionMs({ announcement: { transitionMs: 0 } }), 0, '0 = 无动画');
+  assert.strictEqual(w.announcementTransitionMs({ announcement: { transitionMs: 'x' } }), 450);
+  assert.deepStrictEqual(w.pwaReloadConfig({}), { reloadFallbackMs: 3000 });
+  assert.strictEqual(w.pwaReloadConfig({ pwa: { reloadFallbackMs: 500 } }).reloadFallbackMs, 500);
+  assert.strictEqual(w.pwaReloadConfig({ pwa: { reloadFallbackMs: 0 } }).reloadFallbackMs, 3000);
+  assert.deepStrictEqual(w.errorPageConfig({}), {
+    suggestCount: 5, suggestTitle: '热门文章', suggestTitleEn: '热门文章',
+    artAriaLabel: '404 illustration', artAriaLabelEn: '404 illustration'
+  });
+  const ep = w.errorPageConfig({ errorPage: { suggestCount: 0, suggestTitle: ' 热文 ', suggestTitleEn: 'Hot', artAriaLabel: '插图', artAriaLabelEn: '' } });
+  assert.strictEqual(ep.suggestCount, 0, '0 = 不渲染推荐区');
+  assert.strictEqual(ep.suggestTitle, '热文');
+  assert.strictEqual(ep.suggestTitleEn, 'Hot');
+  assert.strictEqual(ep.artAriaLabel, '插图');
+  assert.strictEqual(ep.artAriaLabelEn, '插图', 'en 空回退 zh');
+  assert.strictEqual(w.errorPageConfig({ errorPage: { suggestCount: 99 } }).suggestCount, 20, '上限夹取');
+  assert.strictEqual(w.errorPageConfig({ errorPage: { suggestCount: -1 } }).suggestCount, 5, '负数回退');
+  assert.strictEqual(w.friendsSidebarCount({ sidebarCount: 3 }), 3);
+  assert.strictEqual(w.friendsSidebarCount({}), 8, '默认 8 = 历史硬编码');
+  assert.strictEqual(w.friendsSidebarCount({ sidebarCount: 0 }), 8);
+  assert.strictEqual(w.sidebarRecentPoolSize({ recentPoolSize: 20 }), 20);
+  assert.strictEqual(w.sidebarRecentPoolSize({}), 10, '默认 10 = 历史池');
+  assert.strictEqual(w.sidebarRecentPoolSize({ recentPoolSize: -1 }), 10);
+  assert.strictEqual(w.reportTopN({ build: { reportTopN: 5 } }, 10), 5);
+  assert.strictEqual(w.reportTopN({ build: {} }, 10), 10, '缺失回退 internals');
+  assert.strictEqual(w.reportTopN({}, 7), 7);
+  assert.strictEqual(w.reportTopN({ build: { reportTopN: 0 } }, 10), 10);
+  assert.deepStrictEqual(w.contextMenuThresholds({}), { searchTextMaxChars: 12, moveTolerancePx: 8 });
+  assert.deepStrictEqual(w.contextMenuThresholds({ searchTextMaxChars: 4, moveTolerancePx: 0 }), { searchTextMaxChars: 4, moveTolerancePx: 0 });
+  assert.deepStrictEqual(w.contextMenuThresholds({ searchTextMaxChars: 0, moveTolerancePx: -1 }), { searchTextMaxChars: 12, moveTolerancePx: 8 });
+  const rh = w.readingHistoryConfig({});
+  assert.strictEqual(rh.progressThrottleMs, 800);
+  assert.strictEqual(w.readingHistoryConfig({ readingHistory: { progressThrottleMs: 0 } }).progressThrottleMs, 0);
+  assert.strictEqual(w.readingHistoryConfig({ readingHistory: { progressThrottleMs: -1 } }).progressThrottleMs, 800);
 });
 
 test('lightboxGestureConfig：默认=历史行为、覆盖生效、非法回退', () => {
@@ -1032,38 +1217,50 @@ test('softNavCacheConfig / readingHistoryConfig / readModeConfig：默认与覆�
 });
 
 test('bilingualConfig：默认三开 + 1280；关闭生效；断点夹取 480–3840', () => {
-  assert.deepStrictEqual(w.bilingualConfig({}), { enabled: true, switch: true, sideBySide: true, breakpointPx: 1280 });
+  const defaults = {
+    enabled: true, switch: true, sideBySide: true, breakpointPx: 1280,
+    fetchTimeoutMs: 10000, resizeDebounceMs: 120, paneTitle: '中文', paneTitleEn: 'English'
+  };
+  assert.deepStrictEqual(w.bilingualConfig({}), defaults);
   assert.deepStrictEqual(
     w.bilingualConfig({ bilingual: { enabled: false, switch: false, sideBySide: false, breakpointPx: 1440 } }),
-    { enabled: false, switch: false, sideBySide: false, breakpointPx: 1440 }
+    Object.assign({}, defaults, { enabled: false, switch: false, sideBySide: false, breakpointPx: 1440 })
   );
   assert.strictEqual(w.bilingualConfig({ bilingual: { breakpointPx: 'abc' } }).breakpointPx, 1280, '非法回退');
   assert.strictEqual(w.bilingualConfig({ bilingual: { breakpointPx: 100 } }).breakpointPx, 480, '下限夹取');
   assert.strictEqual(w.bilingualConfig({ bilingual: { breakpointPx: 9999 } }).breakpointPx, 3840, '上限夹取');
+  assert.strictEqual(w.bilingualConfig({ bilingual: { fetchTimeoutMs: 0 } }).fetchTimeoutMs, 10000, '超时 0 回退');
+  assert.strictEqual(w.bilingualConfig({ bilingual: { fetchTimeoutMs: 2500 } }).fetchTimeoutMs, 2500);
+  assert.strictEqual(w.bilingualConfig({ bilingual: { resizeDebounceMs: -3 } }).resizeDebounceMs, 120, '防抖非法回退');
+  assert.strictEqual(w.bilingualConfig({ bilingual: { paneTitle: ' ' } }).paneTitle, '中文', '空标题回退内置');
+  assert.strictEqual(w.bilingualConfig({ bilingual: { paneTitleEn: 'EN' } }).paneTitleEn, 'EN');
 });
 
-test('continueReadingConfig：条数/进度开关/存储键回退链/文案键/存储上限', () => {
+test('continueReadingConfig：条数/进度开关/存储键回退链/文案键/存储上限/交互时长', () => {
   assert.deepStrictEqual(w.continueReadingConfig({}), {
     displayCount: 3, showProgress: true, storageKey: 's-history', maxStored: 50,
+    removeDelayMs: 360, clearConfirmMs: 3000,
     removeLabel: '移除', removeLabelEn: '', clearLabel: '清空', clearLabelEn: ''
   });
   assert.deepStrictEqual(
     w.continueReadingConfig({
-      continueReading: { count: 5, showProgress: false, storageKey: ' cr-x ', removeLabel: ' 删除 ', removeLabelEn: ' Delete ', clearLabel: '全部清空', clearLabelEn: 'Clear all' },
+      continueReading: { count: 5, showProgress: false, storageKey: ' cr-x ', removeLabel: ' 删除 ', removeLabelEn: ' Delete ', clearLabel: '全部清空', clearLabelEn: 'Clear all', removeDelayMs: 500, clearConfirmMs: 5000 },
       readingHistory: { maxStored: 20 }
     }),
     {
       displayCount: 5, showProgress: false, storageKey: 'cr-x', maxStored: 20,
+      removeDelayMs: 500, clearConfirmMs: 5000,
       removeLabel: '删除', removeLabelEn: 'Delete', clearLabel: '全部清空', clearLabelEn: 'Clear all'
     }
   );
   assert.deepStrictEqual(
-    w.continueReadingConfig({ continueReading: { count: 0, showProgress: 'x', storageKey: '' }, readingHistory: { storageKey: ' s-history ' } }),
+    w.continueReadingConfig({ continueReading: { count: 0, showProgress: 'x', storageKey: '', removeDelayMs: -1, clearConfirmMs: 0 }, readingHistory: { storageKey: ' s-history ' } }),
     {
       displayCount: 3, showProgress: true, storageKey: 's-history', maxStored: 50,
+      removeDelayMs: 360, clearConfirmMs: 3000,
       removeLabel: '移除', removeLabelEn: '', clearLabel: '清空', clearLabelEn: ''
     },
-    '空存储键回退 readingHistory.storageKey（去空白）；文案键回退默认'
+    '空存储键回退 readingHistory.storageKey（去空白）；文案与时长键回退默认'
   );
   assert.strictEqual(w.continueReadingConfig({ readingHistory: { storageKey: '' } }).storageKey, 's-history');
 });

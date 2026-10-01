@@ -331,5 +331,16 @@ describe('security-worker config resolution (empty arrays vs missing fields)', (
     const r = resolveWorkerConfig({});
     assert.deepStrictEqual(r.blockedRules, ['/admin/*']);
     assert.ok(r.skipPaths.length > 0, 'missing skipPaths must keep the built-in static-asset skip list');
+    assert.strictEqual(r.rl.maxTrackedEntries, 5000, '缺失 maxTrackedEntries 回退兜底常量');
+    assert.strictEqual(r.reportMaxBytes, 16384, '缺失 cspReportMaxBytes 回退兜底常量');
+  });
+
+  it('resolves maxTrackedEntries / cspReportMaxBytes from generated config (invalid falls back)', () => {
+    const ok = resolveWorkerConfig({ rateLimiting: { maxTrackedEntries: 9000 }, cspReportMaxBytes: 4096 });
+    assert.strictEqual(ok.rl.maxTrackedEntries, 9000);
+    assert.strictEqual(ok.reportMaxBytes, 4096);
+    const bad = resolveWorkerConfig({ rateLimiting: { maxTrackedEntries: -1 }, cspReportMaxBytes: 0 });
+    assert.strictEqual(bad.rl.maxTrackedEntries, -1, 'resolveWorkerConfig 仅透传（实际使用点在 limiter 构造处钳制）');
+    assert.strictEqual(bad.reportMaxBytes, 16384, '非法上报上限回退');
   });
 });

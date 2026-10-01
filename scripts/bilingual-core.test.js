@@ -25,21 +25,31 @@ const { bilingualConfig } = require('./lib/feature-wiring.js');
 
 test('resolveBilingualConfig：默认三开 + 1280；显式关闭；非法/越界断点夹取', async () => {
   const c = await loadCore();
-  assert.deepStrictEqual(c.resolveBilingualConfig({}), { enabled: true, switch: true, sideBySide: true, breakpointPx: 1280 });
-  assert.deepStrictEqual(c.resolveBilingualConfig(null), { enabled: true, switch: true, sideBySide: true, breakpointPx: 1280 });
+  const defaults = {
+    enabled: true, switch: true, sideBySide: true, breakpointPx: 1280,
+    fetchTimeoutMs: 10000, resizeDebounceMs: 120, paneTitle: '中文', paneTitleEn: 'English'
+  };
+  assert.deepStrictEqual(c.resolveBilingualConfig({}), defaults);
+  assert.deepStrictEqual(c.resolveBilingualConfig(null), defaults);
   assert.deepStrictEqual(
     c.resolveBilingualConfig({ enabled: false, switch: false, sideBySide: false, breakpointPx: 960 }),
-    { enabled: false, switch: false, sideBySide: false, breakpointPx: 960 }
+    Object.assign({}, defaults, { enabled: false, switch: false, sideBySide: false, breakpointPx: 960 })
   );
   assert.strictEqual(c.resolveBilingualConfig({ breakpointPx: 'abc' }).breakpointPx, 1280, '非法回退 1280');
   assert.strictEqual(c.resolveBilingualConfig({ breakpointPx: 100 }).breakpointPx, 480, '下限夹取');
   assert.strictEqual(c.resolveBilingualConfig({ breakpointPx: 9999 }).breakpointPx, 3840, '上限夹取');
   assert.strictEqual(c.resolveBilingualConfig({ breakpointPx: '1440.4' }).breakpointPx, 1440, '取整');
+  assert.strictEqual(c.resolveBilingualConfig({ fetchTimeoutMs: 0 }).fetchTimeoutMs, 10000, '超时 0 回退 10000');
+  assert.strictEqual(c.resolveBilingualConfig({ fetchTimeoutMs: 3200 }).fetchTimeoutMs, 3200);
+  assert.strictEqual(c.resolveBilingualConfig({ resizeDebounceMs: -1 }).resizeDebounceMs, 120, '防抖负数回退 120');
+  assert.strictEqual(c.resolveBilingualConfig({ resizeDebounceMs: 0 }).resizeDebounceMs, 0, '0 = 不防抖合法');
+  assert.strictEqual(c.resolveBilingualConfig({ paneTitle: '  ' }).paneTitle, '中文', '空标题回退内置');
+  assert.strictEqual(c.resolveBilingualConfig({ paneTitleEn: 'EN' }).paneTitleEn, 'EN');
 });
 
 test('bilingualConfig 与 bilingual-core 语义对拍（构建期 canonical = 运行时实现）', async () => {
   const c = await loadCore();
-  const cases = [{}, null, { enabled: false }, { breakpointPx: 100 }, { breakpointPx: 9999 }, { breakpointPx: 'abc' }, { switch: false }];
+  const cases = [{}, null, { enabled: false }, { breakpointPx: 100 }, { breakpointPx: 9999 }, { breakpointPx: 'abc' }, { switch: false }, { fetchTimeoutMs: 3200 }, { resizeDebounceMs: 0 }, { paneTitle: '  ' }, { paneTitleEn: 'EN' }];
   for (const raw of cases) {
     assert.deepStrictEqual(
       bilingualConfig({ bilingual: raw || undefined }),
@@ -106,8 +116,11 @@ test('paneLanguageLabel：对方语言自称（en → English / 其余 → 中�
   assert.strictEqual(c.paneLanguageLabel(''), '中文');
 });
 
-test('配置契约：schema 默认与 features.json5 同步（开关/断点）', () => {
-  assert.deepStrictEqual(DEFAULT_FEATURES.bilingual, { enabled: true, switch: true, sideBySide: true, breakpointPx: 1280 });
+test('配置契约：schema 默认与 features.json5 同步（开关/断点/超时/标题）', () => {
+  assert.deepStrictEqual(DEFAULT_FEATURES.bilingual, {
+    enabled: true, switch: true, sideBySide: true, breakpointPx: 1280,
+    fetchTimeoutMs: 10000, resizeDebounceMs: 120, paneTitle: '中文', paneTitleEn: 'English'
+  });
   const featuresRaw = json5.parse(fs.readFileSync(path.join(ROOT, 'features.json5'), 'utf-8'));
   assert.deepStrictEqual(featuresRaw.bilingual, DEFAULT_FEATURES.bilingual, 'features.json5 与 schema 同步');
 });

@@ -340,6 +340,59 @@ describe('buildCjkFonts 管线', () => {
     assert.ok(fs.existsSync(path.join(dist, 'assets', 'css', 'cjk-fonts.css')));
   });
 
+  it('cacheTtlDays=0：清单缓存立即过期并重新拉取（分片仍复用磁盘缓存）', async () => {
+    const cache = tmpDir('cjk-cache-');
+    const dist1 = tmpDir('cjk-dist-');
+    writeDistHtml(dist1, 'zh/index.html', HTML_FIXTURE);
+    const warm = makeFakeFetch();
+    const mod1 = createCjkFontsModule({ distDir: dist1, cacheDir: cache, logger: SILENT, fetchImpl: warm.fetchImpl });
+    assert.strictEqual((await mod1.buildCjkFonts(baseConfig())).ok, true);
+    assert.strictEqual(warm.calls.filter((c) => c.url.includes('fonts.googleapis.com')).length, 1);
+
+    const dist2 = tmpDir('cjk-dist-');
+    writeDistHtml(dist2, 'zh/index.html', HTML_FIXTURE);
+    const fresh = makeFakeFetch();
+    const mod2 = createCjkFontsModule({ distDir: dist2, cacheDir: cache, logger: SILENT, fetchImpl: fresh.fetchImpl });
+    const res = await mod2.buildCjkFonts(baseConfig({ cacheTtlDays: 0 }));
+    assert.strictEqual(res.ok, true);
+    assert.strictEqual(res.downloaded, 0, '分片来自磁盘缓存');
+    assert.strictEqual(fresh.calls.filter((c) => c.url.includes('fonts.googleapis.com')).length, 1, '清单被重新拉取');
+  });
+
+  it('concurrency：分片下载并发峰值不超过配置（显式 2 生效、0 回退默认 6）', async () => {
+    const cssMany = Array.from({ length: 8 }, (_, i) =>
+      `@font-face { font-family: 'Noto Sans SC'; font-weight: 400; font-style: normal; font-display: swap; src: url(https://fonts.gstatic.com/s/notosanssc/v40/chunk-${i}.woff2) format('woff2'); unicode-range: U+4e00-4e0f; }`
+    ).join('\n');
+    const mkFetch = (css) => {
+      let active = 0;
+      let peak = 0;
+      const fetchImpl = async (url) => {
+        if (String(url).indexOf('fonts.googleapis.com') > -1) {
+          return { ok: true, status: 200, text: async () => css };
+        }
+        active += 1;
+        peak = Math.max(peak, active);
+        await new Promise((r) => setImmediate(r));
+        active -= 1;
+        return { ok: true, status: 200, arrayBuffer: async () => CHUNK_BYTES.buffer.slice(CHUNK_BYTES.byteOffset, CHUNK_BYTES.byteOffset + CHUNK_BYTES.byteLength) };
+      };
+      return { fetchImpl, peak: () => peak };
+    };
+    const run = async (limit) => {
+      const dist = tmpDir('cjk-dist-');
+      const cache = tmpDir('cjk-cache-');
+      writeDistHtml(dist, 'zh/index.html', HTML_FIXTURE);
+      const f = mkFetch(cssMany);
+      const mod = createCjkFontsModule({ distDir: dist, cacheDir: cache, logger: SILENT, fetchImpl: f.fetchImpl });
+      const res = await mod.buildCjkFonts(baseConfig({ concurrency: limit }));
+      assert.strictEqual(res.ok, true);
+      assert.strictEqual(res.files, 8);
+      return f.peak();
+    };
+    assert.ok((await run(2)) <= 2, '显式 concurrency=2 生效');
+    assert.ok((await run(0)) <= 6, 'concurrency=0 回退默认 6');
+  });
+
   it('enabled=false 时完全跳过', async () => {
     const dist = tmpDir('cjk-dist-');
     const cache = tmpDir('cjk-cache-');

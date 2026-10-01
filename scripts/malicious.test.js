@@ -570,6 +570,58 @@ describe('T4 恶意/畸形场景', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run
   });
 
   // =====================================================================
+  // 7 续：损坏 featuredImage 回退自动封面（页面/feed/索引无悬空引用）
+  // =====================================================================
+  describe('类 7 featuredImage 损坏回退自动封面', () => {
+    let outDir = '';
+    let result = null;
+
+    before(() => {
+      const site = makeSite({
+        articles: 0,
+        pages: 0,
+        siteOverrides: {
+          languages: ['zh', 'en'],
+          rss: { enabled: true, path: 'feed.xml', jsonFeed: { enabled: true, path: 'feed.json' } },
+          sitemap: { enabled: true, path: 'sitemap.xml' },
+          build: { cleanDist: true, optimizeMedia: true, cjkFonts: { enabled: false } }
+        },
+        extraFiles: {
+          'articles/zh/cover-broken.md': frontmatterArticle({ title: 'Cover Broken', slug: 'cover-broken', date: '2026-06-01', featuredImage: '/media/zero.png' }) + '# Cover Broken\n\n正文。\n',
+          'media/zero.png': Buffer.alloc(0)
+        }
+      });
+      outDir = path.join(site.root, 'out');
+      result = build(site, outDir);
+    });
+
+    it('构建成功：文章页/卡片使用自动封面，无 /media/zero.png 悬空引用', () => {
+      assert.strictEqual(result.status, 0, '损坏头图必须降级而非阻断：\n' + readOut(result).slice(-2000));
+      const page = fs.readFileSync(path.join(outDir, 'zh', 'cover-broken', 'index.html'), 'utf-8');
+      assert.ok(!page.includes('/media/zero.png'), '文章页不得残留损坏头图引用');
+      assert.ok(page.includes('/og/cover-cover-broken.'), '文章页必须使用生成的自动封面');
+      const home = fs.readFileSync(path.join(outDir, 'zh', 'index.html'), 'utf-8');
+      assert.ok(!home.includes('/media/zero.png'), '首页卡片不得残留损坏头图引用');
+      assert.ok(home.includes('/og/cover-cover-broken.'), '首页卡片必须使用生成的自动封面');
+    });
+
+    it('feeds 与搜索索引不残留悬空头图，报告含回退告警', () => {
+      for (const rel of ['zh/feed.xml', 'zh/feed.json']) {
+        assert.ok(!fs.readFileSync(path.join(outDir, rel), 'utf-8').includes('zero.png'), rel + ' 不得残留损坏头图');
+      }
+      const home = fs.readFileSync(path.join(outDir, 'zh', 'index.html'), 'utf-8');
+      const indexUrl = /__SEARCH_INDEX_URL__\s*=\s*"([^"]+)"/.exec(home);
+      assert.ok(indexUrl, '首页必须暴露搜索索引 URL');
+      const indexText = fs.readFileSync(path.join(outDir, ...indexUrl[1].replace(/^\//, '').split('/')), 'utf-8');
+      assert.ok(!indexText.includes('zero.png'), '搜索索引不得残留损坏头图');
+      const report = fs.readFileSync(path.join(outDir, 'report.txt'), 'utf-8').replace(/\\/g, '/');
+      assert.ok(report.includes('[media]'), '报告告警段必须包含 media 条目');
+      assert.ok(report.includes('zero.png'), '报告必须点名损坏文件');
+      assert.ok(report.includes('falling back to auto cover'), '报告必须说明回退行为');
+    });
+  });
+
+  // =====================================================================
   // 4：坏 JSON5 / 断裂配置（语法/重复键/类型漂移/越界枚举）
   // =====================================================================
   describe('类 4 坏配置 hard-fail', () => {

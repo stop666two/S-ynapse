@@ -7,10 +7,27 @@ const path = require('path');
 const frontMatter = require('front-matter');
 const { marked } = require('marked');
 const { getAllFiles } = require('./fs-utils');
-const { preflightArticles, createMediaResolver } = require('../lib/content-validate');
+const { preflightArticles, createMediaResolver, createBrokenMediaMatcher } = require('../lib/content-validate');
 const { formatDate, safeSlug, validateSlug, applyCjkSpacingToHtml, extractToc, sanitizeHtml, truncateCodePoints, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode, setOwnProperty } = require('../lib/utils');
 const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
 const { makeArticleComparator, stripMarkdownText, mathConfig, mathNeeded, wordCountConfig } = require('../lib/feature-wiring');
+
+// 损坏头图回退：媒体处理失败的头图（源文件存在但 sharp 无法处理）在页面/卡片生成前清空，
+// 使其落入「无 featuredImage」路径（自动封面/pattern）；原引用保留在 featuredImageBroken，
+// 供构建报告告警与排查。返回回退的文章数。
+function markBrokenFeaturedImages(articles, brokenRefs) {
+  const isBroken = createBrokenMediaMatcher(brokenRefs);
+  const list = Array.isArray(articles) ? articles : [];
+  let count = 0;
+  for (const article of list) {
+    if (!article || !article.featuredImage) continue;
+    if (!isBroken(article.featuredImage)) continue;
+    article.featuredImageBroken = article.featuredImage;
+    article.featuredImage = '';
+    count++;
+  }
+  return count;
+}
 
 function createArticlesModule(ctx) {
   // Load Markdown content from pages/ as key-value map (filename → {title, content, body}).
@@ -327,7 +344,7 @@ function createArticlesModule(ctx) {
     return articles;
   }
 
-  return { processPagesContent, preflightContent, processArticles };
+  return { processPagesContent, preflightContent, processArticles, markBrokenFeaturedImages };
 }
 
-module.exports = { createArticlesModule };
+module.exports = { createArticlesModule, markBrokenFeaturedImages };

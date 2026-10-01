@@ -58,9 +58,9 @@ const {
   abortBuild, loadConfig, validateConfig, applyCspNonce,
   resolveCompressionState,
   getPublished, resolveDailyQuotes, recordBuildFailure,
-  setupDist, copyStatic, copyProtectedAssets, optimizeMedia,
+  setupDist, copyStatic, copyProtectedAssets, optimizeMedia, getBrokenMedia,
   generateAutoCovers,
-  processPagesContent, preflightContent, processArticles,
+  processPagesContent, preflightContent, processArticles, markBrokenFeaturedImages,
   renderArticlesMermaid,
   collectTags, collectCategories,
   buildSiteCss, writeRuntimeConfig, buildPageData, processCustomPages, generatePages,
@@ -180,6 +180,16 @@ async function build() {
     markPhase('media', mediaStartedAt);
     MEDIA_MANIFEST = mediaManifest;
     const articles = await processArticles(config, mediaManifest, buildErrors);
+    // 损坏头图回退：媒体优化失败的头图先清空（原引用留在 featuredImageBroken），
+    // 再走下方自动封面路径；每条回退记入非阻断告警，进入构建报告 [告警] 段。
+    const brokenCoverCount = markBrokenFeaturedImages(articles, getBrokenMedia());
+    if (brokenCoverCount > 0) {
+      for (const article of articles) {
+        if (!article.featuredImageBroken) continue;
+        recordBuildFailure('media', article.lang + '/' + article.slug + ': featuredImage ' + article.featuredImageBroken + ' failed to process; falling back to auto cover/pattern', { fatal: false });
+      }
+      console.warn('  [WARN] ' + brokenCoverCount + ' broken featured image(s) fell back to auto covers.');
+    }
     // 无封面文章自动封面（features.listCover.autoGenerate）：须在页面生成前完成，
     // 供 pages 为卡片/文章页头图回退；失败仅告警（模块内不 recordBuildFailure），不阻断构建。
     AUTO_COVERS = await generateAutoCovers(config, articles);

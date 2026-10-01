@@ -11,6 +11,9 @@ const { loadInternals } = require('../lib/internals');
 
 function createMediaModule(ctx) {
   const MEDIA_TTL_DAYS = loadInternals().cache.mediaTtlDays;
+  // 本轮媒体优化失败的 /media/ 引用（源文件存在但 sharp 无法处理）：供 build.js 把
+  // 指向它们的 featuredImage 回退为自动封面/pattern；每次 optimizeMedia 开始时重置。
+  let brokenMedia = new Set();
   // Create the output directory structure under dist/.
   // If cleanDist is enabled, removes the entire dist/ first.
   // Required subdirectories: articles/, tags/, categories/, page/
@@ -137,6 +140,7 @@ function createMediaModule(ctx) {
   // The manifest is consumed by setupMarkedRenderer for <picture>/<img> tag generation.
   // Returns the manifest object, or null if disabled/sharp unavailable.
   async function optimizeMedia(config) {
+    brokenMedia = new Set();
     if (!config.site.build.optimizeMedia || !ctx.sharp) {
       console.log('  [SKIP] Media optimization disabled or sharp not available');
       return null;
@@ -225,7 +229,9 @@ function createMediaModule(ctx) {
         count++;
       } catch (err) {
         // 损坏/零字节/非图片等无法优化的源文件：降级为告警并计入构建报告，
-        // 不阻断整站构建（缺失引用已由内容预校验以 fatal 阻断）。
+        // 不阻断整站构建（缺失引用已由内容预校验以 fatal 阻断）；同时登记为损坏引用，
+        // 使 featuredImage 指向它的文章在页面生成前回退自动封面/pattern。
+        brokenMedia.add('/media/' + relPath.replace(/\\/g, '/'));
         console.error(`  [ERROR] Failed to optimize ${relPath}: ${err.message}`);
         ctx.recordBuildFailure('media', `Failed to optimize ${relPath}: ${err.message}`, { fatal: false });
       }
@@ -239,7 +245,12 @@ function createMediaModule(ctx) {
     return manifest;
   }
 
-  return { setupDist, copyStatic, copyProtectedAssets, copyMediaOutput, optimizeMedia };
+  // 本轮媒体优化失败的 /media/ 引用集合（无失败时为空集合，可变闭包状态）。
+  function getBrokenMedia() {
+    return brokenMedia;
+  }
+
+  return { setupDist, copyStatic, copyProtectedAssets, copyMediaOutput, optimizeMedia, getBrokenMedia };
 }
 
 module.exports = { createMediaModule };

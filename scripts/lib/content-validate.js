@@ -5,6 +5,17 @@ const { safeSlug, validateSlug, isReservedOsName } = require('./utils');
 
 const MEDIA_PREFIX = '/media/';
 const VARIANT_RX = /(?:^|\/)variants\/(.+)-(\d+)\.(?:webp|avif|jpe?g|png)$/i;
+// 媒体产物变体命名：<原名>-<宽度>.<格式>（与 scripts/build/media.js 的 variantName 同格式，可位于任意子目录）。
+const OUTPUT_VARIANT_RX = /^(.+)-(\d+)\.(?:webp|avif|jpe?g|png)$/i;
+
+/**
+ * 规范化媒体引用：统一 POSIX 分隔符并剥离查询串/哈希（与 extractMediaRefs 同口径）。
+ * @param {string} ref
+ * @returns {string}
+ */
+function normalizeMediaRef(ref) {
+  return String(ref == null ? '' : ref).replace(/\\/g, '/').replace(/[?#].*$/, '');
+}
 
 // 文章页固定落在 /{lang}/{slug}/，以下路径段已被构建器占用（聚合页/分页/资产目录），
 // 同名 slug 会与生成目录互相覆盖：预校验直接阻断，而不是产出丢页面的站点。
@@ -66,6 +77,37 @@ function createMediaResolver(sourceFiles) {
 function firstH1(body) {
   const m = String(body || '').match(/^#\s+(.+)/m);
   return m ? m[1].trim() : '';
+}
+
+/**
+ * 创建「损坏媒体」匹配器：输入媒体处理失败清单（可含 `/media/` 前缀或相对路径，
+ * Set 或数组皆可），返回判别函数。匹配规则：规范化后精确相等，或按产物变体名
+ * （`<原名>-<宽度>.<格式>`）映射回失败的源文件。
+ * @param {Iterable<string>} brokenRefs 媒体处理失败清单
+ * @returns {(ref: string) => boolean} 传入 /media/ 引用返回是否损坏
+ */
+function createBrokenMediaMatcher(brokenRefs) {
+  const refs = new Set();
+  const stems = new Set();
+  const list = brokenRefs instanceof Set ? brokenRefs : (Array.isArray(brokenRefs) ? brokenRefs : []);
+  for (const raw of list) {
+    let ref = normalizeMediaRef(raw);
+    if (!ref) continue;
+    if (!ref.startsWith(MEDIA_PREFIX)) {
+      const stripped = ref.replace(/^\/+/, '');
+      ref = MEDIA_PREFIX + (stripped.startsWith('media/') ? stripped.slice('media/'.length) : stripped);
+    }
+    refs.add(ref);
+    stems.add(ref.slice(MEDIA_PREFIX.length).replace(/\.[^./]+$/, ''));
+  }
+  return function mediaBroken(ref) {
+    const norm = normalizeMediaRef(ref);
+    if (!norm || !norm.startsWith(MEDIA_PREFIX)) return false;
+    if (refs.has(norm)) return true;
+    const rel = norm.slice(MEDIA_PREFIX.length);
+    const m = rel.match(OUTPUT_VARIANT_RX);
+    return m ? stems.has(m[1]) : false;
+  };
 }
 
 /**
@@ -168,4 +210,4 @@ function preflightArticles(items, options) {
   return { errors, warnings };
 }
 
-module.exports = { extractMediaRefs, createMediaResolver, resolveArticleIdentity, preflightArticles, RESERVED_ROUTE_SEGMENTS };
+module.exports = { extractMediaRefs, createMediaResolver, createBrokenMediaMatcher, normalizeMediaRef, resolveArticleIdentity, preflightArticles, RESERVED_ROUTE_SEGMENTS };

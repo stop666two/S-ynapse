@@ -634,4 +634,4 @@ function validateFeatures(features, moduleName) {
   return { errors, warnings };
 }
 
-module.exports = { DEFAULT_FEATURES, FEATURE_MODULES, validateFeatures, SHARE_PLATFORMS };
+module.exports = { DEFAULT_FEATURES, FEATURE_MODULES, ENUM_FIELDS, validateFeatures, SHARE_PLATFORMS };

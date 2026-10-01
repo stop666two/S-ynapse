@@ -5,6 +5,9 @@ export function init() {
   var maxItems = Number(F.maxItems) > 0 ? Number(F.maxItems) : 5;
   // features.readingHistory.maxStored（缺省/非法回退 50，保持历史行为；仅存储上限，展示条数由 maxItems 控制）。
   var maxStored = Number(F.maxStored) > 0 ? Math.floor(Number(F.maxStored)) : 50;
+  // 滚动进度写回节流（缺省/非法回退 800ms，保持历史行为）。
+  var rawThrottle = Number(F.progressThrottleMs);
+  var progressThrottleMs = isNaN(rawThrottle) || rawThrottle < 0 ? 800 : rawThrottle;
   var T = typeof window.__T === 'function' ? window.__T : function (k, d) { return d || k; };
   function load() {
     try {
@@ -62,11 +65,11 @@ export function init() {
     a.unshift({ url: url, title: title, t: Date.now(), lang: lang(), p: prev && isFinite(+prev.p) ? Math.min(100, Math.max(0, Math.round(+prev.p))) : 0 });
     save(a);
   }
-  // 滚动进度更新节流（800ms），pagehide 立即落盘最终进度；软导航前的最后进度已由滚动节流保存。
+  // 滚动进度更新节流（progressThrottleMs，默认 800ms），pagehide 立即落盘最终进度；软导航前的最后进度已由滚动节流保存。
   var progTimer = 0;
   window.addEventListener('scroll', function () {
     if (progTimer || !document.querySelector('.post-content')) return;
-    progTimer = setTimeout(function () { progTimer = 0; updateProgress(); }, 800);
+    progTimer = setTimeout(function () { progTimer = 0; updateProgress(); }, progressThrottleMs);
   }, { passive: true });
   window.addEventListener('pagehide', function () { updateProgress(); });
   function timeAgo(ts) {

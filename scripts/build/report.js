@@ -7,7 +7,7 @@ const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { escapeHtml } = require('../lib/utils');
 const { gzipSize, evaluatePerfBudget, formatPerfBudget } = require('../lib/perf-budget');
 const { renderBuildReportText } = require('../lib/build-report-text');
-const { performanceWarnings } = require('../lib/feature-wiring');
+const { performanceWarnings, reportTopN } = require('../lib/feature-wiring');
 const { getAllFiles } = require('./fs-utils');
 const { loadInternals } = require('../lib/internals');
 
@@ -59,11 +59,13 @@ function createReportModule(ctx) {
     return { htmlKb, htmlRawKb, htmlRawMaxKb, inlineConfigKb, jsKb: jsBytes / 1024, requests, pages: htmlFiles.length };
   }
 
-  // 扫描产物媒体目录（dist/media）中超过 kb 阈值的用户图片（按体积降序，最多 internals.report.topN 条）。
+  // 扫描产物媒体目录（dist/media）中超过 kb 阈值的用户图片（按体积降序，最多
+  // site.build.reportTopN 条；缺失/非法回退 internals.report.topN）。
   // 只针对用户上传资产（OG 图尺寸由 features.ogImage 控制，不属“未压缩”告警范围）。
-  function collectLargeImages(maxKb) {
+  function collectLargeImages(maxKb, topN) {
     const limit = Number.isFinite(+maxKb) && +maxKb > 0 ? +maxKb : 0;
     if (!limit) return [];
+    const cap = reportTopN({ build: { reportTopN: topN } }, REPORT_TOP_N);
     const found = [];
     const dir = path.join(ctx.distDir, 'media');
     if (!fs.existsSync(dir)) return found;
@@ -74,7 +76,7 @@ function createReportModule(ctx) {
         if (kb > limit) found.push({ path: '/' + path.relative(ctx.distDir, file).split(path.sep).join('/'), kb });
       } catch (e) { /* 单文件不可读时跳过 */ }
     }
-    return found.sort((a, b) => b.kb - a.kb).slice(0, REPORT_TOP_N);
+    return found.sort((a, b) => b.kb - a.kb).slice(0, cap);
   }
 
   // 性能阈值告警（features.performance.warning*）：超限仅输出 [WARN]，不阻断构建；
@@ -82,7 +84,7 @@ function createReportModule(ctx) {
   function checkPerformanceWarnings(config, elapsedSeconds) {
     const perf = (config.features && config.features.performance) || {};
     const stats = collectBudgetStats();
-    stats.largeImages = collectLargeImages(perf.warningImageKb);
+    stats.largeImages = collectLargeImages(perf.warningImageKb, config.site && config.site.build && config.site.build.reportTopN);
     const warnings = performanceWarnings(perf, stats, elapsedSeconds * 1000);
     for (const msg of warnings) console.warn('  [WARN] ' + msg);
   }

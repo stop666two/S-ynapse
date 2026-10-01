@@ -46,12 +46,13 @@ function showUpdateBar(F, reg, session) {
 }
 
 // 点击刷新：等待中的 SW 收到 SKIP_WAITING 后接管，controllerchange 触发整页刷新；
-// SW 未响应时 3 秒兜底直接刷新（避免点击无反馈）。
+// SW 未响应时按 features.pwa.reloadFallbackMs（默认 3000ms）兜底直接刷新（避免点击无反馈）。
 function requestRefresh(reg, session) {
   session.reloading = true;
   if (reg && reg.waiting) {
     try { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); } catch (e) { /* 忽略：消息通道异常时走超时兜底 */ }
-    setTimeout(function () { if (session.reloading) window.location.reload(); }, 3000);
+    var fallbackMs = parseInt(session.reloadFallbackMs, 10);
+    setTimeout(function () { if (session.reloading) window.location.reload(); }, isFinite(fallbackMs) && fallbackMs > 0 ? fallbackMs : 3000);
   } else {
     window.location.reload();
   }
@@ -121,7 +122,7 @@ function run() {
   if (F.enabled === false) return;
   if (!window.__PWA_ON__) return;
   var SW = window.__PWA_SW__;
-  var session = { prompted: false, reloading: false };
+  var session = { prompted: false, reloading: false, reloadFallbackMs: parseInt(F.reloadFallbackMs, 10) };
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('controllerchange', function () {
       if (!session.reloading) return;

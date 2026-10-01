@@ -26,6 +26,12 @@ export function init(ctx) {
   const hapticMs = (rawHaptic == null || rawHaptic === '' || isNaN(parseInt(rawHaptic, 10)))
     ? 10
     : Math.max(0, parseInt(rawHaptic, 10));
+  // 搜索菜单项文本截断长度（≥1；非法/0/负数回退 12 = 历史行为）。
+  const rawSearchChars = parseInt(cfg.searchTextMaxChars, 10);
+  const searchTextMaxChars = isNaN(rawSearchChars) || rawSearchChars < 1 ? 12 : rawSearchChars;
+  // 长按位移容差（px；非负；非法/负数回退 8 = 历史行为）。
+  const rawMoveTol = parseInt(cfg.moveTolerancePx, 10);
+  const moveTolerancePx = isNaN(rawMoveTol) || rawMoveTol < 0 ? 8 : rawMoveTol;
   const edge = parseInt((ctx.core.edgePadding || '8px'), 10) || 8;
 
   let menu = null;
@@ -97,7 +103,7 @@ export function init(ctx) {
       if (builtin.openNewTab !== false) list.push(item(t('openNewTab', 'Open in new tab'), 'external', function () { window.open(link.href, '_blank', 'noopener'); }));
     }
     if (sel && showOn.selection !== false) {
-      if (builtin.searchSelected !== false) list.push(item(t('searchSelected', 'Search "{text}"', { text: sel.length > 12 ? sel.slice(0, 12) + '…' : sel }), 'search', function () {
+      if (builtin.searchSelected !== false) list.push(item(t('searchSelected', 'Search "{text}"', { text: sel.length > searchTextMaxChars ? sel.slice(0, searchTextMaxChars) + '…' : sel }), 'search', function () {
         if (typeof window.openSearch === 'function') window.openSearch();
         // 延迟来自 guard.contextMenu.searchFocusDelayMs；兜底值与 scripts/lib/guard-defaults.js 同值。
         setTimeout(function () {
@@ -221,7 +227,7 @@ export function init(ctx) {
       }, ms);
     }, { passive: true });
     document.addEventListener('touchmove', function (e) {
-      if (pressTimer && e.touches.length && (Math.abs(e.touches[0].clientX - pressX) > 8 || Math.abs(e.touches[0].clientY - pressY) > 8)) {
+      if (pressTimer && e.touches.length && (Math.abs(e.touches[0].clientX - pressX) > moveTolerancePx || Math.abs(e.touches[0].clientY - pressY) > moveTolerancePx)) {
         clearTimeout(pressTimer); pressTimer = null;
       }
     }, { passive: true });

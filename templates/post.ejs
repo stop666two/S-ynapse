@@ -89,7 +89,7 @@
     无对照/关闭并排时保持 hidden；role=region + 标题提供右栏 landmark。 %>
 <% if(_biShow && _biCfg.sideBySide){ %>
 <aside class="bilingual-pane" id="bilingualPane" role="region" aria-labelledby="bilingualPaneTitle" data-bilingual-pane hidden>
-  <div class="bilingual-pane-head"><h2 class="bilingual-pane-title" id="bilingualPaneTitle"><%= _biAlt.lang === 'en' ? 'English' : '中文' %></h2></div>
+  <div class="bilingual-pane-head"><h2 class="bilingual-pane-title" id="bilingualPaneTitle"><%= _biAlt.lang === 'en' ? (_biCfg.paneTitleEn || 'English') : (_biCfg.paneTitle || '中文') %></h2></div>
   <div class="bilingual-pane-body" id="bilingualPaneBody"></div>
 </aside>
 <% } %>

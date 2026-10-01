@@ -18,9 +18,6 @@ let state = null;
 let seq = 0;
 let resizeTimer = null;
 
-// 对方文章获取超时（站内请求，超时即静默回退单栏；与软导航 timeoutMs 同量级）。
-const FETCH_TIMEOUT_MS = 10000;
-
 function cfg() {
   return resolveBilingualConfig((window.__FEATURES__ || {}).bilingual);
 }
@@ -72,8 +69,9 @@ async function enable() {
   const paneBody = state.paneBody;
   if (!pane || !paneBody) return;
   const token = ++seq;
+  const timeoutMs = cfg().fetchTimeoutMs;
   const controller = typeof AbortController === 'function' ? new AbortController() : null;
-  const timer = controller ? setTimeout(function () { try { controller.abort(); } catch (e) { /* 忽略：中止失败由时序保护兜底 */ } }, FETCH_TIMEOUT_MS) : null;
+  const timer = controller ? setTimeout(function () { try { controller.abort(); } catch (e) { /* 忽略：中止失败由时序保护兜底 */ } }, timeoutMs) : null;
   let html;
   try {
     const res = await fetch(url, {
@@ -158,7 +156,7 @@ export function init() {
   refresh();
   window.addEventListener('resize', function () {
     if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(syncBreakpoint, 120);
+    resizeTimer = setTimeout(syncBreakpoint, cfg().resizeDebounceMs);
   }, { passive: true });
   if (Array.isArray(window.__SOFTNAV_HOOKS__)) window.__SOFTNAV_HOOKS__.push(refresh);
   window.__bilingual = {

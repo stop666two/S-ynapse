@@ -8,18 +8,27 @@ export const BILINGUAL_BREAKPOINT_MAX = 3840;
 export const BILINGUAL_BREAKPOINT_DEFAULT = 1280;
 
 // 配置归一化：enabled/switch/sideBySide 默认 true；breakpointPx 夹取到 480–3840 的整数
-// （非法/缺失回退 1280）。与 scripts/lib/feature-wiring.js 的 bilingualConfig 同语义。
+// （非法/缺失回退 1280）；fetchTimeoutMs（>0，非法回退 10000）；resizeDebounceMs（非负，
+// 非法回退 120）；paneTitle/paneTitleEn 空串回退内置 '中文'/'English'。
+// 与 scripts/lib/feature-wiring.js 的 bilingualConfig 同语义。
 export function resolveBilingualConfig(raw) {
   const B = raw || {};
   const n = parseFloat(B.breakpointPx);
   const bp = isNaN(n)
     ? BILINGUAL_BREAKPOINT_DEFAULT
     : Math.min(BILINGUAL_BREAKPOINT_MAX, Math.max(BILINGUAL_BREAKPOINT_MIN, Math.round(n)));
+  const to = parseFloat(B.fetchTimeoutMs);
+  const debounce = parseFloat(B.resizeDebounceMs);
+  const pickTitle = function (v, dflt) { const s = v == null ? '' : String(v).trim(); return s || dflt; };
   return {
     enabled: B.enabled !== false,
     switch: B.switch !== false,
     sideBySide: B.sideBySide !== false,
-    breakpointPx: bp
+    breakpointPx: bp,
+    fetchTimeoutMs: isNaN(to) || to <= 0 ? 10000 : to,
+    resizeDebounceMs: isNaN(debounce) || debounce < 0 ? 120 : debounce,
+    paneTitle: pickTitle(B.paneTitle, '中文'),
+    paneTitleEn: pickTitle(B.paneTitleEn, 'English')
   };
 }
 

@@ -89,7 +89,7 @@
 > （`S-ynapse-<版本>.zip`，校验记录见包内 `RELEASE.json`；归档已通过「解压后 `npm ci --ignore-scripts && npm test && npm run build`」门禁）。
 > 版本包是**空站骨架**：构建、测试、部署所需的全部代码、配置、示例页面（`pages/**`）与默认资源（`static/**`）齐备；
 > 测试运行所需的最小文档集（`docs/config-reference.md`）随包分发，`articles/` 与 `media/` 为空目录（`.gitkeep` 标记），
-> 放入自己的文章与图片即可构建；仓库只保留最新一个 Release。
+> 放入自己的文章与图片即可构建；发布 tag 永不删除，仓库仅自动清理旧 Releases（只保留最新一个）。
 > 从源码构建请以下载包为准，避免直接使用 main 的中间状态。
 >
 > **Downloads & installation (English)**: `main` may contain work-in-progress changes. Prefer the verified
@@ -98,7 +98,7 @@
 > The archive is an **empty-site skeleton**: every file needed to build, test and deploy ships with it
 > (sample pages under `pages/**`, default assets under `static/**`, and the minimal docs read by the test
 > suite, `docs/config-reference.md`), while `articles/` and `media/` are empty placeholders kept via
-> `.gitkeep` — add your own content and build. Only the latest release is kept.
+> `.gitkeep` — add your own content and build. Release tags are never deleted; older GitHub Releases are pruned automatically (latest only).
 >
 > 发布流程、人工核验含义与排障见 **[docs/runbook/release.md](docs/runbook/release.md)**。
 
@@ -116,7 +116,7 @@ npm run serve
 ```
 
 > [!NOTE]
-> **Node 版本要求**：本项目要求 Node.js `^20.19.0 || ^22.13.0 || >=24`（`eslint` 10 与 `typescript` 的引擎下限，同时满足 `sharp` 0.35），CI 使用 Node 24 LTS。
+> **Node 版本要求**：本项目要求 Node.js `^20.19.0 || ^22.13.0 || >=24`（`eslint` 10 与 `typescript` 的引擎下限，同时满足 `sharp` 0.35）；版本单源为根目录 `.nvmrc`（当前 24），CI 经 `node-version-file` 读取，`verify:internals` 守卫其与 `internals.ci.nodeVersion` 一致。
 >
 > **npm 12（及以上）本机部署注意**：npm 12 默认禁止依赖的 `postinstall` 脚本（如 `esbuild`、`workerd` 的二进制下载），会导致本机 `npx wrangler deploy` 失败或部分依赖不完整。受影响的本机操作：
 > - 解决方案一（推荐）：经 `npm install --ignore-scripts` 后，再用 `npm rebuild --foreground-scripts esbuild workerd` 手动触发二进制下载；
@@ -127,8 +127,8 @@ npm run serve
 
 | 脚本 | 功能 |
 |------|------|
-| `build.bat` | 双击一键构建（使用 `npm ci` 确保可复现） |
-| `serve.bat` | 双击一键构建 + 启动本地服务器（自动清理旧进程） |
+| `build.bat` | 双击一键构建：探测 npm → 依赖缺失时 `npm install --no-audit --no-fund --prefer-offline` → `npm run build`；任一步失败均打印原因并 `pause`（退出码透传） |
+| `serve.bat [端口] [rebuild]` | 构建 + 本地预览：仅清理占用目标端口且处于 `LISTENING` 状态的进程（不误杀其它进程）；未传 `rebuild` 且 `dist/index.html` 已存在时跳过重建直接启动；失败会 `pause` |
 
 ---
 
@@ -327,7 +327,7 @@ S-ynapse/
 ```
 
 **要点**：
-- 缺失 `features.json5` 文件 → 完全回退内建默认（与旧版本行为一致），不报错
+- 缺失 `features.json5` 文件 → 完全回退内建默认（与默认注册表一致），不报错
 - 未知模块名 → 构建警告（防拼写错误）；非法值（如枚举外取值）→ 构建终止并定位
 - `share.order` 等数组字段为**整体替换**语义（deepmerge 不会拼接），删掉某平台即从页面消失
 - 模块与页面绑定：`enabled: false` 时对应元素零残留（不渲染 + 不加载对应资源；Prism/Mermaid/KaTeX/字体均为本地 vendor）
@@ -393,29 +393,28 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 ## 构建管线
 
-构建脚本执行 14 步（步骤编号对应构建日志输出）：
+构建脚本执行 14 个阶段（阶段名与唯一构建报告 `dist/build-report.html` 的阶段耗时表一致）：
 
-| 步骤 | 操作 | 说明 |
-|------|------|------|
-| 1 | 加载配置 | 14 个 JSON5 配置（含 tuning.json5、guard.json5 与 compression.json5）+ 可选 content-policy.json5/tag-aliases.json5/friends.json5，合并默认值，语法错误即终止（报告文件/行列/原因），20+ 项值域校验 + features 103 模块结构校验 |
-| 2 | 设置输出目录 | 清空 `dist/` 并创建子目录 |
-| 3 | 复制静态文件 | `static/` → `dist/`；按 content-policy.json5 过滤 videos/、assets/ 与媒体（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
-| 4 | 媒体优化 | sharp 生成 WebP/AVIF + 多尺寸响应式图片（输出 manifest） |
-| 5 | 处理文章 | Frontmatter 校验（slug 唯一/date 合法）→ 上标/公式守护 → Markdown → Wiki 双链 → CJK 空格 → 提取 TOC |
-| 6 | 生成页面 | 首页分页、文章（系列/分享/打赏/关联/评论）、归档（统计+热力图）、标签、分类、图库、友链、搜索、404 |
-| 7 | RSS 与 JSON Feed | feed.xml（全文/摘要，上限 maxItems）+ feed.json（`site.rss.jsonFeed.*` 选项优先，回退 `site.rss.*`） |
-| 8 | Sitemap | sitemap.xml（含自定义页面 + 图库；超过阈值自动按类型拆分为 sitemap-{n}.xml + 索引）；其后执行自动 OG 图生成与 sitemap ping（可选） |
-| 9 | 搜索索引 | search-index.json（局部模糊匹配；`features.search.includeContent` 控制是否含正文） |
-| 10 | 安全文件 | `_headers`（CSP + HSTS + 安全头，按功能开关自动裁剪）、`robots.txt`（逐语言 Sitemap 行）、`_redirects`（配置重定向）、Worker 配置生成 |
-| 11 | 压缩 | 压缩 HTML（@minify-html）、CSS（CleanCSS）、JS（Terser）；增强步骤（`compression.json5`，默认开）追加 HTML 激进选项（默认关）、CSS 同页合并去重、JSON 去空白、`runtime.<hash>.js` Terser 压缩（重命名 + 同步 HTML 引用）；增强完成后执行无头对比门禁（失败自动回退未压缩产物，结果写 `.cache/compression-verify/last.json`）；此前先完成前端资产拷贝（js/ ESM → `dist/assets/js/`，vendor 与 KaTeX 字体 → `dist/assets/vendor/`） |
-| 12 | 缓存破坏 | MD5 内容哈希重命名文件，更新 HTML 引用（压缩/回退均发生在它之前，文件名哈希 = 最终字节） |
-| 13 | PWA | manifest.json + offline.html + Service Worker（启用时；manifest/离线页在压缩前产出，SW 在指纹后定稿） |
-| 14 | 构建报告 | build-report.html（唯一报告：元信息/14 步阶段耗时/产物体积/性能预算/压缩统计/缓存命中/告警与失败清单/页面清单/内容策略拦截清单；位于压缩与哈希之后，天然豁免） |
+| # | 阶段 | 操作 |
+|---|------|------|
+| 1 | 配置加载与校验 | 读取 JSON5（14 个站点配置 + `internals.json5` 工程参数）→ 合并默认值 → 语法错误报文件/行列/原因并终止 → 20+ 项值域校验 + features 103 模块结构校验；`features.debug` 可输出配置摘要 |
+| 2 | 内容预校验 | frontmatter 合法性、缺失媒体、重复/非法/保留 slug、未来日期；critical 问题一律阻断（`--allow-degraded` 仅豁免资源/数据类失败），发生在清理 `dist/` 之前 |
+| 3 | 产物初始化与静态资产 | 清理并创建 `dist/`；`static/` 复制；videos/assets/媒体按 content-policy 过滤（SVG 消毒、可执行拦截），被拦文件 404 且列入构建报告 |
+| 4 | 媒体优化 | sharp 生成 WebP/AVIF 与多尺寸响应式变体 + LQIP（`.cache/media` 增量；损坏媒体清单落盘 `.cache/broken-media.json`） |
+| 5 | 文章处理与封面/图表 | Frontmatter 校验 → Markdown → Wiki 双链 → CJK 间距 → sanitize-html → TOC；自动封面（`.cache/covers`）；mermaid SSR（`.cache/mermaid`）；esbuild 打包与运行时引导、外置配置、搜索索引预计算 |
+| 6 | 页面生成 | 首页分页、文章（系列/分享/打赏/关联/评论）、归档（统计+热力图）、标签、分类、图库、友链、搜索、自定义页、404（含根页语言跳转） |
+| 7 | 字体/订阅源/站点地图 | CJK 字体子集化（`.cache/fonts`，失败降级系统字体）→ RSS/JSON Feed（`site.rss.jsonFeed.*` 优先，回退 `site.rss.*`）→ sitemap（超阈值按类型拆分 + 索引） |
+| 8 | OG 图生成 | 独立进程 `generate-og.js`（仅生产构建；serve/watch 跳过；`.cache/og` 增量，统计写 `.cache/og/last-run.json`） |
+| 9 | 搜索索引与提交 | 搜索引擎 ping（可选）→ 每语言内容寻址索引 `assets/search-index.<hash>.json`（`features.search.includeContent` 控制是否含正文） |
+| 10 | 安全文件与重定向 | `_headers`（CSP + HSTS + 安全头，按功能开关裁剪）、`robots.txt`（逐语言 Sitemap 行）、`_redirects`、`workers/security-config.js`（自定义输出目录构建时跳过） |
+| 11 | JS 资产与 PWA | 前端资产/vendor 拷贝（`--no-bundle` 时含 ESM 拷贝）、manifest + offline 页、SW 初版（缓存指纹后定稿） |
+| 12 | 压缩增强（含无头验证） | 基线压缩（@minify-html / CleanCSS / Terser）→ `compression.json5` 增强（默认开；HTML 激进选项默认关、CSS 同页合并去重、JSON 去空白、runtime 压缩、可选混淆）→ 无头对比门禁（失败自动回退未压缩基线并告警，结果写 `.cache/compression-verify/last.json`） |
+| 13 | 缓存指纹（cacheBust） | MD5 内容哈希重命名文件并同步 HTML/feed 引用（压缩与回退均在此之前完成，文件名哈希 = 最终字节）；Pagefind 索引（可选）在此后生成，不占独立编号 |
+| 14 | 报告生成 | 唯一构建报告 `dist/build-report.html`（元信息/14 阶段耗时/产物体积/逐项性能预算/压缩统计与无头验证/缓存命中/告警与失败清单/页面清单；位于压缩与哈希之后，天然豁免） |
 
-> **执行顺序说明**：日志编号按功能命名输出；PWA 分两段执行——manifest 与离线页在压缩前产出（保证压缩无头验证期间页面引用的端点可解析），SW 在压缩与缓存指纹之后定稿（壳预缓存清单必须引用 runtime 压缩等重命名后的最终文件名）；Pagefind 索引（可选）在缓存破坏之后生成且不占独立编号。
+> **执行顺序说明**：运行日志按功能输出步骤编号（如 `[5/14]`、`[12/14]`），阶段名与构建报告的耗时表一一对应；PWA 分两段——manifest 与离线页在压缩前产出（保证压缩无头验证期间页面引用的端点可解析），SW 在缓存指纹之后定稿（壳预缓存清单必须引用压缩重命名后的最终文件名）。
 
-**自定义页面**：`pages/` 目录下的 .md 文件在步骤 5 与 6 之间处理（`processCustomPages`），同目录内容也通过 `processPagesContent` 加载供模板嵌入（如文章底部公告栏）。**多语言**：`pages/{lang}/{file}.md` 覆盖默认文件（如 `pages/en/about.md` 提供英文标题与正文，slug 可显式声明；缺省时按标题生成，建议显式写英文 slug 避免中英路径混用）。
-```
+**自定义页面**：`pages/` 目录下的 .md 文件在阶段 5 与 6 之间处理（`processCustomPages`），同目录内容也通过 `processPagesContent` 加载供模板嵌入（如文章底部公告栏）。**多语言**：`pages/{lang}/{file}.md` 覆盖默认文件（如 `pages/en/about.md` 提供英文标题与正文，slug 可显式声明；缺省时按标题生成，建议显式写英文 slug 避免中英路径混用）。
 
 ## 部署
 
@@ -510,8 +509,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（945 项 / 134 组） |
-| `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前总量约 94%） |
+| `npm test` | 运行单元测试（996 项 / 144 组；集成套件按生命周期自动跳过） |
+| `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前实测 93.9%） |
 | `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、唯一构建报告、CSP nonce 与压缩开关两态；CI 运行，不进 `npm test`） |
 | `npm run test:fuzz` | 属性/随机测试（fast-check；`scripts/**/*.fuzz.test.js`；默认 100 次迭代、`FC_NUM_RUNS` 可调、`STRESS=1` 开海量用例；失败留档 `build-artifacts/fuzz-failures/`，`TEST_SEED` 复现） |
 | `npm run test:malicious` | 恶意/畸形场景套件（`SYNAPSE_ROOT` 隔离夹具真实构建；10 类场景按 hard-fail/degrade 策略断言；`STRESS=1` 开海量档；CI 运行，不进 `npm test`） |
@@ -546,7 +545,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 945 项 / 134 组（本机 1 项按环境跳过）
+npm test            # 996 项 / 144 组（本机 1 项按环境跳过）
 npm run test:all    # 本地与 CI 同强度：test + test:build + test:fuzz + test:malicious + test:smoke + test:cov-web + verify:internals 串行
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
@@ -575,58 +574,21 @@ npm run verify:security   # 集成安全回归
 - `npm run test:cov-web`：以 `--no-bundle` + `--no-minify-js` + 压缩关闭构建到 `build-artifacts/web-coverage/site`（产物 URL 与 `js/**` 源码一一对应且保留源码行结构，CDP 偏移可精确映射），经 CDP 精确覆盖逐页累加，聚合 `js/**`（排除 vendor）行/函数覆盖率，输出 `build-artifacts/web-coverage/{summary.txt,coverage.json}`（含逐函数未覆盖明细）；阈值见 `scripts/lib/web-coverage-thresholds.js`（首测定档 55% / 55%），未达标或断言失败 exit 1。
 - 两者无 Chrome 时打印 `[SKIP]` 后 exit 0（与 `verify:compression` 同一降级语义）；`test:all` 串行执行全部六个入口，本地与 CI（`deploy.yml`）命令集合完全一致；夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子）。
 
-| 测试套件 | 测试数 | 覆盖函数 |
-|----------|--------|----------|
-| formatDate | 5 | 日期格式化（含时间检测） |
-| safeSlug | 5 | URL Slug 生成（含中文/混合/空值/确定性哈希兜底） |
-| validateSlug | 4 | front-matter slug 强校验（分隔符/遍历/保留字符） |
-| escapeAttr | 2 | HTML 属性转义（含非字符串输入） |
-| escapeHtml | 2 | HTML 转义（含 null 输入） |
-| stripHtml | 3 | HTML 标签剥离（含实体解码、非字符串） |
-| insertCjkSpacing | 4 | 中英文自动加空格（含纯中文/纯英文边界） |
-| applyCjkSpacingToHtml | 1 | HTML 安全的 CJK 空格 |
-| countWordsDetail | 1 | CJK/拉丁分词计数（阅读时长用） |
-| extractToc | 2 | 文章目录提取（含无标题页） |
-| sanitizeHtml | 13 | 白名单消毒（含 decoding 保留/危险标签/事件属性/危险协议/绕过回归） |
-| sanitizeHtml 媒体元素 | 4 | video/audio 保留与站内 src 限制 |
-| sanitizeSvg | 5 | SVG 危险内容检测（含实体解码绕过） |
-| escapeJsonForScript | 2 | 搜索索引嵌入 script 的安全序列化 |
-| features-schema validateFeatures | 7 | features 默认/校验/枚举/数组字段 |
-| theme-presets | 6 | 主题预设校验（名称/形状/覆盖结构） |
-| formatConfigError | 2 | JSON5 错误格式化 |
-| generate-security-config | 13 | security.json5 → Worker 配置提取/渲染 + 头名校验 |
-| content-policy classifyFile | 5 | 三目录白名单/黑名单判定 |
-| perf-budget | 2 | 页面体积/请求数预算判定 |
-| computeRelatedArticles | 3 | 关联文章评分与截取 |
-| resolveJsonFeedOptions | 1 | JSON Feed 选项归一与回退 |
-| buildSitemapUrls | 6 | robots 逐语言 Sitemap 列表 |
-| encodeLoc | 3 | sitemap URL RFC 3986 编码 |
-| toSitemapLastmod | 3 | lastmod ISO 8601 归一/非法省略 |
-| CSP trimCspDirectives（无 describe，顶层用例） | 8 | CSP 指令按功能开关裁剪 |
-| workers/lib ip-utils | 5 | IPv4/IPv6 CIDR 解析与匹配 + 点段折叠 |
-| workers/lib rate-limit | 2 | 限流封禁与清理 |
-| security-worker integration | 13 | Worker 集成（安全头/维护模式/静态资源/错误兜底/匿名限流） |
-| security-worker config resolution | 3 | 空数组 vs 缺失字段配置语义 |
-| build-errors | 6 | 构建失败收集/退出码/格式化 |
-| content-validate | 16 | 预校验（slug/日期/空标签/缺失媒体） |
-| publish-window | 5 | 定时发布过滤 |
-| asset-cache | 8 | 构建缓存键/配置指纹/命中判定 |
-| mermaid-render | 31 | SSR 缓存键/块提取替换/sanitize 回退/Chrome 探测/无 Chrome 降级/假浏览器渲染路径与超时重建 |
-| sbom | 14 | CycloneDX 1.5 构建：组件计数/purl 编码/SHA-512 哈希/去重 bom-ref/稳定排序/落盘 |
-| config-consistency（无 describe，顶层用例） | 7 | features 值与结构/死键判定 |
-| css-merge | 42 | CSS 同页合并/保守去重/标签配平（注释、RCDATA、属性引号上下文） |
-| compression-config | 16 | 压缩配置默认合并/类型/枚举/glob 语义 |
-| compression-pipeline | 28 | 压缩增强步骤装配/豁免/内容寻址跳过/跳过降级 |
-| compression-verify | 16 | 无头对比快照/恢复/归一化/端口纯逻辑 |
-| js-obfuscate | 12 | 混淆目标筛选/选项装配/确定性 |
-| build-report-html | 16 | 唯一构建报告 HTML 的区块渲染、转义与缺失容错 |
-| incremental-build | 8 | 增量指纹算法/稳定序列化/跳过决策 |
-| check-config-docs | 8 | 文档覆盖校验（键收集/匹配边界/策略表/真实仓库集成） |
-| config-comment-audit | 13 | JSON5 逐键注释覆盖率判定 |
-| serve-compression | 4 | 本地 serve 压缩响应两态 |
-| theme-override | 5 | `--theme-override` / `--features-override` 深合并与校验 |
+下表按功能域列出主要套件（具体用例见对应 `scripts/**/*.test.js` 与 `scripts/lib/*.test.js`；权威总量以 `npm test` 汇总为准）：
 
-> `npm test` 共 **945 项 / 134 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
+| 功能域 | 主要套件 |
+|--------|----------|
+| 工具与文本 | formatDate / safeSlug / validateSlug / escapeAttr / escapeHtml / stripHtml / insertCjkSpacing / countWordsDetail / extractToc |
+| 安全消毒 | sanitizeHtml（含媒体元素）/ sanitizeSvg / content-policy / hasUnsafeLinkScheme / copyOwnProperties / restrictMediaAttrs |
+| 配置体系 | features-schema / theme-presets / config-split / config-consistency / config-comment-audit / check-config-docs / config-duplicates / internals / config-link-safety |
+| 内容管线 | content-validate / preflight / publish-window / computeRelatedArticles / resolveJsonFeedOptions / buildSitemapUrls / encodeLoc / toSitemapLastmod / search-index / search-core |
+| 构建与产物 | asset-cache / atomic-write / dist-hash / build-errors / build-report-html / incremental-build / css-merge / cjk-fonts / auto-cover / og-size / og-format / critical-css |
+| 压缩 | compression-config / compression-pipeline / compression-verify / js-obfuscate / serve-compression |
+| 安全与 Worker | CSP trimCspDirectives / workers/lib ip-utils / workers/lib rate-limit / security-worker（集成 + 配置解析）|
+| 发布与运维 | release-mark / release-archive / release-manifest / release-validate / release-version / release-prune / sbom / process-guard / ci-skip / guard-bypass |
+| 特色功能 | theme-lab / save-data / continue-reading / popup-notice-config / lightbox-core / bilingual-core / export-article / series-page / dailyQuote / i18n-residuals / mermaid-render / nav-match |
+
+> `npm test` 共 **996 项 / 144 组**（Node 内置 test runner；集成套件 `build-smoke` 与 `T4 恶意/畸形场景` 在 `npm test` 生命周期下自动跳过，分别由 `npm run test:build` / `npm run test:malicious` 运行）。
 
 ### SBOM（软件物料清单）
 
@@ -646,7 +608,7 @@ npm run verify:security   # 集成安全回归
 - **JS 打包与压缩**：esbuild 开启 `splitting`，产出内容哈希的 `app.<hash>.js`（首屏启动链）、`deferred.<hash>.js`（交互/重模块聚合，按需载入）与 `shared.<hash>.js` 公共 chunk（跨入口共享模块，由 ES 模块图自动加载）；`runtime.js` 引导脚本经 Terser 压缩后按最终字节哈希单发并同步全部 HTML 引用（压缩关闭时保留源哈希名）；`--no-bundle` 可回退原生 ESM 拷贝模式。
 - **vendor 瘦身**：KaTeX 字体仅保留 woff2（654.9→254KB）；mermaid（3.5MB）改为页面 load 后 idle 拉取（仅图表页加载，零成本页不请求）；Prism 改为按页门控（仅含高亮代码块的页面引入，首页/列表零成本，实测首页 −82KB、请求 17→16）。
 - **字体与预加载**：本地变量字体 3 个（Inter/Sora/Manrope，woff2 latin 子集）随字体栈自动生成 preload（含 fonts.css），`font-display` 可配；无冗余 preconnect。中文字体 Noto Sans SC 构建期按 dist 页面/配置 JSON 实际用字子集化并自托管（`site.build.cjkFonts`，首次需联网、缓存 `.cache/fonts/`、之后离线可复用；失败自动回退系统字体链，构建不失败）。
-- **预算门禁**：`[budget]` 检查 5 项：单页 HTML gzip ≤40KB、页面 HTML raw 中位 ≤50KB、内联关键配置 ≤2KB、应用 JS gzip 合计 ≤75KB、单页静态请求 ≤12；阈值见 `features.perfBudget`，`warnOnly: false` 时超限终止构建。
+- **预算门禁**：`[budget]` 检查 5 项：单页 HTML gzip ≤45KB、页面 HTML raw 中位 ≤85KB、内联关键配置 ≤2KB、应用 JS gzip 合计 ≤75KB、单页静态请求 ≤12（HTML 两项已计入关键 CSS 内联增量；注册表默认 40/50KB，站点按实测上调，阈值见 `features.perfBudget`）；`warnOnly: false` 时超限终止构建。
 
 ---
 

@@ -27,7 +27,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .nvmrc
       - name: Validate RELEASE.json at tag (status + version + commit + checks)
         run: node scripts/lib/release-validate.js --tag "$GITHUB_REF_NAME"
 
@@ -42,7 +42,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - name: Lint (ESLint)
@@ -63,6 +63,8 @@ jobs:
         run: npm run verify:config-comments
       - name: Config docs
         run: npm run verify:config-docs
+      - name: Internals consistency (.nvmrc / wrangler assets / CI versions)
+        run: npm run verify:internals
       - name: Security verification
         run: npm run verify:security
       - name: Compression verification (Chrome-only, skip-with-notice otherwise)
@@ -86,7 +88,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .nvmrc
       - name: Build release archive (allowlist + version consistency assertions inside)
         run: node scripts/release-archive.js --ref "$GITHUB_REF_NAME"
       - name: Upload release archive
@@ -104,7 +106,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .nvmrc
       - name: Download release archive
         uses: actions/download-artifact@v4
         with:

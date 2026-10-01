@@ -49,6 +49,7 @@ jobs:
           npm run verify:config
           npm run verify:config-refs
           npm run verify:config-dupes
+          npm run verify:internals
           npm run test:build
           npm run build
 
@@ -59,66 +60,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: 'npm'
       - run: npm ci
-      - name: Dependency security audit
-        run: npm audit --audit-level=high
-      - name: Lint (ESLint)
-        run: npm run lint
-      - name: Type check (tsc checkJs, scripts/lib)
-        run: npm run typecheck
-      - run: npm test
-      - name: Coverage gate (scripts/lib lines >= 80%)
-        run: npm run test:coverage
-      - run: npm run test:build
-      - name: Fuzz property tests (deterministic seed + replay hints)
-        run: npm run test:fuzz
-      - name: Malicious/malformed scenario suite (hard-fail vs degrade policies)
-        run: npm run test:malicious
-      - name: Config consistency (code defaults vs config files)
-        run: npm run verify:config
-      - name: Config references (unwired key scan)
-        run: npm run verify:config-refs
-      - name: Config duplicates (same-object duplicate key scan)
-        run: npm run verify:config-dupes
-      - name: Config comments (per-key comment coverage guard)
-        run: npm run verify:config-comments
-      - name: Config docs coverage (config-reference key coverage)
-        run: npm run verify:config-docs
-      - name: Security verification (malicious-content build regression)
-        run: npm run verify:security
-      - run: npm run build
-      - name: Web smoke (Chrome-only, skip-with-notice otherwise)
-        run: |
-          if [ -n "$CHROME_PATH" ] || command -v google-chrome >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1; then
-            npm run test:smoke
-          else
-            echo "[SKIP] 未检测到 Chrome（CHROME_PATH/google-chrome/chromium），跳过浏览器冒烟"
-          fi
-      - name: Web coverage (headless JS lines/functions, Chrome-only)
-        run: |
-          if [ -n "$CHROME_PATH" ] || command -v google-chrome >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1; then
-            npm run test:cov-web
-          else
-            echo "[SKIP] 未检测到 Chrome（CHROME_PATH/google-chrome/chromium），跳过 Web 覆盖率采集"
-          fi
-      - name: Headless compression verification (Chrome-only, skip-with-notice otherwise)
-        run: |
-          if [ -n "$CHROME_PATH" ] || command -v google-chrome >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1; then
-            npm run verify:compression
-          else
-            echo "[SKIP] 未检测到 Chrome（CHROME_PATH/google-chrome/chromium），跳过压缩无头对比验证"
-          fi
-      - name: SBOM (CycloneDX 1.5 / ECMA-424)
-        run: npm run sbom
-      - name: Upload SBOM artifact
+      - name: Export internals to environment (SYNAPSE_OUT_DIR / PAGES_PROJECT / NODE_VERSION …)
+        run: node scripts/ci-env.js
+      - name: Full quality suite (aggregate, no early abort; report at build-artifacts/ci-report.*)
+        run: node scripts/ci-checks.js
+      - name: Upload CI report (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sbom-cyclonedx
-          path: build-artifacts/sbom.cdx.json
+          name: ci-report
+          path: build-artifacts/ci-report.*
           if-no-files-found: error
-      - name: Upload test artifacts (fuzz failures / web coverage / smoke)
+      - name: Upload test artifacts (fuzz failures / web coverage / smoke / SBOM)
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -134,4 +90,4 @@ jobs:
             echo "CF_API_TOKEN not configured, skipping deploy"
             exit 0
           fi
-          npx wrangler pages deploy dist --project-name=s-ynapse
+          npm run deploy:pages

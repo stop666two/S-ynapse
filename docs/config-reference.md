@@ -162,7 +162,19 @@
 | `build.cssFileBase` | string | `site` | 主样式文件名前缀（最终 `{前缀}.{哈希}.css`） |
 | `build.hashLength` | number | `10` | 内容哈希截取长度（6–16） |
 | `build.hashAlgorithm` | string | `md5` | 内容哈希算法（Node crypto 名称；仅作缓存键） |
+| `build.criticalCss` | object | 见下 | 关键 CSS 内联 + 非关键样式异步（默认关闭 = 现状：全量样式阻塞加载） |
 | `build.externalLinksTarget` / `externalLinksRel` | string | `_blank` / `noopener noreferrer` | 外链属性 |
+
+#### build.criticalCss — 关键 CSS 内联
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `criticalCss.enabled` | bool | `false` | 总开关；开启后构建期从主样式抽取首屏规则（主题变量/重置/页头/英雄区/首屏卡片/文章头/目录列/侧栏挂件），以 nonce 内联 `<style>` 输出；主样式与本地字体声明以 `media="print"` 异步应用（nonce 内联脚本就绪后翻回 `media="all"`，`<noscript>` 链接兜底无 JS）。首个 `<style>` 与主样式 preload 置于 `<head>` 最前。提取/解析异常自动回退全量阻塞样式，构建不失败 |
+| `criticalCss.asyncNonCritical` | bool | `true` | 非关键整站样式是否异步加载（仅 `enabled=true` 时生效）；`false` = 关键样式内联但主样式仍阻塞（对照排查用） |
+
+> 说明：开启后每页 HTML 增大约 30KB raw / 约 9KB gzip（重复导航重验 HTML 时同样携带），
+> 首屏阻塞字节反而下降（主样式 28.4KB gzip 移出关键路径）；`features.perfBudget.htmlKb/htmlRawKb`
+> 已按实测口径同步调整。首屏元素在样式加载期间由关键 CSS 定型，无 FOUC；侧栏挂件与目录条目
+> 样式同样内联以避免可见重排（本地 CLS 实测 ≈0.002–0.005）。
 
 #### build.cjkFonts — 中文字体子集化（Noto Sans SC）
 | 字段 | 类型 | 默认 | 说明 |

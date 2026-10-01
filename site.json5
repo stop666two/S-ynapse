@@ -961,6 +961,26 @@
     // 类型: string | 推荐: "md5"（非安全用途，仅缓存键）
     "hashAlgorithm": "md5",
 
+    // 关键 CSS 内联与非关键样式异步加载
+    // 作用: 构建期从主样式抽取首屏规则（主题变量/重置/页头/英雄区/首屏卡片/文章头/目录列骨架），
+    //       以 nonce 内联 <style> 输出；主样式与本地字体声明改为 media="print" 低优先加载
+    //       （nonce 内联脚本在样式就绪后翻回 media="all"，<noscript> 链接兜底无 JS 场景）。
+    // 收益: 弱网（Slow 4G）+ 4× CPU 下移除渲染阻塞样式请求，缩短 LCP 渲染延迟；
+    //       首屏关键样式字节不再与 LCP 图片请求争抢关键路径带宽。
+    // 代价: 每页 HTML 增大约 30KB raw / 约 8KB gzip（每次导航重验 HTML 时同样携带）；
+    //       侧栏挂件与目录条目细节等非首屏样式在样式加载完成前为浏览器默认排版。
+    // 类型: object
+    // 不可填: 无（enabled=false 时为现状：全量样式阻塞加载，产物字节与开启前一致）
+    // 推荐: 追求首屏 LCP 时启用；解析失败自动回退全量阻塞样式，构建不失败
+    "criticalCss": {
+      // 是否启用（boolean，默认 false；回退=置 false，保持全量阻塞样式）
+      "enabled": true,
+
+      // 非关键整站样式是否异步加载（boolean，默认 true；仅 enabled=true 时生效）
+      // false = 关键样式内联但主样式仍保持阻塞（用于对照排查）
+      "asyncNonCritical": true
+    },
+
     // 外链 target
     // 作用: 正文外链自动添加的 target 值
     // 类型: string | 可填: "_blank"（新窗口）或 ""（同窗口） | 推荐: "_blank"

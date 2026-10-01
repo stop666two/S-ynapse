@@ -9,6 +9,7 @@ const { escapeHtml, stripHtml, stripInvalidXmlChars, truncateCodePoints } = requ
 const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('../lib/robots');
 const { resolveJsonFeedOptions } = require('../lib/feed-options');
 const { localSearchIndexNeeded } = require('../lib/feature-wiring');
+const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
 const {
   searchIndexOptions, buildLanguageIndex, measureGzip, serializeIndexText, hashIndexText, pruneIndexToBudget, resolveFinalAssetUrl
 } = require('../lib/search-index');
@@ -48,7 +49,7 @@ function createFeedsModule(ctx) {
       return;
     }
     console.log('[7/14] Generating RSS feed...');
-    const siteLangsRSS = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+    const siteLangsRSS = resolveSiteLanguages(config.site);
     const baseUrl = (config.site.url || '').replace(/\/+$/, '');
     for (const rssLang of siteLangsRSS) {
       const rssArticles = articles.filter(a => a.lang === rssLang);
@@ -106,11 +107,13 @@ function createFeedsModule(ctx) {
       return;
     }
     console.log('[7b] Generating JSON Feed...');
-    const siteLangsJF = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+    const siteLangsJF = resolveSiteLanguages(config.site);
     const baseUrl = (config.site.url || '').replace(/\/+$/, '');
     try {
       for (const lang of siteLangsJF) {
         const langArticles = articles.filter(a => a.lang === lang);
+        // updated 必须与条目同源（getPublished）：草稿/定时发布的未来日期不得进入 feed 元数据。
+        const langPublished = ctx.getPublished(langArticles);
         const feed = new Feed({
           title: (lang === 'en' && config.site.titleEn) ? config.site.titleEn : (config.site.title || 'Blog'),
           description: (lang === 'en' && config.site.descriptionEn) ? config.site.descriptionEn : (config.site.description || ''),
@@ -118,12 +121,12 @@ function createFeedsModule(ctx) {
           link: baseUrl + '/' + lang + '/',
           language: lang === 'en' ? 'en-US' : (config.site.language || 'zh-CN'),
           copyright: config.site.copyright || '',
-          updated: langArticles.length > 0 && langArticles[0].date ? new Date(langArticles[0].date) : new Date(),
+          updated: langPublished.length > 0 && langPublished[0].date ? new Date(langPublished[0].date) : new Date(),
           generator: 'S-ynapse'
         });
         if (config.site.author) feed.author = { name: config.site.author, email: config.site.email || '' };
         const jfOptions = resolveJsonFeedOptions(rss);
-        const items = ctx.getPublished(langArticles).slice(0, jfOptions.maxItems);
+        const items = langPublished.slice(0, jfOptions.maxItems);
         for (const article of items) {
           const link = baseUrl + article.url;
           feed.addItem({
@@ -171,7 +174,7 @@ function createFeedsModule(ctx) {
       const pagePr = parseFloat(feats.pagePriority != null ? feats.pagePriority : 0.6);
       const tagFreq = feats.tagFrequency || 'monthly';
       const tagPr = parseFloat(feats.tagPriority != null ? feats.tagPriority : 0.4);
-      const siteLangsSM = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+      const siteLangsSM = resolveSiteLanguages(config.site);
 
       async function writeSitemapFor(lang) {
         const pf = '/' + lang + '/';
@@ -190,7 +193,8 @@ function createFeedsModule(ctx) {
         }
         for (const a of langPubs) {
           if (a.draft) continue;
-          urls.push({ loc: a.url, changefreq: postFreq, priority: String(postPr), lastmod: a.date || undefined });
+          // lastmod 优先更新时间（frontmatter modified/updated），无则回退发布日期。
+          urls.push({ loc: a.url, changefreq: postFreq, priority: String(postPr), lastmod: a.modified || a.date || undefined });
         }
         if (config.site.build.generateArchive !== false) urls.push({ loc: pf + 'archive/', changefreq: pageFreq, priority: String(pagePr) });
         if (config.site.build.generateGallery !== false) urls.push({ loc: pf + 'gallery/', changefreq: pageFreq, priority: String(pagePr) });
@@ -273,7 +277,7 @@ function createFeedsModule(ctx) {
     const sitemapUrls = buildSitemapUrls({
       baseUrl: base,
       sitemapPath: config.security.robots.sitemap,
-      languages: (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en'])
+      languages: resolveSiteLanguages(config.site)
     });
     if (!sitemapUrls.length) { console.log('  [SKIP] Sitemap ping: no sitemap URL resolved'); return; }
     const engines = Array.isArray(ping.engines) ? ping.engines : ['google'];
@@ -325,7 +329,7 @@ function createFeedsModule(ctx) {
       pattern: new RegExp(config.site.build.cacheBustingPattern || DEFAULT_BUST_PATTERN, 'i')
     };
     const maxBytes = opts.maxGzipKb * 1024;
-    const siteLangsSI = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+    const siteLangsSI = resolveSiteLanguages(config.site);
     const prepared = { langs: {} };
     const urls = {};
     for (const lang of siteLangsSI) {
@@ -390,7 +394,7 @@ function createFeedsModule(ctx) {
         if (SEARCH_INDEX_FILE_RE.test(name)) fs.rmSync(path.join(assetsDir, name), { force: true });
       }
       // 旧固定路径索引（v1 产物 /{lang}/search-index.json）迁移清理：不再产出，避免残留过期副本。
-      const siteLangsSI = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+      const siteLangsSI = resolveSiteLanguages(config.site);
       for (const lang of siteLangsSI) {
         const legacy = path.join(ctx.distDir, lang, 'search-index.json');
         if (fs.existsSync(legacy)) fs.rmSync(legacy, { force: true });

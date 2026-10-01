@@ -759,6 +759,36 @@ function createMinifyModule(ctx) {
           ctx.recordBuildFailure('cachebust', `Update refs in ${htmlFile}: ${err.message}`);
         }
       }
+      // 订阅源同样引用媒体路径（rss 全文含 <img src="/media/...">，JSON Feed 同）：以同一 mapping
+      // 重写 feed.xml/feed.json，避免 cache-bust 改名后 feed 内链 404。文件位置从 site.rss 派生
+      // （与生成端同源；路径/开关关闭时不处理）。
+      const rssCfg = (config.site && config.site.rss) || {};
+      const jfCfg = rssCfg.jsonFeed || {};
+      const feedPaths = [];
+      if (rssCfg.enabled && typeof rssCfg.path === 'string' && rssCfg.path) feedPaths.push(rssCfg.path);
+      if (rssCfg.enabled && jfCfg.enabled && typeof jfCfg.path === 'string' && jfCfg.path) feedPaths.push(jfCfg.path);
+      const feedLangs = (config.site && Array.isArray(config.site.languages) && config.site.languages.length)
+        ? config.site.languages : ['zh', 'en'];
+      for (const lang of feedLangs) {
+        for (const rel of feedPaths) {
+          const feedFile = path.join(ctx.distDir, lang, rel.replace(/^\//, ''));
+          if (!fs.existsSync(feedFile)) continue;
+          try {
+            let feedText = fs.readFileSync(feedFile, 'utf-8');
+            let feedChanged = false;
+            for (const [orig, hashed] of Object.entries(mapping)) {
+              if (feedText.includes(orig)) {
+                feedText = feedText.split(orig).join(hashed);
+                feedChanged = true;
+              }
+            }
+            if (feedChanged) writeFileAtomicSync(feedFile, feedText, 'utf-8');
+          } catch (err) {
+            console.error(`  [ERROR] Cache bust ${feedFile}: ${err.message}`);
+            ctx.recordBuildFailure('cachebust', `Cache bust ${feedFile}: ${err.message}`);
+          }
+        }
+      }
       writeFileAtomicSync(ctx.cacheBustManifestPath, JSON.stringify(mapping), 'utf-8');
       console.log(`  Renamed ${Object.keys(mapping).length} files, updated HTML refs`);
       // Search indexes reference media paths (featuredImage) generated before hashing;

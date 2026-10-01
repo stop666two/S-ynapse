@@ -8,6 +8,7 @@ const path = require('path');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { trimCspDirectives } = require('../lib/csp');
 const { normalizeRedirectRules } = require('../lib/redirect-rules');
+const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
 
 function createSecurityFilesModule(ctx) {
   const { distDir, cspNonce, applyHeaderHardening, buildSitemapUrls, bundleActive } = ctx;
@@ -45,12 +46,9 @@ function generateRedirects(config, customPages) {
   for (const r of valid) {
     lines.push(`${r.from} ${r.to} ${r.status}`);
   }
-  const langs = (config.site.languages && config.site.languages.length) ? config.site.languages : ['zh'];
-  if (langs.length > 0 && langs[0] !== 'en') {
-    if (!lines.some(l => l.startsWith('/ '))) {
-      lines.unshift(`/ /${langs[0]}/ 302`);
-    }
-  }
+  // 根路径不做服务端 302：dist/index.html 是默认语言（site.languages[0]）的完整首页，
+  // 由根页内联脚本按浏览器语言跳转；服务端重定向会覆盖该页面并与本地 serve 行为分裂。
+  const langs = resolveSiteLanguages(config.site);
   for (const l of langs) {
     const pf = '/' + l;
     // manifest 由 PWA 步骤直接产出在根目录（关闭时不产出），不设语言别名，避免 302 到不存在的文件

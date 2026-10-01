@@ -10,7 +10,8 @@ const { hasUnsafeLinkScheme } = require('../lib/utils');
 const { trimCspDirectives } = require('../lib/csp');
 const { DEFAULT_FEATURES, validateFeatures } = require('../lib/features-schema');
 const { validatePopupNotice } = require('../lib/popup-notice-config');
-const { resolveTheme: resolveThemePreset, validatePreset: validateThemePreset } = require('../lib/theme-presets');
+const { validatePreset: validateThemePreset } = require('../lib/theme-presets');
+const { resolveBuildTheme } = require('../lib/theme-resolve');
 
 function createConfigModule(ctx) {
   // Deterministic hue for a category/tag name (same name → same color everywhere).
@@ -206,7 +207,8 @@ function createConfigModule(ctx) {
     // Theme preset resolution: built-in preset → presetOverrides. When a preset
     // is active it takes over colors/dark colors; manual colors field is only
     // honored when preset is null (see theme.json5 header notes).
-    const themeRes = resolveThemePreset(config.theme);
+    // 与 scripts/generate-og.js 共用 resolveBuildTheme（单一事实源），保证 OG 与站点同色板。
+    const themeRes = resolveBuildTheme(config.theme);
     if (themeRes.warnings.length > 0) {
       themeRes.warnings.forEach(w => console.log('  [WARN] ' + w));
     } else if (themeRes.appliedPreset) {

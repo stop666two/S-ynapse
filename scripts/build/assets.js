@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { escapeHtml } = require('../lib/utils');
 const { buildPrecacheList, renderServiceWorker } = require('../lib/pwa-sw');
+const { primaryLanguage, isEnglish } = require('../lib/site-lang');
 
 // 递归列出目录内全部文件（POSIX 相对路径），目录不存在时返回空。
 function listFilesRecursive(dir, rel, out) {
@@ -179,16 +180,19 @@ async function generatePWA(config) {
   const featPwa = (config.features && config.features.pwa) || {};
   const pwaOffline = featPwa.offlinePage !== false;
   if (pwaOffline) {
-    const isEn = config.site.language === 'en';
+    // 离线页语言取 site.languages[0]（默认语言），英文判定用 BCP 47 前缀（兼容 en-US 等变体）；
+    // 不再要求 site.language 精确等于 'en'（纯英文站/区域化标签同样落到英文文案与首页链接）。
+    const primaryLang = primaryLanguage(config.site);
+    const isEn = isEnglish(primaryLang);
     const zh = (config.uiStrings && config.uiStrings.pwa) || {};
     const en = (config.uiStrings && config.uiStrings.en && config.uiStrings.en.pwa) || {};
     const S = isEn
       ? { t: en.offlineTitle || 'You are offline', d: en.offlineDesc || 'Network connection lost. Check and retry.', r: en.retry || 'Retry', h: 'Back to home' }
       : { t: zh.offlineTitle || '当前处于离线状态', d: zh.offlineDesc || '网络已断开，请检查连接后重试。', r: zh.retry || '重试', h: '返回首页' };
-    const home = isEn ? '/en/' : '/zh/';
+    const home = '/' + primaryLang + '/';
     const lt = config.theme.colors;
     const dk = (config.theme.darkMode && config.theme.darkMode.colors) || {};
-    const offlineHtml = '<!DOCTYPE html><html lang="' + (isEn ? 'en' : 'zh') + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' + escapeHtml(S.t) + ' · ' + escapeHtml(config.site.title) + '</title><style nonce="' + cspNonce + '">:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:' + escapeHtml(lt.background) + ';color:' + escapeHtml(lt.text) + ';font-family:system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:26rem;padding:2.5rem;text-align:center}h1{font-size:1rem;opacity:.6;margin:0 0 1.25rem}.t{font-size:1.35rem;font-weight:700;margin:0 0 .5rem}.d{opacity:.7;line-height:1.7;margin:0 0 1.75rem}button,a{font:inherit}button{cursor:pointer;padding:.6rem 1.4rem;border-radius:999px;border:0;background:' + escapeHtml(lt.secondary) + ';color:' + escapeHtml(lt.surface) + '}button:hover{filter:brightness(1.08)}a{color:inherit;margin-left:1rem;text-decoration:underline;text-underline-offset:3px}@media(prefers-color-scheme:dark){body{background:' + escapeHtml(dk.background || lt.background) + ';color:' + escapeHtml(dk.text || lt.text) + '}button{background:' + escapeHtml(dk.secondary || lt.secondary) + '}}</style></head><body><main><h1>' + escapeHtml(config.site.title) + '</h1><p class="t">' + escapeHtml(S.t) + '</p><p class="d">' + escapeHtml(S.d) + '</p><p><button type="button" id="offlineRetry">' + escapeHtml(S.r) + '</button><a href="' + escapeHtml(home) + '">' + escapeHtml(S.h) + '</a></p></main><script nonce="' + cspNonce + '">document.getElementById("offlineRetry").addEventListener("click",function(){location.reload()})</script></body></html>';
+    const offlineHtml = '<!DOCTYPE html><html lang="' + escapeHtml(primaryLang) + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' + escapeHtml(S.t) + ' · ' + escapeHtml(config.site.title) + '</title><style nonce="' + cspNonce + '">:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:' + escapeHtml(lt.background) + ';color:' + escapeHtml(lt.text) + ';font-family:system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:26rem;padding:2.5rem;text-align:center}h1{font-size:1rem;opacity:.6;margin:0 0 1.25rem}.t{font-size:1.35rem;font-weight:700;margin:0 0 .5rem}.d{opacity:.7;line-height:1.7;margin:0 0 1.75rem}button,a{font:inherit}button{cursor:pointer;padding:.6rem 1.4rem;border-radius:999px;border:0;background:' + escapeHtml(lt.secondary) + ';color:' + escapeHtml(lt.surface) + '}button:hover{filter:brightness(1.08)}a{color:inherit;margin-left:1rem;text-decoration:underline;text-underline-offset:3px}@media(prefers-color-scheme:dark){body{background:' + escapeHtml(dk.background || lt.background) + ';color:' + escapeHtml(dk.text || lt.text) + '}button{background:' + escapeHtml(dk.secondary || lt.secondary) + '}}</style></head><body><main><h1>' + escapeHtml(config.site.title) + '</h1><p class="t">' + escapeHtml(S.t) + '</p><p class="d">' + escapeHtml(S.d) + '</p><p><button type="button" id="offlineRetry">' + escapeHtml(S.r) + '</button><a href="' + escapeHtml(home) + '">' + escapeHtml(S.h) + '</a></p></main><script nonce="' + cspNonce + '">document.getElementById("offlineRetry").addEventListener("click",function(){location.reload()})</script></body></html>';
     writeFileAtomicSync(path.join(distDir, 'offline.html'), offlineHtml, 'utf-8');
     console.log('  Created: offline.html');
   }

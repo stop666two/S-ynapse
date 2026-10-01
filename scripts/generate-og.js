@@ -7,6 +7,8 @@ const sharp = require('sharp');
 const { safeSlug, validateSlug } = require('./lib/utils');
 const { resolveOgFormat } = require('./lib/og-format');
 const { resolveOgSize } = require('./lib/og-size');
+const { resolveBuildTheme } = require('./lib/theme-resolve');
+const { buildOgFingerprint } = require('./lib/og-cache-key');
 const { atomicTempPath, commitAtomicTemp, discardAtomicTemp, writeFileAtomicSync } = require('./lib/atomic-write');
 const { buildCacheKey, configFingerprint, getFresh, pruneTo, ttlExpired } = require('./lib/asset-cache');
 const { resolveOutputDir } = require('./lib/output-dir');
@@ -363,10 +365,19 @@ function pruneStaleOg(madeByLang) {
 
 async function main() {
   const siteConfig = readConfigFile('site.json5') || {};
-  const themeConfig = readConfigFile('theme.json5') || {};
+  const rawThemeConfig = readConfigFile('theme.json5') || {};
+  // 与构建管线共用主题合成（内置预设 → presetOverrides）：preset 生效时以其色板为准，
+  // 不再直接读取 theme.json5 的 colors（手工色在预设激活时被接管）。
+  const themeRes = resolveBuildTheme(rawThemeConfig);
+  themeRes.warnings.forEach(function (w) { console.warn('  [WARN] generate-og: ' + w); });
+  const themeConfig = Object.assign({}, rawThemeConfig, {
+    appliedPreset: themeRes.appliedPreset,
+    colors: themeRes.colors,
+    darkMode: themeRes.darkMode
+  });
   const siteTitle = (siteConfig.title || 'S-ynapse').toString();
   const siteUrl = String(siteConfig.domain || siteConfig.url || '');
-  const themeColors = themeConfig.colors || themeConfig;
+  const themeColors = themeConfig.colors;
   const darkColors = (themeConfig.darkMode && themeConfig.darkMode.colors) || {};
   const fromColor = parseColor(themeColors.primary || themeConfig.colorPrimary);
   const toColor = parseColor(themeColors.secondary || themeConfig.colorSecondary);
@@ -399,13 +410,20 @@ async function main() {
   HEIGHT = ogSize.height;
   console.log(`  OG size: ${WIDTH}x${HEIGHT} (${ogSize.source}${ogSize.scaled ? ', capped' : ''})`);
   const ogFontScale = (+ogCfg.fontScale > 0) ? +ogCfg.fontScale : 1;
-  const ogFingerprint = configFingerprint([
-    ogFmt.format, ogFmt.ext, ogFmt.quality,
-    WIDTH, HEIGHT, ogFontScale,
-    styleCfg, palette, paletteMode,
-    { from: fromColor, to: toColor },
-    siteTitle, siteUrl
-  ]);
+  // 封面合成参数并入指纹：preset/overrides/coverFit/overlay/useCover 任一变化都必须换图。
+  const coverFitCfg = ['cover', 'contain', 'fill'].includes(ogCfg.coverFit) ? ogCfg.coverFit : 'cover';
+  const ogFingerprint = buildOgFingerprint({
+    format: ogFmt.format, ext: ogFmt.ext, quality: ogFmt.quality,
+    width: WIDTH, height: HEIGHT, fontScale: ogFontScale,
+    style: styleCfg, palette: palette, paletteMode: paletteMode,
+    colors: { from: fromColor, to: toColor },
+    siteTitle: siteTitle, siteUrl: siteUrl,
+    appliedPreset: themeConfig.appliedPreset,
+    presetOverrides: rawThemeConfig.presetOverrides || null,
+    coverFit: coverFitCfg,
+    overlay: ogCfg.overlay || null,
+    useCover: ogCfg.useCover !== false
+  });
   const buildCache = loadBuildCache();
   const ogCache = (buildCache.og && typeof buildCache.og === 'object') ? buildCache.og : (buildCache.og = {});
   if (!buildCache.version) buildCache.version = 1;
@@ -537,7 +555,7 @@ async function main() {
           if (coverBuf) {
             // 封面合成：overlay 可经 features.ogImage.overlay 关闭；coverFit 控制缩放方式。
             const overlayCfg = ogCfg.overlay || {};
-            const coverFit = ['cover', 'contain', 'fill'].includes(ogCfg.coverFit) ? ogCfg.coverFit : 'cover';
+            const coverFit = coverFitCfg;
             const coverPipe = sharp(coverBuf).resize(WIDTH, HEIGHT, { fit: coverFit });
             if (overlayCfg.enabled !== false) {
               const wrapChars = (Number.isFinite(+overlayCfg.wrap) && +overlayCfg.wrap > 0) ? Math.round(+overlayCfg.wrap) : 20;

@@ -12,7 +12,7 @@
 
 | 文档 | 用途 |
 | --- | --- |
-| [配置参考](docs/config-reference.md) | 全部 14 个配置文件（site/theme/tuning/navigation/sidebar/footer/security/features/ui-strings/content-policy/tag-aliases/friends/guard/compression）的逐字段权威说明：每个配置项的含义、可填值、推荐值与默认值，以及值域校验、环境变量、重定向/友链/标签别名示例 |
+| [配置参考](docs/config-reference.md) | 全部 15 个配置文件（14 个站点配置 site/theme/tuning/navigation/sidebar/footer/security/features/ui-strings/content-policy/tag-aliases/friends/guard/compression + 工程内部参数 internals.json5）的逐字段权威说明：每个配置项的含义、可填值、推荐值与默认值，以及值域校验、环境变量、重定向/友链/标签别名示例 |
 | [移动端真机点检清单](docs/mobile-checklist.md) | iOS Safari / Android Chrome 各 15 项发布前真机点检：安全区、软导航、TOC 抽屉、弹窗公告、CJK 字体、暗色、横屏、双击缩放、滚动性能、分享/TTS 权限等，含预期结果与问题记录表 |
 | [发布流程（Release）](docs/runbook/release.md) | 完成标记 + 自动发布机制：RELEASE.json 字段与双重校验、`release:mark` 全流程（含同版本/预发布标记）与人工核验含义、双通道发布（Actions on tag / 本地 gh）、基础包语义（空站骨架 + 空站可构建 + 测试可跑）、骨架归档白名单与解压门禁、只保留最新版本的旧版自动清理、失败排障、Release 与站点部署的关系 |
 | [变更日志](CHANGELOG.md) | 按版本号记录本项目的全部变更：安全修复、新增功能、配置项变化，遵循 Keep a Changelog 格式，每个条目注明涉及的源文件 |
@@ -21,12 +21,12 @@
 ## 特性
 
 **全配置驱动**
-- 14 个 JSON5 配置文件（支持注释），**2600+ 可配置项**（实测 2854 项；口径：对象逐层展开、数组元素逐项计入且元素为对象时不再展开），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- 14 个 JSON5 站点配置文件（支持注释），另有 **`internals.json5` 工程内部参数**（端口/路径/缓存天数/审计上限/部署项目名/CI 版本；不参与站点配置项计数），**2600+ 可配置项**（实测 2854 项；口径：对象逐层展开、数组元素逐项计入且元素为对象时不再展开），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
 - `features.json5` 功能总控域：**102 个模块、1021 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（37 分类 / 273 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
-- 详细参考文档：`docs/config-reference.md`（13 章，逐字段权威参考）
-- 配置周边门禁：`verify:config`（默认值/结构一致性）、`verify:config-refs`（零引用键）、`verify:config-dupes`（重复键）、`verify:config-comments`（逐键注释覆盖率）、`verify:config-docs`（14 文件键 vs 配置参考覆盖）
+- 详细参考文档：`docs/config-reference.md`（15 章，逐字段权威参考）
+- 配置周边门禁：`verify:config`（默认值/结构一致性）、`verify:config-refs`（零引用键）、`verify:config-dupes`（重复键）、`verify:config-comments`（逐键注释覆盖率）、`verify:config-docs`（15 文件键 vs 配置参考覆盖）、`verify:internals`（.nvmrc/wrangler assets/CI 版本与 internals 单源一致）
 
 **内容创作**
 - Markdown 扩展：上标/下标（`X^2^` / `H~2~O`）、KaTeX 数学公式（`$`/`$$`）、Mermaid 图表、Wiki 双链（`[[标题]]`）、定义列表、任务列表
@@ -165,6 +165,10 @@ S-ynapse/
 │   ├── security-worker.test.js  # Worker 安全层单测 + 集成
 │   ├── security-verify.js  # 安全集成验证（注入恶意文章→构建→语义断言）
 │   ├── check-config-consistency.js # 配置一致性监守（默认值 vs 配置文件）
+│   ├── check-internals.js # 工程内部参数守卫（.nvmrc / wrangler assets / CI 版本 / 写死形态）
+│   ├── ci-env.js      # CI 环境导出（internals → $GITHUB_ENV）
+│   ├── ci-checks.js   # CI 聚合检查器（跑完整套后统一失败，写 build-artifacts/ci-report.*）
+│   ├── deploy-pages.js # Pages 部署（项目名/目录读 internals，部署前 verify:internals）
 │   ├── a11y-audit.js  # WCAG 无障碍审计（axe-core + Chrome）
 │   ├── import.js      # 内容导入 CLI（hexo/hugo/wordpress）
 │   ├── export.js      # 备份导出 CLI（配置 + 文章 + 媒体打包）
@@ -185,6 +189,10 @@ S-ynapse/
 │       ├── feed-options.js    # JSON Feed 选项归一（jsonFeed.* 优先）
 │       ├── perf-budget.js     # 页面体积/请求数预算检查
 │       ├── site-defaults.js   # 站点/主题等默认值注册表（配置监守用）
+│       ├── internals-defaults.js # internals 默认值与校验 Schema 注册表
+│       ├── internals.js       # internals.json5 加载/深合并/校验
+│       ├── chrome-path.js     # Chrome 探测单源（a11y/perf/mermaid 共用）
+│       ├── output-dir.js      # 输出目录解析单源（--out > SYNAPSE_OUT_DIR > internals > dist）
 │       ├── tuning-defaults.js # tuning 默认值注册表（配置监守用）
 │       └── guard-defaults.js  # guard 默认值注册表（配置监守用）
 ├── workers/           # Cloudflare Worker 安全层
@@ -205,6 +213,8 @@ S-ynapse/
 ├── content-policy.json5 # 内容策略（media/videos/assets 白黑名单，可选）
 ├── tag-aliases.json5   # 标签别名映射（可选）
 ├── friends.json5       # 友情链接数据（可选）
+├── internals.json5     # 工程内部参数（端口/路径/缓存天数/审计上限/部署项目名/CI 版本；非站点配置）
+├── .nvmrc             # CI/本地 Node 版本（与 internals.ci.nodeVersion 单源一致）
 ├── .env.example       # 环境变量模板（CF_API_TOKEN / NODE_ENV / SITE_URL / CF_WEB_ANALYTICS_TOKEN）
 ├── .gitattributes     # Git 属性配置
 ├── eslint.config.js   # ESLint 10 扁平配置（js/scripts/workers 三层）
@@ -443,9 +453,9 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 
 项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署。CI 作业：
 - `check-agents`：变更集中检测 AI 规则文件（AGENTS.md 及其变体），命中即阻断；
-- `compat-node20`：Node 20.19.0（`engines` 下限）上运行 `npm test` + `npm run verify:config` + `npm run verify:config-refs` + `npm run verify:config-dupes` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
-- `build`（Node 24）：`npm audit --audit-level=high` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run test:coverage`（`scripts/lib` 行覆盖率 ≥80%）→ `npm run test:build` → `npm run test:fuzz` → `npm run test:malicious` → `verify:config` → `verify:config-refs` → `verify:config-dupes` → `verify:config-comments` → `verify:security` → `npm run build` → `npm run test:smoke`（检测到 Chrome 时条件执行，否则跳过并提示）→ `npm run test:cov-web`（同上条件；js/** 行/函数覆盖率门禁）→ `verify:compression`（同上条件）→ `npm run sbom`（CycloneDX 1.5，上传 `sbom-cyclonedx` artifact）→ 上传 `test-artifacts`（`build-artifacts/**`：失败留档/覆盖率/冒烟摘要，`always()`）→ Pages 部署（仅 `main`）。
-- 夜间深度随机测试（`.github/workflows/nightly.yml`，每日 UTC 18:00 + 手动触发）：与本地/CI 同命令 `npm run test:all`，仅深度档不同（`FC_NUM_RUNS=2000`、`STRESS=1`、随机种子），上传 `nightly-test-artifacts`。
+- `compat-node20`：Node 20.19.0（`engines` 下限，与 `internals.ci.compatNodeVersion` 一致）上运行 `npm test` + `verify:config` + `verify:config-refs` + `verify:config-dupes` + `npm run verify:internals` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
+- `build`（Node 版本由 `.nvmrc` 单源控制，经 `node-version-file` 读取；`node scripts/ci-env.js` 导出 internals 环境）→ 单步 `node scripts/ci-checks.js`：**一次跑完整套检查且不提前中断**（lint、typecheck、test、test:coverage（`scripts/lib` 行覆盖率 ≥80%）、test:build、test:fuzz、test:malicious、verify:config 家族（含 verify:internals）、verify:security、Chrome 依赖项 test:smoke/test:cov-web/verify:compression（未探测到浏览器时跳过并标注）、build、sbom；`audit`（依赖漏洞）与 `audit:a11y`（无障碍）为**建议项**——结果写入报告但不阻断），每项记录退出码/耗时/输出摘要，写入 `build-artifacts/ci-report.{json,txt}`，末尾任一阻断项失败整体失败 → 始终上传 `ci-report` 与 `test-artifacts`（`build-artifacts/**`，`always()`）→ Pages 部署（仅 `main`，调用 `npm run deploy:pages`，部署前自动跑 `verify:internals`）。
+- 夜间深度随机测试（`.github/workflows/nightly.yml`，每日 UTC 18:00 + 手动触发）：同一聚合器 `node scripts/ci-checks.js`，仅深度档不同（`FC_NUM_RUNS=2000`、`STRESS=1`、随机种子），上传 `nightly-test-artifacts`。
 
 **配置步骤**：
 1. 在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加 `CF_API_TOKEN`（如需部署）
@@ -496,7 +506,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（897 项 / 134 组） |
+| `npm test` | 运行单元测试（904 项 / 134 组） |
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前总量约 98%） |
 | `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、CSP nonce 与 report.txt 两态；CI 运行，不进 `npm test`） |
 | `npm run test:fuzz` | 属性/随机测试（fast-check；`scripts/**/*.fuzz.test.js`；默认 100 次迭代、`FC_NUM_RUNS` 可调、`STRESS=1` 开海量用例；失败留档 `build-artifacts/fuzz-failures/`，`TEST_SEED` 复现） |
@@ -517,12 +527,14 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run verify:config` | 配置一致性监守（配置值与注册表默认值/结构） |
 | `npm run verify:config-refs` | 零引用键扫描（配置有键、代码无消费的预留键） |
 | `npm run verify:config-dupes` | 重复键扫描（同一对象内重复键，作用域感知；豁免名单 `scripts/config-duplicates-allowlist.json`） |
-| `npm run verify:config-comments` | 逐键注释覆盖率门禁（14 个 JSON5；CI 阻断） |
-| `npm run verify:config-docs` | 配置文档覆盖门禁（14 个 JSON5 的顶层键/模块键 vs `docs/config-reference.md`；脚本 `scripts/check-config-docs.js`） |
-| `npm run perf:audit -- --url <URL>` | 可复现性能基线（Slow 4G + CPU 4x 节流 + 禁用缓存；`--runs`/`--out`/`--json`/`--chrome` 可选，Chrome 路径默认系统安装位置、`CHROME_PATH` 可覆盖） |
+| `npm run verify:config-comments` | 逐键注释覆盖率门禁（15 个 JSON5；CI 阻断） |
+| `npm run verify:config-docs` | 配置文档覆盖门禁（15 个 JSON5 的顶层键/模块键 vs `docs/config-reference.md`；脚本 `scripts/check-config-docs.js`） |
+| `npm run verify:internals` | 工程内部参数守卫（`.nvmrc`/`workers/wrangler.toml` assets 目录/CI 版本与 `internals.json5` 单源一致；关键写死形态抽样） |
+| `node scripts/ci-checks.js` | CI 聚合检查（与 deploy.yml 同命令）：跑完整套门禁后统一失败，报告写入 `build-artifacts/ci-report.{json,txt}`；`--fail-fast` 可改为首个失败即停 |
+| `npm run perf:audit`（`--url` 可省略，默认 `internals.ports.perf`） | 可复现性能基线（Slow 4G + CPU 4x 节流 + 禁用缓存；`--runs`/`--out`/`--json`/`--chrome` 可选；Chrome 经 internals/CHROME_PATH/平台默认探测） |
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
-| `npx wrangler pages deploy dist --project-name=s-ynapse` | 部署到 Cloudflare Pages |
+| `npm run deploy:pages` | 部署到 Cloudflare Pages（项目名/产物目录读 `internals.deploy`，部署前自动跑 `verify:internals`） |
 | `npx wrangler deploy --config workers/wrangler.toml --env production` | 部署 Worker 安全层（含静态资源绑定） |
 
 ---
@@ -530,8 +542,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 897 项 / 134 组，全部通过
-npm run test:all    # 本地与 CI 同强度：test + test:build + test:fuzz + test:malicious + test:smoke + test:cov-web 串行
+npm test            # 904 项 / 134 组，全部通过
+npm run test:all    # 本地与 CI 同强度：test + test:build + test:fuzz + test:malicious + test:smoke + test:cov-web + verify:internals 串行
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
 npm run typecheck   # TypeScript checkJs（scripts/lib，渐进引入）

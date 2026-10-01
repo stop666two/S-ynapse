@@ -26,14 +26,14 @@ articles/ media/ static/ + 14 个 JSON5 配置
 |---|---|
 | `scripts/build.js` | 构建编排器（约 423 行）：配置装载/校验、阶段编排、报告、serve 入口 |
 | `scripts/build/*.js` | 已拆出的构建模块（工厂注入、无全局状态）：`articles` / `assets` / `auto-cover` / `cache` / `cjk-fonts` / `collectors` / `config` / `context` / `feeds` / `fs-utils` / `helpers` / `markdown` / `media` / `mermaid` / `minify` / `pages` / `render` / `report` / `security-files` / `serve` |
-| `scripts/lib/*.js` | 纯函数库：`utils` / `perf-budget` / `csp` / `content-policy` / `asset-cache` / `build-errors` / `build-report-text` / `content-validate` / `publish-window` / `config-split` / `bundle` / `dist-hash` / `incremental` / `compression-config` / `compression-steps` / `compression-verify` / `css-merge` / `static-server` 等（多数有同名单测） |
+| `scripts/lib/*.js` | 纯函数库：`utils` / `perf-budget` / `csp` / `content-policy` / `asset-cache` / `build-errors` / `build-report-text` / `content-validate` / `publish-window` / `config-split` / `bundle` / `dist-hash` / `incremental` / `compression-config` / `compression-steps` / `compression-verify` / `css-merge` / `static-server` / `internals` / `internals-defaults` / `chrome-path` / `output-dir` 等（多数有同名单测） |
 | `scripts/generate-og.js` | OG 图生成（独立进程，`.cache/og` 增量缓存） |
 | `templates/*.ejs` | 页面模板（layout/index/post/archive/search/tag/category/404/PWA 等 15 个） |
 | `js/core/` | 启动器：`runtime.js`（配置加载引导）、`boot.js`（阶段队列）、`main.js`（入口）、`deferred.js`（懒加载模块注册表） |
 | `js/domains/{core,features,guard}/` | 61 个前端领域模块（core 17 / features 32 / guard 12；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
 | `workers/security-worker.js` + `workers/lib/` | 边缘安全层（`ip-utils` / `rate-limit`） |
 | `workers/wrangler.toml` | 生产部署配置（Worker 名、assets 绑定、环境变量） |
-| `*.json5`（根目录 14 个） | 站点/主题/功能/文案/压缩等配置，全部经 `verify:config` 校验 |
+| `*.json5`（根目录 14 个站点配置 + `internals.json5` 工程内部参数） | 站点/主题/功能/文案/压缩等配置与工具链参数（端口/路径/CI 版本等），全部经 `verify:config` 家族与 `verify:internals` 校验 |
 
 ## 3. 构建管线
 
@@ -99,10 +99,11 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `npm run test:fuzz` | 属性/随机测试：`scripts/**/*.fuzz.test.js`（fast-check；`FC_NUM_RUNS` 默认 100、`STRESS=1` 开海量用例；种子见 `scripts/lib/test-random.js`，失败留档 `build-artifacts/fuzz-failures/`；默认单测不含 fuzz） |
 | `npm run test:smoke` | 浏览器冒烟：真实构建 + 系统 Chrome 代表页（200/标题/DOM/零控制台错误），摘要 `build-artifacts/web-smoke/summary.txt`；无 Chrome 跳过 |
 | `npm run test:cov-web` | 无头 Web 覆盖率：`--no-bundle` + 压缩关闭构建，CDP 精确覆盖聚合 `js/**` 行/函数覆盖（阈值 `scripts/lib/web-coverage-thresholds.js`，首测定档 55%/55%），输出 `build-artifacts/web-coverage/{summary.txt,coverage.json}`；无 Chrome 跳过 |
-| `npm run test:all` | 本地与 CI 同强度：`npm test` + `test:build` + `test:fuzz` + `test:smoke` + `test:cov-web` 串行；夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子） |
+| `npm run test:all` | 本地与 CI 同强度：`npm test` + `test:build` + `test:fuzz` + `test:malicious` + `test:smoke` + `test:cov-web` + `verify:internals` 串行；夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子） |
 | `npm run lint` / `npm run typecheck` | ESLint / tsc（checkJs） |
 | `npm run verify:config` / `verify:config-refs` / `verify:config-dupes` / `verify:config-comments` | 配置一致性 / 零引用键 / 重复键 / 逐键注释覆盖率监守 |
-| `node scripts/check-config-docs.js` | 文档覆盖校验（14 个 JSON5 键 vs `docs/config-reference.md`；npm 别名 `verify:config-docs` 由配置侧接入） |
+| `npm run verify:internals` | `.nvmrc` / `workers/wrangler.toml` assets 目录 / CI 版本与 `internals.json5` 单源守卫（关键写死形态抽样） |
+| `node scripts/check-config-docs.js` | 文档覆盖校验（15 个 JSON5 键 vs `docs/config-reference.md`；npm 别名 `verify:config-docs` 由配置侧接入） |
 | `npm run verify:security` | 安全集成回归（注入恶意文章 → 构建 → 语义断言） |
 | `npm run verify:compression` | 压缩无头对比门禁（6 页 DOM/采样样式/控制台/交互断言；无 Chrome 跳过） |
 | `npm run sbom` | CycloneDX 1.5 SBOM 生成（CI 上传 artifact） |
@@ -110,7 +111,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `node scripts/dist-hash-guard.js` | 重构/迁移的产物等价护栏（归一化 nonce/换行） |
 | `node scripts/perf-audit.js` | 可复现性能基线（Slow 4G + 4× CPU） |
 
-CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-dupes + test:build + build）与 `build`（Node 24：audit → lint → typecheck → test → test:coverage → test:build → test:fuzz → verify:config → verify:config-refs → verify:config-dupes → verify:config-comments → verify:security → build → test:smoke 条件步骤 → test:cov-web 条件步骤 → verify:compression 条件步骤 → sbom → 上传 `sbom-cyclonedx` 与 `test-artifacts` → Pages 部署）。夜间随机深度档（`.github/workflows/nightly.yml`，UTC 18:00 + `workflow_dispatch`）跑 `test:all`，上传 `nightly-test-artifacts`。生产 Worker 为手动 `wrangler deploy`（见 README）。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
+CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-dupes + verify:internals + test:build + build）与 `build`（Node 版本由 `.nvmrc` 经 `node-version-file` 单源控制；`node scripts/ci-env.js` 导出 internals → 单步 `node scripts/ci-checks.js` 跑完整套并统一失败：lint / typecheck / test / test:coverage / test:build / test:fuzz / test:malicious / verify:config 家族（含 verify:internals）/ verify:security / test:smoke / test:cov-web / verify:compression / build / sbom；`audit` 与 `audit:a11y` 为建议项（入报告不阻断）；报告写 `build-artifacts/ci-report.{json,txt}` → 始终上传 `ci-report` 与 `test-artifacts` → Pages 部署（`npm run deploy:pages`，部署前 verify:internals））。夜间随机深度档（`.github/workflows/nightly.yml`，UTC 18:00 + `workflow_dispatch`）用同一聚合器（`FC_NUM_RUNS=2000`、`STRESS=1`），上传 `nightly-test-artifacts`。生产 Worker 为手动 `wrangler deploy`（见 README）。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
 
 ## 9. 部署与回滚
 

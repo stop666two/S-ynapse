@@ -2683,6 +2683,10 @@
     // 注意: en 页不受影响(仍 preload);site.performance.preloadFonts=false 时本键无意义。
     // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 保持旧行为)。
     skipLatinFontPreloadOnCjk: true,
+    // 首页首卡 LCP 图 preload（构建期输出 <link rel="preload" as="image" fetchpriority="high">）。
+    // 作用: 首屏 LCP 图在 CSS 下载期间即并行发起请求，缩短“加载延迟”段，弱网下改善 LCP 渲染延迟。
+    // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 不输出 preload；回退=置 false)。
+    preloadFirstCard: true,
     // 下折叠重型块跳过离屏渲染(content-visibility:auto)。
     // 作用: 文章页正文(.post-content)的直接子块——代码块(pre)/表格(table)/Mermaid SSR 图
     //   (.mermaid)/图(picture)——离屏时跳过布局与绘制,contain-intrinsic-size 以 auto+估算值

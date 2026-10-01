@@ -613,6 +613,7 @@ function createPagesModule(ctx) {
       return {
         ...ld,
         articles: pageArticles,
+        firstCoverUrl: page === 1 && pageArticles.length ? coverSrc(pageArticles[0]) : '',
         heroData: heroEnabled ? {
           title: (lang === 'en' && config.site.hero.titleEn) ? config.site.hero.titleEn : (config.site.hero.title || config.site.title),
           subtitle: (lang === 'en' && config.site.hero.subtitleEn) ? config.site.hero.subtitleEn : (config.site.hero.subtitle || config.site.subtitle || config.site.description),

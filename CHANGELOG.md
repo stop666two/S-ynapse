@@ -335,6 +335,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **英文页站点级文案与 404/guard 残余 i18n（反馈批次三 T4）**：`site.json5` 补 `descriptionEn`（meta/OG/JSON-LD/Feed）、`languageEn`、`seo.metaKeywordsEn`、`authorProfile.bio/bioEn` 演示数据，`scripts/build/pages.js` 新增 `localizeSite()` 按页面语言取用（未配置 `*En` 的站点行为不变）；修复英文页侧栏「最近文章」日期显示 `2026年9月10日`（`layout.ejs` 的 `toLocaleDateString(site.language)` 现随语言取 `languageEn`，空则 `en-US`）；404 页 notFound 五处静态中文改为服务端 `ui()` 按语言渲染（`data-i18n` 运行时兜底不变）；guard 锁屏标题/正文/关闭按钮改走 `ui-strings.json5`（`guard.json5` 对应键留空，显式填写仍优先覆盖），`guard/core.js` 的 `t()` 按页面语言优先取 `__I18N__.en.guard`（右键菜单等 guard 提示在英文页同步生效）；新增 10 项单测与产物/运行时 runner（`.tmp-scripts/run-t4-i18n.js`，端口 3313 自收尾）— `site.json5` + `scripts/lib/site-defaults.js` + `scripts/build/pages.js` + `templates/404.ejs` + `ui-strings.json5` + `guard.json5` + `js/domains/guard/{core,devtools-detect}.js` + `scripts/i18n-residuals.test.js` + `docs/config-reference.md`
 
+- **LCP 首屏优化**：首页首卡封面构建期输出 `data-eager` 标记（`loading="eager"` 会被 HTML 压缩当默认值剥离，导致淡入门控误藏首图）并为 LCP 图输出 `<link rel="preload" as="image" fetchpriority="high">`（新增 `lcpOptimize.preloadFirstCard`，默认 false、示例站 true）；LCP 验收口径调整为「本地隔离 ≤1.2s + 生产 ≤2.5s」。
+
 - **更新提示关闭钮触摸目标补齐**：`.pwa-update-close` 增加 24×24 最小命中区与居中布局（与安装提示关闭钮一致），消除 WCAG 2.5.8 同类隐患（审计仅在 SW 更新态可见，故此前未覆盖）。
 - **依赖：wrangler 4.138.0 → 4.145.0**：解除 miniflare/undici 漏洞链（2 moderate + 1 high），`npm audit` 归零；升级后全套门禁与部署冒烟验证通过。
 

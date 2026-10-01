@@ -199,7 +199,7 @@ const DEFAULT_FEATURES = {
   },
   lcpOptimize: {
     revealExemptFirstPaint: false, asyncCjkFontCss: false, skipLatinFontPreloadOnCjk: false,
-    contentVisibility: false
+    preloadFirstCard: false, contentVisibility: false
   },
   anchorStabilize: {
     enabled: true, settleMs: 300, maxTrackMs: 8000

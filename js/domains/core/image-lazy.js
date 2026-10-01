@@ -148,13 +148,14 @@ export function init() {
       });
     }
     // 与构建期模板合流：模板已标记的 eager 计入总数，运行时只补足到前 ef 张（合计恰好 ef）。
-    var eagerHave = document.querySelectorAll('img[loading=eager]').length;
+    var eagerHave = document.querySelectorAll('img[loading=eager],img[data-eager]').length;
     var efNeed = Math.max(0, ef - eagerHave);
-    var imgs = Array.prototype.slice.call(document.querySelectorAll('img:not([loading=eager])')).filter(function (i) {
+    var imgs = Array.prototype.slice.call(document.querySelectorAll('img:not([loading=eager]):not([data-eager])')).filter(function (i) {
       return i.getAttribute('data-lazy-bound') !== '1';
     });
     for (var j = 0; j < Math.min(efNeed, imgs.length); j++) {
       imgs[j].setAttribute('loading', 'eager');
+      imgs[j].setAttribute('data-eager', '1');
       imgs[j].setAttribute('data-lazy-bound', '1');
     }
     imgs.slice(efNeed).forEach(function (i) {

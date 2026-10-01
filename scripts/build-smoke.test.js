@@ -513,6 +513,10 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       'print stylesheet must ship the self-contained export print block (hide in-article toolbar)');
     assert.ok(siteCss.includes('.post-source-url{display:none}'), 'print source footnote must be screen-hidden');
     const helloIndexZh = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');
+    assert.ok(hasAttr(helloIndexZh, 'rel', 'preload') && hasAttr(helloIndexZh, 'as', 'image'),
+      'home page must preload the first-card LCP image');
+    assert.ok(hasAttr(helloIndexZh, 'data-eager', '1'),
+      'first card image must carry the build-time data-eager marker (minifier strips loading=eager)');
     assert.ok(!helloIndexZh.includes('data-bilingual-alt') && !helloIndexZh.includes('bilingual-bar'),
       'index page must not render bilingual attributes or bar');
     assert.ok(siteCss.includes('.bilingual-wrap.bilingual-on') && siteCss.includes('.bilingual-pane'),

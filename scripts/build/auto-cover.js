@@ -109,25 +109,27 @@ function createAutoCoverModule(ctx) {
     return removed;
   }
 
-  // 入口：生成/复用全部自动封面，返回 { '<lang>/<slug>': { url, width, height } }。
-  // build.js 将其存入活值并经 pages 模块注入模板（无 featuredImage 的卡片/文章页头图使用）。
+  // 入口：生成/复用全部自动封面，返回 { covers, stats }。covers 形如
+  // { '<lang>/<slug>': { url, width, height } }，build.js 将其存入活值并经 pages 模块注入模板
+  // （无 featuredImage 的卡片/文章页头图使用）；stats 为 made/reused/failed/total 计数，供构建报告读取。
   async function generateAutoCovers(config, articles) {
     const features = (config && config.features) || {};
     const cfg = resolveAutoCoverConfig((features.listCover || {}).autoGenerate);
     const covers = {};
+    const emptyStats = { made: 0, reused: 0, failed: 0, total: 0 };
     if (!cfg.enabled) {
       logger.log('  [SKIP] Auto covers disabled (features.listCover.autoGenerate.enabled=false)');
-      return covers;
+      return { covers, stats: emptyStats };
     }
     if (!ctx.sharp) {
       logger.warn('  [WARN] auto cover: sharp 不可用，跳过生成（回退 pattern/无图）');
-      return covers;
+      return { covers, stats: emptyStats };
     }
     const published = ctx.getPublished ? ctx.getPublished(articles) : (articles || []);
     const targets = (published || []).filter((a) => a && !a.draft && !a.featuredImage);
     if (!targets.length) {
       logger.log('  Auto covers: no cover-less published article, nothing to generate');
-      return covers;
+      return { covers, stats: emptyStats };
     }
     logger.log('  Generating auto covers...');
     // 目录创建属于系统性前置条件（权限/磁盘），失败时整体跳过而非阻断构建。
@@ -136,7 +138,7 @@ function createAutoCoverModule(ctx) {
       fs.mkdirSync(coversDistDir(), { recursive: true });
     } catch (err) {
       logger.warn('  [WARN] auto cover: 输出/缓存目录创建失败，跳过生成（回退 pattern/无图）: ' + err.message);
-      return covers;
+      return { covers, stats: emptyStats };
     }
 
     const needed = new Set();
@@ -187,7 +189,7 @@ function createAutoCoverModule(ctx) {
       logger.warn('  [WARN] auto cover: ' + failed + ' 篇生成失败，跳过缓存清理');
     }
     logger.log('  Auto covers: made ' + made + ', reused ' + reused + ', failed ' + failed);
-    return covers;
+    return { covers, stats: { made, reused, failed, total: targets.length } };
   }
 
   return { generateAutoCovers };

@@ -1,23 +1,143 @@
 'use strict';
 // 构建报告与性能预算（自 scripts/build.js 机械拆分；仅移动函数与依赖接线，不含逻辑变更）。
 // 编排器通过 createReportModule(ctx) 注入产物目录、发布过滤器、内联配置体积读取器与构建错误收集器。
+// 唯一构建报告为 dist/build-report.html（纯静态、无外部依赖、无内联脚本）；渲染纯函数见 lib/build-report-html.js。
 const fs = require('fs');
 const path = require('path');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
-const { escapeHtml, copyOwnProperties } = require('../lib/utils');
 const { gzipSize, evaluatePerfBudget, formatPerfBudget } = require('../lib/perf-budget');
-const { renderBuildReportText } = require('../lib/build-report-text');
+const { renderBuildReportHtml } = require('../lib/build-report-html');
 const { performanceWarnings, reportTopN } = require('../lib/feature-wiring');
 const { getAllFiles } = require('./fs-utils');
 const { loadInternals } = require('../lib/internals');
 
-const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.avif', '.gif', '.bmp']; 
+const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.avif', '.gif', '.bmp'];
+const REPORT_FILENAME = 'build-report.html';
 
 function createReportModule(ctx) {
   // 报告展示上限与状态色来自 internals（report.topN / ui.reportColors）。
   const internals = loadInternals();
   const REPORT_TOP_N = internals.report.topN;
   const REPORT_COLORS = internals.ui.reportColors;
+
+  // 全站 HTML 页面（构建报告自身不计入页面清单与体积统计）。
+  function listHtmlPages() {
+    return getAllFiles(ctx.distDir)
+      .filter((file) => /\.html?$/i.test(file) && path.basename(file) !== REPORT_FILENAME)
+      .map((file) => path.relative(ctx.distDir, file).split(path.sep).join('/'))
+      .sort();
+  }
+
+  // 单文件体积（字节）；不可读时返回 null。
+  function fileSize(file) {
+    try { return fs.statSync(file).size; } catch (err) { return null; }
+  }
+
+  // 目录体积与文件数：按「相对产物根的 POSIX 路径」判定归属（distPrefix 为目录前缀）。
+  function dirStats(dir, predicate, withGzip) {
+    let files = 0;
+    let raw = 0;
+    let gzip = 0;
+    if (!fs.existsSync(dir)) return { files: 0, rawKb: 0, gzipKb: withGzip ? 0 : null };
+    for (const file of getAllFiles(dir)) {
+      if (predicate && !predicate(file)) continue;
+      const size = fileSize(file);
+      if (size === null) continue;
+      files += 1;
+      raw += size;
+      if (withGzip) {
+        try { gzip += gzipSize(fs.readFileSync(file)); } catch (err) { /* 单文件不可读时只计 raw */ }
+      }
+    }
+    return { files, rawKb: raw / 1024, gzipKb: withGzip ? gzip / 1024 : null };
+  }
+
+  // 媒体/OG 目录的图片数量（不计体积排序，避免为计数而全量排序）。
+  function countImages(dir) {
+    if (!fs.existsSync(dir)) return 0;
+    let count = 0;
+    for (const file of getAllFiles(dir)) {
+      if (IMAGE_EXTENSIONS.includes(path.extname(file).toLowerCase())) count += 1;
+    }
+    return count;
+  }
+
+  // 媒体/OG 目录的图片体积 Top N（按体积降序）。
+  function topImages(dir, cap) {
+    const found = [];
+    if (!fs.existsSync(dir)) return found;
+    for (const file of getAllFiles(dir)) {
+      if (!IMAGE_EXTENSIONS.includes(path.extname(file).toLowerCase())) continue;
+      const size = fileSize(file);
+      if (size === null) continue;
+      found.push({ path: '/' + path.relative(ctx.distDir, file).split(path.sep).join('/'), kb: size / 1024 });
+    }
+    return found.sort((a, b) => b.kb - a.kb).slice(0, cap);
+  }
+
+  // 产物体积与页面清单：压缩与 cacheBust 之后调用，统计的是最终字节。
+  function collectArtifactStats() {
+    const topN = REPORT_TOP_N;
+    const htmlFiles = listHtmlPages();
+    const rawKbs = [];
+    const gzipKbs = [];
+    for (const rel of htmlFiles) {
+      const file = path.join(ctx.distDir, rel.split('/').join(path.sep));
+      const size = fileSize(file);
+      if (size === null) continue;
+      rawKbs.push(size / 1024);
+      try { gzipKbs.push(gzipSize(fs.readFileSync(file)) / 1024); } catch (err) { /* 单文件不可读时跳过 gzip */ }
+    }
+    const median = (list) => {
+      if (!list.length) return null;
+      const sorted = list.slice().sort((a, b) => a - b);
+      return sorted[Math.floor((sorted.length - 1) / 2)];
+    };
+    const jsDir = path.join(ctx.distDir, 'assets', 'js');
+    const groups = [];
+    const groupDefs = [
+      { key: 'app', pattern: /^app\./ },
+      { key: 'deferred', pattern: /^deferred\./ },
+      { key: 'shared', pattern: /^shared\./ },
+      { key: 'runtime', pattern: /^runtime\./ }
+    ];
+    const jsFiles = fs.existsSync(jsDir) ? getAllFiles(jsDir).filter((f) => f.endsWith('.js')) : [];
+    const assigned = new Set();
+    for (const def of groupDefs) {
+      const stat = dirStats(jsDir, (file) => def.pattern.test(path.basename(file)), true);
+      if (stat.files > 0) groups.push({ key: def.key, files: stat.files, rawKb: stat.rawKb, gzipKb: stat.gzipKb });
+      for (const file of jsFiles) {
+        if (def.pattern.test(path.basename(file))) assigned.add(file);
+      }
+    }
+    const otherStat = dirStats(jsDir, (file) => !assigned.has(file), true);
+    if (otherStat.files > 0) groups.push({ key: 'other', files: otherStat.files, rawKb: otherStat.rawKb, gzipKb: otherStat.gzipKb });
+    const jsTotal = dirStats(jsDir, null, true);
+    const cssDir = path.join(ctx.distDir, 'assets');
+    const cssStat = dirStats(cssDir, (file) => file.endsWith('.css') && !file.includes(path.sep + 'vendor' + path.sep), true);
+    const vendor = dirStats(path.join(cssDir, 'vendor'), null, true);
+    const fonts = dirStats(path.join(cssDir, 'fonts'), null, false);
+    const mediaDir = path.join(ctx.distDir, 'media');
+    const ogDir = path.join(ctx.distDir, 'og');
+    const mediaTop = topImages(mediaDir, topN);
+    const ogTop = topImages(ogDir, topN);
+    return {
+      html: {
+        pages: htmlFiles.length,
+        rawMaxKb: rawKbs.length ? Math.max(...rawKbs) : null,
+        rawMedianKb: median(rawKbs),
+        gzipMaxKb: gzipKbs.length ? Math.max(...gzipKbs) : null,
+        gzipMedianKb: median(gzipKbs)
+      },
+      css: { files: cssStat.files, rawKb: cssStat.rawKb, gzipKb: cssStat.gzipKb },
+      js: { groups, files: jsTotal.files, rawKb: jsTotal.rawKb, gzipKb: jsTotal.gzipKb },
+      vendor: { files: vendor.files, rawKb: vendor.rawKb, gzipKb: vendor.gzipKb },
+      fonts: { files: fonts.files, rawKb: fonts.rawKb, gzipKb: fonts.gzipKb },
+      media: { count: countImages(mediaDir), top: mediaTop },
+      og: { count: countImages(ogDir), top: ogTop }
+    };
+  }
+
   function collectBudgetStats() {
     const inlineConfigKb = ctx.getInlineConfigKb();
     const htmlFiles = [];
@@ -89,7 +209,7 @@ function createReportModule(ctx) {
     for (const msg of warnings) console.warn('  [WARN] ' + msg);
   }
 
-  // 返回预算评估结果（enabled=false 时返回 null），供 dist/report.txt 复用，避免重复统计。
+  // 返回预算评估结果（enabled=false 时返回 null），供报告聚合复用，避免重复统计。
   function checkPerfBudget(config) {
     const budget = (config.features && config.features.perfBudget) || {};
     if (budget.enabled === false) return null;
@@ -103,11 +223,12 @@ function createReportModule(ctx) {
     return report;
   }
 
-  // 写入 dist/report.txt 构建摘要（报告阶段生成，位于压缩与 cacheBust 之后，天然豁免压缩）。
+  // 生成唯一构建报告 dist/build-report.html（报告阶段、压缩与 cacheBust 之后写入，天然豁免压缩）。
   // 无头验证摘要仅在「本轮实际运行验证」时读取结果文件，避免历史结果被误当成本轮结论。
-  function writeBuildReportText(input) {
-    const data = copyOwnProperties({}, input || {});
-    if (input && input.verifyRan === true) {
+  function generateBuildReport(input) {
+    const data = input && typeof input === 'object' ? input : {};
+    let verify;
+    if (data.verifyRan === true) {
       const verifyPath = process.env.SYNAPSE_COMPRESSION_VERIFY_REPORT
         || ctx.compressionVerifyReportPath
         || path.join(ctx.distDir, '..', '.cache', 'compression-verify', 'last.json');
@@ -115,49 +236,50 @@ function createReportModule(ctx) {
       try {
         report = JSON.parse(fs.readFileSync(verifyPath, 'utf-8'));
       } catch (err) {
-        console.warn('  [WARN] 压缩验证结果读取失败（report.txt 将标注为缺失）: ' + err.message);
+        console.warn('  [WARN] 压缩验证结果读取失败（报告将标注为缺失）: ' + err.message);
       }
-      data.verify = { ran: true, report };
+      verify = { ran: true, report };
     } else {
-      data.verify = { ran: false, report: null };
+      verify = { ran: false, report: null };
     }
-    delete data.verifyRan;
-    writeFileAtomicSync(path.join(ctx.distDir, 'report.txt'), renderBuildReportText(data), 'utf-8');
-    console.log('  Created: report.txt');
-  }
-
-  // Generate an HTML build report page with stats: build time, article count, tag/category counts,
-  // output size, and feature enablement status. Written to dist/build-report.html.
-  function generateBuildReport(config, articles, tags, categories, customPages, elapsed, policyResult) {
-    try {
-      const policyBlocked = (policyResult && policyResult.blocked) || [];
-      const policyCopied = (policyResult && policyResult.copied) || 0;
-      const published = ctx.getPublished(articles);
-      const tc = config.theme.colors;
-      const totalSize = getDirSize(ctx.distDir);
-      const html = `<!DOCTYPE html><html lang="${escapeHtml(String(config.site.language || ''))}"><head><meta charset="UTF-8"><meta name="robots" content="noindex"><title>构建报告 - ${escapeHtml(String(config.site.title || ''))}</title><style nonce="${ctx.cspNonce}">body{font-family:system-ui,sans-serif;max-width:700px;margin:2rem auto;padding:0 1rem;color:${escapeHtml(String(tc.text || ''))}}h1{font-size:1.5rem}.stat{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid ${escapeHtml(String(tc.border || ''))}}.stat-label{color:${escapeHtml(String(tc.textSecondary || ''))}}.stat-value{font-weight:600}.report-time{color:${escapeHtml(String(tc.textSecondary || ''))}}.good{color:${escapeHtml(REPORT_COLORS.good)}}.warn{color:${escapeHtml(REPORT_COLORS.warn)}}</style></head><body><h1>构建报告</h1><p class="report-time">${new Date().toISOString().replace('T',' ').slice(0,19)}</p>
-      <div class="stat"><span class="stat-label">构建耗时</span><span class="stat-value">${elapsed}s</span></div>
-      <div class="stat"><span class="stat-label">文章数</span><span class="stat-value">${published.length}</span></div>
-      <div class="stat"><span class="stat-label">自定义页面</span><span class="stat-value">${(customPages||[]).length}</span></div>
-      <div class="stat"><span class="stat-label">标签数</span><span class="stat-value">${tags.length}</span></div>
-      <div class="stat"><span class="stat-label">分类数</span><span class="stat-value">${categories.length}</span></div>
-      <div class="stat"><span class="stat-label">输出体积</span><span class="stat-value">${totalSize}</span></div>
-      <div class="stat"><span class="stat-label">配置文件</span><span class="stat-value">${Object.keys(config).length}</span></div>
-      <div class="stat"><span class="stat-label">依赖</span><span class="stat-value">${published.reduce((s,a)=>s+(a.wordCount||0),0)} 字</span></div>
-      <div class="stat"><span class="stat-label">压缩</span><span class="stat-value ${config.site.build.minifyHTML?'good':'warn'}">${config.site.build.minifyHTML?'已启用':'未启用'}</span></div>
-      <div class="stat"><span class="stat-label">图片优化</span><span class="stat-value ${config.site.build.optimizeMedia?'good':'warn'}">${config.site.build.optimizeMedia?'已启用':'未启用'}</span></div>
-      <div class="stat"><span class="stat-label">内容策略拦截</span><span class="stat-value ${policyBlocked.length?'warn':'good'}">${policyBlocked.length} 项</span></div>
-      <div class="stat"><span class="stat-label">受保护资产复制</span><span class="stat-value">${policyCopied}</span></div>
-      <div class="stat"><span class="stat-label">缓存清除</span><span class="stat-value ${config.site.build.enableCacheBusting?'good':'warn'}">${config.site.build.enableCacheBusting?'已启用':'未启用'}</span></div>
-      <div class="stat"><span class="stat-label">CSP</span><span class="stat-value ${config.security.csp&&config.security.csp.enabled?'good':'warn'}">${config.security.csp&&config.security.csp.enabled?'已启用':'未启用'}</span></div>
-      <div class="stat"><span class="stat-label">RSS</span><span class="stat-value ${config.site.rss&&config.site.rss.enabled?'good':'warn'}">${config.site.rss&&config.site.rss.enabled?'已启用':'未启用'}</span></div>
-      ${policyBlocked.length ? `<h2>被拦截文件（内容策略）</h2><ul>${policyBlocked.map(b => `<li><code>${escapeHtml(String(b.path || ''))}</code> — ${escapeHtml(String(b.reason || ''))}</li>`).join('')}</ul>` : ''}</body></html>`;
-      writeFileAtomicSync(path.join(ctx.distDir, 'build-report.html'), html, 'utf-8');
-      console.log('  Created: build-report.html');
-    } catch (err) {
-      console.error(`  [ERROR] Build report failed: ${err.message}`);
-      ctx.recordBuildFailure('report', `Build report failed: ${err.message}`);
-    }
+    const policy = data.policy && typeof data.policy === 'object' ? data.policy : { blocked: [], copied: 0 };
+    const build = data.build && typeof data.build === 'object' ? data.build : {};
+    const reportData = {
+      generatedAt: data.generatedAt,
+      startedAt: data.startedAt,
+      finishedAt: data.finishedAt,
+      totalMs: data.totalMs,
+      version: data.version,
+      commit: data.commit,
+      nodeVersion: data.nodeVersion || process.version,
+      lang: data.lang || 'zh',
+      siteTitle: data.siteTitle || '',
+      colors: REPORT_COLORS,
+      nonce: ctx.cspNonce || '',
+      phases: data.phases,
+      artifacts: collectArtifactStats(),
+      pages: listHtmlPages(),
+      budget: data.budget,
+      compression: data.compression,
+      verify,
+      cacheHits: data.cacheHits,
+      warnings: data.warnings,
+      failures: data.failures,
+      policy: {
+        blocked: Array.isArray(policy.blocked) ? policy.blocked : [],
+        copied: policy.copied
+      },
+      build: {
+        articles: build.articles,
+        customPages: build.customPages,
+        tags: build.tags,
+        categories: build.categories,
+        configKeys: build.configKeys,
+        outputSize: getDirSize(ctx.distDir)
+      }
+    };
+    writeFileAtomicSync(path.join(ctx.distDir, REPORT_FILENAME), renderBuildReportHtml(reportData), 'utf-8');
+    console.log('  Created: ' + REPORT_FILENAME);
   }
 
   // Calculate the total size of a directory recursively. Returns human-readable string (B/KB/MB).
@@ -172,7 +294,15 @@ function createReportModule(ctx) {
     } catch { return '?'; }
   }
 
-  return { collectBudgetStats, collectLargeImages, checkPerfBudget, checkPerformanceWarnings, generateBuildReport, writeBuildReportText, getDirSize };
+  return {
+    collectBudgetStats,
+    collectLargeImages,
+    collectArtifactStats,
+    checkPerfBudget,
+    checkPerformanceWarnings,
+    generateBuildReport,
+    getDirSize
+  };
 }
 
 module.exports = { createReportModule };

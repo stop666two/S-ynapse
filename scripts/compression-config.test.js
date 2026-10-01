@@ -128,9 +128,9 @@ test('顶层非对象：报错并回退默认值', () => {
   assert.deepStrictEqual(config, DEFAULT_COMPRESSION);
 });
 
-test('默认值注册表：exclude 覆盖计划约定的 12 项豁免', () => {
+test('默认值注册表：exclude 覆盖计划约定的 11 项豁免', () => {
   assert.deepStrictEqual(DEFAULT_COMPRESSION.exclude, [
-    'report.txt', 'build-report.html', 'assets/vendor/**', 'media/**', 'og/**',
+    'build-report.html', 'assets/vendor/**', 'media/**', 'og/**',
     'assets/fonts/**', '**/*.woff2', '**/*.avif', '**/*.webp', '**/*.png', '**/*.jpg', '**/*.svg'
   ]);
 });
@@ -152,7 +152,6 @@ test('isExcluded 默认名单：vendor / media / 报告 / 二进制资源命中�
     'og/card.png',
     'assets/fonts/subset.woff2',
     'zh/deep/card.svg',
-    'report.txt',
     'build-report.html'
   ];
   for (const rel of hits) assert.equal(isExcluded(rel), true, rel + ' 应命中豁免');
@@ -170,9 +169,9 @@ test('isExcluded glob 语义：** 跨目录、* 段内、? 单字符、大小写
   assert.equal(isExcluded('a/b/c.js', ['a/**']), true);
   assert.equal(isExcluded('a.txt', ['?.txt']), true);
   assert.equal(isExcluded('ab.txt', ['?.txt']), false);
-  assert.equal(isExcluded('Report.TXT', ['report.txt']), false);
-  assert.equal(isExcluded('report.txt', ['report.txt']), true);
-  assert.equal(isExcluded('x/report.txt', ['report.txt']), false);
+  assert.equal(isExcluded('Notes.HTML', ['notes.html']), false);
+  assert.equal(isExcluded('notes.html', ['notes.html']), true);
+  assert.equal(isExcluded('x/notes.html', ['notes.html']), false);
 });
 
 test('isExcluded 路径归一化：反斜杠 / 前导斜杠 / ./ 一律按 dist 相对路径处理', () => {

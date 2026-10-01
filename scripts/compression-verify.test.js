@@ -52,12 +52,12 @@ function makeDist() {
   writeFile(dir, 'assets/js/app.1234567890.js', 'console.log(1)');
   writeFile(dir, 'zh/feed.json', '{\n  "a": 1\n}');
   writeFile(dir, 'assets/vendor/pic.png', Buffer.from([1, 2, 3]).toString('binary'));
-  writeFile(dir, 'report.txt', 'human readable');
+  writeFile(dir, 'SUMMARY.md', '# human readable');
   return dir;
 }
 
 describe('collectSnapshotTargets（快照目标枚举）', () => {
-  test('仅收集 .html/.css/.js/.json，忽略二进制与文本报告', () => {
+  test('仅收集 .html/.css/.js/.json，忽略二进制与非目标文本', () => {
     const dist = makeDist();
     const targets = collectSnapshotTargets(dist);
     assert.deepEqual(targets, [

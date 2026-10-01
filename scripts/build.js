@@ -61,7 +61,7 @@ const {
   abortBuild, loadConfig, validateConfig, applyCspNonce,
   resolveCompressionState,
   getPublished, resolveDailyQuotes, recordBuildFailure,
-  setupDist, copyStatic, copyProtectedAssets, optimizeMedia, getBrokenMedia,
+  setupDist, copyStatic, copyProtectedAssets, optimizeMedia, getBrokenMedia, getMediaStats,
   generateAutoCovers,
   processPagesContent, preflightContent, processArticles, markBrokenFeaturedImages,
   renderArticlesMermaid,
@@ -69,7 +69,7 @@ const {
   buildSiteCss, writeRuntimeConfig, buildPageData, processCustomPages, generatePages,
   buildCjkFonts,
   generateRSS, generateJSONFeed, generateSitemap, pingSearchEngines, prepareSearchIndex, generateSearchIndex, generatePagefindIndex,
-  checkPerfBudget, checkPerformanceWarnings, generateBuildReport, writeBuildReportText, generateRedirects, buildCspTrimContext, generateSecurityHeaders,
+  checkPerfBudget, checkPerformanceWarnings, generateBuildReport, generateRedirects, buildCspTrimContext, generateSecurityHeaders,
   minifyAll, cacheBust, copyJsAssets, copyRuntimeBootstrap, copyVendorAssets, generatePWA, generateServiceWorker,
   startServer
 } = ctx;
@@ -77,6 +77,29 @@ const {
 let SITE_APP_JS_HREF = '/assets/js/core/main.js';
 let SITE_DEFERRED_URL = '';
 let SITE_RUNTIME_JS_HREF = '/assets/js/core/runtime.js';
+
+// 构建报告的 commit 标识：git 不可用（无 git/非仓库）时返回空串，报告如实标注未记录。
+function resolveGitCommit() {
+  try {
+    const result = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: ROOT, encoding: 'utf-8' });
+    if (result.status === 0) {
+      const value = String(result.stdout || '').trim();
+      if (value) return value;
+    }
+  } catch (err) { /* 容错：报告标注未记录 */ }
+  return '';
+}
+
+// 读取 generate-og.js 本轮写入的 OG 统计（缓存目录，不入部署产物）；缺失/损坏时返回 null。
+function readOgStats() {
+  try {
+    const file = path.join(CACHE_ROOT, 'og', 'last-run.json');
+    if (!fs.existsSync(file)) return null;
+    return JSON.parse(fs.readFileSync(file, 'utf-8'));
+  } catch (err) {
+    return null;
+  }
+}
 
 // Pre-flight syntax check for all 6 JSON5 config files.
 // Runs before loadConfig() to catch syntax errors early.
@@ -113,6 +136,7 @@ async function build() {
   console.log('  S-ynapse Static Blog Builder v' + PKG_VERSION);
   console.log('========================================\n');
   const startTime = Date.now();
+  const startedAtIso = new Date(startTime).toISOString();
   const phaseTimings = {};
   const markPhase = function (key, startedAt) { phaseTimings[key] = Date.now() - startedAt; };
   // 同阶段多段耗时累加（如 PWA 初版 + SW 定稿分居压缩前后）。
@@ -175,13 +199,16 @@ async function build() {
       }
       console.warn('[WARN] --allow-degraded is set; continuing with degraded output.');
     }
+    const distStaticStartedAt = Date.now();
     setupDist(config);
     copyStatic(config);
     const policyResult = copyProtectedAssets(config);
+    markPhase('distStatic', distStaticStartedAt);
     const mediaStartedAt = Date.now();
     const mediaManifest = await optimizeMedia(config);
     markPhase('media', mediaStartedAt);
     MEDIA_MANIFEST = mediaManifest;
+    const articlesStartedAt = Date.now();
     const articles = await processArticles(config, mediaManifest, buildErrors);
     // 损坏头图回退：媒体优化失败或内容策略拦截（不发布到 dist）的头图先清空
     // （原引用留在 featuredImageBroken），再走下方自动封面路径；每条回退记入
@@ -205,8 +232,10 @@ async function build() {
     }
     // 无封面文章自动封面（features.listCover.autoGenerate）：须在页面生成前完成，
     // 供 pages 为卡片/文章页头图回退；失败仅告警（模块内不 recordBuildFailure），不阻断构建。
-    AUTO_COVERS = await generateAutoCovers(config, articles);
-    await renderArticlesMermaid(config, articles);
+    const autoCoverResult = await generateAutoCovers(config, articles);
+    AUTO_COVERS = autoCoverResult.covers;
+    const autoCoverStats = autoCoverResult.stats;
+    const mermaidStats = await renderArticlesMermaid(config, articles);
     if (articles.length === 0) console.log('  [WARN] No articles found');
     const scheduledCount = articles.filter(function(a) { return !a.draft && isScheduled(a, new Date()); }).length;
     if (scheduledCount > 0) console.warn('  [INFO] ' + scheduledCount + ' future-dated article(s) scheduled; excluded until their publish date.');
@@ -265,6 +294,7 @@ async function build() {
       recordBuildFailure('search', 'Search index preparation failed: ' + err.message);
       baseData.searchIndexUrls = {};
     }
+    markPhase('articles', articlesStartedAt);
     const customPages = processCustomPages(config, baseData);
     const pagesStartedAt = Date.now();
     await generatePages(config, articles, baseData, customPages);
@@ -289,14 +319,18 @@ async function build() {
     }
     // CJK 子集化（须在 minify/cacheBust 前）：扫描页面与配置 JSON 实际用字 → 写字体分片与 @font-face；
     // 失败仅告警降级（剥离样式引用），不阻断构建。
-    await buildCjkFonts(config);
+    const feedsStartedAt = Date.now();
+    const fontStats = await buildCjkFonts(config);
     await generateRSS(config, articles);
     await generateJSONFeed(config, articles);
     await generateSitemap(config, articles, tags, categories, customPages);
+    markPhase('feeds', feedsStartedAt);
     if (!SERVE_MODE && !WATCH_MODE && config.features && config.features.ogImage && config.features.ogImage.enabled !== false && articles.length > 0) {
       // 自定义输出目录（--out / SYNAPSE_OUT_DIR）时把解析后的绝对路径传给子进程，
       // 保证 generate-og.js 的产图目录与本次构建的 DIST_DIR 完全一致。
       if (OUTPUT_DIR_RESOLVED.custom) process.env.SYNAPSE_OUT_DIR = DIST_DIR;
+      // 清除上一轮 OG 统计，避免子进程失败时报告误读陈旧结果。
+      try { fs.rmSync(path.join(CACHE_ROOT, 'og', 'last-run.json'), { force: true }); } catch (e) { /* 统计缺失按未记录处理 */ }
       const ogArgs = [
         path.join(PROJECT_DIR, 'scripts', 'generate-og.js'),
         '--broken-media', path.join(CACHE_ROOT, BROKEN_MEDIA_FILENAME)
@@ -310,8 +344,11 @@ async function build() {
         recordBuildFailure('og', 'generate-og.js exited with status ' + ogRes.status);
       }
     }
+    const searchStartedAt = Date.now();
     await pingSearchEngines(config);
     await generateSearchIndex(config, articles);
+    markPhase('search', searchStartedAt);
+    const securityStartedAt = Date.now();
     generateSecurityHeaders(config);
     generateRedirects(config, customPages);
     if (generateWorkerSecurity && !OUTPUT_DIR_RESOLVED.custom) {
@@ -319,11 +356,12 @@ async function build() {
     } else if (generateWorkerSecurity) {
       console.log('  [INFO] 自定义输出目录构建：跳过 workers/security-config.js 写入（避免污染部署配置的 CSP nonce）');
     }
+    markPhase('security', securityStartedAt);
+    const assetsPwaStartedAt = Date.now();
     if (!BUNDLE_ACTIVE) copyJsAssets();
     copyVendorAssets(config);
-    const pwaStartedAt = Date.now();
     await generatePWA(config);
-    markPhase('pwa', pwaStartedAt);
+    markPhase('assetsPwa', assetsPwaStartedAt);
     const compressionStartedAt = Date.now();
     const compressionStats = await minifyAll(config);
     markPhase('compression', compressionStartedAt);
@@ -334,7 +372,7 @@ async function build() {
     // （压缩阶段会按最终字节重命名 runtime 引导脚本）；sw.js 自身由压缩/cacheBust 显式跳过。
     const swFinalizeStartedAt = Date.now();
     await generateServiceWorker(config);
-    addPhase('pwa', swFinalizeStartedAt);
+    addPhase('assetsPwa', swFinalizeStartedAt);
     await generatePagefindIndex(config);
     debugMark('压缩与缓存指纹完成（构建产物就绪）');
     if (hooks && hooks.postBuild) {
@@ -359,45 +397,67 @@ async function build() {
     const reportStartedAt = Date.now();
     if (config.site.build.buildReport !== false) {
       console.log('[14/14] Generating build report...');
-      generateBuildReport(config, articles, tags, categories, customPages, elapsed, policyResult);
     }
     const perfBudgetReport = checkPerfBudget(config);
     checkPerformanceWarnings(config, (Date.now() - startTime) / 1000);
-    // dist/report.txt 构建摘要：阶段耗时、压缩前后对照、验证摘要、告警与预算结论；
-    // 位于压缩/cacheBust 之后，天然豁免（exclude 已含 report.txt）。
+    // dist/build-report.html：唯一构建报告（阶段耗时、产物体积、预算、压缩统计、缓存命中、
+    // 告警/失败与页面清单）；位于压缩/cacheBust 之后，天然豁免（exclude 已含 build-report.html）。
     if (config.site.build.buildReport !== false) {
       markPhase('report', reportStartedAt);
       const totalMs = Date.now() - startTime;
-      const measuredMs = ['config', 'preflight', 'pages', 'media', 'og', 'compression', 'cacheBust', 'pwa', 'report']
+      const measuredKeys = [
+        'config', 'preflight', 'distStatic', 'media', 'articles', 'pages', 'feeds',
+        'og', 'search', 'security', 'assetsPwa', 'compression', 'cacheBust', 'report'
+      ];
+      const measuredMs = measuredKeys
         .reduce(function (sum, key) { return sum + (phaseTimings[key] || 0); }, 0);
       const budget = perfBudgetReport
         ? Object.assign({ warnOnly: ((config.features && config.features.perfBudget) || {}).warnOnly !== false }, perfBudgetReport)
         : null;
+      const cacheHits = {
+        media: getMediaStats(),
+        og: readOgStats(),
+        fonts: fontStats && fontStats.ok === true
+          ? { downloaded: fontStats.downloaded, reused: fontStats.reused, files: fontStats.files }
+          : null,
+        mermaid: mermaidStats,
+        covers: autoCoverStats
+      };
       try {
-        writeBuildReportText({
+        generateBuildReport({
           generatedAt: new Date().toISOString(),
+          startedAt: startedAtIso,
+          finishedAt: new Date().toISOString(),
           totalMs: totalMs,
-          phases: [
-            { key: 'config', ms: phaseTimings.config },
-            { key: 'preflight', ms: phaseTimings.preflight },
-            { key: 'pages', ms: phaseTimings.pages },
-            { key: 'media', ms: phaseTimings.media },
-            { key: 'og', ms: phaseTimings.og },
-            { key: 'compression', ms: phaseTimings.compression },
-            { key: 'cacheBust', ms: phaseTimings.cacheBust },
-            { key: 'pwa', ms: phaseTimings.pwa },
-            { key: 'report', ms: phaseTimings.report },
-            { key: 'other', ms: Math.max(0, totalMs - measuredMs) }
-          ],
+          version: PKG_VERSION,
+          commit: resolveGitCommit(),
+          nodeVersion: process.version,
+          lang: config.site.language,
+          siteTitle: config.site.title,
+          phases: measuredKeys.concat(['other']).map(function (key) {
+            return {
+              key: key,
+              ms: key === 'other' ? Math.max(0, totalMs - measuredMs) : phaseTimings[key]
+            };
+          }),
           compression: compressionStats,
           verifyRan: !!(compressionStats && compressionStats.verificationRan),
           warnings: buildErrors.warningEntries,
           failures: buildErrors.fatalEntries,
-          budget: budget
+          budget: budget,
+          cacheHits: cacheHits,
+          build: {
+            articles: getPublished(articles).length,
+            customPages: (customPages || []).length,
+            tags: tags.length,
+            categories: categories.length,
+            configKeys: Object.keys(config).length
+          },
+          policy: policyResult
         });
       } catch (err) {
-        console.error('  [ERROR] 构建摘要 report.txt 写入失败: ' + err.message);
-        buildErrors.add('report', 'report.txt: ' + err.message);
+        console.error('  [ERROR] 构建报告 build-report.html 写入失败: ' + err.message);
+        buildErrors.add('report', 'build-report.html: ' + err.message);
       }
     }
     // features.debug.listPages：构建末输出渲染页面清单（相对产物根路径，按字典序）。

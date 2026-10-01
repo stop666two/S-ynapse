@@ -625,6 +625,19 @@ async function main() {
   if (!only) pruneTo(ogCache, Array.from(madeSlugs.keys()));
   saveBuildCache(buildCache);
   console.log(`\nOG images: made ${success}, reused ${reused}, skipped drafts ${skipped}, failed ${failed}`);
+  // 结构化统计供构建报告「缓存命中」区块读取（写入 OG 缓存目录，不进入部署产物）；失败仅告警。
+  try {
+    fs.mkdirSync(OG_CACHE_DIR, { recursive: true });
+    writeFileAtomicSync(path.join(OG_CACHE_DIR, 'last-run.json'), JSON.stringify({
+      made: success,
+      reused: reused,
+      skippedDrafts: skipped,
+      failed: failed,
+      checkedAt: new Date().toISOString()
+    }), 'utf-8');
+  } catch (err) {
+    console.warn('  [WARN] generate-og: 统计写入失败（构建报告将标注未记录）: ' + err.message);
+  }
   if (failed > 0) process.exitCode = 1;
 }
 

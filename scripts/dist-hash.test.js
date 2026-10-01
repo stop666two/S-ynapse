@@ -65,13 +65,12 @@ describe('dist-hash listDistFiles', () => {
     cleanup(dir);
   });
 
-  test('默认忽略 build-report.html / report.txt 与 og/ 子树', () => {
+  test('默认忽略 build-report.html 与 og/ 子树', () => {
     const dir = tmpDir();
     writeFixture(dir, 'index.html', 'a');
     writeFixture(dir, path.join('og', 'zh', 'cover.png'), 'b');
     writeFixture(dir, 'build-report.html', 'c');
-    writeFixture(dir, 'report.txt', 'd');
-    assert.deepStrictEqual(DEFAULT_IGNORES, ['build-report.html', 'report.txt', 'og/']);
+    assert.deepStrictEqual(DEFAULT_IGNORES, ['build-report.html', 'og/']);
     assert.deepStrictEqual(listDistFiles(dir), ['index.html']);
     cleanup(dir);
   });
@@ -136,8 +135,7 @@ describe('dist-hash hashDist', () => {
     const dir = tmpDir();
     writeFixture(dir, 'index.html', 'a');
     writeFixture(dir, 'build-report.html', 'b');
-    writeFixture(dir, 'report.txt', 'c');
-    writeFixture(dir, path.join('og', 'en', 'x.png'), 'd');
+    writeFixture(dir, path.join('og', 'en', 'x.png'), 'c');
     const result = hashDist(dir);
     assert.strictEqual(result.total, 1);
     assert.deepStrictEqual(Object.keys(result.files), ['index.html']);

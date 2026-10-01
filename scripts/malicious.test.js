@@ -3,7 +3,7 @@
 // T4 恶意/畸形场景套件：以真实构建 CLI（SYNAPSE_ROOT 指向 .tmp-test 临时站点）逐类验证
 // 两类失败策略：
 //   hard-fail：非零退出、错误信息定位到 file（或配置 file:line）、既有产物不被半成品污染；
-//   degrade  ：构建成功、产物可用、告警与失败条目进入报告（report.txt）。
+//   degrade  ：构建成功、产物可用、告警与失败条目进入报告（build-report.html）。
 // 与 test:build 同约定：`npm test` 生命周期下跳过（集成构建不属于单测套件）。
 // 运行：npm run test:malicious；STRESS=1 打开海量/超长档。
 
@@ -357,12 +357,12 @@ describe('T4 恶意/畸形场景', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run
 
     it('类 7 损坏媒体：0 字节/非图片/超大图降级为告警并进入报告，引用缺失已在预校验 hard-fail', () => {
       assert.strictEqual(result.status, 0, '损坏媒体不得阻断构建：\n' + readOut(result).slice(-2000));
-      const report = fs.readFileSync(path.join(outDir, 'report.txt'), 'utf-8').replace(/\\/g, '/');
+      const report = fs.readFileSync(path.join(outDir, 'build-report.html'), 'utf-8').replace(/\\/g, '/');
       for (const name of ['zero.png', 'not-image.png', 'truncated.png', 'oversize.png']) {
-        assert.ok(report.includes(name), 'report.txt 告警段必须包含损坏媒体条目：' + name);
+        assert.ok(report.includes(name), '构建报告告警区必须包含损坏媒体条目：' + name);
       }
       assert.ok(report.includes('[media]'), '告警条目必须标注 media 阶段');
-      assert.ok(report.includes('[告警]'), '报告必须包含告警段');
+      assert.ok(report.includes('告警清单'), '报告必须包含告警清单区块');
     });
 
     it('类 8 日期：未来日期按发布窗口排除，斜杠日期兼容保留', () => {
@@ -614,8 +614,8 @@ describe('T4 恶意/畸形场景', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run
       assert.ok(indexUrl, '首页必须暴露搜索索引 URL');
       const indexText = fs.readFileSync(path.join(outDir, ...indexUrl[1].replace(/^\//, '').split('/')), 'utf-8');
       assert.ok(!indexText.includes('zero.png'), '搜索索引不得残留损坏头图');
-      const report = fs.readFileSync(path.join(outDir, 'report.txt'), 'utf-8').replace(/\\/g, '/');
-      assert.ok(report.includes('[media]'), '报告告警段必须包含 media 条目');
+      const report = fs.readFileSync(path.join(outDir, 'build-report.html'), 'utf-8').replace(/\\/g, '/');
+      assert.ok(report.includes('[media]'), '报告告警区必须包含 media 条目');
       assert.ok(report.includes('zero.png'), '报告必须点名损坏文件');
       assert.ok(report.includes('falling back to auto cover'), '报告必须说明回退行为');
     });

@@ -92,7 +92,7 @@ function createMinifyModule(ctx) {
   });
 
   // 统计快照：记录各分类当前文件的 raw/gzip 字节与内容哈希（md5）。
-  // raw/gzip 汇总用于 report.txt 的前后对照；哈希用于判定同路径文件是否被改写。
+  // raw/gzip 汇总用于构建报告的前后对照；哈希用于判定同路径文件是否被改写。
   function snapshotCompressionStats() {
     const snapshot = {};
     for (const key of Object.keys(STAT_CATEGORIES)) {
@@ -289,7 +289,7 @@ function createMinifyModule(ctx) {
 
   // C3：页面内联 <style> 合并 + 保守去重，以及 dist 外链 CSS 文件的保守去重。
   // 逐文件 try/catch：解析异常（标签/括号/引号/注释不配平）只告警并保留原文件，
-  // 计入 skipped 统计（明细进 report.txt），不计入失败账本（不阻断构建）。
+  // 计入 skipped 统计（明细进构建报告），不计入失败账本（不阻断构建）。
   // 注意：外链 CSS 与基线 CleanCSS 行为一致，只改内容不改名（assets/ 不参与 cacheBust）。
   async function runCssEnhancements() {
     const totals = { pages: 0, blocksMerged: 0, rulesCollapsed: 0, declsDropped: 0, cssFiles: 0, bytesSaved: 0, skipped: 0, skippedDetails: [] };
@@ -488,12 +488,14 @@ function createMinifyModule(ctx) {
   }
 
   // 执行增强步骤。compressionActive=false（serve/watch 或 enabled=false）时全部跳过，仅保留基线压缩。
-  // 返回 { cssSkips }：CSS 合并/去重跳过计数与明细（无增强运行时为 0），供 minifyAll 汇总进构建报告。
+  // 返回 { cssSkips, enhancements }：前者为 CSS 合并/去重跳过计数与明细（无增强运行时为 0），
+  // 后者为结构化增强统计（CSS 合并/去重、JSON 去空白、runtime 压缩、可选混淆），供构建报告渲染。
   async function runCompressionEnhancements() {
     const cssSkips = { count: 0, details: [] };
+    const enhancements = { steps: [], css: null, jsonCompacted: 0, runtime: null, obfuscate: null };
     if (!compressionPlan.active) {
       console.log('  [compression] 增强步骤已跳过（serve/watch 或 compression.enabled=false）；基线压缩照常');
-      return { cssSkips };
+      return { cssSkips, enhancements };
     }
     if (compressionState.override) console.log('  [compression] override: ' + compressionState.override);
     const htmlCfg = (compressionState.config && compressionState.config.html) || {};
@@ -506,6 +508,15 @@ function createMinifyModule(ctx) {
       const css = await runCssEnhancements();
       cssSkips.count = css.skipped;
       cssSkips.details = css.skippedDetails;
+      enhancements.css = {
+        pages: css.pages,
+        blocksMerged: css.blocksMerged,
+        rulesCollapsed: css.rulesCollapsed,
+        declsDropped: css.declsDropped,
+        cssFiles: css.cssFiles,
+        bytesSaved: css.bytesSaved,
+        skipped: css.skipped
+      };
       if (css.pages > 0 || css.cssFiles > 0) {
         const parts = [];
         if (css.blocksMerged > 0) parts.push('合并 style 块 ×' + css.blocksMerged + '（' + css.pages + ' 个页面）');
@@ -517,10 +528,11 @@ function createMinifyModule(ctx) {
         console.log('  [compression] CSS：' + parts.join('；'));
         steps.push('CSS 合并去重');
       }
-      if (css.skipped > 0) console.log('  [compression] CSS：跳过 ' + css.skipped + ' 个解析异常文件，保留原文件（不计入失败账本；明细见 report.txt）');
+      if (css.skipped > 0) console.log('  [compression] CSS：跳过 ' + css.skipped + ' 个解析异常文件，保留原文件（不计入失败账本；明细见构建报告）');
     }
     if (compressionPlan.jsonCompact) {
       const count = await compactJsonInDir(ctx.distDir);
+      enhancements.jsonCompacted = count;
       if (count > 0) steps.push('JSON 去空白 ×' + count);
     }
     if (compressionPlan.jsMinify) {
@@ -532,6 +544,7 @@ function createMinifyModule(ctx) {
         }
         console.log('  [compression] runtime 压缩合计：' + formatBytes(runtime.beforeTotal) + ' → ' + formatBytes(runtime.afterTotal)
           + '，更新 ' + runtime.refsUpdated + ' 个 HTML 引用，耗时 ' + runtime.ms + 'ms');
+        enhancements.runtime = { files: runtime.files.length, before: runtime.beforeTotal, after: runtime.afterTotal };
         steps.push('runtime 压缩 ×' + runtime.files.length);
       }
     }
@@ -544,13 +557,15 @@ function createMinifyModule(ctx) {
         }
         console.log('  [compression] JS 混淆合计：' + formatBytes(result.beforeTotal) + ' → ' + formatBytes(result.afterTotal)
           + '，更新 ' + result.refsUpdated + ' 个 HTML 引用，耗时 ' + result.ms + 'ms（preset=' + compressionPlan.jsObfuscatePreset + '，seed=' + compressionPlan.jsObfuscateSeed + '）');
+        enhancements.obfuscate = { files: result.files.length, before: result.beforeTotal, after: result.afterTotal };
         steps.push('JS 混淆 ×' + result.files.length);
       } else {
         console.log('  [compression] JS 混淆：无可处理的自研 bundle 或依赖缺失（见告警）');
       }
     }
+    enhancements.steps = steps;
     console.log('  [compression] ' + (steps.length ? '已执行增强: ' + steps.join('、') : '无增强步骤执行（基线压缩已完成）'));
-    return { cssSkips };
+    return { cssSkips, enhancements };
   }
 
   // 无头对比验证（增强完成后、cacheBust 之前）：失败且 fallbackOnFailure=true 时用基线快照
@@ -640,7 +655,7 @@ function createMinifyModule(ctx) {
     console.log('[11/14] Minifying assets...');
     refreshCompressionState();
     reportCompressionIssues();
-    // 前后快照仅服务 dist/report.txt 的体积对照，不改变压缩流程本身。
+    // 前后快照仅服务构建报告的体积对照，不改变压缩流程本身。
     const statsBefore = snapshotCompressionStats();
     await minifyHTMLInDir(ctx.distDir, config);
     await minifyInlineStylesInDir(ctx.distDir, config);
@@ -679,7 +694,7 @@ function createMinifyModule(ctx) {
         }
       }
     }
-    const enhancements = await runCompressionEnhancements();
+    const enhancementResult = await runCompressionEnhancements();
     if (baseline) await runCompressionVerification(baseline, verifyChrome);
     const types = [];
     if (config.site.build.minifyHTML) types.push('HTML');
@@ -688,7 +703,8 @@ function createMinifyModule(ctx) {
     if (types.length)     console.log(`  Minified: ${types.join(', ')}`);
     else console.log('  [SKIP] Minification disabled');
     const stats = buildCompressionStats(statsBefore, snapshotCompressionStats());
-    stats.cssSkips = enhancements.cssSkips;
+    stats.cssSkips = enhancementResult.cssSkips;
+    stats.enhancements = enhancementResult.enhancements;
     return stats;
   }
 

@@ -27,7 +27,7 @@ test('countLeaves：对象逐层展开、数组逐项、数组内对象不展开
   assert.strictEqual(countLeaves({ a: [] }), 0);
 });
 
-test('实测计数：features 103 模块/1051 项、tuning 37 分类/274 项、全仓 2896 项', (t) => {
+test('实测计数：features 103 模块/1051 项、tuning 37 分类/274 项、全仓 2895 项', (t) => {
   if (DERIVED_COPY) {
     t.skip(DERIVED_SKIP_REASON);
     return;
@@ -39,7 +39,7 @@ test('实测计数：features 103 模块/1051 项、tuning 37 分类/274 项、�
   assert.strictEqual(perFile['tuning.json5'].items, 274, 'tuning 配置项');
   assert.strictEqual(perFile['guard.json5'].topKeys, 11, 'guard 模块数');
   assert.strictEqual(perFile['guard.json5'].items, 181, 'guard 配置项');
-  assert.strictEqual(total, 2896, '14 个配置文件总项');
+  assert.strictEqual(total, 2895, '14 个配置文件总项');
 });
 
 test('README：总数/features/tuning 计数与实测一致，无旧计数残留', (t) => {
@@ -50,7 +50,7 @@ test('README：总数/features/tuning 计数与实测一致，无旧计数残留
   const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf-8');
   const totalMatch = /实测 (\d+) 项/.exec(readme);
   assert.ok(totalMatch, 'README 应声明「实测 N 项」');
-  assert.strictEqual(Number(totalMatch[1]), 2896, 'README 总项数');
+  assert.strictEqual(Number(totalMatch[1]), 2895, 'README 总项数');
   const featMatch = /\*\*(\d+) 个模块、(\d+) 个配置项\*\*/.exec(readme);
   assert.ok(featMatch, 'README 应声明 features 模块数/配置项数');
   assert.strictEqual(Number(featMatch[1]), 103, 'README features 模块数');
@@ -93,6 +93,7 @@ test('README：总数/features/tuning 计数与实测一致，无旧计数残留
   assert.ok(!readme.includes('2792'), 'README 不得残留旧总数 2792');
   assert.ok(!readme.includes('989 个配置项'), 'README 不得残留旧 features 计数 989');
   assert.ok(!readme.includes('2890'), 'README 不得残留旧总数 2890');
+  assert.ok(!readme.includes('2896'), 'README 不得残留旧总数 2896');
   assert.ok(!readme.includes('2894'), 'README 不得残留旧总数 2894');
   assert.ok(!readme.includes('1047 个配置项'), 'README 不得残留旧 features 计数 1047');
   assert.ok(!readme.includes('103 模块/1047'), 'README 目录树不得残留旧 features 计数 1047');

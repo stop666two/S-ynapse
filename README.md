@@ -21,7 +21,7 @@
 ## 特性
 
 **全配置驱动**
-- 14 个 JSON5 站点配置文件（支持注释），另有 **`internals.json5` 工程内部参数**（端口/路径/缓存天数/审计上限/部署项目名/CI 版本；不参与站点配置项计数），**2600+ 可配置项**（实测 2896 项；口径：对象逐层展开、数组元素逐项计入且元素为对象时不再展开），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- 14 个 JSON5 站点配置文件（支持注释），另有 **`internals.json5` 工程内部参数**（端口/路径/缓存天数/审计上限/部署项目名/CI 版本；不参与站点配置项计数），**2600+ 可配置项**（实测 2895 项；口径：对象逐层展开、数组元素逐项计入且元素为对象时不再展开），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
 - `features.json5` 功能总控域：**103 个模块、1051 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（37 分类 / 274 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
@@ -70,12 +70,12 @@
 - 全静态 HTML，全球 CDN 加速
 - HTML/CSS/JS 自动压缩（`@minify-html/node`），内容哈希缓存
 - **构建产物压缩增强**（第 14 个配置 `compression.json5`，默认开）：CSS 同页 `<style>` 合并去重、JSON 去空白、`runtime` 引导脚本 Terser 压缩、JS 可选混淆（默认关）；压缩位于内容哈希之前，哈希即最终字节；vendor 与报告文件豁免；实测收益 HTML gzip −5.31%、JS gzip −10.2%、纯构建 4.9s
-- **压缩无头门禁与自动回退**：压缩后以无头浏览器对比压缩/未压缩两态（DOM/采样样式/控制台/交互冒烟），失败自动回退基线产物并告警；`npm run verify:compression` 可独立复核；结果写入 `.cache/compression-verify/last.json` 并汇总到 `dist/report.txt`
+- **压缩无头门禁与自动回退**：压缩后以无头浏览器对比压缩/未压缩两态（DOM/采样样式/控制台/交互冒烟），失败自动回退基线产物并告警；`npm run verify:compression` 可独立复核；结果写入 `.cache/compression-verify/last.json` 并汇总到构建报告 `dist/build-report.html`
 - 图片 WebP + AVIF + 多尺寸响应式；图片懒加载；本地 vendor 资产（Prism/Mermaid/KaTeX/字体）免 CDN
 
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
-- 构建报告：每次构建生成 `build-report.html`（详细统计 + 内容策略拦截清单）与 `report.txt`（阶段耗时、压缩前后 raw/gzip 对照、无头验证摘要、告警与预算结论）
+- 构建报告：每次构建只生成一份 `build-report.html`（元信息、14 步阶段耗时、产物体积、性能预算、压缩统计、缓存命中、告警与失败清单、页面清单，以及内容策略拦截清单）
 - 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（762 项 / 124 组）；`npm run lint` 提供 ESLint 静态检查
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
@@ -167,7 +167,7 @@ S-ynapse/
 │   ├── check-config-consistency.js # 配置一致性监守（默认值 vs 配置文件）
 │   ├── check-internals.js # 工程内部参数守卫（.nvmrc / wrangler assets / CI 版本 / 写死形态）
 │   ├── ci-env.js      # CI 环境导出（internals → $GITHUB_ENV）
-│   ├── ci-checks.js   # CI 聚合检查器（跑完整套后统一失败，写 build-artifacts/ci-report.*）
+│   ├── ci-checks.js   # CI 聚合检查器（跑完整套后统一失败，写 build-artifacts/ci-checks.*）
 │   ├── deploy-pages.js # Pages 部署（项目名/目录读 internals，部署前 verify:internals）
 │   ├── a11y-audit.js  # WCAG 无障碍审计（axe-core + Chrome）
 │   ├── import.js      # 内容导入 CLI（hexo/hugo/wordpress）
@@ -408,7 +408,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 | 11 | 压缩 | 压缩 HTML（@minify-html）、CSS（CleanCSS）、JS（Terser）；增强步骤（`compression.json5`，默认开）追加 HTML 激进选项（默认关）、CSS 同页合并去重、JSON 去空白、`runtime.<hash>.js` Terser 压缩（重命名 + 同步 HTML 引用）；增强完成后执行无头对比门禁（失败自动回退未压缩产物，结果写 `.cache/compression-verify/last.json`）；此前先完成前端资产拷贝（js/ ESM → `dist/assets/js/`，vendor 与 KaTeX 字体 → `dist/assets/vendor/`） |
 | 12 | 缓存破坏 | MD5 内容哈希重命名文件，更新 HTML 引用（压缩/回退均发生在它之前，文件名哈希 = 最终字节） |
 | 13 | PWA | manifest.json + offline.html + Service Worker（启用时；manifest/离线页在压缩前产出，SW 在指纹后定稿） |
-| 14 | 构建报告 | build-report.html（耗时/文章数/体积/功能状态/内容策略拦截清单）+ report.txt（阶段耗时/压缩前后体积对照/验证摘要/告警/预算结论；位于压缩与哈希之后，天然豁免） |
+| 14 | 构建报告 | build-report.html（唯一报告：元信息/14 步阶段耗时/产物体积/性能预算/压缩统计/缓存命中/告警与失败清单/页面清单/内容策略拦截清单；位于压缩与哈希之后，天然豁免） |
 
 > **执行顺序说明**：日志编号按功能命名输出；PWA 分两段执行——manifest 与离线页在压缩前产出（保证压缩无头验证期间页面引用的端点可解析），SW 在压缩与缓存指纹之后定稿（壳预缓存清单必须引用 runtime 压缩等重命名后的最终文件名）；Pagefind 索引（可选）在缓存破坏之后生成且不占独立编号。
 
@@ -454,7 +454,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署。CI 作业：
 - `check-agents`：变更集中检测 AI 规则文件（AGENTS.md 及其变体），命中即阻断；
 - `compat-node20`：Node 20.19.0（`engines` 下限，与 `internals.ci.compatNodeVersion` 一致）上运行 `npm test` + `verify:config` + `verify:config-refs` + `verify:config-dupes` + `npm run verify:internals` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
-- `build`（Node 版本由 `.nvmrc` 单源控制，经 `node-version-file` 读取；`node scripts/ci-env.js` 导出 internals 环境）→ 单步 `node scripts/ci-checks.js`：**一次跑完整套检查且不提前中断**（lint、typecheck、test、test:coverage（`scripts/lib` 行覆盖率 ≥80%）、test:build、test:fuzz、test:malicious、verify:config 家族（config/refs/dupes/comments/docs 与 verify:internals）、verify:process-guards、verify:security、Chrome 依赖项 test:smoke/test:cov-web/verify:compression（未探测到浏览器时跳过并标注）、build、sbom；`audit`（依赖漏洞）与 `audit:a11y`（无障碍）为**建议项**——结果写入报告但不阻断），每项记录退出码/耗时/输出摘要，写入 `build-artifacts/ci-report.{json,txt}`，末尾任一阻断项失败整体失败 → 始终上传 `ci-report` 与 `test-artifacts`（`build-artifacts/**`，`always()`）→ Pages 部署（仅 `main`，调用 `npm run deploy:pages`，部署前自动跑 `verify:internals`）。
+- `build`（Node 版本由 `.nvmrc` 单源控制，经 `node-version-file` 读取；`node scripts/ci-env.js` 导出 internals 环境）→ 单步 `node scripts/ci-checks.js`：**一次跑完整套检查且不提前中断**（lint、typecheck、test、test:coverage（`scripts/lib` 行覆盖率 ≥80%）、test:build、test:fuzz、test:malicious、verify:config 家族（config/refs/dupes/comments/docs 与 verify:internals）、verify:process-guards、verify:security、Chrome 依赖项 test:smoke/test:cov-web/verify:compression（未探测到浏览器时跳过并标注）、build、sbom；`audit`（依赖漏洞）与 `audit:a11y`（无障碍）为**建议项**——结果写入报告但不阻断），每项记录退出码/耗时/输出摘要，写入 `build-artifacts/ci-checks.{json,txt}`，末尾任一阻断项失败整体失败 → 始终上传 `ci-checks` 与 `test-artifacts`（`build-artifacts/**`，`always()`）→ Pages 部署（仅 `main`，调用 `npm run deploy:pages`，部署前自动跑 `verify:internals`）。
 - **进程永不挂死（自动化兜底）**：自动化运行一律走 `node scripts/spawn.js [--max-ms N] -- <命令>`（超时/断链清理整棵进程树、stdin 置空）；仓库高风险入口统一接入 `scripts/lib/process-guard.js`（父进程死亡、绝对生命周期、信号兜底），`npm run verify:process-guards` 巡检并纳入 CI 聚合。详见 `docs/runbook/process-hygiene.md`。
 - **无变化重复运行自动跳过**：`preflight` 作业调用 `scripts/ci-skip.js` 查询本工作流历史；当前 HEAD 与已运行序列一致且满足「连续阻断失败 2 次」或「连续完全无错无警告 5 次」时自动跳过（告警不计错也不计净，但重置失败连击）；`workflow_dispatch`、`CI_FORCE=1`、提交信息含 `[ci force]` 均强制运行。阈值与开关见 `internals.json5` 的 `ci.skip`（`docs/config-reference.md` 末节），聚合结论以提交状态 `ci/aggregate` 记录告警数。
 - 夜间深度随机测试（`.github/workflows/nightly.yml`，每日 UTC 18:00 + 手动触发）：同一聚合器 `node scripts/ci-checks.js`，仅深度档不同（`FC_NUM_RUNS=2000`、`STRESS=1`、随机种子），上传 `nightly-test-artifacts`。
@@ -510,7 +510,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm start` | 同 `npm run serve` |
 | `npm test` | 运行单元测试（945 项 / 134 组） |
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前总量约 94%） |
-| `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、CSP nonce 与 report.txt 两态；CI 运行，不进 `npm test`） |
+| `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、唯一构建报告、CSP nonce 与压缩开关两态；CI 运行，不进 `npm test`） |
 | `npm run test:fuzz` | 属性/随机测试（fast-check；`scripts/**/*.fuzz.test.js`；默认 100 次迭代、`FC_NUM_RUNS` 可调、`STRESS=1` 开海量用例；失败留档 `build-artifacts/fuzz-failures/`，`TEST_SEED` 复现） |
 | `npm run test:malicious` | 恶意/畸形场景套件（`SYNAPSE_ROOT` 隔离夹具真实构建；10 类场景按 hard-fail/degrade 策略断言；`STRESS=1` 开海量档；CI 运行，不进 `npm test`） |
 | `npm run test:smoke` | 浏览器冒烟（系统 Chrome 无头访问代表页：200/标题/DOM/零控制台错误；无 Chrome 跳过；`--build` 强制重建、`--out` 指定产物目录） |
@@ -520,8 +520,8 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run sbom` | 生成 CycloneDX 1.5（ECMA-424）SBOM → `build-artifacts/sbom.cdx.json`（不入库；CI 上传为 `sbom-cyclonedx` artifact） |
 | `npm run release:mark -- <major\|minor\|patch\|X.Y.Z\|X.Y.Z-预发布> --human-verified "<姓名>" --confirm <版本>` | 完成标记：顺序跑完全套质量门禁 → 同步 package.json/CHANGELOG/RELEASE.json → `chore(release)` 提交 + 附注 tag（默认不 push；`--dry-run` 仅演练；`--push --confirm-push` 才推送；支持同版本/预发布标记，如 `1.1.0-a1`） |
 | `npm run release:archive -- --ref <tag\|HEAD>` | 按白名单生成 `release-artifacts/S-ynapse-<版本>.zip`（含前缀目录）：`articles/`、`media/` 只保留 `.gitkeep` 空骨架，复核内容无越界、必需文件与测试齐全、RELEASE.json=package.json=tag 版本一致 |
-| `npm run release:publish -- vX.Y.Z` | 本地备用发布通道（远端已有 tag 后复用双重校验并 `gh release create --latest`，成功后清理旧 Release 与远端 v* tag；默认通道为 tag 触发 Actions 自动发布） |
-| `npm run release:prune -- --keep vX.Y.Z` | 只保留最新版本：先删其余 Release（`--cleanup-tag`）再删远端残留 v* tag（`--dry-run` 预览两阶段清单；CI/`release:publish` 已自动执行） |
+| `npm run release:publish -- vX.Y.Z` | 本地备用发布通道（远端已有 tag 后复用双重校验并 `gh release create --latest`，成功后清理旧 Release；tag 永不删除；默认通道为 tag 触发 Actions 自动发布） |
+| `npm run release:prune -- --keep vX.Y.Z` | 只保留最新 Release：删除其余 Release 页面（tag 永不删除；`--dry-run` 预览清单；CI/`release:publish` 已自动执行） |
 | `npm run lint` | ESLint 静态检查（js/scripts/workers；CI 门禁） |
 | `npm run audit` | 依赖漏洞扫描（固定官方 registry：本机 npm 镜像会阻断 audit 接口） |
 | `npm run typecheck` | TypeScript checkJs 类型检查（scripts/lib；CI 门禁） |
@@ -532,7 +532,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run verify:config-comments` | 逐键注释覆盖率门禁（15 个 JSON5；CI 阻断） |
 | `npm run verify:config-docs` | 配置文档覆盖门禁（15 个 JSON5 的顶层键/模块键 vs `docs/config-reference.md`；脚本 `scripts/check-config-docs.js`） |
 | `npm run verify:internals` | 工程内部参数守卫（`.nvmrc`/`workers/wrangler.toml` assets 目录/CI 版本与 `internals.json5` 单源一致；关键写死形态抽样） |
-| `node scripts/ci-checks.js` | CI 聚合检查（与 deploy.yml 同命令）：跑完整套门禁后统一失败，报告写入 `build-artifacts/ci-report.{json,txt}`；`--fail-fast` 可改为首个失败即停 |
+| `node scripts/ci-checks.js` | CI 聚合检查（与 deploy.yml 同命令）：跑完整套门禁后统一失败，报告写入 `build-artifacts/ci-checks.{json,txt}`；`--fail-fast` 可改为首个失败即停 |
 | `npm run perf:audit`（`--url` 可省略，默认 `internals.ports.perf`） | 可复现性能基线（Slow 4G + CPU 4x 节流 + 禁用缓存；`--runs`/`--out`/`--json`/`--chrome` 可选；Chrome 经 internals/CHROME_PATH/平台默认探测） |
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
@@ -563,7 +563,7 @@ npm run verify:security   # 集成安全回归
 ### 恶意/畸形场景与失败策略（test:malicious）
 
 - `npm run test:malicious`：在 `.tmp-test/` 生成隔离站点（`SYNAPSE_ROOT` 指向夹具，仓库 templates/static/js/node_modules 以目录联接复用），逐类断言构建器对恶意输入的处置；10 类场景覆盖：超长/海量、XSS 全字段注入、路径遍历与保留 slug、坏 JSON5/断裂配置、空站、编码异常（BOM/CRLF/非法 UTF-8/孤立代理）、损坏媒体、未来/非法日期与重复 slug、emoji/双向/组合字符、磁盘写失败与原子性。
-- 失败策略二分：**安全类 hard-fail**（路径遍历、保留路由/OS 设备名、重复/非法 slug、坏配置、危险协议链接）必须非零退出并定位到 `file` 或 `file:line`，且预校验先于 `dist` 清理、既有产物逐字节不变；**资源类 degrade**（超长/海量、空站、编码异常、损坏媒体）构建成功、产物可用，告警与失败条目进入 `report.txt` 的 `[告警]` 段。
+- 失败策略二分：**安全类 hard-fail**（路径遍历、保留路由/OS 设备名、重复/非法 slug、坏配置、危险协议链接）必须非零退出并定位到 `file` 或 `file:line`，且预校验先于 `dist` 清理、既有产物逐字节不变；**资源类 degrade**（超长/海量、空站、编码异常、损坏媒体）构建成功、产物可用，告警与失败条目进入 `build-report.html` 的告警/失败清单区块。
 - XSS 断言按产物语境执行：HTML 以引号感知 tokenizer 检查事件属性/危险协议/内联脚本可执行位置；RSS/sitemap 检查裸标签；JSON Feed/搜索索引检查可执行标签起始串；`<` 在 JSON 出口统一写为 JSON 等价的 `\u003c`（解析后值不变）。
 - 随机载荷 × 策略断言位于 `scripts/lib/malicious.fuzz.test.js`（随 `test:fuzz` 运行）；确定性场景位于 `scripts/malicious.test.js`（`STRESS=1` 打开海量档，默认档总时长约 30 秒）。
 
@@ -617,7 +617,7 @@ npm run verify:security   # 集成安全回归
 | compression-pipeline | 28 | 压缩增强步骤装配/豁免/内容寻址跳过/跳过降级 |
 | compression-verify | 16 | 无头对比快照/恢复/归一化/端口纯逻辑 |
 | js-obfuscate | 12 | 混淆目标筛选/选项装配/确定性 |
-| build-report-text | 17 | `report.txt` 摘要段渲染与缺失容错 |
+| build-report-html | 16 | 唯一构建报告 HTML 的区块渲染、转义与缺失容错 |
 | incremental-build | 8 | 增量指纹算法/稳定序列化/跳过决策 |
 | check-config-docs | 8 | 文档覆盖校验（键收集/匹配边界/策略表/真实仓库集成） |
 | config-comment-audit | 13 | JSON5 逐键注释覆盖率判定 |

@@ -75,7 +75,7 @@ describe('compression-config 深合并属性', () => {
     checkProperty('deepMerge-数组替换', fc, fc.property(patterns, (exclude) => {
       const result = mergeCompressionOverride(cloneDefaults(), { exclude });
       assert.deepStrictEqual(result.config.exclude, exclude);
-      assert.ok(!result.config.exclude.includes('report.txt'), '不得残留默认豁免项');
+      assert.ok(!result.config.exclude.includes('build-report.html'), '不得残留默认豁免项');
       assert.deepStrictEqual(result.errors, []);
       return true;
     }));

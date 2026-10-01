@@ -302,7 +302,7 @@ function createFeedsModule(ctx) {
   // 搜索索引（v2 倒排、外置内容寻址）：
   //   prepareSearchIndex 在页面渲染前计算每语言索引与 URL（/assets/search-index.<hash>.json），
   //   由 build.js 注入模板（window.__SEARCH_INDEX_URL__）；generateSearchIndex 负责写盘与旧产物清理。
-  //   体积超出 features.search.index.maxGzipKb 时按词频裁剪低频词并记录非阻断告警（report.txt + 构建日志）。
+  //   体积超出 features.search.index.maxGzipKb 时按词频裁剪低频词并记录非阻断告警（构建报告 + 构建日志）。
   let preparedSearchIndexes = null;
   let searchCorePromise = null;
   function loadSearchCore() {

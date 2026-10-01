@@ -14,6 +14,8 @@ function createMediaModule(ctx) {
   // 本轮媒体优化失败的 /media/ 引用（源文件存在但 sharp 无法处理）：供 build.js 把
   // 指向它们的 featuredImage 回退为自动封面/pattern；每次 optimizeMedia 开始时重置。
   let brokenMedia = new Set();
+  // 最近一轮 optimizeMedia 的计数（优化/复用/失败/候选），供构建报告「缓存命中」区块读取。
+  let lastOptimizeStats = null;
   // Create the output directory structure under dist/.
   // If cleanDist is enabled, removes the entire dist/ first.
   // Required subdirectories: articles/, tags/, categories/, page/
@@ -141,6 +143,7 @@ function createMediaModule(ctx) {
   // Returns the manifest object, or null if disabled/sharp unavailable.
   async function optimizeMedia(config) {
     brokenMedia = new Set();
+    lastOptimizeStats = null;
     if (!config.site.build.optimizeMedia || !ctx.sharp) {
       console.log('  [SKIP] Media optimization disabled or sharp not available');
       return null;
@@ -242,6 +245,7 @@ function createMediaModule(ctx) {
     const manifestPath = path.join(ctx.distDir, 'media-manifest.json');
     writeFileAtomicSync(manifestPath, JSON.stringify(manifest));
     console.log(`  Optimized ${count} images (reused ${skipped} unchanged)`);
+    lastOptimizeStats = { optimized: count, reused: skipped, failed: brokenMedia.size, total: images.length };
     return manifest;
   }
 
@@ -250,7 +254,12 @@ function createMediaModule(ctx) {
     return brokenMedia;
   }
 
-  return { setupDist, copyStatic, copyProtectedAssets, copyMediaOutput, optimizeMedia, getBrokenMedia };
+  // 最近一轮媒体优化统计（未运行时为 null），供构建报告读取。
+  function getMediaStats() {
+    return lastOptimizeStats;
+  }
+
+  return { setupDist, copyStatic, copyProtectedAssets, copyMediaOutput, optimizeMedia, getBrokenMedia, getMediaStats };
 }
 
 module.exports = { createMediaModule };

@@ -23,7 +23,7 @@ const {
 } = require('./lib/compression-config');
 const { createMinifyModule } = require('./build/minify.js');
 const { getAllFiles } = require('./build/fs-utils.js');
-const { renderBuildReportText } = require('./lib/build-report-text.js');
+const { renderBuildReportHtml } = require('./lib/build-report-html.js');
 
 describe('JSON 去空白（compactJsonText / needsJsonCompaction）', () => {
   test('含换行的嵌套结构压缩为单行且语义等价', () => {
@@ -315,11 +315,13 @@ describe('CSS 合并/去重跳过降级（不进入失败账本）', () => {
         '<style nonce="N">.a{color:red}</style><style nonce="N">.b{color:blue}', '解析异常页面必须保留原文件');
       assert.equal(fs.readFileSync(path.join(dir, 'assets', 'css', 'bad.css'), 'utf-8'), '.c{color:red',
         '解析异常 CSS 必须保留原文件');
-      const text = renderBuildReportText({ compression: stats, failures });
-      assert.ok(text.includes('CSS 合并/去重跳过: 2 项（保留原文件；不计入失败账本）'));
-      assert.ok(text.includes('- index.html: '));
-      assert.ok(text.includes('- assets/css/bad.css: '));
-      assert.ok(text.includes('失败:（无）'), '跳过不得渲染为压缩失败');
+      assert.equal(stats.enhancements.css.skipped, 2, '增强统计必须携带跳过计数');
+      const html = renderBuildReportHtml({ compression: stats, failures });
+      assert.ok(html.includes('CSS 合并/去重跳过: 2 项（保留原文件；不计入失败账本）'));
+      assert.ok(html.includes('<code>index.html</code>: '));
+      assert.ok(html.includes('<code>assets/css/bad.css</code>: '));
+      assert.ok(html.includes('id="failures"'), '报告必须包含失败清单区块');
+      assert.ok(html.includes('（无）'), '跳过不得渲染为压缩失败');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

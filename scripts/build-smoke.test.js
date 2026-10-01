@@ -90,14 +90,6 @@ function normalizeRuntimeHref(html) {
   return html.replace(/runtime\.[0-9A-Za-z]+\.js/g, 'runtime.HASH.js');
 }
 
-// 构建报告 HTML 归一化：时间戳 / 构建耗时 / 输出体积随构建变化，压缩处理方式不受其影响。
-function normalizeReportHtml(html) {
-  return normalizeNonce(html)
-    .replace(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/, 'TIME')
-    .replace(/(构建耗时<\/span><span class="stat-value">)[^<]*/, '$1ELAPSED')
-    .replace(/(输出体积<\/span><span class="stat-value">)[^<]*/, '$1SIZE');
-}
-
 // 收集 HTML 相对路径 → 原文（排除构建报告：含时间与体积统计）。
 function collectHtml(dir) {
   const out = {};
@@ -154,11 +146,12 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       path.join(tmpDir, 'zh', 'sitemap.xml'),
       path.join(tmpDir, 'zh', 'feed.xml'),
       path.join(tmpDir, '404.html'),
-      path.join(tmpDir, 'report.txt')
+      path.join(tmpDir, 'build-report.html')
     ];
     for (const file of required) {
       assert.ok(fs.existsSync(file), 'missing artifact: ' + path.relative(tmpDir, file));
     }
+    assert.ok(!fs.existsSync(path.join(tmpDir, 'report.txt')), '构建报告只保留一份：不得再产出 report.txt');
     // 搜索索引（v2）：内容寻址文件存在、页面 URL 指向它、格式为 docs+fields、gzip 体积达标；
     // 旧固定路径 /{lang}/search-index.json 不再产出。
     for (const lang of ['zh', 'en']) {
@@ -171,14 +164,17 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       assert.ok(gzipBytes <= 60 * 1024, lang + ' search index gzip must stay within 60KB, got ' + gzipBytes);
     }
     assert.ok(!fs.existsSync(path.join(tmpDir, 'zh', 'search-index.json')), 'legacy fixed-path search index must not be emitted');
-    // dist/report.txt 构建摘要：固定段标必须存在；默认态（增强开）标注启用并产出压缩统计。
-    const summaryText = fs.readFileSync(path.join(tmpDir, 'report.txt'), 'utf-8');
-    for (const marker of ['S-YNAPSE 构建摘要', '[阶段耗时]', '[压缩统计]', '[无头验证]', '[告警]', '[预算与目标]']) {
-      assert.ok(summaryText.includes(marker), 'report.txt must contain section marker ' + marker);
+    // dist/build-report.html：唯一构建报告。关键区块（阶段耗时/预算/页面清单等）与压缩统计必须存在。
+    const reportHtml = fs.readFileSync(path.join(tmpDir, 'build-report.html'), 'utf-8');
+    for (const marker of ['阶段耗时', '性能预算', '页面清单', '产物体积', '缓存命中', '压缩统计', '告警清单', '失败清单', '构建元信息']) {
+      assert.ok(reportHtml.includes(marker), 'build-report.html must contain section: ' + marker);
     }
-    assert.ok(summaryText.includes('压缩增强: 启用'), 'default report.txt must mark compression enhancements as enabled');
-    assert.ok(summaryText.includes('HTML: 文件'), 'default report.txt must aggregate HTML compression stats');
-    assert.ok(summaryText.includes('gzip'), 'default report.txt must report gzip before/after');
+    assert.ok(reportHtml.includes('14 步'), 'build-report.html must render the 14-step phase table');
+    assert.ok(reportHtml.includes('压缩增强: 启用'), 'default build-report.html must mark compression enhancements as enabled');
+    assert.ok(reportHtml.includes('HTML: 文件'), 'default build-report.html must aggregate HTML compression stats');
+    assert.ok(reportHtml.includes('gzip'), 'default build-report.html must report gzip before/after');
+    assert.ok(reportHtml.includes('prefers-color-scheme: dark'), 'build-report.html must support dark mode');
+    assert.ok(!/<script\b/i.test(reportHtml), 'build-report.html must not carry inline scripts');
     // 悬停规则回归：site-css.ejs 的悬垂逗号使 `.cal-cell:hover` 规则被浏览器整条丢弃
     // （`},.` 破坏规则边界），产物 CSS 与页面内联样式都不得再出现该模式。
     const builtCssDir = path.join(tmpDir, 'assets', 'css');
@@ -664,19 +660,15 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       assert.ok(!/[\r\n]/.test(defaultFeed), 'default state must compact feed.json to a single line');
       assert.ok(/[\r\n]/.test(offFeed), 'compression-off state must keep feed.json multi-line');
       assert.deepStrictEqual(JSON.parse(defaultFeed), JSON.parse(offFeed), 'JSON compaction must preserve semantics');
-      // 报告文件两态均保持人类可读；内容除时间/体积统计外一致（豁免名单生效）。
+      // 唯一构建报告两态均产出且保持人类可读；关闭态必须标注增强关闭且关键区块完整。
       const reportA = fs.readFileSync(path.join(tmpDir, 'build-report.html'), 'utf-8');
       const reportB = fs.readFileSync(path.join(offDir, 'build-report.html'), 'utf-8');
       assert.ok(reportA.includes('\n') && reportB.includes('\n'), 'build-report.html must stay human-readable');
-      assert.strictEqual(normalizeReportHtml(reportB), normalizeReportHtml(reportA),
-        'build report must be identical across states apart from timing/size stats');
-      // report.txt 两态均产出且保持人类可读；关闭态必须标注增强关闭（豁免名单生效，未被压缩改写）。
-      const offSummary = fs.readFileSync(path.join(offDir, 'report.txt'), 'utf-8');
-      for (const marker of ['S-YNAPSE 构建摘要', '[阶段耗时]', '[压缩统计]', '[无头验证]', '[告警]', '[预算与目标]']) {
-        assert.ok(offSummary.includes(marker), 'compression-off report.txt must contain section marker ' + marker);
+      assert.ok(!fs.existsSync(path.join(offDir, 'report.txt')), 'compression-off must not emit report.txt');
+      for (const marker of ['阶段耗时', '性能预算', '页面清单', '压缩统计', '缓存命中']) {
+        assert.ok(reportB.includes(marker), 'compression-off build-report.html must contain section: ' + marker);
       }
-      assert.ok(offSummary.includes('压缩增强: 关闭'), 'compression-off report.txt must mark enhancements as disabled');
-      assert.ok(offSummary.includes('\n'), 'report.txt must stay human-readable');
+      assert.ok(reportB.includes('压缩增强: 关闭'), 'compression-off build-report.html must mark enhancements as disabled');
     } finally {
       fs.rmSync(offDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
     }

@@ -20,7 +20,6 @@ const DEFAULT_COMPRESSION = {
   js: { enabled: true, minify: true, obfuscate: { enabled: false, preset: 'medium', seed: 0 } },
   json: { enabled: true },
   exclude: [
-    'report.txt',
     'build-report.html',
     'assets/vendor/**',
     'media/**',

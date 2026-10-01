@@ -634,7 +634,7 @@ npm run verify:security   # 集成安全回归
 
 ### 构建行为说明
 
-- **失败即阻断**：内容预校验（重复 slug、非法日期、空标签/分类、缺失 `/media` 引用）在清理 `dist/` 之前报错并终止；运行期失败（模板/feed/sitemap/媒体/OG/压缩等）会汇总打印并以非零退出码结束。本地预览可用 `npm run build -- --allow-degraded` 降级继续（退出码保持 0）。
+- **失败即阻断**：内容预校验（重复 slug、非法日期、空标签/分类、缺失 `/media` 引用）在清理 `dist/` 之前报错并终止；其中 slug 身份类问题（非法/重复/保留路由/OS 设备名）为 **critical 错误，`--allow-degraded` 也不放行**，仅媒体引用缺失、损坏媒体、非法日期与空分类等资源/数据类失败可在降级预览模式继续；运行期失败（模板/feed/sitemap/媒体/OG/压缩等）会汇总打印并以非零退出码结束。本地预览可用 `npm run build -- --allow-degraded` 降级继续（退出码保持 0，critical 错误除外）。
 - **定时发布**：`date` 晚于构建时间的文章视为已排期，自动排除页面、feed、sitemap 与搜索索引，并在构建日志中提示。
 - **缓存策略**：`_headers` 分级缓存：`/assets/css/*`、`/assets/fonts/*`（CJK 子集分片）、打包产物 `/assets/js/*`（`app`/`deferred`/`shared`/`runtime` 内容哈希名）、`/assets/config.*.json` immutable 1 年；其余 `/assets/js|vendor/*` 1 小时 + `stale-while-revalidate`；`/media|og/*` 7 天 + SWR。可用 `site.build.cacheControl: false` 关闭。
 - **搜索弱网**：索引请求 5 秒超时 + 一次重试，失败展示错误态与「重试」按钮；入口按钮在模块加载前点击不再报错。

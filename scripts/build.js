@@ -160,9 +160,13 @@ async function build() {
     const preflight = preflightContent(config);
     markPhase('preflight', preflightStartedAt);
     if (preflight.errors.length > 0) {
-      for (const entry of preflight.errors) buildErrors.add(entry.stage, entry.message);
+      for (const entry of preflight.errors) buildErrors.add(entry.stage, entry.message, { critical: entry.critical });
       console.error('\n[PREFLIGHT] Content validation found ' + preflight.errors.length + ' problem(s):');
       console.error(formatFailures(preflight.errors));
+      const criticalCount = preflight.errors.filter((entry) => entry.critical === true).length;
+      if (criticalCount > 0) {
+        abortBuild('\n[FATAL] Build aborted by ' + criticalCount + ' critical content error(s): slug identity problems (invalid/duplicate/reserved) are never degraded. Fix the files above.\n');
+      }
       if (!ALLOW_DEGRADED) {
         abortBuild('\n[FATAL] Build aborted by content preflight errors. Fix the files above, or run with --allow-degraded for a local preview.\n');
       }

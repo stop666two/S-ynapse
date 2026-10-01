@@ -101,8 +101,24 @@ describe('preflightArticles', () => {
     ], { mediaExists });
     assert.strictEqual(r.errors.length, 1);
     assert.strictEqual(r.errors[0].stage, 'slug');
+    assert.strictEqual(r.errors[0].critical, true);
     assert.ok(r.errors[0].message.includes('articles/en/a.md'));
     assert.ok(r.errors[0].message.includes('articles/en/b.md'));
+  });
+
+  it('marks every slug identity problem as critical (never degradable)', () => {
+    const cases = [
+      base({ file: 'articles/en/bad.md', attrs: { title: 'T', slug: '../escape' } }),
+      base({ file: 'articles/en/route.md', attrs: { title: 'T', slug: 'tags' } }),
+      base({ file: 'articles/en/dev.md', attrs: { title: 'T', slug: 'CON' } }),
+      base({ file: 'articles/en/huge.md', attrs: { title: 'T', slug: 'x'.repeat(121) } })
+    ];
+    for (const item of cases) {
+      const r = preflightArticles([item], { mediaExists });
+      assert.strictEqual(r.errors.length, 1, item.file + ' 必须产出 1 条错误');
+      assert.strictEqual(r.errors[0].stage, 'slug', item.file + ' 错误类别必须是 slug');
+      assert.strictEqual(r.errors[0].critical, true, item.file + ' 的 slug 错误必须标记 critical');
+    }
   });
 
   it('allows the same slug in different languages', () => {
@@ -117,6 +133,7 @@ describe('preflightArticles', () => {
     const r = preflightArticles([base({ attrs: { title: 'A', date: 'not-a-date' } })], { mediaExists });
     assert.strictEqual(r.errors.length, 1);
     assert.strictEqual(r.errors[0].stage, 'date');
+    assert.strictEqual(r.errors[0].critical, false);
   });
 
   it('flags empty tag and category entries', () => {
@@ -126,6 +143,7 @@ describe('preflightArticles', () => {
     ], { mediaExists });
     assert.strictEqual(r.errors.length, 2);
     assert.ok(r.errors.every((e) => e.stage === 'taxonomy'));
+    assert.ok(r.errors.every((e) => e.critical === false));
   });
 
   it('flags missing media in featuredImage and body, but not in code fences', () => {
@@ -136,6 +154,7 @@ describe('preflightArticles', () => {
     ], { mediaExists });
     assert.strictEqual(r.errors.length, 2);
     assert.ok(r.errors.every((e) => e.stage === 'media'));
+    assert.ok(r.errors.every((e) => e.critical === false));
     assert.ok(r.errors[0].message.includes('/media/nope.jpg'));
     assert.ok(r.errors[1].message.includes('/media/nope2.png'));
   });

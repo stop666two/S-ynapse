@@ -528,6 +528,48 @@ describe('T4 恶意/畸形场景', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run
   });
 
   // =====================================================================
+  // 3+8 降级边界：slug 身份类错误不可降级；媒体缺失可降级继续
+  // =====================================================================
+  describe('类 3+8 降级模式边界', () => {
+    it('--allow-degraded 不放行重复/保留路由/非法 slug（非零退出且不污染产物）', () => {
+      const site = makeSite({
+        extraFiles: {
+          'articles/zh/dup-a.md': frontmatterArticle({ title: 'Dup A', slug: 'dup-slug', date: '2026-01-10' }) + '# x\n',
+          'articles/zh/dup-b.md': frontmatterArticle({ title: 'Dup B', slug: 'dup-slug', date: '2026-01-11' }) + '# x\n',
+          'articles/zh/reserved-route.md': frontmatterArticle({ title: 'Reserved Route', slug: 'tags', date: '2026-01-12' }) + '# x\n',
+          'articles/zh/invalid-slug.md': frontmatterArticle({ title: 'Invalid', slug: '../escape', date: '2026-01-13' }) + '# x\n'
+        }
+      });
+      const outDir = path.join(site.root, 'out');
+      fs.mkdirSync(outDir, { recursive: true });
+      fs.writeFileSync(path.join(outDir, 'legacy-artifact.html'), '<p>old build output</p>', 'utf-8');
+      const beforeSnapshot = snapshotDir(outDir);
+      const result = build(site, outDir, ['--allow-degraded']);
+      assert.notStrictEqual(result.status, 0, '降级模式必须仍阻断 slug 冲突：\n' + readOut(result).slice(-3000));
+      const output = readOut(result);
+      for (const file of ['dup-a.md', 'dup-b.md', 'reserved-route.md', 'invalid-slug.md']) {
+        assert.ok(output.includes(file), '错误清单必须包含文件：' + file);
+      }
+      assert.ok(output.includes('critical'), '错误清单必须标注 critical 以解释降级为何无效');
+      assert.ok(output.includes('never degraded'), 'FATAL 文案必须说明 slug 问题不可降级');
+      assert.deepStrictEqual(snapshotDir(outDir), beforeSnapshot, 'critical 预校验失败不得改动既有输出目录');
+    });
+
+    it('--allow-degraded 仅豁免媒体引用缺失，构建继续并生成页面', () => {
+      const site = makeSite({
+        extraFiles: {
+          'articles/zh/missing-media.md': frontmatterArticle({ title: 'Missing Media', slug: 'missing-media', date: '2026-01-14' }) + '# x\n\n![缺图](/media/does-not-exist.png)\n'
+        }
+      });
+      const outDir = path.join(site.root, 'out');
+      const result = build(site, outDir, ['--allow-degraded']);
+      assert.strictEqual(result.status, 0, '媒体类失败可在降级模式继续：\n' + readOut(result).slice(-2000));
+      assert.ok(readOut(result).includes('references missing media'), '构建日志必须保留媒体缺失告警');
+      assert.ok(fs.existsSync(path.join(outDir, 'zh', 'missing-media', 'index.html')), '降级产物必须生成该文章页');
+    });
+  });
+
+  // =====================================================================
   // 4：坏 JSON5 / 断裂配置（语法/重复键/类型漂移/越界枚举）
   // =====================================================================
   describe('类 4 坏配置 hard-fail', () => {

@@ -7,7 +7,9 @@ describe('build-errors collector', () => {
     const c = createBuildErrorCollector();
     assert.strictEqual(c.hasErrors, false);
     assert.strictEqual(c.hasWarnings, false);
+    assert.strictEqual(c.hasCritical, false);
     assert.deepStrictEqual(c.entries, []);
+    assert.deepStrictEqual(c.criticalEntries, []);
   });
 
   it('records failures in order with stage and message', () => {
@@ -16,8 +18,8 @@ describe('build-errors collector', () => {
     c.add('feed', 'rss failed: y');
     assert.strictEqual(c.hasErrors, true);
     assert.deepStrictEqual(c.entries, [
-      { stage: 'render', message: 'article page failed: x', fatal: true },
-      { stage: 'feed', message: 'rss failed: y', fatal: true }
+      { stage: 'render', message: 'article page failed: x', fatal: true, critical: false },
+      { stage: 'feed', message: 'rss failed: y', fatal: true, critical: false }
     ]);
   });
 
@@ -28,13 +30,34 @@ describe('build-errors collector', () => {
     assert.strictEqual(c.hasWarnings, true);
     assert.deepStrictEqual(c.fatalEntries, []);
     assert.deepStrictEqual(c.warningEntries, [
-      { stage: 'compression-verify', message: '对比失败已回退', fatal: false }
+      { stage: 'compression-verify', message: '对比失败已回退', fatal: false, critical: false }
     ]);
     assert.strictEqual(resolveExitCode(c, {}), 0);
     c.add('feed', 'rss failed');
     assert.strictEqual(c.hasErrors, true);
     assert.strictEqual(resolveExitCode(c, {}), 1);
     assert.deepStrictEqual(c.fatalEntries.map((e) => e.stage), ['feed']);
+  });
+
+  it('critical failures block the build even when degraded mode is allowed', () => {
+    const c = createBuildErrorCollector();
+    c.add('slug', 'duplicate slug "x"', { critical: true });
+    assert.strictEqual(c.hasErrors, true);
+    assert.strictEqual(c.hasCritical, true);
+    assert.deepStrictEqual(c.criticalEntries, [
+      { stage: 'slug', message: 'duplicate slug "x"', fatal: true, critical: true }
+    ]);
+    assert.strictEqual(resolveExitCode(c, {}), 1);
+    assert.strictEqual(resolveExitCode(c, { allowDegraded: true }), 1);
+  });
+
+  it('degraded mode still forgives non-critical failures only', () => {
+    const c = createBuildErrorCollector();
+    c.add('media', 'missing /media/x.png');
+    c.add('feed', 'rss failed');
+    assert.strictEqual(c.hasCritical, false);
+    assert.deepStrictEqual(c.criticalEntries, []);
+    assert.strictEqual(resolveExitCode(c, { allowDegraded: true }), 0);
   });
 
   it('returns a copy of entries so callers cannot mutate internal state', () => {
@@ -69,6 +92,16 @@ describe('build-errors collector', () => {
     assert.ok(out.includes('[feed] rss failed'));
     assert.ok(out.includes('2'));
     assert.strictEqual(formatFailures([]), '');
+  });
+
+  it('formatFailures marks critical entries so degraded mode is explainable', () => {
+    const out = formatFailures([
+      { stage: 'slug', message: 'duplicate slug', fatal: true, critical: true },
+      { stage: 'media', message: 'missing media', fatal: true, critical: false }
+    ]);
+    assert.ok(out.includes('[slug/critical] duplicate slug'));
+    assert.ok(out.includes('[media] missing media'));
+    assert.ok(!out.includes('[media/critical]'));
   });
 
   it('formatWarnings labels non-blocking entries without the failure wording', () => {

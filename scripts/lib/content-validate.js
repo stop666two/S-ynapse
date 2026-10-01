@@ -91,6 +91,12 @@ function hasEmptyEntry(list) {
   return Array.isArray(list) && list.some((v) => String(v == null ? '' : v).trim() === '');
 }
 
+// 预校验问题记录：critical=true 的条目（slug 身份类）无论是否 --allow-degraded 都阻断构建；
+// 其余（日期/分类/媒体引用）可在降级预览模式下放行。
+function problem(stage, file, message, critical) {
+  return { stage, file, message, critical: critical === true };
+}
+
 /**
  * 构建前只读预校验：重复 slug、非法日期、空标签/分类、缺失媒体引用。
  * 不做任何写入，供构建在清理 dist 之前调用。
@@ -113,58 +119,40 @@ function preflightArticles(items, options) {
 
     if (identity.explicitSlugInvalid) {
       const reason = validateSlug(attrs.slug).reason;
-      errors.push({
-        stage: 'slug',
-        file,
-        message: file + ': frontmatter slug "' + String(attrs.slug).slice(0, 80) + '" is invalid (' + reason + ')'
-      });
+      errors.push(problem('slug', file,
+        file + ': frontmatter slug "' + String(attrs.slug).slice(0, 80) + '" is invalid (' + reason + ')', true));
       continue;
     }
 
     if (RESERVED_ROUTE_SEGMENTS.includes(identity.slug)) {
-      errors.push({
-        stage: 'slug',
-        file,
-        message: file + ': slug "' + identity.slug + '" collides with the generated /' + lang + '/' + identity.slug + '/ route; rename the article or choose another slug'
-      });
+      errors.push(problem('slug', file,
+        file + ': slug "' + identity.slug + '" collides with the generated /' + lang + '/' + identity.slug + '/ route; rename the article or choose another slug', true));
       continue;
     }
 
     if (isReservedOsName(identity.slug)) {
-      errors.push({
-        stage: 'slug',
-        file,
-        message: file + ': slug "' + identity.slug + '" is a reserved OS device name; rename the article or choose another slug'
-      });
+      errors.push(problem('slug', file,
+        file + ': slug "' + identity.slug + '" is a reserved OS device name; rename the article or choose another slug', true));
       continue;
     }
 
     const key = String(lang) + '/' + identity.slug;
     const first = seen.get(key);
     if (first) {
-      errors.push({
-        stage: 'slug',
-        file,
-        message: file + ': duplicate slug "' + identity.slug + '" (already used by ' + first + ')'
-      });
+      errors.push(problem('slug', file,
+        file + ': duplicate slug "' + identity.slug + '" (already used by ' + first + ')', true));
       continue;
     }
     seen.set(key, file);
 
     if (attrs.date && isNaN(new Date(attrs.date).getTime())) {
-      errors.push({
-        stage: 'date',
-        file,
-        message: file + ': frontmatter "date: ' + attrs.date + '" is not a valid date. Expected YYYY-MM-DD or ISO 8601.'
-      });
+      errors.push(problem('date', file,
+        file + ': frontmatter "date: ' + attrs.date + '" is not a valid date. Expected YYYY-MM-DD or ISO 8601.', false));
     }
 
     if (hasEmptyEntry(attrs.tags) || hasEmptyEntry(attrs.categories)) {
-      errors.push({
-        stage: 'taxonomy',
-        file,
-        message: file + ': frontmatter "tags"/"categories" contains an empty entry; remove it to avoid broken tag pages'
-      });
+      errors.push(problem('taxonomy', file,
+        file + ': frontmatter "tags"/"categories" contains an empty entry; remove it to avoid broken tag pages', false));
     }
 
     const refs = new Set();
@@ -172,7 +160,7 @@ function preflightArticles(items, options) {
     for (const ref of extractMediaRefs(item.body)) refs.add(ref);
     for (const ref of refs) {
       if (!mediaExists(ref)) {
-        errors.push({ stage: 'media', file, message: file + ': references missing media "' + ref + '"' });
+        errors.push(problem('media', file, file + ': references missing media "' + ref + '"', false));
       }
     }
   }

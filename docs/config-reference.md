@@ -27,6 +27,30 @@
 
 ---
 
+### 快速索引：按需求找键
+
+| 我想… | 先看 |
+|---|---|
+| 改站名 / 语言 / 域名 / 社交链接 | §1 `site.json5`（`title` / `languages` / `url` / `social`） |
+| 调配色 / 字体 / 暗色模式 / 圆角 | §2 `theme.json5`（`colors` / `darkMode` / `fonts` / `radius`） |
+| 开关某个功能（搜索 / 评论 / RSS / 图库…） | §3 `features.json5` 对应模块的 `enabled` |
+| 提升首屏 LCP / 性能预算 | §1 `site.build.criticalCss`、§3 `features.perfBudget` / `features.lcpOptimize`（含 `offscreenSkip` / `preloadFirstCard`） |
+| 中文字体子集化 | §1 `site.build.cjkFonts` |
+| 搜索源 / Pagefind / 热词 | §4 `navigation.search`、§3 `features.pagefind` / `features.search` / `features.hotSearches` |
+| 评论系统 | §1 `site.comments`、§3 `features.comments` / `features.giscus` |
+| RSS / JSON Feed / sitemap | §1 `site.rss` / `site.sitemap` |
+| 导航 / 侧栏 / 页脚 | §4 `navigation.json5` / §5 `sidebar.json5` / §6 `footer.json5` |
+| 安全头 / 限流 / 路径限制 | §7 `security.json5` |
+| 内容发布白名单（videos/assets/媒体） | §8 `content-policy.json5` |
+| UI 微调（间距 / 断点 / z-index / 动效） | §10 `tuning.json5` |
+| 防右键 / 防复制 / 拦截 / 软锁 | §11 `guard.json5`、§3 `features.guards` |
+| 界面文案（中英） | §13 `ui-strings.json5` |
+| 压缩 / 混淆 / 压缩无头验证 | §12 `compression.json5` |
+| 本地端口 / 缓存天数 / CI 超时与自动跳过 / 发布清理 | §15 `internals.json5` |
+| 每日一言数据 | §14 `data/quotes.json5`、§3 `features.dailyQuote` |
+
+---
+
 ## 1. site.json5 — 站点主体
 
 | 字段 | 类型 | 默认 | 说明 |
@@ -528,10 +552,10 @@
 - `width ''` / `height ''`(全局默认宽高，空=自然尺寸；单位白名单 px/%/vw/vh/rem，纯数字按 px)
 - `minWidth '320px'` / `minHeight '200px'`(下限，始终生效)
 - `maxWidth 'none'` / `maxHeight 'none'`(`none`=不限制；`scroll` 模式下可横向滚动，设 `'100%'`/`'70vh'` 可强制限制)
-- `fit 'scroll'`(`scroll`=不缩放、超宽容器横向滚动（推荐，时序图/宽图不挤压） / `scale`=缩放到容器宽度（旧行为）)
+- `fit 'scroll'`(`scroll`=不缩放、超宽容器横向滚动（推荐，时序图/宽图不挤压） / `scale`=缩放到容器宽度)
 - 单图覆盖：代码块语言标记后追加 `w=` / `h=`，如 ` ```mermaid w=900 h=520 `；不填项走全局，非法值忽略并回退默认 — `scripts/build.js`(解析) + `templates/layout.ejs`(应用)
 
-`clientOptions` 子块 — 客户端 `mermaid.initialize` 选项透传（默认值与历史硬编码逐字一致）：
+`clientOptions` 子块 — 客户端 `mermaid.initialize` 选项透传（默认值与客户端初始化默认逐字一致）：
 - 内建动态默认（可被覆盖）：`startOnLoad false`、`theme`（跟随站点深浅；`followTheme=false` 时固定明色）、`fontFamily`（正文字体，空回退 `sans-serif`）、各图种 `useMaxWidth`（`size.fit='scale'` 时为 `true`，`scroll` 时为 `false`）
 - `securityLevel 'strict'`（可填 `strict|loose|antiscript|sandbox`；仅客户端渲染，构建期 SSR 固定 `strict`）
 - `flowchart.htmlLabels false`（true 有 XSS 面）/ `flowchart.curve 'basis'`（`basis` 平滑 | `linear` 折线 | `cardinal|monotoneX|monotoneY|step` 等 CurveFactory 名）
@@ -936,11 +960,11 @@ sitemap: {
 
 ### 3.79 boot — 启动调度
 
-`enabled true`（false = 旧行为：全部模块立即初始化）/ `idleTimeoutMs 800`（`requestIdleCallback` 超时兜底）/ `interactionWake true`（首次点击/按键/触摸/滚轮立即唤醒后续切片，保 INP）/ `log false`（`[boot]` 时间线）/ `budgetMs 40`（每批时间片上限，越大越快但更易长任务；推荐 30-50）/ `heavyMode 'idle'`（重模块时机：`idle` 空闲即启 | `interaction` 等首次交互或兜底 | `immediate` 不等待）/ `idleFallbackMs 120`（无 `requestIdleCallback` 浏览器的回退间隔）/ `interactionEvents ['pointerdown','keydown','touchstart','wheel']`（唤醒事件名列表，可增删如 `scroll`）/ `configTimeoutMs 3000`（外置配置加载超时 ms；构建期经 `window.__CONFIG_TIMEOUT__` 注入、`js/core/runtime.js` 读取，超时降级内联最小子集）。机制：仅 14 个关键模块静态初始化；17 个交互类模块动态导入、按 `budgetMs` 空闲切片加载；重模块（粒子背景/打赏）按 `heavyMode` 时机启动；时间线写入 `window.__BOOT__`（start/critEnd/idleEnd/heavyEnd/budgetMs/heavyMode），完成后置 `window.__APP_READY__`。实测启动后长任务为 0（原两个长任务 238ms+66ms 已消除） — `js/core/main.js` + `js/core/boot.js`。
+`enabled true`（false = 全部模块立即初始化，简单直接但可能出现长任务）/ `idleTimeoutMs 800`（`requestIdleCallback` 超时兜底）/ `interactionWake true`（首次点击/按键/触摸/滚轮立即唤醒后续切片，保 INP）/ `log false`（`[boot]` 时间线）/ `budgetMs 40`（每批时间片上限，越大越快但更易长任务；推荐 30-50）/ `heavyMode 'idle'`（重模块时机：`idle` 空闲即启 | `interaction` 等首次交互或兜底 | `immediate` 不等待）/ `idleFallbackMs 120`（无 `requestIdleCallback` 浏览器的回退间隔）/ `interactionEvents ['pointerdown','keydown','touchstart','wheel']`（唤醒事件名列表，可增删如 `scroll`）/ `configTimeoutMs 3000`（外置配置加载超时 ms；构建期经 `window.__CONFIG_TIMEOUT__` 注入、`js/core/runtime.js` 读取，超时降级内联最小子集）。机制：仅 14 个关键模块静态初始化；17 个交互类模块动态导入、按 `budgetMs` 空闲切片加载；重模块（粒子背景/打赏）按 `heavyMode` 时机启动；时间线写入 `window.__BOOT__`（start/critEnd/idleEnd/heavyEnd/budgetMs/heavyMode），完成后置 `window.__APP_READY__`。实测启动后长任务为 0（原两个长任务 238ms+66ms 已消除） — `js/core/main.js` + `js/core/boot.js`。
 
 ### 3.80 imageFit — 图片适配（四域）
 
-`enabled true`。**四域**：`content`（正文图片：`upscale 'never'`（默认不放大）| `'cap'` 最多放大 `cap 1.5` 倍 | `'full'` 铺满；`maxHeightVh 0` 限高（如 60=最多 60vh）；`align 'center'|'left'`）· `cover`（封面与卡片：`fit 'cover'|'contain'|'fill'`；`position 'center'|'top'|'bottom'|'left'|'right'` 或自定义 `'50% 30%'` 焦点；`maxHeightVh 0` 封面限高；`aspect ''` 封面宽高比（空 = 模板默认 16/10，如 `'16/9'`、`'21/9'`）；`applyToCards true` 是否同时作用于列表卡片封面）· `gallery`（`stretch false` 小图不再被拉伸（修复旧版变形）| `true` 旧行为；`maxHeightPx 0` 单图限高）· `lightbox`（`fit 'contain'`（默认）| `'actual'` 原始尺寸；`maxWidthPct 92` 最大宽（vw）、`maxHeightVh 82` 最大高）。实现（运行时零 JS）：构建期为图片注入 `data-iw`（自然宽）并在 cap 模式生成 `[data-iw]` 宽度规则；四域分别烘焙为 `--if-*` CSS 变量 — `scripts/build.js` + `templates/layout.ejs` + `scripts/lib/utils.js`。
+`enabled true`。**四域**：`content`（正文图片：`upscale 'never'`（默认不放大）| `'cap'` 最多放大 `cap 1.5` 倍 | `'full'` 铺满；`maxHeightVh 0` 限高（如 60=最多 60vh）；`align 'center'|'left'`）· `cover`（封面与卡片：`fit 'cover'|'contain'|'fill'`；`position 'center'|'top'|'bottom'|'left'|'right'` 或自定义 `'50% 30%'` 焦点；`maxHeightVh 0` 封面限高；`aspect ''` 封面宽高比（空 = 模板默认 16/10，如 `'16/9'`、`'21/9'`）；`applyToCards true` 是否同时作用于列表卡片封面）· `gallery`（`stretch false` 小图不再被拉伸（避免变形，推荐）| `true` 拉伸铺满列宽；`maxHeightPx 0` 单图限高）· `lightbox`（`fit 'contain'`（默认）| `'actual'` 原始尺寸；`maxWidthPct 92` 最大宽（vw）、`maxHeightVh 82` 最大高）。实现（运行时零 JS）：构建期为图片注入 `data-iw`（自然宽）并在 cap 模式生成 `[data-iw]` 宽度规则；四域分别烘焙为 `--if-*` CSS 变量 — `scripts/build.js` + `templates/layout.ejs` + `scripts/lib/utils.js`。
 
 ### 3.81 exportBackup — 备份导出
 
@@ -1065,7 +1089,7 @@ listCover: {
 
 ### 3.98 continueReading — 继续阅读卡片（首页最近阅读 + 单条移除/一键清空）
 
-`enabled true` / `count 3`（展示条数，非法/小于 1 回退 3） / `showProgress true`（进度条与百分比；旧记录无进度字段按 0%） / `storageKey 's-history'`（与 `features.readingHistory.storageKey` 共用同一份阅读历史，留空依次回退 → `'s-history'`） / `removeLabel '移除'` / `removeLabelEn ''`（单条移除按钮文案；zh 空回退内置、en 空回退 `ui-strings.continueReading.remove`） / `clearLabel '清空'` / `clearLabelEn ''`（一键清空按钮文案，回退链同上，取 `ui-strings.continueReading.clear`） / `removeDelayMs 360`（单条移除动画兜底等待 ms；非负，非法回退 360） / `clearConfirmMs 3000`（清空按钮 armed 态等待窗口 ms；≥1，非法回退 3000）。
+`enabled true` / `count 3`（展示条数，非法/小于 1 回退 3） / `showProgress true`（进度条与百分比；缺少 p 字段的记录按 0%） / `storageKey 's-history'`（与 `features.readingHistory.storageKey` 共用同一份阅读历史，留空依次回退 → `'s-history'`） / `removeLabel '移除'` / `removeLabelEn ''`（单条移除按钮文案；zh 空回退内置、en 空回退 `ui-strings.continueReading.remove`） / `clearLabel '清空'` / `clearLabelEn ''`（一键清空按钮文案，回退链同上，取 `ui-strings.continueReading.clear`） / `removeDelayMs 360`（单条移除动画兜底等待 ms；非负，非法回退 360） / `clearConfirmMs 3000`（清空按钮 armed 态等待窗口 ms；≥1，非法回退 3000）。
 
 首页在卡片区上方渲染最近读过的 `count` 篇（按时间倒序、同 URL 去重、排除当前页），每张卡片含标题、进度条（`role="progressbar"` + `aria-valuenow`，文案取 `ui-strings.continueReading.progress`）与相对时间（`Intl.RelativeTimeFormat` 双语）。管理交互：区头右侧「清空」按钮（轻确认：首次点击进入 armed 态并显示 `ui-strings.continueReading.clearConfirm`，3 秒内再次点击执行，超时自动复位；非阻塞弹窗）；每卡右上「×」移除按钮（`aria-label` = 移除文案 + 标题，原生按钮键盘可达）；两者均写回同一存储键——移除经 `removeByUrl` 保留其余记录原始字段（不经归一化重写数据源）并按 `features.readingHistory.maxStored` 重算上限，清空写入空列表；单条移除带动画后即时更新，全部移除或清空后整块隐藏。点击卡片链接走软导航（文档级委托自动接管）。进度由 `features.readingHistory` 记录时写入（滚动 800ms 节流 + `pagehide` 落盘，字段 `lang`/`p`），**只读同一份 localStorage，不新建数据源**；`enabled:false` 时首页回退旧的 `readingHistory` 列表块。构建/运行时模块 — `js/domains/features/continue-reading.js` + `templates/index.ejs` + `templates/site-css.ejs`。
 

@@ -316,9 +316,9 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     if (fs.existsSync(mermaidPage)) {
       const mmHtml = fs.readFileSync(mermaidPage, 'utf-8');
       if (resolveChromePath('')) {
-        assert.ok(mmHtml.includes('class="mermaid mermaid-ssr"'), 'mermaid article must inline SSR diagrams');
-        assert.ok(/<svg[^>]*class="mm-svg mm-light"/.test(mmHtml), 'mermaid SSR must embed an inline light <svg>');
-        assert.ok(/<svg[^>]*class="mm-svg mm-dark"/.test(mmHtml), 'mermaid SSR must embed an inline dark <svg> (dual theme)');
+        assert.ok(/class=(?:"mermaid mermaid-ssr"|'mermaid mermaid-ssr')/.test(mmHtml), 'mermaid article must inline SSR diagrams');
+        assert.ok(/<svg[^>]*class=(?:"mm-svg mm-light"|'mm-svg mm-light')/.test(mmHtml), 'mermaid SSR must embed an inline light <svg>');
+        assert.ok(/<svg[^>]*class=(?:"mm-svg mm-dark"|'mm-svg mm-dark')/.test(mmHtml), 'mermaid SSR must embed an inline dark <svg> (dual theme)');
         assert.ok(!mmHtml.includes('/assets/vendor/mermaid.min.js') && !mmHtml.includes('data-mm-src'), 'SSR page must not request the mermaid vendor');
         assert.ok(!mmHtml.includes('data-mm-pending'), 'all diagrams must render server-side in a Chrome-enabled environment');
       } else {
@@ -338,9 +338,11 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
         const idx = helloHtml.indexOf('E = mc');
         return idx < 0 ? '(E = mc 不存在)' : helloHtml.slice(Math.max(0, idx - 120), idx + 120);
       })();
-      assert.ok(helloHtml.includes('class="math-inline"') && helloHtml.includes('data-tex="E = mc^2"'),
+      assert.ok(/class=(?:"math-inline"|'math-inline'|math-inline)(?=[\s>])/.test(helloHtml)
+        && helloHtml.includes('data-tex="E = mc^2"'),
         `inline math must be emitted as a data-tex placeholder [diag: ${mathDiag}]`);
-      assert.ok(helloHtml.includes('class="math-block"') && helloHtml.includes('data-tex="\\int_0^1'),
+      assert.ok(/class=(?:"math-block"|'math-block'|math-block)(?=[\s>])/.test(helloHtml)
+        && helloHtml.includes('data-tex="\\int_0^1'),
         'block math must be emitted as a data-tex placeholder');
       const bodyText = helloHtml.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
       assert.ok(!bodyText.includes('$$'), 'math artifacts must not contain bare $$ outside scripts/styles');

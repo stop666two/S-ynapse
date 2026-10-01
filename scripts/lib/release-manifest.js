@@ -62,6 +62,7 @@ const RELEASE_ROOT_FILES = Object.freeze([
   'serve.bat',          // Windows 一键构建 + 本地预览
   'eslint.config.js',   // ESLint 10 扁平配置（npm run lint 必需）
   'tsconfig.json',      // TypeScript checkJs 配置（npm run typecheck 必需）
+  '.nvmrc',             // Node 版本约定（verify:internals 与 CI 读取）
   'wrangler.toml'       // Cloudflare Pages 部署配置（deploy:pages / README 方式一）
 ]);
 
@@ -99,6 +100,8 @@ const RELEASE_REQUIRED_FILES = Object.freeze([
   'serve.bat',
   'eslint.config.js',
   'tsconfig.json',
+  '.nvmrc',
+  'internals.json5',
   'wrangler.toml',
   'site.json5',
   'theme.json5',

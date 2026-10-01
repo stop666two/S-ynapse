@@ -9,7 +9,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { readZipEntries, archiveRelease, assertVersionConsistency, resolveVersion } = require('./release-archive.js');
+const { readZipEntries, archiveRelease, assertVersionConsistency, resolveVersion, readJsonAtRef } = require('./release-archive.js');
 const { assertArchiveContents, isReleaseAllowed, RELEASE_REQUIRED_FILES, RELEASE_REQUIRED_DIRS, RELEASE_EXCLUDE_PATTERNS } = require('./lib/release-manifest.js');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -155,8 +155,17 @@ test('resolveVersion：真实 HEAD 返回 package.json 一致的版本（版本�
     t.skip('发布包不含 .git，真实 HEAD 版本读取在源码仓库执行');
     return;
   }
-  const current = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8')).version;
-  assert.strictEqual(resolveVersion('HEAD'), current);
+  const pkgVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8')).version;
+  const headMarker = readJsonAtRef('HEAD', 'RELEASE.json');
+  assert.ok(headMarker && typeof headMarker.version === 'string', 'HEAD 应包含 RELEASE.json 且含版本');
+  assert.strictEqual(resolveVersion('HEAD'), headMarker.version);
+  if (headMarker.version === pkgVersion) return;
+  // 工作树版本领先于已标记版本：属于尚未发布的版本提升，目标 tag 必须不存在
+  const tagProbe = spawnSync('git', ['rev-parse', '-q', '--verify', 'refs/tags/v' + pkgVersion], {
+    cwd: ROOT,
+    encoding: 'utf-8'
+  });
+  assert.notStrictEqual(tagProbe.status, 0, '未发布版本提升不应已存在 tag v' + pkgVersion);
 });
 
 test('readZipEntries：非 ZIP 文件抛错；排除模式覆盖关键敏感目录', function () {

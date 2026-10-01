@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-01
+
 ### Fixed
 
 - **损坏 featuredImage 悬空引用（0 字节/截断 PNG 等）**：头图源文件存在但 sharp 处理失败时，页面/卡片此前继续引用产物中不存在的 `/media/<file>`（404 且无回退）。修复：`scripts/build/media.js` 登记本轮优化失败清单（新增 `getBrokenMedia` 闭包状态），`scripts/build/articles.js` 新增 `markBrokenFeaturedImages`（匹配规则来自 `scripts/lib/content-validate.js` 新增的 `createBrokenMediaMatcher`，覆盖查询串/Windows 分隔符与产物变体名），在自动封面生成前把损坏头图视为无封面——原引用保留于 `featuredImageBroken` 仅供报告与排查，卡片/文章页回退自动封面（关闭时为 pattern），feeds/搜索索引/上下篇投影不再残留悬空路径；构建报告 `[告警]` 段记录回退来源与文件名。测试：新增 `scripts/featured-image-fallback.test.js`（匹配器与回退纯函数）与 `scripts/malicious.test.js`「featuredImage 损坏回退自动封面」集成场景（0 字节头图 + 自动封面开启 → 文章页/首页/feed/搜索索引零悬空引用 + 报告告警）。文档：`docs/config-reference.md` 自动封面段落同步语义。
@@ -755,6 +757,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [1.1.0]: https://github.com/stop666two/S-ynapse/releases/tag/v1.1.0
 [1.0.1]: https://github.com/stop666two/S-ynapse/releases/tag/v1.0.1
-[Unreleased]: https://github.com/stop666two/S-ynapse/compare/v1.1.0-a1...HEAD
+[Unreleased]: https://github.com/stop666two/S-ynapse/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/stop666two/S-ynapse/releases/tag/v1.2.0
 [1.1.0-a1]: https://github.com/stop666two/S-ynapse/releases/tag/v1.1.0-a1
 [1.1.0-a2]: https://github.com/stop666two/S-ynapse/releases/tag/v1.1.0-a2

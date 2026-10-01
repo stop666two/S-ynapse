@@ -340,6 +340,73 @@ function createConfigModule(ctx) {
     }
   }
 
+  // 按点路径安全读取配置值：任一段缺失或非对象时返回 undefined（不抛错）。
+  function lookupPath(root, pathExpr) {
+    let cur = root;
+    for (const seg of pathExpr.split('.')) {
+      if (cur == null || typeof cur !== 'object') return undefined;
+      cur = cur[seg];
+    }
+    return cur;
+  }
+
+  // 可执行协议单值校验：仅字符串值参与（非字符串/空值跳过），命中即记录统一格式错误。
+  function checkUrl(errors, label, url) {
+    if (typeof url === 'string' && url && hasUnsafeLinkScheme(url)) {
+      errors.push(label + ' uses an unsafe scheme (javascript:/vbscript:/data:): ' + url.slice(0, 80));
+    }
+  }
+
+  // URL 型配置出口的可执行协议校验：javascript:/vbscript:/data: 一律拒绝，
+  // https/站内相对路径不受影响。覆盖所有会写入 <a href>、<script src>、<link href>
+  // 或客户端 window.open 的配置值。
+  // 边界（有意不校验）：
+  //   · <img>/<video> 的 src/poster：javascript: 不执行，data: 图片是合法载荷（媒体属性另有 restrictMediaAttrs 限制）；
+  //   · fetch 型端点（features.dailyQuote.api.endpoint）：浏览器 fetch 拒绝非 http(s)，非 XSS 汇点；
+  //   · 原始 HTML 字段（site.customHead/customBody*/footer.*.html 等）：按设计为可信作者内容，无法做构建期协议校验；
+  //   · rss.path/jsonFeed.path：模板以语言前缀（/zh/ 等）拼接为相对段，不构成裸 URL；
+  //   · security.csp.directives：写入 HTTP 响应头而非 HTML 属性。
+  function validateUrlExits(config, errors) {
+    const each = function (pathExpr, pick) {
+      const list = lookupPath(config, pathExpr);
+      if (!Array.isArray(list)) return;
+      list.forEach(function (item, i) {
+        if (typeof item === 'string') checkUrl(errors, pathExpr + '[' + i + ']', item);
+        else if (item && typeof item === 'object' && pick) checkUrl(errors, pathExpr + '[' + i + '].' + pick, item[pick]);
+      });
+    };
+    ['site.repoUrl', 'site.hero.ctaUrl', 'site.reward.wechat.url', 'site.reward.alipay.url',
+      'features.hero.ctaUrl', 'features.stats.linkArchive', 'features.subscribe.newsletterUrl',
+      'features.announcement.url', 'features.analytics.scriptSrc', 'guard.contextMenu.translateUrl']
+      .forEach(function (p) { checkUrl(errors, p, lookupPath(config, p)); });
+    each('theme.externalAssets.styles', 'href');
+    each('theme.externalAssets.scripts', 'src');
+    each('site.performance.preconnect');
+    each('site.authorProfile.socials', 'url');
+    each('site.reward.custom', 'url');
+    each('friends.friends', 'url');
+    each('features.announcement.items', 'url');
+    each('features.reward.links', 'url');
+    each('navigation.menu', 'url');
+    each('footer.bottomLinks.items', 'url');
+    const columns = lookupPath(config, 'footer.columnItems.items');
+    if (Array.isArray(columns)) {
+      columns.forEach(function (column, i) {
+        if (!column || !Array.isArray(column.links)) return;
+        column.links.forEach(function (link, j) {
+          if (link && link.url) checkUrl(errors, 'footer.columnItems.items[' + i + '].links[' + j + '].url', link.url);
+        });
+      });
+    }
+    const social = lookupPath(config, 'site.social.items');
+    if (social && typeof social === 'object') {
+      for (const key of Object.keys(social)) {
+        const item = social[key];
+        if (item && item.url) checkUrl(errors, 'site.social.items.' + key + '.url', item.url);
+      }
+    }
+  }
+
   // Validate merged config for required fields and suspicious values.
   // Returns boolean. Errors = build-stopping problems. Warnings = advisory only.
   // Caller must check the return value and abort if false.
@@ -386,26 +453,10 @@ function createConfigModule(ctx) {
       for (const item of config.navigation.menu) {
         if (!item.label) errors.push('navigation.menu item missing label');
         if (!item.url) errors.push('navigation.menu item missing url');
-        if (item.url && hasUnsafeLinkScheme(item.url)) errors.push('navigation.menu item url uses an unsafe scheme (javascript:/vbscript:/data:): ' + String(item.url).slice(0, 80));
       }
     }
-    // 社交/页脚链接直接进入 <a href>：配置层拒绝可执行协议，避免构建产物自带 XSS 向量。
-    const socialItems = config.site && config.site.social && config.site.social.items;
-    if (socialItems && typeof socialItems === 'object') {
-      for (const [key, item] of Object.entries(socialItems)) {
-        if (item && item.url && hasUnsafeLinkScheme(item.url)) {
-          errors.push('site.social.items.' + key + '.url uses an unsafe scheme (javascript:/vbscript:/data:): ' + String(item.url).slice(0, 80));
-        }
-      }
-    }
-    const footerLinkItems = []
-      .concat((config.footer && config.footer.bottomLinks && config.footer.bottomLinks.items) || [])
-      .concat((config.footer && config.footer.columnItems && config.footer.columnItems.items) || []);
-    for (const item of footerLinkItems) {
-      if (item && item.url && hasUnsafeLinkScheme(item.url)) {
-        errors.push('footer link url uses an unsafe scheme (javascript:/vbscript:/data:): ' + String(item.url).slice(0, 80));
-      }
-    }
+    // 社交/导航/页脚/外链资源等 URL 出口统一拒绝可执行协议，避免构建产物自带 XSS 向量。
+    validateUrlExits(config, errors);
 
     if (config.sidebar && config.sidebar.enabled && config.sidebar.widgets) {
       const validTypes = ['author', 'recent', 'tags', 'categories', 'archive', 'search', 'custom', 'newsletter', 'toc', 'series', 'friends', 'stats', 'quote'];

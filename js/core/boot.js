@@ -4,6 +4,9 @@
 // 保证降级路径（__CONFIG_OK__=false）不会因缺少 features 抛错。
 let L = {};
 let B = {};
+// 首帧让步的兜底上限（毫秒）：页面处于隐藏/预渲染态时 rAF 不产生回调，
+// 不得让关键队列等待首帧而永久挂起。
+const FIRST_FRAME_FALLBACK_MS = 300;
 function log(msg) { if (B.log) console.info('[boot] ' + Math.round(performance.now()) + 'ms ' + msg); }
 function yieldToMain() {
   if (typeof scheduler !== 'undefined' && typeof scheduler.yield === 'function') return scheduler.yield();
@@ -122,8 +125,14 @@ export async function boot(queues) {
 
   // 首帧让步：先让浏览器完成首次 paint（LCP 图已在 HTML/CSS 中可见），
   // 再同步启动关键队列，避免初始化长任务把 LCP 绘制推迟到队列结束之后。
+  // 隐藏/预渲染页不产生帧（rAF 无回调）：直接放行并设超时兜底，
+  // 否则关键队列在后台标签页等无帧场景会永久挂起（交互初始化不执行）。
   await new Promise(function (resolve) {
-    requestAnimationFrame(function () { setTimeout(resolve, 0); });
+    if (document.hidden) { resolve(); return; }
+    let settled = false;
+    const finish = function () { if (!settled) { settled = true; resolve(); } };
+    requestAnimationFrame(function () { setTimeout(finish, 0); });
+    setTimeout(finish, FIRST_FRAME_FALLBACK_MS);
   });
 
   const critical = (queues && queues.critical) || [];

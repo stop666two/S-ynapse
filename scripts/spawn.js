@@ -68,7 +68,19 @@ if (opts.log) {
 }
 
 const detached = process.platform !== 'win32';
-const child = spawn(cmd, args, {
+const isWindows = process.platform === 'win32';
+
+// Windows 上 npm/npx 等为 .cmd 包装脚本，Node 直接 spawn 会 ENOENT；
+// 统一经 ComSpec 执行并做最小引号包装（参数含空白或 cmd 元字符时加引号）。
+function winQuote(value) {
+  return /[\s"^&|<>]/.test(value) ? `"${value.replace(/"/g, '\\"')}"` : value;
+}
+const actualCmd = isWindows ? (process.env.ComSpec || 'cmd.exe') : cmd;
+const actualArgs = isWindows
+  ? ['/d', '/s', '/c', [cmd, ...args].map(winQuote).join(' ')]
+  : args;
+
+const child = spawn(actualCmd, actualArgs, {
   stdio: ['ignore', outFd, outFd],
   env,
   detached,

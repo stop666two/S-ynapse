@@ -63,6 +63,17 @@ function pageCacheKey(relPath, inputFingerprint, algo) {
   return hashContent(String(relPath) + '\u0000' + String(inputFingerprint), algo);
 }
 
+// 增量复用时刷新旧产物中的 CSP nonce：指纹会归一化 nonce（同一页面数据在不同构建进程
+// 必须得到相同键），因此复用命中时页面 HTML 里仍是上一次构建的 nonce，而 _headers/Worker
+// 使用本次构建的新 nonce —— 不刷新会被严格 CSP 拦截。按字面量整体替换（属性与策略两种形态）。
+function replaceNonce(html, oldNonce, newNonce) {
+  const text = String(html == null ? '' : html);
+  const from = String(oldNonce == null ? '' : oldNonce);
+  const to = String(newNonce == null ? '' : newNonce);
+  if (!from || from === to) return text;
+  return text.split(from).join(to);
+}
+
 // 模板目录摘要：所有 .ejs 文件按名排序后内容拼接散列（任一模板变化 → 全部页面指纹变化）。
 function hashTemplateDir(dir, algo) {
   let files;
@@ -100,4 +111,4 @@ function computeIncrementalContext(features, options) {
   };
 }
 
-module.exports = { normalizeHashAlgo, hashContent, stableSerialize, pageCacheKey, hashTemplateDir, computeIncrementalContext };
+module.exports = { normalizeHashAlgo, hashContent, stableSerialize, pageCacheKey, hashTemplateDir, replaceNonce, computeIncrementalContext };

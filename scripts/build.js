@@ -156,7 +156,7 @@ async function build() {
     markPhase('config', startTime);
     if (hooks && hooks.preBuild) await hooks.preBuild(config);
     const preflightStartedAt = Date.now();
-    const preflight = preflightContent();
+    const preflight = preflightContent(config);
     markPhase('preflight', preflightStartedAt);
     if (preflight.errors.length > 0) {
       for (const entry of preflight.errors) buildErrors.add(entry.stage, entry.message);

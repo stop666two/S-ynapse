@@ -9,6 +9,7 @@ const { marked } = require('marked');
 const { getAllFiles } = require('./fs-utils');
 const { preflightArticles, createMediaResolver } = require('../lib/content-validate');
 const { formatDate, safeSlug, validateSlug, applyCjkSpacingToHtml, extractToc, sanitizeHtml, truncateCodePoints, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode } = require('../lib/utils');
+const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
 const { makeArticleComparator, stripMarkdownText, mathConfig, mathNeeded, wordCountConfig } = require('../lib/feature-wiring');
 
 function createArticlesModule(ctx) {
@@ -50,11 +51,12 @@ function createArticlesModule(ctx) {
   // Read-only content preflight. Runs BEFORE dist/ is cleaned so content errors
   // never leave a half-written output directory. Checks duplicate slugs, invalid
   // dates, empty taxonomy entries and missing /media references.
-  function preflightContent() {
+  function preflightContent(config) {
     console.log('[preflight] Validating article content...');
     const errors = [];
     const items = [];
-    const LANGS = ['zh', 'en'];
+    // 语言目录以 site.languages 为准（纯语言站不再扫描未配置的语言目录）。
+    const LANGS = resolveSiteLanguages(config && config.site);
     const rel = (p) => path.relative(ctx.rootDir, p).split(path.sep).join('/');
     for (const lang of LANGS) {
       const langDir = path.join(ctx.articlesDir, lang);
@@ -94,7 +96,7 @@ function createArticlesModule(ctx) {
       console.log('  articles/ directory not found');
       return articles;
     }
-    const LANGS = ['zh', 'en'];
+    const LANGS = resolveSiteLanguages(config.site);
     const files = [];
     for (const lang of LANGS) {
       const langDir = path.join(ctx.articlesDir, lang);
@@ -202,6 +204,17 @@ function createArticlesModule(ctx) {
           ctx.recordBuildFailure('date', `${file}: frontmatter "date: ${date}" is not a valid date`);
           continue;
         }
+        // 更新时间（frontmatter modified/updated）：meta article:modified_time、JSON-LD dateModified
+        // 与 sitemap lastmod 优先使用；非法值忽略并告警（不阻断构建）。
+        const modifiedRaw = attrs.modified || attrs.updated || null;
+        let modified = null;
+        if (modifiedRaw) {
+          if (isNaN(new Date(modifiedRaw).getTime())) {
+            console.warn(`  [WARN] ${file}: frontmatter "modified: ${modifiedRaw}" is not a valid date; ignored.`);
+          } else {
+            modified = modifiedRaw;
+          }
+        }
         if (!date) {
           console.warn(`  [WARN] ${file}: no frontmatter date; article is sorted before dated posts (use "date: YYYY-MM-DD" to control order).`);
         }
@@ -287,7 +300,7 @@ function createArticlesModule(ctx) {
         // Auto OG image handled by scripts/generate-og.js (per-language PNG pipeline).
 
         articles.push({
-          slug, title, url, date, tags, categories, draft, pinned, series,
+          slug, title, url, date, modified, tags, categories, draft, pinned, series,
           lang, langPrefix: '/' + lang + '/',
           content: htmlContent,
           excerpt: excerptText,

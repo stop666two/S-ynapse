@@ -17,7 +17,8 @@ const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, c
 const { collectSeriesPages } = require('../lib/series-page');
 const { writeArticleMarkdown } = require('../lib/md-export');
 const { findAlternateArticle } = require('../lib/bilingual-pair');
-const { stableSerialize, pageCacheKey, hashTemplateDir } = require('../lib/incremental');
+const { stableSerialize, pageCacheKey, hashTemplateDir, replaceNonce } = require('../lib/incremental');
+const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
 const { pruneTo } = require('../lib/asset-cache');
 
 function createPagesModule(ctx) {
@@ -238,6 +239,8 @@ function createPagesModule(ctx) {
     const statsRawW4 = (config.features && config.features.stats) || {};
     return {
       site: config.site,
+      // 语言表（site.languages 归一化）：layout 注入 window.__LANGS__，根页/语言页与前端 langOf 共用。
+      siteLanguages: resolveSiteLanguages(config.site),
       theme: config.theme,
       features: config.features,
       uiStrings: config.uiStrings || {},
@@ -368,7 +371,7 @@ function createPagesModule(ctx) {
     console.log('Processing custom pages...');
     const createdSlugs = new Set();
     const customPages = [];
-    const langs = (config.site.languages && config.site.languages.length) ? config.site.languages : ['zh', 'en'];
+    const langs = resolveSiteLanguages(config.site);
     function parseOne(sourcePath, file, slugOverride) {
       const raw = fs.readFileSync(sourcePath, 'utf-8');
       const fm = frontMatter(raw);
@@ -517,7 +520,7 @@ function createPagesModule(ctx) {
     if (!layoutTemplate) { console.error('  [FATAL] layout.ejs not found in templates/'); recordBuildFailure('render', 'layout.ejs not found in templates/'); return; }
     const baseData = preBuiltBaseData || buildPageData(config, articles, collectTags(articles), collectCategories(articles));
 
-    const siteLangs = (config.site.languages && config.site.languages.length ? config.site.languages : ['zh', 'en']);
+    const siteLangs = resolveSiteLanguages(config.site);
 
     async function writeFile(relPath, content) {
       if (!content) return;
@@ -552,15 +555,28 @@ function createPagesModule(ctx) {
         const fullPath = path.join(ctx.distDir, relPath);
         const prev = pageCache.pages[relPath];
         if (prev && prev.key === key && fs.existsSync(fullPath)) {
-          skippedPages++;
-          pageKeys[relPath] = key;
-          if (verbose) console.log('  [incremental] skip: ' + relPath);
-          return;
+          // 指纹一致但 nonce 不同（跨构建进程复用）：不重渲染，只把旧产物中的 nonce 刷新为
+          // 本次构建值，保证与 _headers/Worker 的 CSP 同源（否则内联脚本/样式被拦截）。
+          if (typeof prev.nonce === 'string' && prev.nonce && prev.nonce !== ctx.cspNonce) {
+            const refreshed = replaceNonce(fs.readFileSync(fullPath, 'utf-8'), prev.nonce, ctx.cspNonce);
+            await writeFile(relPath, refreshed);
+            pageCache.pages[relPath] = { key: key, nonce: ctx.cspNonce };
+            pageKeys[relPath] = key;
+            rebuiltPages++;
+            return;
+          }
+          if (prev.nonce && prev.nonce === ctx.cspNonce) {
+            skippedPages++;
+            pageKeys[relPath] = key;
+            if (verbose) console.log('  [incremental] skip: ' + relPath);
+            return;
+          }
+          // 旧缓存条目未记录 nonce（升级前格式）：无法安全刷新，回退重渲染。
         }
         const html = renderPage(templateName, data, layoutTemplate, config);
         if (!html) return;
         await writeFile(relPath, typeof postProcess === 'function' ? postProcess(html) : html);
-        pageCache.pages[relPath] = { key: key };
+        pageCache.pages[relPath] = { key: key, nonce: ctx.cspNonce };
         pageKeys[relPath] = key;
         rebuiltPages++;
         return;
@@ -579,6 +595,52 @@ function createPagesModule(ctx) {
     const seriesCfg = baseData.seriesCfg || seriesConfig(config.features);
     // 文章导出配置（同上：baseData 归一化，生成块与模板 data 共用）。
     const exportCfg = baseData.exportCfg || exportArticleConfig(config.features);
+
+    // 首页数据构造（分页 + hero）：语言首页与根页共用同一实现。根页复用默认语言的完整投影
+    // （localizeSite/localizeNav/localizeFooter/ui 均已按该语言本地化），不得再读原始站点配置。
+    function buildIndexPageData(lang, ld, pubList, topTags, page) {
+      const postsPerPage = config.site.postsPerPage || 10;
+      const totalPages = Math.max(1, Math.ceil(pubList.length / postsPerPage));
+      const start = (page - 1) * postsPerPage;
+      const pageArticles = pubList.slice(start, start + postsPerPage);
+      const f = config.features;
+      const pf = '/' + lang + '/';
+      const heroEnabled = page === 1 && config.site.hero && config.site.hero.enabled !== false && f.hero.enabled !== false;
+      return {
+        ...ld,
+        articles: pageArticles,
+        heroData: heroEnabled ? {
+          title: (lang === 'en' && config.site.hero.titleEn) ? config.site.hero.titleEn : (config.site.hero.title || config.site.title),
+          subtitle: (lang === 'en' && config.site.hero.subtitleEn) ? config.site.hero.subtitleEn : (config.site.hero.subtitle || config.site.subtitle || config.site.description),
+          showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
+          showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
+          showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
+          ctaLabel: lang === 'en' ? (config.site.hero.ctaLabelEn || f.hero.ctaLabelEn) : (config.site.hero.ctaLabel || f.hero.ctaLabel),
+          ctaUrl: config.site.hero.ctaUrl || f.hero.ctaUrl,
+          searchPlaceholder: heroSearchPlaceholder(f, lang),
+          showDate: f.hero.showDate === true,
+          date: (pubList[0] && pubList[0].formattedDate) || '',
+          tagCount: config.site.hero.tagCount || f.hero.tagCount,
+          tags: topTags.slice(0, config.site.hero.tagCount || f.hero.tagCount)
+        } : null,
+        pagination: {
+          current: page,
+          total: totalPages,
+          prev: page > 1 ? (page === 2 ? pf : pf + 'page/' + (page - 1) + '/') : null,
+          next: page < totalPages ? pf + 'page/' + (page + 1) + '/' : null,
+          prevLabel: lang === 'en' ? 'Previous' : (config.site.paginationPrev || '上一页'),
+          nextLabel: lang === 'en' ? 'Next' : (config.site.paginationNext || '下一页'),
+          items: buildPaginationItems(totalPages, page, config.tuning && config.tuning.pagination && config.tuning.pagination.maxVisible, function (p) { return p === 1 ? pf : pf + 'page/' + p + '/'; })
+        },
+        currentUrl: page === 1 ? pf : pf + 'page/' + page + '/',
+        currentPage: 'index'
+      };
+    }
+
+    // 根页回退数据：默认语言缺失对应语言数据时（空配置等）仍给出可渲染的最小对象。
+    const langDataByLang = {};
+    const publishedByLang = {};
+    const topTagsByLang = {};
 
     for (const lang of siteLangs) {
       const pf = '/' + lang + '/';
@@ -622,45 +684,15 @@ function createPagesModule(ctx) {
         footer: localizeFooter(baseData.footer, pf, lang),
         sidebar: localizeSidebar(baseData.sidebar, lang)
       };
+      langDataByLang[lang] = langData;
+      publishedByLang[lang] = langPublished;
+      topTagsByLang[lang] = langTopTags;
 
       if (config.site.build.generateIndex !== false) {
         const postsPerPage = config.site.postsPerPage || 10;
         const totalPages = Math.max(1, Math.ceil(langPublished.length / postsPerPage));
         for (let page = 1; page <= totalPages; page++) {
-          const start = (page - 1) * postsPerPage;
-          const end = start + postsPerPage;
-          const pageArticles = langPublished.slice(start, end);
-          const f = config.features;
-          const heroEnabled = page === 1 && config.site.hero && config.site.hero.enabled !== false && f.hero.enabled !== false;
-          const data = {
-            ...langData,
-            articles: pageArticles,
-            heroData: heroEnabled ? {
-              title: (lang === 'en' && config.site.hero.titleEn) ? config.site.hero.titleEn : (config.site.hero.title || config.site.title),
-              subtitle: (lang === 'en' && config.site.hero.subtitleEn) ? config.site.hero.subtitleEn : (config.site.hero.subtitle || config.site.subtitle || config.site.description),
-              showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
-              showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
-              showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
-              ctaLabel: lang === 'en' ? (config.site.hero.ctaLabelEn || f.hero.ctaLabelEn) : (config.site.hero.ctaLabel || f.hero.ctaLabel),
-              ctaUrl: config.site.hero.ctaUrl || f.hero.ctaUrl,
-              searchPlaceholder: heroSearchPlaceholder(f, lang),
-              showDate: f.hero.showDate === true,
-              date: (langPublished[0] && langPublished[0].formattedDate) || '',
-              tagCount: config.site.hero.tagCount || f.hero.tagCount,
-              tags: langTopTags.slice(0, config.site.hero.tagCount || f.hero.tagCount)
-            } : null,
-            pagination: {
-              current: page,
-              total: totalPages,
-              prev: page > 1 ? (page === 2 ? pf : pf + 'page/' + (page - 1) + '/') : null,
-              next: page < totalPages ? pf + 'page/' + (page + 1) + '/' : null,
-              prevLabel: lang === 'en' ? 'Previous' : (config.site.paginationPrev || '上一页'),
-              nextLabel: lang === 'en' ? 'Next' : (config.site.paginationNext || '下一页'),
-              items: buildPaginationItems(totalPages, page, config.tuning && config.tuning.pagination && config.tuning.pagination.maxVisible, function (p) { return p === 1 ? pf : pf + 'page/' + p + '/'; })
-            },
-            currentUrl: page === 1 ? pf : pf + 'page/' + page + '/',
-            currentPage: 'index'
-          };
+          const data = buildIndexPageData(lang, langData, langPublished, langTopTags, page);
           await renderAndWrite(page === 1 ? lang + '/index.html' : lang + '/page/' + page + '/index.html', 'index.ejs', data);
         }
       }
@@ -807,54 +839,29 @@ function createPagesModule(ctx) {
         }
       }
     }
-    // Root / landing = zh index + auto language redirect script.
-    {
-      const rootLang = 'zh';
-      const pf = '/' + rootLang + '/';
-      const rp = getPublished(articles.filter(a => a.lang === rootLang));
-      const postsPerPage = config.site.postsPerPage || 10;
-      const totalPages = Math.max(1, Math.ceil(rp.length / postsPerPage));
-      const start = 0;
-      const end = start + postsPerPage;
-      const rootArticles = rp.slice(start, end);
-      const f = config.features;
-      const rt = collectTopTags(articles.filter(a => a.lang === rootLang), null, rootLang);
-      const heroEnabled = config.site.hero && config.site.hero.enabled !== false && f.hero.enabled !== false;
-      const rootData = {
-        ...baseData,
-        lang: rootLang,
-        langPrefix: pf,
-        articles: rootArticles,
-        allArticles: rp,
-        heroData: heroEnabled ? {
-          title: config.site.hero.title || config.site.title,
-          subtitle: config.site.hero.subtitle || config.site.subtitle || config.site.description,
-          showSearch: config.site.hero.showSearch !== false && f.hero.showSearch !== false,
-          showTags: config.site.hero.showTags !== false && f.hero.showTags !== false,
-          showCta: config.site.hero.showCta !== false && f.hero.showCta !== false,
-          ctaLabel: config.site.hero.ctaLabel || f.hero.ctaLabel,
-          ctaUrl: config.site.hero.ctaUrl || f.hero.ctaUrl,
-          searchPlaceholder: heroSearchPlaceholder(f, rootLang),
-          showDate: f.hero.showDate === true,
-          date: (rp[0] && rp[0].formattedDate) || '',
-          tagCount: config.site.hero.tagCount || f.hero.tagCount,
-          tags: rt.slice(0, config.site.hero.tagCount || f.hero.tagCount)
-        } : null,
-        pagination: {
-          current: 1, total: totalPages,
-          prev: null,
-          next: totalPages > 1 ? pf + 'page/2/' : null,
-          prevLabel: '上一页', nextLabel: '下一页',
-          items: buildPaginationItems(totalPages, 1, config.tuning && config.tuning.pagination && config.tuning.pagination.maxVisible, function (p) { return p === 1 ? pf : pf + 'page/' + p + '/'; })
-        },
-        currentUrl: pf,
-        currentPage: 'index'
-      };
-      // 语言跳转片段在 renderPage 之后插入，必须自行带上构建期 nonce（否则严格 CSP 下不执行）。
-      const redirectSnippet = '<script nonce="' + ctx.cspNonce + '">/*S-LANG-REDIRECT*/if(navigator.language&&/(en|en-US|en-GB|en-CA)/i.test(navigator.language)&&!localStorage.getItem("s-ss-lang")){location.replace("/en/");}</script>';
-      await renderAndWrite('index.html', 'index.ejs', rootData, function (rendered) {
-        return rendered.replace('</head>', redirectSnippet + '</head>');
-      });
+    // 根 / 落地页 = 默认语言（site.languages[0]）首页投影 + 浏览器语言跳转。
+    // 服务端 302 已按设计删除（_redirects 不再生成 `/` 规则），根页本身即完整默认语言首页。
+    // generateIndex=false 时与语言首页一致：不生成根页。
+    if (config.site.build.generateIndex !== false) {
+      const rootLang = siteLangs[0] || 'zh';
+      const rootLd = langDataByLang[rootLang];
+      if (rootLd) {
+        const rootData = buildIndexPageData(rootLang, rootLd, publishedByLang[rootLang] || [], topTagsByLang[rootLang] || [], 1);
+        // 跳转目标 = 语言表中第一个非默认语言；单语言站不输出跳转片段。
+        // 片段在 renderPage 之后插入，必须自行带上构建期 nonce（否则严格 CSP 下不执行）。
+        const altLangs = siteLangs.filter(function (l) { return l !== rootLang; });
+        let redirectSnippet = '';
+        if (altLangs.length) {
+          const alt = altLangs[0];
+          const altLower = String(alt).toLowerCase();
+          redirectSnippet = '<script nonce="' + ctx.cspNonce + '">/*S-LANG-REDIRECT*/if(navigator.language&&navigator.language.toLowerCase().indexOf(' + JSON.stringify(altLower) + ')===0&&!localStorage.getItem("s-ss-lang")){location.replace(' + JSON.stringify('/' + alt + '/') + ');}</script>';
+        }
+        await renderAndWrite('index.html', 'index.ejs', rootData, function (rendered) {
+          return redirectSnippet ? rendered.replace('</head>', redirectSnippet + '</head>') : rendered;
+        });
+      } else {
+        console.warn('  [WARN] 根页跳过：默认语言 ' + rootLang + ' 无页面数据');
+      }
     }
     if (incremental) {
       pruneTo(pageCache.pages, Object.keys(pageKeys));

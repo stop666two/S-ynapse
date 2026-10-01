@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **全页 a11y 告警清零与依赖安全升级（CI 告警项清除）**：`.pwa-install-close` 补 `inline-flex` 居中与 `min-width/min-height:24px` 命中区（WCAG 2.5.8 target-size）；`.code-scroll-hint` 删除 `opacity:.85`（浅色主题对比 4.25→5.6）、`.cr-clear` 前景由 `--color-tl` 改 `--color-ts`、`.fav-btn.faved` 文字由 `#fff` 改 `--color-surface`（暗色浅底 1.89→7.3）、offline 页 h1 不透明度 `.6→.7`；`scripts/a11y-audit.js` serve 关闭改为先注册 `exit` 监听再 `kill`（超时才 taskkill 兜底），消除"端口已释放但进程仍存活"的假阳性警告。依赖面：`npm audit fix`（非 force）把 brace-expansion 2.1.4→2.1.7、dompurify 3.4.15→3.4.16（新增解析的 resolved 指向官方 registry）；wrangler 链 undici/miniflare 需 wrangler 4.145.0（超出锁定 4.138.0），保持不动并记录残余。验证：`npm run audit:a11y` 87 页 ×2 主题 critical/serious/moderate/minor=0、httpFailures=0、serve 正常退出；`npm ci` 两次通过；`npm test` 948/948、`npm run test:build` 3/3、lint/typecheck 0 错。
 - **`stableSerialize` 丢 `__proto__` 键（fuzz 反例 `[{"__proto__":null}]`）**：JSON 值重建对象时普通赋值会触发原型 setter（JSON.parse 可产生该自有键），改用 `Object.defineProperty` 建自有属性；键排序、不可序列化值、循环引用与 nonce 归一化语义不变，并补确定性回归用例。重放 `TEST_SEED=3739047957 FC_NUM_RUNS=100 npm run test:fuzz` 通过。
 - **security-verify 构建污染真实 `dist`（test:smoke 成片 404 根因）**：CI 导出的 `SYNAPSE_OUT_DIR=<仓库>/dist` 使夹具站点被构建进真实 dist，随后 test:smoke 复用污染产物；`scripts/security-verify.js` 改用独立输出 `build-artifacts/sec-verify/site`（`--out` 显式隔离，不读取环境输出目录；成功即清理、失败保留现场），`_headers`/nonce/搜索索引/HTML 断言全部指向新目录。
 - **smoke-web 默认输出复用环境产物**：`scripts/smoke-web.js` 未显式传 `--out` 时默认输出改为 `build-artifacts/web-smoke/site`（缺失即构建，显式 `--out` 语义不变），CI 步骤顺序无关，不再复用任何环境 dist。

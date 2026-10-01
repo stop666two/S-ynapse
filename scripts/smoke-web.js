@@ -4,7 +4,9 @@
 // 浏览器冒烟（test:smoke）：真实构建产物 + 系统 Chrome 无头访问代表页集合，
 // 断言 HTTP 200、非空标题、通用 DOM 结构与零控制台错误。
 // 无 Chrome 环境跳过（exit 0 并打印 [SKIP]，与 verify:compression 的降级语义一致）。
-// 运行：npm run test:smoke [-- --out dist --build --chrome <path>]
+// 默认输出 build-artifacts/web-smoke/site（缺失即构建）：不复用环境中的 dist，
+// 步骤顺序无关；显式 --out 保持原义。
+// 运行：npm run test:smoke [-- --out <dir> --build --chrome <path>]
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -24,7 +26,7 @@ const { discoverArticlePath, pageExists } = require('./lib/compression-verify');
 const REPORT_DIR = path.join(PROJECT_ROOT, 'build-artifacts', 'web-smoke');
 
 function parseArgs(argv) {
-  const out = { outDir: path.join(PROJECT_ROOT, 'dist'), build: false, chrome: '', json: false };
+  const out = { outDir: path.join(PROJECT_ROOT, 'build-artifacts', 'web-smoke', 'site'), build: false, chrome: '', json: false };
   for (let i = 2; i < argv.length; i++) {
     const key = argv[i];
     const value = argv[i + 1];

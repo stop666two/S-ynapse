@@ -13,7 +13,7 @@ const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
 const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, truncateCodePoints, hasHighlightableCode } = require('../lib/utils');
-const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette, exportArticleConfig, bilingualConfig, stripMathText } = require('../lib/feature-wiring');
+const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette, exportArticleConfig, bilingualConfig, stripMathText, friendsSidebarCount, sidebarRecentPoolSize, errorPageConfig } = require('../lib/feature-wiring');
 const { collectSeriesPages } = require('../lib/series-page');
 const { writeArticleMarkdown } = require('../lib/md-export');
 const { findAlternateArticle } = require('../lib/bilingual-pair');
@@ -253,12 +253,14 @@ function createPagesModule(ctx) {
       security: config.security,
       allArticles: published,
       page: {},
-      recentPosts: published.slice(0, 10),
+      recentPosts: published.slice(0, sidebarRecentPoolSize(config.sidebar)),
       allTags: tags,
       allCategories: categories,
       archives: groupByYearMonth(published),
       seriesList: collectSeries(published),
       friends: friendsCfg,
+      friendsSidebarCount: friendsSidebarCount(friendsCfg),
+      errorPageCfg: errorPageConfig(config.features),
       galleryItems: collectGalleryImages(articles, { collectFeatured: galleryCollectFeatured(config.features) }),
       siteStats: collectSiteStats(articles, tags, categories),
       listCoverEnabled: !!(config.features && config.features.listCover && config.features.listCover.enabled !== false),
@@ -671,7 +673,7 @@ function createPagesModule(ctx) {
         allTags: langTags,
         categories: langCategories,
         allCategories: langCategories,
-        recentPosts: langPublished.slice(0, 10),
+        recentPosts: langPublished.slice(0, sidebarRecentPoolSize(config.sidebar)),
         archives: groupByYearMonth(langPublished),
         seriesList: seriesByLang[lang],
         // 系列聚合页链接（features.series.pageEnabled；模板侧单一来源；关闭或名称为空返回空串）。

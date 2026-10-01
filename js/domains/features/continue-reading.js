@@ -98,6 +98,11 @@ export function init() {
   var KEY = String(F.storageKey || RH.storageKey || 's-history');
   // 存储上限与阅读历史一致（features.readingHistory.maxStored，缺省/非法回退 50）。
   var maxStored = Number(RH.maxStored) > 0 ? Math.floor(Number(RH.maxStored)) : 50;
+  // 交互时长：移除动画兜底等待与清空确认窗口（缺省/非法回退 360 / 3000，保持历史行为）。
+  var rawRemoveDelay = Number(F.removeDelayMs);
+  var removeDelayMs = isNaN(rawRemoveDelay) || rawRemoveDelay < 0 ? 360 : rawRemoveDelay;
+  var rawConfirmMs = Number(F.clearConfirmMs);
+  var clearConfirmMs = isNaN(rawConfirmMs) || rawConfirmMs < 1 ? 3000 : Math.floor(rawConfirmMs);
   var count = parseInt(F.count, 10);
   if (isNaN(count) || count < 1) count = 3;
   var showProgress = F.showProgress !== false;
@@ -187,7 +192,7 @@ export function init() {
       render();
     }
     li.addEventListener('transitionend', finish);
-    setTimeout(finish, 360);
+    setTimeout(finish, removeDelayMs);
   }
   // 一键清空：二次点击轻确认（按钮进入 armed 态并显示确认文案，3 秒未确认自动复位）；
   // 确认后清空同一份历史并隐藏 section。非阻塞，无弹窗。
@@ -208,7 +213,7 @@ export function init() {
       btn.classList.add('cr-clear-armed');
       btn.setAttribute('aria-pressed', 'true');
       btn.textContent = T('continueReading.clearConfirm', '再次点击确认清空');
-      armTimer = setTimeout(disarm, 3000);
+      armTimer = setTimeout(disarm, clearConfirmMs);
       return;
     }
     disarm();

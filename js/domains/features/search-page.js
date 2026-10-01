@@ -15,6 +15,7 @@ export function init() {
   var excerptLen = num(TNS.excerptLength, num(F.excerptLength, 120));
   var wT = num(F.weightTitle, 5), wE = num(F.weightExcerpt, 2), wC = num(F.weightContent, 1);
   var mTags = F.matchTags !== false, mCats = F.matchCategories !== false, showCnt = F.showCount !== false;
+  var resultTagCount = Math.max(1, Math.floor(num(F.resultTagCount, 6)));
   var bigram = (F.index || {}).bigram !== false;
   var timeouts = { timeoutMs: num(TNS.indexTimeoutMs, 5000), retries: num(TNS.indexRetry, 1) };
   var shl = (window.__FEATURES__ || {}).searchHighlight || {};
@@ -83,7 +84,7 @@ export function init() {
       }
       var tagsHtml = '';
       if (r.tags && r.tags.length) {
-        tagsHtml = '<div class="post-tags search-result-tags">' + r.tags.slice(0, 6).map(function (t) {
+        tagsHtml = '<div class="post-tags search-result-tags">' + r.tags.slice(0, resultTagCount).map(function (t) {
           return '<span class="post-tag">' + esc(t) + '</span>';
         }).join('') + '</div>';
       }

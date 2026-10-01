@@ -11,10 +11,12 @@ export function init() {
   function saveDataState() {
     var F = window.__FEATURES__ || {}, SD = (F && F.saveDataMode) || {}, D = (SD.degrade || {});
     var on = SD.enabled !== false && document.documentElement.classList.contains('save-data');
+    var maxW = Number(D.lowResMaxWidthPx);
     return {
       on: on,
       lowRes: on && D.lowResImages !== false,
-      lazy: on && D.lazyAggressive !== false
+      lazy: on && D.lazyAggressive !== false,
+      lowResMaxWidthPx: isNaN(maxW) || maxW < 0 ? 0 : Math.floor(maxW)
     };
   }
 
@@ -28,25 +30,25 @@ export function init() {
   // <img> 重写：srcset 存在时选最小候选写回 src 并移除 srcset；<picture> 内兜底图
   // 从 source 中选最小候选（优先无 type 的原始格式，其次 webp——兜底图服务于不支持
   // <picture> 的老浏览器，尽量保持构建期「原格式兜底」语义）。幂等（data-sd-img 标记）。
-  function rewriteImg(img) {
+  function rewriteImg(img, maxWidth) {
     if (img.getAttribute('data-sd-img') === '1') return;
     var src = img.getAttribute('src') || '';
     var srcset = img.getAttribute('srcset') || '';
     var nat = naturalWidthOf(img);
-    var next = smallestImageUrl(src, srcset, nat);
+    var next = smallestImageUrl(src, srcset, nat, maxWidth);
     var picture = img.closest ? img.closest('picture') : null;
     if (picture && !srcset) {
       var primary = [], fallback = [];
       picture.querySelectorAll('source[srcset]').forEach(function (s) {
         var raw = s.getAttribute('srcset') || '';
-        var pick = smallestSrcsetUrl(raw, nat);
+        var pick = smallestSrcsetUrl(raw, nat, maxWidth);
         if (!pick) return;
         var t = String(s.getAttribute('type') || '').toLowerCase();
         if (!t) primary.push(pick);
         else if (t === 'image/webp') fallback.push(pick);
       });
       var candidates = primary.length ? primary : fallback;
-      if (candidates.length) next = smallestImageUrl(src, candidates.join(', '), nat);
+      if (candidates.length) next = smallestImageUrl(src, candidates.join(', '), nat, maxWidth);
     }
     if (next === src && !srcset) return;
     img.setAttribute('data-sd-img', '1');
@@ -67,14 +69,14 @@ export function init() {
   }
 
   // <picture> 各 <source> 重写为本格式内的最小候选（保留格式协商，仅降分辨率）。
-  function rewritePicture(picture) {
+  function rewritePicture(picture, maxWidth) {
     if (picture.getAttribute('data-sd-picture') === '1') return;
     var sources = picture.querySelectorAll('source[srcset]');
     if (!sources.length) return;
     picture.setAttribute('data-sd-picture', '1');
     sources.forEach(function (s) {
       var raw = s.getAttribute('srcset') || '';
-      var pick = smallestSrcsetUrl(raw, 0);
+      var pick = smallestSrcsetUrl(raw, 0, maxWidth);
       if (pick && pick !== raw) {
         s.setAttribute('data-sd-srcset', raw);
         s.setAttribute('srcset', pick);
@@ -115,8 +117,9 @@ export function init() {
   }
 
   function applyLowRes() {
-    document.querySelectorAll('picture').forEach(rewritePicture);
-    document.querySelectorAll('img').forEach(rewriteImg);
+    var maxW = saveDataState().lowResMaxWidthPx;
+    document.querySelectorAll('picture').forEach(function (p) { rewritePicture(p, maxW); });
+    document.querySelectorAll('img').forEach(function (i) { rewriteImg(i, maxW); });
   }
 
   function restoreLowRes() {
@@ -144,14 +147,17 @@ export function init() {
         i.style.backgroundImage = 'url("' + i.getAttribute('data-lqip') + '")';
       });
     }
+    // 与构建期模板合流：模板已标记的 eager 计入总数，运行时只补足到前 ef 张（合计恰好 ef）。
+    var eagerHave = document.querySelectorAll('img[loading=eager]').length;
+    var efNeed = Math.max(0, ef - eagerHave);
     var imgs = Array.prototype.slice.call(document.querySelectorAll('img:not([loading=eager])')).filter(function (i) {
       return i.getAttribute('data-lazy-bound') !== '1';
     });
-    for (var j = 0; j < Math.min(ef, imgs.length); j++) {
+    for (var j = 0; j < Math.min(efNeed, imgs.length); j++) {
       imgs[j].setAttribute('loading', 'eager');
       imgs[j].setAttribute('data-lazy-bound', '1');
     }
-    imgs.slice(ef).forEach(function (i) {
+    imgs.slice(efNeed).forEach(function (i) {
       i.setAttribute('data-lazy-bound', '1');
       if (fbimg && !i.getAttribute('data-fb')) i.setAttribute('data-fb', fbimg);
       if (!fade) return;

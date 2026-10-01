@@ -31,12 +31,13 @@
 <div class="blog-grid<%= (typeof tuning!=='undefined'&&tuning.card&&tuning.card.bentoFeatured===false)?'':' bento' %>">
 <% var _bentoOn = !(typeof tuning!=='undefined'&&tuning.card&&tuning.card.bentoFeatured===false); %>
 <% var _catCss = []; %>
+<% var _eagerFirstRaw = (typeof features!=='undefined'&&features.imageLazy&&features.imageLazy.eagerFirst!=null)?parseInt(features.imageLazy.eagerFirst,10):1; var _eagerFirst = isNaN(_eagerFirstRaw)||_eagerFirstRaw<0 ? 1 : _eagerFirstRaw; %>
 <% var _pcfg=(typeof pinnedCfg!=='undefined'&&pinnedCfg)||{showBadge:true,badgeStyle:'pill'}; articles.forEach(function(article, _ai) { %>
 <article class="post-card<%= (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.hoverShine!==false)?' card-shine':'' %>">
   <% var _coverSrc = (typeof coverSrc==='function') ? coverSrc(article) : (article.featuredImage || ''); %>
   <% if (_coverSrc && listCoverEnabled) { %>
   <a href="<%= article.url %>" class="card-media">
-    <img <%- (typeof cardCoverAttrs==='function') ? cardCoverAttrs(article) : cardImgAttrs(article.featuredImage) %> alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false) && !(_bentoOn && articles.indexOf(article)===0)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-card-image" loading="<%= _ai===0 ? 'eager' : 'lazy' %>"<% if (_ai===0) { %> fetchpriority="high"<% } %>>
+    <img <%- (typeof cardCoverAttrs==='function') ? cardCoverAttrs(article) : cardImgAttrs(article.featuredImage) %> alt="<%= article.title %>"<% if (!(typeof features!=='undefined'&&features.viewTransition&&features.viewTransition.shared===false) && !(_bentoOn && articles.indexOf(article)===0)) { %> data-vt="cover-<%= article.slug %>"<% } %> class="post-card-image" loading="<%= _ai < _eagerFirst ? 'eager' : 'lazy' %>"<% if (_ai===0) { %> fetchpriority="high"<% } %>>
     <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.coverOverlay!==false) { %><span class="card-overlay" aria-hidden="true"></span><% } %>
     <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.categoryChip!==false&&article.categories&&article.categories.length) { _catCss.push('.card-cat-h'+_ai+'{--cat-h:'+categoryHue(article.categories[0])+'}'); %><span class="card-cat card-cat-h<%= _ai %>"><%= article.categories[0] %></span><% } %>
     <% if (typeof features!=='undefined'&&features.cardFx&&features.cardFx.enabled!==false&&features.cardFx.readTimeBadge!==false&&article.readTime) { %><span class="card-time"><%= (typeof readTimeLabel==='function')?readTimeLabel(article.readTime, typeof lang!=='undefined'?lang:'zh'):ui('card.minute','{minutes} 分钟阅读').replace('{minutes}', article.readTime) %></span><% } %>

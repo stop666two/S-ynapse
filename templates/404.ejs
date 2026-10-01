@@ -1,6 +1,7 @@
 <div class="error-page">
+  <% var _epCfg = (typeof errorPageCfg!=='undefined'&&errorPageCfg)||{suggestCount:5,suggestTitle:'热门文章',suggestTitleEn:'热门文章',artAriaLabel:'404 illustration',artAriaLabelEn:'404 illustration'}; var _epEn = (typeof lang!=='undefined'&&lang==='en'); var _epArtLabel = _epEn ? _epCfg.artAriaLabelEn : _epCfg.artAriaLabel; %>
   <div class="error-art">
-    <svg class="error-svg" viewBox="0 0 600 320" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="404 illustration">
+    <svg class="error-svg" viewBox="0 0 600 320" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="<%= _epArtLabel %>">
       <defs>
         <linearGradient id="eg1" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stop-color="var(--color-s)"/>
@@ -37,11 +38,11 @@
     <a href="<%= (typeof langPrefix!=='undefined' ? langPrefix : '/zh/') %>" class="btn btn-primary" data-i18n="notFound.backHome"><%= ui('notFound.backHome', '返回首页') %></a>
     <button type="button" class="btn btn-outline" id="errSearchBtn" data-i18n="notFound.searchSite"><%= ui('notFound.searchSite', '站内搜索') %></button>
   </div>
-  <% if (typeof recentPosts !== 'undefined' && recentPosts && recentPosts.length) { %>
+  <% if (_epCfg.suggestCount > 0 && typeof recentPosts !== 'undefined' && recentPosts && recentPosts.length) { %>
     <div class="error-suggest">
-      <div class="error-suggest-title" data-i18n="notFound.hotArticles"><%= ui('notFound.hotArticles', '热门文章') %></div>
+      <div class="error-suggest-title" data-i18n="notFound.hotArticles"><%= _epEn ? (_epCfg.suggestTitleEn || ui('notFound.hotArticles', '热门文章')) : _epCfg.suggestTitle %></div>
       <div class="error-suggest-list">
-        <% recentPosts.slice(0, 5).forEach(function(p) { %>
+        <% recentPosts.slice(0, _epCfg.suggestCount).forEach(function(p) { %>
           <a class="error-suggest-item" href="<%= p.url %>">
             <span class="error-suggest-badge">›</span>
             <span class="error-suggest-name"><%= p.title %></span>

@@ -1,8 +1,7 @@
-const KEY = 's-readpos';
-
 export function init() {
   const F = window.__FEATURES__ || {}, RP = (F && F.readingProgress) || {};
   if (RP.enabled === false || RP.rememberPosition === false) return;
+  const KEY = String(RP.storageKey || 's-readpos');
   const maxAge = (isNaN(+RP.rememberPositionMaxAgeHours) ? 72 : +RP.rememberPositionMaxAgeHours) * 3600000;
   // 以下三键缺省/非法回退 160 / 80 / 400，均保持历史行为。
   const rawMin = +RP.minRestorePx;

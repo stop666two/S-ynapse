@@ -211,7 +211,7 @@ function createMinifyModule(ctx) {
   // Minify all JS files in a directory tree using Terser.
   // Optionally removes console.* statements when site.build.removeConsole is true.
   async function minifyJSInDir(dir, config) {
-    if (!config.site.build.minifyJS || !terser) return;
+    if (!config.site.build.minifyJS || ctx.noMinifyJs || !terser) return;
     if (!fs.existsSync(dir)) return;
     const files = ctx.getAllFiles(dir).filter(f => /\.js$/i.test(f));
     for (const file of files) {
@@ -645,7 +645,7 @@ function createMinifyModule(ctx) {
     await minifyHTMLInDir(ctx.distDir, config);
     await minifyInlineStylesInDir(ctx.distDir, config);
     await minifyCSSInDir(ctx.distDir, config);
-    if (!ctx.bundleActive) await minifyJSInDir(path.join(ctx.distDir, 'assets', 'js'), config);
+    if (!ctx.bundleActive && !ctx.noMinifyJs) await minifyJSInDir(path.join(ctx.distDir, 'assets', 'js'), config);
     // 基线快照紧贴增强阶段之前建立（内容 = 基线压缩后的字节）；无头验证在其后、cacheBust 之前，
     // 保证「哈希=最终字节」：一旦回退，参与内容哈希的就是回退后的产物。
     let baseline = null;
@@ -684,7 +684,7 @@ function createMinifyModule(ctx) {
     const types = [];
     if (config.site.build.minifyHTML) types.push('HTML');
     if (config.site.build.minifyCSS) types.push('CSS');
-    if (config.site.build.minifyJS) types.push('JS');
+    if (config.site.build.minifyJS && !ctx.noMinifyJs) types.push('JS');
     if (types.length)     console.log(`  Minified: ${types.join(', ')}`);
     else console.log('  [SKIP] Minification disabled');
     const stats = buildCompressionStats(statsBefore, snapshotCompressionStats());

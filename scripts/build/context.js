@@ -145,6 +145,10 @@ function createBuildContext(deps) {
   const SHOW_DRAFTS = argv.includes('--drafts') || WATCH_MODE;  // Include draft articles
   const ALLOW_DEGRADED = argv.includes('--allow-degraded');    // Local preview: continue past content failures (exit code stays 0)
   const BUNDLE_ACTIVE = bundleEnabled(argv, esbuildAvailable());   // esbuild 两段 chunk；--no-bundle 回退原生 ESM
+  // `--no-minify-js`：仅用于无头覆盖率等需要「产物行结构 = 源码行结构」的隔离构建，
+  // 跳过 no-bundle 模式下的 Terser 压缩（否则 CDP 偏移无法映射回 js/** 源码行）；
+  // 默认关闭，生产构建行为不变（打包模式压缩由 esbuild 承担，本开关不影响）。
+  const NO_MINIFY_JS = argv.includes('--no-minify-js');
 
   const CACHE_BUST_MANIFEST_PATH = path.join(DIST_DIR, 'cache-bust-manifest.json');
   const BUILD_CACHE_PATH = path.join(rootDir, '.build-cache.json');
@@ -397,6 +401,7 @@ function createBuildContext(deps) {
     distDir: DIST_DIR,
     cacheBustManifestPath: CACHE_BUST_MANIFEST_PATH,
     bundleActive: BUNDLE_ACTIVE,
+    noMinifyJs: NO_MINIFY_JS,
     getCompression: () => resolveCompressionState(),
     compressionBaselineDir: path.join(CACHE_ROOT, 'compression-baseline'),
     compressionVerifyReportPath: path.join(CACHE_ROOT, 'compression-verify', 'last.json'),

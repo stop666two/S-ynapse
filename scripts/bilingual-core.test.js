@@ -24,6 +24,7 @@ const { DEFAULT_FEATURES } = require('./lib/features-schema.js');
 const { bilingualConfig } = require('./lib/feature-wiring.js');
 
 test('resolveBilingualConfig：默认三开 + 1280；显式关闭；非法/越界断点夹取', async () => {
+  // switch: features.bilingual.enabled, features.bilingual.switch, features.bilingual.sideBySide, features.bilingual.breakpointPx, features.bilingual.fetchTimeoutMs, features.bilingual.resizeDebounceMs
   const c = await loadCore();
   const defaults = {
     enabled: true, switch: true, sideBySide: true, breakpointPx: 1280,
@@ -48,6 +49,7 @@ test('resolveBilingualConfig：默认三开 + 1280；显式关闭；非法/越�
 });
 
 test('bilingualConfig 与 bilingual-core 语义对拍（构建期 canonical = 运行时实现）', async () => {
+  // switch: features.bilingual.enabled, features.bilingual.switch, features.bilingual.sideBySide, features.bilingual.breakpointPx, features.bilingual.fetchTimeoutMs, features.bilingual.resizeDebounceMs
   const c = await loadCore();
   const cases = [{}, null, { enabled: false }, { breakpointPx: 100 }, { breakpointPx: 9999 }, { breakpointPx: 'abc' }, { switch: false }, { fetchTimeoutMs: 3200 }, { resizeDebounceMs: 0 }, { paneTitle: '  ' }, { paneTitleEn: 'EN' }];
   for (const raw of cases) {

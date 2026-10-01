@@ -19,6 +19,7 @@ const {
 const HASH_RX = /^[0-9a-f]{8}$/;
 
 describe('resolveAutoCoverConfig', () => {
+  // switch: features.listCover.autoGenerate.enabled, features.listCover.autoGenerate.width, features.listCover.autoGenerate.height, features.listCover.autoGenerate.format, features.listCover.autoGenerate.backgroundStyle, features.listCover.autoGenerate.showSiteName, features.listCover.autoGenerate.showCategory
   test('缺省时给出默认值（开启 / 1200x630 / webp / gradient / 站点名开 / 分类关）', () => {
     assert.deepStrictEqual(resolveAutoCoverConfig(undefined), {
       enabled: true,

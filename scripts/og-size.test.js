@@ -52,6 +52,7 @@ test('长边超上限时等比缩小（高图，取整不小于 1）', () => {
 });
 
 test('autoSize 关闭时忽略封面并回退默认（显式仍优先）', () => {
+  // switch: features.ogImage.autoSize.enabled
   const r = resolveOgSize({ covers: [{ width: 1920, height: 1080 }], autoSize: false });
   assert.deepStrictEqual(r, { width: 1200, height: 630, source: 'default', scaled: false });
   const e = resolveOgSize({ covers: [{ width: 1920, height: 1080 }], autoSize: false, explicitWidth: 900, explicitHeight: 300 });
@@ -59,6 +60,7 @@ test('autoSize 关闭时忽略封面并回退默认（显式仍优先）', () =>
 });
 
 test('maxDimension 可配置且非法值回退 2560', () => {
+  // switch: features.ogImage.autoSize.maxDimension
   const r = resolveOgSize({ covers: [{ width: 3000, height: 1500 }], maxDimension: 2000 });
   assert.deepStrictEqual(r, { width: 2000, height: 1000, source: 'single', scaled: true });
   const bad = resolveOgSize({ covers: [{ width: 3000, height: 1500 }], maxDimension: -1 });

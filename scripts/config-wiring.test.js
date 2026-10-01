@@ -107,6 +107,7 @@ test('makeArticleComparator：pinned-first / normal / enabled=false', () => {
 });
 
 test('defaultOpenLevelInfo：0=全折叠；N≥1 按 minLevel 递推', () => {
+  // switch: features.toc.defaultOpenLevel
   assert.deepStrictEqual(w.defaultOpenLevelInfo(0, 2), { collapseAll: true, visibleMaxLevel: 0 });
   assert.deepStrictEqual(w.defaultOpenLevelInfo(2, 2), { collapseAll: false, visibleMaxLevel: 3 });
   assert.deepStrictEqual(w.defaultOpenLevelInfo(3, 2), { collapseAll: false, visibleMaxLevel: 4 });
@@ -115,6 +116,7 @@ test('defaultOpenLevelInfo：0=全折叠；N≥1 按 minLevel 递推', () => {
 });
 
 test('staggerDelays：总附加延迟 ≤ revealStaggerMax，预算耗尽后为 0', () => {
+  // switch: features.motion.revealStaggerMax
   assert.deepStrictEqual(w.staggerDelays(80, 500, 3), [80, 80, 80]);
   assert.deepStrictEqual(w.staggerDelays(80, 100, 3), [80, 20, 0]);
   assert.deepStrictEqual(w.staggerDelays(0, 500, 3), [0, 0, 0]);
@@ -124,6 +126,7 @@ test('staggerDelays：总附加延迟 ≤ revealStaggerMax，预算耗尽后为 
 });
 
 test('quoteWidgetClass：plain / card / 旧值 sidebar 兼容', () => {
+  // switch: features.dailyQuote.widgetStyle
   assert.strictEqual(w.quoteWidgetClass('plain'), 'quote-widget-plain');
   assert.strictEqual(w.quoteWidgetClass('card'), 'quote-widget-card');
   assert.strictEqual(w.quoteWidgetClass('sidebar'), 'quote-widget-card');
@@ -131,12 +134,14 @@ test('quoteWidgetClass：plain / card / 旧值 sidebar 兼容', () => {
 });
 
 test('archiveCoverEnabled：默认 true，enabled=false / showOnArchive=false 关闭', () => {
+  // switch: features.listCover.showOnArchive, features.listCover.enabled
   assert.strictEqual(w.archiveCoverEnabled({}), true);
   assert.strictEqual(w.archiveCoverEnabled({ listCover: { showOnArchive: false } }), false);
   assert.strictEqual(w.archiveCoverEnabled({ listCover: { enabled: false } }), false);
 });
 
 test('coverRuntimeConfig：defaultPattern 回退 patterns[0]、preferImage 默认 true', () => {
+  // switch: features.cover.preferImage, features.cover.enabled
   const def = w.coverRuntimeConfig({});
   assert.strictEqual(def.defaultPattern, 'gradient');
   assert.strictEqual(def.preferImage, true);
@@ -146,6 +151,7 @@ test('coverRuntimeConfig：defaultPattern 回退 patterns[0]、preferImage 默�
 });
 
 test('pagefindIntegrated / localSearchIndexNeeded：integrate=false 回退本地链路并产出索引', () => {
+  // switch: features.pagefind.integrate, features.pagefind.enabled
   assert.strictEqual(w.pagefindIntegrated({}, 'local'), false);
   assert.strictEqual(w.pagefindIntegrated({}, 'pagefind'), true);
   assert.strictEqual(w.pagefindIntegrated({ pagefind: { integrate: false } }, 'pagefind'), false);
@@ -157,6 +163,7 @@ test('pagefindIntegrated / localSearchIndexNeeded：integrate=false 回退本地
 });
 
 test('showHelpHint：默认 true，shortcuts 关闭或显式 false 时不渲染', () => {
+  // switch: features.shortcuts.showHelpHint, features.shortcuts.enabled
   assert.strictEqual(w.showHelpHint({}), true);
   assert.strictEqual(w.showHelpHint({ shortcuts: { showHelpHint: false } }), false);
   assert.strictEqual(w.showHelpHint({ shortcuts: { enabled: false } }), false);
@@ -172,6 +179,7 @@ test('stripMarkdownText：链接/强调/标题/列表/代码剥离，纯文本�
 });
 
 test('schema 枚举：dailyQuote.widgetStyle 受控；themeToggle 枚举残留已移除', () => {
+  // switch: features.dailyQuote.widgetStyle
   assert.deepStrictEqual(DEFAULT_FEATURES.dailyQuote.widgetStyle, 'card');
   const { validateFeatures } = require('./lib/features-schema.js');
   const bad = validateFeatures({ dailyQuote: { enabled: true, widgetStyle: 'bogus' } }, 'features');
@@ -218,6 +226,7 @@ test('hero/wikiLinks/externalLink 接线键默认值', () => {
 });
 
 test('normalizeSearchConfig：默认值与权重 0/非法值边界', () => {
+  // switch: features.search.showCount, features.search.matchTags, features.search.matchCategories, features.search.weightTitle, features.search.weightExcerpt, features.search.weightContent
   assert.deepStrictEqual(w.normalizeSearchConfig({}), { showCount: true, matchTags: true, matchCategories: true, weightTitle: 5, weightExcerpt: 2, weightContent: 1 });
   const off = w.normalizeSearchConfig({ search: { showCount: false, matchTags: false, matchCategories: false, weightTitle: 0, weightExcerpt: '', weightContent: -3 } });
   assert.deepStrictEqual(off, { showCount: false, matchTags: false, matchCategories: false, weightTitle: 0, weightExcerpt: 2, weightContent: 0 });
@@ -236,6 +245,7 @@ test('searchEmptyText：emptyHint > noResultText > tuning.emptyText(En) 优先�
 });
 
 test('rankSearchEntries：加权排序/同分稳定/权重 0 不参与/标签分类计 0 分', () => {
+  // switch: features.search.weightTitle, features.search.weightContent, features.search.matchTags, features.search.matchCategories
   const idx = [
     { title: 'alpha', excerpt: '', content: '', tags: [], categories: [] },
     { title: 'other', excerpt: 'alpha', content: '', tags: [], categories: [] },
@@ -256,6 +266,7 @@ test('rankSearchEntries：加权排序/同分稳定/权重 0 不参与/标签分
 });
 
 test('wikiLinkConfig：默认值/枚举与布尔回退', () => {
+  // switch: features.wikiLinks.enabled, features.wikiLinks.unknownMode, features.wikiLinks.caseInsensitive, features.wikiLinks.allowCustomLabel
   assert.deepStrictEqual(w.wikiLinkConfig({}), { enabled: true, unknownMode: 'text', unknownSuffix: '', caseInsensitive: true, allowCustomLabel: true });
   const c = w.wikiLinkConfig({ wikiLinks: { enabled: false, unknownMode: 'bogus', unknownSuffix: 7, caseInsensitive: false, allowCustomLabel: false } });
   assert.deepStrictEqual(c, { enabled: false, unknownMode: 'text', unknownSuffix: '7', caseInsensitive: false, allowCustomLabel: false });
@@ -269,6 +280,7 @@ test('heroSearchPlaceholder：按语言取 hero 键；空串交由模板回退 u
 });
 
 test('resolveWikiLinks：unknownMode text/link/hide + suffix + 大小写 + 自定义标签', () => {
+  // switch: features.wikiLinks.unknownMode, features.wikiLinks.caseInsensitive, features.wikiLinks.allowCustomLabel
   const { resolveWikiLinks } = require('./lib/utils.js');
   const entry = { title: '图表与数学公式', url: '/zh/charts/' };
   const entryEn = { title: 'Math Guide', url: '/en/math-guide/' };
@@ -353,6 +365,7 @@ test('features.json5：删除项与默认值口径修正（incrementalByDefault 
 });
 
 test('supSubConfig：标记归一化 / 空值回退 / 布尔缺省', () => {
+  // switch: features.supSub.enabled, features.supSub.skipInsideMath, features.supSub.preserveUnmatched
   assert.deepStrictEqual(w.supSubConfig({}), { enabled: true, supMarker: '^', subMarker: '~', skipInsideMath: true, preserveUnmatched: true });
   const c = w.supSubConfig({ supSub: { supMarker: '^^', subMarker: '', skipInsideMath: false, preserveUnmatched: false, enabled: false } });
   assert.deepStrictEqual(c, { enabled: false, supMarker: '^^', subMarker: '~', skipInsideMath: false, preserveUnmatched: false });
@@ -360,6 +373,7 @@ test('supSubConfig：标记归一化 / 空值回退 / 布尔缺省', () => {
 });
 
 test('matchSupSub / transformSupSubText：成对、多字符、跨行禁止、preserveUnmatched 两态', () => {
+  // switch: features.supSub.preserveUnmatched
   const def = w.supSubConfig({});
   const m = w.supSubMatchers(def);
   assert.deepStrictEqual(w.matchSupSub('^x^ 后文', m), { raw: '^x^', text: 'x', up: true });
@@ -378,6 +392,7 @@ test('matchSupSub / transformSupSubText：成对、多字符、跨行禁止、pr
 });
 
 test('mathConfig / buildMathGuardPatterns：默认等价历史、自定义定界符、正则转义、开关', () => {
+  // switch: features.math.enabled, features.math.autoDetect, features.math.mathml, features.math.renderRoundParens, features.math.renderSquareBrackets
   const def = w.mathConfig({});
   assert.deepStrictEqual([def.enabled, def.autoDetect, def.mathml], [true, true, true]);
   assert.deepStrictEqual(def.inlineDelimiters, ['$']);
@@ -431,6 +446,7 @@ test("mergeMermaidClientOptions：'__proto__' 键保留为自有属性且不改�
 });
 
 test('mermaidConfig / mermaidErrorText：默认与两态', () => {
+  // switch: features.mermaid.enabled, features.mermaid.autoDetect, features.mermaid.followTheme, features.mermaid.copyAfterRender
   const def = w.mermaidConfig({});
   assert.deepStrictEqual([def.enabled, def.autoDetect, def.followTheme, def.copyAfterRender], [true, true, true, false]);
   const c = w.mermaidConfig({ mermaid: { autoDetect: false, followTheme: false, copyAfterRender: true, errorText: '失败', errorTextEn: 'Failed' } });
@@ -442,6 +458,7 @@ test('mermaidConfig / mermaidErrorText：默认与两态', () => {
 });
 
 test('seriesConfig / seriesBadgeText / seriesPanelTitle：模板替换与 en 回退链', () => {
+  // switch: features.series.pageEnabled, features.series.showBadge, features.series.sidebarWidget, features.series.showPosition, features.series.defaultWidgetCount, features.series.enabled
   const def = w.seriesConfig({});
   assert.strictEqual(def.pageEnabled, true, 'pageEnabled 缺省 true（生成系列聚合页）');
   assert.strictEqual(def.showBadge, true);
@@ -461,6 +478,7 @@ test('seriesConfig / seriesBadgeText / seriesPanelTitle：模板替换与 en 回
 });
 
 test('relatedConfig / galleryCollectFeatured / imagePreserveAspectRatio：默认与关闭态', () => {
+  // switch: features.related.excludeCurrent, features.gallery.collectFeatured, features.imageLazy.preserveAspectRatio
   assert.strictEqual(w.relatedConfig({}).excludeCurrent, true);
   assert.strictEqual(w.relatedConfig({ related: { excludeCurrent: false } }).excludeCurrent, false);
   assert.strictEqual(w.galleryCollectFeatured({}), true);
@@ -470,6 +488,7 @@ test('relatedConfig / galleryCollectFeatured / imagePreserveAspectRatio：默认
 });
 
 test('wordCountConfig / wordCountText / readTimeText：模板链与 en 回退', () => {
+  // switch: features.wordCount.wpm
   const def = w.wordCountConfig({});
   assert.deepStrictEqual([def.onCards, def.inArticle, def.countCjkChars, def.countDigits], [true, true, true, true]);
   assert.strictEqual(def.wpm, 265);
@@ -513,6 +532,7 @@ test('computeRelatedArticles：excludeCurrent 两态（相关推荐自引用）'
 });
 
 test('markdown 渲染集成：mathGuard 保护 / supSub / 删除线 / math 围栏 / 图片尺寸两态', () => {  const { createMarkdownModule } = require('./build/markdown');
+  // switch: features.math.autoDetect, features.supSub.supMarker, features.supSub.subMarker, features.supSub.preserveUnmatched, features.imageLazy.preserveAspectRatio
   const { marked } = require('marked');
   const mod = createMarkdownModule();
   const baseSite = { build: { usePictureTag: false }, url: '' };
@@ -557,6 +577,7 @@ test('markdown 渲染集成：mathGuard 保护 / supSub / 删除线 / math 围�
 });
 
 test('mathNeeded：autoDetect 两态（行内/块级/自定义定界符 / ```math 围栏）', () => {
+  // switch: features.math.autoDetect, features.math.enabled
   const def = w.mathConfig({});
   assert.strictEqual(w.mathNeeded('公式 $$x$$', def), true);
   assert.strictEqual(w.mathNeeded('公式 \\(x\\)', def), true);
@@ -676,6 +697,7 @@ test('features.json5：删除项与默认值口径（backToTop 重复键 / butto
 });
 
 test('lightboxConfig：专键 > 兼容旧键/通用键 > 默认；0 = 瞬时保留', () => {
+  // switch: features.lightbox.maxWidthVw, features.lightbox.openDurationMs, features.lightbox.switchDurationMs, features.lightbox.transitionDurationMs
   const def = w.lightboxConfig({});
   assert.deepStrictEqual([def.maxWidthVw, def.openDurationMs, def.switchDurationMs, def.transitionDurationMs], [92, 220, 220, 220], '缺省时分别回退 92 与通用 220');
   const full = w.lightboxConfig(features);
@@ -691,6 +713,7 @@ test('lightboxConfig：专键 > 兼容旧键/通用键 > 默认；0 = 瞬时保�
 });
 
 test('backToTopConfig：scrollDurationMs 0=瞬时 / htmlAnchorFallback 门控 / 非负回退', () => {
+  // switch: features.backToTop.scrollDurationMs, features.backToTop.smoothScroll, features.backToTop.htmlAnchorFallback
   assert.deepStrictEqual(w.backToTopConfig({}), { scrollDurationMs: 450, smoothScroll: true, htmlAnchorFallback: false });
   const c = w.backToTopConfig({ backToTop: { scrollDurationMs: 0, smoothScroll: false, htmlAnchorFallback: true } });
   assert.deepStrictEqual(c, { scrollDurationMs: 0, smoothScroll: false, htmlAnchorFallback: true });
@@ -699,6 +722,7 @@ test('backToTopConfig：scrollDurationMs 0=瞬时 / htmlAnchorFallback 门控 / 
 });
 
 test('ttsConfig / pickTtsVoice：voiceBy 策略、preferDefaultVoice 评分、无命中回退 null', () => {
+  // switch: features.tts.preferDefaultVoice, features.tts.voiceBy, features.tts.highlightParagraph
   const def = w.ttsConfig({});
   assert.deepStrictEqual(def, { preferDefaultVoice: true, voiceBy: 'lang', highlightParagraph: false });
   assert.strictEqual(w.ttsConfig({ tts: { voiceBy: 'bogus' } }).voiceBy, 'lang');
@@ -723,6 +747,7 @@ test('ttsConfig / pickTtsVoice：voiceBy 策略、preferDefaultVoice 评分、�
 });
 
 test('rewardCloseConfig：默认三者 true；显式 false 各自门控', () => {
+  // switch: features.reward.closeByBtn, features.reward.closeByOverlay, features.reward.closeByEsc
   assert.deepStrictEqual(w.rewardCloseConfig({}), { byBtn: true, byOverlay: true, byEsc: true });
   assert.deepStrictEqual(
     w.rewardCloseConfig({ reward: { closeByBtn: false, closeByOverlay: false, closeByEsc: false } }),
@@ -732,6 +757,7 @@ test('rewardCloseConfig：默认三者 true；显式 false 各自门控', () => 
 });
 
 test('heatmapLevelCount / heatmapBucketLevel：2~7 钳制与历史分桶口径', () => {
+  // switch: features.heatmap.levels
   assert.strictEqual(w.heatmapLevelCount(5), 5);
   assert.strictEqual(w.heatmapLevelCount(1), 2, '下界钳制 2');
   assert.strictEqual(w.heatmapLevelCount(9), 7, '上界钳制 7');
@@ -750,6 +776,7 @@ test('heatmapLevelCount / heatmapBucketLevel：2~7 钳制与历史分桶口径',
 });
 
 test('heatmapPalette / heatmapLegendLevels：levels=5 逐字保持历史，其他层数线性等分', () => {
+  // switch: features.heatmap.levels
   assert.deepStrictEqual(w.heatmapPalette(5), [
     'color-mix(in srgb,var(--color-s) 25%,var(--color-surface))',
     'color-mix(in srgb,var(--color-s) 45%,var(--color-surface))',
@@ -781,6 +808,7 @@ test('heatmapLegendText / heatmapTooltip：文案链与占位符替换', () => {
 });
 
 test('statsConfig / statsLabel：卡片开关、跳转目标与 *En > 中文 > 词典链', () => {
+  // switch: features.stats.showArchiveCards, features.stats.linkArchive
   assert.deepStrictEqual(w.statsConfig({}), { enabled: true, showArchiveCards: true, linkArchive: '/archive/' });
   assert.strictEqual(w.statsConfig({ stats: { showArchiveCards: false, linkArchive: '' } }).showArchiveCards, false);
   assert.strictEqual(w.statsConfig({ stats: { linkArchive: '  ' } }).linkArchive, '', '空白串视为不跳转');
@@ -796,6 +824,7 @@ test('statsConfig / statsLabel：卡片开关、跳转目标与 *En > 中文 > �
 });
 
 test('mobileConfig：searchFullscreen/touchFallback/codeScrollHint 门控与 gap 默认', () => {
+  // switch: features.mobile.searchFullscreen, features.mobile.touchFallback, features.mobile.codeScrollHint, features.mobile.buttonStackGap, features.mobile.enabled
   assert.deepStrictEqual(w.mobileConfig({}), { enabled: true, searchFullscreen: true, buttonStackGap: '3.4rem', touchFallback: true, codeScrollHint: true });
   const off = w.mobileConfig({ mobile: { searchFullscreen: false, touchFallback: false, codeScrollHint: false, buttonStackGap: '1rem' } });
   assert.deepStrictEqual([off.searchFullscreen, off.touchFallback, off.codeScrollHint, off.buttonStackGap], [false, false, false, '1rem']);
@@ -803,6 +832,7 @@ test('mobileConfig：searchFullscreen/touchFallback/codeScrollHint 门控与 gap
 });
 
 test('contactPopupConfig / contactCopyText：宽度漂移修正与复制文案链', () => {
+  // switch: features.contactPopup.popupWidth, features.contactPopup.showAllItems, features.contactPopup.enabled
   assert.deepStrictEqual(w.contactPopupConfig({}), { enabled: true, popupWidth: '400px', showAllItems: true });
   const off = w.contactPopupConfig({ contactPopup: { popupWidth: '320px', showAllItems: false } });
   assert.strictEqual(off.popupWidth, '320px');
@@ -853,6 +883,7 @@ test('features.json5：feed 模块已删除且 schema/site-defaults 同步（唯
 });
 
 test('analyticsConfig / buildAnalyticsTag：注入位置/beacon 开关/scriptSrc/siteTag 覆盖', () => {
+  // switch: features.analytics.enabled, features.analytics.injectAt, features.analytics.emitBeacon
   const def = w.analyticsConfig(DEFAULT_FEATURES);
   assert.deepStrictEqual(def, {
     enabled: true,
@@ -880,6 +911,7 @@ test('analyticsConfig / buildAnalyticsTag：注入位置/beacon 开关/scriptSrc
 });
 
 test('normalizeRedirectRules：有效/清洗/非法与 warn-only|abort 两种策略', () => {
+  // switch: features.redirects.invalidRule
   const { normalizeRedirectRules } = require('./lib/redirect-rules');
   const ok = normalizeRedirectRules([
     { from: '/a/', to: '/b/', permanent: true },
@@ -900,6 +932,7 @@ test('normalizeRedirectRules：有效/清洗/非法与 warn-only|abort 两种策
 });
 
 test('resolveHeatmapPalette：fixed+足量色表 / 不足回退 auto / auto 忽略 palette', () => {
+  // switch: features.heatmap.scaling, features.heatmap.palette, features.heatmap.levels
   const fixed = w.resolveHeatmapPalette(w.heatmapConfig({ heatmap: { levels: 3, scaling: 'fixed', palette: ['#1', '#2', '#3', '#4'] } }));
   assert.deepStrictEqual(fixed.colors, ['#1', '#2', '#3']);
   assert.strictEqual(fixed.warning, '');
@@ -913,6 +946,7 @@ test('resolveHeatmapPalette：fixed+足量色表 / 不足回退 auto / auto 忽�
 });
 
 test('performanceWarnings：超限逐项输出、缺省/非法阈值不告警（不阻断）', () => {
+  // switch: features.performance.warningJsKb, features.performance.warningHtmlKb, features.performance.warningImageKb, features.performance.warningBuildMs
   const stats = { jsKb: 60, htmlRawMaxKb: 500, largeImages: [{ path: '/media/big.png', kb: 400 }] };
   const out = w.performanceWarnings({ warningJsKb: 55, warningHtmlKb: 400, warningImageKb: 300, warningBuildMs: 30000 }, stats, 31000);
   assert.strictEqual(out.length, 4);
@@ -924,6 +958,7 @@ test('performanceWarnings：超限逐项输出、缺省/非法阈值不告警（
 });
 
 test('maintenanceWorkerConfig：setRetryAfter/retryAfter 归一化（Worker 链）', () => {
+  // switch: features.maintenance.setRetryAfter, features.maintenance.retryAfter
   const { maintenanceWorkerConfig } = require('./generate-security-config.js');
   assert.deepStrictEqual(maintenanceWorkerConfig({}), { setRetryAfter: true, retryAfter: 3600 });
   assert.deepStrictEqual(maintenanceWorkerConfig({ maintenance: { setRetryAfter: false, retryAfter: 120 } }), { setRetryAfter: false, retryAfter: 120 });
@@ -936,6 +971,7 @@ test('maintenanceWorkerConfig：setRetryAfter/retryAfter 归一化（Worker 链�
 });
 
 test('debugConfig / configSummary：默认关闭、摘要脱敏', () => {
+  // switch: features.debug.verbose, features.debug.listPages, features.debug.dumpConfig
   assert.deepStrictEqual(w.debugConfig({}), { verbose: false, listPages: false, dumpConfig: false });
   assert.deepStrictEqual(w.debugConfig({ debug: { verbose: true, listPages: true, dumpConfig: true } }), { verbose: true, listPages: true, dumpConfig: true });
   const summary = w.configSummary({ site: { url: 'https://x.dev' }, features: { a: 1, b: 2 }, security: { csp: { enabled: true }, token: 'supersecret' } });
@@ -1131,6 +1167,7 @@ test('配置扩张守卫：site/security/sidebar/friends 注册表默认值同�
 });
 
 test('配置扩张纯函数：存储键/结果标签/高亮色/圆点色/容差/公告时长/PWA/errorPage/侧栏池/报告上限/guard 阈值', () => {
+  // switch: features.i18n.storageKey, features.themePresets.storageKey, features.readingProgress.storageKey, features.search.resultTagCount, features.searchHighlight.markColor, features.searchHighlight.markColorDark, features.codeBlock.scrollHintTolerancePx, features.announcement.transitionMs, features.pwa.reloadFallbackMs, features.errorPage.suggestCount, sidebar.recentPoolSize, site.build.reportTopN, internals.report.topN
   assert.deepStrictEqual(w.coreStorageKeys({}), { i18n: 's-ss-lang', themePresets: 'ss-preset', readingProgress: 's-readpos' });
   assert.deepStrictEqual(
     w.coreStorageKeys({ i18n: { storageKey: ' k1 ' }, themePresets: { storageKey: '' }, readingProgress: { storageKey: 'k3' } }),
@@ -1188,6 +1225,7 @@ test('配置扩张纯函数：存储键/结果标签/高亮色/圆点色/容差/
 });
 
 test('lightboxGestureConfig：默认=历史行为、覆盖生效、非法回退', () => {
+  // switch: features.lightbox.swipeThresholdPx, features.lightbox.swipeCloseThresholdPx, features.lightbox.mouseSwipeThresholdPx, features.lightbox.dblClickZoomLevel, features.lightbox.clickTolerancePx
   assert.deepStrictEqual(w.lightboxGestureConfig({}), {
     swipeThresholdPx: 50, swipeCloseThresholdPx: 80, mouseSwipeThresholdPx: 80, dblClickZoomLevel: 2, clickTolerancePx: 6
   });
@@ -1200,6 +1238,7 @@ test('lightboxGestureConfig：默认=历史行为、覆盖生效、非法回退'
 });
 
 test('readingRestoreConfig：键盘步进/恢复下限/存储上限/保存节流', () => {
+  // switch: features.readingProgress.keyboardStep, features.readingProgress.minRestorePx, features.readingProgress.maxStoredPositions, features.readingProgress.saveThrottleMs
   assert.deepStrictEqual(w.readingRestoreConfig({}), { keyboardStep: 0.05, minRestorePx: 160, maxStoredPositions: 80, saveThrottleMs: 400 });
   assert.deepStrictEqual(w.readingRestoreConfig({ readingProgress: { keyboardStep: 0.1, minRestorePx: 0, maxStoredPositions: 20, saveThrottleMs: 1000 } }),
     { keyboardStep: 0.1, minRestorePx: 0, maxStoredPositions: 20, saveThrottleMs: 1000 });
@@ -1208,12 +1247,14 @@ test('readingRestoreConfig：键盘步进/恢复下限/存储上限/保存节流
 });
 
 test('readDockScrollConfig：近顶部恒显距离与方向判定增量', () => {
+  // switch: features.readDock.hideBelowPx, features.readDock.directionDeltaPx
   assert.deepStrictEqual(w.readDockScrollConfig({}), { hideBelowPx: 80, directionDeltaPx: 12 });
   assert.deepStrictEqual(w.readDockScrollConfig({ readDock: { hideBelowPx: 0, directionDeltaPx: 30 } }), { hideBelowPx: 0, directionDeltaPx: 30 });
   assert.deepStrictEqual(w.readDockScrollConfig({ readDock: { hideBelowPx: -1, directionDeltaPx: 'x' } }), { hideBelowPx: 80, directionDeltaPx: 12 });
 });
 
 test('externalLinkCopyConfig / hotSearchesConfig / morphIconsConfig：默认与覆盖', () => {
+  // switch: features.externalLink.copyFeedbackMs, features.hotSearches.maxWords, features.morphIcons.idleTimeoutMs
   assert.strictEqual(w.externalLinkCopyConfig({}).copyFeedbackMs, 1500);
   assert.strictEqual(w.externalLinkCopyConfig({ externalLink: { copyFeedbackMs: 0 } }).copyFeedbackMs, 0);
   assert.strictEqual(w.externalLinkCopyConfig({ externalLink: { copyFeedbackMs: -1 } }).copyFeedbackMs, 1500);
@@ -1226,6 +1267,7 @@ test('externalLinkCopyConfig / hotSearchesConfig / morphIconsConfig：默认与�
 });
 
 test('softNavCacheConfig / readingHistoryConfig / readModeConfig：默认与覆盖', () => {
+  // switch: features.softNavigation.cacheMaxEntries, features.readingHistory.maxStored, features.readMode.persist, features.readMode.storageKey
   assert.strictEqual(w.softNavCacheConfig({}).cacheMaxEntries, 16);
   assert.strictEqual(w.softNavCacheConfig({ softNavigation: { cacheMaxEntries: 64 } }).cacheMaxEntries, 64);
   assert.strictEqual(w.softNavCacheConfig({ softNavigation: { cacheMaxEntries: 0 } }).cacheMaxEntries, 16);
@@ -1237,6 +1279,7 @@ test('softNavCacheConfig / readingHistoryConfig / readModeConfig：默认与覆�
 });
 
 test('bilingualConfig：默认三开 + 1280；关闭生效；断点夹取 480–3840', () => {
+  // switch: features.bilingual.enabled, features.bilingual.switch, features.bilingual.sideBySide, features.bilingual.breakpointPx, features.bilingual.fetchTimeoutMs, features.bilingual.resizeDebounceMs
   const defaults = {
     enabled: true, switch: true, sideBySide: true, breakpointPx: 1280,
     fetchTimeoutMs: 10000, resizeDebounceMs: 120, paneTitle: '中文', paneTitleEn: 'English'
@@ -1257,6 +1300,7 @@ test('bilingualConfig：默认三开 + 1280；关闭生效；断点夹取 480–
 });
 
 test('continueReadingConfig：条数/进度开关/存储键回退链/文案键/存储上限/交互时长', () => {
+  // switch: features.continueReading.count, features.continueReading.showProgress, features.continueReading.storageKey, features.continueReading.removeDelayMs, features.continueReading.clearConfirmMs
   assert.deepStrictEqual(w.continueReadingConfig({}), {
     displayCount: 3, showProgress: true, storageKey: 's-history', maxStored: 50,
     removeDelayMs: 360, clearConfirmMs: 3000,
@@ -1286,6 +1330,7 @@ test('continueReadingConfig：条数/进度开关/存储键回退链/文案键/�
 });
 
 test('commandPaletteConfig：回退值与 JSON5/schema 默认一致（修复 8/‘k’ 漂移）', () => {
+  // switch: features.commandPalette.hotkey, features.commandPalette.maxResults, features.commandPalette.autoFocus
   assert.deepStrictEqual(w.commandPaletteConfig({}), { hotkey: 'ctrl+shift+p', maxResults: 10, autoFocus: true });
   assert.strictEqual(features.commandPalette.hotkey, w.commandPaletteConfig({}).hotkey);
   assert.strictEqual(features.commandPalette.maxResults, w.commandPaletteConfig({}).maxResults);
@@ -1294,6 +1339,7 @@ test('commandPaletteConfig：回退值与 JSON5/schema 默认一致（修复 8/�
 });
 
 test('searchIndexConfig / searchLoadErrorText：索引加载参数与失败文案链', () => {
+  // switch: tuning.search.indexTimeoutMs, tuning.search.indexRetry, tuning.search.errorText, tuning.search.errorTextEn
   assert.deepStrictEqual(w.searchIndexConfig({}), { timeoutMs: 5000, retry: 1 });
   assert.deepStrictEqual(w.searchIndexConfig({ search: { indexTimeoutMs: 1200, indexRetry: 3 } }), { timeoutMs: 1200, retry: 3 });
   assert.deepStrictEqual(w.searchIndexConfig({ search: { indexTimeoutMs: 0, indexRetry: -1 } }), { timeoutMs: 5000, retry: 1 });

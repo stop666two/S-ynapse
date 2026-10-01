@@ -111,6 +111,7 @@ test('serializeThemeLabExport：输出为合法 JSON5、结构/顺序/注释正�
 });
 
 test('resolveThemeLabConfig：默认/覆盖；与 themeLabConfig 同值对拍', async () => {
+  // switch: features.themeLab.enabled, features.themeLab.storageKey, features.themeLab.tokens, features.themeLab.exportName
   const c = await loadCore();
   assert.deepStrictEqual(c.resolveThemeLabConfig({}), {
     enabled: true,

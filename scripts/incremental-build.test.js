@@ -75,6 +75,7 @@ test('hashTemplateDir：模板内容变化导致摘要变化', () => {
 });
 
 test('computeIncrementalContext：watch / --incremental / --full / 开关组合', () => {
+  // switch: features.incrementalBuild.enabled, features.incrementalBuild.watch, features.incrementalBuild.skipUnchanged, features.incrementalBuild.fingerprintHash
   const base = { enabled: true, fullFlag: '--full', watch: true, fingerprintHash: 'sha1', skipUnchanged: true };
   const watch = inc.computeIncrementalContext({ incrementalBuild: base }, { argv: ['node', 'build'], watchMode: true });
   assert.deepStrictEqual([watch.active, watch.requested, watch.forceFull, watch.fingerprintHash], [true, true, false, 'sha1']);
@@ -93,6 +94,7 @@ test('computeIncrementalContext：watch / --incremental / --full / 开关组合'
 });
 
 test('computeIncrementalContext：fullFlag 自定义参数名（--full 兜底仍有效）', () => {
+  // switch: features.incrementalBuild.fullFlag, features.incrementalBuild.enabled
   const cfg = { incrementalBuild: { enabled: true, fullFlag: '--force-full', watch: true, skipUnchanged: true } };
   const custom = inc.computeIncrementalContext(cfg, { argv: ['node', 'build', '--force-full'], watchMode: true });
   assert.deepStrictEqual([custom.active, custom.forceFull, custom.fullFlag], [false, true, '--force-full']);

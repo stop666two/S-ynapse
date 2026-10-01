@@ -15,6 +15,7 @@ async function loadCore() {
 }
 
 test('resolveZoomConfig：默认开启、maxScale 4；旧平铺键回退；新分组键优先', async () => {
+  // switch: features.lightbox.zoom.enabled, features.lightbox.zoom.maxScale
   const c = await loadCore();
   assert.deepStrictEqual(c.resolveZoomConfig({}), { enabled: true, maxScale: 4 });
   assert.deepStrictEqual(c.resolveZoomConfig(null), { enabled: true, maxScale: 4 });
@@ -38,6 +39,7 @@ test('resolveZoomConfig：非法值回退、maxScale 下限 1、zoom 非对象�
 });
 
 test('resolveSlideshowConfig：默认开启 4000ms；覆盖生效；4000 非法回退；钳制 1000–60000', async () => {
+  // switch: features.lightbox.slideshow.enabled, features.lightbox.slideshow.intervalMs
   const c = await loadCore();
   assert.deepStrictEqual(c.resolveSlideshowConfig({}), { enabled: true, intervalMs: 4000 });
   assert.deepStrictEqual(c.resolveSlideshowConfig(null), { enabled: true, intervalMs: 4000 });

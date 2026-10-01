@@ -63,6 +63,7 @@ test('buildPrecacheList：仅站内绝对路径、去重排序、排除根路径
 });
 
 test('selectStrategy：页面 network-first、资产 cache-first、反转为可配置、旁路', () => {
+  // switch: features.pwa.pageNetworkFirst, features.pwa.assetCacheFirst
   const on = { swPath: '/sw.js' };
   assert.strictEqual(selectStrategy({ method: 'POST', url: 'https://a/zh/x/' }, on), 'bypass');
   assert.strictEqual(selectStrategy({ method: 'GET', url: 'https://cdn/x.css', origin: 'https://cdn', scopeOrigin: 'https://a' }, on), 'bypass');
@@ -90,6 +91,7 @@ test('isOwnedCache/isStaleCache：只清理本站管理的旧缓存', () => {
 });
 
 test('renderServiceWorker：预缓存/三类缓存名/策略开关/更新握手/版本化清理', () => {
+  // switch: features.pwa.precache, features.pwa.pageCacheLimit, features.pwa.pageNetworkFirst, features.pwa.assetCacheFirst
   const sw = renderServiceWorker({
     cacheName: 's-ynapse-v1',
     version: 'abc123',

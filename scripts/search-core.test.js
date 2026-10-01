@@ -78,6 +78,7 @@ test('tokenizeText：大小写归一；tokenizeQuery 去重且保持首次出现
 });
 
 test('tokenizeText：bigram=false 时 CJK 段整段成词（英文语义不变）', async () => {
+  // switch: features.search.index.bigram
   const c = await loadCore();
   assert.deepStrictEqual(c.tokenizeText('搜索升级', { bigram: false }), ['搜索升级']);
   assert.deepStrictEqual(c.tokenizeText('Vue 教程', { bigram: false }), ['vue', '教程']);
@@ -103,6 +104,7 @@ test('buildIndex/searchIndex：中文 bigram 命中与字段权重评分', async
 });
 
 test('searchIndex：标签子串命中与 matchTags/matchCategories 门控', async () => {
+  // switch: features.search.matchTags, features.search.matchCategories
   const c = await loadCore();
   const idx = c.buildIndex(FIXTURE_DOCS, { bigram: true, fields: ['title'] });
   const byTag = c.searchIndex(idx, 'javas', { matchTags: true, matchCategories: true });
@@ -133,6 +135,7 @@ test('searchIndex：得分降序、同分按索引原序稳定', async () => {
 });
 
 test('searchIndex：权重 0 字段不参与匹配与计分；limit 截断', async () => {
+  // switch: features.search.weightTitle, features.search.weightExcerpt, features.search.weightContent
   const c = await loadCore();
   const docs = [{ title: 'x', excerpt: 'alpha', url: '/e' }, { title: 'alpha', url: '/t' }];
   const idx = c.buildIndex(docs, { fields: ['title', 'excerpt'] });

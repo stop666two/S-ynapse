@@ -66,6 +66,7 @@ test('writeArticleMarkdown：源文件按字节原样复制（frontmatter 保留
 });
 
 test('exportArticleConfig：默认值/覆盖/总开关联锁/文案回退链', () => {
+  // switch: features.exportArticle.enabled, features.exportArticle.print, features.exportArticle.markdown, features.exportArticle.sourceFootnote
   const dflt = exportArticleConfig({});
   assert.strictEqual(dflt.enabled, true);
   assert.strictEqual(dflt.print, true);

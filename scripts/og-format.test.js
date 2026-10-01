@@ -5,6 +5,7 @@ const assert = require('node:assert');
 const { resolveOgFormat } = require('./lib/og-format');
 
 describe('og-format resolveOgFormat', () => {
+  // switch: features.ogImage.format
   test('默认 png 且不产生质量值', () => {
     assert.deepStrictEqual(resolveOgFormat({}), { format: 'png', ext: 'png', quality: null });
   });

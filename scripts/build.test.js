@@ -642,6 +642,7 @@ describe('theme-presets', () => {
 });
 
 describe('perf-budget', () => {
+  // switch: features.perfBudget.htmlKb, features.perfBudget.jsKb, features.perfBudget.requests, features.perfBudget.htmlRawKb, features.perfBudget.inlineConfigKb
   it('flags over-budget metrics and passes others', () => {
     const report = evaluatePerfBudget({ htmlKb: 40, jsKb: 10, requests: 5 }, { htmlKb: 30 });
     assert.strictEqual(report.ok, false);
@@ -679,6 +680,7 @@ describe('countWordsDetail', () => {
 });
 
 describe('computeRelatedArticles', () => {
+  // switch: features.related.topN, features.related.minScore, features.related.sameTagWeight, features.related.sameCategoryWeight
   function makeArticle(slug, lang, tags, categories) {
     return { slug, lang, tags: tags || [], categories: categories || [], title: 'T-' + slug, url: '/' + lang + '/' + slug + '/', excerpt: 'E-' + slug };
   }
@@ -716,6 +718,7 @@ describe('computeRelatedArticles', () => {
 });
 
 describe('resolveJsonFeedOptions', () => {
+  // switch: site.rss.fullContent, site.rss.maxItems, site.rss.jsonFeed.fullContent, site.rss.jsonFeed.maxItems
   it('prefers rss.jsonFeed values over rss-level fallbacks', () => {
     assert.deepStrictEqual(
       resolveJsonFeedOptions({ fullContent: true, maxItems: 50, jsonFeed: { fullContent: false, maxItems: 20 } }),

@@ -26,6 +26,7 @@ const { DEFAULT_FEATURES, FEATURE_MODULES } = require('./lib/features-schema.js'
 const { saveDataModeConfig } = require('./lib/feature-wiring.js');
 
 test('resolveSaveDataConfig：默认/覆盖/storageKey 回退/degrade 显式 false', async () => {
+  // switch: features.saveDataMode.enabled, features.saveDataMode.auto, features.saveDataMode.manual, features.saveDataMode.storageKey, features.saveDataMode.degrade.animations, features.saveDataMode.degrade.particles, features.saveDataMode.degrade.lowResImages, features.saveDataMode.degrade.lazyAggressive, features.saveDataMode.degrade.systemFontsOnly, features.saveDataMode.degrade.lowResMaxWidthPx
   const c = await loadCore();
   assert.deepStrictEqual(c.resolveSaveDataConfig({}), {
     enabled: true,
@@ -51,6 +52,7 @@ test('resolveSaveDataConfig：默认/覆盖/storageKey 回退/degrade 显式 fal
 });
 
 test('resolveSaveDataConfig 与 saveDataModeConfig 同值对拍（防两端语义漂移）', async () => {
+  // switch: features.saveDataMode.enabled, features.saveDataMode.auto, features.saveDataMode.manual, features.saveDataMode.storageKey, features.saveDataMode.degrade.animations, features.saveDataMode.degrade.particles, features.saveDataMode.degrade.lowResImages, features.saveDataMode.degrade.lazyAggressive, features.saveDataMode.degrade.systemFontsOnly, features.saveDataMode.degrade.lowResMaxWidthPx
   const c = await loadCore();
   const cases = [
     {}, null, undefined,

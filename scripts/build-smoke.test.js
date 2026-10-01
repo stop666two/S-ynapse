@@ -517,6 +517,17 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       'home page must preload the first-card LCP image');
     assert.ok(hasAttr(helloIndexZh, 'data-eager', '1'),
       'first card image must carry the build-time data-eager marker (minifier strips loading=eager)');
+    const preloadTag = (helloIndexZh.match(/<link[^>]*as=image[^>]*>/) || [''])[0];
+    assert.ok(preloadTag.includes('imagesrcset=') && preloadTag.includes('imagesizes='),
+      'first-card preload must carry imagesrcset/imagesizes so the candidate matches the card <img> (no double download)');
+    assert.ok(siteCss.includes('.blog-grid>article:nth-child(n+4){content-visibility:auto'),
+      'offscreenSkip must emit below-fold card rules when enabled');
+    assert.ok(siteCss.includes('.sidebar,.site-footer{content-visibility:auto'),
+      'offscreenSkip must emit sidebar/footer rules when enabled');
+    const siteCssTag = (helloIndexZh.match(/<link[^>]*\/assets\/css\/site\.[0-9a-f]+\.css[^>]*>/) || [''])[0];
+    assert.ok(siteCssTag.includes('fetchpriority=high'), 'render-blocking site CSS link must use fetchpriority=high');
+    const cjkTag = (helloIndexZh.match(/<link[^>]*cjk-fonts\.css[^>]*>/) || [''])[0];
+    assert.ok(cjkTag.includes('fetchpriority=low'), 'async CJK CSS link must use fetchpriority=low');
     assert.ok(!helloIndexZh.includes('data-bilingual-alt') && !helloIndexZh.includes('bilingual-bar'),
       'index page must not render bilingual attributes or bar');
     assert.ok(siteCss.includes('.bilingual-wrap.bilingual-on') && siteCss.includes('.bilingual-pane'),

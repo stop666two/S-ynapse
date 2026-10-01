@@ -28,6 +28,10 @@ function createPagesModule(ctx) {
   // 交由 CSS 自适应（与 markdown.js 出图路径一致）。由 buildPageData 按配置赋值。
   let PRESERVE_AR = true;
 
+  // 卡片图片的 sizes 表达式：与 buildCardImgAttrs / cardCoverPreload 共用同一常量，
+  // 保证 <link rel=preload imagesizes> 与 <img sizes> 完全一致（预载候选才能被复用于图片请求）。
+  const CARD_SIZES = '(max-width: 768px) 100vw, 640px';
+
   // 卡片（首页/标签列表）图片属性构造：从媒体 manifest 读取原格式多尺寸变体生成 srcset，
   // 使首屏卡片不再下载 1600px 原图（LCP 优化）。仅用 original 格式变体（不引入 <picture>，不改现有 CSS 选择器结构）。
   // 同时输出 width/height（manifest 原图元数据），供浏览器在解码前预留宽高比空间（CLS 修复）。
@@ -72,7 +76,7 @@ function createPagesModule(ctx) {
     const naturalW = parseInt(entry.width, 10);
     if (naturalW && !items.some((it) => it[0] === naturalW)) items.push([naturalW, srcFinal]);
     const srcset = items.map((it) => `${escapeAttr(it[1])} ${it[0]}w`).join(', ');
-    return `src="${escapeAttr(srcFinal)}" srcset="${srcset}" sizes="(max-width: 768px) 100vw, 640px"${dimSuffix}`;
+    return `src="${escapeAttr(srcFinal)}" srcset="${srcset}" sizes="${CARD_SIZES}"${dimSuffix}`;
   }
 
   // 自动封面查询（features.listCover.autoGenerate 构建产物，key: '<lang>/<slug>'）。
@@ -100,6 +104,33 @@ function createPagesModule(ctx) {
     if (!auto) return '';
     const dims = PRESERVE_AR ? ` width="${auto.width}" height="${auto.height}"` : '';
     return `src="${escapeAttr(auto.url)}"${dims}`;
+  }
+
+  // 首页首卡封面预载信息：显式 featuredImage 输出 href（原图，兼容不支持 imagesrcset 的旧浏览器）
+  // 加 srcset/sizes（与卡片 <img> 完全一致，现代浏览器据此预载实际会用的候选尺寸，避免 1600px 原图
+  // 与 640px 卡片图重复下载）；自动封面无 manifest 变体时仅输出 href。
+  function cardCoverPreload(article) {
+    if (!article) return null;
+    if (article.featuredImage) {
+      const raw = String(article.featuredImage || '');
+      const entry = getMediaEntry(raw);
+      const href = (entry && entry.original) || raw;
+      const items = [];
+      if (entry && entry.variants) {
+        for (const [key, val] of Object.entries(entry.variants)) {
+          if (key.split('-').pop() !== 'original') continue;
+          const w = parseInt(key.split('-')[0], 10);
+          if (w) items.push([w, val]);
+        }
+      }
+      items.sort((a, b) => a[0] - b[0]);
+      const naturalW = entry ? parseInt(entry.width, 10) : NaN;
+      if (naturalW && !items.some((it) => it[0] === naturalW)) items.push([naturalW, href]);
+      if (!items.length) return { href };
+      return { href, srcset: items.map((it) => `${it[1]} ${it[0]}w`).join(', '), sizes: CARD_SIZES };
+    }
+    const auto = getAutoCover(article);
+    return auto ? { href: auto.url } : null;
   }
 
   // 文章页头图属性：显式 featuredImage 保持原输出（src + manifest 宽高，无 srcset）；
@@ -613,7 +644,7 @@ function createPagesModule(ctx) {
       return {
         ...ld,
         articles: pageArticles,
-        firstCoverUrl: page === 1 && pageArticles.length ? coverSrc(pageArticles[0]) : '',
+        firstCoverPreload: page === 1 && pageArticles.length ? cardCoverPreload(pageArticles[0]) : null,
         heroData: heroEnabled ? {
           title: (lang === 'en' && config.site.hero.titleEn) ? config.site.hero.titleEn : (config.site.hero.title || config.site.title),
           subtitle: (lang === 'en' && config.site.hero.subtitleEn) ? config.site.hero.subtitleEn : (config.site.hero.subtitle || config.site.subtitle || config.site.description),
@@ -876,7 +907,7 @@ function createPagesModule(ctx) {
     }
   }
 
-  return { buildCardImgAttrs, imgDimsAttrs, coverSrc, cardCoverAttrs, postCoverAttrs, getAutoCover, buildSiteCss, buildRuntimePresets, writeRuntimeConfig, buildPageData, processCustomPages, localizeSidebar, localizeNav, localizeFooter, localizeSite, buildPaginationItems, generatePages };
+  return { buildCardImgAttrs, imgDimsAttrs, coverSrc, cardCoverAttrs, cardCoverPreload, postCoverAttrs, getAutoCover, buildSiteCss, buildRuntimePresets, writeRuntimeConfig, buildPageData, processCustomPages, localizeSidebar, localizeNav, localizeFooter, localizeSite, buildPaginationItems, generatePages };
 }
 
 module.exports = { createPagesModule };

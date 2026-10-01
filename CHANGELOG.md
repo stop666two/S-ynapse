@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **content-visibility 增强版估算值复测（仍未启用）**：`templates/site-css.ejs` 的 `contain-intrinsic-size` 估算调整为 pre 320px / table 260px / `.mermaid` 380px / picture 420px（更贴近长文实测高度），输出条件不变（仅 `features.lcpOptimize.contentVisibility=true` 时输出）。A/B 实测（长文页与首页各 3 次，Slow4G + 4× CPU + 禁缓存；外加冷锚点/滚动套件）：长文 LCP 2704→2924ms（判定线「改善 ≥150ms」不达标）、长文 TBT 1659→1291ms；冷锚点 CLS 0.0013→0.0690（判定线 ≤0.05 不达标）、滚动 CLS 增量 0.0001、落点误差 0.0px、TOC/返回顶部/软导航 3/3 通过。按验收标准保持 `false`，数据归档 `.tmp-scripts/out/cv2-summary.{md,json}`（runner `.tmp-scripts/run-cv-ab2.js`：serve 与审计经 `scripts/spawn.js` 包裹，每相结束校验端口释放）。
 - **性能预算阈值调整（jsKb 60→75、htmlKb 28→40）**：功能扩充批次（系列页/搜索升级/每日一言 API/继续阅读/灯箱增强/文章导出/双语对照/主题调色板/省流模式）落地后实测应用 JS `assets/js` 全量 gzip 合计 69.7KB（原上限 60KB）、单页 HTML gzip 最大 36.6KB（原上限 28KB），按确认结论调整 `features.perfBudget.jsKb` 至 75、`htmlKb` 至 40（`htmlRawKb 50` / `inlineConfigKb 2` / `requests 12` / `warnOnly true` 不变）；同步兜底默认值（`scripts/lib/perf-budget.js` DEFAULTS）、schema 默认值（`scripts/lib/features-schema.js`）、`features.json5` 注释、`docs/config-reference.md` §3.67 与 README 预算门禁说明。后续治理方向：跨模块工具去重、懒加载分包边界复核，达标后再评估回调。
 
 ### Fixed

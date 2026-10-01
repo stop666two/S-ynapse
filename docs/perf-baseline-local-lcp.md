@@ -4,7 +4,7 @@
 > 采样口径：Slow 4G（下行 200000 B/s / 上行 93750 B/s / RTT 150ms）+ CPU 4x + 禁用缓存 + 独立上下文，每页 3 次取中位数。
 > 本地与生产不可直接对比（无 CDN 边缘、无 Brotli、单机 Node 压缩），仅用于同口径前后回归。
 >
-> **当前状态**：schema 默认四个键均为 `false`；本仓库当前配置启用其中三个（`revealExemptFirstPaint` / `asyncCjkFontCss` / `skipLatinFontPreloadOnCjk` = `true`），`contentVisibility` 因实测未达标保持 `false`。逐键结论与代价见 `docs/config-reference.md` §3.94；本文件为该轮 A/B 的采样记录。
+> **当前状态**：schema 默认五个键均为 `false`；本仓库当前配置启用其中四个（`revealExemptFirstPaint` / `asyncCjkFontCss` / `skipLatinFontPreloadOnCjk` / `preloadFirstCard` = `true`），`contentVisibility` 经增强估算值（pre 320 / table 260 / `.mermaid` 380 / picture 420）复测仍未达标（长文 LCP 2704→2924ms、冷锚点 CLS 0.0013→0.0690）保持 `false`。逐键结论与代价见 `docs/config-reference.md` §3.94；本文件为该轮 A/B 的采样记录，`contentVisibility` 复测数据见 `.tmp-scripts/out/cv2-summary.md`。
 
 ## LCP 元素
 

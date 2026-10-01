@@ -14,6 +14,11 @@ const DEFAULT_FILE = path.join(ROOT, 'internals.json5');
 
 const cacheByPath = new Map();
 
+// 标记为 open 的规则节点：其子键允许自由扩展（值仍按规则校验，不做未知键扫描）。
+const OPEN_PATHS = new Set(
+  Object.entries(SCHEMA).filter(([, rule]) => rule.open === true).map(([keyPath]) => keyPath)
+);
+
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -37,7 +42,7 @@ function findUnknownKeys(merged, defaults, prefix, out) {
       out.push(current);
       continue;
     }
-    if (isPlainObject(merged[key]) && isPlainObject(defaults[key])) {
+    if (isPlainObject(merged[key]) && isPlainObject(defaults[key]) && !OPEN_PATHS.has(current)) {
       findUnknownKeys(merged[key], defaults[key], current, out);
     }
   }
@@ -62,6 +67,15 @@ function isPathLike(value) {
 function validateValue(keyPath, rule, value, errors) {
   const fail = (reason) => errors.push(keyPath + '：' + reason + '（当前值 ' + JSON.stringify(value) + '）');
   switch (rule.kind) {
+    case 'integerMap': {
+      if (!isPlainObject(value)) return fail('必须是对象（字符串→正整数毫秒）');
+      for (const [mapKey, mapValue] of Object.entries(value)) {
+        if (!Number.isInteger(mapValue) || mapValue <= 0) {
+          return fail('键 "' + mapKey + '" 的值必须是正整数毫秒');
+        }
+      }
+      return;
+    }
     case 'integer':
       if (!Number.isInteger(value)) return fail('必须是整数');
       if (value < rule.min || value > rule.max) return fail('超出允许范围 ' + rule.min + '-' + rule.max);

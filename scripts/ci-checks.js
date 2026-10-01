@@ -10,16 +10,40 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawnSync, spawn } = require('child_process');
 const { loadInternals } = require('./lib/internals');
 const { resolveChromePath } = require('./lib/chrome-path');
 
 const ROOT = path.resolve(__dirname, '..');
 const internals = loadInternals();
-const AGGREGATE = process.argv.includes('--fail-fast') ? false : internals.ci.aggregate;
+const ARGV = process.argv.slice(2);
+function argList(flag) {
+  const index = ARGV.indexOf(flag);
+  if (index === -1 || index + 1 >= ARGV.length) return null;
+  return ARGV[index + 1].split(',').map((value) => value.trim()).filter(Boolean);
+}
+const ONLY = argList('--only');
+const SKIP = argList('--skip') || [];
+const AGGREGATE = ARGV.includes('--fail-fast') ? false : internals.ci.aggregate;
+const CHECK_TIMEOUT_MS = Number(internals.ci.checkTimeoutMs) > 0 ? Number(internals.ci.checkTimeoutMs) : 600000;
+const CHECK_TIMEOUTS = internals.ci.checkTimeouts && typeof internals.ci.checkTimeouts === 'object' ? internals.ci.checkTimeouts : {};
 const ARTIFACTS_DIR = path.resolve(ROOT, internals.paths.artifactsDir);
 const OUTPUT_TAIL_LINES = 40;
 const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+
+// 超时后清理整棵子进程树：spawnSync 只杀直接子进程，npm 脚本的孙进程（浏览器/服务器）会残留。
+function killTree(pid) {
+  if (!pid || pid <= 0) return;
+  if (process.platform === 'win32') {
+    spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
+    return;
+  }
+  try {
+    process.kill(-pid, 'SIGKILL');
+  } catch (groupErr) {
+    try { process.kill(pid, 'SIGKILL'); } catch (selfErr) { /* 进程已退出 */ }
+  }
+}
 
 function hasChrome() {
   if (resolveChromePath('')) return true;
@@ -71,34 +95,72 @@ function tail(text) {
   return lines.slice(-OUTPUT_TAIL_LINES).join('\n');
 }
 
+function resolveTimeout(name) {
+  const override = Number(CHECK_TIMEOUTS[name]);
+  return override > 0 ? override : CHECK_TIMEOUT_MS;
+}
+
 function runCheck(check) {
-  const started = Date.now();
-  const result = spawnSync(NPM, check.args, {
-    cwd: ROOT,
-    encoding: 'utf-8',
-    maxBuffer: 64 * 1024 * 1024,
-    shell: process.platform === 'win32',
-    env: process.env
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const timeoutMs = resolveTimeout(check.name);
+    const child = spawn(NPM, check.args, {
+      cwd: ROOT,
+      shell: process.platform === 'win32',
+      detached: process.platform !== 'win32',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+      env: process.env
+    });
+    const MAX_CAPTURE = 32 * 1024 * 1024;
+    let stdout = '';
+    let stderr = '';
+    let timedOut = false;
+    let settled = false;
+    const append = (target, chunk) => (target.length >= MAX_CAPTURE ? target : target + chunk.toString('utf-8'));
+    child.stdout.on('data', (chunk) => { stdout = append(stdout, chunk); });
+    child.stderr.on('data', (chunk) => { stderr = append(stderr, chunk); });
+    // 超时触发时子进程仍然存活，taskkill /T 才能枚举并清理整棵进程树。
+    const timer = setTimeout(() => {
+      timedOut = true;
+      killTree(child.pid);
+      try { child.kill('SIGKILL'); } catch (err) { /* 进程已退出 */ }
+    }, timeoutMs);
+    // close 事件缺失兜底：超时后仍未关闭则强制结算，避免聚合器悬挂。
+    const failsafe = setTimeout(() => finish(null, null), timeoutMs + 5000);
+    function finish(code, signal) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      clearTimeout(failsafe);
+      const durationMs = Date.now() - started;
+      if (timedOut) {
+        console.error('[ci-checks] ' + check.name + ' 超时（' + timeoutMs + 'ms），已清理进程树');
+      } else if (code !== 0) {
+        console.error('[ci-checks] ' + check.name + ' 退出码 ' + code);
+      }
+      // 实时回显摘要（stdout 尾部 + stderr 尾部），完整输出保存在报告中。
+      if (stdout.trim()) console.log(stdout.replace(/\s+$/, ''));
+      if (stderr.trim()) console.error(stderr.replace(/\s+$/, ''));
+      resolve({
+        name: check.name,
+        command: commandLine(check.args),
+        status: !timedOut && code === 0 ? 'passed' : 'failed',
+        exitCode: code,
+        signal: signal || null,
+        durationMs,
+        timeoutMs,
+        timedOut,
+        advisory: check.advisory === true,
+        summary: tail(stdout + (stderr ? '\n' + stderr : ''))
+      });
+    }
+    child.on('error', (err) => {
+      console.error('[ci-checks] ' + check.name + ' 启动失败：' + err.message);
+      finish(null, null);
+    });
+    child.on('close', (code, signal) => finish(code, signal));
   });
-  const durationMs = Date.now() - started;
-  const exitCode = result.status === null ? 1 : result.status;
-  const stdout = result.stdout || '';
-  const stderr = result.stderr || '';
-  if (result.error) {
-    console.error('[ci-checks] ' + check.name + ' 执行失败：' + result.error.message);
-  }
-  // 实时回显摘要（stdout 尾部 + stderr 尾部），完整输出保存在报告中。
-  if (stdout.trim()) console.log(stdout.replace(/\s+$/, ''));
-  if (stderr.trim()) console.error(stderr.replace(/\s+$/, ''));
-  return {
-    name: check.name,
-    command: commandLine(check.args),
-    status: exitCode === 0 ? 'passed' : 'failed',
-    exitCode,
-    durationMs,
-    advisory: check.advisory === true,
-    summary: tail(stdout + (stderr ? '\n' + stderr : ''))
-  };
 }
 
 function writeReport(report) {
@@ -127,6 +189,7 @@ function writeReport(report) {
   lines.push('失败: ' + (report.failed.length ? report.failed.join(', ') : '无'));
   lines.push('建议项未通过: ' + (report.advisoryFailed && report.advisoryFailed.length ? report.advisoryFailed.join(', ') : '无'));
   lines.push('跳过: ' + (report.skipped.length ? report.skipped.join(', ') : '无'));
+  lines.push('超时: ' + (report.timeouts && report.timeouts.length ? report.timeouts.join(', ') : '无'));
   for (const item of report.checks) {
     lines.push('');
     lines.push('===== ' + item.name + ' (' + item.status + ', ' + item.durationMs + 'ms) =====');
@@ -136,13 +199,64 @@ function writeReport(report) {
   console.log('[ci-checks] 报告已写入: ' + path.relative(ROOT, jsonPath) + ' / ' + path.relative(ROOT, txtPath));
 }
 
-function main() {
+function selectChecks() {
+  if (ARGV.includes('--list')) {
+    for (const check of CHECKS) {
+      console.log((check.advisory ? '[advisory] ' : '') + check.name + ' → ' + commandLine(check.args)
+        + (check.needsChrome ? '（需 Chrome）' : ''));
+    }
+    return null;
+  }
+  const unknown = (ONLY || []).filter((name) => !CHECKS.some((check) => check.name === name));
+  if (unknown.length) {
+    console.error('[ci-checks] --only 含未知检查名：' + unknown.join(', ') + '（用 --list 查看可用项）');
+    process.exit(2);
+  }
+  return CHECKS.filter((check) => (!ONLY || ONLY.includes(check.name)) && !SKIP.includes(check.name));
+}
+
+// 将聚合结论写入提交状态（context=ci/aggregate），供 ci-skip 预检读取告警数；
+// 缺少 GITHUB_TOKEN/GITHUB_REPOSITORY/GITHUB_SHA（本地运行）时静默跳过，写入失败不影响门禁。
+async function postCommitStatus(report) {
+  const token = process.env.GITHUB_TOKEN || '';
+  const repo = process.env.GITHUB_REPOSITORY || '';
+  const sha = process.env.GITHUB_SHA || '';
+  if (!token || !repo || !sha) return;
+  const warnings = report.advisoryFailed ? report.advisoryFailed.length : 0;
+  const timeouts = report.timeouts ? report.timeouts.length : 0;
+  const description = 'errors:' + report.failed.length + ' warnings:' + warnings + ' timeouts:' + timeouts;
+  try {
+    const response = await fetch('https://api.github.com/repos/' + repo + '/statuses/' + sha, {
+      method: 'POST',
+      headers: {
+        accept: 'application/vnd.github+json',
+        authorization: 'Bearer ' + token,
+        'content-type': 'application/json',
+        'user-agent': 's-ynapse-ci-checks',
+        'x-github-api-version': '2022-11-28'
+      },
+      body: JSON.stringify({
+        state: report.failed.length ? 'failure' : 'success',
+        context: 'ci/aggregate',
+        description: description.slice(0, 140)
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!response.ok) console.warn('[ci-checks] 写入提交状态失败：HTTP ' + response.status);
+  } catch (err) {
+    console.warn('[ci-checks] 写入提交状态失败（忽略）：' + err.message);
+  }
+}
+
+async function main() {
   const startedAt = new Date().toISOString();
   const results = [];
   const failed = [];
   const advisoryFailed = [];
   const skipped = [];
-  for (const check of CHECKS) {
+  const selected = selectChecks();
+  if (!selected) return;
+  for (const check of selected) {
     if (check.needsChrome && !CHROME_AVAILABLE) {
       const reason = '未检测到 Chrome（CHROME_PATH/internals.chrome.path/平台默认均未命中）';
       console.log('[ci-checks] SKIP ' + check.name + '：' + reason);
@@ -151,7 +265,7 @@ function main() {
       continue;
     }
     console.log('\n[ci-checks] ===== ' + check.name + ' =====');
-    const result = runCheck(check);
+    const result = await runCheck(check);
     results.push(result);
     console.log('[ci-checks] ' + (result.status === 'passed' ? 'PASS' : 'FAIL') + ' ' + check.name + ' (' + (result.durationMs / 1000).toFixed(1) + 's)' + (check.advisory ? ' [advisory]' : ''));
     if (result.status === 'failed') {
@@ -166,6 +280,7 @@ function main() {
       }
     }
   }
+  const timeouts = results.filter((item) => item.timedOut).map((item) => item.name);
   const report = {
     startedAt,
     finishedAt: new Date().toISOString(),
@@ -174,9 +289,11 @@ function main() {
     checks: results,
     failed,
     advisoryFailed,
-    skipped
+    skipped,
+    timeouts
   };
   writeReport(report);
+  await postCommitStatus(report);
   if (failed.length) {
     console.error('[ci-checks] FAIL：' + failed.length + ' 项未通过 → ' + failed.join(', '));
     process.exit(1);
@@ -186,4 +303,7 @@ function main() {
     + (skipped.length ? '，' + skipped.length + ' 项跳过（' + skipped.join(', ') + '）' : ''));
 }
 
-main();
+main().catch((err) => {
+  console.error('[ci-checks] 运行异常：' + (err && err.stack ? err.stack : err));
+  process.exit(1);
+});

@@ -10,6 +10,29 @@ permissions:
   contents: read
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      skip: ${{ steps.decide.outputs.skip }}
+      reason: ${{ steps.decide.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Decide whether to skip this run
+        id: decide
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          node scripts/ci-skip.js --workflow deploy.yml --head "${{ github.sha }}"
+          --event "${{ github.event_name }}"
+          --commit-message "${{ github.event.head_commit.message }}"
+
   check-agents:
     runs-on: ubuntu-latest
     steps:
@@ -33,7 +56,8 @@ jobs:
           echo "$CHANGED" | grep -qiE '(AGENTS\.md|AGENTS\.txt|AGENT\.md|AGENT\.txt|agent-readme\.md|RULES\.md)' && { echo "ERROR: AI rule files detected in changes. Blocking merge."; exit 1; } || echo "OK: No AI rule files detected."
 
   compat-node20:
-    needs: check-agents
+    needs: [check-agents, preflight]
+    if: needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,8 +78,12 @@ jobs:
           npm run build
 
   build:
-    needs: check-agents
+    needs: [check-agents, preflight]
+    if: needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -66,6 +94,8 @@ jobs:
       - name: Export internals to environment (SYNAPSE_OUT_DIR / PAGES_PROJECT / NODE_VERSION …)
         run: node scripts/ci-env.js
       - name: Full quality suite (aggregate, no early abort; report at build-artifacts/ci-report.*)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/ci-checks.js
       - name: Upload CI report (always)
         if: always()

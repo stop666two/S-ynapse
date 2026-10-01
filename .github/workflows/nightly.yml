@@ -14,9 +14,36 @@ permissions:
   contents: read
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      skip: ${{ steps.decide.outputs.skip }}
+      reason: ${{ steps.decide.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Decide whether to skip this run
+        id: decide
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          node scripts/ci-skip.js --workflow nightly.yml --head "${{ github.sha }}"
+          --event "${{ github.event_name }}"
+
   deep:
+    needs: preflight
+    if: needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: read
+      statuses: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,10 +54,11 @@ jobs:
       - name: Export internals to environment
         run: node scripts/ci-env.js
       - name: Deep randomized full suite (aggregate; FC_NUM_RUNS=2000, STRESS=1)
-        run: node scripts/ci-checks.js
         env:
           FC_NUM_RUNS: '2000'
           STRESS: '1'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci-checks.js
       - name: Upload nightly artifacts (ci-report / fuzz failures / web coverage / smoke)
         if: always()
         uses: actions/upload-artifact@v4

@@ -1460,6 +1460,15 @@ listCover: {
 | `ci` | `nodeVersion` | `24` | 主 CI 与 `.nvmrc` 使用的 Node 版本（两者必须一致） |
 | | `compatNodeVersion` | `20.19.0` | 兼容性任务最低 Node 版本（与 deploy.yml compat 断言一致） |
 | | `aggregate` | true | `scripts/ci-checks.js` 是否跑完整套后统一失败（false=首个失败即停） |
+| | `checkTimeoutMs` | 600000 | 每个聚合检查项的超时上限（毫秒）；超时判失败并清理整棵子进程树 |
+| | `checkTimeouts` | `{}` | 单项超时覆盖（检查名→毫秒），如 `{ "audit:a11y": 900000 }` |
+| `ci.skip` | `enabled` | true | 无变化重复运行的自动跳过总开关（`scripts/ci-skip.js`） |
+| | `requireSameHead` | true | 是否要求历史运行与当前 HEAD 相同才参与连击计数 |
+| | `consecutiveErrors` | 2 | 连续阻断失败达该次数后跳过后续无变化运行 |
+| | `consecutiveClean` | 5 | 连续完全无错无警告达该次数后跳过后续无变化运行 |
+| | `ignoreWarnings` | true | 告警不计错、不计净，但重置错误连击 |
+| | `forceEnv` | `CI_FORCE` | 该环境变量为 1/true 时强制运行（忽略跳过） |
+| | `forceToken` | `[ci force]` | 提交信息包含该标记时强制运行 |
 | `ui` | `reportColors` | 见下 | 构建报告状态色（`good` / `warn`，`#rrggbb`） |
 | | `faviconFallbackColor` | `#2d3748` | 无可用 favicon 文件时内联 SVG 兜底图标底色 |
 | | `faviconForegroundColor` | `#ffffff` | 兜底 SVG 图形（连线与圆点）前景色 |

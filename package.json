@@ -1,6 +1,6 @@
 {
   "name": "s-ynapse",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A minimal, secure, high-performance static blog system powered by Cloudflare",
   "private": true,
   "license": "MIT",

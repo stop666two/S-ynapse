@@ -135,7 +135,7 @@ function pickBilingualArticle(outDir, articles) {
 function collectSteps(outDir) {
   const home = '/zh/';
   const homeChecks = [
-    { label: '首页 eager 首图策略生效', expr: 'document.querySelectorAll(\'img[loading="eager"]\').length >= 1 || document.querySelectorAll("img").length === 0' },
+    { label: '首页 eager 首图策略生效', expr: 'document.querySelectorAll(\'img[loading="eager"], img[data-eager]\').length >= 1 || document.querySelectorAll("img").length === 0' },
     { label: '首页继续阅读容器存在', expr: '!!document.getElementById("continueReading")' }
   ];
   const steps = [

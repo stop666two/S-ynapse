@@ -6,7 +6,7 @@
   <% allCategories.forEach(function(cat) { %>
   <div class="category-item">
     <a href="<%= cat.url %>" class="category-link"><%= cat.name %></a>
-    <span class="category-count"><%= cat.count %> <%= ui('category.postCount','篇文章') %></span>
+    <span class="category-count"><%= ui('category.postCount','{count} 篇文章').replace('{count}', cat.count) %></span>
   </div>
   <% }) %>
 </div>

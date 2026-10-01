@@ -444,6 +444,33 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
           'gallery image must carry build-time width/height (CLS fix): ' + galleryImg.slice(0, 160));
       }
     }
+    // 标签/分类归档页副标题纯文本（i18n 占位符回归）：计数行的 {count} 必须由模板替换，
+    // 描述区不得混入未替换占位符、代码块/行内代码标签或反引号（Markdown/模板残留）。
+    {
+      const allHtml = collectHtml(tmpDir);
+      let taxonomyChecked = 0;
+      for (const [rel, text] of Object.entries(allHtml)) {
+        const isTag = /^(?:zh|en)\/tags\/[^/]+\/index\.html$/.test(rel);
+        const isCategory = /^(?:zh|en)\/categories\/[^/]+\/index\.html$/.test(rel);
+        if (!isTag && !isCategory) continue;
+        const lang = rel.slice(0, 2);
+        const countSel = isTag ? 'tag-count' : 'category-count';
+        const countBlock = text.match(new RegExp('<p[^>]*class="?' + countSel + '"?[^>]*>([\\s\\S]*?)<\\/p>'));
+        assert.ok(countBlock, rel + ' must render the post count line');
+        const countText = countBlock[1].trim();
+        assert.ok(!/[{}<>]/.test(countText), rel + ' count line must be plain text, got: ' + countText);
+        assert.match(countText, lang === 'en' ? /^\d+ posts$/ : /^\d+ 篇文章$/, rel + ' count line text: ' + countText);
+        if (isTag) {
+          const descBlock = text.match(/<p[^>]*class="?tag-desc"?[^>]*>([\s\S]*?)<\/p>/);
+          assert.ok(descBlock, rel + ' must render the tag description');
+          const descText = descBlock[1].trim();
+          assert.ok(!/[{}<>`]/.test(descText), rel + ' tag description must be plain text without placeholders/code, got: ' + descText);
+          assert.ok(descText.length > 0, rel + ' tag description must not be empty');
+        }
+        taxonomyChecked++;
+      }
+      assert.ok(taxonomyChecked > 0, 'at least one tag/category archive page must be checked');
+    }
     // 系列聚合页（features.series.pageEnabled 默认开）：示例系列 3 篇 -> zh/en 系列页、
     // 列表完整（序位/进度/上下篇）、语言切换直达地址、sitemap 纳入、搜索索引不纳入。
     // 示例系列缺失（派生副本自备内容）时跳过本节断言；构建成功本身已覆盖生成流程。

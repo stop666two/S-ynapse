@@ -103,3 +103,26 @@ describe('404 与 guard 锁屏文案语言接线（T4）', () => {
     }
   });
 });
+
+describe('ui-strings 占位符替换接线（标签/分类计数）', () => {
+  const ui = readJson5('ui-strings.json5');
+  const CASES = [
+    ['tag.ejs', 'tag.postCount'],
+    ['category.ejs', 'category.postCount'],
+    ['categories.ejs', 'category.postCount']
+  ];
+
+  it('词典计数文案含 {count}，模板必须替换且不得重复拼接数字', () => {
+    for (const [file, key] of CASES) {
+      const [group, name] = key.split('.');
+      assert.match(String(ui[group][name]), /\{count\}/, key + ' 词典值应含 {count} 占位符');
+      const src = fs.readFileSync(path.join(ROOT, 'templates', file), 'utf-8');
+      const at = src.indexOf("ui('" + key + "'");
+      assert.ok(at > -1, file + ' 未使用 ' + key);
+      const expr = src.slice(at, at + 240);
+      assert.match(expr, /\.replace\('\{count\}'/, file + ' 必须替换 {count} 占位符');
+      assert.ok(!/(articles\.length|cat\.count)\s*%>\s*<%= ui\('/.test(src),
+        file + ' 不得在 ui() 文案之外重复拼接文章数（数字只来自 {count} 替换）');
+    }
+  });
+});

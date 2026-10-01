@@ -1,0 +1,203 @@
+{
+  "note": "回退字面量绑定表：浏览器运行时/模板/工具中无法删除的兜底字面量，逐条锁定「字面量 === 注册表默认值」。check-config-single-source 校验 snippet 仍存在且 literal 与默认一致；schema 默认变更或代码重写导致 snippet 失配时 FAIL，必须同步更新代码与绑定。",
+  "bindings": [
+    {
+      "file": "js/core/soft-nav.js",
+      "snippet": "  }, +(cfg().prefetchDelayMs) || 80);",
+      "key": "features.softNavigation.prefetchDelayMs",
+      "literal": 80
+    },
+    {
+      "file": "js/domains/core/anchor-stabilize.js",
+      "snippet": "tleMs = Math.max(50, parseInt(AS.settleMs, 10) || 300);",
+      "key": "features.anchorStabilize.settleMs",
+      "literal": 300
+    },
+    {
+      "file": "js/domains/core/code-block.js",
+      "snippet": "py)||{};var COPYTIMEOUT=isNaN(+CB1.buttonTimeout)?1500:+CB1.button",
+      "key": "features.codeCopy.buttonTimeout",
+      "literal": 1500
+    },
+    {
+      "file": "js/domains/core/motion.js",
+      "snippet": "(+pick('rippleDurationMs', 'rippleDurationMs') || 500) + 'ms');",
+      "key": "features.motion.rippleDurationMs",
+      "literal": 500
+    },
+    {
+      "file": "js/domains/core/motion.js",
+      "snippet": "(+pick('rippleDurationMs', 'rippleDurationMs') || 500), 300) + 'm",
+      "key": "features.motion.rippleDurationMs",
+      "literal": 500
+    },
+    {
+      "file": "js/domains/core/page-transition.js",
+      "snippet": "    var OUT = isNaN(+PT.outDurationMs) ? 120 : +PT.outDu",
+      "key": "features.pageTransition.outDurationMs",
+      "literal": 120
+    },
+    {
+      "file": "js/domains/core/reading.js",
+      "snippet": "  var hideBelowPx = isNaN(rawBelow) ? 80 : Math.max(",
+      "key": "features.readDock.hideBelowPx",
+      "literal": 80
+    },
+    {
+      "file": "js/domains/core/reading.js",
+      "snippet": " +CFG.RP.tipDisplayMs; return isNaN(v) || v < 0 ? 500 : v; }",
+      "key": "features.readingProgress.tipDisplayMs",
+      "literal": 500
+    },
+    {
+      "file": "js/domains/core/toc.js",
+      "snippet": "sNaN(+S.TSS.offset) ? (isNaN(+S.T.activeOffset) ? 120 : +S.T.acti",
+      "key": "features.toc.activeOffset",
+      "literal": 120
+    },
+    {
+      "file": "js/domains/features/comments.js",
+      "snippet": "  var dl = isNaN(+CM.loadDelayMs) ? 300 : +CM.loadD",
+      "key": "features.comments.loadDelayMs",
+      "literal": 300
+    },
+    {
+      "file": "js/domains/features/continue-reading.js",
+      "snippet": "irmMs = isNaN(rawConfirmMs) || rawConfirmMs < 1 ? 3000 : Math.floo",
+      "key": "features.continueReading.clearConfirmMs",
+      "literal": 3000
+    },
+    {
+      "file": "js/domains/features/morphicons.js",
+      "snippet": "  const idleTimeoutMs = isNaN(idleRaw) ? 3000 : Math.max(",
+      "key": "features.morphIcons.idleTimeoutMs",
+      "literal": 3000
+    },
+    {
+      "file": "js/domains/features/search.js",
+      "snippet": "    var MW = isNaN(+HS.maxWords) ? 50 : Math.max(",
+      "key": "features.hotSearches.maxWords",
+      "literal": 50
+    },
+    {
+      "file": "js/domains/features/search.js",
+      "snippet": "isNaN(+TNS.debounceMs) ? (isNaN(+SC.debounceMs) ? 120 : +SC.debou",
+      "key": "features.search.debounceMs",
+      "literal": 120
+    },
+    {
+      "file": "js/domains/features/search.js",
+      "snippet": "+TNS.excerptLength) ? (isNaN(+SC.excerptLength) ? 120 : +SC.excer",
+      "key": "features.search.excerptLength",
+      "literal": 120
+    },
+    {
+      "file": "js/domains/features/search.js",
+      "snippet": "    var mm = isNaN(+shl.maxMatches) ? 20 : +shl.maxM",
+      "key": "features.searchHighlight.maxMatches",
+      "literal": 20
+    },
+    {
+      "file": "js/domains/features/sidebar-drag.js",
+      "snippet": "    : (isNaN(+SB.touchLongPressMs) ? 500 : Math.max(",
+      "key": "features.sidebarDrag.touchLongPressMs",
+      "literal": 500
+    },
+    {
+      "file": "js/domains/features/tts.js",
+      "snippet": "    var hbMs = +TS.resumeIntervalMs || 500, hbMax = +T",
+      "key": "features.tts.resumeIntervalMs",
+      "literal": 500
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "; %>:root{--loading-z:<%= parseInt(_L.zIndex,10)||3000 %>;--loadin",
+      "key": "features.loading.zIndex",
+      "literal": 3000
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "res.mobileToc&&features.mobileToc.borderRadius)||'1rem'%> <%=(type",
+      "key": "features.mobileToc.borderRadius",
+      "literal": "1rem"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": ";transition:opacity <%=(isNaN(+_pt.outDurationMs)?120:+_pt.outDur",
+      "key": "features.pageTransition.outDurationMs",
+      "literal": 120
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "n:absolute;top:50%;left:0;width:<%= _rp.dotSize||'10px' %>;height:",
+      "key": "features.readingProgress.dotSize",
+      "literal": "10px"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": ".comments&&String(tuning.comments.dividerShow))||'true'; if(_cdv!=",
+      "key": "tuning.comments.dividerShow",
+      "literal": "true"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "g.layout&&tuning.layout.gridCollapseBreakpoint)||'640px'%>){.blog-g",
+      "key": "tuning.layout.gridCollapseBreakpoint",
+      "literal": "640px"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "&tuning.layout&&tuning.layout.mobileBreakpoint)||'768px'%>){.lb-pre",
+      "key": "tuning.layout.mobileBreakpoint",
+      "literal": "768px"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "&tuning.layout&&tuning.layout.mobileBreakpoint)||'768px'%>){.m-bott",
+      "key": "tuning.layout.mobileBreakpoint",
+      "literal": "768px"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "&tuning.layout&&tuning.layout.mobileBreakpoint)||'768px'%>){.conten",
+      "key": "tuning.layout.mobileBreakpoint",
+      "literal": "768px"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "&tuning.layout&&tuning.layout.mobileBreakpoint)||'768px'%>){.blog-g",
+      "key": "tuning.layout.mobileBreakpoint",
+      "literal": "768px"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "&tuning.layout&&tuning.layout.tabletBreakpoint)||'1024px'%>){.read-d",
+      "key": "tuning.layout.tabletBreakpoint",
+      "literal": "1024px"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "&tuning.layout&&tuning.layout.tabletBreakpoint)||'1024px'%>){.sideba",
+      "key": "tuning.layout.tabletBreakpoint",
+      "literal": "1024px"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "&tuning.layout&&tuning.layout.tabletBreakpoint)||'1024px'%>){.blog-g",
+      "key": "tuning.layout.tabletBreakpoint",
+      "literal": "1024px"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "features.mobile&&features.mobile.tocBreakpoint)||'900px'%>){.toc-si",
+      "key": "tuning.layout.tocHideBreakpoint",
+      "literal": "900px"
+    },
+    {
+      "file": "templates/site-css.ejs",
+      "snippet": "ut&&tuning.layout.tocMinLeft)||theme.tocMinLeft||'10px'%>;padding-",
+      "key": "tuning.layout.tocMinLeft",
+      "literal": "10px"
+    }
+  ]
+}

@@ -28,7 +28,7 @@ const EXCLUDE_DIRS = new Set(['node_modules', '.git', 'dist', 'real-site', '.tmp
 const EXCLUDE_FILES = new Set([
   'check-config-refs.js',
   'features-schema.js', 'site-defaults.js', 'tuning-defaults.js', 'guard-defaults.js', 'config-refs-allowlist.json',
-  'internals-defaults.js'
+  'internals-defaults.js', 'config-switch-exemptions.json', 'config-fallback-bindings.json'
 ]);
 // 通用短键名/数据键名：无法可靠按名判定（模板与运行时经整体对象消费）。
 const GENERIC_KEYS = new Set([

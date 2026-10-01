@@ -385,7 +385,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 **草稿机制**：`draft: true` 的文章在 `npm run build` 中被跳过，但在 `npm run dev` 中会包含。
 
-**封面图**：未设置 `featuredImage` 的文章会在构建时根据标题自动生成 OG 图片（SVG，1200×630）。
+**封面图**：未设置 `featuredImage` 的文章会在构建时根据标题自动生成封面/OG 图（默认 1200×630）。
 
 ---
 
@@ -454,7 +454,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署。CI 作业：
 - `check-agents`：变更集中检测 AI 规则文件（AGENTS.md 及其变体），命中即阻断；
 - `compat-node20`：Node 20.19.0（`engines` 下限，与 `internals.ci.compatNodeVersion` 一致）上运行 `npm test` + `verify:config` + `verify:config-refs` + `verify:config-dupes` + `npm run verify:internals` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
-- `build`（Node 版本由 `.nvmrc` 单源控制，经 `node-version-file` 读取；`node scripts/ci-env.js` 导出 internals 环境）→ 单步 `node scripts/ci-checks.js`：**一次跑完整套检查且不提前中断**（lint、typecheck、test、test:coverage（`scripts/lib` 行覆盖率 ≥80%）、test:build、test:fuzz、test:malicious、verify:config 家族（含 verify:internals）、verify:security、Chrome 依赖项 test:smoke/test:cov-web/verify:compression（未探测到浏览器时跳过并标注）、build、sbom；`audit`（依赖漏洞）与 `audit:a11y`（无障碍）为**建议项**——结果写入报告但不阻断），每项记录退出码/耗时/输出摘要，写入 `build-artifacts/ci-report.{json,txt}`，末尾任一阻断项失败整体失败 → 始终上传 `ci-report` 与 `test-artifacts`（`build-artifacts/**`，`always()`）→ Pages 部署（仅 `main`，调用 `npm run deploy:pages`，部署前自动跑 `verify:internals`）。
+- `build`（Node 版本由 `.nvmrc` 单源控制，经 `node-version-file` 读取；`node scripts/ci-env.js` 导出 internals 环境）→ 单步 `node scripts/ci-checks.js`：**一次跑完整套检查且不提前中断**（lint、typecheck、test、test:coverage（`scripts/lib` 行覆盖率 ≥80%）、test:build、test:fuzz、test:malicious、verify:config 家族（config/refs/dupes/comments/docs 与 verify:internals）、verify:process-guards、verify:security、Chrome 依赖项 test:smoke/test:cov-web/verify:compression（未探测到浏览器时跳过并标注）、build、sbom；`audit`（依赖漏洞）与 `audit:a11y`（无障碍）为**建议项**——结果写入报告但不阻断），每项记录退出码/耗时/输出摘要，写入 `build-artifacts/ci-report.{json,txt}`，末尾任一阻断项失败整体失败 → 始终上传 `ci-report` 与 `test-artifacts`（`build-artifacts/**`，`always()`）→ Pages 部署（仅 `main`，调用 `npm run deploy:pages`，部署前自动跑 `verify:internals`）。
 - **进程永不挂死（自动化兜底）**：自动化运行一律走 `node scripts/spawn.js [--max-ms N] -- <命令>`（超时/断链清理整棵进程树、stdin 置空）；仓库高风险入口统一接入 `scripts/lib/process-guard.js`（父进程死亡、绝对生命周期、信号兜底），`npm run verify:process-guards` 巡检并纳入 CI 聚合。详见 `docs/runbook/process-hygiene.md`。
 - **无变化重复运行自动跳过**：`preflight` 作业调用 `scripts/ci-skip.js` 查询本工作流历史；当前 HEAD 与已运行序列一致且满足「连续阻断失败 2 次」或「连续完全无错无警告 5 次」时自动跳过（告警不计错也不计净，但重置失败连击）；`workflow_dispatch`、`CI_FORCE=1`、提交信息含 `[ci force]` 均强制运行。阈值与开关见 `internals.json5` 的 `ci.skip`（`docs/config-reference.md` 末节），聚合结论以提交状态 `ci/aggregate` 记录告警数。
 - 夜间深度随机测试（`.github/workflows/nightly.yml`，每日 UTC 18:00 + 手动触发）：同一聚合器 `node scripts/ci-checks.js`，仅深度档不同（`FC_NUM_RUNS=2000`、`STRESS=1`、随机种子），上传 `nightly-test-artifacts`。
@@ -488,7 +488,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | 阅读设置 | 文章底部齿轮 → 字号/行高/宽度滑杆 + 重置（localStorage） |
 | TTS 朗读 | 文章底部喇叭按钮，倍速跟随设置 |
 | 阅读模式 | 文章底部按钮，隐藏侧边栏全宽阅读 |
-| 返回顶部 | 右下角 ↑ 箭头（滚动 300px 后显示，阈值可配） |
+| 返回顶部 | 右下角 ↑ 箭头（默认滚动 400px 后显示，阈值可配） |
 | 外部链接警告 | 点击外部链接弹窗提示，白名单域名跳过 / 黑名单拦截（可改 warn/prohibit 模式） |
 | 文章目录 | 侧边栏 h2-h4 自动提取；移动端左下角目录抽屉 |
 | 系列导航 | 文章底部系列面板（上一集/下一集/进度）；卡片 + 侧栏系列徽标 |
@@ -508,14 +508,14 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（904 项 / 134 组） |
-| `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前总量约 98%） |
+| `npm test` | 运行单元测试（945 项 / 134 组） |
+| `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前总量约 94%） |
 | `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、CSP nonce 与 report.txt 两态；CI 运行，不进 `npm test`） |
 | `npm run test:fuzz` | 属性/随机测试（fast-check；`scripts/**/*.fuzz.test.js`；默认 100 次迭代、`FC_NUM_RUNS` 可调、`STRESS=1` 开海量用例；失败留档 `build-artifacts/fuzz-failures/`，`TEST_SEED` 复现） |
 | `npm run test:malicious` | 恶意/畸形场景套件（`SYNAPSE_ROOT` 隔离夹具真实构建；10 类场景按 hard-fail/degrade 策略断言；`STRESS=1` 开海量档；CI 运行，不进 `npm test`） |
 | `npm run test:smoke` | 浏览器冒烟（系统 Chrome 无头访问代表页：200/标题/DOM/零控制台错误；无 Chrome 跳过；`--build` 强制重建、`--out` 指定产物目录） |
 | `npm run test:cov-web` | 无头 Web 覆盖率门禁（`js/**` 行/函数覆盖，阈值 `scripts/lib/web-coverage-thresholds.js`；输出 `build-artifacts/web-coverage/`；无 Chrome 跳过） |
-| `npm run test:all` | 本地与 CI 同强度全套：`npm test` + `test:build` + `test:fuzz` + `test:malicious` + `test:smoke` + `test:cov-web` 串行 |
+| `npm run test:all` | 本地与 CI 同强度全套：`npm test` + `test:build` + `test:fuzz` + `test:malicious` + `test:smoke` + `test:cov-web` + `verify:internals` 串行 |
 | `npm run verify:compression` | 压缩无头对比门禁（完整构建 + 压缩产物 vs 未压缩副本的 DOM/样式/控制台/交互断言；passed=0、failed=1、skipped=0；`--out`/`--chrome`/`--keep-baseline`/`--json` 可选） |
 | `npm run sbom` | 生成 CycloneDX 1.5（ECMA-424）SBOM → `build-artifacts/sbom.cdx.json`（不入库；CI 上传为 `sbom-cyclonedx` artifact） |
 | `npm run release:mark -- <major\|minor\|patch\|X.Y.Z\|X.Y.Z-预发布> --human-verified "<姓名>" --confirm <版本>` | 完成标记：顺序跑完全套质量门禁 → 同步 package.json/CHANGELOG/RELEASE.json → `chore(release)` 提交 + 附注 tag（默认不 push；`--dry-run` 仅演练；`--push --confirm-push` 才推送；支持同版本/预发布标记，如 `1.1.0-a1`） |
@@ -544,7 +544,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 ## 测试
 
 ```bash
-npm test            # 904 项 / 134 组，全部通过
+npm test            # 945 项 / 134 组（本机 1 项按环境跳过）
 npm run test:all    # 本地与 CI 同强度：test + test:build + test:fuzz + test:malicious + test:smoke + test:cov-web + verify:internals 串行
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
@@ -624,11 +624,11 @@ npm run verify:security   # 集成安全回归
 | serve-compression | 4 | 本地 serve 压缩响应两态 |
 | theme-override | 5 | `--theme-override` / `--features-override` 深合并与校验 |
 
-> `npm test` 共 **757 项 / 124 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
+> `npm test` 共 **945 项 / 134 组**（Node 内置 test runner；CSP 裁剪为顶层用例；`build-smoke` 集成用例仅在 `npm run test:build` 运行）。
 
 ### SBOM（软件物料清单）
 
-- **标准**：CycloneDX **1.5** JSON（ECMA-424）；`bomFormat/specVersion/serialNumber(urn:uuid)/version/metadata/components` 最小合法结构，根组件版本随 `package.json`（当前 `s-ynapse@1.1.0`，type `application`）。
+- **标准**：CycloneDX **1.5** JSON（ECMA-424）；`bomFormat/specVersion/serialNumber(urn:uuid)/version/metadata/components` 最小合法结构，根组件版本随 `package.json`（当前 `s-ynapse@1.1.0-a2`，type `application`）。
 - **依赖映射**：读取 `package-lock.json`（lockfileVersion 3）非根条目，逐条输出 `type:"library"` + `name` + `version` + `purl`（作用域包按 purl 规范将 `@` 编码为 `%40`）+ 唯一 `bom-ref`；`integrity`（sha512 base64）转为 `hashes[{alg:"SHA-512",content:<hex>}]`，无 integrity 则省略；按 `name/version` 稳定排序，重复同版本以 `#2` 后缀去重。
 - **生成**：`npm run sbom` → `build-artifacts/sbom.cdx.json`（目录已加入 `.gitignore`，原子写入，不入库）；CI 在构建后生成并上传为 `sbom-cyclonedx` artifact（`if-no-files-found: error`）。
 

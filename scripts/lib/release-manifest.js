@@ -13,13 +13,15 @@
 //     git hook（.githooks）、根全部 *.json5 与锁文件；
 //   - 骨架目录：articles/ 与 media/ 在包内只保留 .gitkeep 标记（空目录语义），
 //     示例文章与演示媒体一律不入包，用户放入自己的内容后即可构建；
-//   - 排除：文档（docs/**、CHANGELOG.md、SECURITY.md）、CI 配置（.github/**）、
+//   - 排除：文档（docs/**，仅 RELEASE_EXTRA_FILES 显式放行的测试最小集例外）、
+//     CHANGELOG.md、SECURITY.md、CI 配置（.github/**）、
 //     本地派生副本/缓存/构建产物（real-site/dist/node_modules/.cache/backups 等）
 //     与构建期生成物（workers/security-config.js）；
 //   - 可选内容目录 videos/ 与 assets/ 当前仓库尚无内容：`git archive` 对未匹配的
 //     pathspec 直接失败（exit 128），不能预先写入 pathspec；待目录出现内容时显式加入
 //     （未知路径默认拒绝会保证其不会悄悄入包）；
-//   - 排除清单用于「即使未来包含模式扩大也必须排除」的路径，判定时优先于包含规则；
+//   - 排除清单用于「即使未来包含模式扩大也必须排除」的路径；RELEASE_EXTRA_FILES
+//     是有界例外清单，判定时先于排除规则（docs/** 整目录排除，最小文档集必须显式放行）；
 //   - 根目录 `*.json5` 采用非递归匹配（只允许根文件），避免任意深度的同名文件被放行；
 //   - 未知路径一律拒绝，新增目录必须显式加入白名单，防止无意打包。
 
@@ -69,10 +71,19 @@ const RELEASE_ROOT_FILES = Object.freeze([
 // 根目录 JSON5 配置文件名模式（非递归，仅根层）。
 const RELEASE_ROOT_GLOB = '*.json5';
 
+// 显式放行的额外文件（有界清单，每项都必须是具体文件路径，不得使用通配）。
+// 用途：测试运行所需的最小文档集——解压归档后 npm test 会直接读取
+// docs/config-reference.md（config-count/theme-lab/save-data 等断言文档小节），
+// 缺失即 ENOENT 使发布门禁的「解压后测试」步骤失败。
+// 判定顺序：先于 RELEASE_EXCLUDE_PATTERNS（docs/** 整目录排除，需在此显式豁免）。
+const RELEASE_EXTRA_FILES = Object.freeze([
+  'docs/config-reference.md' // 配置参考文档（测试断言其章节/键覆盖）
+]);
+
 // 明确排除的路径模式（glob：** 跨目录、* 段内、? 单字符）。
 // 这些路径即使未来被包含模式意外覆盖，也必须排除在发布包之外。
 const RELEASE_EXCLUDE_PATTERNS = Object.freeze([
-  'docs/**',                  // 开发文档，与运行无关
+  'docs/**',                  // 开发文档（RELEASE_EXTRA_FILES 的测试最小集例外）
   '.github/**',               // CI 配置（发布工作流本身不需要随包分发）
   '.tmp-scripts/**',          // 本地临时脚本
   '.playwright-mcp/**',       // 浏览器测试产物
@@ -91,6 +102,7 @@ const RELEASE_EXCLUDE_PATTERNS = Object.freeze([
 // 内容与模板入口、发布链路脚本与测试。
 const RELEASE_REQUIRED_FILES = Object.freeze([
   'README.md',
+  'docs/config-reference.md',
   'LICENSE',
   'package.json',
   'package-lock.json',
@@ -172,6 +184,8 @@ function matchesAny(target, patterns) {
 function isReleaseAllowed(relPath) {
   const target = normalizeRelPath(relPath);
   if (target === null) return false;
+  // 额外白名单先于排除模式判定：docs/** 整目录排除，测试所需最小文档集在此显式放行。
+  if (RELEASE_EXTRA_FILES.includes(target)) return true;
   if (matchesAny(target, RELEASE_EXCLUDE_PATTERNS)) return false;
   if (RELEASE_ROOT_FILES.includes(target)) return true;
   const slash = target.indexOf('/');
@@ -194,6 +208,7 @@ function listReleaseIncludePaths() {
   }
   paths.push(':(top,glob)' + RELEASE_ROOT_GLOB);
   for (const file of RELEASE_ROOT_FILES) paths.push(':(top)' + file);
+  for (const file of RELEASE_EXTRA_FILES) paths.push(':(top)' + file);
   return paths;
 }
 
@@ -261,6 +276,7 @@ module.exports = {
   RELEASE_SKELETON_MARKER,
   RELEASE_ROOT_FILES,
   RELEASE_ROOT_GLOB,
+  RELEASE_EXTRA_FILES,
   RELEASE_EXCLUDE_PATTERNS,
   RELEASE_REQUIRED_FILES,
   ReleaseArchiveContentError,

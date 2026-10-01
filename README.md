@@ -88,15 +88,17 @@
 > [Releases](https://github.com/stop666two/S-ynapse/releases) 下载已通过全套质量门禁与人工核验的版本包
 > （`S-ynapse-<版本>.zip`，校验记录见包内 `RELEASE.json`；归档已通过「解压后 `npm ci --ignore-scripts && npm test && npm run build`」门禁）。
 > 版本包是**空站骨架**：构建、测试、部署所需的全部代码、配置、示例页面（`pages/**`）与默认资源（`static/**`）齐备；
-> `articles/` 与 `media/` 为空目录（`.gitkeep` 标记），放入自己的文章与图片即可构建；仓库只保留最新一个 Release。
+> 测试运行所需的最小文档集（`docs/config-reference.md`）随包分发，`articles/` 与 `media/` 为空目录（`.gitkeep` 标记），
+> 放入自己的文章与图片即可构建；仓库只保留最新一个 Release。
 > 从源码构建请以下载包为准，避免直接使用 main 的中间状态。
 >
 > **Downloads & installation (English)**: `main` may contain work-in-progress changes. Prefer the verified
 > archive from [Releases](https://github.com/stop666two/S-ynapse/releases) (`S-ynapse-<version>.zip` with
 > `RELEASE.json` provenance); it passes the "extract → `npm ci --ignore-scripts && npm test && npm run build`" gate.
 > The archive is an **empty-site skeleton**: every file needed to build, test and deploy ships with it
-> (sample pages under `pages/**`, default assets under `static/**`), while `articles/` and `media/` are empty
-> placeholders kept via `.gitkeep` — add your own content and build. Only the latest release is kept.
+> (sample pages under `pages/**`, default assets under `static/**`, and the minimal docs read by the test
+> suite, `docs/config-reference.md`), while `articles/` and `media/` are empty placeholders kept via
+> `.gitkeep` — add your own content and build. Only the latest release is kept.
 >
 > 发布流程、人工核验含义与排障见 **[docs/runbook/release.md](docs/runbook/release.md)**。
 
@@ -519,7 +521,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run verify:compression` | 压缩无头对比门禁（完整构建 + 压缩产物 vs 未压缩副本的 DOM/样式/控制台/交互断言；passed=0、failed=1、skipped=0；`--out`/`--chrome`/`--keep-baseline`/`--json` 可选） |
 | `npm run sbom` | 生成 CycloneDX 1.5（ECMA-424）SBOM → `build-artifacts/sbom.cdx.json`（不入库；CI 上传为 `sbom-cyclonedx` artifact） |
 | `npm run release:mark -- <major\|minor\|patch\|X.Y.Z\|X.Y.Z-预发布> --human-verified "<姓名>" --confirm <版本>` | 完成标记：顺序跑完全套质量门禁 → 同步 package.json/CHANGELOG/RELEASE.json → `chore(release)` 提交 + 附注 tag（默认不 push；`--dry-run` 仅演练；`--push --confirm-push` 才推送；支持同版本/预发布标记，如 `1.1.0-a1`） |
-| `npm run release:archive -- --ref <tag\|HEAD>` | 按白名单生成 `release-artifacts/S-ynapse-<版本>.zip`（含前缀目录）：`articles/`、`media/` 只保留 `.gitkeep` 空骨架，复核内容无越界、必需文件与测试齐全、RELEASE.json=package.json=tag 版本一致 |
+| `npm run release:archive -- --ref <tag\|HEAD>` | 按白名单生成 `release-artifacts/S-ynapse-<版本>.zip`（含前缀目录）：`articles/`、`media/` 只保留 `.gitkeep` 空骨架，测试所需最小文档集 `docs/config-reference.md` 随包；复核内容无越界、必需文件与测试齐全、RELEASE.json=package.json=tag 版本一致 |
 | `npm run release:publish -- vX.Y.Z` | 本地备用发布通道（远端已有 tag 后复用双重校验并 `gh release create --latest`，成功后清理旧 Release；tag 永不删除；默认通道为 tag 触发 Actions 自动发布） |
 | `npm run release:prune -- --keep vX.Y.Z` | 只保留最新 Release：删除其余 Release 页面（tag 永不删除；`--dry-run` 预览清单；CI/`release:publish` 已自动执行） |
 | `npm run lint` | ESLint 静态检查（js/scripts/workers；CI 门禁） |

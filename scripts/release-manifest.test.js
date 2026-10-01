@@ -12,6 +12,7 @@ const {
   RELEASE_SKELETON_DIRS,
   RELEASE_SKELETON_MARKER,
   RELEASE_ROOT_FILES,
+  RELEASE_EXTRA_FILES,
   RELEASE_REQUIRED_FILES,
   isReleaseAllowed,
   normalizeRelPath,
@@ -102,6 +103,25 @@ test('白名单排除：开发目录/派生副本/构建产物一律拒绝', () 
   ];
   for (const file of denied) {
     assert.strictEqual(isReleaseAllowed(file), false, file + ' 必须被排除');
+  }
+});
+
+test('额外白名单：测试所需最小文档集放行，docs 其余仍拒绝（先于排除模式判定）', () => {
+  assert.deepStrictEqual(RELEASE_EXTRA_FILES, ['docs/config-reference.md'], '最小文档集应保持有界：仅 config-reference');
+  for (const file of RELEASE_EXTRA_FILES) {
+    assert.strictEqual(isReleaseAllowed(file), true, file + ' 应放行（解压后 npm test 直接读取）');
+    assert.ok(RELEASE_REQUIRED_FILES.includes(file), file + ' 应列入必需文件（缺包即归档失败）');
+  }
+  const denied = [
+    'docs/config-reference.md.bak',
+    'docs/config-reference.md/secret',
+    'docs/runbook/release.md',
+    'docs/handoff/2026-09-25-ui-loading-refactor-handoff.md',
+    'docs/plans/deep/note.md',
+    'CHANGELOG.md'
+  ];
+  for (const file of denied) {
+    assert.strictEqual(isReleaseAllowed(file), false, file + ' 不在最小文档集内，必须拒绝');
   }
 });
 
@@ -205,6 +225,9 @@ test('listReleaseIncludePaths：pathspec 锚定仓库根，骨架目录只注入
   assert.ok(paths.includes(':(top,glob)*.json5'), '根 JSON5 pathspec 缺失');
   for (const file of RELEASE_ROOT_FILES) {
     assert.ok(paths.includes(':(top)' + file), file + ' pathspec 缺失');
+  }
+  for (const file of RELEASE_EXTRA_FILES) {
+    assert.ok(paths.includes(':(top)' + file), file + ' pathspec 缺失（最小文档集必须随包）');
   }
   assert.ok(paths.includes(':(top)build.bat'), 'build.bat pathspec 缺失');
   assert.ok(paths.includes(':(top)eslint.config.js'), 'eslint.config.js pathspec 缺失');

@@ -632,7 +632,7 @@ npm run verify:security   # 集成安全回归
 - **依赖映射**：读取 `package-lock.json`（lockfileVersion 3）非根条目，逐条输出 `type:"library"` + `name` + `version` + `purl`（作用域包按 purl 规范将 `@` 编码为 `%40`）+ 唯一 `bom-ref`；`integrity`（sha512 base64）转为 `hashes[{alg:"SHA-512",content:<hex>}]`，无 integrity 则省略；按 `name/version` 稳定排序，重复同版本以 `#2` 后缀去重。
 - **生成**：`npm run sbom` → `build-artifacts/sbom.cdx.json`（目录已加入 `.gitignore`，原子写入，不入库）；CI 在构建后生成并上传为 `sbom-cyclonedx` artifact（`if-no-files-found: error`）。
 
-### 构建行为说明（2026-09 审计修复）
+### 构建行为说明
 
 - **失败即阻断**：内容预校验（重复 slug、非法日期、空标签/分类、缺失 `/media` 引用）在清理 `dist/` 之前报错并终止；运行期失败（模板/feed/sitemap/媒体/OG/压缩等）会汇总打印并以非零退出码结束。本地预览可用 `npm run build -- --allow-degraded` 降级继续（退出码保持 0）。
 - **定时发布**：`date` 晚于构建时间的文章视为已排期，自动排除页面、feed、sitemap 与搜索索引，并在构建日志中提示。

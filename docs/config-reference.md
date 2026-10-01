@@ -402,13 +402,13 @@
 > **接线说明**：
 > - `maxWidthVw` = 灯箱图片最大宽度（vw）：构建期归一化为 CSS 变量 `--lightbox-maxWidthVw`（可被 customCSS 覆盖），专键优先；未设/非法时回退兼容旧键 `imageFit.lightbox.maxWidthPct`，再回退 92。默认两者同值（92），渲染不变。
 > - `openDurationMs` / `switchDurationMs` = 打开 / 切换（上一张/下一张）的轻量透明度补间（WAAPI）：**专键优先，未设回退通用 `transitionDurationMs`（再回退 220）**；0 = 瞬时。系统减少动效（`prefers-reduced-motion: reduce`）下不播放动画。此前打开/切换无可感知过渡，为默认 180/120ms 淡入（见 CHANGELOG Changed）。
-> - canonical：`scripts/lib/feature-wiring.js → lightboxConfig/lightboxGestureConfig`（单测覆盖；手势阈值默认 50/80/80/2/6 = 历史行为）。
+> - canonical：`scripts/lib/feature-wiring.js → lightboxConfig/lightboxGestureConfig`（单测覆盖；手势阈值默认 50/80/80/2/6）。
 > - `zoom` / `slideshow` / `downloadButton`（缩放增强、幻灯片、原图下载）：`zoom.enabled` 未设回退 `zoomEnabled`、`zoom.maxScale` 未设回退 `zoomMax`（再回退 4，下限 1）；`slideshow.intervalMs` 钳制 1000–60000（非法回退 4000）。缩放/平移/手势/Esc 两段退出/幻灯片状态机的纯函数实现于 `js/domains/features/lightbox-core.js`（单测 `scripts/lightbox-core.test.js` 覆盖）：滚轮/双击/双指捏合统一钳制 1x–`maxScale`；缩放态禁用翻页滑动手势与 ←/→（避免切走视图），Esc 缩放态先复位视图再关闭；拖拽平移经边界钳制（内容大于视口时限制到边缘贴齐，小于视口时锁定居中，不得拖出视口）；幻灯片打开自动播放、按钮启停、页面隐藏暂停/恢复可见续播、缩放态本次跳过推进；下载按钮取图片 `src`（构建期写入的原始分辨率路径）写入 `href` 与 `download` 文件名；软导航交换后关闭灯箱并清理轮播计时器。
 
 ### 3.2 readingProgress — 阅读进度条
 `enabled true` / `articleOnly true` / `clickToJump true` / `showDot true` / `dotSize 10px` / `barHeight 3px` / `useGradient true` / `gradientStart var(--color-s)` / `gradientEnd var(--color-a)` / `tipDisplayMs 500`(点击跳转后百分比气泡停留时长；悬停/聚焦期间常显) / `showTip true`(是否显示跟随进度圆点的百分比提示气泡) / `updateThrottleMs 30` / `ariaAnnounce true`(进度条输出 `aria-valuenow`，屏幕阅读器可读) / `topOffset 0`(进度条距视口顶部偏移，构建期写入 `.reading-progress` 的 `top`，值需含单位如 `8px`/`2vh`，`0` 默认贴顶) / `zIndex 1000`(进度条层级，与其他浮层冲突时调大) / `rememberPosition true`(同文章回访恢复滚动位置) / `rememberPositionMaxAgeHours 72`(超时不再恢复;哈希导航与前进/后退不触发) / `storageKey 's-readpos'`(阅读位置表 localStorage 键；改键会重置已保存位置；空值回退默认键) / `keyboardStep 0.05`(进度条聚焦后 ←/→ 单步比例;Home/End 不受影响) / `minRestorePx 160`(恢复位置的最小 y，低于不恢复) / `maxStoredPositions 80`(本地记忆路径上限,超出按最旧淘汰) / `saveThrottleMs 400`(滚动保存节流 ms)。点击跳转支持键盘（聚焦进度条后 ←/→ 按 keyboardStep 步进、Home/End 首尾）
 
-> canonical：`scripts/lib/feature-wiring.js → readingRestoreConfig`（单测覆盖；默认 0.05/160/80/400 = 历史行为）。
+> canonical：`scripts/lib/feature-wiring.js → readingRestoreConfig`（单测覆盖；默认 0.05/160/80/400）。
 
 ### 3.3 backToTop — 返回顶部
 `enabled true` / `showAfterPx 400` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false`
@@ -432,7 +432,7 @@
 ### 3.5 imageLazy — 懒加载
 `enabled true` / `fadeIn true` / `fadeInDurationMs 300` / `placeholderColor var(--color-hover)` / `preserveAspectRatio true` / `loadingClass img-loading`(加载中占位 class) / `errorClass img-error`(加载失败 class) / `eagerFirst 1`(前 N 张图立即加载,不懒加载；首页卡片模板与运行时懒加载合计恰好前 N 张为 `loading=eager`，默认 1 = 仅首张卡片) / `lqip true`(构建期模糊占位,内联 `data-lqip`,运行时经本模块应用到图片背景) / `lqipWidth 24`(占位宽度 px)
 
-> 接线说明：`preserveAspectRatio=true`（默认，历史行为）构建期输出 width/height（CLS 保护），覆盖 markdown 正文图片与 pages 出图路径（卡片/头图/图库/prev-next 缩略图，经 `scripts/build/pages.js` 的 imgDimsAttrs/buildCardImgAttrs/cardCoverAttrs/postCoverAttrs）；`false` 时不输出 width/height，交由 CSS 自适应。`data-lqip` 与 `data-iw` 不受影响。
+> 接线说明：`preserveAspectRatio=true`（默认）构建期输出 width/height（CLS 保护），覆盖 markdown 正文图片与 pages 出图路径（卡片/头图/图库/prev-next 缩略图，经 `scripts/build/pages.js` 的 imgDimsAttrs/buildCardImgAttrs/cardCoverAttrs/postCoverAttrs）；`false` 时不输出 width/height，交由 CSS 自适应。`data-lqip` 与 `data-iw` 不受影响。
 
 ### 3.6 codeBlock — 代码块
 `enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `copyFailTextEn ''`(en 站失败文案，空回退中文) / `showLanguageTag true` / `lineNumbers true`(纯文本块也可用) / `wrapLongLines false`(true=软换行,行号仍按行高对齐) / `highlightBackground var(--color-hover)`(hover 混色基色,力度见 tuning.code.hoverBgMix) / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false`(true=首块上方一键复制全页) / `downloadButton true` / `blobRevokeDelayMs 1000`(下载后释放 Blob URL 延迟 ms) / `prismBatchMs 8`(Prism 高亮单批主线程预算 ms) / `prismIdleTimeoutMs 300`(首帧高亮空闲超时 ms) / `prismIdleFallbackMs 60`(无 requestIdleCallback 时的兜底间隔 ms) / `windowDotColors ['#ff5f56','#ffbd2e','#27c93f']`(窗口栏三圆点颜色数组，非数组/不足 3 项整体回退默认) / `scrollHintTolerancePx 8`(判定「可横向滚动」的溢出容差 px；非负，非法回退 8)
@@ -442,7 +442,7 @@
 ### 3.7 externalLink — 外链拦截
 `enabled true`(需 site.externalLinkWarning.enabled 同真) / `whitelist []` / `blacklist []` / `mode warn`(`warn|prohibit|hint`) / `message 即将离开本站,前往外部链接：` / `messageEn ''`(en 站提示文案,空回退中文) / `confirmText 继续访问` / `confirmTextEn ''` / `cancelText 返回` / `cancelTextEn ''` / `copyButtonText 复制` / `copyButtonTextEn ''` / `copyFeedbackMs 1500`(复制成功反馈停留 ms，超时还原) / `showFullUrl true` / `openInNewTab true` / `whitelistNewTab false`
 
-> 接线说明：`whitelistNewTab=true` 时白名单外链强制新标签页打开（`target=_blank + noopener/noreferrer` 等效，经 `window.open`，动态插入链接同样生效）；false（默认）= 浏览器默认行为（当前页跳转），保持历史行为。`copyButtonText(En)` 控制外链提醒浮层「复制链接」按钮文案（点击复制目标 URL，短暂显示「已复制」）：`copyButtonTextEn`（en 站，空回退中文键）> `copyButtonText` > `ui-strings.toolbar.copyLink`（新增双语）> 内置文案；默认 `复制`/`Copy`（见 CHANGELOG Added）。
+> 接线说明：`whitelistNewTab=true` 时白名单外链强制新标签页打开（`target=_blank + noopener/noreferrer` 等效，经 `window.open`，动态插入链接同样生效）；false（默认）= 浏览器默认行为（当前页跳转）。`copyButtonText(En)` 控制外链提醒浮层「复制链接」按钮文案（点击复制目标 URL，短暂显示「已复制」）：`copyButtonTextEn`（en 站，空回退中文键）> `copyButtonText` > `ui-strings.toolbar.copyLink`（新增双语）> 内置文案；默认 `复制`/`Copy`（见 CHANGELOG Added）。
 
 ### 3.8 themeToggle
 `enabled true` / `persistKey ss-theme`(主题偏好存储键；`theme.darkMode.rememberChoice=false` 时改用 sessionStorage 同键) / `toggleIconSwap true`(仅在 `theme.darkMode.iconStyle='sun-moon'` 时生效：切换交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)。**切换过渡时长的唯一来源为 `theme.animation.transitionDuration`（经 `tuning.motion.transitionDuration` 覆盖）；默认主题/是否记忆/图标样式/是否整体过渡的唯一来源为 `theme.json5 → darkMode.default / rememberChoice / iconStyle / transitionAll`**（运行时经外置配置 `window.__THEME__.darkMode` 读取，模板早置脚本服务端直读）。`iconStyle`：`sun-moon` 双图标交替（默认）/ `single` 常显单个月亮图标 / `switch` CSS 滑块开关；`transitionAll=true`（默认）切换时给 `<html>` 加 `.theme-switching`（`--td` 时长后移除），false=不加类瞬时切换。`rememberChoice=false` 时早置脚本与切换均忽略 localStorage 旧值、仅用 sessionStorage。
@@ -472,14 +472,14 @@
 > - canonical：`scripts/lib/feature-wiring.js → ttsConfig/pickTtsVoice`（单测覆盖两策略与评分）；运行时 `js/domains/features/tts.js` 同源实现（runner 经 speechSynthesis 桩验证）。
 
 ### 3.15 wikiLinks — 双链
-`enabled true`(false = `[[...]]` 原样保留) / `unknownMode text`(`text`=未知目标降级纯文本（默认，历史行为）/`link`=渲染为站内搜索链接 `/{lang}/search/?q=<encodeURIComponent(目标)>`/`hide`=整体移除) / `unknownSuffix ''`(仅未知目标显示文本追加后缀；已知目标不加) / `openNewTab false` / `caseInsensitive true`(false = 按原始标题精确匹配；slug 始终精确匹配) / `allowCustomLabel true`(false = 忽略 `[[目标|自定义文本]]` 的 `|` 后文本，已知用规范标题、未知用目标、外链用 URL)
+`enabled true`(false = `[[...]]` 原样保留) / `unknownMode text`(`text`=未知目标降级纯文本（默认）/`link`=渲染为站内搜索链接 `/{lang}/search/?q=<encodeURIComponent(目标)>`/`hide`=整体移除) / `unknownSuffix ''`(仅未知目标显示文本追加后缀；已知目标不加) / `openNewTab false` / `caseInsensitive true`(false = 按原始标题精确匹配；slug 始终精确匹配) / `allowCustomLabel true`(false = 忽略 `[[目标|自定义文本]]` 的 `|` 后文本，已知用规范标题、未知用目标、外链用 URL)
 
 > 接线说明：构建期 `scripts/lib/utils.js → resolveWikiLinks(content, lookup, options)` 参数化，`scripts/build/articles.js` 传入本组键（`unknownMode`/`unknownSuffix`/`caseInsensitive`/`allowCustomLabel` + 当前语言）；`enabled=false` 跳过整个解析。查表新增 `titlesExact`（原始大小写标题）供 `caseInsensitive=false` 使用。单测覆盖三模式与各键四态（含 URL 编码）。
 
 ### 3.16 supSub — 上下标
 `enabled true` / `supMarker ^` / `subMarker ~` / `skipInsideMath true` / `preserveUnmatched true`
 
-> 接线说明：标记参数化（≥1 字符，正则元字符按字面量匹配；`supMarker` 与 `subMarker` 相同时以上标优先），构建期 `scripts/build/markdown.js` 的 marked 扩展按配置生成 tokenizer；`preserveUnmatched=true`（默认）= 孤立标记保持原文，`false` = 剥离孤立标记（标记重复如 `~~` 视为删除线等其它语法，不剥离）；`skipInsideMath=true`（默认，历史行为）= 数学段内不处理（`math.autoDetect=true` 时由 mathGuard 保护，数学段内成对标记保持原样）；`false` = 数学段内也应用上下标转换（renderer 内对定界符内部文本转换，可能破坏公式，谨慎使用；`autoDetect=false` 时无数学段，此键无效）。`skipInsideMath` 默认 true。单测：`scripts/config-wiring.test.js`（四键四态 + matcher 边界）。
+> 接线说明：标记参数化（≥1 字符，正则元字符按字面量匹配；`supMarker` 与 `subMarker` 相同时以上标优先），构建期 `scripts/build/markdown.js` 的 marked 扩展按配置生成 tokenizer；`preserveUnmatched=true`（默认）= 孤立标记保持原文，`false` = 剥离孤立标记（标记重复如 `~~` 视为删除线等其它语法，不剥离）；`skipInsideMath=true`（默认）= 数学段内不处理（`math.autoDetect=true` 时由 mathGuard 保护，数学段内成对标记保持原样）；`false` = 数学段内也应用上下标转换（renderer 内对定界符内部文本转换，可能破坏公式，谨慎使用；`autoDetect=false` 时无数学段，此键无效）。`skipInsideMath` 默认 true。单测：`scripts/config-wiring.test.js`（四键四态 + matcher 边界）。
 
 ### 3.17 math — KaTeX
 `enabled true` / `autoDetect true` / `version 0.16.22` / `inlineDelimiters ['$']` / `blockDelimiters ['$$']` / `throwOnError false` / `strict false` / `renderRoundParens true` / `renderSquareBrackets true` / `selector .post-content` / `mathml true`
@@ -487,7 +487,7 @@
 > 接线说明（构建期 mathGuard 输出占位 + 客户端 math-render 渲染，共用同一份配置，经外置 `window.__FEATURES__.math`）：
 > - `autoDetect=true`（默认）= 解析 `inlineDelimiters`（对称、不跨行；单字符 `$` 结尾避免数字，防金额误报）与 `blockDelimiters`（对称、可跨行、须位于行首）；`\(`/`\[` 由 `renderRoundParens`/`renderSquareBrackets` 独立控制。构建期输出占位元素 `<span class="math-inline" data-tex="…">` / `<div class="math-block" data-tex="…">`（回退文本为去定界符的 TeX），产物正文不含裸 `$` / `$$`；客户端由 `js/domains/core/math-render.js` 用 KaTeX 渲染占位（直接加载与软导航后均生效，vendor 未预载时按需注入），并保留 `renderMathInElement` 兜底（缩进块等构建期未捕获的裸定界符）。`false` = **不自动解析任何定界符**（不保护、不加载 KaTeX 按需渲染），仅渲染 ` ```math ` 围栏块：构建期输出 `<div class="math-block" data-tex="…">`，客户端 KaTeX 渲染（`throwOnError`/`strict`/`mathml` 同样生效）。
 > - 定界符数组去空去重；全部经正则转义（如 `['**']` 按字面量匹配）；空数组回退 `['$']`/`['$$']`。
-> - `mathml=true`（默认，历史行为）= KaTeX `output='htmlAndMathml'`；`false` = `'html'`（不输出 MathML 节点）。
+> - `mathml=true`（默认）= KaTeX `output='htmlAndMathml'`；`false` = `'html'`（不输出 MathML 节点）。
 > - KaTeX 按需加载口径：`$$` / `\(` / `\[` / 配置的自定义定界符成对出现即触发；**默认行内 `$` 成对出现（含无空格 `$E=mc^2$`）同样触发**，货币启发式不误报（闭合 `$` 后随数字不成对、单个 `$` 不触发）。canonical：`scripts/lib/feature-wiring.js → mathNeeded/mathConfig/buildMathGuardPatterns/extractMathTex`（单测覆盖）。
 > - 摘要 surfaces（卡片/相关推荐/搜索/RSS/JSON feed/meta）统一不输出裸 LaTeX：正文占位回退为去定界符纯文本，frontmatter excerpt 与页面 description 经 `stripMathText` 剥离数学段（`scripts/lib/feature-wiring.js`）。
 > - `inlineDelimiters` 置空串/缺失回退默认；`autoDetect`/`mathml` 仅在显式 `false` 时关闭。
@@ -546,7 +546,7 @@
 ### 3.20 related — 相关推荐
 `enabled true` / `topN 4` / `sameCategoryWeight 2` / `sameTagWeight 3` / `minScore 2` / `excludeCurrent true` / `title 相关推荐`（`titleEn` en 站文案，空回退中文） / `showExcerpt true`(卡片显示摘要) / `excerptLength 80`(摘要截断长度) / `showCount false`(显示共享标签数徽章)
 
-> 接线说明：`excludeCurrent=true`（默认，历史行为）相关推荐排除当前文章；`false` = 允许自引用（当前文章与自身共享全部标签/分类，得分最高排第一，常见于「补全推荐位」场景，注意视觉自指）。构建期 `scripts/lib/related.js → computeRelatedArticles`（单测覆盖两态）。
+> 接线说明：`excludeCurrent=true`（默认）相关推荐排除当前文章；`false` = 允许自引用（当前文章与自身共享全部标签/分类，得分最高排第一，常见于「补全推荐位」场景，注意视觉自指）。构建期 `scripts/lib/related.js → computeRelatedArticles`（单测覆盖两态）。
 
 ### 3.21 pinned — 置顶
 `enabled true`（false=不渲染徽标且不重排） / `badgeText 置顶`（`badgeTextEn` en 站文案，空回退中文；**配置文案优先于 ui-strings.card.pinned 词典**） / `badgeStyle pill`(`pill|corner|none`；`none`=不渲染徽标，`corner`=卡片左上角/标题行角标样式) / `sortRule pinned-first`(`pinned-first`=置顶前（现行为）/`normal`=仅标记不重排，按日期自然排序；构建期 `scripts/build/articles.js` 生效)。徽标应用于首页/归档/标签/分类/文章页 — `templates/index.ejs` + `templates/archive.ejs` + `templates/tag.ejs` + `templates/category.ejs` + `templates/post.ejs`。
@@ -555,7 +555,7 @@
 `enabled true` / `onCards true` / `inArticle true` / `textFormat {count} 字` / `readTimeFormat {minutes} 分钟阅读`（`textFormatEn`/`readTimeFormatEn` en 站模板，空回退中文） / `wpm 265` / `countCjkChars true` / `countDigits true`
 
 > 接线说明：
-> - 统计口径（`scripts/lib/utils.js → countWordsDetail(text, options)` 参数化，canonical）：`countCjkChars=true`（默认，历史行为）= CJK 字符逐字计数，`false` = CJK 不计入总数（拉丁词照计）；`countDigits=true`（默认，历史行为）= 数字作为普通拉丁词计数（`"123"` 计 1），`false` = 纯数字 token 不计（`"abc123"` 等混合 token 仍计 1，不拆分单词）。`countDigits` 默认 true。口径仅影响字数展示；阅读时长（readTime）的两段速度计算始终使用完整口径。
+> - 统计口径（`scripts/lib/utils.js → countWordsDetail(text, options)` 参数化，canonical）：`countCjkChars=true`（默认）= CJK 字符逐字计数，`false` = CJK 不计入总数（拉丁词照计）；`countDigits=true`（默认）= 数字作为普通拉丁词计数（`"123"` 计 1），`false` = 纯数字 token 不计（`"abc123"` 等混合 token 仍计 1，不拆分单词）。`countDigits` 默认 true。口径仅影响字数展示；阅读时长（readTime）的两段速度计算始终使用完整口径。
 > - 模板优先级（统一链）：`*En`（en 站）> 中文模板 > ui-strings 词典（`card.wordUnit`/`card.minute`）；未设置=默认模板，显式空串=词典。`readTimeFormat` 显式置空时进一步回退 `features.readingTime.labelBefore/labelAfter(En)`（既有键保持可消费）。
 > - `onCards`：卡片字数显示 = `wordCount.enabled && onCards && theme.card.showWordCount` 全真才显示（`onCards=false` 显式关闭，覆盖 theme）；`inArticle` 控制文章页 meta 字数（现行为）。
 > - **缺陷修复**：文章页 readingTime 曾同时渲染两处（`post-reading-time` + meta 内 `分钟阅读`），现按配置单一来源渲染（`readTimeFormat` 链），每页仅一处。默认显示由「N 分钟」变为「N 分钟阅读」（与 wordCount 模板默认一致，见 CHANGELOG Changed）。
@@ -572,7 +572,7 @@
 ### 3.25 gallery — 图库页
 `enabled true` / `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片`（`titleEn`/`descriptionEn`/`emptyTextEn` en 站文案，空回退中文） / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `order newest` / `maxItems 0`(0=不限) / `gap 12px`(瀑布流列间距 CSS) / `showCaption true`(图片下方显示来源说明) / `borderRadius 8px`(卡片圆角 CSS)
 
-> 接线说明：`collectFeatured=true`（默认，历史行为）= 图库收集文章封面图 + 正文图片（按 src 去重）；`false` = 仅收集正文图片（`scripts/build/collectors.js → collectGalleryImages(articles, { collectFeatured })` 参数化，单测覆盖两态）。图库为全量聚合：每次构建按 `order`/`maxItems` 重新收集，无增量清单缓存。
+> 接线说明：`collectFeatured=true`（默认）= 图库收集文章封面图 + 正文图片（按 src 去重）；`false` = 仅收集正文图片（`scripts/build/collectors.js → collectGalleryImages(articles, { collectFeatured })` 参数化，单测覆盖两态）。图库为全量聚合：每次构建按 `order`/`maxItems` 重新收集，无增量清单缓存。
 
 ### 3.26 heatmap — 归档热力图
 `enabled true` / `levels 5`(2~7) / `scaling auto`(`auto|fixed`) / `palette []`(fixed 时色表) / `showLegend true` / `legendLow 少` / `legendHigh 多` / `tooltipFormat {year}-{month}: {count} 篇`（`legendLowEn`/`legendHighEn`/`tooltipFormatEn` en 站文案，空回退中文） / `showMonthNumbers true` / `gap 3px`(单元格间距) / `borderRadius 3px`(单元格圆角) / `cellSize 13px`(单元格尺寸,置空则撑满容器) / `emptyColor var(--color-border)`(空月份颜色)
@@ -780,7 +780,7 @@ sitemap: {
 ### 3.42 readDock — 移动端阅读侧栏
 `enabled true` / `showProgressRing true` / `showTocButton true` / `showTopButton true`（三者 false 逐项隐藏；全 false 时整个坞不渲染） / `hideOnScrollDown true` / `hideBelowPx 80`(低于该滚动距离恒显，避免首屏抖动) / `directionDeltaPx 12`(方向判定最小增量 px，抵抗抖动) / `position right`。移动端右下角的进度环 + 回目录 + 回顶按钮。
 
-> canonical：`scripts/lib/feature-wiring.js → readDockScrollConfig`（默认 80/12 = 历史行为）。
+> canonical：`scripts/lib/feature-wiring.js → readDockScrollConfig`（默认 80/12）。
 
 ### 3.43 sidebarDrag — 侧栏拖拽重排
 `enabled true` / `persistOrder true` / `storageKey 's-sidebarOrder'` / `touchLongPress true` / `touchLongPressMs 500`(长按判定时长 ms) / `hapticMs 10`(长按触发拖拽的触觉反馈时长 ms，0=禁用；仅支持 `navigator.vibrate` 的设备生效) / `showHandleOnHover true` / `resetOnLoadFail true`。用户可拖拽侧栏 widget 重排顺序,存储于 localStorage;移动端长按 `touchLongPressMs`(默认 500ms) 触发。
@@ -968,7 +968,7 @@ sitemap: {
 
 ### 3.90 searchHighlight — 搜索结果高亮
 
-`enabled true` / `markClass ''`（高亮 `<mark>` 附加类名；空=不附加（现行为）；非法字符过滤为 `[A-Za-z0-9_-]`；作用于搜索浮层与 /search/ 页；样式仍由 site.css 的 `mark` 选择器统一提供） / `markColor 'rgba(255,193,7,.45)'`（浅色模式高亮底色，任意合法 CSS 颜色；空回退历史默认色） / `markColorDark 'rgba(255,193,7,.45)'`（深色模式高亮底色；空回退 `markColor`；默认同色 = 深色行为不变） / `maxMatches 20`（单页最多高亮处数，防止超长文渲染卡顿）。命中片段在结果列表与正文内以 `<mark>` 标注（词项区间合并，重叠 bigram 合并为单段）；`enabled=false` 或 `features.search.highlightMatches=false` 均关闭高亮 — `js/domains/features/search-core.js`（浮层 `search.js` 与 `search-page.js` 共用）。
+`enabled true` / `markClass ''`（高亮 `<mark>` 附加类名；空=不附加（现行为）；非法字符过滤为 `[A-Za-z0-9_-]`；作用于搜索浮层与 /search/ 页；样式仍由 site.css 的 `mark` 选择器统一提供） / `markColor 'rgba(255,193,7,.45)'`（浅色模式高亮底色，任意合法 CSS 颜色；空回退内置默认色） / `markColorDark 'rgba(255,193,7,.45)'`（深色模式高亮底色；空回退 `markColor`；默认同色 = 深色行为不变） / `maxMatches 20`（单页最多高亮处数，防止超长文渲染卡顿）。命中片段在结果列表与正文内以 `<mark>` 标注（词项区间合并，重叠 bigram 合并为单段）；`enabled=false` 或 `features.search.highlightMatches=false` 均关闭高亮 — `js/domains/features/search-core.js`（浮层 `search.js` 与 `search-page.js` 共用）。
 
 ### 3.91 darkImageFilter — 暗色图片滤镜
 
@@ -1047,7 +1047,7 @@ listCover: {
 | `settleMs` | `300` | 布局静默窗口（ms）：文档高度变化后等待该时长无新变化才校正；连续变化（字体分片陆续应用）只会顺延 |
 | `maxTrackMs` | `8000` | 最长跟踪时间（ms，自首次校正起算）：超时前做最后一次校正并断开 observer，避免长页面持续懒加载时无限校正；`0` = 不设时限 |
 
-实测（2026-09，本地 gzip serve + Slow4G + 4× CPU，每页 3 次中位）：冷锚点最终落点误差 9.9px（校正瞬间即达理想位 156.1px，其后极晚布局回移约 10px，页面总高 13983px、不可感知；基线中位偏差 1431px、偶发 1903px）；冷锚点 CLS(sum) 0.5367 → 0.0011；滚动扫描 CLS 增量 0.0240 → 0.0002；TOC 高亮/返回顶部/软导航进出不受影响 — `js/domains/core/anchor-stabilize.js` + `js/core/main.js` + `scripts/lib/features-schema.js`。
+实测（本地 gzip serve + Slow4G + 4× CPU，每页 3 次中位）：冷锚点最终落点误差 9.9px（校正瞬间即达理想位 156.1px，其后极晚布局回移约 10px，页面总高 13983px、不可感知；基线中位偏差 1431px、偶发 1903px）；冷锚点 CLS(sum) 0.5367 → 0.0011；滚动扫描 CLS 增量 0.0240 → 0.0002；TOC 高亮/返回顶部/软导航进出不受影响 — `js/domains/core/anchor-stabilize.js` + `js/core/main.js` + `scripts/lib/features-schema.js`。
 
 ### 3.98 continueReading — 继续阅读卡片（首页最近阅读 + 单条移除/一键清空）
 
@@ -1123,7 +1123,7 @@ listCover: {
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `enabled` | `true` | 侧栏总开关（关闭后内容区自动加宽居中） |
-| `recentPoolSize` | `10` | `recentPosts` 数据池上限（1–200；`recent` widget 的 `count` 只能在此池内截取，默认 10 与历史行为一致） |
+| `recentPoolSize` | `10` | `recentPosts` 数据池上限（1–200；`recent` widget 的 `count` 只能在此池内截取，默认 10） |
 | `options.width/gap/radius/padding/titleSize/titleWeight` | `318px`/`1.618rem`/`0.618rem`/`1rem`/`.9375rem`/`600` | 外观选项（width 优先于根级旧键） |
 | `options.hoverLift` / `borderShow` | `true`/`false` | 组件悬停上浮 / 描边显示 |
 | `widgets[]` | `[]` | 组件列表（数组顺序即显示顺序;位置由 theme.layout.sidebarPosition 控制;每个部件可选 `icon` 字段,内置: clock/folder/tags/archive/collection/chart/quote/image/link/info/book/search/rss/download/home） |
@@ -1287,7 +1287,7 @@ listCover: {
 **结构**：
 - `core`（13 项）：`preset 'soft'` / `bypass.enabled true` / `bypass.urlParam true` / `bypass.localStorage true` / `bypass.localhost false` / `bypass.cleanUrl true` / `bypass.queryParam 'guard'` / `bypass.storageFlag 's-guards-off'` / `bypass.accessGateKey true` / `logLevel 'off'` / `respectEditable true` / `i18nFallbackLang 'zh'` / `edgePadding '8px'`。绕过优先级：`?guard=on` 覆盖一切（含其余绕过通道）> `?guard=off` > localStorage 标志 > localhost（开启时）；`bypass.enabled=false` 时四条通道（含 accessGate `?key=`）全部失效，判定原因经 `window.__GUARD_BYPASS__` 可观测（`url-off`/`url-on`/`storage`/`localhost`/`disabled`/`none`）。`?guard=` 与 `?key=` 在绕过判定/解锁读取完成后由 `history.replaceState` 从地址栏移除（保留其它查询串与 hash；`bypass.cleanUrl=false` 时保留），参数名跟随 `bypass.queryParam`。
 
-`core.bypass` 字段表（默认值 = 历史行为；配置缺失时回退内置默认）：
+`core.bypass` 字段表（默认值见下表；配置缺失时回退内置默认）：
 
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -1324,12 +1324,12 @@ listCover: {
 - 仅作用于 `dist/` 产物；`exclude` 命中的路径按原字节复制。
 - `--serve` / `--watch` 自动关闭：本地调试所见即未压缩产物，无需改配置。
 - 压缩发生在内容哈希（cacheBust）之前：文件名哈希对应压缩后的最终字节；改配置 → 产物字节变化 → 哈希换代，不会出现「哈希未变、内容已变」的脏缓存。
-- `dist/report.txt` 与 `build-report.html` 在报告阶段生成（压缩与 cacheBust 之后），天然豁免压缩。`report.txt` 汇总：阶段耗时（配置/预校验/页面/媒体/OG/压缩增强/cacheBust/PWA/报告/其它）、HTML/CSS/JS/JSON 的压缩前后 raw/gzip 与节省率（含变更/新增/移除/跳过/豁免计数）、CSS 合并/去重跳过计数与明细（文件 + 原因）、压缩阶段失败清单、无头验证摘要（读取 `.cache/compression-verify/last.json`；本轮未运行则如实标注）、非阻断告警、perfBudget 5 项对照与压缩目标现状值（本阶段口径：基线压缩前 → 增强/压缩后；HTML gzip ≥10%、JS gzip ≥20% 混淆关态，三态对照与未达原因见 `docs/plans/2026-09-27-compression.md`「C8 结果」）。`report.txt` 已列入默认 `exclude`，且被产物等价护栏 `scripts/lib/dist-hash.js` 的默认忽略项覆盖（与 `build-report.html` 同为含时间戳的非确定性产物）。
+- `dist/report.txt` 与 `build-report.html` 在报告阶段生成（压缩与 cacheBust 之后），天然豁免压缩。`report.txt` 汇总：阶段耗时（配置/预校验/页面/媒体/OG/压缩增强/cacheBust/PWA/报告/其它）、HTML/CSS/JS/JSON 的压缩前后 raw/gzip 与节省率（含变更/新增/移除/跳过/豁免计数）、CSS 合并/去重跳过计数与明细（文件 + 原因）、压缩阶段失败清单、无头验证摘要（读取 `.cache/compression-verify/last.json`；本轮未运行则如实标注）、非阻断告警、perfBudget 5 项对照与压缩目标现状值（本阶段口径：基线压缩前 → 增强/压缩后；HTML gzip ≥10%、JS gzip ≥20% 混淆关态，三态对照与未达原因见 `docs/plans/` 下的压缩计划文档「C8 结果」）。`report.txt` 已列入默认 `exclude`，且被产物等价护栏 `scripts/lib/dist-hash.js` 的默认忽略项覆盖（与 `build-report.html` 同为含时间戳的非确定性产物）。
 
 **语义：基线压缩 vs 增强步骤**
 - **基线压缩**：`site.build.minifyHTML/minifyCSS/minifyJS` 驱动的既有 minify-html / CleanCSS / Terser 行为，恒定执行且**不受本文件开关影响**（默认态产物字节与引入本文件前一致）。`exclude` 只约束增强步骤，不改变基线。
 - **增强步骤**（仅当 `enabled=true` 且非 serve/watch 时执行；逐文件先经 `isExcluded(distRelPath, exclude)`）：
-  - `html.aggressive=true`：minify-html 叠加真实支持的激进选项（省略可选闭合标签 `<html>/<head>` 无属性开标签、属性值去引号与属性间空格折叠、`minify_doctype`、移除 bangs/处理指令）。默认 false 时选项与基线逐字段一致（产物哈希可证明）；开启后需 C5 无头门禁裁决。C8 实测（2026-09-27）：门禁 6 页 PASS，但 84 页 HTML gzip 仅 −0.46%（三态见计划文档），收益不显著，默认保持 false。
+  - `html.aggressive=true`：minify-html 叠加真实支持的激进选项（省略可选闭合标签 `<html>/<head>` 无属性开标签、属性值去引号与属性间空格折叠、`minify_doctype`、移除 bangs/处理指令）。默认 false 时选项与基线逐字段一致（产物哈希可证明）；开启后需 C5 无头门禁裁决。C8 实测：门禁 6 页 PASS，但 84 页 HTML gzip 仅 −0.46%（三态见计划文档），收益不显著，默认保持 false。
   - `html.removeComments=false`：保留 HTML 注释（压缩阶段的基线选项回退，仅 `enabled` 时生效；默认 true 与基线一致）。
   - `json.enabled=true`：`dist/**/*.json` 去空白（`JSON.parse → JSON.stringify`，键序保持、输出合法 JSON、Unicode 原样）。跳过：已是紧凑单行、`exclude` 命中项、`assets/config.<hash>.json`（文件名由内容哈希派生，是 HTML 的引用键；重写会破坏一致性——该文件写入时已紧凑，天然无需处理）。逐文件失败只告警并保留原文件。
   - `css.mergeInlineStyles`（C3 已实装）：同页内联 `<style>` 安全合并——只合并「同组（nonce 与 media 一致）且中间无其它样式源」的相邻块，合并块落在首块位置并保留 nonce/media；SVG 与 `<noscript>` 内的 style、外链 `<link rel=stylesheet>` 一律视为截断源（不跨越，避免层叠顺序改变）；非 nonce/media 属性（如 `id=customCSS`）在合并时丢弃。因此数学页（正文含 KaTeX 外链）等被 stylesheet 截断的页面保持两块，这是顺序安全的必然结果。
@@ -1371,7 +1371,7 @@ listCover: {
 | `verify.headless` | bool | `true` | 压缩后无头对比门禁（已实装）：增强后、cacheBust 前对比压缩产物与基线快照（6 页 DOM/采样计算样式/控制台错误/交互冒烟）；无 Chrome 跳过并告警（构建不失败），`SYNAPSE_COMPRESSION_VERIFY=off` 可显式关闭 |
 | `verify.fallbackOnFailure` | bool | `true` | 门禁失败时：true=用基线快照回退未压缩产物并以非阻断告警继续（逐字节复核）；false=保留压缩产物并记录阻断失败 |
 
-**C4 混淆代价与注意（2026-09-27 本机实测，medium 档 + seed=20260927）**
+**C4 混淆代价与注意（本机实测，medium 档 + seed=20260927）**
 - 体积：app + deferred 合计 raw 189.6KB → 253.3KB（+33.6%）、gzip 60.2KB → 96.3KB（+59.9%）；runtime 不参与混淆（C8 起按 `js.minify` 独立压缩，2.8KB）。esbuild 已极致压缩，混淆器短名与包装代码会净增体积。
 - 加载与运行：本地 gzip 服务下 `/zh/` 首页 JS 传输 61.1KB → 97.2KB、load 中位 180ms → 327ms（单机对照，非生产基准）；官方参考低档运行时约 +10-20%、中档 +30-50%、高档 +50-80%。
 - 构建耗时：默认 4.75s → 混淆开启 7.46s（+2.7s，仍 < 8s 目标）。

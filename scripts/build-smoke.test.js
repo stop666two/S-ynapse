@@ -422,74 +422,82 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     }
     // 系列聚合页（features.series.pageEnabled 默认开）：示例系列 3 篇 -> zh/en 系列页、
     // 列表完整（序位/进度/上下篇）、语言切换直达地址、sitemap 纳入、搜索索引不纳入。
-    const seriesZhPath = path.join(tmpDir, 'zh', 'series', '建站手记', 'index.html');
-    const seriesEnPath = path.join(tmpDir, 'en', 'series', 'site-building-notes', 'index.html');
-    assert.ok(fs.existsSync(seriesZhPath), 'zh series hub page must exist');
-    assert.ok(fs.existsSync(seriesEnPath), 'en series hub page must exist');
-    const seriesZh = fs.readFileSync(seriesZhPath, 'utf-8');
-    const seriesEn = fs.readFileSync(seriesEnPath, 'utf-8');
-    assert.ok(/<h1[^>]*>建站手记<\/h1>/.test(seriesZh), 'zh series hub must render the series name');
-    assert.ok(seriesEn.includes('Site Building Notes'), 'en series hub must render the series name');
-    assert.strictEqual((seriesZh.match(/class="post-card series-item"/g) || []).length, 3,
-      'series hub must list all 3 articles');
-    for (const slug of ['series-1', 'series-2', 'series-3']) {
-      assert.ok(seriesZh.includes('href="/zh/' + slug + '/"'), 'series hub must link ' + slug);
-    }
-    assert.ok(/series-item-index[^>]*>#1</.test(seriesZh), 'series hub must render the position index');
-    assert.ok(seriesZh.includes('series-item-progress') && seriesZh.includes('1 / 3'),
-      'series hub must render the progress label');
-    assert.ok((seriesZh.match(/series-item-nav/g) || []).length >= 3, 'series hub must render prev/next links');
-    assert.ok(seriesZh.includes('data-alt-lang="/en/series/site-building-notes/"'),
-      'zh series hub must point the language switch at the en hub');
-    assert.ok(seriesEn.includes('data-alt-lang="/zh/series/建站手记/"'),
-      'en series hub must point the language switch at the zh hub');
-    const sitemapText = fs.readFileSync(path.join(tmpDir, 'zh', 'sitemap.xml'), 'utf-8');
-    assert.ok(sitemapText.includes('series/' + encodeURIComponent('建站手记') + '/'),
-      'sitemap must include the zh series hub');
-    const enSitemapText = fs.readFileSync(path.join(tmpDir, 'en', 'sitemap.xml'), 'utf-8');
-    assert.ok(enSitemapText.includes('/en/series/site-building-notes/'),
-      'sitemap must include the en series hub');
-    for (const lang of ['zh', 'en']) {
-      const idx = readSearchIndex(tmpDir, lang);
-      assert.ok(!idx.json.docs.some((e) => /\/series\//.test(e.url)),
-        lang + ' search index must not include series hub pages');
+    // 示例系列缺失（派生副本自备内容）时跳过本节断言；构建成功本身已覆盖生成流程。
+    if (fs.existsSync(path.join(ROOT, 'articles', 'zh', 'series-1.md'))) {
+      const seriesZhPath = path.join(tmpDir, 'zh', 'series', '建站手记', 'index.html');
+      const seriesEnPath = path.join(tmpDir, 'en', 'series', 'site-building-notes', 'index.html');
+      assert.ok(fs.existsSync(seriesZhPath), 'zh series hub page must exist');
+      assert.ok(fs.existsSync(seriesEnPath), 'en series hub page must exist');
+      const seriesZh = fs.readFileSync(seriesZhPath, 'utf-8');
+      const seriesEn = fs.readFileSync(seriesEnPath, 'utf-8');
+      assert.ok(/<h1[^>]*>建站手记<\/h1>/.test(seriesZh), 'zh series hub must render the series name');
+      assert.ok(seriesEn.includes('Site Building Notes'), 'en series hub must render the series name');
+      assert.strictEqual((seriesZh.match(/class="post-card series-item"/g) || []).length, 3,
+        'series hub must list all 3 articles');
+      for (const slug of ['series-1', 'series-2', 'series-3']) {
+        assert.ok(seriesZh.includes('href="/zh/' + slug + '/"'), 'series hub must link ' + slug);
+      }
+      assert.ok(/series-item-index[^>]*>#1</.test(seriesZh), 'series hub must render the position index');
+      assert.ok(seriesZh.includes('series-item-progress') && seriesZh.includes('1 / 3'),
+        'series hub must render the progress label');
+      assert.ok((seriesZh.match(/series-item-nav/g) || []).length >= 3, 'series hub must render prev/next links');
+      assert.ok(seriesZh.includes('data-alt-lang="/en/series/site-building-notes/"'),
+        'zh series hub must point the language switch at the en hub');
+      assert.ok(seriesEn.includes('data-alt-lang="/zh/series/建站手记/"'),
+        'en series hub must point the language switch at the zh hub');
+      const sitemapText = fs.readFileSync(path.join(tmpDir, 'zh', 'sitemap.xml'), 'utf-8');
+      assert.ok(sitemapText.includes('series/' + encodeURIComponent('建站手记') + '/'),
+        'sitemap must include the zh series hub');
+      const enSitemapText = fs.readFileSync(path.join(tmpDir, 'en', 'sitemap.xml'), 'utf-8');
+      assert.ok(enSitemapText.includes('/en/series/site-building-notes/'),
+        'sitemap must include the en series hub');
+      for (const lang of ['zh', 'en']) {
+        const idx = readSearchIndex(tmpDir, lang);
+        assert.ok(!idx.json.docs.some((e) => /\/series\//.test(e.url)),
+          lang + ' search index must not include series hub pages');
+      }
     }
     // 文章导出（features.exportArticle 默认开）：/md/<lang>/<slug>.md 为源文件按字节原样复制
     // （保留原始 frontmatter，约定见 scripts/lib/md-export.js 头注释）；文章页渲染打印/复制按钮
     // 与打印来源脚注；打印样式输出自足隐藏清单（含 .post-actions）且脚注屏幕隐藏。
-    for (const lang of ['zh', 'en']) {
-      const mdPath = path.join(tmpDir, 'md', lang, 'hello-world.md');
-      assert.ok(fs.existsSync(mdPath), lang + ' markdown export must exist: /md/' + lang + '/hello-world.md');
-      const mdText = fs.readFileSync(mdPath, 'utf-8');
-      assert.ok(mdText.length > 0, lang + ' markdown export must be non-empty');
-      assert.match(mdText, /^---\n/, lang + ' markdown export must keep the original frontmatter');
-      assert.deepStrictEqual(
-        fs.readFileSync(mdPath),
-        fs.readFileSync(path.join(ROOT, 'articles', lang, 'hello-world.md')),
-        lang + ' markdown export must be a byte-identical copy of the source file'
-      );
-      const postHtml = fs.readFileSync(path.join(tmpDir, lang, 'hello-world', 'index.html'), 'utf-8');
-      assert.ok(postHtml.includes('data-export-print'), lang + ' post page must render the print button');
-      assert.ok(postHtml.includes('data-md-url="/md/' + lang + '/hello-world.md"'),
-        lang + ' post page must render the markdown copy button with its export URL');
-      assert.ok(postHtml.includes('post-source-url'), lang + ' post page must render the print source footnote');
+    // 示例文章缺失（派生副本自备内容）时跳过单篇导出/双语断言；样式断言与内容无关，始终执行。
+    const hasHelloWorld = fs.existsSync(path.join(ROOT, 'articles', 'zh', 'hello-world.md'))
+      && fs.existsSync(path.join(ROOT, 'articles', 'en', 'hello-world.md'));
+    if (hasHelloWorld) {
+      for (const lang of ['zh', 'en']) {
+        const mdPath = path.join(tmpDir, 'md', lang, 'hello-world.md');
+        assert.ok(fs.existsSync(mdPath), lang + ' markdown export must exist: /md/' + lang + '/hello-world.md');
+        const mdText = fs.readFileSync(mdPath, 'utf-8');
+        assert.ok(mdText.length > 0, lang + ' markdown export must be non-empty');
+        assert.match(mdText, /^---\n/, lang + ' markdown export must keep the original frontmatter');
+        assert.deepStrictEqual(
+          fs.readFileSync(mdPath),
+          fs.readFileSync(path.join(ROOT, 'articles', lang, 'hello-world.md')),
+          lang + ' markdown export must be a byte-identical copy of the source file'
+        );
+        const postHtml = fs.readFileSync(path.join(tmpDir, lang, 'hello-world', 'index.html'), 'utf-8');
+        assert.ok(postHtml.includes('data-export-print'), lang + ' post page must render the print button');
+        assert.ok(postHtml.includes('data-md-url="/md/' + lang + '/hello-world.md"'),
+          lang + ' post page must render the markdown copy button with its export URL');
+        assert.ok(postHtml.includes('post-source-url'), lang + ' post page must render the print source footnote');
+      }
+      // 双语对照（features.bilingual 默认开）：文章页 data-alt-lang 互指 + 对照工具条/右栏骨架，
+      // 非文章页不渲染对照属性；样式含并排规则与断点媒体查询（断点取 bilingualCfg.breakpointPx）。
+      const helloZh = fs.readFileSync(path.join(tmpDir, 'zh', 'hello-world', 'index.html'), 'utf-8');
+      const helloEn = fs.readFileSync(path.join(tmpDir, 'en', 'hello-world', 'index.html'), 'utf-8');
+      assert.ok(helloZh.includes('data-alt-lang="/en/hello-world/"'),
+        'zh post must point data-alt-lang at the en article');
+      assert.ok(helloEn.includes('data-alt-lang="/zh/hello-world/"'),
+        'en post must point data-alt-lang at the zh article (mutual reference)');
+      assert.ok(helloZh.includes('data-bilingual-alt="/en/hello-world/"'),
+        'zh post must expose the bilingual alternate URL');
+      assert.ok(helloZh.includes('id="bilingualSwitch"') && helloZh.includes('id="bilingualSide"') && helloZh.includes('id="bilingualPaneBody"'),
+        'zh post must render the bilingual bar and pane skeleton');
+      assert.ok(helloEn.includes('>EN/中<'), 'en post must render the EN/中 switch label');
     }
     assert.ok(siteCss.includes('@page{margin:16mm}') && siteCss.includes('.post-actions'),
       'print stylesheet must ship the self-contained export print block (hide in-article toolbar)');
     assert.ok(siteCss.includes('.post-source-url{display:none}'), 'print source footnote must be screen-hidden');
-    // 双语对照（features.bilingual 默认开）：文章页 data-alt-lang 互指 + 对照工具条/右栏骨架，
-    // 非文章页不渲染对照属性；样式含并排规则与断点媒体查询（断点取 bilingualCfg.breakpointPx）。
-    const helloZh = fs.readFileSync(path.join(tmpDir, 'zh', 'hello-world', 'index.html'), 'utf-8');
-    const helloEn = fs.readFileSync(path.join(tmpDir, 'en', 'hello-world', 'index.html'), 'utf-8');
-    assert.ok(helloZh.includes('data-alt-lang="/en/hello-world/"'),
-      'zh post must point data-alt-lang at the en article');
-    assert.ok(helloEn.includes('data-alt-lang="/zh/hello-world/"'),
-      'en post must point data-alt-lang at the zh article (mutual reference)');
-    assert.ok(helloZh.includes('data-bilingual-alt="/en/hello-world/"'),
-      'zh post must expose the bilingual alternate URL');
-    assert.ok(helloZh.includes('id="bilingualSwitch"') && helloZh.includes('id="bilingualSide"') && helloZh.includes('id="bilingualPaneBody"'),
-      'zh post must render the bilingual bar and pane skeleton');
-    assert.ok(helloEn.includes('>EN/中<'), 'en post must render the EN/中 switch label');
     const helloIndexZh = fs.readFileSync(path.join(tmpDir, 'zh', 'index.html'), 'utf-8');
     assert.ok(!helloIndexZh.includes('data-bilingual-alt') && !helloIndexZh.includes('bilingual-bar'),
       'index page must not render bilingual attributes or bar');

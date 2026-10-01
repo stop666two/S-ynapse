@@ -570,7 +570,7 @@ npm run verify:security   # 集成安全回归
 ### 浏览器冒烟与 Web 覆盖率（test:smoke / test:cov-web）
 
 - `npm run test:smoke`：真实构建产物 + 系统 Chrome 无头访问代表页（首页/文章/搜索/标签/归档/404），断言 HTTP 200、非空标题、DOM 结构与零控制台错误；失败摘要写入 `build-artifacts/web-smoke/summary.txt`。
-- `npm run test:cov-web`：以 `--no-bundle` + 压缩关闭构建到 `build-artifacts/web-coverage/site`（保证产物 URL 与 `js/**` 源码一一对应），经 CDP 精确覆盖逐页累加，聚合 `js/**`（排除 vendor）行/函数覆盖率，输出 `build-artifacts/web-coverage/{summary.txt,coverage.json}`；阈值见 `scripts/lib/web-coverage-thresholds.js`（首测定档 55% / 55%），未达标 exit 1。
+- `npm run test:cov-web`：以 `--no-bundle` + `--no-minify-js` + 压缩关闭构建到 `build-artifacts/web-coverage/site`（产物 URL 与 `js/**` 源码一一对应且保留源码行结构，CDP 偏移可精确映射），经 CDP 精确覆盖逐页累加，聚合 `js/**`（排除 vendor）行/函数覆盖率，输出 `build-artifacts/web-coverage/{summary.txt,coverage.json}`（含逐函数未覆盖明细）；阈值见 `scripts/lib/web-coverage-thresholds.js`（首测定档 55% / 55%），未达标或断言失败 exit 1。
 - 两者无 Chrome 时打印 `[SKIP]` 后 exit 0（与 `verify:compression` 同一降级语义）；`test:all` 串行执行全部六个入口，本地与 CI（`deploy.yml`）命令集合完全一致；夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子）。
 
 | 测试套件 | 测试数 | 覆盖函数 |

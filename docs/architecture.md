@@ -24,13 +24,13 @@ articles/ media/ static/ + 14 个 JSON5 配置
 
 | 路径 | 职责 |
 |---|---|
-| `scripts/build.js` | 构建编排器（约 423 行）：配置装载/校验、阶段编排、报告、serve 入口 |
+| `scripts/build.js` | 构建编排器（419 行）：配置装载/校验、阶段编排、报告、serve 入口 |
 | `scripts/build/*.js` | 已拆出的构建模块（工厂注入、无全局状态）：`articles` / `assets` / `auto-cover` / `cache` / `cjk-fonts` / `collectors` / `config` / `context` / `feeds` / `fs-utils` / `helpers` / `markdown` / `media` / `mermaid` / `minify` / `pages` / `render` / `report` / `security-files` / `serve` |
 | `scripts/lib/*.js` | 纯函数库：`utils` / `perf-budget` / `csp` / `content-policy` / `asset-cache` / `build-errors` / `build-report-text` / `content-validate` / `publish-window` / `config-split` / `bundle` / `dist-hash` / `incremental` / `compression-config` / `compression-steps` / `compression-verify` / `css-merge` / `static-server` / `internals` / `internals-defaults` / `chrome-path` / `output-dir` 等（多数有同名单测） |
 | `scripts/generate-og.js` | OG 图生成（独立进程，`.cache/og` 增量缓存） |
 | `templates/*.ejs` | 页面模板（layout/index/post/archive/search/tag/category/404/PWA 等 15 个） |
-| `js/core/` | 启动器：`runtime.js`（配置加载引导）、`boot.js`（阶段队列）、`main.js`（入口）、`deferred.js`（懒加载模块注册表） |
-| `js/domains/{core,features,guard}/` | 61 个前端领域模块（core 17 / features 32 / guard 12；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
+| `js/core/` | 启动器：`runtime.js`（配置加载引导）、`boot.js`（阶段队列）、`main.js`（入口）、`deferred.js`（懒加载模块注册表）、`soft-nav.js`（软导航） |
+| `js/domains/{core,features,guard}/` | 65 个前端领域模块（core 20 / features 32 / guard 13；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
 | `workers/security-worker.js` + `workers/lib/` | 边缘安全层（`ip-utils` / `rate-limit`） |
 | `workers/wrangler.toml` | 生产部署配置（Worker 名、assets 绑定、环境变量） |
 | `*.json5`（根目录 14 个站点配置 + `internals.json5` 工程内部参数） | 站点/主题/功能/文案/压缩等配置与工具链参数（端口/路径/CI 版本等），全部经 `verify:config` 家族与 `verify:internals` 校验 |
@@ -101,9 +101,9 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `npm run test:cov-web` | 无头 Web 覆盖率：`--no-bundle` + 压缩关闭构建，CDP 精确覆盖聚合 `js/**` 行/函数覆盖（阈值 `scripts/lib/web-coverage-thresholds.js`，首测定档 55%/55%），输出 `build-artifacts/web-coverage/{summary.txt,coverage.json}`；无 Chrome 跳过 |
 | `npm run test:all` | 本地与 CI 同强度：`npm test` + `test:build` + `test:fuzz` + `test:malicious` + `test:smoke` + `test:cov-web` + `verify:internals` 串行；夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子） |
 | `npm run lint` / `npm run typecheck` | ESLint / tsc（checkJs） |
-| `npm run verify:config` / `verify:config-refs` / `verify:config-dupes` / `verify:config-comments` | 配置一致性 / 零引用键 / 重复键 / 逐键注释覆盖率监守 |
+| `npm run verify:config` / `verify:config-refs` / `verify:config-dupes` / `verify:config-comments` / `verify:config-docs` | 配置一致性 / 零引用键 / 重复键 / 逐键注释覆盖率 / 文档覆盖监守（`scripts/check-config-docs.js`） |
 | `npm run verify:internals` | `.nvmrc` / `workers/wrangler.toml` assets 目录 / CI 版本与 `internals.json5` 单源守卫（关键写死形态抽样） |
-| `node scripts/check-config-docs.js` | 文档覆盖校验（15 个 JSON5 键 vs `docs/config-reference.md`；npm 别名 `verify:config-docs` 由配置侧接入） |
+| `npm run verify:process-guards` | 进程守护巡检（高风险入口 `process-guard` 接入的静态检查；CI 聚合执行） |
 | `npm run verify:security` | 安全集成回归（注入恶意文章 → 构建 → 语义断言） |
 | `npm run verify:compression` | 压缩无头对比门禁（6 页 DOM/采样样式/控制台/交互断言；无 Chrome 跳过） |
 | `npm run sbom` | CycloneDX 1.5 SBOM 生成（CI 上传 artifact） |
@@ -111,7 +111,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `node scripts/dist-hash-guard.js` | 重构/迁移的产物等价护栏（归一化 nonce/换行） |
 | `node scripts/perf-audit.js` | 可复现性能基线（Slow 4G + 4× CPU） |
 
-CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-dupes + verify:internals + test:build + build）与 `build`（Node 版本由 `.nvmrc` 经 `node-version-file` 单源控制；`node scripts/ci-env.js` 导出 internals → 单步 `node scripts/ci-checks.js` 跑完整套并统一失败：lint / typecheck / test / test:coverage / test:build / test:fuzz / test:malicious / verify:config 家族（含 verify:internals）/ verify:security / test:smoke / test:cov-web / verify:compression / build / sbom；`audit` 与 `audit:a11y` 为建议项（入报告不阻断）；报告写 `build-artifacts/ci-report.{json,txt}` → 始终上传 `ci-report` 与 `test-artifacts` → Pages 部署（`npm run deploy:pages`，部署前 verify:internals））。夜间随机深度档（`.github/workflows/nightly.yml`，UTC 18:00 + `workflow_dispatch`）用同一聚合器（`FC_NUM_RUNS=2000`、`STRESS=1`），上传 `nightly-test-artifacts`。生产 Worker 为手动 `wrangler deploy`（见 README）。预检作业（`preflight`，`scripts/ci-skip.js`）在 HEAD 未变化的重复运行上按连击阈值（连错 2/连净 5，告警中性）自动跳过，`workflow_dispatch`/`CI_FORCE`/`[ci force]` 强跑；聚合检查带每项超时并清理进程树，结论以提交状态 `ci/aggregate` 供下一次判定读取。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
+CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-dupes + verify:internals + test:build + build）与 `build`（Node 版本由 `.nvmrc` 经 `node-version-file` 单源控制；`node scripts/ci-env.js` 导出 internals → 单步 `node scripts/ci-checks.js` 跑完整套并统一失败：lint / typecheck / test / test:coverage / test:build / test:fuzz / test:malicious / verify:config 家族（config/refs/dupes/comments/docs 与 verify:internals）/ verify:process-guards / verify:security / test:smoke / test:cov-web / verify:compression / build / sbom；`audit` 与 `audit:a11y` 为建议项（入报告不阻断）；报告写 `build-artifacts/ci-report.{json,txt}` → 始终上传 `ci-report` 与 `test-artifacts` → Pages 部署（`npm run deploy:pages`，部署前 verify:internals））。夜间随机深度档（`.github/workflows/nightly.yml`，UTC 18:00 + `workflow_dispatch`）用同一聚合器（`FC_NUM_RUNS=2000`、`STRESS=1`），上传 `nightly-test-artifacts`。生产 Worker 为手动 `wrangler deploy`（见 README）。预检作业（`preflight`，`scripts/ci-skip.js`）在 HEAD 未变化的重复运行上按连击阈值（连错 2/连净 5，告警中性）自动跳过，`workflow_dispatch`/`CI_FORCE`/`[ci force]` 强跑；聚合检查带每项超时并清理进程树，结论以提交状态 `ci/aggregate` 供下一次判定读取。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
 
 ## 9. 部署与回滚
 
@@ -130,8 +130,8 @@ CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测
 ## 10. 已知边界与后续项
 
 - `scripts/build.js` 已完成机械拆分（约 423 行编排器 + `scripts/build/` 工厂模块；等价护栏 `scripts/dist-hash-guard.js` + `.refactor-baseline.json`）。
-- `js/domains` 已按 core（17 模块）/features（23 模块）/guard（11 模块）物理分层（`deferred.js` 统一注册表）。
+- `js/domains` 已按 core（20 模块）/features（32 模块）/guard（13 模块）物理分层（`deferred.js` 统一注册表）。
 - `style-src` 已随 `<style>` nonce 注入消除 `'unsafe-inline'`；模板与构建产物亦已清除全部内联 `style="..."` 属性（类 / 构建期 nonce `<style>` 规则 / CSSOM 三种手法），`style-src-attr` 不再声明，属性语境回退到 `style-src` 同样拒绝内联（见 SECURITY.md）。Worker 无构建产物时的 FALLBACK 因无 nonce 可注入而保留 `style-src 'unsafe-inline'`，`script-src` 已同步收紧。
-- 增量构建（`features.incrementalBuild`）为预留键位，未实现；方案见 `docs/incremental-build-design.md`。
+- 增量构建（`features.incrementalBuild`）已实现：`scripts/lib/incremental.js` 指纹与跳过决策 + `scripts/build/*` 逐页复用产物；方案见 `docs/incremental-build-design.md`。
 - accessGate 为软防护；`?key=`/`?guard=` 参数在判定/解锁读取完成后经 `history.replaceState` 从地址栏清理（保留其它查询串与 hash），但不改变其可被绕过的事实。
 - 开发服务器支持进程看门狗（`SYNAPSE_SERVE_PARENT_PID` / `SYNAPSE_SERVE_IDLE_MS`，`scripts/build/serve.js`），工具脚本退出即回收；兜底清理 `node .tmp-scripts/kill-orphans.js`。

@@ -19,13 +19,22 @@
 // 失败由调用方按 verify.fallbackOnFailure 决定回退；
 // Chrome 探测失败或启动失败 → status=skipped（构建不失败，仅告警）。
 //
-// 端口与进程：两个子服务均以 --port 0 由系统分配（互不相同），结束时无条件关闭
-// 并探测端口释放；子进程注入 SYNAPSE_SERVE_PARENT_PID / SYNAPSE_SERVE_IDLE_MS /
+// 端口与进程：两个子服务均以 --port 0 由系统分配（互不相同），启动后除解析端口外
+// 还做 HTTP 就绪轮询（带超时重试），此后才允许浏览器导航；结束时无条件关闭并探测
+// 端口释放；子进程注入 SYNAPSE_SERVE_PARENT_PID / SYNAPSE_SERVE_IDLE_MS /
 // SYNAPSE_SERVE_MAX_MS 看门狗（父进程消失、空闲或超寿命时自退，防孤儿）。
+// 导航健壮性：page.goto 属瞬态易失败操作（首访初始化、并发资源竞争、页面重启等），
+// 统一经 gotoWithRetry 执行——失败按退避最多重试 2 次，重试前以 about:blank 复位页面；
+// 仍失败时抛出携带 URL、尝试次数与底层原因的错误，由调用方按阶段记录。
+// 浏览器隔离：每次运行在 profileDir 基目录下新建随机 userDataDir（mkdtemp），CDP 调试端口
+// 由 Puppeteer 缺省随机分配；finally 无条件清理该目录，避免并发构建共享 profile 互斥或
+// 复用陈旧状态导致「浏览器已在运行 / 连接旧实例」。
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const net = require('net');
+const http = require('http');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const { writeFileAtomicSync, commitAtomicTemp } = require('./atomic-write');
@@ -37,9 +46,19 @@ const BASELINE_MANIFEST = 'baseline-manifest.json';
 const SERVER_ENTRY = path.resolve(__dirname, '..', 'compression-verify-server.js');
 const SERVE_PORT_LINE = /SYNAPSE_SERVE_PORT=(\d+)/;
 const DEFAULT_SERVER_START_TIMEOUT_MS = 20000;
+const DEFAULT_SERVER_HTTP_TIMEOUT_MS = 20000;
 const DEFAULT_PORT_RELEASE_TIMEOUT_MS = 3000;
 const DEFAULT_PAGE_TIMEOUT_MS = 30000;
 const PAGE_SETTLE_MS = 300;
+// 导航瞬态重试：goto 失败（超时 / ERR_CONNECTION_* / Execution context destroyed / Target closed）
+// 按线性退避最多重试 2 次（总尝试 3 次）；重试前先以 about:blank 复位页面再重新导航。
+const NAVIGATION_RETRY_MAX = 2;
+const NAVIGATION_RETRY_BACKOFF_MS = 400;
+const NAVIGATION_RETRY_RESET_TIMEOUT_MS = 5000;
+// HTTP 就绪轮询间隔：服务监听后首个请求即可达，轮询用于覆盖 listen 回调与 accept 之间的窗口
+// 以及启动失败未及时打印端口的场景。
+const SERVER_HTTP_POLL_INTERVAL_MS = 150;
+const SERVER_HTTP_PROBE_TIMEOUT_MS = 3000;
 // 静态对比重采样策略：样式表/字体应用存在采样时差，单次采样可能把「样式未就绪」误判为差异。
 // 任一项不一致时退避重采两态，仅持续不一致才判失败（真实产物差异在重试用尽后照常失败）。
 const STATIC_RETRY_MAX = 2;
@@ -66,6 +85,135 @@ const RESERVED_SEGMENTS = Object.freeze([
 
 function sleep(ms) {
   return new Promise((resolve) => { setTimeout(resolve, ms); });
+}
+
+/**
+ * HTTP 就绪轮询：向 127.0.0.1:<port> 发 GET，收到 <500 的响应即视为服务已可服务页面。
+ * @param {number} port
+ * @param {{timeoutMs?: number, intervalMs?: number, probePath?: string, description?: string,
+ *   signal?: AbortSignal}} [options]
+ * @returns {Promise<boolean>}
+ */
+function waitForServerHttp(port, options) {
+  const opts = options || {};
+  const timeoutMs = Number.isFinite(opts.timeoutMs) ? opts.timeoutMs : DEFAULT_SERVER_HTTP_TIMEOUT_MS;
+  const intervalMs = Number.isFinite(opts.intervalMs) && opts.intervalMs > 0 ? opts.intervalMs : SERVER_HTTP_POLL_INTERVAL_MS;
+  const probePath = opts.probePath || '/zh/';
+  const description = opts.description || String(port);
+  const signal = opts.signal;
+  const deadline = Date.now() + Math.max(0, timeoutMs);
+  return new Promise((resolve, reject) => {
+    let lastError = null;
+    const attempt = () => {
+      if (signal && signal.aborted) {
+        reject(new Error('验证服务 HTTP 就绪探测已取消（' + description + '）'));
+        return;
+      }
+      let settled = false;
+      const finish = (err) => {
+        if (settled) return;
+        settled = true;
+        if (!err) { resolve(true); return; }
+        lastError = err;
+        if (Date.now() >= deadline) {
+          const failure = new Error('验证服务 HTTP 就绪探测失败（' + description + '，探测 ' + probePath + '）：'
+            + String((lastError && lastError.message) || lastError));
+          failure.cause = lastError;
+          reject(failure);
+          return;
+        }
+        setTimeout(attempt, intervalMs);
+      };
+      const req = http.request({
+        host: '127.0.0.1',
+        port,
+        path: probePath,
+        method: 'GET',
+        timeout: SERVER_HTTP_PROBE_TIMEOUT_MS,
+        signal
+      }, (res) => {
+        res.resume();
+        if (Number.isFinite(res.statusCode) && res.statusCode < 500) finish(null);
+        else finish(new Error('HTTP ' + res.statusCode));
+      });
+      req.on('timeout', () => req.destroy(new Error('探测请求超时 ' + SERVER_HTTP_PROBE_TIMEOUT_MS + 'ms')));
+      req.on('error', (err) => finish(err));
+      req.end();
+    };
+    attempt();
+  });
+}
+
+/**
+ * 瞬态导航重试：page.goto 失败后退避并以 about:blank 复位再重试。
+ * 页面已关闭（浏览器崩溃 / Target closed）时停止重试并抛出聚合错误。
+ * @param {object} page Puppeteer Page
+ * @param {string} url
+ * @param {object} [options] page.goto 选项，另支持 navigationRetries / navigationBackoffMs / sleep（测试注入）
+ * @returns {Promise<{response: object|null, attempts: number}>}
+ */
+async function gotoWithRetry(page, url, options) {
+  const opts = options || {};
+  const maxRetries = Number.isInteger(opts.navigationRetries) && opts.navigationRetries >= 0
+    ? opts.navigationRetries : NAVIGATION_RETRY_MAX;
+  const backoffMs = Number.isFinite(opts.navigationBackoffMs) && opts.navigationBackoffMs >= 0
+    ? opts.navigationBackoffMs : NAVIGATION_RETRY_BACKOFF_MS;
+  const wait = typeof opts.sleep === 'function' ? opts.sleep : sleep;
+  const navOptions = Object.assign({}, opts);
+  delete navOptions.navigationRetries;
+  delete navOptions.navigationBackoffMs;
+  delete navOptions.sleep;
+  let attempts = 0;
+  let lastError = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    if (attempt > 0) {
+      await wait(backoffMs * attempt);
+      try {
+        await page.goto('about:blank', { timeout: NAVIGATION_RETRY_RESET_TIMEOUT_MS, waitUntil: 'domcontentloaded' });
+      } catch (err) { /* 复位失败（页面已崩溃/关闭）不掩盖原导航错误 */ }
+    }
+    attempts += 1;
+    try {
+      return { response: await page.goto(url, navOptions), attempts };
+    } catch (err) {
+      lastError = err;
+      if (typeof page.isClosed === 'function' && page.isClosed()) break;
+    }
+  }
+  const failure = new Error('goto 失败（尝试 ' + attempts + '/' + (maxRetries + 1) + ' 次，url=' + url + '）：'
+    + String((lastError && lastError.message) || lastError));
+  failure.cause = lastError;
+  throw failure;
+}
+
+/**
+ * 为单次验证创建随机 userDataDir：每个构建进程 / 每次运行都不同，杜绝并发共享 profile
+ * 被 ProcessSingleton 互斥、以及复用陈旧 DevTools 状态连接到旧实例。
+ * @param {string} [baseDir] 基目录（缺省系统临时目录）；不存在时自动创建
+ * @returns {string} 实际 profile 目录
+ */
+function createRunProfileDir(baseDir) {
+  const base = baseDir ? path.resolve(baseDir) : path.join(os.tmpdir(), 'synapse-verify-chrome');
+  fs.mkdirSync(base, { recursive: true });
+  return fs.mkdtempSync(path.join(base, 'run-'));
+}
+
+/**
+ * 清理随机 userDataDir（Windows 上强杀浏览器后可能短暂存在文件锁，带重试）。
+ * @param {string} dir
+ * @param {{logger?: Console}} [options]
+ * @returns {boolean} 目录已不存在返回 true
+ */
+function removeRunProfileDir(dir, options) {
+  if (!dir) return true;
+  try {
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 8, retryDelay: 250 });
+  } catch (err) {
+    const logger = (options && options.logger) || console;
+    logger.warn('  [WARN] Chrome 临时 profile 清理失败 ' + dir + ': ' + err.message);
+    return false;
+  }
+  return !fs.existsSync(dir);
 }
 
 // ---------------------------------------------------------------------------
@@ -357,7 +505,7 @@ function summarizeFailures(failures) {
   const list = Array.isArray(failures) ? failures : [];
   const head = list.slice(0, 3).map((item) => {
     const detail = typeof item.detail === 'string' ? item.detail : JSON.stringify(item.detail);
-    return (item.kind || '?') + (item.page ? '@' + item.page : '') + ': ' + detail;
+    return (item.kind || '?') + (item.stage ? '/' + item.stage : '') + (item.page ? '@' + item.page : '') + ': ' + detail;
   }).join('；');
   return head + (list.length > 3 ? '；等共 ' + list.length + ' 项' : '');
 }
@@ -425,7 +573,7 @@ function startVerifyServer(opts) {
       reject(err);
     });
   });
-  return { child, ready };
+  return { child, ready, stderr: () => stderr };
 }
 
 function stopVerifyServer(handle) {
@@ -587,7 +735,7 @@ async function preparePage(page, jsEnabled) {
 // line-height 等计算值，样式表应用时刻也会影响 color 等取值，必须先稳定再对比；
 // 但不等全部图片（load 事件），避免大图拉长门禁时间。
 async function sampleStaticPage(page, url, opts) {
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
+  await gotoWithRetry(page, url, { waitUntil: 'domcontentloaded', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
   await Promise.race([
     page.evaluate(browserWaitForStablePaint).catch(() => {}),
     sleep(STABLE_PAINT_TIMEOUT_MS)
@@ -676,7 +824,7 @@ async function closeBrowserSafely(browser, timeoutMs) {
 
 async function sampleRuntimeErrors(page, url, consoleState, opts) {
   consoleState.reset();
-  await page.goto(url, { waitUntil: 'load', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
+  await gotoWithRetry(page, url, { waitUntil: 'load', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
   await settleRuntimePage(page);
   return consoleState.errors.slice();
 }
@@ -740,10 +888,11 @@ async function checkRuntimeBootstrap(page, report) {
  * @property {boolean} [bootstrapAssertions] 是否断言运行时引导（__T/__SB 与 deferred 动态加载）：
  *   runtime 压缩或 JS 混淆任一开启时为 true（缺省回退 obfuscateEnabled）
  * @property {number} [pageTimeoutMs] 单页加载超时（毫秒）
- * @property {string} [profileDir] 持久 Chrome profile 目录（复用可跳过首次导航初始化与临时
- *   profile 清理等待；同一目录同一时刻只允许一个 Chrome 实例，构建应串行执行）
+ * @property {string} [profileDir] Chrome userDataDir 基目录：每次运行在其下新建随机子目录
+ *   （缺省系统临时目录），运行结束（含失败/异常）无条件清理，支持并发构建互不干扰
  * @property {string} [cwd] 子服务进程工作目录
  * @property {Record<string, string|undefined>} [env] 环境变量（测试注入）
+ * @property {{launch: Function}} [puppeteer] 浏览器启动器（缺省 puppeteer-core；测试注入）
  * @property {Console} [logger] 日志输出
  */
 
@@ -763,6 +912,8 @@ async function verifyCompression(options) {
     pages: [],
     servers: [],
     portsReleased: null,
+    profileDir: '',
+    profileCleaned: null,
     comparisons: [],
     failures: [],
     injectedFailure: false,
@@ -783,13 +934,17 @@ async function verifyCompression(options) {
   }
   let puppeteerCore;
   try {
-    puppeteerCore = require('puppeteer-core');
+    puppeteerCore = opts.puppeteer || require('puppeteer-core');
   } catch (err) {
     report.reason = 'puppeteer-core 不可用: ' + err.message;
     return finish('skipped');
   }
+  if (!puppeteerCore || typeof puppeteerCore.launch !== 'function') {
+    report.reason = 'puppeteer-core 不可用: 缺少 launch 接口';
+    return finish('skipped');
+  }
   if (!fs.existsSync(path.join(baselineDir, BASELINE_MANIFEST))) {
-    report.failures.push({ kind: 'internal', detail: '基线快照缺失: ' + baselineDir });
+    report.failures.push({ kind: 'internal', stage: 'init', detail: '基线快照缺失: ' + baselineDir });
     return finish('failed');
   }
 
@@ -806,9 +961,12 @@ async function verifyCompression(options) {
   report.pages = discoverVerifyPages(distDir);
   const phase = { startedAt: Date.now() };
   const mark = (name) => { phase[name] = Date.now(); };
+  let stage = 'init';
   const serverHandles = [];
   let browser = null;
+  let profileRunDir = '';
   try {
+    stage = 'servers';
     mark('serversStartedAt');
     const watchdogEnv = {
       SYNAPSE_SERVE_PARENT_PID: String(process.pid),
@@ -825,19 +983,42 @@ async function verifyCompression(options) {
       { role: 'baseline', port: baselinePort }
     ];
     if (!assertDistinctPorts([compressedPort, baselinePort])) {
-      report.failures.push({ kind: 'server', detail: '验证服务端口未互异: ' + compressedPort + ',' + baselinePort });
+      report.failures.push({ kind: 'server', stage: 'servers', detail: '验证服务端口未互异: ' + compressedPort + ',' + baselinePort });
     }
     mark('serversReadyAt');
 
-    const profileDir = opts.profileDir ? path.resolve(opts.profileDir) : '';
-    if (profileDir) fs.mkdirSync(profileDir, { recursive: true });
+    // 端口打印仅代表 listen 回调已触发；再经 HTTP 轮询确认已可服务页面后才启动浏览器，
+    // 轮询失败即抛（错误附带服务 stderr），避免把「服务未就绪」拖成 goto 超时。
+    stage = 'server-readiness';
+    const readinessAbort = new AbortController();
+    try {
+      await Promise.all([
+        waitForServerHttp(compressedPort, { description: 'compressed:' + compressedPort, signal: readinessAbort.signal }),
+        waitForServerHttp(baselinePort, { description: 'baseline:' + baselinePort, signal: readinessAbort.signal })
+      ]);
+    } catch (err) {
+      readinessAbort.abort();
+      const stderrTail = serverHandles.map((handle) => String(handle.stderr() || '').trim()).filter(Boolean).join(' | ');
+      throw new Error(String((err && err.message) || err) + (stderrTail ? '；服务 stderr: ' + stderrTail.slice(-800) : ''), { cause: err });
+    }
+    mark('serversHttpReadyAt');
+
+    stage = 'browser-launch';
+    try {
+      profileRunDir = createRunProfileDir(opts.profileDir);
+    } catch (err) {
+      report.reason = 'profile-dir-failed: ' + String((err && err.message) || err);
+      return finish('skipped');
+    }
+    report.profileDir = profileRunDir;
     try {
       browser = await puppeteerCore.launch({
         executablePath: chromePath,
         headless: true,
-        userDataDir: profileDir || undefined,
+        userDataDir: profileRunDir,
         // --no-proxy-server：跳过 Windows 系统代理自动探测（WPAD），否则首个导航可能被拖到秒级；
         // --disable-features：关闭翻译/优化提示等与验证无关的后台初始化。
+        // CDP 调试端口由 Puppeteer 缺省以 0（随机）分配，配合随机 userDataDir 杜绝跨运行串连旧实例。
         args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-proxy-server', '--disable-features=Translate,OptimizationHints'],
         timeout: 30000,
         protocolTimeout: 120000
@@ -852,6 +1033,7 @@ async function verifyCompression(options) {
     const baselineBase = 'http://127.0.0.1:' + baselinePort;
 
     // ① 静态产物对比（JS 关闭）：DOM 归一化结构 + 采样计算样式。
+    stage = 'static-compare';
     const staticA = await browser.newPage();
     const staticB = await browser.newPage();
     await preparePage(staticA, false);
@@ -875,6 +1057,7 @@ async function verifyCompression(options) {
     mark('staticReadyAt');
 
     // ② 运行时控制台错误（JS 开启）：两态逐页收集，均须为 0。
+    stage = 'runtime-console';
     const runtimeA = await browser.newPage();
     const runtimeB = await browser.newPage();
     await preparePage(runtimeA, true);
@@ -896,7 +1079,8 @@ async function verifyCompression(options) {
     mark('runtimeReadyAt');
 
     // ③ 交互与运行时断言固定用压缩态首页（页面集对比后页面可能已离开首页）。
-    await runtimeA.goto(compressedBase + '/zh/', { waitUntil: 'load', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
+    stage = 'interactions';
+    await gotoWithRetry(runtimeA, compressedBase + '/zh/', { waitUntil: 'load', timeout: opts.pageTimeoutMs || DEFAULT_PAGE_TIMEOUT_MS });
     await settleRuntimePage(runtimeA);
     if (opts.bootstrapAssertions === true || opts.obfuscateEnabled === true) {
       report.runtime = await checkRuntimeBootstrap(runtimeA, report);
@@ -904,12 +1088,20 @@ async function verifyCompression(options) {
     report.interactions = await runInteractions(runtimeA, report);
     mark('interactionsReadyAt');
   } catch (err) {
-    report.failures.push({ kind: 'internal', detail: String((err && err.stack) || err) });
+    report.failures.push({
+      kind: 'internal',
+      stage,
+      detail: String((err && err.message) || err),
+      stack: String((err && err.stack) || err)
+    });
   } finally {
     let browserCloseForced = false;
     if (browser) {
       const closeResult = await closeBrowserSafely(browser);
       browserCloseForced = closeResult.forcedKill;
+    }
+    if (profileRunDir) {
+      report.profileCleaned = removeRunProfileDir(profileRunDir, { logger });
     }
     const stopStartedAt = Date.now();
     await Promise.all(serverHandles.map((handle) => stopVerifyServer(handle)));
@@ -917,7 +1109,8 @@ async function verifyCompression(options) {
     mark('cleanupAt');
     report.phaseDurationsMs = {
       servers: (phase.serversReadyAt || phase.startedAt) - phase.serversStartedAt,
-      browserLaunch: (phase.browserReadyAt || 0) - (phase.serversReadyAt || 0),
+      httpReadiness: (phase.serversHttpReadyAt || phase.serversReadyAt || phase.startedAt) - (phase.serversReadyAt || phase.startedAt),
+      browserLaunch: (phase.browserReadyAt || 0) - (phase.serversHttpReadyAt || phase.serversReadyAt || 0),
       staticCompare: (phase.staticReadyAt || 0) - (phase.browserReadyAt || 0),
       runtimeConsole: (phase.runtimeReadyAt || 0) - (phase.staticReadyAt || 0),
       interactions: (phase.interactionsReadyAt || 0) - (phase.runtimeReadyAt || 0),
@@ -957,6 +1150,10 @@ module.exports = {
   pageExists,
   runInteractions,
   waitForPortRelease,
+  waitForServerHttp,
+  gotoWithRetry,
+  createRunProfileDir,
+  removeRunProfileDir,
   summarizeFailures,
   writeVerifyReport,
   verifyCompression,

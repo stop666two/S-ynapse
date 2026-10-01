@@ -73,6 +73,27 @@ function createMinifyModule(ctx) {
       || path.join(ctx.distDir, '..', '.cache', 'compression-verify', 'last.json');
   }
 
+  // 基线快照目录按运行隔离：每次在其下新建 run-* 随机子目录，避免并发构建共享同一目录时
+  // 被另一轮的整目录重建互相删除（表现为「基线快照缺失」或采样期读到半成品）。
+  // 创建前清掉超过 1 小时的陈旧 run-*（构建中断残留），当前运行目录不受影响。
+  const BASELINE_RUN_PREFIX = 'run-';
+  const BASELINE_STALE_MS = 3600000;
+  function createRunBaselineDir(baseDir) {
+    const base = path.resolve(baseDir);
+    fs.mkdirSync(base, { recursive: true });
+    try {
+      const now = Date.now();
+      for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
+        if (!entry.isDirectory() || !entry.name.startsWith(BASELINE_RUN_PREFIX)) continue;
+        const abs = path.join(base, entry.name);
+        try {
+          if (now - fs.statSync(abs).mtimeMs > BASELINE_STALE_MS) fs.rmSync(abs, { recursive: true, force: true });
+        } catch (err) { /* 单个陈旧目录清理失败不影响本轮 */ }
+      }
+    } catch (err) { /* 基目录扫描失败不影响本轮 */ }
+    return fs.mkdtempSync(path.join(base, BASELINE_RUN_PREFIX));
+  }
+
   function shouldRunVerification() {
     if (verifyModeFromEnv(process.env) === 'off') return false;
     if (compressionPlan.active !== true || compressionPlan.verifyHeadless !== true) return false;
@@ -595,7 +616,12 @@ function createMinifyModule(ctx) {
         status: 'failed',
         checkedAt: new Date().toISOString(),
         pages: [],
-        failures: [{ kind: 'internal', detail: String((err && err.stack) || err) }],
+        failures: [{
+          kind: 'internal',
+          stage: 'verify-invoke',
+          detail: String((err && err.message) || err),
+          stack: String((err && err.stack) || err)
+        }],
         fallback: null
       };
     }
@@ -680,7 +706,7 @@ function createMinifyModule(ctx) {
         });
       } else {
         try {
-          baseline = createBaselineSnapshot(ctx.distDir, compressionBaselineDir);
+          baseline = createBaselineSnapshot(ctx.distDir, createRunBaselineDir(compressionBaselineDir));
         } catch (err) {
           console.warn('  [WARN] 压缩基线快照创建失败，跳过无头验证：' + err.message);
           ctx.recordBuildFailure('compression-verify', '基线快照创建失败：' + err.message, { fatal: false });

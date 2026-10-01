@@ -6,7 +6,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
 const { loadInternals } = require('./internals');
 
 const WINDOWS_CHROME_PATHS = [
@@ -16,15 +15,24 @@ const WINDOWS_CHROME_PATHS = [
 const MAC_CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const POSIX_CHROME_COMMANDS = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'];
 
+// 直接扫描 PATH 目录（Windows 叠加 PATHEXT），不启动子进程：
+// 既避免 where/which 在负载下超时抖动，也不依赖系统自带工具。
 function defaultWhich(name) {
-  const cmd = process.platform === 'win32' ? 'where' : 'which';
-  try {
-    const res = spawnSync(cmd, [name], { encoding: 'utf-8', timeout: 5000 });
-    if (res.status === 0 && res.stdout) {
-      const first = res.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)[0];
-      if (first) return first;
+  const isWindows = process.platform === 'win32';
+  const dirs = String(process.env.PATH || '').split(isWindows ? ';' : ':').filter(Boolean);
+  const suffixes = isWindows
+    ? String(process.env.PATHEXT || '.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean)
+    : [''];
+  for (const dir of dirs) {
+    for (const suffix of suffixes) {
+      const candidate = path.join(dir, name + suffix);
+      try {
+        if (!fs.statSync(candidate).isFile()) continue;
+        if (!isWindows) fs.accessSync(candidate, fs.constants.X_OK);
+        return candidate;
+      } catch (err) { /* 候选不可用则继续扫描 */ }
     }
-  } catch (err) { /* 探测失败按未找到处理 */ }
+  }
   return null;
 }
 

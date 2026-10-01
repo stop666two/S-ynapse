@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **文档与 JSON5 配置注释全量校准**：15 个 JSON5 逐键复核注释并清除陈旧叙述（历史/批次/旧行为类字样，历史仅保留于 CHANGELOG；`internals.json5` 文件头补充「本文件即默认清单」的默认值口径）；README 命令表与测试计数更新为实测值（`npm test` 996 项 / 144 组、`scripts/lib` 行覆盖率 93.9%），构建管线表对齐 14 阶段（阶段名与唯一报告 `build-report.html` 的阶段耗时表一致），Windows 快捷脚本说明补全（依赖缺失时 `npm install --prefer-offline`、失败 `pause`、端口清理仅 `LISTENING`、`serve.bat [端口] [rebuild]`），发布策略写明「tag 永不删除，仅自动清理旧 Releases」，Node 版本注明 `.nvmrc` 单源，测试概览表改为稳定的功能域清单（不再维护易漂移的逐套件数量）；`docs/config-reference.md` 新增「快速索引：按需求找键」并复核新增特性段落（criticalCss / offscreenSkip / preloadFirstCard / cjkFonts / compression 全字段 / softNavigation / popupNotice / continueReading / release / internals）；`docs/architecture.md` 按当前代码重写构建 14 阶段表与模块拆分图、构建报告区块结构、五作业发布流水线（validate→gates→archive→buildability→publish + 归档白名单 + tag 保护）、关键 CSS 与软导航运行期流程、含自动封面的缓存层清单；runbook/SECURITY/交接文档同步。
+
+### Fixed
+
+- **`build.bat` / `serve.bat` 加固**：补充 npm 存在性探测（缺失时给出安装指引）、任一步失败打印原因并 `pause`（不再一闪而过）、退出码透传；`serve.bat` 仅清理占用目标端口且状态为 `LISTENING` 的进程（不再误杀其它进程），并支持 `serve.bat [端口] [rebuild]` 与「`dist/index.html` 已存在则跳过重建」。
+- **`release.yml` 的 `publish` 作业缺少运行时依赖**：该作业此前只检出代码便调用 `release-prune.js`，而 prune 需要 `json5`（配置解析 JSON5 单源），发布后的旧 Release 清理可能因此失败；现补 `npm ci --omit=dev` 安装运行时依赖。
+
 ## [1.2.1] - 2026-10-01
 
 ### Changed
@@ -776,7 +787,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [1.1.0]: https://github.com/stop666two/S-ynapse/releases/tag/v1.1.0
 [1.0.1]: https://github.com/stop666two/S-ynapse/releases/tag/v1.0.1
-[Unreleased]: https://github.com/stop666two/S-ynapse/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/stop666two/S-ynapse/compare/v1.2.1...HEAD
 [1.2.0]: https://github.com/stop666two/S-ynapse/releases/tag/v1.2.0
 [1.1.0-a1]: https://github.com/stop666two/S-ynapse/releases/tag/v1.1.0-a1
 [1.1.0-a2]: https://github.com/stop666two/S-ynapse/releases/tag/v1.1.0-a2

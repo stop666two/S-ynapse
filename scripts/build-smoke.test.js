@@ -334,8 +334,12 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       const helloHtml = fs.readFileSync(helloPage, 'utf-8');
       assert.ok(helloHtml.includes('/assets/vendor/katex/katex.min.css'), 'math page must preload the KaTeX stylesheet');
       assert.ok(helloHtml.includes('/assets/vendor/katex/katex.min.js'), 'math page must preload the KaTeX runtime');
+      const mathDiag = (() => {
+        const idx = helloHtml.indexOf('E = mc');
+        return idx < 0 ? '(E = mc 不存在)' : helloHtml.slice(Math.max(0, idx - 120), idx + 120);
+      })();
       assert.ok(helloHtml.includes('class="math-inline"') && helloHtml.includes('data-tex="E = mc^2"'),
-        'inline math must be emitted as a data-tex placeholder');
+        `inline math must be emitted as a data-tex placeholder [diag: ${mathDiag}]`);
       assert.ok(helloHtml.includes('class="math-block"') && helloHtml.includes('data-tex="\\int_0^1'),
         'block math must be emitted as a data-tex placeholder');
       const bodyText = helloHtml.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');

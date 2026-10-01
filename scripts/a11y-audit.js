@@ -137,6 +137,17 @@ function hardKill(pid) {
   } catch (e) { /* 进程已退出 */ }
 }
 
+// 等待子进程 exit 事件：kill 后立即用 process.kill(pid,0) 判断会误报——Windows 上端口已释放
+// 而进程尚在终止过程中的窗口期里，PID 仍然存在；exit 事件才代表进程真正退出。
+function waitExit(child, ms) {
+  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const onExit = () => { clearTimeout(timer); resolve(true); };
+    const timer = setTimeout(() => { child.removeListener('exit', onExit); resolve(false); }, ms);
+    child.once('exit', onExit);
+  });
+}
+
 (async () => {
   let server = null;
   let browser = null;
@@ -263,17 +274,21 @@ function hardKill(pid) {
   } finally {
     if (browser) await browser.close().catch(() => {});
     if (server) {
+      // 先注册 exit 监听再发信号，避免 kill 与监听之间的退出竞态漏掉事件。
+      const exitPromise = waitExit(server, 8000);
       server.kill();
-      let released = await waitPortReleased(8000);
-      if (!released) {
-        console.error('[a11y] 警告：serve 端口未释放，taskkill 整树强杀 PID=' + server.pid);
+      let exited = await exitPromise;
+      if (!exited) {
+        console.error('[a11y] 警告：serve 未在 8s 内退出，taskkill 整树强杀 PID=' + server.pid);
         hardKill(server.pid);
-        released = await waitPortReleased(5000);
+        exited = await waitExit(server, 5000);
       }
-      if (released) console.log('[a11y] serve 已停止，端口已释放');
-      else { console.error('[a11y] 警告：端口仍未释放 PID=' + server.pid); exitCode = 1; }
-      try { process.kill(server.pid, 0); console.error('[a11y] 警告：serve 进程仍存活 PID=' + server.pid); exitCode = 1; }
-      catch (e) { /* 已退出 */ }
+      const released = await waitPortReleased(3000);
+      if (exited && released) console.log('[a11y] serve 已停止，端口已释放');
+      else {
+        console.error('[a11y] 警告：serve 未完全退出（exit=' + exited + ' portReleased=' + released + '）PID=' + server.pid);
+        exitCode = 1;
+      }
     }
   }
   process.exit(exitCode);

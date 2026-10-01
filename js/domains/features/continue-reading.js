@@ -117,7 +117,7 @@ export function init() {
     });
   }
   function isEn() {
-    return (document.documentElement.getAttribute('lang') || 'zh').slice(0, 2) === 'en';
+    return window.langOf() === 'en';
   }
   // 文案键解析：config 键（removeLabel(En) / clearLabel(En)）优先，空回退 ui-strings。
   function label(zhKey, enKey, uiKey, dflt) {
@@ -133,7 +133,7 @@ export function init() {
     var m = Math.floor(diff / 60000);
     var h = Math.floor(diff / 3600000);
     var d = Math.floor(diff / 86400000);
-    var lang = isEn() ? 'en' : 'zh';
+    var lang = window.langOf();
     function rel(n, unit) {
       try { return new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }).format(-n, unit); }
       catch (e) { return n + ' ' + unit; }

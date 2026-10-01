@@ -3,7 +3,7 @@ export function init() {
   const FV = F.favorites || {};
   if (FV.enabled === false) return;
   const KEY = FV.storageKey;
-  const EN = (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
+  const EN = window.langOf() === 'en';
   const T = (k, fb) => (window.__T ? window.__T(k, fb) : fb);
 
   function read() {

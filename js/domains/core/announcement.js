@@ -1,6 +1,6 @@
 function hashStr(s) { var h = 0; for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; } return String(h); }
 function collapseAnnH() { try { document.documentElement.setAttribute('data-ann-dismissed', '1'); } catch (e) { /* 忽略：属性写入失败不影响公告展示 */ } }
-export function langFromHtml(htmlLang) { return /^en/i.test(String(htmlLang || '')) ? 'en' : 'zh'; }
+export function langFromHtml(htmlLang) { return /^en/i.test(String(htmlLang || '')) ? 'en' : (window.__DEFAULT_LANG__ || 'zh'); }
 export function readDismissStore(raw, hash, lang) {
   var st;
   try { st = JSON.parse(raw); } catch (e) { st = null; }

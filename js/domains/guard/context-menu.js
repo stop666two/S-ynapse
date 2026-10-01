@@ -106,7 +106,7 @@ export function init(ctx) {
         }, parseInt(cfg.searchFocusDelayMs, 10) || 60);
       }));
       if (builtin.translate !== false) list.push(item(t('translate', 'Translate selection'), 'translate', function () {
-        const tl = (document.documentElement.lang || 'zh').startsWith('en') ? 'zh-CN' : 'en';
+        const tl = window.langOf() === 'en' ? 'zh-CN' : 'en';
         const tu = String((((window.__GUARD__ || {}).contextMenu || {}).translateUrl) || '').replace('{lang}', tl).replace('{text}', encodeURIComponent(sel));
         if (!tu) return;
         window.open(tu, '_blank', 'noopener');
@@ -150,7 +150,7 @@ export function init(ctx) {
     customs.forEach(function (c) {
       if (!c || !c.label) return;
       if (c.selector && !(e.target && e.target.closest && e.target.closest(c.selector))) return;
-      list.push(item((document.documentElement.lang || '').startsWith('en') && c.labelEn ? c.labelEn : c.label, c.icon, function () {
+      list.push(item(window.langOf() === 'en' && c.labelEn ? c.labelEn : c.label, c.icon, function () {
         if (c.url) window.open(c.url, c.newTab === false ? '_self' : '_blank', 'noopener');
         else if (c.action) document.dispatchEvent(new CustomEvent('guard:menu-action', { detail: { action: c.action } }));
       }));

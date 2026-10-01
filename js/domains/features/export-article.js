@@ -4,7 +4,7 @@
 export function init() {
   var F = window.__FEATURES__ || {}, E = F.exportArticle || {};
   if (E.enabled === false) return;
-  var en = (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
+  var en = window.langOf() === 'en';
   function t(zh, enText) { return en ? enText : zh; }
   function toast(msg, type) {
     if (typeof window.__toast === 'function') window.__toast(msg, { type: type || 'info' });

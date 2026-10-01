@@ -8,8 +8,8 @@ export function init() {
   var wl = EL.whitelist && EL.whitelist.length ? EL.whitelist : (c.whitelist || []);
   var bl = EL.blacklist || [];
   var mode = EL.mode || 'warn';
-  var msg = (EL.messageEn && window.__T && document.documentElement.getAttribute('data-lang') === 'en') ? EL.messageEn : (EL.message || c.message || '');
-  var isEn = function () { return window.__T && document.documentElement.getAttribute('data-lang') === 'en'; };
+  var msg = (EL.messageEn && window.__T && window.langOf() === 'en') ? EL.messageEn : (EL.message || c.message || '');
+  var isEn = function () { return window.__T && window.langOf() === 'en'; };
   var escH = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
   var fullUrl = EL.showFullUrl !== false, newTab = EL.openInNewTab !== false;
   // whitelistNewTab=true：白名单外链强制新标签页打开（target=_blank + noopener/noreferrer 等效语义）；

@@ -1,7 +1,7 @@
 // 弹窗公告（features.popupNotice）：延迟弹出、内容/按钮/关闭方式/配色可自定义；
 // 展示频率与内容哈希记忆在 localStorage/sessionStorage，正文纯文本渲染。
 function hashStr(s) { var h = 0; for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; } return String(h); }
-function langOf() { return /^en/i.test(document.documentElement.lang || '') ? 'en' : 'zh'; }
+function langOf() { return window.langOf ? window.langOf() : (window.__DEFAULT_LANG__ || 'zh'); }
 function pick(lang, base, en) { return (lang === 'en' && en) ? en : (base || ''); }
 function todayStr(now) { var d = new Date(now); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
 

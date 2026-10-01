@@ -23,9 +23,7 @@ var lastDownload = null;
 function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
 function activeMode() { return isDark() ? 'dark' : 'light'; }
 function lang() {
-  var explicit = document.documentElement.getAttribute('data-lang');
-  if (explicit) return explicit === 'en' ? 'en' : 'zh';
-  return String(document.documentElement.lang || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh';
+  return window.langOf ? window.langOf() : 'zh';
 }
 function en() { return lang() === 'en'; }
 function t(zh, enText) { return en() ? enText : zh; }

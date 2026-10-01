@@ -3,7 +3,7 @@ export function init(ctx) {
   const cfg = (ctx.G.privacyCurtain) || {};
   if (cfg.enabled === false) return;
   const html = document.documentElement;
-  const lang = (document.documentElement.lang || 'zh').startsWith('en') ? 'en' : 'zh';
+  const lang = window.langOf();
 
   html.style.setProperty('--g-curtainBlur', cfg.blurAmount || '8px');
 

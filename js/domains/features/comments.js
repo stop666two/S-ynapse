@@ -26,7 +26,7 @@ function bind() {
   }
   timer = setTimeout(function () {
     if (!done && !settle()) {
-      var __en = (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
+      var __en = window.langOf() === 'en';
       ph.textContent = (__en && CM.emptyTextEn) ? CM.emptyTextEn : (CM.emptyText || '暂无评论');
       ph.classList.add('placeholder-done');
     }

@@ -11,7 +11,7 @@ export function init(ctx) {
   if (cfg.mobileEnabled !== true && window.matchMedia('(max-width: ' + breakpointPx + 'px)').matches) return;
 
   const type = cfg.type || 'diagonal';
-  const lang = (document.documentElement.lang || 'zh').startsWith('en') ? 'en' : 'zh';
+  const lang = window.langOf();
   const tpl = (lang === 'en' ? (cfg.textEn || cfg.text) : cfg.text) || '{site}';
 
   let id = '';

@@ -33,7 +33,7 @@ export function init(ctx) {
   }
 
   function renderSuffix() {
-    const lang = (document.documentElement.lang || 'zh').startsWith('en') ? 'en' : 'zh';
+    const lang = window.langOf();
     const tpl = (lang === 'en' ? (attr.textEn || attr.text) : attr.text) || '';
     if (!tpl) return '';
     const title = window.__ART_TITLE__ || document.title || '';

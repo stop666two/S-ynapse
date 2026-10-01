@@ -94,11 +94,7 @@ export function quoteForLang(quote, lang) {
 }
 
 function langOf() {
-  try {
-    return /^en/i.test(document.documentElement.lang || '') ? 'en' : 'zh';
-  } catch (e) {
-    return 'zh';
-  }
+  return window.langOf ? window.langOf() : (window.__DEFAULT_LANG__ || 'zh');
 }
 function labelOf(key, keyEn) {
   var Q = (config && config.features && config.features.dailyQuote) || {};

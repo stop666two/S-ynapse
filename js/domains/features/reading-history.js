@@ -22,7 +22,7 @@ export function init() {
     return url;
   }
   function lang() {
-    return (document.documentElement.getAttribute('lang') || 'zh').slice(0, 2) === 'en' ? 'en' : 'zh';
+    return window.langOf();
   }
   // 阅读进度百分比（0-100）：与站点进度条同口径；短页（无可滚动距离）按 0。
   function pct() {
@@ -74,7 +74,7 @@ export function init() {
     var m = Math.floor(diff / 60000);
     var h = Math.floor(diff / 3600000);
     var d = Math.floor(diff / 86400000);
-    var lang = (document.documentElement.getAttribute('lang') || 'zh').slice(0, 2) === 'en' ? 'en' : 'zh';
+    var lang = window.langOf();
     function rel(n, unit) {
       try { return new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }).format(-n, unit); }
       catch (e) { return n + ' ' + unit; }

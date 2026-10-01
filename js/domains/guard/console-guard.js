@@ -2,7 +2,7 @@
 export function init(ctx) {
   const cfg = (ctx.G.consoleGuard) || {};
   if (cfg.enabled === false) return;
-  const lang = (document.documentElement.lang || 'zh').startsWith('en') ? 'en' : 'zh';
+  const lang = window.langOf();
   let fired = false;
 
   function notice(text) {

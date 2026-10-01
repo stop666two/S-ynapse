@@ -2699,7 +2699,30 @@
     //   (判定线 ≤0.05 不达标)、滚动增量 0.0001、落点误差 0.0px;按验收标准保持 false。
     // 数据: .tmp-scripts/out/cv2-summary.md(runner .tmp-scripts/run-cv-ab2.js,自收尾+端口释放校验)。
     // 类型: boolean | 可填: true/false | 默认 false(站点同样 false;回退=保持/置 false,条件 CSS 不输出)。
-    contentVisibility: false
+    contentVisibility: false,
+    // 列表页/侧栏/页脚的下折叠离屏渲染跳过(content-visibility:auto)。
+    // 作用: 首页/标签/归档列表第 cardsFrom 张起的卡片,以及 .sidebar 与 .site-footer,离屏时跳过
+    //   样式计算与布局,contain-intrinsic-size 以 auto+估算值占位,滚动接近时按真实尺寸渲染。
+    // 收益: 首屏样式计算/布局量大幅下降。本机 Slow4G + 4x CPU 实测首页 LCP 中位
+    //   2272→约 1500ms(条件 CSS 拦截 A/B,3 次中位;证据 .tmp-scripts/out/exp-lcp-cv.json)。
+    // 代价: 未渲染区首屏占位高度为估算值;滚动接近时按真实高度渲染(contain-intrinsic-size:auto),
+    //   实测页面总高不变、滚动增量 CLS ≤0.0002(正常滚动场景无可见偏移)。
+    // 适用: 仅作用于列表卡片与侧栏/页脚,不触碰文章正文(正文长文场景见上方 contentVisibility)。
+    // 类型: object | 默认 enabled:false(回退=置 false,条件 CSS 不输出)。
+    offscreenSkip: {
+      // 总开关。true 时输出上述条件 CSS;false 时完全不输出。
+      // 类型: boolean | 可填: true(推荐)/false
+      enabled: true,
+      // 第几张卡片起跳过离屏渲染(1 基)。1=全部卡片、4=前三张参与首屏布局。
+      // 类型: number(整数) | 推荐: 4(视口 1440×900 时第 4 张已在首屏外);0 或负数=不输出卡片规则。
+      cardsFrom: 4,
+      // 卡片占位高度估算(px)。真实高度随标题/摘要行数变化,auto 会在首次渲染后记住实测值。
+      // 类型: number(整数) | 推荐: 480(单列卡片约 440-560px)
+      cardEstimatePx: 480,
+      // 侧栏/页脚占位高度估算(px)。同样由 auto 记忆实测值。
+      // 类型: number(整数) | 推荐: 900(1440 宽侧栏/页脚整体高度量级)
+      asideEstimatePx: 900
+    }
   },
 
   // ---------------------------------------------------------------------------

@@ -34,6 +34,15 @@ test('theme.json5：darkMode 新增 canonical 键（rememberChoice/iconStyle/tra
   assert.strictEqual(theme.darkMode.default, 'system');
 });
 
+test('features.json5：lcpOptimize.offscreenSkip 双态（schema 默认关闭 / 示例站启用）', () => {
+  assert.strictEqual(DEFAULT_FEATURES.lcpOptimize.offscreenSkip.enabled, false, 'schema 默认必须关闭（回退=置 false，条件 CSS 不输出）');
+  assert.strictEqual(features.lcpOptimize.offscreenSkip.enabled, true, '示例站必须启用离屏渲染跳过');
+  assert.strictEqual(DEFAULT_FEATURES.lcpOptimize.offscreenSkip.cardsFrom, 4);
+  assert.strictEqual(features.lcpOptimize.offscreenSkip.cardsFrom, 4);
+  assert.strictEqual(DEFAULT_FEATURES.lcpOptimize.offscreenSkip.cardEstimatePx, 480);
+  assert.strictEqual(DEFAULT_FEATURES.lcpOptimize.offscreenSkip.asideEstimatePx, 900);
+});
+
 test('features.json5：本轮接线键默认值（markClass/revealStaggerMax/widgetStyle/showOnArchive）', () => {
   assert.strictEqual(features.searchHighlight.markClass, '');
   assert.strictEqual(features.motion.revealStaggerMax, 500);

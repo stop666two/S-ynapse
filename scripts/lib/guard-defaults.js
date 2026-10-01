@@ -32,6 +32,8 @@ const DEFAULT_GUARD = {
     },
     "hapticMs": 10,
     "searchFocusDelayMs": 60,
+    "searchTextMaxChars": 12,
+    "moveTolerancePx": 8,
     "behavior": {
       "closeOnEsc": true,
       "closeOnScroll": true,

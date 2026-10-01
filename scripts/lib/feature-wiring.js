@@ -988,15 +988,19 @@ function softNavCacheConfig(features) {
   return { cacheMaxEntries: pickCount(S.cacheMaxEntries, 16, 1) };
 }
 
-// readingHistory 本地存储上限归一化（≥1；非法回退 50）。
+// readingHistory 本地存储上限归一化（≥1；非法回退 50）与滚动进度写回节流（非负；非法回退 800）。
 function readingHistoryConfig(features) {
   const R = (features && features.readingHistory) || {};
-  return { maxStored: pickCount(R.maxStored, 50, 1) };
+  return {
+    maxStored: pickCount(R.maxStored, 50, 1),
+    progressThrottleMs: pickNonNegative(R.progressThrottleMs, 800)
+  };
 }
 
 // continueReading 首页卡片归一化：displayCount≥1（非法回退 3）、showProgress 默认 true、
 // storageKey 留空时复用 readingHistory.storageKey（再回退历史默认 's-history'）；
 // maxStored 复用 readingHistory.maxStored（缺省/非法回退 50，供移除后上限重算）；
+// removeDelayMs（非负；非法回退 360）与 clearConfirmMs（≥1；非法回退 3000）供运行时交互时长；
 // 文案键 removeLabel/clearLabel：zh 键空回退内置中文，*En 键空串 = en 站回退 ui-strings。
 function continueReadingConfig(features) {
   const F = (features && features.continueReading) || {};
@@ -1010,6 +1014,8 @@ function continueReadingConfig(features) {
     showProgress: F.showProgress !== false,
     storageKey: key || rhKey || 's-history',
     maxStored: pickCount(RH.maxStored, 50, 1),
+    removeDelayMs: pickNonNegative(F.removeDelayMs, 360),
+    clearConfirmMs: pickCount(F.clearConfirmMs, 3000, 1),
     removeLabel: pickZh(F.removeLabel, '移除'),
     removeLabelEn: pickEn(F.removeLabelEn),
     clearLabel: pickZh(F.clearLabel, '清空'),
@@ -1081,23 +1087,33 @@ function themeLabConfig(features) {
 
 // bilingual 双语对照配置归一化（构建期模板/CSS 与运行时共用语义）：
 //   enabled/switch/sideBySide 默认 true；
-//   breakpointPx 夹取到 480–3840 的整数（非法/缺失回退 1280）。
+//   breakpointPx 夹取到 480–3840 的整数（非法/缺失回退 1280）；
+//   fetchTimeoutMs（>0；非法回退 10000）、resizeDebounceMs（非负；非法回退 120）；
+//   paneTitle/paneTitleEn：右栏标题（对方语言为 zh/en 时取用），空串回退内置 '中文'/'English'。
 function bilingualConfig(features) {
   const B = (features && features.bilingual) || {};
   const n = parseFloat(B.breakpointPx);
   const bp = isNaN(n) ? 1280 : Math.min(3840, Math.max(480, Math.round(n)));
+  const to = parseFloat(B.fetchTimeoutMs);
+  const debounce = parseFloat(B.resizeDebounceMs);
+  const pickTitle = function (v, dflt) { const s = v == null ? '' : String(v).trim(); return s || dflt; };
   return {
     enabled: B.enabled !== false,
     switch: B.switch !== false,
     sideBySide: B.sideBySide !== false,
-    breakpointPx: bp
+    breakpointPx: bp,
+    fetchTimeoutMs: isNaN(to) || to <= 0 ? 10000 : to,
+    resizeDebounceMs: isNaN(debounce) || debounce < 0 ? 120 : debounce,
+    paneTitle: pickTitle(B.paneTitle, '中文'),
+    paneTitleEn: pickTitle(B.paneTitleEn, 'English')
   };
 }
 
 // saveDataMode 省流模式归一化（canonical；与 js/domains/core/save-data-core.js 的
 // resolveSaveDataConfig 同语义，由 scripts/save-data.test.js 对拍）：
 //   enabled/auto/manual 默认 true；storageKey 空值回退 'ss-save-data'；
-//   degrade 五项默认 true——唯一关闭方式为显式 false（与 features.json5 逐项对应）。
+//   degrade 默认 true——唯一关闭方式为显式 false（与 features.json5 逐项对应）；
+//   degrade.lowResMaxWidthPx 非负（0 = 不限制，历史行为；非法/负数回退 0）。
 const SAVE_DATA_DEFAULT_KEY = 'ss-save-data';
 function saveDataModeConfig(features) {
   const S = (features && features.saveDataMode) || {};
@@ -1113,8 +1129,111 @@ function saveDataModeConfig(features) {
       particles: D.particles !== false,
       lowResImages: D.lowResImages !== false,
       lazyAggressive: D.lazyAggressive !== false,
-      systemFontsOnly: D.systemFontsOnly !== false
+      systemFontsOnly: D.systemFontsOnly !== false,
+      lowResMaxWidthPx: pickNonNegative(D.lowResMaxWidthPx, 0)
     }
+  };
+}
+
+// 核心存储键归一化（i18n / themePresets / readingProgress）：空值/非法回退各自历史默认键。
+function coreStorageKeys(features) {
+  const F = features || {};
+  return {
+    i18n: storageKeyOr((F.i18n || {}).storageKey, 's-ss-lang'),
+    themePresets: storageKeyOr((F.themePresets || {}).storageKey, 'ss-preset'),
+    readingProgress: storageKeyOr((F.readingProgress || {}).storageKey, 's-readpos')
+  };
+}
+
+// search 结果卡片归一化：resultTagCount 为条目内最多展示标签数（≥1；非法回退 6）。
+function searchResultConfig(features) {
+  const S = (features && features.search) || {};
+  return { resultTagCount: pickCount(S.resultTagCount, 6, 1) };
+}
+
+// searchHighlight 高亮底色归一化：浅色 markColor 空/非法回退默认色；
+// 深色 markColorDark 空值回退 markColor（默认同色 = 历史行为）。
+const SEARCH_HIGHLIGHT_DEFAULT_COLOR = 'rgba(255,193,7,.45)';
+function searchHighlightColors(features) {
+  const H = (features && features.searchHighlight) || {};
+  const light = storageKeyOr(H.markColor, SEARCH_HIGHLIGHT_DEFAULT_COLOR);
+  return { markColor: light, markColorDark: storageKeyOr(H.markColorDark, light) };
+}
+
+// codeBlock 窗口栏三圆点颜色：非数组或不足 3 项整体回退默认 [红,黄,绿]；逐项空白视为非法。
+const CODE_WINDOW_DOT_DEFAULTS = ['#ff5f56', '#ffbd2e', '#27c93f'];
+function codeWindowDotColors(features) {
+  const C = (features && features.codeBlock) || {};
+  const raw = Array.isArray(C.windowDotColors) ? C.windowDotColors : null;
+  if (!raw || raw.length < 3) return CODE_WINDOW_DOT_DEFAULTS.slice();
+  const out = [];
+  for (let i = 0; i < 3; i++) {
+    const v = raw[i] == null ? '' : String(raw[i]).trim();
+    if (!v) return CODE_WINDOW_DOT_DEFAULTS.slice();
+    out.push(v);
+  }
+  return out;
+}
+
+// codeBlock 横向滚动提示容差（px）：非负；0 合法（任何溢出即提示）；非法/负数回退 8。
+function scrollHintTolerancePx(features) {
+  const C = (features && features.codeBlock) || {};
+  return pickNonNegative(C.scrollHintTolerancePx, 8);
+}
+
+// announcement 条目切换动画时长（ms）：非负；0 = 无动画直接切换；非法/负数回退 450。
+function announcementTransitionMs(features) {
+  const A = (features && features.announcement) || {};
+  return pickNonNegative(A.transitionMs, 450);
+}
+
+// pwa 刷新兜底等待归一化：reloadFallbackMs ≥1（非法/0/负数回退 3000）。
+function pwaReloadConfig(features) {
+  const P = (features && features.pwa) || {};
+  return { reloadFallbackMs: pickCount(P.reloadFallbackMs, 3000, 1) };
+}
+
+// errorPage（404）归一化：suggestCount 0–20（0 = 不渲染推荐区；非法/负数回退 5）；
+// 标题与插图 aria 文案链：中文键空回退调用方内置文案，*En 空回退中文键结果。
+function errorPageConfig(features) {
+  const E = (features && features.errorPage) || {};
+  const pickZh = function (v, dflt) { const s = v == null ? '' : String(v).trim(); return s || dflt; };
+  const suggestTitle = pickZh(E.suggestTitle, '热门文章');
+  const artAriaLabel = pickZh(E.artAriaLabel, '404 illustration');
+  const n = parseInt(E.suggestCount, 10);
+  return {
+    suggestCount: isNaN(n) || n < 0 ? 5 : Math.min(20, n),
+    suggestTitle: suggestTitle,
+    suggestTitleEn: pickZh(E.suggestTitleEn, suggestTitle),
+    artAriaLabel: artAriaLabel,
+    artAriaLabelEn: pickZh(E.artAriaLabelEn, artAriaLabel)
+  };
+}
+
+// friends 侧栏 widget 显示条数：≥1（非法/缺失回退 8，历史硬编码上限）。
+function friendsSidebarCount(friends) {
+  return pickCount(friends && friends.sidebarCount, 8, 1);
+}
+
+// sidebar.recentPoolSize：recentPosts 数据池上限（≥1；非法回退 10，与历史 slice(0,10) 一致）。
+function sidebarRecentPoolSize(sidebar) {
+  return pickCount(sidebar && sidebar.recentPoolSize, 10, 1);
+}
+
+// 构建报告超标图片展示上限：site.build.reportTopN 优先（>0），否则回退 internals.report.topN。
+function reportTopN(site, fallbackInternals) {
+  const n = parseInt((((site || {}).build || {}).reportTopN), 10);
+  if (!isNaN(n) && n > 0) return n;
+  return pickCount(fallbackInternals, 10, 1);
+}
+
+// guard.contextMenu 交互阈值归一化：searchTextMaxChars（≥1；非法回退 12）、
+// moveTolerancePx（非负；非法回退 8，历史上滑位移容差）。
+function contextMenuThresholds(guardContextMenu) {
+  const C = guardContextMenu || {};
+  return {
+    searchTextMaxChars: pickCount(C.searchTextMaxChars, 12, 1),
+    moveTolerancePx: pickNonNegative(C.moveTolerancePx, 8)
   };
 }
 
@@ -1147,6 +1266,13 @@ function searchLoadErrorText(tuning, lang) {
   const T = (tuning && tuning.search) || {};
   const raw = String(lang || '') === 'en' ? T.errorTextEn : T.errorText;
   return raw == null ? '' : String(raw);
+}
+
+// 搜索弹层遮罩底色（tuning.search.overlayBackdrop）：空值/非法回退历史值 rgba(0,0,0,.55)。
+function searchOverlayBackdrop(tuning) {
+  const T = (tuning && tuning.search) || {};
+  const v = T.overlayBackdrop == null ? '' : String(T.overlayBackdrop).trim();
+  return v || 'rgba(0,0,0,.55)';
 }
 
 // mermaid 客户端 initialize 内建默认项（canonical；templates/layout.ejs 内联脚本镜像同一语义）：
@@ -1423,9 +1549,22 @@ module.exports = {
   themeLabConfig,
   bilingualConfig,
   saveDataModeConfig,
+  coreStorageKeys,
+  searchResultConfig,
+  searchHighlightColors,
+  codeWindowDotColors,
+  scrollHintTolerancePx,
+  announcementTransitionMs,
+  pwaReloadConfig,
+  errorPageConfig,
+  friendsSidebarCount,
+  sidebarRecentPoolSize,
+  reportTopN,
+  contextMenuThresholds,
   commandPaletteConfig,
   searchIndexConfig,
   searchLoadErrorText,
+  searchOverlayBackdrop,
   mermaidClientDefaults,
   mergeMermaidClientOptions,
   watermarkMobileBreakpointPx,

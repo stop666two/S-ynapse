@@ -159,6 +159,9 @@
     rememberPosition: true,
     // 阅读位置最大记忆时长(小时;超时不再恢复)。
     rememberPositionMaxAgeHours: 72,
+    // 阅读位置记忆的 localStorage 键名(单键存全部路径的位置表;更改会重置已保存位置)。
+    // 类型: string | 推荐: 's-readpos' | 不可填: 空串(空值回退默认键)
+    storageKey: 's-readpos',
     // 进度条聚焦后键盘 ←/→ 的单步进度比例(0~1;Home/End 不受影响)。
     // 类型: number | 推荐: 0.05(5%)
     keyboardStep: 0.05,
@@ -267,6 +270,9 @@
     // 打开动画方式。
     // 类型: string | 可填: 'fade'(默认,弹层淡入)/'slide'(自下而上滑入)
     openAnimation: 'fade',
+    // 搜索结果条目内最多显示的标签数(超出以省略;作用于 /search 独立搜索页的结果卡片)。
+    // 类型: number | 可填: ≥1 的整数 | 推荐: 6 | 不可填: 0/负数(回退 6)
+    resultTagCount: 6,
     // 输入防抖间隔(ms)。停止输入该时长后才执行检索,减少频繁重查。
     debounceMs: 120,
     // 聚焦输入框时是否自动显示搜索历史。
@@ -295,7 +301,9 @@
     // 加载失败 class。
     errorClass: 'img-error',
     // 前 N 张图片立即加载(视口顶部),不做懒加载。
-    eagerFirst: 3,
+    // 首页卡片模板与运行时懒加载共用同一计数:合计恰好前 N 张为 eager,其余 lazy。
+    // 类型: number | 可填: ≥0 的整数(0 = 全部懒加载) | 推荐: 1(仅首张,与历史行为一致)
+    eagerFirst: 1,
     // 是否保留 width/height 防止布局抖动。
     // true(默认，历史行为) = 构建期输出 width/height（CLS 保护）；false = 不输出，交由 CSS 自适应。
     preserveAspectRatio: true,
@@ -354,6 +362,13 @@
     // Prism 无 requestIdleCallback 时的 setTimeout 兜底间隔(ms)。
     // 类型: number(ms) | 推荐: 30-100
     prismIdleFallbackMs: 60,
+    // 代码窗口栏三圆点颜色([红, 黄, 绿];macOS 风格装饰,windowBar=true 且渲染窗口栏时生效)。
+    // 类型: string[] | 可填: 3 个合法 CSS 颜色值 | 不可填: 非数组或不足 3 项(整体回退默认三色)
+    // 推荐: ['#ff5f56','#ffbd2e','#27c93f'](macOS 原生交通灯色)
+    windowDotColors: ['#ff5f56', '#ffbd2e', '#27c93f'],
+    // 判定代码块「可横向滚动」的溢出容差(px;scrollWidth - clientWidth 超过该值才显示滚动提示)。
+    // 类型: number(px) | 可填: ≥0 的整数 | 推荐: 8 | 不可填: 负数(回退 8)
+    scrollHintTolerancePx: 8,
     // 代码块上方"复制全部代码"按钮（多代码块页面适用;true=首块上方显示按钮,一键复制全页所有代码块）。
     copyAllButton: false,
     // 下载按钮。
@@ -427,6 +442,9 @@
     pickerVisible: true,
     // 是否在 localStorage 记住用户选择。
     persistChoice: true,
+    // 已选预设的 localStorage 键名(更改会使旧选择失效并按无已选预设处理)。
+    // 类型: string | 推荐: 'ss-preset' | 不可填: 空串(空值回退默认键)
+    storageKey: 'ss-preset',
     // 是否显示在导航栏(否则仅出现在设置页/其他入口)。
     showInNavbar: true,
     // 色卡悬停是否提示预设名。
@@ -836,6 +854,12 @@
     // 高亮 <mark> 附加类名（空=不加类；非法字符会被过滤，仅保留 [A-Za-z0-9_-]）。
     // 作用于搜索浮层/搜索页结果标题与摘要；样式仍由 site.css 的 mark 规则统一提供。
     markClass: '',
+    // 高亮底色(浅色模式;任意合法 CSS 颜色,写入 site.css 的 mark 规则)。
+    // 类型: string | 推荐: 'rgba(255,193,7,.45)'(历史默认琥珀色) | 不可填: 空串(回退默认色)
+    markColor: 'rgba(255,193,7,.45)',
+    // 高亮底色(深色模式;[data-theme=dark] 下生效)。
+    // 类型: string | 推荐: 'rgba(255,193,7,.45)'(与浅色一致=历史行为) | 不可填: 空串(回退 markColor)
+    markColorDark: 'rgba(255,193,7,.45)',
     // 每篇结果最大高亮次数(防止长文爆量)。
     maxMatches: 20
   },
@@ -2079,7 +2103,11 @@
     // 切换按钮是否置于导航。
     navToggle: true,
     // 文章页显示翻译互链提示(若另一语言存在同 slug 文章;关闭则隐藏提示)。
-    translationNotice: true
+    translationNotice: true,
+    // 语言切换的 localStorage 键名(存目标语言段,如 'en')。
+    // 类型: string | 推荐: 's-ss-lang' | 不可填: 空串(空值回退默认键)
+    // 注意: 更改键名会重置旧的语言偏好(用户需重新选择一次语言)。
+    storageKey: 's-ss-lang'
   },
   // ---------------------------------------------------------------------------
   pagefind: {
@@ -2253,7 +2281,10 @@
     installDismissKey: 's-a2hs-dismissed',
     // 更新提示条自动隐藏时长(ms):0 = 常驻(由用户点刷新或关闭;推荐),>0 = 显示指定时长后自动隐藏。
     // 类型: number(ms) | 推荐: 0
-    updateToastMs: 0
+    updateToastMs: 0,
+    // 点击「刷新」后等待 SW 接管的最长时间(ms;超时直接整页刷新,避免点击无反馈)。
+    // 类型: number(ms) | 可填: 1000–10000 | 推荐: 3000 | 不可填: 0/负数(回退 3000)
+    reloadFallbackMs: 3000
   },
 
   // ---------------------------------------------------------------------------
@@ -2563,7 +2594,10 @@
     clearable: true,
     // 本地最多保存的阅读记录条数(超出按最旧淘汰;展示条数由 maxItems 控制)。
     // 类型: number | 可填: ≥1 的整数 | 推荐: 50
-    maxStored: 50
+    maxStored: 50,
+    // 文章页滚动时写回阅读进度的节流间隔(ms;越小进度越实时,写盘越频繁)。
+    // 类型: number(ms) | 可填: 0–5000 | 推荐: 800 | 不可填: 负数(回退 800)
+    progressThrottleMs: 800
   },
 
   // ---------------------------------------------------------------------------
@@ -2593,7 +2627,13 @@
     clearLabel: '清空',
     // 一键清空按钮文案(en;空串回退 ui-strings.continueReading.clear 英文词典)。
     // 类型: string | 可填: 任意短文案 | 推荐: 留空由词典提供
-    clearLabelEn: ''
+    clearLabelEn: '',
+    // 单条移除动画后强制重渲染的兜底等待(ms;reduced-motion 时直接重渲染,不等待)。
+    // 类型: number(ms) | 可填: 100–2000 | 推荐: 360 | 不可填: 负数(回退 360)
+    removeDelayMs: 360,
+    // 清空按钮二次确认(armed 态)的等待窗口(ms;超时未再点击自动复位)。
+    // 类型: number(ms) | 可填: 1000–10000 | 推荐: 3000 | 不可填: 0/负数(回退 3000)
+    clearConfirmMs: 3000
   },
 
   // ---------------------------------------------------------------------------
@@ -2692,7 +2732,12 @@
     // 可关闭(× 按钮)
     // 作用: 点击后按「条目内容哈希」记忆关闭;内容更新后哈希变化,公告会重新出现
     // 类型: boolean | 可填: true(推荐)/false(常驻不可关)
-    dismissible: true
+    dismissible: true,
+
+    // 条目切换动画时长(ms;fade 与 slide 统一使用;0 = 无动画直接切换)。
+    // 类型: number(ms) | 可填: 0 或 100–1500 | 推荐: 450 | 不可填: 负数(回退 450)
+    // 注意: reduced-motion 用户始终禁用切换动画,不受本键影响
+    transitionMs: 450
   },
 
   // ---------------------------------------------------------------------------
@@ -3031,11 +3076,44 @@
     sideBySide: true,
     // 并排对照生效的最小视口宽度(px;切换开关的显示阈值与运行时判定共用)。
     // 类型: number | 可填: 480–3840 的整数(越界夹取;非法回退 1280) | 推荐: 1280(桌面宽屏)
-    breakpointPx: 1280
+    breakpointPx: 1280,
+    // 拉取对方文章 HTML 的超时(ms;超时静默回退单栏,不阻塞阅读)。
+    // 类型: number(ms) | 可填: 1000–60000 | 推荐: 10000 | 不可填: 0/负数(回退 10000)
+    fetchTimeoutMs: 10000,
+    // 视口尺寸变化时重算断点的防抖间隔(ms;过小会频繁重排右栏)。
+    // 类型: number(ms) | 可填: 0–1000 | 推荐: 120 | 不可填: 负数(回退 120)
+    resizeDebounceMs: 120,
+    // 并排右栏标题:对方文章为中文时显示。
+    // 类型: string | 推荐: '中文' | 不可填: 空串(回退内置 '中文')
+    paneTitle: '中文',
+    // 并排右栏标题:对方文章为英文时显示。
+    // 类型: string | 推荐: 'English' | 不可填: 空串(回退内置 'English')
+    paneTitleEn: 'English'
   },
 
   // ---------------------------------------------------------------------------
-  // 67. 省流模式(自动跟随系统省流偏好 + 阅读设置面板手动开关)
+  // 67. 错误页(404 的推荐阅读与插图无障碍描述)
+  // ---------------------------------------------------------------------------
+  errorPage: {
+    // 404 页「推荐阅读」区块最多展示条数(数据取首页最近文章池 recentPosts)。
+    // 类型: number | 可填: 0–20 的整数(0 = 不渲染推荐区块) | 推荐: 5 | 不可填: 负数(回退 5)
+    suggestCount: 5,
+    // 「推荐阅读」区块标题(zh;空串回退 ui-strings.notFound.hotArticles)。
+    // 类型: string | 推荐: '热门文章'
+    suggestTitle: '热门文章',
+    // 「推荐阅读」区块标题(en;空串回退中文标题)。
+    // 类型: string | 推荐: ''(留空由中文回退)
+    suggestTitleEn: '',
+    // 404 插图 SVG 的 aria-label(zh;空串回退内置 '404 illustration')。
+    // 类型: string | 推荐: '404 illustration'(历史默认文案)
+    artAriaLabel: '404 illustration',
+    // 404 插图 SVG 的 aria-label(en;空串回退 artAriaLabel)。
+    // 类型: string | 推荐: ''(留空与中文一致)
+    artAriaLabelEn: ''
+  },
+
+  // ---------------------------------------------------------------------------
+  // 68. 省流模式(自动跟随系统省流偏好 + 阅读设置面板手动开关)
   // ---------------------------------------------------------------------------
   saveDataMode: {
     // 省流模式总开关。
@@ -3065,6 +3143,11 @@
       // 图片重写为最小分辨率变体(src/srcset,关闭时回补原值)。
       // 类型: boolean | 可填: true(默认)/false | 推荐: true
       lowResImages: true,
+      // 低清变体的像素宽度上限(px;仅 lowResImages=true 时生效)。
+      // 0(默认) = 不限制,选择候选集中最小分辨率变体(历史行为);
+      // >0 = 优先选择宽度 ≤ 该值的候选,若全部超限仍回退最小候选(保证可用)。
+      // 类型: number(px) | 可填: 0 或 320–3840 | 推荐: 0(保持与历史一致) | 不可填: 负数(回退 0)
+      lowResMaxWidthPx: 0,
       // 更激进懒加载:取消首屏 eager 预载,全部 loading=lazy + fetchpriority=low。
       // 类型: boolean | 可填: true(默认)/false | 推荐: true
       lazyAggressive: true,

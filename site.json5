@@ -981,6 +981,8 @@
     //       family  (string，默认 "Noto Sans SC") Google Fonts 字体族名
     //       weights (number[]，默认 [400,700]) 需要的字重列表
     //       fetchTimeoutMs (number，默认 15000) 单次网络请求超时（毫秒）
+    //       concurrency (number，默认 6) 分片下载并发数（1–16；非法/越界回退 6）
+    //       cacheTtlDays (number，默认 7) 字体清单缓存天数（0 = 每次构建重新拉取；非法/负数回退 internals.cache.fontsTtlDays）
     // 不可填: weights 空数组（回退默认）；family 留空（回退默认）
     // 注意: 首次构建需联网拉取（结果缓存于 .cache/fonts/，之后离线可复用）；断网/超时/
     //       解析失败时自动跳过并 console.warn，页面回退系统字体链，构建不会失败
@@ -991,13 +993,21 @@
         400,
         700
       ],
-      "fetchTimeoutMs": 15000 // 单次网络请求超时（number，毫秒，默认 15000）
+      "fetchTimeoutMs": 15000, // 单次网络请求超时（number，毫秒，默认 15000）
+      "concurrency": 6, // 分片下载并发数（number，1–16，默认 6）
+      "cacheTtlDays": 7 // 字体清单缓存天数（number，0 = 每次重拉，默认 7）
     },
 
     // 构建报告
     // 作用: 生成 dist/build-report.html（耗时/体积/文件统计）
     // 类型: boolean | 可填: true/false | 推荐: true
     "buildReport": true,
+
+    // 构建报告「体积超标图片」列表上限
+    // 作用: 性能告警收集超过 performance.warningImageKb 的图片时，最多列出前 N 条（按体积降序）
+    // 类型: number（整数） | 可填: 1–1000 | 推荐: 10
+    // 不可填: 0/负数（回退 internals.report.topN）
+    "reportTopN": 10,
 
     // 强制内容宽度
     // 作用: 无侧栏页面强制与有侧栏页面同宽（视觉一致）

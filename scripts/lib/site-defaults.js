@@ -58,8 +58,8 @@ const DEFAULT_CONFIG = {
         avif: { enabled: true, quality: 50, effort: 5 },
         usePictureTag: true,
         relatedArticles: true, cjkSpacing: true,
-        cjkFonts: { enabled: true, family: 'Noto Sans SC', weights: [400, 700], fetchTimeoutMs: 15000 },
-        buildReport: true, forceContentWidth: true,
+        cjkFonts: { enabled: true, family: 'Noto Sans SC', weights: [400, 700], fetchTimeoutMs: 15000, concurrency: 6, cacheTtlDays: 7 },
+        buildReport: true, reportTopN: 10, forceContentWidth: true,
         enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer',
         cssOutDir: 'assets/css', cssFileBase: 'site', hashLength: 10, hashAlgorithm: 'md5'
@@ -104,7 +104,7 @@ const DEFAULT_CONFIG = {
       blockedFilenames: DEFAULT_POLICY.blockedFilenames.slice(), svgSanitize: true
     },
     tagAliases: { enabled: true, aliases: {} },
-    friends: { enabled: false, title: '友情链接', labels: {}, description: '', descriptionEn: '', applyNote: '', applyNoteEn: '', friends: [] },
+    friends: { enabled: false, title: '友情链接', labels: {}, description: '', descriptionEn: '', applyNote: '', applyNoteEn: '', sidebarCount: 8, friends: [] },
     // Features domain defaults mirror features.json5 (single source of truth in
     // lib/features-schema.js). User overrides come from features.json5.
     features: DEFAULT_FEATURES,
@@ -140,7 +140,7 @@ const DEFAULT_CONFIG = {
       userMenu: { enabled: false }
     },
     sidebar: {
-      enabled: false, position: 'right', width: '280px', sticky: true, widgets: [],
+      enabled: false, position: 'right', width: '280px', sticky: true, widgets: [], recentPoolSize: 10,
       options: { width: '318px', gap: '1.618rem', radius: '0.618rem', padding: '1rem', titleSize: '.9375rem', titleWeight: 600, hoverLift: true, borderShow: false },
       mobile: { enabled: true, collapsed: true, toggleButton: true, overlay: true }
     },
@@ -156,8 +156,9 @@ const DEFAULT_CONFIG = {
     security: {
       headers: {}, csp: { enabled: false, directives: {}, reportOnly: false },
       robots: { enabled: false, rules: [], sitemap: '/sitemap.xml' },
-      rateLimiting: { enabled: false, maxRequests: 100, windowMs: 60000 },
+      rateLimiting: { enabled: false, maxRequests: 100, windowMs: 60000, maxTrackedEntries: 5000 },
       pathRestrictions: [], forceHttps: false,
+      hardening: { cspReportMaxBytes: 16384 },
       customHeaders: {}
     }
   };

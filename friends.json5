@@ -43,6 +43,12 @@
   // 类型: string（可多行） | 可填: 英文文本 | 空 = en 站回退 applyNote
   applyNoteEn: "Want to swap links? Tell me your site name, URL and a one-line intro in the comments. Requirements: legal content, reachable, original content preferred.",
 
+  // 侧栏「友情链接」组件最多展示条数
+  // 作用: 侧栏 friends widget 渲染时取友链列表前 N 条（超出不显示;/links/ 页面始终全量）
+  // 类型: number（整数） | 可填: 1–200 | 推荐: 8
+  // 不可填: 0/负数（回退 8）;注意: 调大不改变 /links/ 页数据
+  sidebarCount: 8,
+
   // 友链列表（卡片按数组顺序两列/一列自适应渲染）
   // 每项字段:
   //   name   站点名称（必填,也用于 logo 缺省时的首字母占位）

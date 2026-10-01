@@ -100,6 +100,7 @@ const DEFAULT_TUNING = {
   },
   "search": {
     "overlayPadding": "12vh 1rem 2rem",
+    "overlayBackdrop": "rgba(0,0,0,.55)",
     "modalPadding": "2.5rem 2.5rem 2rem",
     "modalMaxHeight": "78vh",
     "closeBtnSize": "36px",

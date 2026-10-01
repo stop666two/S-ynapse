@@ -27,7 +27,7 @@ const DEFAULT_FEATURES = {
     gradientStart: 'var(--color-s)', gradientEnd: 'var(--color-a)',
     tipDisplayMs: 500, updateThrottleMs: 30, ariaAnnounce: true, topOffset: '0',
     zIndex: 1000, showTip: true,
-    rememberPosition: true, rememberPositionMaxAgeHours: 72,
+    rememberPosition: true, rememberPositionMaxAgeHours: 72, storageKey: 's-readpos',
     keyboardStep: 0.05, minRestorePx: 160, maxStoredPositions: 80, saveThrottleMs: 400
   },
   backToTop: {
@@ -41,13 +41,13 @@ const DEFAULT_FEATURES = {
     noResultText: '未找到匹配内容', noResultTextEn: 'No matching content', excerptLength: 120, includeContent: true,
     matchTags: true, matchCategories: true, weightTitle: 5, weightExcerpt: 2,
     weightContent: 1, index: { bigram: true, maxGzipKb: 60 }, closeOnOverlay: true, focusOnOpen: true,
-    openAnimation: 'fade',
+    openAnimation: 'fade', resultTagCount: 6,
     debounceMs: 120, showHistoryOnFocus: true, maxHistory: 5, focusDelayMs: 100
   },
   imageLazy: {
     enabled: true, fadeIn: true,
     fadeInDurationMs: 300, placeholderColor: 'var(--color-hover)', preserveAspectRatio: true,
-    loadingClass: 'img-loading', errorClass: 'img-error', eagerFirst: 3,
+    loadingClass: 'img-loading', errorClass: 'img-error', eagerFirst: 1,
     lqip: true, lqipWidth: 24
   },
   codeBlock: {
@@ -56,7 +56,8 @@ const DEFAULT_FEATURES = {
     wrapLongLines: false, highlightBackground: 'var(--color-hover)',
     borderRadius: '0.375rem', maxHeight: '', copyAllButton: false, downloadButton: true,
     maxHeightVh: 'none', headerHeight: '36px', fontSize: '0.92em',
-    prismBatchMs: 8, prismIdleTimeoutMs: 300, prismIdleFallbackMs: 60
+    prismBatchMs: 8, prismIdleTimeoutMs: 300, prismIdleFallbackMs: 60,
+    windowDotColors: ['#ff5f56', '#ffbd2e', '#27c93f'], scrollHintTolerancePx: 8
   },
   externalLink: {
     enabled: true, whitelist: [], blacklist: [], mode: 'warn',
@@ -69,7 +70,7 @@ const DEFAULT_FEATURES = {
     enabled: true, persistKey: 'ss-theme', toggleIconSwap: true, zIndex: 100
   },
   themePresets: {
-    enabled: true, pickerVisible: true, persistChoice: true,
+    enabled: true, pickerVisible: true, persistChoice: true, storageKey: 'ss-preset',
     showInNavbar: true, previewOnHover: true
   },
   themeSchedule: {
@@ -130,7 +131,8 @@ const DEFAULT_FEATURES = {
     defaultPattern: 'gradient', preview: true, preferImage: true
   },
   i18n: {
-    enabled: true, defaultLanguage: 'zh', languages: ['zh', 'en'], navToggle: true, translationNotice: true
+    enabled: true, defaultLanguage: 'zh', languages: ['zh', 'en'], navToggle: true, translationNotice: true,
+    storageKey: 's-ss-lang'
   },
   pagefind: {
     enabled: true, indexPath: '/pagefind', integrate: true
@@ -163,7 +165,7 @@ const DEFAULT_FEATURES = {
     enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true, offlinePage: true,
     precache: true, pageNetworkFirst: true, assetCacheFirst: true, pageCacheLimit: 24,
     updateCheckIntervalMs: 1800000, installPrompt: true, installDismissKey: 's-a2hs-dismissed',
-    updateToastMs: 0
+    updateToastMs: 0, reloadFallbackMs: 3000
   },
   morphIcons: {
     enabled: true, vendorPath: '/assets/vendor/morphicons', spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},
@@ -219,11 +221,12 @@ const DEFAULT_FEATURES = {
   },
   readingHistory: {
     enabled: true, maxItems: 5, storageKey: 's-history',
-    showOnHome: true, clearable: true, maxStored: 50
+    showOnHome: true, clearable: true, maxStored: 50, progressThrottleMs: 800
   },
   continueReading: {
     enabled: true, count: 3, showProgress: true, storageKey: 's-history',
-    removeLabel: '移除', removeLabelEn: '', clearLabel: '清空', clearLabelEn: ''
+    removeLabel: '移除', removeLabelEn: '', clearLabel: '清空', clearLabelEn: '',
+    removeDelayMs: 360, clearConfirmMs: 3000
   },
   printStyle: {
     enabled: true, hideInteractive: true, expandLinks: true, avoidBreaks: true
@@ -241,7 +244,7 @@ const DEFAULT_FEATURES = {
   },
   announcement: {
     enabled: true, text: '欢迎来到 S-ynapse', textEn: 'Welcome to S-ynapse', url: '', items: [], rotateMs: 6000,
-    pauseOnHover: true, transition: 'fade', tone: 'accent', showProgress: false, showDot: true, newTab: true, dismissible: true, storageKey: 's-announce-dismissed', removeDelayMs: 340
+    pauseOnHover: true, transition: 'fade', tone: 'accent', showProgress: false, showDot: true, newTab: true, dismissible: true, storageKey: 's-announce-dismissed', removeDelayMs: 340, transitionMs: 450
   },
   popupNotice: {
     enabled: false, delayMs: 1500, frequency: 'day', reshowOnChange: true,
@@ -303,7 +306,7 @@ const DEFAULT_FEATURES = {
     enabled: true, activeClass: 'current', offset: 80, throttleMs: 60
   },
   searchHighlight: {
-    enabled: true, markClass: '', maxMatches: 20
+    enabled: true, markClass: '', markColor: 'rgba(255,193,7,.45)', markColorDark: 'rgba(255,193,7,.45)', maxMatches: 20
   },
   darkImageFilter: {
     enabled: true, filter: 'brightness(0.85) saturate(0.9)',
@@ -496,11 +499,16 @@ const DEFAULT_FEATURES = {
   loading: { enabled: true, delayMs: 120, minShowMs: 250, maxShowMs: 2000, reducedMotion: 'skip', text: '', ariaBusy: true, spinner: true, spinnerStyle: 'orbit', showTitle: false, overlayColor: '', fadeMs: 380, zIndex: 3000, failsafeBufferMs: 60 },
   boot: { enabled: true, idleTimeoutMs: 800, interactionWake: true, log: false, budgetMs: 40, heavyMode: 'idle', idleFallbackMs: 120, interactionEvents: ['pointerdown', 'keydown', 'touchstart', 'wheel'], configTimeoutMs: 3000 },
   imageFit: { enabled: true, content: { upscale: 'never', cap: 1.5, maxHeightVh: 0, align: 'center' }, cover: { fit: 'cover', position: 'center', maxHeightVh: 0, aspect: '', applyToCards: true }, gallery: { stretch: false, maxHeightPx: 0 }, lightbox: { fit: 'contain', maxWidthPct: 92, maxHeightVh: 82 } },
-  bilingual: { enabled: true, switch: true, sideBySide: true, breakpointPx: 1280 },
+  bilingual: { enabled: true, switch: true, sideBySide: true, breakpointPx: 1280, fetchTimeoutMs: 10000, resizeDebounceMs: 120, paneTitle: '中文', paneTitleEn: 'English' },
+  errorPage: {
+    suggestCount: 5, suggestTitle: '热门文章', suggestTitleEn: '',
+    artAriaLabel: '404 illustration', artAriaLabelEn: ''
+  },
   saveDataMode: {
     enabled: true, auto: true, manual: true, storageKey: 'ss-save-data',
     degrade: {
-      animations: true, particles: true, lowResImages: true, lazyAggressive: true, systemFontsOnly: true
+      animations: true, particles: true, lowResImages: true, lazyAggressive: true, systemFontsOnly: true,
+      lowResMaxWidthPx: 0
     }
   }
 };

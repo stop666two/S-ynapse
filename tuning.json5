@@ -202,10 +202,13 @@
     "collapsedByDefault": "false",
   },
 
-  // ---------- 搜索弹层（14 项） ----------
+  // ---------- 搜索弹层（20 项） ----------
   "search": {
     // 遮罩内边距（上/左右/下;12vh 视觉重心偏上）
     "overlayPadding": "12vh 1rem 2rem",
+    // 遮罩底色（任意合法 CSS 颜色;写入 --search-overlayBackdrop,搜索弹层 .search-overlay 背景消费）
+    // 类型: string(CSS 颜色) | 可填: rgba()/hex/颜色关键字 | 推荐: "rgba(0,0,0,.55)"（历史默认）
+    "overlayBackdrop": "rgba(0,0,0,.55)",
     // 弹层内边距
     "modalPadding": "2.5rem 2.5rem 2rem",
     // 弹层最大高度（超出内部滚动）

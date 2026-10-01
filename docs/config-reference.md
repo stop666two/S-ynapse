@@ -1485,7 +1485,7 @@ listCover: {
 | | `faviconFallbackColor` | `#2d3748` | 无可用 favicon 文件时内联 SVG 兜底图标底色 |
 | | `faviconForegroundColor` | `#ffffff` | 兜底 SVG 图形（连线与圆点）前景色 |
 
-- **校验**：`npm run verify:internals`（守卫 `.nvmrc`、`workers/wrangler.toml` 的 assets 目录、CI 版本与关键写死形态）；`verify:config-refs` / `verify:config-comments` / `verify:config-docs` 同样覆盖本文件。
+- **校验**：`npm run verify:internals`（守卫 `.nvmrc`、`workers/wrangler.toml` 的 assets 目录、CI 版本与关键写死形态）；派生副本（`SYNAPSE_DERIVED_COPY=1`）跳过 `deploy.yml` 一致性检查（`.github` 不随主仓同步）。`verify:config-refs` / `verify:config-comments` / `verify:config-docs` 同样覆盖本文件。
 - **不参与站点计数**：站点可配置项统计口径（README 的「14 个配置文件 / 2854 项」）不包含本文件——它属于工程内部参数，不面向站点作者。
 - **覆盖**：本地临时改动优先用环境变量（`CHROME_PATH` / `SYNAPSE_OUT_DIR`）而非修改本文件。
 

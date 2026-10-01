@@ -1,6 +1,8 @@
 'use strict';
 // 配置键 → 运行时/模板值的归一化函数集合（构建期纯函数，单测覆盖在 scripts/config-wiring.test.js）。
 const { escapeJsonForScript, setOwnProperty } = require('./utils');
+const { DEFAULT_FEATURES } = require('./features-schema.js');
+const { DEFAULT_TUNING } = require('./tuning-defaults.js');
 
 // 配置接线纯函数：
 // 供构建期（scripts/build/**.js、templates/*.ejs 经 baseData 注入）与单测复用；
@@ -606,7 +608,7 @@ function relatedConfig(features) {
 function wordCountConfig(features) {
   const w = (features && features.wordCount) || {};
   const str = function (v, dflt) { return v == null ? dflt : String(v); };
-  const wpm = isNaN(+w.wpm) || +w.wpm <= 0 ? 265 : +w.wpm;
+  const wpm = isNaN(+w.wpm) || +w.wpm <= 0 ? DEFAULT_FEATURES.wordCount.wpm : +w.wpm;
   return {
     enabled: w.enabled !== false,
     onCards: w.onCards !== false,
@@ -664,9 +666,9 @@ function pickNonNegative(raw, fallback) {
 function lightboxConfig(features) {
   const L = (features && features.lightbox) || {};
   const IF = (features && features.imageFit && features.imageFit.lightbox) || {};
-  const trans = pickNonNegative(L.transitionDurationMs, 220);
+  const trans = pickNonNegative(L.transitionDurationMs, DEFAULT_FEATURES.lightbox.transitionDurationMs);
   return {
-    maxWidthVw: pickNonNegative(L.maxWidthVw, pickNonNegative(IF.maxWidthPct, 92)),
+    maxWidthVw: pickNonNegative(L.maxWidthVw, pickNonNegative(IF.maxWidthPct, DEFAULT_FEATURES.imageFit.lightbox.maxWidthPct)),
     openDurationMs: pickNonNegative(L.openDurationMs, trans),
     switchDurationMs: pickNonNegative(L.switchDurationMs, trans),
     transitionDurationMs: trans
@@ -679,7 +681,7 @@ function lightboxConfig(features) {
 function backToTopConfig(features) {
   const B = (features && features.backToTop) || {};
   return {
-    scrollDurationMs: pickNonNegative(B.scrollDurationMs, 450),
+    scrollDurationMs: pickNonNegative(B.scrollDurationMs, DEFAULT_FEATURES.backToTop.scrollDurationMs),
     smoothScroll: B.smoothScroll !== false,
     htmlAnchorFallback: B.htmlAnchorFallback === true
   };
@@ -767,7 +769,7 @@ const HEATMAP_LEVEL_MIN = 2;
 const HEATMAP_LEVEL_MAX = 7;
 function heatmapLevelCount(raw) {
   const n = parseInt(raw, 10);
-  if (isNaN(n)) return 5;
+  if (isNaN(n)) return DEFAULT_FEATURES.heatmap.levels;
   return Math.min(HEATMAP_LEVEL_MAX, Math.max(HEATMAP_LEVEL_MIN, n));
 }
 
@@ -779,7 +781,7 @@ function heatmapConfig(features) {
   return {
     enabled: H.enabled !== false,
     levels: heatmapLevelCount(H.levels),
-    scaling: H.scaling === 'fixed' ? 'fixed' : 'auto',
+    scaling: H.scaling === 'fixed' ? 'fixed' : DEFAULT_FEATURES.heatmap.scaling,
     palette: Array.isArray(H.palette)
       ? H.palette.filter(function (x) { return typeof x === 'string' && x.trim() !== ''; }).map(function (x) { return x.trim(); })
       : [],
@@ -860,7 +862,7 @@ function heatmapTooltip(cfg, lang, year, month, count, unitZh, unitEn) {
 // stats 配置归一化：showArchiveCards 默认 true；linkArchive 默认 /archive/（空串 = 卡片不跳转）。
 function statsConfig(features) {
   const s = (features && features.stats) || {};
-  const link = s.linkArchive == null ? '/archive/' : String(s.linkArchive).trim();
+  const link = s.linkArchive == null ? DEFAULT_FEATURES.stats.linkArchive : String(s.linkArchive).trim();
   return {
     enabled: s.enabled !== false,
     showArchiveCards: s.showArchiveCards !== false,
@@ -891,7 +893,7 @@ function mobileConfig(features) {
   return {
     enabled: m.enabled !== false,
     searchFullscreen: m.searchFullscreen !== false,
-    buttonStackGap: gap || '3.4rem',
+    buttonStackGap: gap || DEFAULT_FEATURES.mobile.buttonStackGap,
     touchFallback: m.touchFallback !== false,
     codeScrollHint: m.codeScrollHint !== false
   };
@@ -904,7 +906,7 @@ function contactPopupConfig(features) {
   const width = c.popupWidth == null ? '' : String(c.popupWidth).trim();
   return {
     enabled: c.enabled !== false,
-    popupWidth: width || '400px',
+    popupWidth: width || DEFAULT_FEATURES.contactPopup.popupWidth,
     showAllItems: c.showAllItems !== false
   };
 }
@@ -935,11 +937,11 @@ function lightboxGestureConfig(features) {
   const L = (features && features.lightbox) || {};
   const dbl = +L.dblClickZoomLevel;
   return {
-    swipeThresholdPx: pickNonNegative(L.swipeThresholdPx, 50),
-    swipeCloseThresholdPx: pickNonNegative(L.swipeCloseThresholdPx, 80),
-    mouseSwipeThresholdPx: pickNonNegative(L.mouseSwipeThresholdPx, 80),
-    dblClickZoomLevel: isNaN(dbl) || dbl < 1 ? 2 : dbl,
-    clickTolerancePx: pickNonNegative(L.clickTolerancePx, 6)
+    swipeThresholdPx: pickNonNegative(L.swipeThresholdPx, DEFAULT_FEATURES.lightbox.swipeThresholdPx),
+    swipeCloseThresholdPx: pickNonNegative(L.swipeCloseThresholdPx, DEFAULT_FEATURES.lightbox.swipeCloseThresholdPx),
+    mouseSwipeThresholdPx: pickNonNegative(L.mouseSwipeThresholdPx, DEFAULT_FEATURES.lightbox.mouseSwipeThresholdPx),
+    dblClickZoomLevel: isNaN(dbl) || dbl < 1 ? DEFAULT_FEATURES.lightbox.dblClickZoomLevel : dbl,
+    clickTolerancePx: pickNonNegative(L.clickTolerancePx, DEFAULT_FEATURES.lightbox.clickTolerancePx)
   };
 }
 
@@ -948,10 +950,10 @@ function readingRestoreConfig(features) {
   const R = (features && features.readingProgress) || {};
   const step = +R.keyboardStep;
   return {
-    keyboardStep: isNaN(step) || step <= 0 ? 0.05 : Math.min(1, step),
-    minRestorePx: pickNonNegative(R.minRestorePx, 160),
-    maxStoredPositions: pickCount(R.maxStoredPositions, 80, 1),
-    saveThrottleMs: pickNonNegative(R.saveThrottleMs, 400)
+    keyboardStep: isNaN(step) || step <= 0 ? DEFAULT_FEATURES.readingProgress.keyboardStep : Math.min(1, step),
+    minRestorePx: pickNonNegative(R.minRestorePx, DEFAULT_FEATURES.readingProgress.minRestorePx),
+    maxStoredPositions: pickCount(R.maxStoredPositions, DEFAULT_FEATURES.readingProgress.maxStoredPositions, 1),
+    saveThrottleMs: pickNonNegative(R.saveThrottleMs, DEFAULT_FEATURES.readingProgress.saveThrottleMs)
   };
 }
 
@@ -959,41 +961,41 @@ function readingRestoreConfig(features) {
 function readDockScrollConfig(features) {
   const D = (features && features.readDock) || {};
   return {
-    hideBelowPx: pickNonNegative(D.hideBelowPx, 80),
-    directionDeltaPx: pickNonNegative(D.directionDeltaPx, 12)
+    hideBelowPx: pickNonNegative(D.hideBelowPx, DEFAULT_FEATURES.readDock.hideBelowPx),
+    directionDeltaPx: pickNonNegative(D.directionDeltaPx, DEFAULT_FEATURES.readDock.directionDeltaPx)
   };
 }
 
 // externalLink 复制反馈时长归一化（0 = 立即还原）。
 function externalLinkCopyConfig(features) {
   const E = (features && features.externalLink) || {};
-  return { copyFeedbackMs: pickNonNegative(E.copyFeedbackMs, 1500) };
+  return { copyFeedbackMs: pickNonNegative(E.copyFeedbackMs, DEFAULT_FEATURES.externalLink.copyFeedbackMs) };
 }
 
 // hotSearches 词频表上限归一化（≥1；非法回退 50）。
 function hotSearchesConfig(features) {
   const H = (features && features.hotSearches) || {};
-  return { maxWords: pickCount(H.maxWords, 50, 1) };
+  return { maxWords: pickCount(H.maxWords, DEFAULT_FEATURES.hotSearches.maxWords, 1) };
 }
 
 // morphIcons 空闲预加载超时归一化（非法回退 3000）。
 function morphIconsConfig(features) {
   const M = (features && features.morphIcons) || {};
-  return { idleTimeoutMs: pickNonNegative(M.idleTimeoutMs, 3000) };
+  return { idleTimeoutMs: pickNonNegative(M.idleTimeoutMs, DEFAULT_FEATURES.morphIcons.idleTimeoutMs) };
 }
 
 // softNavigation 内存缓存条数归一化（≥1；非法回退 16）。
 function softNavCacheConfig(features) {
   const S = (features && features.softNavigation) || {};
-  return { cacheMaxEntries: pickCount(S.cacheMaxEntries, 16, 1) };
+  return { cacheMaxEntries: pickCount(S.cacheMaxEntries, DEFAULT_FEATURES.softNavigation.cacheMaxEntries, 1) };
 }
 
 // readingHistory 本地存储上限归一化（≥1；非法回退 50）与滚动进度写回节流（非负；非法回退 800）。
 function readingHistoryConfig(features) {
   const R = (features && features.readingHistory) || {};
   return {
-    maxStored: pickCount(R.maxStored, 50, 1),
-    progressThrottleMs: pickNonNegative(R.progressThrottleMs, 800)
+    maxStored: pickCount(R.maxStored, DEFAULT_FEATURES.readingHistory.maxStored, 1),
+    progressThrottleMs: pickNonNegative(R.progressThrottleMs, DEFAULT_FEATURES.readingHistory.progressThrottleMs)
   };
 }
 
@@ -1010,15 +1012,15 @@ function continueReadingConfig(features) {
   const pickZh = function (v, dflt) { const s = v == null ? '' : String(v).trim(); return s || dflt; };
   const pickEn = function (v) { return v == null ? '' : String(v).trim(); };
   return {
-    displayCount: pickCount(F.count, 3, 1),
+    displayCount: pickCount(F.count, DEFAULT_FEATURES.continueReading.count, 1),
     showProgress: F.showProgress !== false,
-    storageKey: key || rhKey || 's-history',
-    maxStored: pickCount(RH.maxStored, 50, 1),
-    removeDelayMs: pickNonNegative(F.removeDelayMs, 360),
-    clearConfirmMs: pickCount(F.clearConfirmMs, 3000, 1),
-    removeLabel: pickZh(F.removeLabel, '移除'),
+    storageKey: key || rhKey || DEFAULT_FEATURES.readingHistory.storageKey,
+    maxStored: pickCount(RH.maxStored, DEFAULT_FEATURES.readingHistory.maxStored, 1),
+    removeDelayMs: pickNonNegative(F.removeDelayMs, DEFAULT_FEATURES.continueReading.removeDelayMs),
+    clearConfirmMs: pickCount(F.clearConfirmMs, DEFAULT_FEATURES.continueReading.clearConfirmMs, 1),
+    removeLabel: pickZh(F.removeLabel, DEFAULT_FEATURES.continueReading.removeLabel),
     removeLabelEn: pickEn(F.removeLabelEn),
-    clearLabel: pickZh(F.clearLabel, '清空'),
+    clearLabel: pickZh(F.clearLabel, DEFAULT_FEATURES.continueReading.clearLabel),
     clearLabelEn: pickEn(F.clearLabelEn)
   };
 }
@@ -1037,9 +1039,9 @@ function exportArticleConfig(features) {
     enabled: enabled,
     print: print,
     markdown: enabled && E.markdown !== false,
-    printLabel: pickZh(E.printLabel, '打印 / 另存 PDF'),
+    printLabel: pickZh(E.printLabel, DEFAULT_FEATURES.exportArticle.printLabel),
     printLabelEn: pickEn(E.printLabelEn),
-    markdownLabel: pickZh(E.markdownLabel, '复制 Markdown'),
+    markdownLabel: pickZh(E.markdownLabel, DEFAULT_FEATURES.exportArticle.markdownLabel),
     markdownLabelEn: pickEn(E.markdownLabelEn),
     sourceFootnote: print && E.sourceFootnote !== false
   };
@@ -1049,21 +1051,18 @@ function exportArticleConfig(features) {
 function readModeConfig(features) {
   const R = (features && features.readMode) || {};
   const key = R.storageKey == null ? '' : String(R.storageKey).trim();
-  return { persist: R.persist !== false, storageKey: key || 'readingMode' };
+  return { persist: R.persist !== false, storageKey: key || DEFAULT_FEATURES.readMode.storageKey };
 }
 
 // themeLab 主题调色板归一化（canonical；与 js/domains/features/theme-lab-core.js 同语义）：
 //   enabled 默认 true；storageKey 空值回退 'ss-theme-lab'；
 //   tokens 仅保留已定义变量名（THEME_LAB_TOKENS）、去重保序、封顶 12；过滤后不足 8 项回退默认 12 项；
 //   exportName 剔除路径分隔符与文件系统保留字符，空结果回退 'theme-overrides.json5'。
-const THEME_LAB_TOKENS = [
-  '--color-p', '--color-s', '--color-a', '--color-bg', '--color-surface', '--color-t',
-  '--color-ts', '--color-tl', '--color-border', '--color-hover', '--color-code-bg', '--color-code-t'
-];
+const THEME_LAB_TOKENS = DEFAULT_FEATURES.themeLab.tokens.slice();
 const THEME_LAB_MIN_TOKENS = 8;
 const THEME_LAB_MAX_TOKENS = 12;
-const THEME_LAB_DEFAULT_KEY = 'ss-theme-lab';
-const THEME_LAB_DEFAULT_EXPORT = 'theme-overrides.json5';
+const THEME_LAB_DEFAULT_KEY = DEFAULT_FEATURES.themeLab.storageKey;
+const THEME_LAB_DEFAULT_EXPORT = DEFAULT_FEATURES.themeLab.exportName;
 
 function themeLabConfig(features) {
   const T = (features && features.themeLab) || {};
@@ -1102,10 +1101,10 @@ function bilingualConfig(features) {
     switch: B.switch !== false,
     sideBySide: B.sideBySide !== false,
     breakpointPx: bp,
-    fetchTimeoutMs: isNaN(to) || to <= 0 ? 10000 : to,
-    resizeDebounceMs: isNaN(debounce) || debounce < 0 ? 120 : debounce,
-    paneTitle: pickTitle(B.paneTitle, '中文'),
-    paneTitleEn: pickTitle(B.paneTitleEn, 'English')
+    fetchTimeoutMs: isNaN(to) || to <= 0 ? DEFAULT_FEATURES.bilingual.fetchTimeoutMs : to,
+    resizeDebounceMs: isNaN(debounce) || debounce < 0 ? DEFAULT_FEATURES.bilingual.resizeDebounceMs : debounce,
+    paneTitle: pickTitle(B.paneTitle, DEFAULT_FEATURES.bilingual.paneTitle),
+    paneTitleEn: pickTitle(B.paneTitleEn, DEFAULT_FEATURES.bilingual.paneTitleEn)
   };
 }
 
@@ -1114,7 +1113,7 @@ function bilingualConfig(features) {
 //   enabled/auto/manual 默认 true；storageKey 空值回退 'ss-save-data'；
 //   degrade 默认 true——唯一关闭方式为显式 false（与 features.json5 逐项对应）；
 //   degrade.lowResMaxWidthPx 非负（0 = 不限制，历史行为；非法/负数回退 0）。
-const SAVE_DATA_DEFAULT_KEY = 'ss-save-data';
+const SAVE_DATA_DEFAULT_KEY = DEFAULT_FEATURES.saveDataMode.storageKey;
 function saveDataModeConfig(features) {
   const S = (features && features.saveDataMode) || {};
   const D = S.degrade || {};
@@ -1130,7 +1129,7 @@ function saveDataModeConfig(features) {
       lowResImages: D.lowResImages !== false,
       lazyAggressive: D.lazyAggressive !== false,
       systemFontsOnly: D.systemFontsOnly !== false,
-      lowResMaxWidthPx: pickNonNegative(D.lowResMaxWidthPx, 0)
+      lowResMaxWidthPx: pickNonNegative(D.lowResMaxWidthPx, DEFAULT_FEATURES.saveDataMode.degrade.lowResMaxWidthPx)
     }
   };
 }
@@ -1139,21 +1138,21 @@ function saveDataModeConfig(features) {
 function coreStorageKeys(features) {
   const F = features || {};
   return {
-    i18n: storageKeyOr((F.i18n || {}).storageKey, 's-ss-lang'),
-    themePresets: storageKeyOr((F.themePresets || {}).storageKey, 'ss-preset'),
-    readingProgress: storageKeyOr((F.readingProgress || {}).storageKey, 's-readpos')
+    i18n: storageKeyOr((F.i18n || {}).storageKey, DEFAULT_FEATURES.i18n.storageKey),
+    themePresets: storageKeyOr((F.themePresets || {}).storageKey, DEFAULT_FEATURES.themePresets.storageKey),
+    readingProgress: storageKeyOr((F.readingProgress || {}).storageKey, DEFAULT_FEATURES.readingProgress.storageKey)
   };
 }
 
 // search 结果卡片归一化：resultTagCount 为条目内最多展示标签数（≥1；非法回退 6）。
 function searchResultConfig(features) {
   const S = (features && features.search) || {};
-  return { resultTagCount: pickCount(S.resultTagCount, 6, 1) };
+  return { resultTagCount: pickCount(S.resultTagCount, DEFAULT_FEATURES.search.resultTagCount, 1) };
 }
 
 // searchHighlight 高亮底色归一化：浅色 markColor 空/非法回退默认色；
 // 深色 markColorDark 空值回退 markColor（默认同色 = 历史行为）。
-const SEARCH_HIGHLIGHT_DEFAULT_COLOR = 'rgba(255,193,7,.45)';
+const SEARCH_HIGHLIGHT_DEFAULT_COLOR = DEFAULT_FEATURES.searchHighlight.markColor;
 function searchHighlightColors(features) {
   const H = (features && features.searchHighlight) || {};
   const light = storageKeyOr(H.markColor, SEARCH_HIGHLIGHT_DEFAULT_COLOR);
@@ -1161,7 +1160,7 @@ function searchHighlightColors(features) {
 }
 
 // codeBlock 窗口栏三圆点颜色：非数组或不足 3 项整体回退默认 [红,黄,绿]；逐项空白视为非法。
-const CODE_WINDOW_DOT_DEFAULTS = ['#ff5f56', '#ffbd2e', '#27c93f'];
+const CODE_WINDOW_DOT_DEFAULTS = DEFAULT_FEATURES.codeBlock.windowDotColors.slice();
 function codeWindowDotColors(features) {
   const C = (features && features.codeBlock) || {};
   const raw = Array.isArray(C.windowDotColors) ? C.windowDotColors : null;
@@ -1178,19 +1177,19 @@ function codeWindowDotColors(features) {
 // codeBlock 横向滚动提示容差（px）：非负；0 合法（任何溢出即提示）；非法/负数回退 8。
 function scrollHintTolerancePx(features) {
   const C = (features && features.codeBlock) || {};
-  return pickNonNegative(C.scrollHintTolerancePx, 8);
+  return pickNonNegative(C.scrollHintTolerancePx, DEFAULT_FEATURES.codeBlock.scrollHintTolerancePx);
 }
 
 // announcement 条目切换动画时长（ms）：非负；0 = 无动画直接切换；非法/负数回退 450。
 function announcementTransitionMs(features) {
   const A = (features && features.announcement) || {};
-  return pickNonNegative(A.transitionMs, 450);
+  return pickNonNegative(A.transitionMs, DEFAULT_FEATURES.announcement.transitionMs);
 }
 
 // pwa 刷新兜底等待归一化：reloadFallbackMs ≥1（非法/0/负数回退 3000）。
 function pwaReloadConfig(features) {
   const P = (features && features.pwa) || {};
-  return { reloadFallbackMs: pickCount(P.reloadFallbackMs, 3000, 1) };
+  return { reloadFallbackMs: pickCount(P.reloadFallbackMs, DEFAULT_FEATURES.pwa.reloadFallbackMs, 1) };
 }
 
 // errorPage（404）归一化：suggestCount 0–20（0 = 不渲染推荐区；非法/负数回退 5）；
@@ -1198,8 +1197,8 @@ function pwaReloadConfig(features) {
 function errorPageConfig(features) {
   const E = (features && features.errorPage) || {};
   const pickZh = function (v, dflt) { const s = v == null ? '' : String(v).trim(); return s || dflt; };
-  const suggestTitle = pickZh(E.suggestTitle, '热门文章');
-  const artAriaLabel = pickZh(E.artAriaLabel, '404 illustration');
+  const suggestTitle = pickZh(E.suggestTitle, DEFAULT_FEATURES.errorPage.suggestTitle);
+  const artAriaLabel = pickZh(E.artAriaLabel, DEFAULT_FEATURES.errorPage.artAriaLabel);
   const n = parseInt(E.suggestCount, 10);
   return {
     suggestCount: isNaN(n) || n < 0 ? 5 : Math.min(20, n),
@@ -1212,19 +1211,19 @@ function errorPageConfig(features) {
 
 // friends 侧栏 widget 显示条数：≥1（非法/缺失回退 8，历史硬编码上限）。
 function friendsSidebarCount(friends) {
-  return pickCount(friends && friends.sidebarCount, 8, 1);
+  return pickCount(friends && friends.sidebarCount, require('./site-defaults.js').DEFAULT_CONFIG.friends.sidebarCount, 1);
 }
 
 // sidebar.recentPoolSize：recentPosts 数据池上限（≥1；非法回退 10，与历史 slice(0,10) 一致）。
 function sidebarRecentPoolSize(sidebar) {
-  return pickCount(sidebar && sidebar.recentPoolSize, 10, 1);
+  return pickCount(sidebar && sidebar.recentPoolSize, require('./site-defaults.js').DEFAULT_CONFIG.sidebar.recentPoolSize, 1);
 }
 
 // 构建报告超标图片展示上限：site.build.reportTopN 优先（>0），否则回退 internals.report.topN。
 function reportTopN(site, fallbackInternals) {
   const n = parseInt((((site || {}).build || {}).reportTopN), 10);
   if (!isNaN(n) && n > 0) return n;
-  return pickCount(fallbackInternals, 10, 1);
+  return pickCount(fallbackInternals, require('./internals-defaults.js').DEFAULTS.report.topN, 1);
 }
 
 // guard.contextMenu 交互阈值归一化：searchTextMaxChars（≥1；非法回退 12）、
@@ -1240,11 +1239,11 @@ function contextMenuThresholds(guardContextMenu) {
 // commandPalette 回退值归一化（缺配置/非法时与 JSON5/schema 默认一致：ctrl+shift+p / 10 / true）。
 function commandPaletteConfig(features) {
   const C = (features && features.commandPalette) || {};
-  const hotkey = C.hotkey === undefined || C.hotkey === null ? 'ctrl+shift+p' : String(C.hotkey);
+  const hotkey = C.hotkey === undefined || C.hotkey === null ? DEFAULT_FEATURES.commandPalette.hotkey : String(C.hotkey);
   const n = Number(C.maxResults);
   return {
     hotkey: hotkey,
-    maxResults: Number.isFinite(n) && n > 0 ? n : 10,
+    maxResults: Number.isFinite(n) && n > 0 ? n : DEFAULT_FEATURES.commandPalette.maxResults,
     autoFocus: C.autoFocus !== false
   };
 }
@@ -1256,8 +1255,8 @@ function searchIndexConfig(tuning) {
   const to = +T.indexTimeoutMs;
   const retry = parseInt(T.indexRetry, 10);
   return {
-    timeoutMs: isNaN(to) || to <= 0 ? 5000 : to,
-    retry: isNaN(retry) || retry < 0 ? 1 : retry
+    timeoutMs: isNaN(to) || to <= 0 ? DEFAULT_TUNING.search.indexTimeoutMs : to,
+    retry: isNaN(retry) || retry < 0 ? DEFAULT_TUNING.search.indexRetry : retry
   };
 }
 
@@ -1272,7 +1271,7 @@ function searchLoadErrorText(tuning, lang) {
 function searchOverlayBackdrop(tuning) {
   const T = (tuning && tuning.search) || {};
   const v = T.overlayBackdrop == null ? '' : String(T.overlayBackdrop).trim();
-  return v || 'rgba(0,0,0,.55)';
+  return v || DEFAULT_TUNING.search.overlayBackdrop;
 }
 
 // mermaid 客户端 initialize 内建默认项（canonical；templates/layout.ejs 内联脚本镜像同一语义）：

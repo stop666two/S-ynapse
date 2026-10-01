@@ -24,11 +24,11 @@ articles/ media/ static/ + 14 个 JSON5 配置
 
 | 路径 | 职责 |
 |---|---|
-| `scripts/build.js` | 构建编排器（419 行）：配置装载/校验、阶段编排、报告、serve 入口 |
-| `scripts/build/*.js` | 已拆出的构建模块（工厂注入、无全局状态）：`articles` / `assets` / `auto-cover` / `cache` / `cjk-fonts` / `collectors` / `config` / `context` / `feeds` / `fs-utils` / `helpers` / `markdown` / `media` / `mermaid` / `minify` / `pages` / `render` / `report` / `security-files` / `serve` |
-| `scripts/lib/*.js` | 纯函数库：`utils` / `perf-budget` / `csp` / `content-policy` / `asset-cache` / `build-errors` / `build-report-text` / `content-validate` / `publish-window` / `config-split` / `bundle` / `dist-hash` / `incremental` / `compression-config` / `compression-steps` / `compression-verify` / `css-merge` / `static-server` / `internals` / `internals-defaults` / `chrome-path` / `output-dir` 等（多数有同名单测） |
+| `scripts/build.js` | 构建编排器（约 540 行）：进程守卫接入、配置装载/校验、14 阶段编排、报告、watch/serve 入口；重活经 `createBuildContext` 注入的工厂模块执行 |
+| `scripts/build/*.js` | 构建模块（20 个，工厂注入、无全局状态）：`articles` / `assets` / `auto-cover` / `cache` / `cjk-fonts` / `collectors` / `config` / `context` / `feeds` / `fs-utils` / `helpers` / `markdown` / `media` / `mermaid` / `minify` / `pages` / `render` / `report` / `security-files` / `serve` |
+| `scripts/lib/*.js` | 纯函数库（76 个文件，多数有同名单测）：`utils` / `perf-budget` / `csp` / `content-policy` / `asset-cache` / `build-errors` / `build-report-html` / `critical-css` / `content-validate` / `publish-window` / `config-split` / `bundle` / `dist-hash` / `incremental` / `compression-config` / `compression-steps` / `compression-verify` / `css-merge` / `static-server` / `internals` / `internals-defaults` / `process-guard` / `chrome-path` / `output-dir` 等 |
 | `scripts/generate-og.js` | OG 图生成（独立进程，`.cache/og` 增量缓存） |
-| `templates/*.ejs` | 页面模板（layout/index/post/archive/search/tag/category/404/PWA 等 15 个） |
+| `templates/*.ejs` | 页面模板（layout/index/post/archive/search/tag/category/404/PWA 等 16 个） |
 | `js/core/` | 启动器：`runtime.js`（配置加载引导）、`boot.js`（阶段队列）、`main.js`（入口）、`deferred.js`（懒加载模块注册表）、`soft-nav.js`（软导航） |
 | `js/domains/{core,features,guard}/` | 65 个前端领域模块（core 20 / features 32 / guard 13；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
 | `workers/security-worker.js` + `workers/lib/` | 边缘安全层（`ip-utils` / `rate-limit`） |
@@ -37,20 +37,40 @@ articles/ media/ static/ + 14 个 JSON5 配置
 
 ## 3. 构建管线
 
-`npm run build` 主流程（`scripts/build.js#build()`）：
+`npm run build` 主流程（`scripts/build.js#build()`）按 14 个计时阶段顺序执行；阶段键与中文标签的单一来源为 `scripts/lib/build-report-html.js#PHASE_LABELS`（构建报告耗时表直接消费）：
 
-1. **配置装载与校验**：JSON5 读取 → `validateConfig` / `validateFeatures`（对齐 `site-defaults.js` / `features-schema.js`）→ 错误格式化输出。
-2. **内容预校验**（`preflightContent`，写 dist 之前）：frontmatter 合法性、缺失媒体、重复 slug、未来日期。失败即阻断（`--allow-degraded` 可降级为告警）。
-3. **产物准备**：`setupDist` 清理输出；`copyStatic` / `copyProtectedAssets` / `optimizeMedia`（sharp 多尺寸 webp/avif + LQIP，`.cache/media` 增量）。
-4. **内容处理**：marked 渲染 → CJK 间距 → sanitize-html（白名单 + 媒体 URL 本地化）→ 代码高亮判定（`hasCode` 门控 Prism）；mermaid 代码块全站汇总后经 puppeteer-core 一次性构建期渲染为双主题内联 `<svg>`（`.cache/mermaid` 内容哈希缓存，消毒后注入 CSP nonce；失败或无 Chrome 的条目保留 `data-mm-pending` 并由客户端 vendor 回退）。
-5. **打包**：esbuild 打包（`app.<hash>.js` / `deferred.<hash>.js` 入口，`splitting` 抽出的 `shared.<hash>.js` 公共 chunk 由模块图自动加载）+ `runtime.<hash>.js`（Terser 压缩后哈希单发，压缩关闭时保留源哈希名）；`--no-bundle` 可回退原生模块。
-6. **页面与索引生成**：`generatePages`（文章/归档/标签/分类/自定义页/分页）→ RSS/JSON Feed → sitemap → 搜索索引（`.json` + pagefind 兼容清单）→ PWA（manifest + 离线页 + SW 初版）→ CJK 字体子集化（扫描 dist 页面与配置 JSON 的实际用字，仅下载命中的 Noto Sans SC woff2 分片并自托管，`.cache/fonts` 清单+分片缓存，失败仅告警并剥离引用）。
-7. **交付层处理**：基线压缩（minify-html / CleanCSS / Terser）→ 压缩增强（`compression.json5`：HTML 激进选项默认关、CSS 同页 `<style>` 合并去重、JSON 去空白、`runtime` Terser 压缩、可选 JS 混淆）→ 无头对比门禁（压缩产物 vs 基线快照；失败回退基线并告警，回退后逐字节复核）→ cache-bust 映射 → SW 定稿（按最终文件名生成壳预缓存清单与版本化缓存名）→ `_headers`（安全头 + 分级缓存，含 `/sw.js` no-cache）→ CSP nonce 注入（内联脚本与响应头同 nonce）。增强与回退均位于 cacheBust 之前，文件名哈希=最终字节。
-8. **报告与门禁**：性能预算 5 项、唯一构建报告 `build-report.html`（元信息、14 步阶段耗时、产物体积、压缩前后体积对照、CSS 合并/去重跳过明细、缓存命中、无头验证摘要、告警与失败清单、页面清单、预算结论）、失败汇总（任一失败默认退出码非 0）。
-9. **OG 图**（生产构建）：`generate-og.js` 独立进程，`.cache/og` 命中复用。
-10. **Pagefind 索引**（可选，`navigation.search.provider='pagefind'` 且 `features.pagefind.enabled`）：压缩与 cacheBust 之后生成到 `features.pagefind.indexPath`（默认 `/pagefind`，不参与 cache-bust）；serve/watch 同样生成。
+| # | 阶段 | 关键模块与行为 |
+|---|------|----------------|
+| 1 | config 配置加载与校验 | `build/config`：JSON5 解析（语法错误报文件/行列）→ `validateConfig` / `validateFeatures`（对齐 `site-defaults.js` / `features-schema.js`）→ CSP nonce 生成；压缩配置经 `resolveCompressionState` 惰性加载（watch 下失败不回滚崩溃） |
+| 2 | preflight 内容预校验 | `lib/content-validate`：frontmatter、缺失媒体、重复/非法/保留 slug、未来日期；slug 身份类 critical 错误不可降级（`--allow-degraded` 仅豁免资源/数据类），且先于 `dist/` 清理 |
+| 3 | distStatic 产物初始化与静态资产 | `setupDist` 清理输出；`copyStatic` / `copyProtectedAssets`（content-policy 过滤、SVG 消毒、可执行拦截） |
+| 4 | media 媒体优化 | `build/media` + sharp 多尺寸 webp/avif + LQIP；`.cache/media` 增量；损坏/被拦媒体清单 `.cache/broken-media.json` 供页面与 OG 回退 |
+| 5 | articles 文章处理与封面/图表 | `build/articles`（marked → CJK 间距 → sanitize-html → `hasCode` 门控 Prism → TOC）→ 自动封面 `build/auto-cover`（`.cache/covers`）→ mermaid SSR `build/mermaid`（`.cache/mermaid`，失败保留 `data-mm-pending` 交客户端）→ `lib/bundle`（app/deferred/shared + runtime 引导）→ `build/config`（外置配置）→ `lib/search-index` 预计算 |
+| 6 | pages 页面生成 | `build/pages`：文章/归档/标签/分类/图库/友链/搜索/自定义页/404；增量构建按页复用（`lib/incremental`） |
+| 7 | feeds 字体/订阅源/站点地图 | `build/cjk-fonts`（扫描实际用字，`.cache/fonts`，失败降级系统字体）→ `build/feeds`（RSS/JSON Feed/sitemap，超阈值拆分） |
+| 8 | og OG 图生成 | `scripts/generate-og.js` 独立进程（仅生产构建；`.cache/og` 增量，统计写 `last-run.json`） |
+| 9 | search 搜索索引与提交 | sitemap ping（可选）+ 每语言内容寻址 `assets/search-index.<hash>.json` |
+| 10 | security 安全文件与重定向 | `build/security-files`：`_headers`（CSP/安全头按开关裁剪）、`robots.txt`、`_redirects`、`workers/security-config.js`（自定义输出目录构建跳过） |
+| 11 | assetsPwa JS 资产与 PWA | `copyJsAssets`（`--no-bundle` 时）/ `copyVendorAssets` / `generatePWA`；SW 初版在压缩前、定稿（`generateServiceWorker`，按最终文件名生成预缓存清单）在 cacheBust 后并入本阶段计时 |
+| 12 | compression 压缩增强（含无头验证） | `build/minify` + `lib/compression-*`：基线压缩 → 增强（HTML 激进默认关、CSS 同页合并去重、JSON 去空白、runtime 压缩、可选混淆）→ 无头对比门禁（失败回退基线并逐字节复核）；详见 `compression.json5` |
+| 13 | cacheBust 缓存指纹 | `lib/dist-hash` 映射与 HTML/feed 引用重写；压缩与回退均在此之前完成（文件名哈希 = 最终字节）；Pagefind 索引（可选）在其后生成 |
+| 14 | report 报告生成 | `build/report` + `lib/build-report-html`：唯一 `dist/build-report.html`（构建元信息、14 阶段耗时、产物体积与 Top 列表、逐项性能预算、压缩统计与无头验证、缓存命中、告警/失败清单、页面清单；暗色适配、无外部依赖与内联脚本），任一失败默认非零退出码 |
 
-构建缓存：`.build-cache.json`（媒体指纹）、`.cache/media`（媒体输出持久副本）、`.cache/og`（OG 图）、`.cache/mermaid`（mermaid SSR SVG，键 = 版本+主题+源码哈希）、`.cache/fonts`（CJK 字体清单与 woff2 分片，URL 哈希命名）。自定义输出目录：`--out` / `SYNAPSE_OUT_DIR`（集成测试使用）。
+**模块拆分图**（`scripts/build.js` 只保留编排与入口）：
+
+```
+scripts/build.js（14 阶段编排 + watch/serve + require('lib/process-guard')）
+        │ createBuildContext（build/context.js：路径/标志解析 + 工厂接线 + 活值 getter/setter）
+        ├── build/config, build/cache, build/context ........ 配置、缓存根与闭包状态
+        ├── build/articles, markdown, pages, render, collectors 内容与页面
+        ├── build/media, auto-cover, cjk-fonts, mermaid .... 媒体、封面与渲染
+        ├── build/feeds, report, security-files, minify .... 订阅源、报告、安全文件与压缩
+        └── build/assets, serve, fs-utils, helpers ......... 交付资产、本地服务与工具
+                ▲ 纯逻辑下沉
+        scripts/lib/*（76 文件；测试直连，无 fs/网络副作用或经依赖注入）
+```
+
+**构建缓存**（`.cache/`，均不入库）：`.cache/media`（媒体输出持久副本）、`.cache/covers`（自动封面）、`.cache/og`（OG 图与 `last-run.json`）、`.cache/mermaid`（SSR SVG，键 = 版本+主题+源码哈希）、`.cache/fonts`（CJK 清单与 woff2 分片，URL 哈希命名）、`.cache/compression-baseline`（验证期基线快照，默认验证后删除）、`.cache/compression-verify/last.json`（无头验证结果）、`.cache/chrome-verify-profile`（无头持久 profile）；`.build-cache.json` 为媒体指纹总表。自定义输出目录：`--out` / `SYNAPSE_OUT_DIR`（集成测试使用）。
 
 ## 4. 前端启动架构
 
@@ -66,6 +86,8 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 
 - 配置分层：关键子集内联（`features.guards`、`pwa` 开关等），大对象（features/tuning/guard/i18n/预设）走共享 JSON（内容哈希命名，immutable 缓存）。
 - 模块仍是独立文件；`deferred.js` 是唯一“模块清单”来源，负责名称到动态 import 的映射。
+- **关键 CSS 与首帧**（`site.build.criticalCss` 开启时）：`scripts/lib/critical-css.js` 从压缩后主样式按选择器白名单抽取首屏规则（变量引用闭包裁剪），`build/pages.js` 以内联 nonce `<style>` 置于 `<head>` 最前；主样式与本地字体声明以 `media="print"` + `preload as=style` 低优先加载，nonce 内联脚本在样式就绪后翻回 `media="all"`（`<noscript>` 链接兜底）；解析异常自动回退全量阻塞样式，构建不失败。
+- **软导航**（`features.softNavigation`）：`js/core/soft-nav.js` 文档级拦截站内同语言链接 → 悬停/聚焦延迟预取（`prefetchOnHover`/`prefetchDelayMs`）→ fetch 超时兜底（`timeoutMs`）→ 交换主内容区并同步 `<title>`/meta/语言态 → 可选 View Transition 过渡（任一环节失败回退普通整页跳转）；内存缓存带 TTL 与条数上限（`cacheTtlMs`/`cacheMaxEntries`）；交换后广播 `__SOFTNAV_HOOKS__`，各 feature 模块据此重绑（灯箱/双语/继续阅读等）。
 
 ## 5. 配置体系
 
@@ -86,7 +108,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 ## 7. 缓存策略
 
 - `_headers` 分级：`/assets/css/*` 1 年 immutable；`/assets/js/*` 与 `/assets/vendor/*` 1 小时 + SWR；带指纹的 `app|deferred|runtime.*.js` 1 年 immutable；`/media/*`、`/og/*` 7 天 + SWR（均可用 `site.build.cacheControl` 关闭）。
-- 构建侧缓存：媒体/OG 指纹命中跳过重算；配置 JSON 以内容哈希命名参与 cache-bust。
+- 构建侧缓存：媒体 / OG / 自动封面 / mermaid / CJK 字体五类内容指纹命中即跳过重算（构建报告「缓存命中」区块逐项列出 reused 与新生成数量）；配置 JSON 以内容哈希命名参与 cache-bust。
 - 压缩验证缓存：`.cache/compression-baseline/`（验证期基线快照，默认验证后删除）、`.cache/compression-verify/last.json`（结果 JSON）、`.cache/chrome-verify-profile/`（持久浏览器 profile，可安全删除；同一时刻只允许一个构建使用）。
 
 ## 8. 测试与门禁
@@ -123,13 +145,15 @@ CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测
 
 - **完成标记**：`npm run release:mark`（`scripts/release-mark.js`）在干净工作区上顺序执行 `RELEASE_GATES`（12 项门禁，单一来源 `scripts/lib/release-version.js`）→ 同步 package.json/lock 版本 → CHANGELOG `[Unreleased]` 内容归入 `[X.Y.Z] - 日期` → 生成 `RELEASE.json`（status=verified、checks 全 true、commit=被核验提交即 tag 的父提交）→ 单提交 `chore(release)` + 附注 tag `vX.Y.Z`；默认不 push，推送需 `--push --confirm-push` 二次确认。
 - **双重校验**：根 `RELEASE.json` 是机器可读完成标记（初始 `unverified`，默认拒绝发布）；`scripts/lib/release-validate.js` 校验 status/version/tag/commit/checks/verifiedAt，只有「tag 存在」且「tag 指向提交内的标记自洽」同时成立才允许创建 Release。
-- **归档白名单**：`scripts/lib/release-manifest.js` 为唯一来源（包含/排除清单与理由）；`scripts/release-archive.js` 用 `git archive` + pathspec 生成 `S-ynapse-<版本>.zip`，再解析 zip 中央目录逐条复核（`assertArchiveContents`），越界或缺少必需文件即失败。
-- **自动发布**：`.github/workflows/release.yml` 仅由 `push tags v*` 触发（validate → gates → publish：`gh release create --verify-tag` 附 zip）；`deploy.yml` 触发条件限定 `branches: [main]`，tag 推送不会误触发站点部署。
+- **发布流水线（`.github/workflows/release.yml`，仅 `push tags v*` 触发，5 个作业串行）**：`validate`（RELEASE.json 双重校验）→ `gates`（与 `release:mark` 同源的 lint / typecheck / test / test:build / 五 config verify / verify:internals / verify:security / verify:compression / build）→ `archive`（按白名单生成 `S-ynapse-<版本>.zip` 并上传 artifact）→ `buildability`（解压归档 → `npm ci --ignore-scripts` → `npm test` → `npm run build`，断言 `dist/index.html`、`dist/build-report.html`、每语言搜索页与内容寻址索引齐备）→ `publish`（`gh release create --verify-tag --latest` 附 zip，随后执行 `release:prune` 只保留最新 Release）。任一作业失败即不发布。
+- **归档白名单**：`scripts/lib/release-manifest.js` 为唯一来源（包含/排除清单与理由）；`scripts/release-archive.js` 用 `git archive` + pathspec 生成 zip，再解析中央目录逐条复核（`assertArchiveContents`），越界或缺少必需文件即失败。`articles/`、`media/` 只保留 `.gitkeep` 骨架；测试所需最小文档集 `docs/config-reference.md` 经 `RELEASE_EXTRA_FILES` 显式随包（其余 `docs/**` 与 `.github/**` 一律排除）。
+- **tag 永不删除**：`scripts/release-prune.js` 固定 `gh release delete <tag> --yes`（不带 `--cleanup-tag`），只清理旧 Release 页面，`--keep` 之外的 `v*` tag 原样保留。
 - **本地备用通道**：`npm run release:publish -- vX.Y.Z`（远端 tag 存在 + 同一套校验 + `gh`）；完整流程与排障见 `docs/runbook/release.md`。
+- `deploy.yml` 触发条件限定 `branches: [main]`，tag 推送不会误触发站点部署。
 
 ## 10. 已知边界与后续项
 
-- `scripts/build.js` 已完成机械拆分（约 423 行编排器 + `scripts/build/` 工厂模块；等价护栏 `scripts/dist-hash-guard.js` + `.refactor-baseline.json`）。
+- `scripts/build.js` 为编排器（约 540 行，含 watch/serve 入口与进程守卫接入），构建能力全部位于 `scripts/build/` 工厂模块；等价护栏 `scripts/dist-hash-guard.js` + `.refactor-baseline.json`。
 - `js/domains` 已按 core（20 模块）/features（32 模块）/guard（13 模块）物理分层（`deferred.js` 统一注册表）。
 - `style-src` 已随 `<style>` nonce 注入消除 `'unsafe-inline'`；模板与构建产物亦已清除全部内联 `style="..."` 属性（类 / 构建期 nonce `<style>` 规则 / CSSOM 三种手法），`style-src-attr` 不再声明，属性语境回退到 `style-src` 同样拒绝内联（见 SECURITY.md）。Worker 无构建产物时的 FALLBACK 因无 nonce 可注入而保留 `style-src 'unsafe-inline'`，`script-src` 已同步收紧。
 - 增量构建（`features.incrementalBuild`）已实现：`scripts/lib/incremental.js` 指纹与跳过决策 + `scripts/build/*` 逐页复用产物；方案见 `docs/incremental-build-design.md`。

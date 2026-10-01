@@ -120,6 +120,12 @@ export async function boot(queues) {
     if (L.ariaBusy !== false && document.body) document.body.setAttribute('aria-busy', 'true');
   }
 
+  // 首帧让步：先让浏览器完成首次 paint（LCP 图已在 HTML/CSS 中可见），
+  // 再同步启动关键队列，避免初始化长任务把 LCP 绘制推迟到队列结束之后。
+  await new Promise(function (resolve) {
+    requestAnimationFrame(function () { setTimeout(resolve, 0); });
+  });
+
   const critical = (queues && queues.critical) || [];
   const idleQ = ((queues && queues.idle) || []).slice();
   const heavyQ = ((queues && queues.heavy) || []).slice();

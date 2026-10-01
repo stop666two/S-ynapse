@@ -1,7 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const { markBrokenFeaturedImages } = require('./build/articles');
-const { createBrokenMediaMatcher } = require('./lib/content-validate');
+const { createBrokenMediaMatcher, collectBrokenMediaRefs } = require('./lib/content-validate');
 
 describe('createBrokenMediaMatcher', () => {
   it('matches exact refs, query/hash variants and generated variant names', () => {
@@ -18,6 +18,38 @@ describe('createBrokenMediaMatcher', () => {
   it('normalizes windows separators and deduplicates mixed input shapes', () => {
     const match = createBrokenMediaMatcher(new Set(['media\\broken.png']));
     assert.strictEqual(match('/media/broken.png'), true);
+  });
+});
+
+describe('collectBrokenMediaRefs', () => {
+  it('把内容策略拦截的 media/ 路径并入损坏引用，忽略 assets/videos', () => {
+    const refs = collectBrokenMediaRefs([], [
+      { path: 'media/blocked.html', reason: 'active-document' },
+      { path: 'media/unsafe.svg', reason: 'svg-unsafe' },
+      { path: 'assets/notes.txt', reason: 'not-in-asset-whitelist' },
+      { path: 'videos/clip.mp4', reason: '' }
+    ]);
+    assert.ok(refs.has('/media/blocked.html'));
+    assert.ok(refs.has('/media/unsafe.svg'));
+    assert.strictEqual(refs.size, 2);
+    const match = createBrokenMediaMatcher(refs);
+    assert.strictEqual(match('/media/blocked.html'), true);
+    assert.strictEqual(match('/media/unsafe.svg?v=1'), true);
+    assert.strictEqual(match('/media/ok.png'), false);
+  });
+
+  it('与 sharp 失败清单并集去重，跨平台分隔符归一化', () => {
+    const refs = collectBrokenMediaRefs(new Set(['/media/zero.png']), [
+      { path: 'media\\zero.png', reason: '' },
+      { path: '/media/other.webp', reason: '' }
+    ]);
+    assert.deepEqual([...refs].sort(), ['/media/other.webp', '/media/zero.png']);
+  });
+
+  it('容忍缺失或畸形输入', () => {
+    assert.strictEqual(collectBrokenMediaRefs(null, null).size, 0);
+    assert.strictEqual(collectBrokenMediaRefs(undefined, [{ reason: 'only-reason' }]).size, 0);
+    assert.strictEqual(collectBrokenMediaRefs([], [null, 42, 'media/plain.png']).size, 1);
   });
 });
 
@@ -53,6 +85,15 @@ describe('markBrokenFeaturedImages', () => {
     assert.strictEqual(articles[0].featuredImage, 'https://cdn.example.com/media/zero.png');
     assert.strictEqual(count, 1);
     assert.strictEqual(articles[1].featuredImageBroken, '/media/truncated-640.webp');
+  });
+
+  it('被策略拦截的头图与 sharp 失败同语义：清空并保留原引用', () => {
+    const articles = [{ featuredImage: '/media/blocked.html' }];
+    const refs = collectBrokenMediaRefs([], [{ path: 'media/blocked.html', reason: 'active-document' }]);
+    const count = markBrokenFeaturedImages(articles, refs);
+    assert.strictEqual(count, 1);
+    assert.strictEqual(articles[0].featuredImage, '');
+    assert.strictEqual(articles[0].featuredImageBroken, '/media/blocked.html');
   });
 
   it('is tolerant of missing collections', () => {

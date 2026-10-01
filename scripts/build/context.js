@@ -426,6 +426,7 @@ function createBuildContext(deps) {
     {
       rootDir,
       distDir: DIST_DIR,
+      cacheRoot: CACHE_ROOT,
       watchMode: WATCH_MODE,
       serveMode: SERVE_MODE,
       showDrafts: SHOW_DRAFTS,

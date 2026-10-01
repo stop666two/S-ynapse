@@ -111,6 +111,38 @@ function createBrokenMediaMatcher(brokenRefs) {
 }
 
 /**
+ * 归并「损坏媒体」引用：sharp 处理失败清单（/media/ 引用）与内容策略拦截清单
+ * （media/、assets/、videos/ 相对路径）。被策略拦截的 media/ 文件不会发布到 dist，
+ * 与 sharp 失败同语义——上层据此让 featuredImage 回退自动封面/pattern，避免悬空引用。
+ * @param {Iterable<string>} [sharpFailures]
+ * @param {Iterable<{path?: string}|string|null>} [policyBlocked]
+ * @returns {Set<string>} /media/ 引用集合
+ */
+function collectBrokenMediaRefs(sharpFailures, policyBlocked) {
+  const refs = new Set();
+  const add = (raw) => {
+    let ref = normalizeMediaRef(raw);
+    if (!ref) return;
+    if (!ref.startsWith(MEDIA_PREFIX)) {
+      const stripped = ref.replace(/^\/+/, '');
+      ref = MEDIA_PREFIX + (stripped.startsWith('media/') ? stripped.slice('media/'.length) : stripped);
+    }
+    refs.add(ref);
+  };
+  const sharpList = sharpFailures instanceof Set || Array.isArray(sharpFailures) ? sharpFailures : [];
+  for (const raw of sharpList) add(raw);
+  const blockedList = Array.isArray(policyBlocked) ? policyBlocked : [];
+  for (const entry of blockedList) {
+    const rawPath = typeof entry === 'string' ? entry : (entry && entry.path);
+    if (!rawPath) continue;
+    const norm = String(rawPath).replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!norm.startsWith('media/')) continue;
+    add(norm.slice('media/'.length));
+  }
+  return refs;
+}
+
+/**
  * 解析文章身份（标题与 slug），与 build.js 主处理逻辑保持同一优先级：
  * title: frontmatter.title > 首个 H1 > 文件名；slug: frontmatter.slug（强校验）> safeSlug(title)。
  * @param {Object} attrs frontmatter 属性
@@ -210,4 +242,4 @@ function preflightArticles(items, options) {
   return { errors, warnings };
 }
 
-module.exports = { extractMediaRefs, createMediaResolver, createBrokenMediaMatcher, normalizeMediaRef, resolveArticleIdentity, preflightArticles, RESERVED_ROUTE_SEGMENTS };
+module.exports = { extractMediaRefs, createMediaResolver, createBrokenMediaMatcher, collectBrokenMediaRefs, normalizeMediaRef, resolveArticleIdentity, preflightArticles, RESERVED_ROUTE_SEGMENTS };

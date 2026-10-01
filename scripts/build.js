@@ -13,6 +13,9 @@ const { resolveOgSize, collectCoverSizesFromManifest } = require('./lib/og-size'
 const { buildBundles } = require('./lib/bundle');
 const { computeRelatedArticles } = require('./lib/related');
 const { getAllFiles } = require('./build/fs-utils');
+const { collectBrokenMediaRefs } = require('./lib/content-validate');
+const { BROKEN_MEDIA_FILENAME } = require('./lib/og-cover');
+const { writeFileAtomicSync } = require('./lib/atomic-write');
 const { createBuildContext } = require('./build/context');
 const { computeIncrementalContext } = require('./lib/incremental');
 const { debugConfig, configSummary } = require('./lib/feature-wiring');
@@ -52,7 +55,7 @@ const ctx = createBuildContext({
 
 const {
   cspNonce: CSP_NONCE_VALUE, json5, chokidar, hooks, generateWorkerSecurity,
-  distDir: DIST_DIR, watchMode: WATCH_MODE, serveMode: SERVE_MODE,
+  distDir: DIST_DIR, cacheRoot: CACHE_ROOT, watchMode: WATCH_MODE, serveMode: SERVE_MODE,
   showDrafts: SHOW_DRAFTS, allowDegraded: ALLOW_DEGRADED, bundleActive: BUNDLE_ACTIVE,
   outputDirResolved: OUTPUT_DIR_RESOLVED, pkgVersion: PKG_VERSION,
   abortBuild, loadConfig, validateConfig, applyCspNonce,
@@ -180,9 +183,19 @@ async function build() {
     markPhase('media', mediaStartedAt);
     MEDIA_MANIFEST = mediaManifest;
     const articles = await processArticles(config, mediaManifest, buildErrors);
-    // 损坏头图回退：媒体优化失败的头图先清空（原引用留在 featuredImageBroken），
-    // 再走下方自动封面路径；每条回退记入非阻断告警，进入构建报告 [告警] 段。
-    const brokenCoverCount = markBrokenFeaturedImages(articles, getBrokenMedia());
+    // 损坏头图回退：媒体优化失败或内容策略拦截（不发布到 dist）的头图先清空
+    // （原引用留在 featuredImageBroken），再走下方自动封面路径；每条回退记入
+    // 非阻断告警，进入构建报告 [告警] 段。
+    const brokenMediaRefs = collectBrokenMediaRefs(getBrokenMedia(), policyResult && policyResult.blocked);
+    const brokenCoverCount = markBrokenFeaturedImages(articles, brokenMediaRefs);
+    // 损坏媒体清单落盘（sharp 失败 ∪ 策略拦截）：generate-og 读取后跳过不可用封面，
+    // 与页面回退同语义；每轮无条件覆写，避免陈旧清单误伤健康封面。
+    try {
+      fs.mkdirSync(CACHE_ROOT, { recursive: true });
+      writeFileAtomicSync(path.join(CACHE_ROOT, BROKEN_MEDIA_FILENAME), JSON.stringify([...brokenMediaRefs]));
+    } catch (err) {
+      console.warn('  [WARN] 损坏媒体清单写入失败（OG 将不跳过不可用封面）：' + err.message);
+    }
     if (brokenCoverCount > 0) {
       for (const article of articles) {
         if (!article.featuredImageBroken) continue;
@@ -284,7 +297,10 @@ async function build() {
       // 自定义输出目录（--out / SYNAPSE_OUT_DIR）时把解析后的绝对路径传给子进程，
       // 保证 generate-og.js 的产图目录与本次构建的 DIST_DIR 完全一致。
       if (OUTPUT_DIR_RESOLVED.custom) process.env.SYNAPSE_OUT_DIR = DIST_DIR;
-      const ogArgs = [path.join(PROJECT_DIR, 'scripts', 'generate-og.js')];
+      const ogArgs = [
+        path.join(PROJECT_DIR, 'scripts', 'generate-og.js'),
+        '--broken-media', path.join(CACHE_ROOT, BROKEN_MEDIA_FILENAME)
+      ];
       if (SHOW_DRAFTS) ogArgs.push('--drafts');
       const ogStartedAt = Date.now();
       const ogRes = spawnSync(process.execPath, ogArgs, { stdio: 'inherit' });

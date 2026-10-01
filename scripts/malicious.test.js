@@ -622,6 +622,75 @@ describe('T4 恶意/畸形场景', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run
   });
 
   // =====================================================================
+  // 7 续：内容策略拦截的 featuredImage 回退（页面/feed/索引 + OG 生成）
+  // =====================================================================
+  describe('类 7 内容策略拦截头图回退（含 OG）', () => {
+    let outDir = '';
+    let result = null;
+
+    before(() => {
+      const site = makeSite({
+        articles: 0,
+        pages: 0,
+        langs: ['zh'],
+        siteOverrides: {
+          languages: ['zh'],
+          rss: { enabled: true, path: 'feed.xml', jsonFeed: { enabled: true, path: 'feed.json' } },
+          sitemap: { enabled: true, path: 'sitemap.xml' },
+          build: { cleanDist: true, optimizeMedia: true, cjkFonts: { enabled: false } }
+        },
+        featuresOverrides: { ogImage: { enabled: true } },
+        extraFiles: {
+          // OG 生成要求主题色板完整（与生产一致，不允许内置配色兜底）。
+          'theme.json5': JSON.stringify({
+            colors: { primary: '#3b82f6', secondary: '#8b5cf6', background: '#ffffff', text: '#111827' },
+            darkMode: { colors: { background: '#0f172a', text: '#e2e8f0' } }
+          }, null, 2) + '\n',
+          'articles/zh/policy-blocked.md': frontmatterArticle({ title: 'Policy Blocked', slug: 'policy-blocked', date: '2026-06-02', featuredImage: '/media/blocked-cover.svg' }) + '# Policy Blocked\n\n正文。\n',
+          'articles/zh/healthy-cover.md': frontmatterArticle({ title: 'Healthy Cover', slug: 'healthy-cover', date: '2026-06-03', featuredImage: '/media/healthy-cover.svg' }) + '# Healthy Cover\n\n正文。\n',
+          // 含事件属性：内容策略判定为 svg-unsafe（不发布），但文件本身可被 sharp 读取。
+          'media/blocked-cover.svg': '<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1000" onload="alert(1)"><rect width="2000" height="1000" fill="#ff0000"/></svg>',
+          'media/healthy-cover.svg': '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><rect width="800" height="400" fill="#00ff00"/></svg>'
+        }
+      });
+      outDir = path.join(site.root, 'out');
+      result = build(site, outDir);
+    });
+
+    it('页面/卡片/feed/索引无被拦截头图的悬空引用', () => {
+      assert.strictEqual(result.status, 0, '策略拦截头图必须降级而非阻断：\n' + readOut(result).slice(-2000));
+      const page = fs.readFileSync(path.join(outDir, 'zh', 'policy-blocked', 'index.html'), 'utf-8');
+      assert.ok(!page.includes('blocked-cover.svg'), '文章页不得残留被拦截头图引用');
+      assert.ok(page.includes('/og/cover-policy-blocked.'), '文章页必须使用自动封面回退');
+      const home = fs.readFileSync(path.join(outDir, 'zh', 'index.html'), 'utf-8');
+      assert.ok(!home.includes('blocked-cover.svg'), '首页卡片不得残留被拦截头图引用');
+      assert.ok(home.includes('/og/cover-policy-blocked.'), '首页卡片必须使用自动封面回退');
+      assert.ok(!fs.readFileSync(path.join(outDir, 'zh', 'feed.xml'), 'utf-8').includes('blocked-cover'), 'RSS 不得残留被拦截头图');
+      assert.ok(!fs.readFileSync(path.join(outDir, 'zh', 'feed.json'), 'utf-8').includes('blocked-cover'), 'JSON Feed 不得残留被拦截头图');
+      const indexUrl = /__SEARCH_INDEX_URL__\s*=\s*"([^"]+)"/.exec(home);
+      assert.ok(indexUrl, '首页必须暴露搜索索引 URL');
+      const indexText = fs.readFileSync(path.join(outDir, ...indexUrl[1].replace(/^\//, '').split('/')), 'utf-8');
+      assert.ok(!indexText.includes('blocked-cover.svg'), '搜索索引不得残留被拦截头图');
+    });
+
+    it('被拦截封面不参与 OG 生成：尺寸回退到健康封面，日志记录跳过', async () => {
+      const sharp = require('sharp');
+      const ogDir = path.join(outDir, 'og', 'zh');
+      const made = fs.readdirSync(ogDir);
+      const blockedName = made.find((name) => /^policy-blocked\./.test(name));
+      assert.ok(blockedName, '被拦截文章仍须产出模板 OG');
+      assert.ok(made.some((name) => /^healthy-cover\./.test(name)), '健康封面文章须产出 OG');
+      const meta = await sharp(path.join(ogDir, blockedName)).metadata();
+      assert.strictEqual(meta.width, 800, 'OG 画布不得采用被拦截封面尺寸（2000x1000）');
+      assert.strictEqual(meta.height, 400, 'OG 画布不得采用被拦截封面尺寸（2000x1000）');
+      assert.ok(readOut(result).includes('cover unavailable (broken or blocked by content policy)'),
+        '构建日志必须记录 OG 跳过不可用封面');
+      assert.ok(!readOut(result).includes('using template: /media/healthy-cover.svg'),
+        '健康封面不得被误判为不可用');
+    });
+  });
+
+  // =====================================================================
   // 4：坏 JSON5 / 断裂配置（语法/重复键/类型漂移/越界枚举）
   // =====================================================================
   describe('类 4 坏配置 hard-fail', () => {

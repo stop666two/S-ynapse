@@ -11,9 +11,11 @@ const { resolveOgSize } = require('./lib/og-size');
 const { resolveBuildTheme } = require('./lib/theme-resolve');
 const { buildOgFingerprint } = require('./lib/og-cache-key');
 const { atomicTempPath, commitAtomicTemp, discardAtomicTemp, writeFileAtomicSync } = require('./lib/atomic-write');
-const { buildCacheKey, configFingerprint, getFresh, pruneTo, ttlExpired } = require('./lib/asset-cache');
+const { buildCacheKey, getFresh, pruneTo, ttlExpired } = require('./lib/asset-cache');
 const { resolveOutputDir } = require('./lib/output-dir');
 const { loadInternals } = require('./lib/internals');
+const { defaultBrokenMediaPath, readBrokenMediaManifest, selectCoverSource, buildArticleOgKey } = require('./lib/og-cover');
+const { createBrokenMediaMatcher } = require('./lib/content-validate');
 
 // 根目录：SYNAPSE_ROOT（测试隔离用）优先，默认仓库根；输出目录经共享解析：
 // `--out` > SYNAPSE_OUT_DIR > internals.paths.outDir > 默认 dist/（相对根目录解析）。
@@ -153,14 +155,15 @@ async function loadCoverBuffer(cover) {
 
 // 自动尺寸检测：扫描文章封面图（仅本地文件、仅非草稿），用 sharp 读取像素尺寸。
 // 供 resolveOgSize 决定 OG 画布尺寸（单图取该图 / 多图取最大 / 无图回退默认）。
-async function collectCoverSizes(files) {
+// 损坏/被策略拦截封面不参与尺寸统计，与生成时的跳过行为一致。
+async function collectCoverSizes(files, isBroken) {
   const sizes = [];
   const seen = new Set();
   for (const file of files) {
     try {
       const attrs = parseFrontMatter(fs.readFileSync(file, 'utf-8'));
       if (attrs.draft === true || attrs.draft === 'true') continue;
-      const cover = (attrs.cover || attrs.featuredImage || '').toString().trim();
+      const cover = selectCoverSource(attrs, isBroken).cover;
       if (!cover) continue;
       const abs = resolveCoverFile(cover);
       if (!abs || seen.has(abs)) continue;
@@ -393,6 +396,20 @@ async function main() {
   const palette = { darkBg, darkText, paperBg, paperText };
   const featuresConfig = readConfigFile('features.json5') || {};
   const ogCfg = featuresConfig.ogImage || {};
+  const args = process.argv.slice(2);
+  let only = null;
+  if (args[0] === '--only' && args[1]) {
+    only = new Set(args[1].split(',').map(s => s.trim()).filter(Boolean));
+  }
+  // --drafts：与 `npm run dev`（build.js --watch --drafts）一致，生成草稿 OG 以便本地预览。
+  const showDrafts = args.includes('--drafts');
+  // 损坏媒体清单（build.js 落盘：sharp 处理失败 ∪ 内容策略拦截）：命中即跳过封面合成，
+  // 与页面回退同语义；未显式传参时读取站点缓存目录下的默认清单。
+  const brokenFlagIndex = args.indexOf('--broken-media');
+  const brokenMediaFile = brokenFlagIndex !== -1 && args[brokenFlagIndex + 1]
+    ? path.resolve(args[brokenFlagIndex + 1])
+    : defaultBrokenMediaPath(ROOT, loadInternals().paths.cacheDir);
+  const brokenMatcher = createBrokenMediaMatcher(readBrokenMediaManifest(brokenMediaFile));
   const ogFmt = resolveOgFormat(ogCfg);
   const styleCfg = featuresConfig.ogImageStyle || {};
   if (ogFmt.format === 'jpeg') console.log(`  OG format: jpeg (quality ${ogFmt.quality})`);
@@ -403,7 +420,7 @@ async function main() {
   const ogSize = resolveOgSize({
     explicitWidth: ogCfg.width,
     explicitHeight: ogCfg.height,
-    covers: await collectCoverSizes(walkArticles(ARTICLES_DIR, [])),
+    covers: await collectCoverSizes(walkArticles(ARTICLES_DIR, []), brokenMatcher),
     maxDimension: autoSizeCfg.maxDimension,
     autoSize: autoSizeCfg.enabled !== false
   });
@@ -429,14 +446,6 @@ async function main() {
   const ogCache = (buildCache.og && typeof buildCache.og === 'object') ? buildCache.og : (buildCache.og = {});
   if (!buildCache.version) buildCache.version = 1;
   if (!buildCache.media || typeof buildCache.media !== 'object') buildCache.media = {};
-
-  const args = process.argv.slice(2);
-  let only = null;
-  if (args[0] === '--only' && args[1]) {
-    only = new Set(args[1].split(',').map(s => s.trim()).filter(Boolean));
-  }
-  // --drafts：与 `npm run dev`（build.js --watch --drafts）一致，生成草稿 OG 以便本地预览。
-  const showDrafts = args.includes('--drafts');
 
   const files = walkArticles(ARTICLES_DIR, []);
   if (!files.length) {
@@ -500,7 +509,12 @@ async function main() {
         n++;
       }
       langUsed.add(slug);
-      cover = (attrs.cover || attrs.featuredImage || '').trim();
+      const coverSelection = selectCoverSource(attrs, brokenMatcher);
+      cover = coverSelection.cover;
+      if (coverSelection.skipped) {
+        console.warn('  [WARN] generate-og: cover unavailable (broken or blocked by content policy), using template: '
+          + String(attrs.cover || attrs.featuredImage || '').trim());
+      }
       catRaw = (attrs.categories || '').toString();
       // 与 build.js:1000 的草稿判定保持一致（frontmatter 值为字符串 'true' 或布尔 true）。
       isDraft = attrs.draft === true || attrs.draft === 'true';
@@ -536,7 +550,7 @@ async function main() {
         try { coverStats = fs.statSync(coverAbsForStats); } catch (e) { coverStats = null; }
       }
     }
-    const articleFp = coverStats ? configFingerprint([ogFingerprint, coverStats.mtimeMs, coverStats.size]) : ogFingerprint;
+    const articleFp = buildArticleOgKey(ogFingerprint, coverStats);
     const cacheKey = buildCacheKey(mdStats, articleFp);
     if (getFresh(ogCache, cacheId, cacheKey) && fs.existsSync(cachePath) && !ttlExpired(cachePath, OG_TTL_DAYS)) {
       fs.copyFileSync(cachePath, outPath);

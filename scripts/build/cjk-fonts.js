@@ -11,8 +11,8 @@ const crypto = require('crypto');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { getAllFiles } = require('./fs-utils');
 const cjk = require('../lib/cjk-fonts');
+const { loadInternals } = require('../lib/internals');
 
-const CHUNK_LIST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DOWNLOAD_CONCURRENCY = 6;
 const FONT_DISPLAY_ALLOWED = ['auto', 'block', 'swap', 'fallback', 'optional'];
 
@@ -51,6 +51,7 @@ function createCjkFontsModule(ctx) {
   const cacheDir = ctx.cacheDir;
   const logger = ctx.logger || console;
   const fetchImpl = ctx.fetchImpl || undefined;
+  const chunkListTtlMs = loadInternals().cache.fontsTtlDays * 24 * 60 * 60 * 1000;
   const chunkListCacheFile = path.join(cacheDir, 'chunk-list.json');
   const linkRx = new RegExp('<link\\b[^>]*href=["\']?' + cjk.CJK_CSS_HREF.replace(/\//g, '\\/') + '(?:\\?v=[^"\'\\s>]*)?["\']?[^>]*>', 'gi');
 
@@ -81,7 +82,7 @@ function createCjkFontsModule(ctx) {
 
   async function loadChunkList(cssUrl, timeoutMs) {
     const cached = readChunkListCache(cssUrl);
-    if (cached && Date.now() - cached.fetchedAt < CHUNK_LIST_TTL_MS) return { chunks: cached.chunks, cached: true };
+    if (cached && Date.now() - cached.fetchedAt < chunkListTtlMs) return { chunks: cached.chunks, cached: true };
     try {
       const chunks = await cjk.fetchChunkList({ cssUrl, timeoutMs, fetchImpl });
       fs.mkdirSync(cacheDir, { recursive: true });

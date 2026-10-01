@@ -5,10 +5,12 @@ const fs = require('fs');
 const path = require('path');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { classifyFile, sanitizeSvg } = require('../lib/content-policy');
-const { buildCacheKey, configFingerprint, getFresh, pruneTo } = require('../lib/asset-cache');
+const { buildCacheKey, configFingerprint, getFresh, pruneTo, ttlExpired } = require('../lib/asset-cache');
 const { getAllFiles } = require('./fs-utils');
+const { loadInternals } = require('../lib/internals');
 
 function createMediaModule(ctx) {
+  const MEDIA_TTL_DAYS = loadInternals().cache.mediaTtlDays;
   // Create the output directory structure under dist/.
   // If cleanDist is enabled, removes the entire dist/ first.
   // Required subdirectories: articles/, tags/, categories/, page/
@@ -171,7 +173,9 @@ function createMediaModule(ctx) {
       try { stats = fs.statSync(imgPath); } catch (e) { /* 保留 null：文件不可读时走重新生成分支 */ }
       const cacheKey = buildCacheKey(stats, mediaFingerprint);
       const cached = getFresh(mediaCache, cacheId, cacheKey);
-      if (cached && Array.isArray(cached.outputs) && cached.outputs.every((rel) => fs.existsSync(path.join(ctx.mediaCacheDir, rel)))) {
+      if (cached && Array.isArray(cached.outputs) && cached.outputs.length > 0
+        && cached.outputs.every((rel) => fs.existsSync(path.join(ctx.mediaCacheDir, rel)))
+        && !ttlExpired(path.join(ctx.mediaCacheDir, cached.outputs[0]), MEDIA_TTL_DAYS)) {
         for (const rel of cached.outputs) copyMediaOutput(rel);
         manifest[cacheId] = cached.entry;
         skipped++;

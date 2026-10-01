@@ -15,6 +15,7 @@ const { getAllFiles } = require('./build/fs-utils');
 const { createBuildContext } = require('./build/context');
 const { computeIncrementalContext } = require('./lib/incremental');
 const { debugConfig, configSummary } = require('./lib/feature-wiring');
+const { loadInternals } = require('./lib/internals');
 
 // 编排器活值（build() 函数体直接读写；经 getter/setter 注入构建上下文，保持活值语义）：
 //   BUILD_ERRORS   构建错误收集器（build() 赋值；helpers 记录构建失败时读取）
@@ -315,6 +316,11 @@ async function build() {
       });
     }
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+    // internals.report.maxBuildMsWarn>0 时对超阈值构建仅告警（不改变退出码）。
+    const maxBuildMsWarn = loadInternals().report.maxBuildMsWarn;
+    if (maxBuildMsWarn > 0 && Date.now() - startTime > maxBuildMsWarn) {
+      console.warn('[WARN] 构建耗时 ' + elapsed + 's 超过 internals.report.maxBuildMsWarn（' + maxBuildMsWarn + 'ms）');
+    }
     console.log(`\n========================================`);
     console.log(`  Build complete in ${elapsed}s`);
     console.log(`  Output: ${path.relative(ROOT, DIST_DIR).split(path.sep).join('/') || '.'}/`);

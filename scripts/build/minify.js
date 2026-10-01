@@ -704,9 +704,16 @@ function createMinifyModule(ctx) {
     console.log('[12/14] Cache busting...');
     const bustPattern = config.site.build.cacheBustingPattern || '.*\\.(css|js|png|jpg|svg)$';
     const bustRegex = new RegExp(bustPattern, 'i');
-    // 跳过：node_modules、og 目录、assets 目录、sw.js（固定路径）；以及 PWA manifest 引用的固定文件名图标
-    // （manifest.json 不参与路径重写，若对 icon-192/512.png 做哈希重命名会导致 manifest 引用 404）
-    const files = ctx.getAllFiles(ctx.distDir).filter(f => bustRegex.test(f) && !f.includes('node_modules') && !f.includes(path.sep + 'og' + path.sep) && !f.includes(path.sep + 'assets' + path.sep) && path.basename(f) !== 'sw.js' && !/^icon-(192|512)\.png$/.test(path.basename(f)));
+    // 跳过：node_modules、og 目录、assets 目录、SW 固定路径；以及 PWA manifest 引用的固定文件名图标
+    // （manifest.json 不参与路径重写，若对图标做哈希重命名会导致 manifest 引用 404）。
+    // SW 文件名与图标文件名均从 site.pwa 派生（serviceWorker / manifest.icons[].src 的 basename）。
+    const pwaCfg = config.site.pwa || {};
+    const pwaManifest = pwaCfg.manifest || {};
+    const swBaseName = path.basename(String(pwaCfg.serviceWorker || '/sw.js').split('?')[0].split('#')[0]);
+    const iconBaseNames = new Set((Array.isArray(pwaManifest.icons) ? pwaManifest.icons : [])
+      .map((icon) => (icon && typeof icon.src === 'string' ? path.basename(icon.src.split('?')[0].split('#')[0]) : ''))
+      .filter(Boolean));
+    const files = ctx.getAllFiles(ctx.distDir).filter(f => bustRegex.test(f) && !f.includes('node_modules') && !f.includes(path.sep + 'og' + path.sep) && !f.includes(path.sep + 'assets' + path.sep) && path.basename(f) !== swBaseName && !iconBaseNames.has(path.basename(f)));
     const mapping = {};
     for (const file of files) {
       try {

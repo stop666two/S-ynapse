@@ -15,11 +15,12 @@
 
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { loadInternals } = require('./lib/internals');
 
 const ROOT = path.resolve(__dirname, '..');
+const INTERNALS = loadInternals();
 
-// gh release list 的返回上限：当前策略只保留 1 个，200 足以覆盖可预见的历史版本数。
-const RELEASE_LIST_LIMIT = 200;
+// gh release list 的返回上限取 internals.release.listLimit（默认 200；只保留 1 个的策略下足够）。
 
 // 远端 tag 清理范围前缀：只处理 v* tag，其余命名空间的 tag 视为用户资产不动。
 const TAG_PREFIX = 'v';
@@ -85,7 +86,7 @@ function defaultGitRunner(args) {
 
 // 列出全部 Release 的 tag 名；gh 不可用、失败或返回非法结构时抛错。
 function listReleaseTags(runner) {
-  const result = runner(['release', 'list', '--limit', String(RELEASE_LIST_LIMIT), '--json', 'tagName']);
+  const result = runner(['release', 'list', '--limit', String(INTERNALS.release.listLimit), '--json', 'tagName']);
   if (result.error) throw new Error('无法执行 gh（请安装并 gh auth login）：' + result.error.message);
   if (result.status !== 0) {
     throw new Error('gh release list 失败（exit ' + result.status + '）：' + String(result.stderr || '').trim());
@@ -127,6 +128,15 @@ function pruneOlderReleases(options, deps) {
   const gitRunner = (deps && deps.gitRunner) || defaultGitRunner;
   if (!keep) throw new Error('缺少 --keep <tag>：必须指定要保留的 Release 与 tag');
 
+  // dry-run 逐条打印：超过 internals.release.previewLimit 后仅打印一次省略提示。
+  const previewLimit = INTERNALS.release.previewLimit;
+  let dryRunPrinted = 0;
+  const printDryRun = (message) => {
+    if (dryRunPrinted < previewLimit) console.log(message);
+    else if (dryRunPrinted === previewLimit) console.log('[release:prune] dry-run：其余计划省略（previewLimit=' + previewLimit + '，完整结果见返回结构）');
+    dryRunPrinted++;
+  };
+
   // 先完成两份只读列表，任一失败时在删除前中止，避免留下半清理状态。
   const releaseTags = listReleaseTags(ghRunner);
   const remoteTags = listRemoteTags(gitRunner);
@@ -135,7 +145,7 @@ function pruneOlderReleases(options, deps) {
   const result = { deleted: [], failed: [], tagsDeleted: [], tagsFailed: [], skipped: releaseTags.length === 0 };
   for (const tag of obsoleteReleases) {
     if (opts.dryRun) {
-      console.log('[release:prune] dry-run：将删除 Release ' + tag + '（含其 tag）');
+      printDryRun('[release:prune] dry-run：将删除 Release ' + tag + '（含其 tag）');
       result.deleted.push(tag);
       continue;
     }
@@ -157,7 +167,7 @@ function pruneOlderReleases(options, deps) {
   const obsoleteTags = planRemoteTagDeletions(remoteTags, keep, obsoleteReleases);
   for (const tag of obsoleteTags) {
     if (opts.dryRun) {
-      console.log('[release:prune] dry-run：将删除远端 tag ' + tag);
+      printDryRun('[release:prune] dry-run：将删除远端 tag ' + tag);
       result.tagsDeleted.push(tag);
       continue;
     }

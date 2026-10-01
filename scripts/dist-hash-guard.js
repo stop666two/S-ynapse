@@ -8,9 +8,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { hashDist, diffManifests, DEFAULT_IGNORES } = require('./lib/dist-hash');
+const { loadInternals } = require('./lib/internals');
 
-// 差异列表最多打印条数，超出部分仅显示省略提示
-const PREVIEW_LIMIT = 20;
+// 差异列表最多打印条数取 internals.audit.distHash.previewLimit，超出部分仅显示省略提示。
+const PREVIEW_LIMIT = loadInternals().audit.distHash.previewLimit;
 
 const USAGE_SNAPSHOT = 'node scripts/dist-hash-guard.js snapshot <dir> <manifest.json>';
 const USAGE_DIFF = 'node scripts/dist-hash-guard.js diff <dir> <manifest.json>';

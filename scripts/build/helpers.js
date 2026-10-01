@@ -7,9 +7,11 @@ const path = require('path');
 const { escapeAttr } = require('../lib/utils');
 const { isScheduled } = require('../lib/publish-window');
 const { normalizeQuoteList, applyCount } = require('../lib/daily-quotes');
+const { loadInternals } = require('../lib/internals');
 
 function createHelpersModule(ctx) {
   const { staticDir, watchMode, showDrafts } = ctx;
+  const uiColors = loadInternals().ui;
 
   // 代码内置最小集（紧急回退）：data/quotes.json5 与自定义 source 均不可用时的最后兜底。
   // 仅保留逐条可核验的公版名句，避免任何来源不明的句子进入产物。
@@ -107,7 +109,9 @@ function createHelpersModule(ctx) {
     return applyCount(BUILTIN_QUOTES, count);
   }
   function faviconFallbackSvg(color) {
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="' + color + '"/><g stroke="#fff" stroke-width="4" stroke-linecap="round"><line x1="20" y1="22" x2="44" y2="21"/><line x1="20" y1="22" x2="32" y2="44"/><line x1="44" y1="21" x2="32" y2="44"/></g><g fill="#fff"><circle cx="20" cy="22" r="6.2"/><circle cx="44" cy="21" r="6.2"/><circle cx="32" cy="44" r="6.4"/></g></svg>';
+    const fill = color || uiColors.faviconFallbackColor;
+    const fg = uiColors.faviconForegroundColor;
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="' + fill + '"/><g stroke="' + fg + '" stroke-width="4" stroke-linecap="round"><line x1="20" y1="22" x2="44" y2="21"/><line x1="20" y1="22" x2="32" y2="44"/><line x1="44" y1="21" x2="32" y2="44"/></g><g fill="' + fg + '"><circle cx="20" cy="22" r="6.2"/><circle cx="44" cy="21" r="6.2"/><circle cx="32" cy="44" r="6.4"/></g></svg>';
   }
   function readPngSize(absPath) {
     try {

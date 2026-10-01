@@ -6,6 +6,7 @@
 const path = require('path');
 const { extractMermaidBlocks, replaceMermaidBlocks, createMermaidRenderer } = require('../lib/mermaid-render');
 const { mermaidConfig, mermaidErrorText } = require('../lib/feature-wiring');
+const { loadInternals } = require('../lib/internals');
 
 function createMermaidModule(ctx) {
   // 返回 { blocks, rendered, cached, failed, skipped } 统计；不抛出（渲染故障一律走回退）。
@@ -46,7 +47,8 @@ function createMermaidModule(ctx) {
     stats.blocks = targets.reduce((sum, t) => sum + t.blocks.length, 0);
 
     const renderer = createMermaidRenderer({
-      cacheDir: path.join(ctx.rootDir, '.cache', 'mermaid'),
+      cacheDir: path.join(ctx.cacheRoot || path.join(ctx.rootDir, '.cache'), 'mermaid'),
+      cacheTtlDays: loadInternals().cache.mermaidTtlDays,
       logger: console,
       chromePath: cfg.chromePath || '',
       // 单块渲染超时来自 features.mermaid.renderTimeoutMs；缺省时回退 lib 内置默认（与 schema 同值）。

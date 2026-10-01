@@ -9,10 +9,15 @@ const { gzipSize, evaluatePerfBudget, formatPerfBudget } = require('../lib/perf-
 const { renderBuildReportText } = require('../lib/build-report-text');
 const { performanceWarnings } = require('../lib/feature-wiring');
 const { getAllFiles } = require('./fs-utils');
+const { loadInternals } = require('../lib/internals');
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.avif', '.gif', '.bmp']; 
 
 function createReportModule(ctx) {
+  // 报告展示上限与状态色来自 internals（report.topN / ui.reportColors）。
+  const internals = loadInternals();
+  const REPORT_TOP_N = internals.report.topN;
+  const REPORT_COLORS = internals.ui.reportColors;
   function collectBudgetStats() {
     const inlineConfigKb = ctx.getInlineConfigKb();
     const htmlFiles = [];
@@ -54,7 +59,7 @@ function createReportModule(ctx) {
     return { htmlKb, htmlRawKb, htmlRawMaxKb, inlineConfigKb, jsKb: jsBytes / 1024, requests, pages: htmlFiles.length };
   }
 
-  // 扫描产物媒体目录（dist/media）中超过 kb 阈值的用户图片（按体积降序，最多 10 条）。
+  // 扫描产物媒体目录（dist/media）中超过 kb 阈值的用户图片（按体积降序，最多 internals.report.topN 条）。
   // 只针对用户上传资产（OG 图尺寸由 features.ogImage 控制，不属“未压缩”告警范围）。
   function collectLargeImages(maxKb) {
     const limit = Number.isFinite(+maxKb) && +maxKb > 0 ? +maxKb : 0;
@@ -69,7 +74,7 @@ function createReportModule(ctx) {
         if (kb > limit) found.push({ path: '/' + path.relative(ctx.distDir, file).split(path.sep).join('/'), kb });
       } catch (e) { /* 单文件不可读时跳过 */ }
     }
-    return found.sort((a, b) => b.kb - a.kb).slice(0, 10);
+    return found.sort((a, b) => b.kb - a.kb).slice(0, REPORT_TOP_N);
   }
 
   // 性能阈值告警（features.performance.warning*）：超限仅输出 [WARN]，不阻断构建；
@@ -128,7 +133,7 @@ function createReportModule(ctx) {
       const published = ctx.getPublished(articles);
       const tc = config.theme.colors;
       const totalSize = getDirSize(ctx.distDir);
-      const html = `<!DOCTYPE html><html lang="${escapeHtml(String(config.site.language || ''))}"><head><meta charset="UTF-8"><meta name="robots" content="noindex"><title>构建报告 - ${escapeHtml(String(config.site.title || ''))}</title><style nonce="${ctx.cspNonce}">body{font-family:system-ui,sans-serif;max-width:700px;margin:2rem auto;padding:0 1rem;color:${escapeHtml(String(tc.text || ''))}}h1{font-size:1.5rem}.stat{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid ${escapeHtml(String(tc.border || ''))}}.stat-label{color:${escapeHtml(String(tc.textSecondary || ''))}}.stat-value{font-weight:600}.report-time{color:${escapeHtml(String(tc.textSecondary || ''))}}.good{color:#16a34a}.warn{color:#d97706}</style></head><body><h1>构建报告</h1><p class="report-time">${new Date().toISOString().replace('T',' ').slice(0,19)}</p>
+      const html = `<!DOCTYPE html><html lang="${escapeHtml(String(config.site.language || ''))}"><head><meta charset="UTF-8"><meta name="robots" content="noindex"><title>构建报告 - ${escapeHtml(String(config.site.title || ''))}</title><style nonce="${ctx.cspNonce}">body{font-family:system-ui,sans-serif;max-width:700px;margin:2rem auto;padding:0 1rem;color:${escapeHtml(String(tc.text || ''))}}h1{font-size:1.5rem}.stat{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid ${escapeHtml(String(tc.border || ''))}}.stat-label{color:${escapeHtml(String(tc.textSecondary || ''))}}.stat-value{font-weight:600}.report-time{color:${escapeHtml(String(tc.textSecondary || ''))}}.good{color:${escapeHtml(REPORT_COLORS.good)}}.warn{color:${escapeHtml(REPORT_COLORS.warn)}}</style></head><body><h1>构建报告</h1><p class="report-time">${new Date().toISOString().replace('T',' ').slice(0,19)}</p>
       <div class="stat"><span class="stat-label">构建耗时</span><span class="stat-value">${elapsed}s</span></div>
       <div class="stat"><span class="stat-label">文章数</span><span class="stat-value">${published.length}</span></div>
       <div class="stat"><span class="stat-label">自定义页面</span><span class="stat-value">${(customPages||[]).length}</span></div>

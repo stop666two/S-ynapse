@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { MIME_TYPES, acceptsGzip, isCompressibleType, resolveStaticFile } = require('../lib/static-server');
+const { loadInternals } = require('../lib/internals');
 
 function createServeModule(ctx) {
   const { distDir } = ctx;
@@ -20,7 +21,7 @@ function createServeModule(ctx) {
     var zlib = require('zlib');
     var opts = options || {};
     var argvPort = parseInt(process.argv[process.argv.indexOf('--port') + 1]);
-    var PORT = Number.isInteger(opts.port) ? opts.port : (argvPort || 3000);
+    var PORT = Number.isInteger(opts.port) ? opts.port : (argvPort || loadInternals().ports.serve);
     var MAINTENANCE = process.argv.indexOf('--maintenance') !== -1 || process.env.MAINTENANCE === '1';
     var MAINT_MSG = process.env.MAINTENANCE_MESSAGE || '本站正在维护中，请稍后再来。';
     // features.maintenance：setRetryAfter=false 时维护响应不输出 Retry-After；retryAfter 为秒数（非法回退 3600）。

@@ -59,13 +59,13 @@ jobs:
           STRESS: '1'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/ci-checks.js
-      - name: Upload nightly artifacts (ci-report / fuzz failures / web coverage / smoke)
+      - name: Upload nightly artifacts (ci-checks / fuzz failures / web coverage / smoke)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nightly-test-artifacts
           path: |
-            build-artifacts/ci-report.*
+            build-artifacts/ci-checks.*
             build-artifacts/fuzz-failures/**
             build-artifacts/web-coverage/**
             build-artifacts/web-smoke/**

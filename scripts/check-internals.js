@@ -88,8 +88,8 @@ function checkDeployWorkflow(internals) {
   if (!deployYml.includes('node scripts/ci-checks.js')) {
     failures.push('deploy.yml：未调用聚合检查器 scripts/ci-checks.js');
   }
-  if (!deployYml.includes('ci-report')) {
-    failures.push('deploy.yml：未上传 ci-report 工件');
+  if (!deployYml.includes('ci-checks')) {
+    failures.push('deploy.yml：未上传 ci-checks 工件');
   }
 }
 

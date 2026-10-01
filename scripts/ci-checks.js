@@ -5,7 +5,7 @@ require('./lib/process-guard.js');
 // CI 聚合检查器（deploy.yml / nightly.yml 单步调用）：
 //   顺序执行既有质量门禁（lint / typecheck / 单元与属性测试 / 恶意场景 / 配置家族 /
 //   安全验证 / 压缩验证 / 构建 / 无障碍审计 / SBOM / 依赖审计），不提前中断；
-//   每项捕获退出码、耗时与输出摘要，写入 artifactsDir/ci-report.{json,txt}；
+//   每项捕获退出码、耗时与输出摘要，写入 artifactsDir/ci-checks.{json,txt}；
 //   末尾任一失败则整体 exit 1，否则 0。Chrome 依赖项在未探测到浏览器时跳过并标注。
 //   internals.ci.aggregate=false 时退化为 fail-fast（首个失败即停）。
 
@@ -167,8 +167,8 @@ function runCheck(check) {
 
 function writeReport(report) {
   fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
-  const jsonPath = path.join(ARTIFACTS_DIR, 'ci-report.json');
-  const txtPath = path.join(ARTIFACTS_DIR, 'ci-report.txt');
+  const jsonPath = path.join(ARTIFACTS_DIR, 'ci-checks.json');
+  const txtPath = path.join(ARTIFACTS_DIR, 'ci-checks.txt');
   fs.writeFileSync(jsonPath, JSON.stringify(report, null, 2) + '\n', 'utf-8');
   const lines = [
     'CI 聚合检查报告（node scripts/ci-checks.js）',

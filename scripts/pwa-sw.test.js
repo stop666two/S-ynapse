@@ -157,7 +157,11 @@ test('配置契约：features/schema/site/ui-strings 默认值与接线', () => 
     updateToastMs: 0
   };
   for (const [key, value] of Object.entries(expected)) {
-    assert.strictEqual(features.pwa[key], value, 'features.json5 pwa.' + key);
+    assert.ok(Object.prototype.hasOwnProperty.call(features.pwa, key), 'features.json5 pwa.' + key + ' 存在');
+    // 派生副本（real-site）允许对默认值做真实覆盖；规范仓库保持严格一致。
+    if (process.env.SYNAPSE_DERIVED_COPY !== '1') {
+      assert.strictEqual(features.pwa[key], value, 'features.json5 pwa.' + key);
+    }
     assert.strictEqual(DEFAULT_FEATURES.pwa[key], value, 'schema pwa.' + key);
   }
   const site = json5.parse(fs.readFileSync(path.join(ROOT, 'site.json5'), 'utf-8'));

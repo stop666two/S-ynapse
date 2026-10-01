@@ -303,8 +303,12 @@ describe('features.dailyQuote schema 默认值', () => {
     assert.strictEqual(dq.copiedLabel, '已复制');
     assert.strictEqual(dq.copiedLabelEn, 'Copied');
     const features = json5.parse(fs.readFileSync(path.join(ROOT, 'features.json5'), 'utf-8'));
-    assert.deepStrictEqual(features.dailyQuote.dataFile, dq.dataFile);
-    assert.strictEqual(features.dailyQuote.count, dq.count);
+    // 派生副本（real-site）允许对默认值做真实覆盖；规范仓库保持严格一致。
+    assert.ok(Object.prototype.hasOwnProperty.call(features.dailyQuote, 'dataFile'), 'features.json5 dailyQuote.dataFile 存在');
+    if (process.env.SYNAPSE_DERIVED_COPY !== '1') {
+      assert.deepStrictEqual(features.dailyQuote.dataFile, dq.dataFile);
+      assert.strictEqual(features.dailyQuote.count, dq.count);
+    }
   });
 
   it('api 子块默认值与 features.json5 同步', () => {

@@ -8,16 +8,17 @@ const { safeSlug, validateSlug } = require('./lib/utils');
 const { resolveOgFormat } = require('./lib/og-format');
 const { resolveOgSize } = require('./lib/og-size');
 const { atomicTempPath, commitAtomicTemp, discardAtomicTemp, writeFileAtomicSync } = require('./lib/atomic-write');
-const { buildCacheKey, configFingerprint, getFresh, pruneTo } = require('./lib/asset-cache');
+const { buildCacheKey, configFingerprint, getFresh, pruneTo, ttlExpired } = require('./lib/asset-cache');
+const { resolveOutputDir } = require('./lib/output-dir');
+const { loadInternals } = require('./lib/internals');
 
-// 根目录：SYNAPSE_ROOT（测试隔离用）优先，默认仓库根。
+// 根目录：SYNAPSE_ROOT（测试隔离用）优先，默认仓库根；输出目录经共享解析：
+// `--out` > SYNAPSE_OUT_DIR > internals.paths.outDir > 默认 dist/（相对根目录解析）。
+// OG 图片最终写入 <输出目录>/og/{lang}/。
 const ROOT = process.env.SYNAPSE_ROOT ? path.resolve(process.env.SYNAPSE_ROOT) : path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
-// 输出根目录：SYNAPSE_OUT_DIR（build.js 在自定义输出时传入绝对路径）优先，默认 dist/。
-// 相对路径相对 ROOT 解析；OG 图片最终写入 <根目录>/og/{lang}/。
-const OUT_BASE = process.env.SYNAPSE_OUT_DIR
-  ? (path.isAbsolute(process.env.SYNAPSE_OUT_DIR) ? path.resolve(process.env.SYNAPSE_OUT_DIR) : path.resolve(ROOT, process.env.SYNAPSE_OUT_DIR))
-  : path.join(ROOT, 'dist');
+const OUT_BASE = resolveOutputDir(process.argv, ROOT).dir;
+const OG_TTL_DAYS = loadInternals().cache.ogTtlDays;
 const OUT_DIR = path.join(OUT_BASE, 'og');
 const BUILD_CACHE_PATH = path.join(ROOT, '.build-cache.json');
 const OG_CACHE_DIR = path.join(ROOT, '.cache', 'og');
@@ -518,7 +519,7 @@ async function main() {
     }
     const articleFp = coverStats ? configFingerprint([ogFingerprint, coverStats.mtimeMs, coverStats.size]) : ogFingerprint;
     const cacheKey = buildCacheKey(mdStats, articleFp);
-    if (getFresh(ogCache, cacheId, cacheKey) && fs.existsSync(cachePath)) {
+    if (getFresh(ogCache, cacheId, cacheKey) && fs.existsSync(cachePath) && !ttlExpired(cachePath, OG_TTL_DAYS)) {
       fs.copyFileSync(cachePath, outPath);
       madeSlugs.set(cacheId, outName);
       if (!madeByLang.has(langDir)) madeByLang.set(langDir, new Set());

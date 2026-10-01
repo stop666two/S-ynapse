@@ -18,19 +18,23 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const puppeteer = require('puppeteer-core');
+const { loadInternals } = require('./lib/internals');
+const { resolveChromePath } = require('./lib/chrome-path');
 
-const DEFAULT_CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const INTERNALS = loadInternals();
+const DEFAULT_URL = 'http://127.0.0.1:' + INTERNALS.ports.perf + '/';
 const NAV_TIMEOUT_MS = 40000, NETWORK_IDLE_MS = 10000, INTERACTION_SETTLE_MS = 1000, CPU_THROTTLE_RATE = 4;
 const SLOW_4G = { downloadThroughput: 200000, uploadThroughput: 93750, latency: 150 };
 const VIEWPORT = { width: 1440, height: 900, deviceScaleFactor: 1 };
 const METRIC_KEYS = ['lcp', 'cls', 'maxEvent', 'tbt', 'htmlBytes', 'totalBytes', 'requestCount'];
 const METRIC_LABELS = { lcp: 'LCP(ms)', cls: 'CLS', maxEvent: '交互最大时长(ms)', tbt: 'TBT(ms)', htmlBytes: 'HTML传输字节', totalBytes: '总传输字节', requestCount: '请求数' };
 const PHASE_KEYS = ['ttfb', 'resourceLoadDelay', 'resourceLoadDuration', 'renderDelay', 'fcp'];
-const USAGE = '用法: node scripts/perf-audit.js --url <URL> [--runs N] [--out <markdown>] [--json <文件>] [--chrome <路径>]';
+const USAGE = '用法: node scripts/perf-audit.js [--url <URL>] [--runs N] [--out <markdown>] [--json <文件>] [--chrome <路径>]（未传 --url 时默认 ' + DEFAULT_URL + '）';
 
-// CLI 解析（纯函数）：非法参数抛错，由 main 统一转为退出码 2
-function parseArgs(argv, env) {
-  const cfg = { url: '', runs: 3, out: '', json: '', chrome: String(env.CHROME_PATH || '').trim() || DEFAULT_CHROME };
+// CLI 解析（纯函数）：非法参数抛错，由 main 统一转为退出码 2；
+// 未传 --url 时默认审计 internals.ports.perf 指向的本地预览服务。
+function parseArgs(argv) {
+  const cfg = { url: DEFAULT_URL, runs: 3, out: '', json: '', chrome: resolveChromePath('') || '' };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i], value = argv[i + 1];
     if (flag === '--url') { cfg.url = value || ''; i++; }
@@ -40,9 +44,9 @@ function parseArgs(argv, env) {
     else if (flag === '--chrome') { cfg.chrome = String(value || '').trim(); i++; }
     else throw new Error('未知参数: ' + flag);
   }
-  if (!cfg.url) throw new Error('缺少必填参数 --url <URL>');
+  if (!cfg.url) throw new Error('--url 不能为空（省略时默认 ' + DEFAULT_URL + '）');
   if (!Number.isInteger(cfg.runs) || cfg.runs < 1 || cfg.runs > 20) throw new Error('--runs 必须是 1-20 的整数');
-  if (!cfg.chrome) throw new Error('--chrome 不能为空');
+  if (!cfg.chrome) throw new Error('未探测到 Chrome，请用 --chrome <路径> 或环境变量 CHROME_PATH 指定');
   return cfg;
 }
 
@@ -374,7 +378,7 @@ function writeText(file, content) {
 
 async function main() {
   let cfg;
-  try { cfg = parseArgs(process.argv.slice(2), process.env); }
+  try { cfg = parseArgs(process.argv.slice(2)); }
   catch (err) { console.error('参数错误: ' + err.message); console.error(USAGE); process.exit(2); }
   if (!fs.existsSync(cfg.chrome)) {
     console.error('未找到 Chrome: ' + cfg.chrome);

@@ -35,6 +35,8 @@ const { createHelpersModule } = require('./helpers');
 const { createPagesModule } = require('./pages');
 const { createServeModule } = require('./serve');
 const { createCacheModule } = require('./cache');
+const { resolveOutputDir } = require('../lib/output-dir');
+const { loadInternals } = require('../lib/internals');
 
 // Optional dependency loading — each fails gracefully to null/fallback
 // This allows the build to run with missing packages (features degrade instead of crashing)
@@ -86,20 +88,14 @@ try { hooks = require('../hooks'); } catch (e) { hooks = null; }
 // 否则内联脚本会被浏览器按 CSP 拦截。
 const CSP_NONCE = crypto.randomBytes(16).toString('base64');
 
-// Build output directory: `--out <dir>` > SYNAPSE_OUT_DIR > default dist/.
-// Relative values resolve against rootDir. 集成测试/预览构建可用 --out 写入临时目录；
-// 媒体与 OG 缓存（.build-cache.json / .cache/*）始终留在根目录，不随输出目录迁移。
-function resolveOutputDir(argv, rootDir) {
-  const idx = argv.indexOf('--out');
-  let value = (idx !== -1 && argv[idx + 1] && argv[idx + 1].charAt(0) !== '-') ? argv[idx + 1] : '';
-  if (!value && process.env.SYNAPSE_OUT_DIR) value = process.env.SYNAPSE_OUT_DIR;
-  if (!value) return { dir: path.join(rootDir, 'dist'), custom: false };
-  return { dir: path.isAbsolute(value) ? path.resolve(value) : path.resolve(rootDir, value), custom: true };
-}
+// Build output directory: `--out <dir>` > SYNAPSE_OUT_DIR > internals.paths.outDir > default dist/.
+// 解析实现与审计/验证/OG 生成脚本共享（scripts/lib/output-dir.js）。
+// 媒体与 OG 缓存（.build-cache.json / cacheDir/*）始终留在站点根目录，不随输出目录迁移。
 
 function createBuildContext(deps) {
   const rootDir = deps.rootDir;
   const argv = deps.argv || process.argv;
+  const internals = loadInternals();
 
   // Project directory structure — all paths relative to project root
   const ARTICLES_DIR = path.join(rootDir, 'articles');          // Markdown article source files
@@ -152,7 +148,8 @@ function createBuildContext(deps) {
 
   const CACHE_BUST_MANIFEST_PATH = path.join(DIST_DIR, 'cache-bust-manifest.json');
   const BUILD_CACHE_PATH = path.join(rootDir, '.build-cache.json');
-  const MEDIA_CACHE_DIR = path.join(rootDir, '.cache', 'media');
+  const CACHE_ROOT = path.resolve(rootDir, internals.paths.cacheDir);
+  const MEDIA_CACHE_DIR = path.join(CACHE_ROOT, 'media');
 
   const PKG_VERSION = (() => {
     try {
@@ -277,7 +274,7 @@ function createBuildContext(deps) {
   // 断网/超时/解析失败自动降级（仅告警，构建继续）。
   const cjkFonts = createCjkFontsModule({
     distDir: DIST_DIR,
-    cacheDir: path.join(rootDir, '.cache', 'fonts'),
+    cacheDir: path.join(CACHE_ROOT, 'fonts'),
     logger: console
   });
 
@@ -297,10 +294,11 @@ function createBuildContext(deps) {
     recordBuildFailure: helpers.recordBuildFailure
   });
 
-  // Mermaid 构建期渲染模块（scripts/build/mermaid.js）：注入项目根与构建期 CSP nonce；
-  // 文章解析后把 mermaid 代码块渲染为双主题内联 SVG（缓存 .cache/mermaid，失败回退客户端）。
+  // Mermaid 构建期渲染模块（scripts/build/mermaid.js）：注入项目根、缓存根与构建期 CSP nonce；
+  // 文章解析后把 mermaid 代码块渲染为双主题内联 SVG（缓存 <cacheRoot>/mermaid，失败回退客户端）。
   const mermaidSsr = createMermaidModule({
     rootDir,
+    cacheRoot: CACHE_ROOT,
     cspNonce: CSP_NONCE
   });
 
@@ -325,7 +323,7 @@ function createBuildContext(deps) {
   const autoCover = createAutoCoverModule({
     rootDir,
     distDir: DIST_DIR,
-    cacheDir: path.join(rootDir, '.cache', 'covers'),
+    cacheDir: path.join(CACHE_ROOT, 'covers'),
     sharp,
     getPublished: helpers.getPublished,
     logger: console
@@ -387,22 +385,22 @@ function createBuildContext(deps) {
     getPublished: helpers.getPublished,
     getInlineConfigKb: deps.getInlineConfigKb,
     recordBuildFailure: helpers.recordBuildFailure,
-    compressionVerifyReportPath: path.join(rootDir, '.cache', 'compression-verify', 'last.json')
+    compressionVerifyReportPath: path.join(CACHE_ROOT, 'compression-verify', 'last.json')
   });
 
   // 压缩与缓存指纹模块（scripts/build/minify.js）：注入路径、开关与共享依赖。
   // 机械拆分 1/N —— 函数体原样搬移，行为与拆分前一致（以 dist 哈希等价门禁验证）。
   // getCompression 为惰性读取器（构建 try 内首次消费）；getBundleFiles 为 build.js 活值
   // （本轮 esbuild 产物文件名），供 JS 混淆目标白名单读取；基线快照目录与验证结果路径
-  // 始终位于项目 .cache/（不随 --out 迁移，也不进入部署产物）。
+  // 始终位于站点 cacheDir（不随 --out 迁移，也不进入部署产物）。
   const minify = createMinifyModule({
     distDir: DIST_DIR,
     cacheBustManifestPath: CACHE_BUST_MANIFEST_PATH,
     bundleActive: BUNDLE_ACTIVE,
     getCompression: () => resolveCompressionState(),
-    compressionBaselineDir: path.join(rootDir, '.cache', 'compression-baseline'),
-    compressionVerifyReportPath: path.join(rootDir, '.cache', 'compression-verify', 'last.json'),
-    compressionVerifyProfileDir: path.join(rootDir, '.cache', 'chrome-verify-profile'),
+    compressionBaselineDir: path.join(CACHE_ROOT, 'compression-baseline'),
+    compressionVerifyReportPath: path.join(CACHE_ROOT, 'compression-verify', 'last.json'),
+    compressionVerifyProfileDir: path.join(CACHE_ROOT, 'chrome-verify-profile'),
     getAllFiles,
     recordBuildFailure: helpers.recordBuildFailure,
     getBundleFiles: deps.getBundleFiles,

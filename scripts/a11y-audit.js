@@ -18,17 +18,21 @@ const path = require('node:path');
 const net = require('node:net');
 const { spawn, spawnSync } = require('node:child_process');
 const puppeteer = require('puppeteer-core');
+const { loadInternals } = require('./lib/internals');
+const { resolveChromePath } = require('./lib/chrome-path');
+const { resolveOutputDir } = require('./lib/output-dir');
 
 const ROOT = path.resolve(__dirname, '..');
-const DIST = path.join(ROOT, 'dist');
-const DEFAULT_PORT = 3224;
+const internals = loadInternals();
+const DIST = resolveOutputDir(process.argv, ROOT).dir;
+const DEFAULT_PORT = internals.ports.a11y;
 const EXPLICIT_BASE = String(process.argv[2] || process.env.A11Y_BASE || '').trim();
 let BASE = EXPLICIT_BASE;
 const AXE_PATH = path.join(ROOT, 'node_modules', 'axe-core', 'axe.min.js');
-const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const CHROME = resolveChromePath('');
 const EXCLUDE = new Set(['build-report.html']);
-const HTML_SUMMARY_MAX = 120;
-const NODES_PER_RULE_MAX = 3;
+const HTML_SUMMARY_MAX = internals.audit.a11y.htmlSummaryMax;
+const NODES_PER_RULE_MAX = internals.audit.a11y.nodesPerRuleMax;
 
 function urlFor(rel) {
   if (rel === 'index.html') return '/';
@@ -64,9 +68,15 @@ if (!fs.existsSync(DIST)) {
   console.error('FATAL 未找到 dist/；请先运行 `npm run build`。');
   process.exit(1);
 }
-const PAGES = collectPages();
-if (PAGES.length === 0) {
+const ALL_PAGES = collectPages();
+if (ALL_PAGES.length === 0) {
   console.error('FATAL dist/ 下没有可审计的 HTML；请先运行 `npm run build`。');
+  process.exit(1);
+}
+const PAGES_LIMIT = internals.audit.a11y.pages;
+const PAGES = PAGES_LIMIT > 0 ? ALL_PAGES.slice(0, PAGES_LIMIT) : ALL_PAGES;
+if (CHROME === null) {
+  console.error('FATAL 未找到 Chrome；请通过 --chrome/CHROME_PATH、internals.chrome.path 或平台默认安装路径提供。');
   process.exit(1);
 }
 const NOT_FOUND_PAGES = PAGES.filter((p) => p.is404).length;

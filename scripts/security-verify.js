@@ -1,37 +1,18 @@
 #!/usr/bin/env node
 // Security regression verification for S-ynapse.
-// Injects a hostile article into articles/, runs a real build, and asserts
-// that no XSS payload reaches dist/ output (post page HTML + search index).
-// Restores the workspace by removing the temp article and rebuilding.
+// Injects a hostile article into an isolated .tmp-test site (never the real
+// articles/), runs a real build, and asserts that no XSS payload reaches the
+// output (post page HTML + search index). The isolated site is removed afterwards.
 
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { createTestSite } = require('./lib/test-site-builder');
+const { resolveOutputDir } = require('./lib/output-dir');
 
-const ROOT = path.resolve(__dirname, '..');
-const TEMP_FILE = path.join(ROOT, 'articles', 'zh', '_sec-verify.md');
-const TEMP_SLUG_FILE = path.join(ROOT, 'articles', 'zh', '_sec-slug.md');
+const PROJECT_DIR = path.resolve(__dirname, '..');
 const TEMP_SLUG = '_sec-verify';
 const ESCAPE_NAME = '_sec_escape_out';
-const DIST_INDEX = path.join(ROOT, 'dist', 'zh', TEMP_SLUG, 'index.html');
-// 搜索索引为内容寻址产物（dist/assets/search-index.<hash>.json）：优先按 zh 页面注入的 URL 定位，
-// 回退扫描 assets 目录（页面缺失/构建降级时仍能覆盖索引内容检查）。
-function findSearchIndexFile() {
-  const zhIndexHtml = path.join(ROOT, 'dist', 'zh', 'index.html');
-  if (fs.existsSync(zhIndexHtml)) {
-    const m = fs.readFileSync(zhIndexHtml, 'utf-8').match(/__SEARCH_INDEX_URL__\s*=\s*"([^"]+)"/);
-    if (m) {
-      const file = path.join(ROOT, 'dist', m[1].replace(/^\//, '').split('/').join(path.sep));
-      if (fs.existsSync(file)) return file;
-    }
-  }
-  const assetsDir = path.join(ROOT, 'dist', 'assets');
-  if (!fs.existsSync(assetsDir)) return '';
-  for (const name of fs.readdirSync(assetsDir)) {
-    if (/^search-index\.[0-9a-f]+\.json$/.test(name)) return path.join(assetsDir, name);
-  }
-  return '';
-}
 
 const MALICIOUS = `---
 title: 'S-ynapse sec verify </script><script>window.__SEC_PWNED__=1</script>'
@@ -59,7 +40,7 @@ date: 2020-01-01 00:00
 
 <a title="x>y" href="javascript:alert(4)">属性截断</a>
 
-<img srcset=a"onerror="alert(5)>
+<img srcset=a"onerror="alert(5)">
 `;
 
 const MALICIOUS_SLUG = `---
@@ -71,13 +52,60 @@ date: 2020-01-02 00:00
 # slug escape
 `;
 
+const site = createTestSite({
+  articles: 0,
+  pages: 0,
+  langs: ['zh'],
+  linkProject: true,
+  extraFiles: { [path.join('articles', 'zh', TEMP_SLUG + '.md')]: MALICIOUS }
+});
+// 夹具默认 security.json5 为空（CSP 关闭），无法验证 nonce 注入；此处启用最小 CSP 与安全头，
+// 与真实站点生成路径一致（构建期 applyCspNonce 会注入 nonce 并移除 unsafe-inline）。
+fs.writeFileSync(path.join(site.root, 'security.json5'), `{
+  csp: {
+    enabled: true,
+    directives: {
+      'default-src': ["'self'"],
+      'script-src': ["'self'"],
+      'style-src': ["'self'"],
+      'frame-ancestors': ["'none'"]
+    }
+  },
+  headers: { 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff' }
+}
+`, 'utf-8');
+const ROOT = site.root;
+const DIST = resolveOutputDir([], ROOT).dir;
+const TEMP_SLUG_FILE = path.join(ROOT, 'articles', 'zh', '_sec-slug.md');
+const DIST_INDEX = path.join(DIST, 'zh', TEMP_SLUG, 'index.html');
+
+// 搜索索引为内容寻址产物（dist/assets/search-index.<hash>.json）：优先按 zh 页面注入的 URL 定位，
+// 回退扫描 assets 目录（页面缺失/构建降级时仍能覆盖索引内容检查）。
+function findSearchIndexFile() {
+  const zhIndexHtml = path.join(DIST, 'zh', 'index.html');
+  if (fs.existsSync(zhIndexHtml)) {
+    const m = fs.readFileSync(zhIndexHtml, 'utf-8').match(/__SEARCH_INDEX_URL__\s*=\s*"([^"]+)"/);
+    if (m) {
+      const file = path.join(DIST, m[1].replace(/^\//, '').split('/').join(path.sep));
+      if (fs.existsSync(file)) return file;
+    }
+  }
+  const assetsDir = path.join(DIST, 'assets');
+  if (!fs.existsSync(assetsDir)) return '';
+  for (const name of fs.readdirSync(assetsDir)) {
+    if (/^search-index\.[0-9a-f]+\.json$/.test(name)) return path.join(assetsDir, name);
+  }
+  return '';
+}
+
 function fail(msg) {
   throw new Error(msg);
 }
 
 function build() {
-  execFileSync(process.execPath, [path.join('scripts', 'build.js')], {
-    cwd: ROOT,
+  execFileSync(process.execPath, [path.join(PROJECT_DIR, 'scripts', 'build.js')], {
+    cwd: PROJECT_DIR,
+    env: Object.assign({}, process.env, { SYNAPSE_ROOT: ROOT, SYNAPSE_OUT_DIR: DIST }),
     stdio: ['ignore', 'pipe', 'pipe']
   });
 }
@@ -98,10 +126,10 @@ function collectHtmlFiles(dir) {
 
 // CSP 回归断言：_headers 中 script-src 与 style-src 携带同一枚构建期 nonce 且 elem 语境
 // 均无 'unsafe-inline'；不再声明 style-src-attr（模板/产物无内联 style 属性，属性语境按 CSP3
-// 回退到 style-src 同样拒绝内联）；frame-ancestors 'none' 存在；dist 下所有内联 <style> 块
+// 回退到 style-src 同样拒绝内联）；frame-ancestors 'none' 存在；产物下所有内联 <style> 块
 // 都带有该 nonce（否则会被 CSP 拦截），且所有 HTML 不含元素 style 属性。
 function verifyCspNonceCoverage() {
-  const headersPath = path.join(ROOT, 'dist', '_headers');
+  const headersPath = path.join(DIST, '_headers');
   if (!fs.existsSync(headersPath)) fail('_headers not generated');
   const headersText = fs.readFileSync(headersPath, 'utf-8');
   const cspLine = headersText.split('\n').find((line) => line.includes('Content-Security-Policy'));
@@ -120,7 +148,7 @@ function verifyCspNonceCoverage() {
   if (styleAttr.includes("'unsafe-inline'")) fail("style-src-attr must not allow 'unsafe-inline' (inline style attributes are eliminated)");
   if (!cspLine.includes("frame-ancestors 'none'")) fail("frame-ancestors 'none' missing in _headers CSP");
   let styleTags = 0;
-  for (const file of collectHtmlFiles(path.join(ROOT, 'dist'))) {
+  for (const file of collectHtmlFiles(DIST)) {
     const text = fs.readFileSync(file, 'utf-8');
     const re = /<style\b([^>]*)>/gi;
     let match;
@@ -142,7 +170,6 @@ function verifyCspNonceCoverage() {
 
 let failed = false;
 try {
-  fs.writeFileSync(TEMP_FILE, MALICIOUS, 'utf-8');
   build();
 
   if (!fs.existsSync(DIST_INDEX)) fail(`post page not generated: ${DIST_INDEX}`);
@@ -231,7 +258,7 @@ try {
   for (const item of searchJson.docs) {
     if (item && item.featuredImage) {
       const rel = String(item.featuredImage).replace(/^\//, '');
-      if (!fs.existsSync(path.join(ROOT, 'dist', rel))) {
+      if (!fs.existsSync(path.join(DIST, rel))) {
         fail('search index featuredImage missing in dist (content addressing broken): ' + item.featuredImage);
       }
     }
@@ -243,22 +270,14 @@ try {
   let slugAborted = false;
   try { build(); } catch (e) { slugAborted = true; }
   if (!slugAborted) fail('invalid article slug did not abort the build');
-  if (fs.existsSync(path.join(ROOT, ESCAPE_NAME))) fail('invalid article slug escaped the project directory');
-  if (fs.existsSync(path.join(ROOT, 'dist', 'zh', ESCAPE_NAME))) fail('invalid article slug produced a page outside its language directory');
-  fs.rmSync(TEMP_SLUG_FILE, { force: true });
+  if (fs.existsSync(path.join(ROOT, ESCAPE_NAME))) fail('invalid article slug escaped the site root');
+  if (fs.existsSync(path.join(DIST, 'zh', ESCAPE_NAME))) fail('invalid article slug produced a page outside its language directory');
 
-  console.log('[PASS] Security verification: no XSS payload reached dist/; whitelist preserved.');
+  console.log('[PASS] Security verification: no XSS payload reached output; whitelist preserved.');
 } catch (err) {
   console.error('[FAIL] Security verification threw:', err.message);
   failed = true;
 } finally {
-  try { fs.rmSync(TEMP_FILE, { force: true }); } catch { /* 忽略：临时文件清理失败不影响验证结论 */ }
-  try { fs.rmSync(TEMP_SLUG_FILE, { force: true }); } catch { /* 忽略：临时文件清理失败不影响验证结论 */ }
-  try {
-    build();
-    console.log('[INFO] Rebuilt clean site after verification.');
-  } catch (err) {
-    console.error('[WARN] Final rebuild failed:', err.message);
-  }
+  try { site.cleanup(); } catch { /* 忽略：夹具清理失败不影响验证结论 */ }
 }
 process.exit(failed ? 1 : 0);

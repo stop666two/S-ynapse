@@ -9,20 +9,14 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { spawnSync } = require('child_process');
 const { writeFileAtomicSync } = require('./atomic-write');
 const { sanitizeSvg } = require('./content-policy');
+const { ttlExpired } = require('./asset-cache');
+const { resolveChromePath, defaultWhich } = require('./chrome-path');
 
 const PRE_BLOCK_RX = /<pre\b([^>]*)>\s*<code\b([^>]*)>([\s\S]*?)<\/code>\s*<\/pre>/gi;
 const DIV_BLOCK_RX = /<div\b([^>]*)>([\s\S]*?)<\/div>/gi;
 const SVGS_PUBLIC = /<svg\b[^>]*>/i;
-
-const WINDOWS_CHROME_PATHS = [
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe'
-];
-const MAC_CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const POSIX_CHROME_COMMANDS = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'];
 
 function sha256(text) {
   return crypto.createHash('sha256').update(text, 'utf-8').digest('hex');
@@ -309,48 +303,6 @@ function replaceMermaidBlocks(html, results, options) {
   return out;
 }
 
-function defaultWhich(name) {
-  const cmd = process.platform === 'win32' ? 'where' : 'which';
-  try {
-    const res = spawnSync(cmd, [name], { encoding: 'utf-8', timeout: 5000 });
-    if (res.status === 0 && res.stdout) {
-      const first = res.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)[0];
-      if (first) return first;
-    }
-  } catch (err) { /* 探测失败按未找到处理 */ }
-  return null;
-}
-
-// Chrome 探测：显式配置 > CHROME_PATH > 平台默认路径 > PATH 中的 google-chrome/chromium。
-// deps 可注入（env/platform/exists/which）以便单测不依赖真实文件系统。
-function resolveChromePath(explicitPath, deps) {
-  const d = Object.assign({
-    env: process.env,
-    platform: process.platform,
-    exists: (p) => { try { return fs.existsSync(p); } catch (err) { return false; } },
-    which: defaultWhich
-  }, deps || {});
-  const candidates = [];
-  if (explicitPath) candidates.push(explicitPath);
-  if (d.env && d.env.CHROME_PATH) candidates.push(d.env.CHROME_PATH);
-  if (d.platform === 'win32') {
-    for (const p of WINDOWS_CHROME_PATHS) candidates.push(p);
-    if (d.env && d.env.LOCALAPPDATA) candidates.push(path.join(d.env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe'));
-  } else if (d.platform === 'darwin') {
-    candidates.push(MAC_CHROME_PATH);
-  }
-  for (const candidate of candidates) {
-    if (candidate && d.exists(candidate)) return candidate;
-  }
-  if (d.platform !== 'win32') {
-    for (const name of POSIX_CHROME_COMMANDS) {
-      const hit = d.which(name);
-      if (hit) return hit;
-    }
-  }
-  return null;
-}
-
 function resolveMermaidVersion() {
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'node_modules', 'mermaid', 'package.json'), 'utf-8'));
@@ -381,6 +333,7 @@ function createMermaidRenderer(options) {
   const version = opts.version || resolveMermaidVersion();
   const mermaidPath = opts.mermaidPath || path.join(__dirname, '..', '..', 'node_modules', 'mermaid', 'dist', 'mermaid.min.js');
   const timeoutMs = opts.timeoutMs || 10000;
+  const cacheTtlDays = Number(opts.cacheTtlDays) || 0;
   const resolveChrome = opts.resolveChrome || (() => resolveChromePath(opts.chromePath || ''));
 
   function cacheFile(key) {
@@ -391,6 +344,7 @@ function createMermaidRenderer(options) {
     try {
       const file = cacheFile(key);
       if (!fs.existsSync(file)) return null;
+      if (ttlExpired(file, cacheTtlDays)) return null;
       const svg = fs.readFileSync(file, 'utf-8');
       return svg || null;
     } catch (err) {

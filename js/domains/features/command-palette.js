@@ -29,8 +29,7 @@ export function init() {
   var navItems = null, actItems = null, posts = null, results = [], active = -1;
 
   function langPrefix() {
-    var m = location.pathname.match(/^\/([a-z]{2})(\/|$)/);
-    return '/' + (m ? m[1] : 'zh') + '/';
+    return '/' + window.langOf() + '/';
   }
   function esc(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
@@ -68,10 +67,12 @@ export function init() {
     return actItems;
   }
   function searchIndexUrl() {
-    return window.__SEARCH_INDEX_URL__ || (langPrefix() + 'search-index.json');
+    return window.__SEARCH_INDEX_URL__ || '';
   }
   function loadPosts() {
     if (!F.includeSearch || posts !== null) return Promise.resolve(posts || []);
+    // 索引地址缺失即不可用：静默返回空集（不请求旧固定路径，避免 404 死链）。
+    if (!searchIndexUrl()) { posts = []; return Promise.resolve(posts); }
     // 搜索索引为构建期内容寻址 JSON（{docs, fields}）；兼容旧版数组结构（同构建周期内不应出现）。
     return fetch(searchIndexUrl()).then(function (r) { return r.ok ? r.json() : {}; }).then(function (data) {
       var docs = Array.isArray(data) ? data : (data && Array.isArray(data.docs) ? data.docs : []);

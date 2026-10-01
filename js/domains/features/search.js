@@ -4,13 +4,9 @@ export function init() {
   var TNS = (window.__TUNING__ || {}).search || {};
   var searchKbIdx = -1;
   var searchKbList = [];
+  // 索引地址为构建期内容寻址 URL（页面内联注入）；缺失即索引不可用（旧固定路径已不再产出，不回退）。
   function searchIndexUrl() {
-    var url = window.__SEARCH_INDEX_URL__;
-    if (!url) {
-      var m = location.pathname.match(/^\/([a-z]{2})(\/|$)/);
-      url = '/' + (m ? m[1] : 'zh') + '/search-index.json';
-    }
-    return url;
+    return window.__SEARCH_INDEX_URL__ || '';
   }
   // 索引加载：倒排索引（构建期内容寻址 JSON）；缓存到 window.__SEARCH_DATA__（失败置 __SEARCH_ERROR__）。
   function ensureData(force) {
@@ -26,7 +22,15 @@ export function init() {
     var rRaw = parseInt(TNS.indexRetry, 10);
     var retries = isNaN(rRaw) || rRaw < 0 ? 1 : rRaw;
     window.__SEARCH_ERROR__ = false;
-    return ensureIndex(searchIndexUrl(), { timeoutMs: timeoutMs, retries: retries, force: !!force }).then(function (data) {
+    var url = searchIndexUrl();
+    if (!url) {
+      // 无索引地址（构建未产出/配置关闭）：显式错误态，不请求任何地址。
+      window.__SEARCH_DATA__ = null;
+      window.__SEARCH_DATA_READY__ = false;
+      window.__SEARCH_ERROR__ = true;
+      return Promise.resolve(null);
+    }
+    return ensureIndex(url, { timeoutMs: timeoutMs, retries: retries, force: !!force }).then(function (data) {
       if (data) {
         window.__SEARCH_DATA__ = data;
         window.__SEARCH_DATA_READY__ = true;
@@ -60,7 +64,7 @@ export function init() {
     return String(window.__SEARCH_PROVIDER__ || '') === 'pagefind' && PF.integrate !== false;
   }
   function isEnSearch() {
-    return (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
+    return window.langOf() === 'en';
   }
   function focusPagefind() {
     var wrap = document.getElementById('pfWrap');

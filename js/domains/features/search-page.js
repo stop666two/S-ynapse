@@ -24,15 +24,11 @@ export function init() {
   var current = '';
 
   function isEnSearch() {
-    return (document.documentElement.getAttribute('data-lang') || ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'zh')) === 'en';
+    return window.langOf() === 'en';
   }
+  // 索引地址为构建期内容寻址 URL；缺失即索引不可用（旧固定路径已不再产出，不回退 404 死路径）。
   function indexUrl() {
-    var u = window.__SEARCH_INDEX_URL__;
-    if (!u) {
-      var m = location.pathname.match(/^\/([a-z]{2})(\/|$)/);
-      u = '/' + (m ? m[1] : 'zh') + '/search-index.json';
-    }
-    return u;
+    return window.__SEARCH_INDEX_URL__ || '';
   }
   function esc(s) {
     return String(s == null ? '' : s)
@@ -129,6 +125,7 @@ export function init() {
     var state = searchIndexState();
     if (state.index && !force) return Promise.resolve(state.index);
     if (!force && loadPromise) return loadPromise;
+    if (!indexUrl()) { loadPromise = null; return Promise.resolve(null); }
     loadPromise = ensureIndex(indexUrl(), { timeoutMs: timeouts.timeoutMs, retries: timeouts.retries, force: !!force }).then(function (idx) {
       loadPromise = null;
       return idx;

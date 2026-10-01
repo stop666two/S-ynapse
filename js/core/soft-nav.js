@@ -45,8 +45,7 @@ export function setOn(on) {
 window.__softNavActive = isOn;
 
 function langSeg(pathname) {
-  const m = /^\/(zh|en)(?=\/|$)/.exec(pathname || '');
-  return m ? m[1] : '';
+  return window.__langSeg ? window.__langSeg(pathname) : '';
 }
 
 function eligible(a) {
@@ -120,13 +119,33 @@ function syncMeta(curRoot, nextRoot, attr) {
   });
 }
 
+// 按目标页顺序逐项替换同类 head 节点（存在则原位替换、多则删除、缺则追加），
+// 供 canonical / hreflang / feed alternate / JSON-LD 等成组节点在软导航后保持与目标页一致。
+function syncOrderedLinks(curRoot, nextRoot, sel) {
+  const cur = Array.prototype.slice.call(curRoot.querySelectorAll(sel));
+  const next = Array.prototype.slice.call(nextRoot.querySelectorAll(sel));
+  const len = Math.max(cur.length, next.length);
+  for (let i = 0; i < len; i++) {
+    const curNode = cur[i];
+    const nextNode = next[i];
+    if (curNode && nextNode) curNode.replaceWith(nextNode.cloneNode(true));
+    else if (curNode) curNode.remove();
+    else if (nextNode) curRoot.appendChild(nextNode.cloneNode(true));
+  }
+}
+
 function syncHead(newDoc) {
   document.title = newDoc.title || document.title;
   syncMeta(document.head, newDoc.head, 'name');
   syncMeta(document.head, newDoc.head, 'property');
-  ['link[rel="canonical"]', 'script[type="application/ld+json"]'].forEach(function (sel) {
-    document.head.querySelectorAll(sel).forEach(function (n) { n.remove(); });
-    newDoc.head.querySelectorAll(sel).forEach(function (n) { document.head.appendChild(n.cloneNode(true)); });
+  [
+    'link[rel="canonical"]',
+    'link[rel="alternate"][hreflang]',
+    'link[rel="alternate"][type="application/rss+xml"]',
+    'link[rel="alternate"][type="application/feed+json"]',
+    'script[type="application/ld+json"]'
+  ].forEach(function (sel) {
+    syncOrderedLinks(document.head, newDoc.head, sel);
   });
 }
 

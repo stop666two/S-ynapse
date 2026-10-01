@@ -129,8 +129,8 @@ validate（RELEASE.json 双重校验）
 → archive（白名单归档：articles/media 仅 .gitkeep 骨架 + RELEASE.json=package.json=tag
            版本一致性校验，上传 artifact）
 → buildability（下载归档 → 解压 → npm ci --ignore-scripts → npm test → npm run build
-                 断言 dist/index.html、dist/build-report.html、每语言 /assets/search-index.<hash>.json；
-                 任一环节失败即不发布）
+                 断言 dist/index.html、dist/build-report.html、每语言搜索页与
+                 /assets/search-index.<hash>.json 内容寻址索引；任一环节失败即不发布）
 → publish（gh release create --verify-tag --latest → release-prune 清理其余 Release；tag 永不删除）
 ```
 

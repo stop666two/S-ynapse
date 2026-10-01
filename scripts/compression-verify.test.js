@@ -10,6 +10,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const net = require('node:net');
+const http = require('node:http');
 const {
   BASELINE_MANIFEST,
   collectSnapshotTargets,
@@ -24,7 +25,13 @@ const {
   discoverVerifyPages,
   runInteractions,
   stabilizeStaticSample,
-  waitForPortRelease
+  waitForPortRelease,
+  waitForServerHttp,
+  gotoWithRetry,
+  createRunProfileDir,
+  removeRunProfileDir,
+  summarizeFailures,
+  verifyCompression
 } = require('./lib/compression-verify');
 const {
   MIME_TYPES,
@@ -341,5 +348,199 @@ describe('runInteractions（交互冒烟空站兼容）', () => {
     await runInteractions(makePage({ search: true, theme: true, softNav: false, error: 'boom' }), report);
     assert.equal(report.failures.length, 1);
     assert.ok(report.failures[0].detail.includes('softNav'));
+  });
+});
+
+describe('waitForServerHttp（HTTP 就绪轮询）', () => {
+  test('服务可达且返回 <500：通过', async () => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end('ok');
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = server.address().port;
+    assert.equal(await waitForServerHttp(port, { timeoutMs: 2000, intervalMs: 50 }), true);
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  test('服务未监听：超时后抛出携带描述与底层原因的错误', async () => {
+    const probe = net.createServer();
+    await new Promise((resolve) => probe.listen(0, '127.0.0.1', resolve));
+    const port = probe.address().port;
+    await new Promise((resolve) => probe.close(resolve));
+    await assert.rejects(
+      () => waitForServerHttp(port, { timeoutMs: 400, intervalMs: 50, description: 'compressed:' + port }),
+      (err) => {
+        assert.ok(err.message.includes('compressed:' + port), err.message);
+        assert.ok(err.message.includes('HTTP 就绪探测失败'), err.message);
+        assert.ok(err.cause, '必须保留底层连接错误');
+        return true;
+      }
+    );
+  });
+
+  test('AbortSignal 取消：立即拒绝不再轮询', async () => {
+    const probe = net.createServer();
+    await new Promise((resolve) => probe.listen(0, '127.0.0.1', resolve));
+    const port = probe.address().port;
+    await new Promise((resolve) => probe.close(resolve));
+    const controller = new AbortController();
+    const pending = waitForServerHttp(port, { timeoutMs: 5000, intervalMs: 50, signal: controller.signal });
+    controller.abort();
+    await assert.rejects(() => pending);
+  });
+});
+
+describe('gotoWithRetry（导航瞬态重试）', () => {
+  function makePage(results) {
+    const calls = [];
+    const page = {
+      calls,
+      closed: false,
+      isClosed() { return page.closed; },
+      async goto(url, options) {
+        calls.push({ url, options });
+        if (url === 'about:blank') return { ok: true };
+        const next = results.shift();
+        if (next instanceof Error) throw next;
+        return next === undefined ? { ok: true } : next;
+      }
+    };
+    return page;
+  }
+
+  test('前两次失败、第三次成功：线性退避并在重试前复位 about:blank', async () => {
+    const page = makePage([
+      new Error('Navigation timeout of 30000 ms exceeded'),
+      new Error('net::ERR_CONNECTION_REFUSED'),
+      { ok: true }
+    ]);
+    const waits = [];
+    const result = await gotoWithRetry(page, 'http://127.0.0.1:1/zh/', {
+      waitUntil: 'load',
+      timeout: 1000,
+      sleep: async (ms) => waits.push(ms),
+      navigationBackoffMs: 10
+    });
+    assert.equal(result.attempts, 3);
+    assert.deepEqual(waits, [10, 20]);
+    assert.equal(page.calls.length, 5);
+    assert.equal(page.calls[1].url, 'about:blank');
+    assert.equal(page.calls[3].url, 'about:blank');
+    assert.equal(page.calls[4].url, 'http://127.0.0.1:1/zh/');
+  });
+
+  test('用尽重试仍失败：错误含 URL 与尝试次数并保留 cause', async () => {
+    const page = makePage([new Error('Navigation timeout'), new Error('Navigation timeout'), new Error('Navigation timeout')]);
+    await assert.rejects(
+      () => gotoWithRetry(page, 'http://127.0.0.1:1/zh/', { sleep: async () => {}, navigationBackoffMs: 0 }),
+      (err) => {
+        assert.ok(err.message.includes('http://127.0.0.1:1/zh/'), err.message);
+        assert.ok(err.message.includes('尝试 3/3'), err.message);
+        assert.ok(err.cause instanceof Error);
+        return true;
+      }
+    );
+  });
+
+  test('页面已关闭：不再重试，立即聚合抛出', async () => {
+    const page = makePage([new Error('Target closed')]);
+    page.closed = true;
+    await assert.rejects(() => gotoWithRetry(page, 'http://127.0.0.1:1/zh/', { sleep: async () => {} }));
+    assert.equal(page.calls.length, 1);
+  });
+});
+
+describe('临时 profile 目录（并发隔离与清理）', () => {
+  test('createRunProfileDir：每次随机子目录且互不相同；removeRunProfileDir 删除', () => {
+    const base = makeTmpDir('synapse-profile-base-');
+    const a = createRunProfileDir(base);
+    const b = createRunProfileDir(base);
+    assert.notEqual(a, b);
+    assert.ok(a.startsWith(base));
+    assert.ok(fs.existsSync(a) && fs.existsSync(b));
+    assert.equal(removeRunProfileDir(a), true);
+    assert.ok(!fs.existsSync(a));
+    fs.rmSync(base, { recursive: true, force: true });
+  });
+
+  test('removeRunProfileDir：空路径视为已清理', () => {
+    assert.equal(removeRunProfileDir(''), true);
+  });
+});
+
+describe('summarizeFailures（失败摘要含阶段）', () => {
+  test('摘要含 kind/stage/page，超过 3 项给出总数', () => {
+    const out = summarizeFailures([
+      { kind: 'internal', stage: 'static-compare', detail: 'goto 失败' },
+      { kind: 'dom', page: '/zh/', detail: { index: 3 } },
+      { kind: 'style', page: '/en/', detail: { index: 1 } },
+      { kind: 'console', page: '/zh/', detail: {} }
+    ]);
+    assert.ok(out.includes('internal/static-compare: goto 失败'), out);
+    assert.ok(out.includes('dom@/zh/'), out);
+    assert.ok(out.includes('等共 4 项'), out);
+  });
+});
+
+describe('verifyCompression（注入 fake 浏览器）', () => {
+  test('goto 持续失败：报告 failed 且含阶段，goto 重试后 finally 清理随机 profile', async () => {
+    const dist = makeDist();
+    const baselineRoot = path.join(makeTmpDir('synapse-verify-fake-'), 'snapshot');
+    createBaselineSnapshot(dist, baselineRoot);
+    const profileBase = path.join(makeTmpDir('synapse-verify-profile-'), 'base');
+    let gotoCalls = 0;
+    let launchedProfile = '';
+    let launchedUserDataDir = '';
+    const makeFakePage = () => ({
+      setJavaScriptEnabled: async () => {},
+      emulateMediaFeatures: async () => {},
+      setDefaultTimeout: () => {},
+      setDefaultNavigationTimeout: () => {},
+      isClosed: () => false,
+      async goto() {
+        gotoCalls += 1;
+        throw new Error('net::ERR_CONNECTION_REFUSED');
+      },
+      async evaluate() { return null; },
+      async close() {},
+      on() {}
+    });
+    const fakePuppeteer = {
+      async launch(launchOptions) {
+        launchedUserDataDir = launchOptions.userDataDir;
+        launchedProfile = launchOptions.userDataDir;
+        return {
+          async newPage() { return makeFakePage(); },
+          async close() {},
+          process() { return null; }
+        };
+      }
+    };
+    try {
+      const report = await verifyCompression({
+        distDir: dist,
+        baselineDir: baselineRoot,
+        chromePath: process.execPath,
+        profileDir: profileBase,
+        puppeteer: fakePuppeteer,
+        env: {},
+        logger: { warn() {}, log() {}, error() {} }
+      });
+      assert.equal(report.status, 'failed');
+      const internal = report.failures.find((failure) => failure.kind === 'internal');
+      assert.ok(internal, JSON.stringify(report.failures));
+      assert.equal(internal.stage, 'static-compare');
+      assert.ok(internal.detail.includes('goto 失败'), internal.detail);
+      assert.ok(gotoCalls >= 6, '两态页面各自必须发生瞬态重试，实际 ' + gotoCalls);
+      assert.ok(launchedUserDataDir.startsWith(profileBase), launchedUserDataDir);
+      assert.equal(report.profileDir, launchedUserDataDir);
+      assert.equal(report.profileCleaned, true);
+      assert.ok(!fs.existsSync(launchedProfile), '随机 profile 必须被 finally 清理');
+    } finally {
+      fs.rmSync(dist, { recursive: true, force: true });
+      fs.rmSync(path.dirname(baselineRoot), { recursive: true, force: true });
+      fs.rmSync(path.dirname(profileBase), { recursive: true, force: true });
+    }
   });
 });

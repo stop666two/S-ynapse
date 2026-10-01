@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **LCP 渲染延迟专项（首图预载尺寸对齐 + 下折叠离屏渲染跳过 + 资源优先级校准）**：生产基线渲染延迟 1303ms / 本地 1554ms 的构成经 trace 定位为——首图已就绪但主线程被「首屏样式计算与布局（4× CPU 下 250–570ms）+ 拉丁字体换排（~200–300ms）+ CJK 字体 CSS 解析（~80–170ms）」连续占用，图片绘制被排到最后一次布局之后。三项修复：①首页首卡预载由 `<link rel=preload as=image href=原图>` 改为携带 `imagesrcset`/`imagesizes`（与卡片 `<img>` 的 srcset/sizes 逐字一致，现代浏览器按实际候选预载并复用请求；此前预载 1600w 原图而卡片实际使用 640w，同一张图下载两份），LCP 命中资源加载时长 539→270ms、传输总字节 −83KB；②新增 `features.lcpOptimize.offscreenSkip`（schema 默认关闭，示例站启用）——首页/标签/归档列表第 4 张起的卡片与 `.sidebar`/`.site-footer` 以 `content-visibility:auto` + `contain-intrinsic-size:auto` 跳过离屏样式计算与布局，实测页面总高不变、滚动增量 CLS ≤0.0002；③`site.<hash>.css` 链接 `fetchpriority="high"`、异步 CJK CSS 链接 `fetchpriority="low"`，交错 A/B 中位 LCP 约 −180ms。**本机 Slow4G + 4× CPU 官方口径中位 2272→1684ms（5 次采样；同会话交错 A/B 2064→1738ms，LCP 命中资源由 1600w 变为 640w）**；未达本地 ≤1.2s 目标：trace 证据显示地板为「Slow 4G 下 28.4KB(gzip) 渲染阻塞 site.css 于 ~690ms 完成 → 4× CPU 下首屏样式+布局 250–570ms → 字体/CJK 追加换排」，CPU 1× 同构建 LCP 1136ms 已达标；进一步下探需关键 CSS 内联/拆分，属独立改造（残余与复测建议见 `docs/perf-baseline-local.md`）。假设否决记录（如实保留）：拉丁字体 CSS 延迟到 DCL 后应用（交错 6 轮裁决无 LCP 收益，已回退）；zh 页重新 preload Inter（TBT +800ms、LCP 恶化）；CJK CSS 响应延迟 1800ms（LCP 无稳定收益）；`.js-img` 过渡与 `will-change` 关闭（cv 生效后收益并入噪声）。验证：`scripts/build-smoke.test.js`（imagesrcset/离屏规则/优先级断言）+ `scripts/config-wiring.test.js`（offscreenSkip 双态）+ `npm test`（972 项）、`test:build`、lint、typecheck、五 config verify 全绿；计数同步 features 103 模块/1051 项、全仓 2894 项。改动文件：`scripts/build/pages.js` + `templates/layout.ejs` + `templates/site-css.ejs` + `scripts/lib/features-schema.js` + `features.json5` + `docs/config-reference.md` + `README.md` + `scripts/config-count.test.js`。
+
 ## [1.2.0] - 2026-10-01
 
 ### Fixed

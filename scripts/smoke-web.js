@@ -88,7 +88,7 @@ async function main() {
   try {
     port = await server.ready;
     process.stdout.write('[smoke-web] serve 127.0.0.1:' + port + '\n');
-    browser = await launchChrome(chromePath);
+    browser = await launchChrome(chromePath, { allowedPorts: [port] });
     const page = await browser.newPage();
     const consoleState = attachConsole(page);
     for (const entry of report.pages) {

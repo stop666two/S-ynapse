@@ -135,14 +135,21 @@ function stopStaticServer(handle) {
 /**
  * 启动无头 Chrome（puppeteer-core + 系统 Chrome）。
  * @param {string} chromePath
+ * @param {{ allowedPorts?: number[] }} [options] allowedPorts：系统随机分配的本地服务端口可能落入
+ *   Chrome 禁用端口表（如 6697），须经 --explicitly-allowed-ports 显式放行，否则导航 ERR_UNSAFE_PORT。
  * @returns {Promise<any>} Browser 实例
  */
-function launchChrome(chromePath) {
+function launchChrome(chromePath, options) {
   const puppeteerCore = require('puppeteer-core');
+  const opts = options || {};
+  const args = ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-proxy-server', '--disable-features=Translate,OptimizationHints'];
+  if (Array.isArray(opts.allowedPorts) && opts.allowedPorts.length) {
+    args.push('--explicitly-allowed-ports=' + opts.allowedPorts.join(','));
+  }
   return puppeteerCore.launch({
     executablePath: chromePath,
     headless: true,
-    args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-proxy-server', '--disable-features=Translate,OptimizationHints'],
+    args: args,
     timeout: 30000,
     protocolTimeout: 180000
   });

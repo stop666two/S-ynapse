@@ -10,6 +10,8 @@
 // 不可填：未知顶层/嵌套键（校验报错）、超出范围的数值、非法枚举与颜色格式；
 //         需要站点级可配置的参数（应放 features/site 等站点配置）。
 // 推荐：保持随仓库提交；本地临时覆盖用环境变量（CHROME_PATH/SYNAPSE_OUT_DIR）而非改本文件。
+// 默认值：本文件即默认清单——每个键的当前值就是规范默认值；代码侧默认见
+//        scripts/lib/internals-defaults.js，二者由 verify:internals 与单元测试逐键守护。
 // 守卫：scripts/check-internals.js（verify:internals）校验 .nvmrc、workers/wrangler.toml
 //       的 assets 目录与关键写死形态是否与本文件一致；check-config-refs/comments/docs
 //       亦覆盖本文件。

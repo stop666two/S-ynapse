@@ -1439,7 +1439,7 @@
         edgeLabelBackground: 'transparent'
       }
     },
-    // 渲染模式:构建期服务端渲染(默认) / 客户端按需渲染(旧行为)。
+    // 渲染模式:构建期服务端渲染(默认) / 客户端按需渲染(懒加载 vendor 现场渲染)。
     // 类型: string | 可填: 'build'(构建时生成内联 <svg>,页面不再加载 3.5MB vendor;渲染失败或无 Chrome 时自动回退客户端) |
     //          'client'(保持懒加载 vendor + __mmStart 客户端渲染) | 推荐: 'build'
     mode: 'build',
@@ -2476,7 +2476,7 @@
     enabled: true,
     // 注册 Service Worker(获得离线缓存能力;由 js 端在支持时注册 /sw.js)
     registerSW: true,
-    // SW 新版本就绪时在页面顶部显示提示条(「新版本可用 + 刷新按钮」,可关闭;避免用户停留在旧版本)
+    // SW 新版本就绪时在页面顶部显示提示条(「新版本可用 + 刷新按钮」,可关闭;避免用户停留在陈旧缓存版本)
     updatePrompt: true,
     // 断网/恢复连接时弹 toast 提示(仅在 navigator.onLine 事件触发)
     offlineNotice: true,
@@ -2639,7 +2639,7 @@
     //   与此同时主样式不再阻塞渲染。以首屏阻塞字节口径计:改前 = HTML 13.8KB + 阻塞 CSS
     //   28.4KB ≈ 42.2KB;改后 = HTML 22.5KB + 阻塞 CSS 0 ≈ 22.5KB(-19.7KB)。
     //   raw/gzip 总量上升是「把阻塞样式搬进 HTML」的已知代价;实测最大 43.9KB,阈值取 45KB。
-    //   criticalCss 关闭时旧口径(实测最大 36.6KB,阈值 40KB)仍有余量。
+    //   criticalCss 关闭时按未内联口径(实测最大 36.6KB,阈值 40KB)仍有余量。
     htmlKb: 45,
     // 页面 HTML raw 体积中位上限(KB;长文压力页等极端页面不受中位代表,仅作回归护栏)。
     // 85KB 说明:同上,关键样式内联使 raw 中位由 41.9KB 升至 79.5KB(gzip 传输口径见 htmlKb);
@@ -2668,7 +2668,7 @@
     //   以及 `.post-featured-image.js-img` 的懒加载淡入初始 opacity:0。
     // 收益: Slow4G + 4x CPU 实测渲染延迟下降(JS 启动链不再挡 LCP 绘制)。
     // 代价: 首屏第一张卡片/头图不再播放入场淡入(第二张起不受影响)。
-    // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 保持旧行为)。
+    // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 关闭;回退=置 false)。
     revealExemptFirstPaint: true,
     // CJK 字体 CSS 异步化(@font-face 声明不再阻塞首屏渲染)。
     // 作用: cjk-fonts.css 以 media="print" 低优先加载,加载完成后由 nonce 内联脚本翻回
@@ -2677,7 +2677,7 @@
     // 代价: CJK 字形回退→自托管字体的切换时机后移(仍为 font-display:swap 语义,无空白期)。
     // 注意: 依赖 layout.ejs 内联引导脚本与 cjk-fonts.js 的引用改写/降级剥离兼容;
     //   构建失败回退系统字体时脚本自动空转。
-    // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 保持旧行为)。
+    // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 关闭;回退=置 false)。
     asyncCjkFontCss: true,
     // CJK 语言页跳过拉丁字体 preload。
     // 背景: 中文字体的字形来自 CJK 子集(unicode-range 懒加载),拉丁字体(Inter)只承担
@@ -2687,7 +2687,7 @@
     //   字体仍由 @font-face 在首次使用时拉取(有 font-display:swap 回退)。
     // 代价: zh 页少量拉丁字符(数字/英文标题)的字体切换时机后移(系统字体→Inter)。
     // 注意: en 页不受影响(仍 preload);site.performance.preloadFonts=false 时本键无意义。
-    // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 保持旧行为)。
+    // 类型: boolean | 可填: true(推荐)/false | 默认 false(= 关闭;回退=置 false)。
     // 复测备注: 关键 CSS 内联后曾试恢复本项(false)让字体换排与首帧同步，实测 FCP 由
     //   ~500ms 升至 ~1490ms、LCP 中位 1520ms（48KB 字体与首屏关键资源争带宽），维持 true。
     skipLatinFontPreloadOnCjk: true,
@@ -2869,7 +2869,7 @@
     // 首页展示的最近阅读条数(超出按时间淘汰;卡片过密建议不超过 6)。
     // 类型: number | 可填: ≥1 的整数 | 推荐: 3
     count: 3,
-    // 是否显示阅读进度条与百分比(进度记录在阅读历史条目的 p 字段;旧记录无该字段按 0% 显示)。
+    // 是否显示阅读进度条与百分比(进度记录在阅读历史条目的 p 字段;缺少 p 字段的记录按 0% 显示)。
     // 类型: boolean | 可填: true/false | 推荐: true
     showProgress: true,
     // localStorage 键名: 复用 features.readingHistory.storageKey 的同一份阅读历史(勿另建数据源);
@@ -2930,7 +2930,7 @@
     // 类型: boolean | 可填: true/false | 推荐: true
     enabled: true,
 
-    // 关闭记录的 localStorage 键(按语言分别记忆，存储 {"zh":hash,"en":hash}；修改会使旧关闭记录失效，旧版单值会自动迁移)
+    // 关闭记录的 localStorage 键(按语言分别记忆，存储 {"zh":hash,"en":hash}；修改本键会使已关闭记录失效，单值形态会自动迁移)
     // 类型: string | 推荐: 's-announce-dismissed'
     storageKey: 's-announce-dismissed',
 
@@ -3202,7 +3202,7 @@
   // 63. 启动调度(三阶段:关键同步 → 空闲切片 → 重模块动态导入;防长任务卡顿)
   // ---------------------------------------------------------------------------
   boot: {
-    // 总开关；false = 旧行为（全部模块立即初始化，可能出现长任务）
+    // 总开关；false = 全部模块立即初始化（简单直接，但可能出现长任务）
     enabled: true,
     // 空闲等待上限(ms)：requestIdleCallback 超时兜底（推荐 500-1500）
     idleTimeoutMs: 800,
@@ -3255,7 +3255,7 @@
     },
     // 画廊（/gallery/ 图库页与文章内图库）
     gallery: {
-      // 是否拉伸小图铺满列宽：false = 保持原始尺寸（推荐，修复旧版拉伸变形）| true = 旧行为
+      // 是否拉伸小图铺满列宽：false = 保持原始尺寸（推荐，避免小图拉伸变形）| true = 拉伸铺满列宽
       stretch: false,
       // 单图最大高度（px）：0 = 不限制
       maxHeightPx: 0

@@ -56,8 +56,15 @@ function generateRedirects(config, customPages) {
     // manifest 由 PWA 步骤直接产出在根目录（关闭时不产出），不设语言别名，避免 302 到不存在的文件
     // 根 404 不做服务端重定向：dist/404.html 由构建期注入语言自适应逻辑（en 访客跳本地化 404），
   // 交由根页脚本判断，避免所有语言一律 302 到 /zh/404.html。
-  // 搜索索引为内容寻址产物（/assets/search-index.<hash>.json），无固定根路径别名。
-  const rootAliases = ['/feed.xml'];
+  // 根级 feed 别名从 site.rss 派生（rss.path / rss.jsonFeed.path；总开关或子开关关闭时不生成），
+  // 避免根路径与语言前缀间的固定映射写死在代码里。
+  const rss = config.site.rss || {};
+  const jsonFeed = rss.jsonFeed || {};
+  const rootAliases = [];
+  if (rss.enabled !== false && typeof rss.path === 'string' && rss.path) rootAliases.push(rss.path);
+  if (rss.enabled !== false && jsonFeed.enabled !== false && typeof jsonFeed.path === 'string' && jsonFeed.path) {
+    rootAliases.push(jsonFeed.path);
+  }
     for (const alias of rootAliases) {
       if (!lines.some(x => x.startsWith(alias + ' '))) {
         lines.push(`${alias} ${pf}${alias} 302`);
@@ -174,9 +181,11 @@ function generateSecurityHeaders(config) {
   // Media/OG names may be reused when content changes → 7d + revalidate.
   // Disable via site.build.cacheControl === false.
   if (config.site.build.cacheControl !== false) {
+    // CSS 目录从 site.build.cssOutDir 派生，保证用户改目录后缓存规则仍指向真实产物。
+    const cssOutDir = '/' + String(config.site.build.cssOutDir || 'assets/css').replace(/^\/+/, '');
     // 运行时配置为内容寻址文件名（config.<sha1前10>.json），内容变即换名，可 immutable。
     extraSections.push('/assets/config.*.json\n  Cache-Control: public, max-age=31536000, immutable');
-    extraSections.push('/assets/css/*\n  Cache-Control: public, max-age=31536000, immutable');
+    extraSections.push(cssOutDir + '/*\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/fonts/*\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/js/*\n  Cache-Control: ' + (bundleActive
       ? 'public, max-age=31536000, immutable'

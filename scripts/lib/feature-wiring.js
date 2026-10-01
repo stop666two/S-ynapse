@@ -1251,28 +1251,29 @@ function resolveHeatmapPalette(cfg) {
 }
 
 // analytics 配置归一化：injectAt 枚举（head|body，非法回退 body）；emitBeacon 默认 true；
-// scriptSrc 空值回退 Cloudflare 官方 beacon；siteTag 为站点级 token 覆盖来源（非空优先，
-// 优先级解析在 scripts/build/config.js，见 config-reference §3.30）。
+// scriptSrc 仅透传（默认值由 features-schema.js 单源提供，wiring 不再内联兜底 URL）；
+// siteTag 为站点级 token 覆盖来源（非空优先，优先级解析在 scripts/build/config.js，见 config-reference §3.30）。
 function analyticsConfig(features) {
   const A = (features && features.analytics) || {};
   const src = A.scriptSrc == null ? '' : String(A.scriptSrc).trim();
   return {
     enabled: A.enabled !== false,
-    scriptSrc: src || 'https://static.cloudflareinsights.com/beacon.min.js',
+    scriptSrc: src,
     injectAt: A.injectAt === 'head' ? 'head' : 'body',
     emitBeacon: A.emitBeacon !== false,
     siteTag: A.siteTag == null ? '' : String(A.siteTag).trim()
   };
 }
 
-// 生成 Cloudflare Web Analytics 引导脚本（内联 <script> 标签串）：token 为空/未启用时返回空串；
+// 生成 Cloudflare Web Analytics 引导脚本（内联 <script> 标签串）：token 为空/未启用/无 scriptSrc 时
+// 返回空串（scriptSrc 默认值由 features-schema.js 单源提供）；
 // emitBeacon=false 时不输出 data-cf-beacon JSON（脚本仍加载，由 beacon 自行处理无 token 场景）。
 // nonce 由 renderPage 的 injectScriptNonce 统一注入，本函数不写 nonce 属性。
 function buildAnalyticsTag(cfg, token) {
   const a = cfg || {};
   const t = token == null ? '' : String(token).trim();
-  if (a.enabled === false || !t) return '';
-  const src = escapeJsonForScript(a.scriptSrc || 'https://static.cloudflareinsights.com/beacon.min.js');
+  if (a.enabled === false || !t || !a.scriptSrc) return '';
+  const src = escapeJsonForScript(a.scriptSrc);
   const beaconInit = a.emitBeacon === false ? '' : 'var cfg=' + escapeJsonForScript({ token: t }) + ';';
   const beaconAttr = a.emitBeacon === false ? '' : 'e.setAttribute("data-cf-beacon",JSON.stringify(cfg));';
   return '<script>(function(){var src=' + src + ';' + beaconInit +

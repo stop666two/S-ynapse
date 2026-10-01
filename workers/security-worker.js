@@ -13,19 +13,20 @@
 
 import { ipMatchesAny, isPathBlocked } from "./lib/ip-utils.mjs";
 import { RateLimiter, isStaticAsset } from "./lib/rate-limit.mjs";
+import { RATE_LIMIT_FALLBACKS, MAINTENANCE_FALLBACKS, CSP_REPORT_MAX_BYTES } from "./lib/security-fallbacks.js";
 
 const DEFAULT_SKIP_PATHS = ["/assets/", "/media/", "/og/", "/icons/", "/pagefind/"];
-const CSP_REPORT_MAX_BYTES = 16384;
 
 const limiter = new RateLimiter(5000);
 
-// Safety baseline when security-config.js is absent — mirrors the repo defaults.
+// Safety baseline when security-config.js is absent — values shared with the generator
+// via workers/lib/security-fallbacks.js (single source; never inline literals here).
 const FALLBACK = {
   rateLimiting: {
     enabled: true,
-    maxRequests: 100,
-    windowMs: 60000,
-    blockDuration: 300000,
+    maxRequests: RATE_LIMIT_FALLBACKS.maxRequests,
+    windowMs: RATE_LIMIT_FALLBACKS.windowMs,
+    blockDuration: RATE_LIMIT_FALLBACKS.blockDuration,
     whitelist: [],
     blacklist: [],
     skipPaths: DEFAULT_SKIP_PATHS
@@ -50,7 +51,7 @@ const FALLBACK = {
   pathRestrictions: ["/admin/*"],
   forceHttps: true,
   // 维护响应默认设置 Retry-After: 3600；正式产物由构建期按 features.maintenance 覆盖。
-  maintenance: { setRetryAfter: true, retryAfter: 3600 },
+  maintenance: { setRetryAfter: MAINTENANCE_FALLBACKS.setRetryAfter, retryAfter: MAINTENANCE_FALLBACKS.retryAfter },
   headers: {
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",

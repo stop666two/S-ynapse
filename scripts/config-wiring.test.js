@@ -833,7 +833,7 @@ test('features.json5：feed 模块已删除且 schema/site-defaults 同步（唯
 });
 
 test('analyticsConfig / buildAnalyticsTag：注入位置/beacon 开关/scriptSrc/siteTag 覆盖', () => {
-  const def = w.analyticsConfig({});
+  const def = w.analyticsConfig(DEFAULT_FEATURES);
   assert.deepStrictEqual(def, {
     enabled: true,
     scriptSrc: 'https://static.cloudflareinsights.com/beacon.min.js',
@@ -841,13 +841,15 @@ test('analyticsConfig / buildAnalyticsTag：注入位置/beacon 开关/scriptSrc
     emitBeacon: true,
     siteTag: ''
   });
+  assert.strictEqual(w.analyticsConfig({}).scriptSrc, '', 'scriptSrc 不再由 wiring 内联兜底（默认值单源在 features-schema）');
   assert.strictEqual(w.analyticsConfig({ analytics: { injectAt: 'head' } }).injectAt, 'head');
   assert.strictEqual(w.analyticsConfig({ analytics: { injectAt: 'bogus' } }).injectAt, 'body');
   assert.strictEqual(w.analyticsConfig({ analytics: { emitBeacon: false } }).emitBeacon, false);
   assert.strictEqual(w.analyticsConfig({ analytics: { siteTag: ' tag-x ' } }).siteTag, 'tag-x');
-  assert.strictEqual(w.analyticsConfig({ analytics: { scriptSrc: '  ' } }).scriptSrc, 'https://static.cloudflareinsights.com/beacon.min.js');
+  assert.strictEqual(w.analyticsConfig({ analytics: { scriptSrc: '  ' } }).scriptSrc, '', '空白 scriptSrc 不回退内联 URL');
   assert.strictEqual(w.buildAnalyticsTag(def, ''), '', '无 token 不输出脚本');
   assert.strictEqual(w.buildAnalyticsTag({ enabled: false }, 'tok'), '', 'enabled=false 不输出脚本');
+  assert.strictEqual(w.buildAnalyticsTag({ enabled: true, emitBeacon: true, scriptSrc: '' }, 'tok'), '', '无 scriptSrc 不输出脚本');
   const tag = w.buildAnalyticsTag(def, 'tok"</script>');
   assert.ok(tag.startsWith('<script>') && tag.includes('data-cf-beacon'), tag);
   assert.ok(tag.includes('\\u003c/script>'), 'token 中的 </script> 必须转义');

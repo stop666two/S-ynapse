@@ -20,9 +20,17 @@ function sanitizeToken(value, fallback) {
   return token || fallback;
 }
 
+// 缓存基名：必须来自 site.pwa.cacheName；空值视为配置缺陷直接抛错，
+// 避免隐式回退到固定站名（双源）。
+function cacheNameBase(cacheName) {
+  const token = sanitizeToken(cacheName, '');
+  if (!token) throw new Error('PWA cacheName 为空：site.pwa.cacheName 必须配置有效值');
+  return token;
+}
+
 // 版本化缓存名前缀：基础名 + 版本（版本变化即换前缀，旧缓存由 SW activate 阶段清理）。
 function versionedCacheName(base, version) {
-  return sanitizeToken(base, 's-ynapse') + '-' + sanitizeToken(version, 'v1');
+  return cacheNameBase(base) + '-' + sanitizeToken(version, 'v1');
 }
 
 // 三类缓存名（壳预缓存 / 页面导航缓存 / 静态资产缓存）。
@@ -37,7 +45,8 @@ function cacheNames(base, version) {
 
 // 是否属于本站 SW 管理的缓存（用于 activate 清理时避免误删同源其他应用的缓存）。
 function isOwnedCache(key, base) {
-  const owner = sanitizeToken(base, 's-ynapse');
+  const owner = sanitizeToken(base, '');
+  if (!owner) return false;
   return key === owner || key.indexOf(owner + '-') === 0;
 }
 
@@ -106,7 +115,7 @@ function selectStrategy(request, options) {
 function renderServiceWorker(options) {
   const opts = options || {};
   const names = cacheNames(opts.cacheName, opts.version);
-  const base = sanitizeToken(opts.cacheName, 's-ynapse');
+  const base = cacheNameBase(opts.cacheName);
   const precache = Array.isArray(opts.precache) ? opts.precache : [];
   const offlineUrl = typeof opts.offlineUrl === 'string' ? opts.offlineUrl : '';
   const swPath = pathnameOf(opts.swPath || '/sw.js') || '/sw.js';

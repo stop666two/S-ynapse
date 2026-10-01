@@ -24,7 +24,6 @@ const CONFIG_FILES = [
 ];
 const MEDIA_DIRS = ['media', 'assets', 'videos'];
 const DEFAULT_OUTPUT_DIR = 'exports';
-const DEFAULT_PREFIX = 's-ynapse-backup';
 
 let json5;
 try {
@@ -119,7 +118,11 @@ function main() {
   const includeMedia = exportCfg.includeMedia === undefined ? true : !!exportCfg.includeMedia;
   const includeConfig = exportCfg.includeConfig === undefined ? true : !!exportCfg.includeConfig;
   const outputDir = args.dir || exportCfg.outputDir || DEFAULT_OUTPUT_DIR;
-  const fileNamePrefix = exportCfg.fileNamePrefix || DEFAULT_PREFIX;
+  const fileNamePrefix = typeof exportCfg.fileNamePrefix === 'string' ? exportCfg.fileNamePrefix.trim() : '';
+  if (!fileNamePrefix) {
+    console.error('[ERROR] features.exportBackup.fileNamePrefix 未配置：导出备份必须具有文件名前缀（单源自 features.json5）');
+    process.exit(1);
+  }
 
   const backupDir = makeBackupDirectory(outputDir, fileNamePrefix);
   const copiedConfigs = [];

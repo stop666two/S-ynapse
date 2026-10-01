@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { trimCspDirectives } = require('./lib/csp');
+const { RATE_LIMIT_FALLBACKS, MAINTENANCE_FALLBACKS } = require('../workers/lib/security-fallbacks');
 
 // ==================== 双配置漂移消除 ====================
 // security.json5 是唯一配置源。本模块在每次构建时从 security.json5 提取
@@ -129,9 +130,9 @@ function extractWorkerSecurity(security, cspContext, features) {
   return {
     rateLimiting: {
       enabled: rl.enabled !== false,
-      maxRequests: Number.isFinite(rl.maxRequests) ? rl.maxRequests : 100,
-      windowMs: Number.isFinite(rl.windowMs) ? rl.windowMs : 60000,
-      blockDuration: Number.isFinite(rl.blockDuration) ? rl.blockDuration : 300000,
+      maxRequests: Number.isFinite(rl.maxRequests) ? rl.maxRequests : RATE_LIMIT_FALLBACKS.maxRequests,
+      windowMs: Number.isFinite(rl.windowMs) ? rl.windowMs : RATE_LIMIT_FALLBACKS.windowMs,
+      blockDuration: Number.isFinite(rl.blockDuration) ? rl.blockDuration : RATE_LIMIT_FALLBACKS.blockDuration,
       whitelist: filterIpEntries(rl.whitelist, 'rateLimiting.whitelist'),
       blacklist: filterIpEntries(rl.blacklist, 'rateLimiting.blacklist'),
       skipPaths: Array.isArray(rl.skipPaths)
@@ -150,13 +151,13 @@ function extractWorkerSecurity(security, cspContext, features) {
   };
 }
 
-/** maintenance 的 Worker 侧配置（features.maintenance）：setRetryAfter 默认 true、retryAfter 默认 3600。 */
+/** maintenance 的 Worker 侧配置（features.maintenance）：setRetryAfter 默认 true、retryAfter 默认 3600（与 Worker FALLBACK 同源）。 */
 function maintenanceWorkerConfig(features) {
   const m = (features && features.maintenance) || {};
   const retry = parseInt(m.retryAfter, 10);
   return {
     setRetryAfter: m.setRetryAfter !== false,
-    retryAfter: Number.isFinite(retry) && retry > 0 ? retry : 3600
+    retryAfter: Number.isFinite(retry) && retry > 0 ? retry : MAINTENANCE_FALLBACKS.retryAfter
   };
 }
 

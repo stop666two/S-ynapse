@@ -23,11 +23,11 @@ const {
 const MODULE_SOURCE = fs.readFileSync(path.join(ROOT, 'js', 'domains', 'features', 'pwa.js'), 'utf-8');
 const modulePromise = import('data:text/javascript;base64,' + Buffer.from(MODULE_SOURCE, 'utf-8').toString('base64'));
 
-test('versionedCacheName/cacheNames：版本后缀、非法字符净化与回退', () => {
+test('versionedCacheName/cacheNames：版本后缀、非法字符净化与空基名拒绝', () => {
   assert.strictEqual(versionedCacheName('s-ynapse-v1', 'ab12cd34'), 's-ynapse-v1-ab12cd34');
   assert.strictEqual(versionedCacheName(' S-Ynapse V1! ', 'AbC'), 's-ynapse-v1-abc', '非法字符净化并小写');
-  assert.strictEqual(versionedCacheName('', ''), 's-ynapse-v1', '空值回退默认');
-  assert.strictEqual(versionedCacheName(null, null), 's-ynapse-v1');
+  assert.throws(() => versionedCacheName('', ''), /cacheName 为空/, '空基名必须抛错（不得回退固定站名）');
+  assert.throws(() => versionedCacheName(null, null), /cacheName 为空/);
   assert.strictEqual(sanitizeToken('a/b\\c', 'x'), 'a-b-c');
   assert.deepStrictEqual(cacheNames('s-ynapse-v1', 'v9'), {
     shell: 's-ynapse-v1-v9-shell',

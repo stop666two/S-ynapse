@@ -4,10 +4,21 @@
 //   - 任何异常（超时、解析失败、目标结构缺失、交换抛错）都会回退为 location.href 整页跳转；
 //   - 页内开关（features.softNavigation.toggle）供用户规避兼容问题；关闭后恢复浏览器原生导航；
 //   - 文档级监听器只绑定一次；页面级模块通过 __SOFTNAV_HOOKS__ 注册重绑函数，交换后统一重绑。
-const CACHE_MAX_FALLBACK = 16;
+const SOFTNAV_DEFAULTS = (typeof window !== 'undefined' && window.__SOFTNAV_DEFAULTS__) || {};
 let navSeq = 0;
 let prefetchTimer = null;
 const cache = new Map();
+
+// 构建期注入兜底（layout.ejs 写入 features.softNavigation 的 cacheMaxEntries/cacheTtlMs）：
+// 配置未就绪时使用注入值，绝不在本文件写死容量/TTL 数值；注入缺失时容量按 1、TTL 按 0
+// （TTL=0 表示不命中缓存，安全优先）。
+function cacheMaxOf() {
+  const raw = +cfg().cacheMaxEntries;
+  return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : Math.max(1, Math.floor(+SOFTNAV_DEFAULTS.cacheMaxEntries) || 1);
+}
+function cacheTtlOf() {
+  return +(cfg().cacheTtlMs) || Math.max(0, +SOFTNAV_DEFAULTS.cacheTtlMs || 0);
+}
 
 // 页面级模块注册表：模块 init 时 push 自己的“重新绑定 DOM”函数（无参、幂等）。
 if (typeof window !== 'undefined' && !Array.isArray(window.__SOFTNAV_HOOKS__)) window.__SOFTNAV_HOOKS__ = [];
@@ -60,9 +71,8 @@ function eligible(a) {
 }
 
 function trimCache() {
-  // features.softNavigation.cacheMaxEntries（缺省/非法回退 16，保持历史行为）。
-  const raw = +cfg().cacheMaxEntries;
-  const max = Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : CACHE_MAX_FALLBACK;
+  // features.softNavigation.cacheMaxEntries（缺省/非法回退注入默认值）。
+  const max = cacheMaxOf();
   while (cache.size > max) {
     const oldest = cache.keys().next().value;
     cache.delete(oldest);
@@ -89,7 +99,7 @@ async function fetchPage(url) {
 }
 
 async function loadPage(url) {
-  const ttl = +(cfg().cacheTtlMs) || 300000;
+  const ttl = cacheTtlOf();
   const hit = cache.get(url);
   if (hit && Date.now() - hit.t < ttl) return hit.html;
   const html = await fetchPage(url);
@@ -187,7 +197,7 @@ async function go(url, mode) {
 function schedulePrefetch(a) {
   if (!isOn() || cfg().prefetchOnHover === false) return;
   const url = a.href;
-  const ttl = +(cfg().cacheTtlMs) || 300000;
+  const ttl = cacheTtlOf();
   const hit = cache.get(url);
   if (hit && Date.now() - hit.t < ttl) return;
   if (prefetchTimer) clearTimeout(prefetchTimer);

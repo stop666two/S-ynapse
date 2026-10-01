@@ -13,6 +13,7 @@ const crypto = require('node:crypto');
 const zlib = require('node:zlib');
 const { execFileSync } = require('node:child_process');
 const { resolveChromePath } = require('./lib/mermaid-render');
+const { createTestSite } = require('./lib/test-site-builder');
 
 const ROOT = path.resolve(__dirname, '..');
 const BAD_SLUG = 'zz-smoke-bad-' + process.pid;
@@ -29,12 +30,12 @@ function hasAttr(html, name, value) {
 
 let tmpDir = null;
 
-function runBuild(outDir, extraArgs) {
+function runBuild(outDir, extraArgs, envOverrides) {
   const args = ['scripts/build.js', '--out', outDir].concat(extraArgs || []);
   return execFileSync(process.execPath, args, {
     cwd: ROOT,
     // 冒烟测试保持无头无关：显式关闭构建内联的压缩对比验证（真实验证由 npm run verify:compression 门禁覆盖）。
-    env: { ...process.env, SYNAPSE_OUT_DIR: outDir, NODE_ENV: 'production', SYNAPSE_COMPRESSION_VERIFY: 'off' },
+    env: { ...process.env, SYNAPSE_OUT_DIR: outDir, NODE_ENV: 'production', SYNAPSE_COMPRESSION_VERIFY: 'off', ...(envOverrides || {}) },
     stdio: 'pipe',
     timeout: 240000
   });
@@ -700,5 +701,28 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     assert.ok(failed, 'build must fail on an empty taxonomy entry');
     assert.match(output, /PREFLIGHT|taxonomy/);
     assert.deepStrictEqual(fs.readFileSync(indexHtml), beforeHash, 'preflight abort must not rewrite previous output');
+  });
+
+  it('empty-site skeleton (0 articles) still emits a v2 search index per configured language', () => {
+    const site = createTestSite({ articles: 0, pages: 0, langs: ['zh', 'en'], linkProject: true });
+    const emptyOut = fs.mkdtempSync(path.join(os.tmpdir(), 's-ynapse-empty-site-'));
+    try {
+      runBuild(emptyOut, [], { SYNAPSE_ROOT: site.root });
+      const indexFiles = fs.readdirSync(path.join(emptyOut, 'assets'))
+        .filter((f) => /^search-index\.[0-9a-f]{10}\.json$/.test(f));
+      assert.strictEqual(indexFiles.length, 2, '空站必须为 zh/en 各产出一个内容寻址索引：' + indexFiles.join(', '));
+      for (const lang of ['zh', 'en']) {
+        const idx = readSearchIndex(emptyOut, lang);
+        assert.match(idx.url, /^\/assets\/search-index\.[0-9a-f]{10}\.json$/, lang + ' 索引 URL 必须内容寻址');
+        assert.strictEqual(idx.json.version, 2, lang + ' 空站索引必须携带版本');
+        assert.deepStrictEqual(idx.json.docs, [], lang + ' 空站索引 docs 必须为空数组');
+        assert.ok(idx.json.fields && typeof idx.json.fields === 'object', lang + ' 空站索引必须携带字段表');
+        assert.ok(Object.keys(idx.json.fields).length > 0, lang + ' 空站索引字段表不得为空');
+        assert.ok(!/[\r\n]/.test(idx.text), lang + ' 索引必须是单行 JSON（压缩增强对空索引无异常）');
+      }
+    } finally {
+      site.cleanup();
+      fs.rmSync(emptyOut, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    }
   });
 });

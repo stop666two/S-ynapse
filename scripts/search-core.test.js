@@ -196,6 +196,15 @@ test('isValidIndex：结构校验', async () => {
   assert.strictEqual(c.isValidIndex({ docs: {} }), false);
 });
 
+test('空站索引：合法空索引加载成功且查询返回空结果（前端不得误报索引不可用）', async () => {
+  const c = await loadCore();
+  const empty = { version: 2, lang: 'zh', bigram: true, docs: [], fields: { title: {}, excerpt: {}, content: {} } };
+  assert.strictEqual(c.isValidIndex(empty), true, '空 docs + 空字段表是合法索引结构');
+  assert.deepStrictEqual(c.searchIndex(empty, '搜索升级'), [], '空索引查询是合法空结果而非错误');
+  assert.deepStrictEqual(c.searchIndex(JSON.parse(JSON.stringify(empty)), 'anything'), []);
+  assert.strictEqual(c.isValidIndex({ version: 2, docs: [], fields: null }), false, 'fields=null 仍属非法结构');
+});
+
 test('loadIndex：成功加载、失败重试与非法结构报错', async () => {
   const c = await loadCore();
   const attempts = {};

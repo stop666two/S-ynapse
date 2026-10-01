@@ -73,6 +73,28 @@ test('buildLanguageIndex：weightContent 关闭时 content 不进入索引', asy
   assert.deepStrictEqual(hits, []);
 });
 
+test('buildLanguageIndex：空站（0 文章）仍产出合法空索引（版本/字段齐备、可序列化往返）', async () => {
+  const c = await loadCore();
+  for (const lang of ['zh', 'en']) {
+    const index = lib.buildLanguageIndex(c, [], { lang, fields: ['title', 'excerpt', 'content'], bigram: true });
+    assert.strictEqual(index.version, 2, lang + ' 空索引必须携带版本');
+    assert.strictEqual(index.lang, lang);
+    assert.deepStrictEqual(index.docs, [], lang + ' 空索引 docs 必须为空数组');
+    assert.deepStrictEqual(Object.keys(index.fields), ['title', 'excerpt', 'content'], lang + ' 空索引字段表必须齐备');
+    assert.ok(c.isValidIndex(index), lang + ' 空索引必须通过结构校验（前端不得误报索引不可用）');
+    assert.deepStrictEqual(c.searchIndex(index, '任意关键词'), [], lang + ' 空索引查询必须返回空结果而非错误');
+    // 构建产物契约：serializeIndexText 的 JSON 文本可 parse，且 gzip 体积在默认预算内。
+    const text = lib.serializeIndexText(index);
+    const parsed = JSON.parse(text);
+    assert.strictEqual(parsed.version, 2);
+    assert.deepStrictEqual(parsed.docs, []);
+    assert.ok(lib.measureGzip(text) <= lib.DEFAULT_MAX_GZIP_KB * 1024, lang + ' 空索引必须满足默认 gzip 预算');
+    assert.strictEqual(lib.pruneIndexToBudget(parsed, lib.DEFAULT_MAX_GZIP_KB * 1024).pruned, 0, lang + ' 空索引不需裁剪');
+    // 内容寻址哈希按语言区分，构建与前端缓存标签不碰撞。
+    assert.notStrictEqual(lib.hashIndexText('zh', text), lib.hashIndexText('en', text));
+  }
+});
+
 test('measureGzip：与 zlib.gzipSync 结果一致', () => {
   const text = JSON.stringify({ a: '中文内容'.repeat(50) });
   assert.strictEqual(lib.measureGzip(text), zlib.gzipSync(Buffer.from(text, 'utf-8')).length);

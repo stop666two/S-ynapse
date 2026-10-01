@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`stableSerialize` 丢 `__proto__` 键（fuzz 反例 `[{"__proto__":null}]`）**：JSON 值重建对象时普通赋值会触发原型 setter（JSON.parse 可产生该自有键），改用 `Object.defineProperty` 建自有属性；键排序、不可序列化值、循环引用与 nonce 归一化语义不变，并补确定性回归用例。重放 `TEST_SEED=3739047957 FC_NUM_RUNS=100 npm run test:fuzz` 通过。
 - **security-verify 构建污染真实 `dist`（test:smoke 成片 404 根因）**：CI 导出的 `SYNAPSE_OUT_DIR=<仓库>/dist` 使夹具站点被构建进真实 dist，随后 test:smoke 复用污染产物；`scripts/security-verify.js` 改用独立输出 `build-artifacts/sec-verify/site`（`--out` 显式隔离，不读取环境输出目录；成功即清理、失败保留现场），`_headers`/nonce/搜索索引/HTML 断言全部指向新目录。
 - **smoke-web 默认输出复用环境产物**：`scripts/smoke-web.js` 未显式传 `--out` 时默认输出改为 `build-artifacts/web-smoke/site`（缺失即构建，显式 `--out` 语义不变），CI 步骤顺序无关，不再复用任何环境 dist。
-- **外部键写入的原型 setter 同类隐患**：序列化/映射写入点（tag 计数、pages 文件名映射、dist 哈希清单、internals/compression/mermaid 客户端/语言映射等配置深合并、CSP 指令裁剪、安全头自定义键、构建缓存条目）统一改为自有属性语义（`Object.defineProperty` 或空原型），`in`/`hasOwnProperty` 校验口径同步修正；`search-index`/`og-format` 经排查无此模式。
+- **外部键写入的原型 setter 同类隐患**：序列化/映射写入点（tag 计数、pages 文件名映射、dist 哈希清单、构建缓存条目）与配置拷贝（internals/compression/theme 色板/mermaid 客户端/语言映射深合并、CSP 指令裁剪、安全头自定义键）统一改为自有属性语义（`Object.defineProperty` 或空原型），`in`/`hasOwnProperty` 校验口径同步修正；`search-index`/`og-format` 经排查无此模式。
 
 ### Added
 

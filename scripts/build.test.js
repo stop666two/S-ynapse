@@ -585,6 +585,14 @@ describe('theme-presets', () => {
     assert.strictEqual(r.appliedPreset, null);
     assert.strictEqual(r.colors.primary, '#123456');
   });
+  it("resolveTheme keeps '__proto__' palette keys as own properties", () => {
+    const colors = JSON.parse('{"__proto__":{"marker":true},"primary":"#123456"}');
+    const r = resolveThemePreset({ preset: null, colors });
+    assert.ok(Object.prototype.hasOwnProperty.call(r.colors, '__proto__'));
+    assert.deepStrictEqual(r.colors.__proto__, { marker: true });
+    assert.strictEqual(Object.getPrototypeOf(r.colors), Object.prototype);
+    assert.strictEqual(r.colors.primary, '#123456');
+  });
   it('validatePreset reports unknown preset names', () => {
     const errs = validateThemePreset({ preset: 'typo-blue' });
     assert.ok(errs.some(e => e.includes('typo-blue') && e.includes('classic-blue')));

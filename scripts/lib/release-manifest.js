@@ -104,6 +104,7 @@ const RELEASE_EXCLUDE_PATTERNS = Object.freeze([
 const RELEASE_REQUIRED_FILES = Object.freeze([
   'README.md',
   'docs/config-reference.md',
+  'docs/config-switch-matrix.md',
   'LICENSE',
   'package.json',
   'package-lock.json',

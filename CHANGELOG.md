@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **发布归档补齐开关矩阵文档**：`RELEASE_EXTRA_FILES` 新增 `docs/config-switch-matrix.md`（守卫测试校验其新鲜度，缺失会导致归档内 `npm test` 失败）；本地归档自测 `npm ci → npm test → npm run build` 全绿。
+
 ## [1.2.1] - 2026-10-02
 
 ### Changed

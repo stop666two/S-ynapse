@@ -88,7 +88,7 @@
 > [Releases](https://github.com/stop666two/S-ynapse/releases) 下载已通过全套质量门禁与人工核验的版本包
 > （`S-ynapse-<版本>.zip`，校验记录见包内 `RELEASE.json`；归档已通过「解压后 `npm ci --ignore-scripts && npm test && npm run build`」门禁）。
 > 版本包是**空站骨架**：构建、测试、部署所需的全部代码、配置、示例页面（`pages/**`）与默认资源（`static/**`）齐备；
-> 测试运行所需的最小文档集（`docs/config-reference.md`）随包分发，`articles/` 与 `media/` 为空目录（`.gitkeep` 标记），
+> 测试运行所需的最小文档集（`docs/config-reference.md` 与 `docs/config-switch-matrix.md`）随包分发，`articles/` 与 `media/` 为空目录（`.gitkeep` 标记），
 > 放入自己的文章与图片即可构建；发布 tag 永不删除，仓库仅自动清理旧 Releases（只保留最新一个）。
 > 从源码构建请以下载包为准，避免直接使用 main 的中间状态。
 >
@@ -97,7 +97,7 @@
 > `RELEASE.json` provenance); it passes the "extract → `npm ci --ignore-scripts && npm test && npm run build`" gate.
 > The archive is an **empty-site skeleton**: every file needed to build, test and deploy ships with it
 > (sample pages under `pages/**`, default assets under `static/**`, and the minimal docs read by the test
-> suite, `docs/config-reference.md`), while `articles/` and `media/` are empty placeholders kept via
+> suite, `docs/config-reference.md`, `docs/config-switch-matrix.md`), while `articles/` and `media/` are empty placeholders kept via
 > `.gitkeep` — add your own content and build. Release tags are never deleted; older GitHub Releases are pruned automatically (latest only).
 >
 > 发布流程、人工核验含义与排障见 **[docs/runbook/release.md](docs/runbook/release.md)**。

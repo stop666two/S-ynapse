@@ -77,7 +77,8 @@ const RELEASE_ROOT_GLOB = '*.json5';
 // 缺失即 ENOENT 使发布门禁的「解压后测试」步骤失败。
 // 判定顺序：先于 RELEASE_EXCLUDE_PATTERNS（docs/** 整目录排除，需在此显式豁免）。
 const RELEASE_EXTRA_FILES = Object.freeze([
-  'docs/config-reference.md' // 配置参考文档（测试断言其章节/键覆盖）
+  'docs/config-reference.md', // 配置参考文档（测试断言其章节/键覆盖）
+  'docs/config-switch-matrix.md' // 开关矩阵（守卫测试校验其新鲜度，缺则 npm test 失败）
 ]);
 
 // 明确排除的路径模式（glob：** 跨目录、* 段内、? 单字符）。

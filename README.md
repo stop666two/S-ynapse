@@ -76,7 +76,7 @@
 **开发者体验**
 - 草稿预览：`npm run dev` 自动包含草稿文章
 - 构建报告：每次构建只生成一份 `build-report.html`（元信息、14 步阶段耗时、产物体积、性能预算、压缩统计、缓存命中、告警与失败清单、页面清单，以及内容策略拦截清单）
-- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（1013 项 / 149 组）；`npm run lint` 提供 ESLint 静态检查
+- 单元测试：`npm test` 覆盖核心纯函数与 Worker 安全层（1025 项 / 149 组）；`npm run lint` 提供 ESLint 静态检查
 - 增量构建设计文档：`docs/incremental-build-design.md`
 
 ---
@@ -509,7 +509,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run dev` | 监听模式，包含草稿（文件修改自动重建） |
 | `npm run serve` | 构建 + 启动本地服务器（默认 3000 端口，`--port`/`--maintenance` 可用） |
 | `npm start` | 同 `npm run serve` |
-| `npm test` | 运行单元测试（1013 项 / 149 组；集成套件按生命周期自动跳过） |
+| `npm test` | 运行单元测试（1025 项 / 149 组；集成套件按生命周期自动跳过） |
 | `npm run test:coverage` | `scripts/lib` 行覆盖率门禁（`--experimental-test-coverage --test-coverage-lines=80`；CI 阻断，当前实测 93.9%） |
 | `npm run test:build` | 构建管线集成冒烟（`--out` 构建到临时目录，校验关键产物、唯一构建报告、CSP nonce 与压缩开关两态；CI 运行，不进 `npm test`） |
 | `npm run test:fuzz` | 属性/随机测试（fast-check；`scripts/**/*.fuzz.test.js`；默认 100 次迭代、`FC_NUM_RUNS` 可调、`STRESS=1` 开海量用例；失败留档 `build-artifacts/fuzz-failures/`，`TEST_SEED` 复现） |
@@ -523,6 +523,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run release:archive -- --ref <tag\|HEAD>` | 按白名单生成 `release-artifacts/S-ynapse-<版本>.zip`（含前缀目录）：`articles/`、`media/` 只保留 `.gitkeep` 空骨架，测试所需最小文档集 `docs/config-reference.md` 随包；复核内容无越界、必需文件与测试齐全、RELEASE.json=package.json=tag 版本一致 |
 | `npm run release:publish -- vX.Y.Z` | 本地备用发布通道（远端已有 tag 后复用双重校验并 `gh release create --latest`，成功后清理旧 Release；tag 永不删除；默认通道为 tag 触发 Actions 自动发布） |
 | `npm run release:prune -- --keep vX.Y.Z` | 只保留最新 Release：删除其余 Release 页面（tag 永不删除；`--dry-run` 预览清单；CI/`release:publish` 已自动执行） |
+| `npm run release:notes -- --tag vX.Y.Z [--archive <zip>] [--out <md>]` | 生成确定性 Release 描述（CHANGELOG 版本段 + 门禁清单 + RELEASE.json + 归档 SHA-256 + 安装说明 + 版本对比链接；不含生成时间，同输入同字节）；CI publish 自动调用，历史 Release 可用 `release-notes.yml` 工作流补更 |
 | `npm run lint` | ESLint 静态检查（js/scripts/workers；CI 门禁） |
 | `npm run audit` | 依赖漏洞扫描（固定官方 registry：本机 npm 镜像会阻断 audit 接口） |
 | `npm run typecheck` | TypeScript checkJs 类型检查（scripts/lib；CI 门禁） |
@@ -542,12 +543,21 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run deploy:pages` | 部署到 Cloudflare Pages（项目名/产物目录读 `internals.deploy`，部署前自动跑 `verify:internals`） |
 | `npx wrangler deploy --config workers/wrangler.toml --env production` | 部署 Worker 安全层（含静态资源绑定） |
 
+> **Release 描述自动构成**：tag 触发的发布流水线在创建 Release 前运行
+> `npm run release:notes -- --tag "$GITHUB_REF_NAME" --archive release-artifacts/S-ynapse-*.zip --out release-notes.md`，
+> 描述由 CHANGELOG 版本段、12 项发布门禁、RELEASE.json 核验信息、归档 SHA-256、安装步骤与版本对比链接
+> 自动构成（确定性输出，不含生成时间），并在 `gh release create` 时经 `--notes-file` 使用；
+> 不再使用单句 `--notes`。历史 Release 补更描述：在 GitHub Actions 手动运行
+> **Release Notes** 工作流（输入 tag），或本地
+> `npm run release:notes -- --tag <tag> --archive <zip> --out release-notes.md` 后
+> `gh release edit <tag> --notes-file release-notes.md`（只更新正文，不动 tag/附件）。
+
 ---
 
 ## 测试
 
 ```bash
-npm test            # 1013 项 / 149 组（本机 1 项按环境跳过）
+npm test            # 1025 项 / 149 组（本机 1 项按环境跳过）
 npm run test:all    # 本地与 CI 同强度：test + test:build + test:fuzz + test:malicious + test:smoke + test:cov-web + verify:internals 串行
 npm run test:coverage  # scripts/lib 行覆盖率 ≥80%（Node 内置覆盖率，CI 阻断）
 npm run lint        # ESLint 静态检查（js / scripts / workers）
@@ -590,7 +600,7 @@ npm run verify:security   # 集成安全回归
 | 发布与运维 | release-mark / release-archive / release-manifest / release-validate / release-version / release-prune / sbom / process-guard / ci-skip / guard-bypass |
 | 特色功能 | theme-lab / save-data / continue-reading / popup-notice-config / lightbox-core / bilingual-core / export-article / series-page / dailyQuote / i18n-residuals / mermaid-render / nav-match |
 
-> `npm test` 共 **1013 项 / 149 组**（Node 内置 test runner；集成套件 `build-smoke` 与 `T4 恶意/畸形场景` 在 `npm test` 生命周期下自动跳过，分别由 `npm run test:build` / `npm run test:malicious` 运行）。
+> `npm test` 共 **1025 项 / 149 组**（Node 内置 test runner；集成套件 `build-smoke` 与 `T4 恶意/畸形场景` 在 `npm test` 生命周期下自动跳过，分别由 `npm run test:build` / `npm run test:malicious` 运行）。
 
 ### SBOM（软件物料清单）
 

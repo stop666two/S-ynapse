@@ -140,6 +140,32 @@ validate（RELEASE.json 双重校验）
 先 `git push origin vX.Y.Z`（远端必须存在 tag，本地脚本会检查），脚本复用同一套双重校验后调用 `gh release create --latest`，随后执行同款旧 Release 清理（tag 永不删除）。
 两条通道二选一，不要同时使用（同名 Release 会创建失败）。
 
+### 5.1 Release 描述自动生成与补更
+
+两条通道在创建 Release 前都运行同一生成器 `scripts/release-notes.js`（纯函数层
+`scripts/lib/release-notes.js`）。描述包含：CHANGELOG 版本段（`## [X.Y.Z]` 至下一版本段，
+原样保留 Added/Changed/Fixed/Removed 子段）、12 项发布门禁（与 `RELEASE_GATES` 同源）、
+RELEASE.json 核验信息、归档文件名/字节数/SHA-256（`--archive` 传入时计算，省略时注明由
+CI 附件流程提供）、Node 版本（`.nvmrc`）、构建可用性说明、安装步骤与版本对比链接
+（`compare/<上一 tag>...<tag>`，无上一 tag 时回退首个提交锚点）。输出确定性：同输入同字节、
+LF 行尾、不含生成时间；缺目标版本段时报错并提示先补 CHANGELOG。
+
+```bash
+# 本地生成（省略 --archive 时不计算 SHA-256 并注明由 CI 附件流程提供）
+npm run release:notes -- --tag v1.2.1 --archive release-artifacts/S-ynapse-1.2.1.zip --out release-notes.md
+```
+
+**补更历史 Release 描述**（适用于建 Release 时仅有一句 `--notes` 的版本）：
+
+1. GitHub Actions → **Release Notes** → Run workflow（输入目标 tag，如 `v1.2.1`）：
+   工作流 checkout 默认分支（生成器代码在 main）、下载该 Release 的 zip 附件计算 SHA-256，
+   最后仅执行 `gh release edit <tag> --notes-file`——不触碰 tag、标题、附件与 latest 标记。
+2. 或本地执行 `npm run release:notes -- --tag <tag> --archive <zip> --out release-notes.md`，
+   再用 `gh release edit <tag> --notes-file release-notes.md` 更新（需 gh 具备 Release 写权限）。
+
+历史版本的变更段以当前分支的 `CHANGELOG.md` 为准；若希望补更内容包含发布后追加的记述，
+应先确保该记述已写入对应版本段。
+
 ## 6. 归档包与白名单
 
 ```bash
@@ -205,6 +231,8 @@ npm run release:prune -- --keep v1.1.0 --dry-run  # 仅打印删除清单
 | 推送分支与 tag | `git push origin <branch>` + `git push origin vX.Y.Z`（或 `release:mark --push --confirm-push`） |
 | 本地生成归档 | `npm run release:archive -- --ref <tag\|HEAD>` |
 | 本地建 Release（备用） | `npm run release:publish -- vX.Y.Z` |
+| 生成 Release 描述 | `npm run release:notes -- --tag vX.Y.Z --archive release-artifacts/S-ynapse-<版本>.zip --out release-notes.md` |
+| 补更历史 Release 描述 | Actions → **Release Notes**（输入 tag）或本地 `release:notes` 生成后用 `gh release edit <tag> --notes-file release-notes.md` |
 | 清理旧 Release（只留最新） | `npm run release:prune -- --keep vX.Y.Z`（只删除旧 Release 页面；tag 永不删除；加 `--dry-run` 预览清单） |
 | 手动修正 Latest 标记 | `gh release edit vX.Y.Z --prerelease=false --latest` |
 | 校验某 tag 的标记 | `node scripts/lib/release-validate.js --tag vX.Y.Z` |

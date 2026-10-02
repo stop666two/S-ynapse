@@ -1377,7 +1377,7 @@ listCover: {
 - `html.collapseWhitespace=false` 暂不受支持：minify-html 恒折叠安全空白，配置为 false 时输出 `[WARN]` 并保持折叠。
 - `verify.headless` / `verify.fallbackOnFailure`（无头对比门禁 + 自动回退，已实装）：见下节「无头对比门禁与自动回退」。
 - 失败处理：配置加载/覆盖校验错误 → 记录构建失败 + 告警 + 降级内置默认值（不中止构建流程；`--allow-degraded` 可让退出码为 0）；逐文件压缩失败 → 告警 + 保留原文件 + 记录构建失败；例外：CSS 合并/去重解析异常按「跳过 + 告警 + 计入 skipped 明细」降级（产物正确性不受影响），不记录失败账本。
-- `--compression-override <path>`：隔离验证/预览构建的第二态压缩配置（JSON5 深合并、仍过 `validateCompression`、不写仓库 `compression.json5`）；文件缺失或解析错误在构建 try 内按 `--features-override`/`--theme-override` 同模式中止（watch 下被 rebuild 循环捕获，不再使监听进程退出）。
+- `--compression-override <path>`：隔离验证/预览构建的第二态压缩配置（JSON5 深合并、仍过 `validateCompression`、不写仓库 `compression.json5`）；文件缺失或解析错误在构建 try 内按 `--features-override`/`--theme-override` 同模式中止（watch 下被增量重建循环捕获，不再使监听进程退出）。
 
 **无头对比门禁与自动回退（verify）**
 

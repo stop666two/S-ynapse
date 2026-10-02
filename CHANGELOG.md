@@ -20,13 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Release Notes 补更工作流的输入容错与 YAML 加固**：`.github/workflows/release-notes.yml` 兼容 `tag = vX.Y.Z` 形式的手动输入（去除前缀与首尾空白后再校验），并重写 YAML 消除 `env` 空映射与注释吞行导致的触发失败；`gh release edit --notes-file` 的补更语义（不触碰 tag/标题/附件/latest）不变。
+
 - **发布归档补齐开关矩阵文档**：`RELEASE_EXTRA_FILES` 新增 `docs/config-switch-matrix.md`（守卫测试校验其新鲜度，缺失会导致归档内 `npm test` 失败）；本地归档自测 `npm ci → npm test → npm run build` 全绿。
 
 - **配置开关矩阵跨平台确定性**：扫描源改为 `git ls-files`（仅跟踪文件，排除本地产物如 `workers/security-config.js`），排除守卫数据文件（exemptions/bindings）避免伪消费位置，按归一化 `/` 路径排序并移除受平台 locale 影响的 `localeCompare`；已用干净 worktree 等价比对（DIFF=0），修复 Linux CI 校验不一致；`docs/config-switch-matrix.md` 重新生成。
 
 - **隔离/并发构建下压缩无头验证因共享 `.cache` 状态与瞬态导航失败误回退**：并发隔离构建共享 `.cache/compression-baseline` 与 `.cache/chrome-verify-profile`——一轮 `createBaselineSnapshot` 的整目录重建会删掉另一轮正在使用的快照（实测报「基线快照缺失」→ 自动回退），后启动的 Chrome 因固定 userDataDir 被 ProcessSingleton 占用（实测 `chrome-launch-failed: The browser is already running…` → 跳过验证），且 `page.goto` 瞬态失败（超时/连接拒绝/context destroyed）一次即判失败回退。修复（`scripts/lib/compression-verify.js` + `scripts/build/minify.js`）：① 每次运行在 profileDir 基目录下 `mkdtemp` 随机 userDataDir，CDP 调试端口沿用 Puppeteer 随机分配，运行结束（含失败/异常）finally 无条件清理并回报 `profileDir`/`profileCleaned`；② 基线快照按运行隔离为 `.cache/compression-baseline/run-*`（创建前顺带清理超过 1 小时的陈旧残留）；③ 两个本地验证服务在解析端口后新增 HTTP 就绪轮询（带超时与重试，失败即抛并附服务 stderr）；④ `page.goto` 统一经 `gotoWithRetry`：瞬态失败线性退避最多重试 2 次，重试前以 `about:blank` 复位页面，仍失败的错误携带 URL/尝试次数/底层 cause；⑤ 失败记录新增 `stage`（servers/server-readiness/browser-launch/static-compare/runtime-console/interactions）与 `stack`，回退摘要含阶段与具体错误——仅真实差异才回退。测试：`scripts/compression-verify.test.js` 新增 10 例（HTTP 就绪轮询三态、goto 重试/耗尽/页面关闭、随机 profile 隔离与清理、失败摘要含阶段、注入 fake 浏览器端到端断言重试与 finally 清理）；验证：修复后 3 连隔离构建（全新 `--out`）均 `[compression-verify] PASS` 且 `profileCleaned=true`、端口释放正常，3 路并发隔离构建全部 PASS（修复前实测 2 路 skip、错峰 1 路回退），`npm run verify:compression` 连跑 2 次 PASS。文档：`docs/architecture.md`/`docs/config-reference.md`/`docs/runbook/rollback.md` 同步并发隔离与导航重试语义。
 - **`features-schema.js` 导出 `ENUM_FIELDS`**：枚举注册表供单一来源守卫与盘点器机器读取（不影响校验行为）。
-- **`build.bat` / `serve.bat` 加固**：补充 npm 存在性探测（缺失时给出安装指引）、任一步失败打印原因并 `pause`（不再一闪而过）、退出码透传；`serve.bat` 仅清理占用目标端口且状态为 `LISTENING` 的进程（不再误杀其它进程），并支持 `serve.bat [端口] [rebuild]` 与「`dist/index.html` 已存在则跳过重建」。
+- **`build.bat` / `serve.bat` 加固**：补充 npm 存在性探测（缺失时给出安装指引）、任一步失败打印原因并 `pause`（不再一闪而过）、退出码透传；`serve.bat` 仅清理占用目标端口且状态为 `LISTENING` 的进程（不再误杀其它进程）；同版本内进一步移除 serve 前的重复预构建（`npm run serve` 自带构建，不再有 `[rebuild]` 参数与「dist 已存在则跳过」分支）。
 - **`release.yml` 的 `publish` 作业缺少运行时依赖**：该作业此前只检出代码便调用 `release-prune.js`，而 prune 需要 `json5`（配置解析 JSON5 单源），发布后的旧 Release 清理可能因此失败；现补 `npm ci --omit=dev` 安装运行时依赖。
 
 - **归档缺失测试所需文档集（解压后 `npm test` ENOENT）**：发布归档排除 `docs/**`，但 `scripts/theme-lab.test.js`/`save-data.test.js` 直接读取 `docs/config-reference.md`（`config-count.test.js`/`check-config-docs.test.js` 在文件存在时执行断言），解压后测试在第一处无保护读取即 ENOENT 失败。修复：`scripts/lib/release-manifest.js` 新增 `RELEASE_EXTRA_FILES` 显式白名单（先于排除模式判定、仅允许具体文件路径、禁止通配），放行 `docs/config-reference.md` 并纳入必需文件断言与 `git archive` pathspec；README（中英下载说明与命令表）与 `docs/runbook/release.md` §6 同步「归档含测试所需最小文档集」。验证：`npm test` 含真实 `git archive HEAD` 端到端用例（越界复核 + 必需文件遍历）通过，docs 下其余文件仍全部拒绝。

@@ -4,8 +4,9 @@ name: Release Notes
 #   - 生成器代码在默认分支 main，因此 checkout main 后再针对目标 tag 生成；
 #   - 从目标 Release 下载 zip 附件用于计算 SHA-256（与 publish 作业同一生成器）；
 #   - `gh release edit --notes-file` 只更新正文，不触碰 tag、标题、附件与 latest 标记。
-# 适用场景：历史 Release 建成时描述过于简单（如仅一句 --notes），需要补齐
+# 适用场景：历史 Release 建成时描述过于简单（如仅一句 --notes），需要补全
 # CHANGELOG 变更段、门禁清单、校验和与安装说明。
+
 on:
   workflow_dispatch:
     inputs:
@@ -40,21 +41,16 @@ jobs:
       - name: Validate target Release exists
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # TAG 由 Normalize 步骤写入 GITHUB_ENV，后续步骤直接使用
         run: gh release view "$TAG" --json tagName --jq .tagName
       - name: Download release archive asset
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # TAG 由 Normalize 步骤写入 GITHUB_ENV，后续步骤直接使用
         run: |
           mkdir -p release-assets
           gh release download "$TAG" -p '*.zip' --dir release-assets
       - name: Generate release notes
-        env:
-          # TAG 由 Normalize 步骤写入 GITHUB_ENV，后续步骤直接使用
         run: node scripts/release-notes.js --tag "$TAG" --archive release-assets/S-ynapse-*.zip --out release-notes.md
       - name: Update release description
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # TAG 由 Normalize 步骤写入 GITHUB_ENV，后续步骤直接使用
         run: gh release edit "$TAG" --notes-file release-notes.md

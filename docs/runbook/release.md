@@ -32,8 +32,9 @@
 | 11 | `npm run verify:compression` | 压缩无头对比（无 Chrome 时跳过并声明） |
 | 12 | `npm run build` | 一次真实构建（不需要生产部署/线上验证） |
 
-清单的单一来源是 `scripts/lib/release-version.js → RELEASE_GATES`：`release:mark` 按此顺序执行，
-CI 与 RELEASE.json 的 `checks` 键也以此为准（缺项或不全 true 即拒绝发布）。
+清单的单一来源是 `scripts/lib/release-version.js → RELEASE_GATES`（12 项）：`release:mark` 按此顺序执行，
+RELEASE.json 的 `checks` 键以此为准（缺项或不全 true 即拒绝发布）；CI `.github/workflows/release.yml` 的
+`gates` 作业在同一批命令之外还执行 `npm run verify:internals`（`.nvmrc`/wrangler assets/CI 版本单源守卫）。
 
 ## 2. RELEASE.json 字段与双重校验
 
@@ -125,15 +126,18 @@ npm run release:mark -- 1.1.0 --human-verified "张三" --confirm 1.1.0
 
 ```
 validate（RELEASE.json 双重校验）
-→ gates（12 项门禁）
+→ gates（12 项门禁，另加 verify:internals）
 → archive（白名单归档：articles/media 仅 .gitkeep 骨架 + RELEASE.json=package.json=tag
            版本一致性校验，上传 artifact）
 → buildability（下载归档 → 解压 → npm ci --ignore-scripts → npm test → npm run build
                  断言 dist/index.html、dist/build-report.html、每语言搜索页与
                  /assets/search-index.<hash>.json 内容寻址索引；任一环节失败即不发布）
-→ publish（gh release create --verify-tag --latest → release-prune 清理其余 Release；tag 永不删除）
+→ publish（npm ci --omit=dev 安装运行时依赖 → release-notes 生成 release-notes.md →
+           gh release create --verify-tag --latest --notes-file → release-prune 清理其余
+           Release；tag 永不删除）
 ```
 
+`publish` 的 `--omit=dev` 供 `release:prune` 解析 JSON5 配置（生成器与清理脚本同作业）；描述生成细节见 §5.1。
 任一环节失败都不会创建 Release。
 
 **通道 B（备用，本地）：`npm run release:publish -- vX.Y.Z`。** 适用于 Actions 不可用时：
@@ -175,9 +179,9 @@ npm run release:archive -- --ref v1.1.0 --out dist/release.zip
 
 白名单单一来源：`scripts/lib/release-manifest.js`。口径：**基础包 = 可完整体验 README 全部功能的最基本骨架**，解压后 `npm ci --ignore-scripts && npm test && npm run build` 必须全部成功。
 
-- 包含：`js/**`、`scripts/**`（含全部 `*.test.js`，保证解压后 `npm test` 可运行）、`templates/**`、`workers/**`、`.githooks/**`、示例页面 `pages/**`、默认资源 `static/**`、默认数据 `data/**`（如每日一言 `data/quotes.json5`，属可体验的默认功能）；测试所需最小文档集 `docs/config-reference.md`（`RELEASE_EXTRA_FILES` 显式放行，测试直接读取）；根全部 `*.json5`、`package.json`、`package-lock.json`、`.env.example`、`.gitattributes`、`.gitignore`、`LICENSE`、`README.md`、`RELEASE.json`、`build.bat`、`serve.bat`、`eslint.config.js`、`tsconfig.json`、`wrangler.toml`。
+- 包含：`js/**`、`scripts/**`（含全部 `*.test.js`，保证解压后 `npm test` 可运行）、`templates/**`、`workers/**`、`.githooks/**`、示例页面 `pages/**`、默认资源 `static/**`、默认数据 `data/**`（如每日一言 `data/quotes.json5`，属可体验的默认功能）；测试所需最小文档集 `docs/config-reference.md`、`docs/config-switch-matrix.md`（`RELEASE_EXTRA_FILES` 显式放行，测试直接读取）；根全部 `*.json5`、`package.json`、`package-lock.json`、`.env.example`、`.gitattributes`、`.gitignore`、`LICENSE`、`README.md`、`RELEASE.json`、`build.bat`、`serve.bat`、`eslint.config.js`、`tsconfig.json`、`wrangler.toml`。
 - 骨架目录（只保留 `.gitkeep`，实体内容一律过滤）：`articles/**`（如 `articles/zh/.gitkeep`、`articles/en/.gitkeep`）与 `media/**`（`media/.gitkeep`）。pathspec 对这两个目录只注入 `**/.gitkeep`；`assertArchiveContents` 兜底拒绝任何非标记条目，错误信息标注「骨架目录只允许 .gitkeep」。
-- 排除：`docs/**`（`docs/config-reference.md` 除外，见上）、`.github/**`、`.tmp-scripts/**`、`.playwright-mcp/**`、`backups/**`、`real-site/**`、`dist/**`、`node_modules/**`、`.cache/**`、`build-artifacts/**`、`release-artifacts/**`、`workers/security-config.js`；未知路径默认拒绝。
+- 排除：`docs/**`（`docs/config-reference.md`、`docs/config-switch-matrix.md` 除外，见上）、`.github/**`、`.tmp-scripts/**`、`.playwright-mcp/**`、`backups/**`、`real-site/**`、`dist/**`、`node_modules/**`、`.cache/**`、`build-artifacts/**`、`release-artifacts/**`、`workers/security-config.js`；未知路径默认拒绝。
 - 注意：可选内容目录 `videos/`、`assets/` 当前仓库尚无内容；`git archive` 对未匹配的 pathspec 会直接失败，故不能预先写入，待目录出现内容时显式加入白名单。
 - 归档生成后逐条复核（`assertArchiveContents`），任一条目越界或缺少必需文件（含 `.gitkeep` 骨架标记、`scripts/**/*.test.js`）即失败；同时校验版本三方一致（RELEASE.json = package.json = tag 名，见 `assertVersionConsistency`）。
 - 本地核对归档清单：`release:archive` 输出骨架目录统计（`articles/` 与 `media/` 各几个 `.gitkeep`）、测试文件数与总文件数。

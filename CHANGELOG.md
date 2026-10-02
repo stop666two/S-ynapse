@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **配置开关矩阵跨平台确定性**：开关矩阵生成器改为按归一化 `/` 路径排序并移除 `localeCompare`（其结果受平台 locale 影响），修复 Linux CI 与 Windows 本地校验不一致；`docs/config-switch-matrix.md` 重新生成。
+
 ## [1.2.1] - 2026-10-02
 
 ### Changed

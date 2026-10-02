@@ -27,6 +27,15 @@ function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+// 统一按「/ 分隔的相对路径」排序，消除平台分隔符与文件系统枚举顺序差异
+function sortNormalized(files) {
+  files.sort(function (a, b) {
+    const na = a.split(path.sep).join('/');
+    const nb = b.split(path.sep).join('/');
+    return na < nb ? -1 : na > nb ? 1 : 0;
+  });
+}
+
 function walk(dir, out) {
   let entries;
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (error) { return out; }
@@ -87,7 +96,7 @@ function collectRows() {
     if (!type) continue;
     rows.push({ keyPath: 'internals.' + leafPath, kind: 'internals', type, def: value });
   }
-  rows.sort((a, b) => a.keyPath.localeCompare(b.keyPath));
+  rows.sort((a, b) => (a.keyPath < b.keyPath ? -1 : a.keyPath > b.keyPath ? 1 : 0));
   return rows;
 }
 
@@ -150,7 +159,7 @@ function locate(index, keyPath, maxHits) {
     hits.push({ file: hit.file, line: hit.line, score });
     if (hits.length >= (maxHits || 3) * 8) break;
   }
-  hits.sort((a, b) => b.score - a.score || a.file.localeCompare(b.file) || a.line - b.line);
+  hits.sort((a, b) => b.score - a.score || (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) || a.line - b.line);
   return hits.slice(0, maxHits || 3).map((hit) => hit.file + ':' + hit.line);
 }
 
@@ -176,6 +185,7 @@ function collectSwitchMarkers(testFiles) {
 function collectAllMarkers() {
   const files = [];
   for (const dir of SCAN_DIRS) walk(path.join(ROOT, dir), files);
+  sortNormalized(files);
   return collectSwitchMarkers(files.filter((file) => file.endsWith('.test.js')));
 }
 
@@ -196,6 +206,7 @@ function collectInventory(options) {
   const opts = options || {};
   const files = [];
   for (const dir of SCAN_DIRS) walk(path.join(ROOT, dir), files);
+  sortNormalized(files);
   const sourceFiles = files.filter((file) => !file.endsWith('.test.js') && !SOURCE_EXCLUDE_FILES.has(path.basename(file)));
   const testFiles = files.filter((file) => file.endsWith('.test.js'));
   const sourceIndex = buildIndex(sourceFiles, { skipTests: true });

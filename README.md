@@ -416,17 +416,42 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 **自定义页面**：`pages/` 目录下的 .md 文件在阶段 5 与 6 之间处理（`processCustomPages`），同目录内容也通过 `processPagesContent` 加载供模板嵌入（如文章底部公告栏）。**多语言**：`pages/{lang}/{file}.md` 覆盖默认文件（如 `pages/en/about.md` 提供英文标题与正文，slug 可显式声明；缺省时按标题生成，建议显式写英文 slug 避免中英路径混用）。
 
+```
+
 ## 部署
 
-### 方式一：Cloudflare Pages（推荐）
+本项目支持四种部署方式。`npm run build` 产出**纯静态**站点到 `dist/`（可用 `--out <dir>` 或 `SYNAPSE_OUT_DIR` 自定义输出目录；自定义后需同步调整 Worker 资产目录，`npm run verify:internals` 会校验该一致性）。
+
+### 前置条件（通用）
+
+- Node.js ≥ 20.19（与 `package.json` 的 `engines`、`.nvmrc` 一致）；安装依赖：`npm ci`
+- Cloudflare 部署使用 `npx wrangler@4 …`（无需全局安装）；本地先 `npx wrangler login`，CI 中使用 `CLOUDFLARE_API_TOKEN`（本仓库 GitHub Secret 名为 `CF_API_TOKEN`）
+- 构建：`npm run build`（含 14 项预算检查，结果同时写入 `dist/report.txt` 与 `build-report.html`）
+- 部署前自查：`npm run verify:internals`（校验 `.nvmrc` / wrangler 资产目录 / 端口等与 `internals.json5` 单源一致）
+
+| 方式 | 适用场景 | 入口 |
+|------|----------|------|
+| 一：Pages 手动 | 快速预览、临时发布 | `npm run deploy:pages` |
+| 二：Workers（生产路径） | 需要动态安全层（CSP/限流/路径控制/维护模式） | `npx wrangler deploy --config workers/wrangler.toml --env production` |
+| 三：GitHub Actions | 推送 `main` 即部署（Pages） | `.github/workflows/deploy.yml` |
+| 四：任意静态托管 | 非 Cloudflare 主机 | 上传 `dist/` |
+
+> Pages 项目名由 `internals.json5` 的 `deploy.pagesProject` 单源管理（默认 `s-ynapse`），`npm run deploy:pages` 自动读取，无需手写项目名。
+
+### 方式一：Cloudflare Pages（手动，推荐用于预览）
 
 ```bash
 # 1. 构建站点
 npm run build
 
-# 2. 部署到 Pages（wrangler 4）
-npx wrangler pages deploy dist --project-name=s-ynapse
+# 2. 部署到 Pages（项目名来自 internals.json5；也可显式覆盖）
+npm run deploy:pages
+
+# 等价的手动命令：
+# npx wrangler pages deploy dist --project-name=<你的项目名>
 ```
+
+> 首次使用新项目名时，wrangler 会提示创建 Pages 项目；也可先在 Cloudflare Dashboard 创建后再部署。
 
 ### 方式二：Cloudflare Workers（带动态安全层）
 
@@ -450,6 +475,21 @@ npx wrangler deploy --config workers/wrangler.toml --env production
 
 Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特定 IP）、CSP 报告收集（`/csp-report` 端点）、HTTP 安全头注入、HTTPS 强制跳转、**维护模式**（环境变量 `MAINTENANCE=1` → 503 维护页，默认文案按 `Accept-Language` 选中/英，`MAINTENANCE_MESSAGE` 自定义覆盖）、**结构化日志**（JSON Lines：`ts`/`level`/`module`/`requestId`/`event`；`LOG_LEVEL`（默认 `info`）控制级别；每个响应携带 `X-Request-Id`（复用 CF-Ray 或生成 UUID）；IP 以短哈希关联，不落明文）。
 
+**部署后抽查（示例）**：
+
+```bash
+# 安全响应头与 CSP（应含 nonce 且无 unsafe-inline）
+curl -sI https://<你的域名>/
+
+# 默认路径限制（应返回 403）
+curl -sI https://<你的域名>/admin/
+
+# 静态资源长缓存（应含 immutable）
+curl -sI https://<你的域名>/assets/css/site.css
+```
+
+> 完整回滚步骤与抽查清单见 `docs/runbook/rollback.md`；自动化进程规范见 `docs/runbook/process-hygiene.md`。
+
 ### 方式三：GitHub Actions（CI/CD 自动部署）
 
 项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署。CI 作业：
@@ -466,7 +506,9 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 
 ### 方式四：手动部署到任意静态托管
 
-`npm run build` 生成的 `dist/` 目录可直接部署到任何静态文件服务器。
+`npm run build` 生成的 `dist/` 目录可直接部署到任何静态文件服务器（Nginx、Caddy、对象存储等）。
+
+> 注意：`_headers`、`_redirects` 与 Worker 安全层仅在 Cloudflare 上生效。部署到其他主机时，需在服务器侧等价实现安全响应头与路径规则；`sitemap.xml`、`robots.txt`、feeds 均为静态文件，无需额外服务。
 
 ### 派生副本与回滚
 

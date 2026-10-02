@@ -6,9 +6,6 @@ setlocal enabledelayedexpansion
 set PORT=3000
 if not "%~1"=="" set PORT=%~1
 
-set REBUILD=0
-if /i "%~2"=="rebuild" set REBUILD=1
-
 echo ========================================
 echo   S-ynapse Local Server (port %PORT%)
 echo ========================================
@@ -28,10 +25,6 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr /r /c:"LISTENING" ^| findstr 
     if !errorlevel! equ 0 echo [OK] Stopped old process on port %PORT%
 )
 
-if "%REBUILD%"=="1" goto build
-if exist dist\index.html goto serve
-
-:build
 call :ensure_deps
 if errorlevel 1 (
     echo.
@@ -40,19 +33,8 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-echo [INFO] Building before serve...
-echo.
-call npm run build
-if errorlevel 1 (
-    echo.
-    echo [ERROR] Build failed. Check the messages above.
-    echo.
-    pause
-    exit /b 1
-)
 
-:serve
-echo Starting server at: http://localhost:%PORT%/
+echo Starting server at: http://localhost:%PORT%/  (serve mode builds automatically)
 echo Press Ctrl+C to stop.
 echo.
 call npm run serve -- --port %PORT%

@@ -128,7 +128,7 @@ npm run serve
 | 脚本 | 功能 |
 |------|------|
 | `build.bat` | 双击一键构建：探测 npm → 依赖缺失时 `npm install --no-audit --no-fund --prefer-offline` → `npm run build`；任一步失败均打印原因并 `pause`（退出码透传） |
-| `serve.bat [端口] [rebuild]` | 构建 + 本地预览：仅清理占用目标端口且处于 `LISTENING` 状态的进程（不误杀其它进程）；未传 `rebuild` 且 `dist/index.html` 已存在时跳过重建直接启动；失败会 `pause` |
+| `serve.bat [端口]` | 本地预览：仅清理占用目标端口且处于 `LISTENING` 状态的进程（不误杀其它进程）；启动后由 `npm run serve` 自动构建（无重复预构建）；失败会 `pause` |
 
 ---
 

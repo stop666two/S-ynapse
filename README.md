@@ -198,7 +198,7 @@ S-ynapse/
 │       ├── tuning-defaults.js # tuning 默认值注册表（配置监守用）
 │       └── guard-defaults.js  # guard 默认值注册表（配置监守用）
 ├── workers/           # Cloudflare Worker 安全层
-├── .github/workflows/ # CI/CD 自动部署与 Release（deploy.yml 含 AGENTS.md 检测 + npm audit 门禁；release.yml 含骨架归档、解压构建 + 测试门禁与旧版清理）
+├── .github/workflows/ # CI/CD 自动部署与 Release（deploy.yml 含 AGENTS.md 检测 + npm audit 门禁；release.yml 含骨架归档、解压构建 + 测试门禁与旧版清理；release-notes.yml 手动补更 Release 描述；nightly.yml 夜间深度随机测试）
 ├── .githooks/         # Git hooks（pre-commit 保护 AGENTS.md）
 ├── docs/              # 设计文档（config-reference / incremental-build-design）
 ├── data/              # 默认站点数据（quotes.json5：100 条中英双语公版/原创引语，逐条可核验出处）
@@ -249,7 +249,7 @@ S-ynapse/
 | `tag-aliases.json5` | 标签别名归一（可选） | 可选 |
 | `friends.json5` | 友情链接（可选） | 可选 |
 
-> 📖 **完整逐字段参考**：`docs/config-reference.md`（13 章：每个配置项的类型、默认值、取值、校验行为）。
+> 📖 **完整逐字段参考**：`docs/config-reference.md`（15 章：每个配置项的类型、默认值、取值、校验行为）。
 
 ### site.json5 — 站点核心信息（节选）
 
@@ -520,7 +520,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run verify:compression` | 压缩无头对比门禁（完整构建 + 压缩产物 vs 未压缩副本的 DOM/样式/控制台/交互断言；passed=0、failed=1、skipped=0；`--out`/`--chrome`/`--keep-baseline`/`--json` 可选） |
 | `npm run sbom` | 生成 CycloneDX 1.5（ECMA-424）SBOM → `build-artifacts/sbom.cdx.json`（不入库；CI 上传为 `sbom-cyclonedx` artifact） |
 | `npm run release:mark -- <major\|minor\|patch\|X.Y.Z\|X.Y.Z-预发布> --human-verified "<姓名>" --confirm <版本>` | 完成标记：顺序跑完全套质量门禁 → 同步 package.json/CHANGELOG/RELEASE.json → `chore(release)` 提交 + 附注 tag（默认不 push；`--dry-run` 仅演练；`--push --confirm-push` 才推送；支持同版本/预发布标记，如 `1.1.0-a1`） |
-| `npm run release:archive -- --ref <tag\|HEAD>` | 按白名单生成 `release-artifacts/S-ynapse-<版本>.zip`（含前缀目录）：`articles/`、`media/` 只保留 `.gitkeep` 空骨架，测试所需最小文档集 `docs/config-reference.md` 随包；复核内容无越界、必需文件与测试齐全、RELEASE.json=package.json=tag 版本一致 |
+| `npm run release:archive -- --ref <tag\|HEAD>` | 按白名单生成 `release-artifacts/S-ynapse-<版本>.zip`（含前缀目录）：`articles/`、`media/` 只保留 `.gitkeep` 空骨架，测试所需最小文档集 `docs/config-reference.md`、`docs/config-switch-matrix.md` 随包；复核内容无越界、必需文件与测试齐全、RELEASE.json=package.json=tag 版本一致 |
 | `npm run release:publish -- vX.Y.Z` | 本地备用发布通道（远端已有 tag 后复用双重校验并 `gh release create --latest`，成功后清理旧 Release；tag 永不删除；默认通道为 tag 触发 Actions 自动发布） |
 | `npm run release:prune -- --keep vX.Y.Z` | 只保留最新 Release：删除其余 Release 页面（tag 永不删除；`--dry-run` 预览清单；CI/`release:publish` 已自动执行） |
 | `npm run release:notes -- --tag vX.Y.Z [--archive <zip>] [--out <md>]` | 生成确定性 Release 描述（CHANGELOG 版本段 + 门禁清单 + RELEASE.json + 归档 SHA-256 + 安装说明 + 版本对比链接；不含生成时间，同输入同字节）；CI publish 自动调用，历史 Release 可用 `release-notes.yml` 工作流补更 |
@@ -537,7 +537,7 @@ Worker 提供：速率限制、路径访问控制（如 `/admin/*` 仅允许特�
 | `npm run gen:config-matrix` | 重新生成 `docs/config-switch-matrix.md`（改动配置消费点或测试后运行） |
 | `npm run verify:internals` | 工程内部参数守卫（`.nvmrc`/`workers/wrangler.toml` assets 目录/CI 版本与 `internals.json5` 单源一致；关键写死形态抽样） |
 | `node scripts/ci-checks.js` | CI 聚合检查（与 deploy.yml 同命令）：跑完整套门禁后统一失败，报告写入 `build-artifacts/ci-checks.{json,txt}`；`--fail-fast` 可改为首个失败即停 |
-| `npm run perf:audit`（`--url` 可省略，默认 `internals.ports.perf`） | 可复现性能基线（Slow 4G + CPU 4x 节流 + 禁用缓存；`--runs`/`--out`/`--json`/`--chrome` 可选；Chrome 经 internals/CHROME_PATH/平台默认探测） |
+| `npm run perf:audit`（`--url` 可省略，默认 `internals.ports.perf`） | 可复现性能基线（Slow 4G + CPU 4x 节流 + 禁用缓存；`--runs`/`--out`/`--json`/`--chrome` 可选；Chrome 经 internals/CHROME_PATH/平台默认探测；基线记录见 `docs/perf-baseline.md`（生产）、`docs/perf-baseline-local.md` 与 `docs/perf-baseline-local-lcp.md`（本地）） |
 | `npm run import -- --from hexo --source ./hexo-blog` | 内容导入（hexo/hugo/wordpress，`--dry-run` 预览） |
 | `npm run init` | 重新初始化 git hooks / gitignore / gitattributes |
 | `npm run deploy:pages` | 部署到 Cloudflare Pages（项目名/产物目录读 `internals.deploy`，部署前自动跑 `verify:internals`） |

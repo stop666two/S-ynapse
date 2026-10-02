@@ -1,0 +1,53 @@
+name: Release Notes
+
+# 手动补更 GitHub Release 描述（workflow_dispatch，输入目标 tag）：
+#   - 生成器代码在默认分支 main，因此 checkout main 后再针对目标 tag 生成；
+#   - 从目标 Release 下载 zip 附件用于计算 SHA-256（与 publish 作业同一生成器）；
+#   - `gh release edit --notes-file` 只更新正文，不触碰 tag、标题、附件与 latest 标记。
+# 适用场景：历史 Release 建成时描述过于简单（如仅一句 --notes），需要补齐
+# CHANGELOG 变更段、门禁清单、校验和与安装说明。
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '目标 Release tag（如 v1.2.1）'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update-release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout default branch (release-notes generator lives here)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Validate target Release exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: gh release view "$TAG" --json tagName --jq .tagName
+      - name: Download release archive asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          mkdir -p release-assets
+          gh release download "$TAG" -p '*.zip' --dir release-assets
+      - name: Generate release notes
+        env:
+          TAG: ${{ inputs.tag }}
+        run: node scripts/release-notes.js --tag "$TAG" --archive release-assets/S-ynapse-*.zip --out release-notes.md
+      - name: Update release description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: gh release edit "$TAG" --notes-file release-notes.md

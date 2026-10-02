@@ -173,6 +173,8 @@ jobs:
           cache: npm
       - name: Install runtime dependencies (prune script needs json5)
         run: npm ci --omit=dev
+      - name: Generate release notes (CHANGELOG section + gates + archive SHA-256)
+        run: node scripts/release-notes.js --tag "$GITHUB_REF_NAME" --archive release-artifacts/S-ynapse-*.zip --out release-notes.md
       - name: Create GitHub Release with archive asset
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -181,7 +183,7 @@ jobs:
             --verify-tag \
             --latest \
             --title "S-ynapse $GITHUB_REF_NAME" \
-            --notes "经人工核验与全套质量门禁验证的版本；归档已通过解压可构建校验。校验依据见 tag 内 RELEASE.json。"
+            --notes-file release-notes.md
       - name: Prune older releases (keep latest only; tags are never deleted)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

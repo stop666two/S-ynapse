@@ -720,7 +720,7 @@
 | `navigation.userMenu.enabled` | bool | false | js/core/boot.js:78<br>js/core/boot.js:167<br>js/core/main.js:99 | scripts/auto-cover.test.js:22<br>scripts/auto-cover.test.js:25 | 既有引用 |
 | `security.csp.enabled` | bool | false | js/core/boot.js:78<br>js/core/boot.js:167<br>js/core/main.js:99 | scripts/auto-cover.test.js:22<br>scripts/auto-cover.test.js:25 | 既有引用 |
 | `security.csp.reportOnly` | bool | false | scripts/build/security-files.js:133<br>scripts/generate-security-config.js:151<br>workers/security-worker.js:222 | scripts/build.test.js:522<br>scripts/build.test.js:568 | 既有引用 |
-| `security.forceHttps` | bool | false | scripts/generate-security-config.js:157<br>workers/security-config.js:83<br>workers/security-worker.js:52 | scripts/build.test.js:514<br>scripts/build.test.js:574 | 既有引用 |
+| `security.forceHttps` | bool | false | scripts/generate-security-config.js:157<br>workers/security-worker.js:52<br>workers/security-worker.js:273 | scripts/build.test.js:514<br>scripts/build.test.js:574 | 既有引用 |
 | `security.hardening.cspReportMaxBytes` | number | 16384 | scripts/generate-security-config.js:154<br>scripts/generate-security-config.js:163<br>scripts/generate-security-config.js:155 | scripts/build.test.js:527<br>scripts/config-wiring.test.js:1159 | 既有引用 |
 | `security.rateLimiting.enabled` | bool | false | js/core/boot.js:78<br>js/core/boot.js:167<br>js/core/main.js:99 | scripts/auto-cover.test.js:22<br>scripts/auto-cover.test.js:25 | 既有引用 |
 | `security.rateLimiting.maxRequests` | number | 100 | scripts/generate-security-config.js:137<br>workers/lib/rate-limit.mjs:9<br>workers/lib/rate-limit.mjs:15 | scripts/build.test.js:509<br>scripts/build.test.js:510 | 既有引用 |

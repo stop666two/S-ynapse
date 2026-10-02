@@ -18,13 +18,36 @@ const SCAN_DIRS = ['js', 'templates', 'scripts', 'workers'];
 const EXCLUDE_DIRS = new Set(['node_modules', '.git', 'dist', 'real-site', '.tmp-scripts', '.cache', 'build-artifacts']);
 const SOURCE_EXCLUDE_FILES = new Set([
   'features-schema.js', 'site-defaults.js', 'tuning-defaults.js', 'guard-defaults.js',
-  'internals-defaults.js', 'check-config-refs.js'
+  'internals-defaults.js', 'check-config-refs.js',
+  'config-switch-exemptions.json', 'config-fallback-bindings.json'
 ]);
 
 const SWITCH_MARKER_RE = /\/\/\s*switch:\s*([A-Za-z0-9_.-]+(?:\s*,\s*[A-Za-z0-9_.-]+)*)/g;
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+// 扫描源：优先取 Git 跟踪文件（干净检出与本地一致，排除 gitignore 构建产物）；
+// 无 .git 环境（发布归档）回退到目录遍历——归档本身只含跟踪文件，结果等价。
+function listFiles() {
+  try {
+    const out = require('child_process').execSync('git ls-files -z -- ' + SCAN_DIRS.join(' '), {
+      cwd: ROOT,
+      encoding: 'buffer',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    const tracked = out.toString('utf8').split('\0').filter(Boolean).map(function (p) {
+      return path.join(ROOT, p);
+    });
+    if (tracked.length > 0) return tracked;
+  } catch (error) {
+    // 无 git 可用时走目录遍历回退
+  }
+  const files = [];
+  for (const dir of SCAN_DIRS) walk(path.join(ROOT, dir), files);
+  sortNormalized(files);
+  return files;
 }
 
 // 统一按「/ 分隔的相对路径」排序，消除平台分隔符与文件系统枚举顺序差异
@@ -183,9 +206,7 @@ function collectSwitchMarkers(testFiles) {
 }
 
 function collectAllMarkers() {
-  const files = [];
-  for (const dir of SCAN_DIRS) walk(path.join(ROOT, dir), files);
-  sortNormalized(files);
+  const files = listFiles();
   return collectSwitchMarkers(files.filter((file) => file.endsWith('.test.js')));
 }
 
@@ -204,9 +225,7 @@ function exemptionReason(exemptions, keyPath) {
 
 function collectInventory(options) {
   const opts = options || {};
-  const files = [];
-  for (const dir of SCAN_DIRS) walk(path.join(ROOT, dir), files);
-  sortNormalized(files);
+  const files = listFiles();
   const sourceFiles = files.filter((file) => !file.endsWith('.test.js') && !SOURCE_EXCLUDE_FILES.has(path.basename(file)));
   const testFiles = files.filter((file) => file.endsWith('.test.js'));
   const sourceIndex = buildIndex(sourceFiles, { skipTests: true });

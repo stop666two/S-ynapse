@@ -39,6 +39,7 @@
     "sbom": "node scripts/sbom.js",
     "release:mark": "node scripts/release-mark.js",
     "release:archive": "node scripts/release-archive.js",
+    "release:notes": "node scripts/release-notes.js",
     "release:publish": "node scripts/release-publish.js",
     "release:prune": "node scripts/release-prune.js",
     "dev": "node scripts/build.js --watch --drafts",

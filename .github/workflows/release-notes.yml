@@ -30,24 +30,31 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+      - name: Normalize tag input
+        env:
+          RAW_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="$(printf '%s' "$RAW_TAG" | sed -E 's/^[[:space:]]*(tag[[:space:]]*=)?[[:space:]]*//; s/[[:space:]]+$//')"
+          test -n "$TAG"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
       - name: Validate target Release exists
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ inputs.tag }}
+          # TAG 由 Normalize 步骤写入 GITHUB_ENV，后续步骤直接使用
         run: gh release view "$TAG" --json tagName --jq .tagName
       - name: Download release archive asset
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ inputs.tag }}
+          # TAG 由 Normalize 步骤写入 GITHUB_ENV，后续步骤直接使用
         run: |
           mkdir -p release-assets
           gh release download "$TAG" -p '*.zip' --dir release-assets
       - name: Generate release notes
         env:
-          TAG: ${{ inputs.tag }}
+          # TAG 由 Normalize 步骤写入 GITHUB_ENV，后续步骤直接使用
         run: node scripts/release-notes.js --tag "$TAG" --archive release-assets/S-ynapse-*.zip --out release-notes.md
       - name: Update release description
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ inputs.tag }}
+          # TAG 由 Normalize 步骤写入 GITHUB_ENV，后续步骤直接使用
         run: gh release edit "$TAG" --notes-file release-notes.md

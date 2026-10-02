@@ -86,7 +86,7 @@ test('archiveRelease：真实 git archive HEAD → 内容全部落在白名单�
     assert.ok(files.some(function (f) { return f === 'features.json5'; }), '归档应包含根 JSON5');
     // docs/ 只允许测试所需最小文档集（解压后 npm test 直接读取）；其余文档与排除目录必须为零。
     const docsFiles = files.filter(function (f) { return f.startsWith('docs/'); });
-    assert.deepStrictEqual(docsFiles, ['docs/config-reference.md'], 'docs/ 仅允许测试所需最小文档集：' + docsFiles.join(', '));
+    assert.deepStrictEqual(docsFiles, ['docs/config-reference.md', 'docs/config-switch-matrix.md'], 'docs/ 仅允许测试所需最小文档集：' + docsFiles.join(', '));
     assert.ok(!files.some(function (f) { return f.startsWith('.github/') || f.startsWith('real-site/'); }), '不得包含排除目录');
     assert.deepStrictEqual(result.skeleton, { articles: 2, media: 1 }, '骨架统计应为 articles 2 个、media 1 个 .gitkeep');
   } finally {

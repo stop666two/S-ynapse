@@ -107,7 +107,7 @@ test('白名单排除：开发目录/派生副本/构建产物一律拒绝', () 
 });
 
 test('额外白名单：测试所需最小文档集放行，docs 其余仍拒绝（先于排除模式判定）', () => {
-  assert.deepStrictEqual(RELEASE_EXTRA_FILES, ['docs/config-reference.md'], '最小文档集应保持有界：仅 config-reference');
+  assert.deepStrictEqual(RELEASE_EXTRA_FILES, ['docs/config-reference.md', 'docs/config-switch-matrix.md'], '最小文档集应保持有界：config-reference 与 config-switch-matrix');
   for (const file of RELEASE_EXTRA_FILES) {
     assert.strictEqual(isReleaseAllowed(file), true, file + ' 应放行（解压后 npm test 直接读取）');
     assert.ok(RELEASE_REQUIRED_FILES.includes(file), file + ' 应列入必需文件（缺包即归档失败）');

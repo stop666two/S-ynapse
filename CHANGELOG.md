@@ -95,7 +95,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **文档一致性**
 - `config-reference` 补齐 31 个未入档键，并清除 4 处已删键的残留条目（R-33 附带）。
-- 架构文档模块计数与实测对齐：`scripts/lib` 81 个文件/11 份单测、领域模块 66（core 21）、开关 817 项、构建编排器约 550 行（R-44）。
+- 架构文档模块计数与实测对齐：`scripts/lib` 83 个文件（72 实现 + 11 测试：1 同名单测 + 10 `*.fuzz.test.js`）、领域模块 66（core 21）、开关 801 项、构建编排器约 550 行（R-44）。
+- **规模口径改为门禁**：`verify:internals` 新增 `checkArchitectureCounts()`，按 `scripts/lib` 目录实况校验 `docs/architecture.md` 里的文件/实现/测试/同名单测四项数字；数字被删（正则不命中）或漂移均失败。此前 76 → 78 → 82 只能靠人工审查发现（实际已 83），这类文档计数不再依赖复查。
 
 ## [1.2.1] - 2026-10-02
 

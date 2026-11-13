@@ -44,7 +44,7 @@ Worker 需手动 `npm run deploy:worker`，因此**两个主机名的实际防�
 |---|---|
 | `scripts/build.js` | 构建编排器（约 550 行）：进程守卫接入、配置装载/校验、14 阶段编排、报告、watch/serve 入口；重活经 `createBuildContext` 注入的工厂模块执行 |
 | `scripts/build/*.js` | 构建模块（20 个，工厂注入、无全局状态）：`articles` / `assets` / `auto-cover` / `cache` / `cjk-fonts` / `collectors` / `config` / `context` / `feeds` / `fs-utils` / `helpers` / `markdown` / `media` / `mermaid` / `minify` / `pages` / `render` / `report` / `security-files` / `serve` |
-| `scripts/lib/*.js` | 纯函数库（82 个文件，其中 11 份为同名单测）：`utils` / `perf-budget` / `csp` / `content-policy` / `asset-cache` / `build-errors` / `build-report-html` / `critical-css` / `content-validate` / `publish-window` / `config-split` / `bundle` / `dist-hash` / `incremental` / `watch-mode` / `tracked-files` / `cache-bust-exclusions` / `compression-config` / `compression-steps` / `compression-verify` / `css-merge` / `static-server` / `internals` / `internals-defaults` / `process-guard` / `chrome-path` / `output-dir` 等 |
+| `scripts/lib/*.js` | 纯函数库（83 个文件：72 份实现 + 11 份测试，其中 1 份为同名单测、10 份为 `*.fuzz.test.js` 属性测试）。`verify:internals` 按目录实况校验这组数字：`utils` / `perf-budget` / `csp` / `content-policy` / `asset-cache` / `build-errors` / `build-report-html` / `critical-css` / `content-validate` / `publish-window` / `config-split` / `bundle` / `dist-hash` / `incremental` / `watch-mode` / `tracked-files` / `cache-bust-exclusions` / `compression-config` / `compression-steps` / `compression-verify` / `css-merge` / `static-server` / `internals` / `internals-defaults` / `process-guard` / `chrome-path` / `output-dir` 等 |
 | `scripts/generate-og.js` | OG 图生成（独立进程，`.cache/og` 增量缓存） |
 | `templates/*.ejs` | 页面模板（layout/index/post/archive/search/tag/category/404/PWA 等 16 个） |
 | `js/core/` | 启动器：`runtime.js`（配置加载引导）、`boot.js`（阶段队列）、`main.js`（入口）、`deferred.js`（懒加载模块注册表）、`soft-nav.js`（软导航） |
@@ -92,7 +92,7 @@ scripts/build.js（14 阶段编排 + watch/serve + require('lib/process-guard')�
         ├── build/feeds, report, security-files, minify .... 订阅源、报告、安全文件与压缩
         └── build/assets, serve, fs-utils, helpers ......... 交付资产、本地服务与工具
                 ▲ 纯逻辑下沉
-        scripts/lib/*（76 文件；测试直连，无 fs/网络副作用或经依赖注入）
+        scripts/lib/*（83 文件：72 份实现 + 11 份测试；测试直连，无 fs/网络副作用或经依赖注入）
 ```
 
 **构建缓存**（`.cache/`，均不入库）：`.cache/media`（媒体输出持久副本）、`.cache/covers`（自动封面）、`.cache/og`（OG 图与 `last-run.json`）、`.cache/mermaid`（SSR SVG，键 = 版本+主题+源码哈希）、`.cache/fonts`（CJK 清单与 woff2 分片，URL 哈希命名）、`.cache/compression-baseline`（验证期基线快照按运行隔离为 `run-*` 子目录，默认验证后删除）、`.cache/compression-verify/last.json`（无头验证结果）、`.cache/chrome-verify-profile`（无头 profile 基目录，每次运行随机子目录且运行结束即清理）；`.build-cache.json` 为媒体指纹总表。自定义输出目录：`--out` / `SYNAPSE_OUT_DIR`（集成测试使用）。

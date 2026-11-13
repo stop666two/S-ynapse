@@ -221,6 +221,82 @@ function checkLiteralGuards() {
   }
 }
 
+// 审查 R-44：docs/architecture.md 的「规模口径」此前只能靠人工审查发现漂移
+// （scripts/lib 76 → 78 → 82，实际已 83；同名单测也写错）。这里按目录实况校验，
+// 任一处对不上即失败；数字被删除（正则不命中）同样失败，避免「删掉就不漂」。
+function listJs(rel) {
+  return fs.readdirSync(path.join(ROOT, rel)).filter((f) => f.endsWith('.js'));
+}
+
+function architectureActual() {
+  const libFiles = listJs(path.join('scripts', 'lib'));
+  const libTests = libFiles.filter((f) => f.endsWith('.test.js'));
+  const sameName = libTests.filter((t) => fs.existsSync(path.join(ROOT, 'scripts', 'lib', t.replace(/\.test\.js$/, '.js'))));
+  const count = (rel) => listJs(rel).length;
+  return {
+    libTotal: libFiles.length,
+    libImpl: libFiles.length - libTests.length,
+    libTests: libTests.length,
+    libSameName: sameName.length,
+    core: count(path.join('js', 'domains', 'core')),
+    features: count(path.join('js', 'domains', 'features')),
+    guard: count(path.join('js', 'domains', 'guard')),
+    buildModules: count(path.join('scripts', 'build'))
+  };
+}
+
+function architectureCountRules() {
+  const a = architectureActual();
+  const domains = a.core + a.features + a.guard;
+  return [
+    {
+      label: 'scripts/lib 规模口径（文件/实现/测试）',
+      pattern: /(\d+)\s*个文件：(\d+)\s*份实现\s*\+\s*(\d+)\s*份测试/,
+      expected: [a.libTotal, a.libImpl, a.libTests]
+    },
+    {
+      label: '分层图 scripts/lib 文件数',
+      pattern: /scripts\/lib\/\*（(\d+)\s*文件/,
+      expected: [a.libTotal]
+    },
+    {
+      label: '同名单测数',
+      pattern: /其中\s*(\d+)\s*份为同名单测/,
+      expected: [a.libSameName]
+    },
+    {
+      label: '前端领域模块分布（总数/core/features/guard）',
+      pattern: /(\d+)\s*个前端领域模块（core\s*(\d+)\s*\/\s*features\s*(\d+)\s*\/\s*guard\s*(\d+)/,
+      expected: [domains, a.core, a.features, a.guard]
+    },
+    {
+      label: 'scripts/build 模块数',
+      pattern: /构建模块（(\d+)\s*个/,
+      expected: [a.buildModules]
+    }
+  ];
+}
+
+function checkArchitectureCounts() {
+  const text = read('docs/architecture.md');
+  if (!text) return; // read() 已记录「无法读取」；归档内 docs/ 不入包，与 .github 同源处理
+  for (const rule of architectureCountRules()) {
+    const m = rule.pattern.exec(text);
+    if (!m) {
+      failures.push('docs/architecture.md：未找到' + rule.label + '（口径被删除也会失败）');
+      continue;
+    }
+    const actual = m.slice(1).map(Number);
+    const mismatch = actual.some((v, i) => v !== rule.expected[i]);
+    if (mismatch) {
+      failures.push(
+        'docs/architecture.md：' + rule.label + ' 写 ' + actual.join(' / ') +
+          '，实际 ' + rule.expected.join(' / ')
+      );
+    }
+  }
+}
+
 function main() {
   let internals;
   try {
@@ -238,15 +314,16 @@ function main() {
     checkNightlyBudget(internals);
   }
   checkLiteralGuards();
+  checkArchitectureCounts();
 
   if (failures.length) {
     console.error('[verify:internals] FAIL：' + failures.length + ' 项：');
     for (const item of failures) console.error('  - ' + item);
     process.exit(1);
   }
-  console.log('[verify:internals] PASS：.nvmrc / wrangler assets / CI 版本 / 关键写死形态 均与 internals 一致');
+  console.log('[verify:internals] PASS：.nvmrc / wrangler assets / CI 版本 / 关键写死形态 / 文档规模口径 均与 internals 一致');
 }
 
 if (require.main === module) main();
 
-module.exports = { checkNvmrc, checkWranglerAssets, checkDeployWorkflow, checkLiteralGuards, LITERAL_GUARDS };
+module.exports = { checkNvmrc, checkWranglerAssets, checkDeployWorkflow, checkLiteralGuards, checkArchitectureCounts, LITERAL_GUARDS };

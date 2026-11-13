@@ -202,7 +202,9 @@ test('基线棘轮：基线键集合与当前缺失集合一致，且基线不�
   const missing = rows.filter((row) => row.status === 'MISSING').map((row) => row.keyPath).sort();
   assert.deepStrictEqual([...baseline].sort(), missing,
     '新增未覆盖开关必须补证据或登记豁免；已覆盖的开关必须从基线删除（基线只允许缩小）');
-  assert.ok(baseline.size > 0, '基线不应为空（否则等于零容忍，需同步清理豁免表）');
+  // 空基线是目标终态（每个开关要么有证据、要么逐键书面豁免），而不是作弊手段：
+  // 上面的精确相等断言已经保证「有缺失却清空基线」不可能通过——那种情况会立刻不等。
+  // 因此这里不再要求基线非空，只断言覆盖率检查在两种状态下都无问题。
   assert.deepStrictEqual(source.checkCoverage(rows, baseline), []);
 });
 

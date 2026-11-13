@@ -22,12 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **OG 单图失败不再使构建非零（R-17）**：与 media/压缩的降级语义一致，缺失封面计入构建报告告警，不再阻断部署。
 - **外链提醒文案按纯文本渲染（R-41）**：`site.externalLinkWarning.message` 里的 HTML 不再被解释（此前与文档「不可填 HTML」相反）。
 - **Worker 名统一为 `blog`（R-06）**：`workers/wrangler.toml` 顶层即单源，`[env.production]` 不再覆盖 name；不带 `--env` 与带 `--env production` 都部署到 `blog`。当前无投产环境，历史 `s-ynapse-security` 可直接删除。
-- **删除 45 个零消费配置键（R-33 附带）**：`ui-strings` 36 个（无任何 `ui()/__T()` 引用）、`theme.layout.{footerStyle,sidebarPosition,contentWidth,postLayout,archiveLayout}`、`theme.fontSystem.bodyWeight`、`theme.articleFooter.borderWidth`、`navigation.navbar.showLogo`、`site.timezone`。配置项总数 2895 → 2850。
+- **删除 64 个零消费配置键（R-33 附带）**：`ui-strings` 36 个（无任何 `ui()/__T()` 引用）、`theme.layout.{footerStyle,sidebarPosition,contentWidth,postLayout,archiveLayout}`、`theme.fontSystem.bodyWeight`、`theme.articleFooter.borderWidth`、`navigation.{navbar.showLogo,userMenu}`、`sidebar.mobile.*`、`site.timezone`，以及 19 个无消费方的 features 开关（`autoSummary.enabled` / `codeCopy.enabled` / `exportBackup.enabled` / `gallery.{enabled,maxItems,order}` / `heatmap.enabled` / `hreflang.canonical` / `listCover.lazy` / `maintenance.enabled` / `mediaAudit.enabled` / `mobileToc.position` / `morphIcons.enabled` / `readMode.fontScale` / `readingPanel.position` / `share.position` / `themeToggle.enabled` / `toc.smoothScroll` / `schemaRich.enabled`）。配置项总数 2895 → 2831，开关 817 → 793。
 - **性能预算 `features.perfBudget.jsKb` 75 → 76（R-02 附带）**：搜索页初始化从模板内联脚本迁入 deferred bundle，同一批字节从 HTML 预算侧移到 JS 侧；实测 75.3KB，余量与调整前同量级。
 
 ### Added
 
-- `scripts/config-switch-baseline.json`：未覆盖开关基线（194 条），`verify:config-single-source` 改为**棘轮**——未覆盖数不得新增、基线只允许缩小，且每次输出 `未覆盖 N/M（基线 K）`（R-33）。
+- `scripts/config-switch-baseline.json`：未覆盖开关基线，`verify:config-single-source` 改为**棘轮**——未覆盖数不得新增、基线只允许缩小、基线为已覆盖键留条目同样失败，且每次输出 `未覆盖 N/M（基线 K）`。**本版已清零**（793 项全有证据或书面豁免，基线为空）；新增未覆盖开关会立刻失败（R-33）。
+- 39 个开关覆盖测试（`scripts/config-coverage-*.test.js`）：真实渲染 `site-css/layout/post/index/page`、驱动 `buildSiteCss/generatePages/feed/security/SW/OG/相关文章` 等真实消费点，逐键断言「非默认值 → 产物变化」（R-33）。
 - `.github/dependabot.yml`：工作流 action 全部锁 40 位 commit SHA 后，由 Dependabot 按周升级（R-39）。
 - `js/domains/core/style-inject.js`：运行期注入 `<style>` 的唯一入口，统一复制构建期 CSP nonce（R-03）。
 - `scripts/lib/watch-mode.js`、`scripts/lib/cache-bust-exclusions.js`：watch 串行化/监听路径与 cacheBust 排除集的可测纯函数（R-15/R-16/R-32）。
@@ -75,6 +76,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `release:publish` 复用已存在 zip 时跳过白名单与版本校验：抽出 `verifyArchive`，两条路径共用（R-35）。
 - nightly 超时（120min）短于聚合器最坏预算（≈230min）：提到 260min，deploy 的 build job 补显式超时（R-38）。
 - 所有 action 锁到可变大版本标签：全部锁 40 位 SHA（含 `contents: write` 的发布 job）（R-39）。
+
+**测试与门禁基础设施**
+- 「删除键/模块无残留引用」类用例此前遍历工作树，未跟踪但被 gitignore 的仓库副本（如本地 `backups/`）会被当成源文件命中，造成「CI 绿、本地恒红」的假失败：改为经 `scripts/lib/tracked-files.js` 只扫 git 跟踪文件（无 `.git` 的发布归档回退遍历），并补该助手自身的回归测试。
 
 **文档一致性**
 - `config-reference` 补齐 31 个未入档键，并清除 4 处已删键的残留条目（R-33 附带）。

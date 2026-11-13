@@ -67,7 +67,7 @@ const DEFAULT_FEATURES = {
     copyFeedbackMs: 1500
   },
   themeToggle: {
-    enabled: true, persistKey: 'ss-theme', toggleIconSwap: true, zIndex: 100
+    persistKey: 'ss-theme', toggleIconSwap: true, zIndex: 100
   },
   themePresets: {
     enabled: true, pickerVisible: true, persistChoice: true, storageKey: 'ss-preset',
@@ -94,14 +94,14 @@ const DEFAULT_FEATURES = {
   toc: {
     enabled: true, minLevel: 2, maxLevel: 4, collapsible: true,
     defaultOpenLevel: 2, highlightActive: true, activeOffset: 120,
-    progressLine: true, updateUrl: true, smoothScroll: true,
+    progressLine: true, updateUrl: true,
     visitedFade: true, groupCollapse: true, titleText: '目录', titleTextEn: 'Contents',
     showTitle: true, maxWidthPx: 320
   },
   mobileToc: {
     enabled: true, borderRadius: '1rem',
     maxHeightVh: '70', autoClose: true, overlayClose: true,
-    lockScroll: true, position: 'right', showCurrent: true
+    lockScroll: true, showCurrent: true
   },
   readDock: {
     enabled: true, showProgressRing: true, showTocButton: true,
@@ -168,7 +168,7 @@ const DEFAULT_FEATURES = {
     updateToastMs: 0, reloadFallbackMs: 3000
   },
   morphIcons: {
-    enabled: true, vendorPath: '/assets/vendor/morphicons', spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},
+    vendorPath: '/assets/vendor/morphicons', spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},
     icons: { theme: true, copy: true, favorite: true, tts: true, menu: true },
     idleTimeoutMs: 3000
   },
@@ -263,25 +263,25 @@ const DEFAULT_FEATURES = {
     touchLongPress: true, touchLongPressMs: 500, hapticMs: 10, showHandleOnHover: true, resetOnLoadFail: true
   },
   exportBackup: {
-    enabled: true, includeMedia: true, includeConfig: true, outputDir: 'exports',
+    includeMedia: true, includeConfig: true, outputDir: 'exports',
     fileNamePrefix: 's-ynapse-backup'
   },
   mediaAudit: {
-    enabled: true, reportMissed: true, reportUnreferenced: true,
+    reportMissed: true, reportUnreferenced: true,
     reportDuplicate: false, output: 'console'
   },
   autoSummary: {
-    enabled: true, maxLength: 160, fallback: 'firstParagraph',
+    maxLength: 160, fallback: 'firstParagraph',
     stripMarkdown: true, ellipsis: '…'
   },
   searchEnginePing: {
     enabled: false, engines: ['google'], onlyProduction: true, timeoutMs: 5000
   },
   hreflang: {
-    enabled: true, includeSelf: true, canonical: true, xDefault: true
+    enabled: true, includeSelf: true, xDefault: true
   },
   schemaRich: {
-    enabled: true, breadcrumbs: true, dateModified: true, blogHomepage: true,
+    breadcrumbs: true, dateModified: true, blogHomepage: true,
     authorUrl: true, wordCount: true, timeRequired: true, keywords: true, articleSection: true, image: true
   },
   ogImage: {
@@ -300,7 +300,7 @@ const DEFAULT_FEATURES = {
     showInMeta: true, labelBefore: '', labelAfter: '阅读约需', labelAfterEn: ' min read'
   },
   codeCopy: {
-    enabled: true, buttonText: '复制', buttonTextEn: 'Copy', copiedText: '已复制', copiedTextEn: 'Copied', buttonTimeout: 1500,
+    buttonText: '复制', buttonTextEn: 'Copy', copiedText: '已复制', copiedTextEn: 'Copied', buttonTimeout: 1500,
     showLineNumbers: false
   },
   tocScrollSpy: {
@@ -315,7 +315,6 @@ const DEFAULT_FEATURES = {
   },
   listCover: {
     enabled: true, showOnHome: true, showOnArchive: true, fallback: 'pattern',
-    lazy: true,
     autoGenerate: {
       enabled: true, width: 1200, height: 630, format: 'webp',
       backgroundStyle: 'gradient', showSiteName: true, showCategory: false
@@ -341,11 +340,11 @@ const DEFAULT_FEATURES = {
     fontSizeDefault: 19, lineHeightMin: 1.4, lineHeightMax: 2.6,
     lineHeightStep: 0.1, lineHeightDefault: 1.9, widthMin: 560, widthMax: 1200,
     widthStep: 40, widthDefault: 800, remember: true,
-    resetText: '重置', resetTextEn: 'Reset', position: 'right', persistKey: 'ss-reading', showReset: true
+    resetText: '重置', resetTextEn: 'Reset', persistKey: 'ss-reading', showReset: true
   },
   readMode: {
     enabled: true, persist: true, label: '阅读模式', labelEn: 'Reading Mode', focusOnlyContent: true,
-    fontScale: 1, storageKey: 'readingMode'
+    storageKey: 'readingMode'
   },
   tts: {
     enabled: true, rate: 0.5, pitch: 1, volume: 1, preferDefaultVoice: true,
@@ -407,7 +406,7 @@ const DEFAULT_FEATURES = {
   },
   share: {
     enabled: true, order: ['weibo', 'qq', 'wechat', 'x', 'facebook', 'mail', 'copy'],
-    position: 'toolbar', popupWidth: 640, popupHeight: 520,
+    popupWidth: 640, popupHeight: 520,
     wechatText: '{title} 分享自 {url}', wechatTextEn: '{title} via {url}', copiedText: '链接已复制', copiedTextEn: 'Link copied',
     copiedShowMs: 2500, showLabel: false, label: '分享文章', labelEn: 'Share this post',
     useNativeShare: false, copyFallback: true
@@ -419,13 +418,13 @@ const DEFAULT_FEATURES = {
     qrMaxWidth: '180px', closeText: '关闭', closeTextEn: 'Close', links: []
   },
   gallery: {
-    enabled: true, title: '图库', titleEn: 'Gallery', description: '站内图片集，点击查看大图。', descriptionEn: 'In-site image gallery. Click to view full size.',
+    title: '图库', titleEn: 'Gallery', description: '站内图片集，点击查看大图。', descriptionEn: 'In-site image gallery. Click to view full size.',
     emptyText: '暂无图片', emptyTextEn: 'No images', columns: 4, columnMin: '220px', showSource: true,
-    collectFeatured: true, order: 'newest', maxItems: 0,
+    collectFeatured: true,
     gap: '12px', showCaption: true, borderRadius: '8px'
   },
   heatmap: {
-    enabled: true, levels: 5, scaling: 'auto', palette: [], showLegend: true,
+    levels: 5, scaling: 'auto', palette: [], showLegend: true,
     legendLow: '少', legendLowEn: 'Less', legendHigh: '多', legendHighEn: 'More', tooltipFormat: '{year}-{month}: {count} 篇', tooltipFormatEn: '{year}-{month}: {count} posts',
     showMonthNumbers: true, gap: '3px', borderRadius: '3px', cellSize: '13px',
     emptyColor: 'var(--color-border)'
@@ -454,7 +453,7 @@ const DEFAULT_FEATURES = {
   },
   redirects: { enabled: true, generatePagesFile: true, applyInServe: true, invalidRule: 'abort' },
   maintenance: {
-    enabled: false, message: '站点维护中，请稍后再来。', messageEn: 'The site is under maintenance. Please try again later.', status: 503,
+    message: '站点维护中，请稍后再来。', messageEn: 'The site is under maintenance. Please try again later.', status: 503,
     setRetryAfter: true, retryAfter: 3600
   },
   mobile: {

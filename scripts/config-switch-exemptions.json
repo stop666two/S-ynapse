@@ -318,8 +318,6 @@
     "internals.report.maxBuildMsWarn": "build-integration",
     "navigation.navbarOptions.glassAlpha": "visual-param",
     "navigation.navbarOptions.shadowShow": "visual-param",
-    "sidebar.mobile.collapsed": "visual-param",
-    "sidebar.mobile.toggleButton": "runtime-dom",
     "sidebar.options.borderShow": "visual-param",
     "sidebar.options.hoverLift": "visual-param",
     "sidebar.options.titleWeight": "visual-param",

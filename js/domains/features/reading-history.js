@@ -1,7 +1,10 @@
 export function init() {
   var F = (window.__FEATURES__ || {}).readingHistory || {};
   if (F.enabled === false) return;
-  var KEY = String(F.storageKey);
+  // 审查 R-25：配置外置加载失败时 features.readingHistory 只剩 enabled（降级子集仅内联 guards），
+  // 旧写法 String(F.storageKey) 会得到字符串 "undefined" —— 历史写进无效键、恢复后「继续阅读」为空
+  // 且脏键永久残留。回退键与 continue-reading 的默认键同源（'s-history'）。
+  var KEY = String(F.storageKey || 's-history');
   var maxItems = Number(F.maxItems) > 0 ? Number(F.maxItems) : 5;
   // features.readingHistory.maxStored（缺省/非法回退 50，保持历史行为；仅存储上限，展示条数由 maxItems 控制）。
   var maxStored = Number(F.maxStored) > 0 ? Math.floor(Number(F.maxStored)) : 50;

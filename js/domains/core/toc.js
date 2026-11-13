@@ -36,13 +36,127 @@ function update() {
   }
 }
 
+// 审查 R-21：移动端浮动目录块（按钮 + 抽屉）必须与当前内容同源。模板只在首屏按 article.toc
+// 渲染它，而且位于 .content-wrapper 之外——软导航只替换内容区，于是文章→首页残留上一页章节、
+// 首页→文章则完全没有入口。这里按当前内容区的 .toc-sidebar-list 重建/移除该块（数据源与桌面
+// 侧栏同一份章节列表），交互用 onclick/data-bound 幂等重绑。
+function syncMobileToc(off) {
+  var btn = document.getElementById('mTocBtn');
+  var dr = document.getElementById('mTocDrawer');
+  var list = document.querySelector('.toc-sidebar-list');
+  var items = [];
+  if (!off && S.MT.enabled !== false && list) {
+    var links = list.querySelectorAll('.toc-sidebar-link');
+    for (var i = 0; i < links.length; i++) {
+      var lk = links[i];
+      var href = lk.getAttribute('href') || '';
+      if (href.charAt(0) !== '#') continue;
+      items.push({
+        href: href,
+        text: String(lk.textContent || '').replace(/^\s+|\s+$/g, ''),
+        level: +((String(lk.className).match(/level-(\d)/) || [])[1]) || 2
+      });
+    }
+  }
+  if (!items.length) {
+    if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
+    if (dr && dr.parentNode) dr.parentNode.removeChild(dr);
+    return;
+  }
+  var T = typeof window.__T === 'function' ? window.__T : function (k, d) { return d || k; };
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'm-toc-btn';
+    btn.id = 'mTocBtn';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('data-i18n-aria', 'toolbar.tocToggle');
+    btn.setAttribute('data-i18n-title', 'toolbar.tocToggle');
+    btn.setAttribute('aria-label', T('toolbar.tocToggle', '目录'));
+    btn.setAttribute('title', T('toolbar.tocToggle', '目录'));
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="4.5" cy="5.5" r="1.5"/><circle cx="4.5" cy="12" r="1.5"/><circle cx="4.5" cy="18.5" r="1.5"/><line x1="9" y1="5.5" x2="20" y2="5.5"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18.5" x2="20" y2="18.5"/></svg><span class="m-toc-label" id="mTocLabel"></span><span class="m-toc-pct" id="mTocPct"></span>';
+    document.body.appendChild(btn);
+  }
+  if (!dr) {
+    dr = document.createElement('div');
+    dr.className = 'm-toc-drawer';
+    dr.id = 'mTocDrawer';
+    dr.setAttribute('role', 'dialog');
+    dr.setAttribute('aria-modal', 'true');
+    dr.setAttribute('aria-label', T('toolbar.tocDrawer', '文章目录'));
+    var head = document.createElement('div');
+    head.className = 'm-toc-head';
+    var title = document.createElement('span');
+    title.setAttribute('data-i18n', 'sidebar.toc');
+    title.textContent = T('sidebar.toc', '目录');
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'm-toc-close';
+    closeBtn.id = 'mTocClose';
+    closeBtn.setAttribute('aria-label', T('toolbar.close', '关闭'));
+    closeBtn.setAttribute('title', T('toolbar.close', '关闭'));
+    closeBtn.setAttribute('data-i18n-aria', 'toolbar.close');
+    closeBtn.setAttribute('data-i18n-title', 'toolbar.close');
+    closeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    head.appendChild(title);
+    head.appendChild(closeBtn);
+    var listEl = document.createElement('nav');
+    listEl.className = 'm-toc-list';
+    dr.appendChild(head);
+    dr.appendChild(listEl);
+    document.body.appendChild(dr);
+  }
+  // 章节列表按当前页重建：同一节点反复导航时不得残留上一页的锚点。
+  var nav = dr.querySelector('.m-toc-list');
+  if (nav) {
+    nav.textContent = '';
+    items.forEach(function (it) {
+      var row = document.createElement('div');
+      row.className = 'm-toc-item level-' + it.level;
+      var a = document.createElement('a');
+      a.href = it.href;
+      a.textContent = it.text;
+      row.appendChild(a);
+      nav.appendChild(row);
+    });
+  }
+  // 换页后抽屉/按钮回到收起态（上一页可能停在展开态）；只在确实处于展开态时解除滚动锁，
+  // 避免把其它浮层（如灯箱）临时设置的 body overflow 一并清掉。
+  if (dr.classList.contains('open') && S.MT.lockScroll !== false && document.body) document.body.style.overflow = '';
+  dr.classList.remove('open');
+  btn.classList.remove('open');
+  btn.setAttribute('aria-expanded', 'false');
+  function open() {
+    dr.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+    btn.classList.add('open');
+    if (S.MT.lockScroll !== false && document.body) document.body.style.overflow = 'hidden';
+  }
+  function close() {
+    dr.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.classList.remove('open');
+    if (S.MT.lockScroll !== false && document.body) document.body.style.overflow = '';
+  }
+  S.mtClose = close;
+  btn.onclick = function () { if (dr.classList.contains('open')) close(); else open(); };
+  var mc = document.getElementById('mTocClose');
+  if (mc) mc.onclick = close;
+  if (dr.getAttribute('data-mt-bound') !== '1') {
+    dr.setAttribute('data-mt-bound', '1');
+    dr.addEventListener('click', function (e) { if (S.MT.autoClose !== false && e.target.closest('a')) close(); });
+  }
+}
+
 function bind() {
   var F = window.__FEATURES__ || {};
   S.T = (F && F.toc) || {};
   S.TSS = (F && F.tocScrollSpy) || {};
   S.MT = (F && F.mobileToc) || {};
   S.d = null; S.links = []; S.ids = []; S.headingEls = []; S.mgLabel = null; S.mgPct = null;
-  if (S.T.enabled === false || S.TSS.enabled === false) return;
+  var off = S.T.enabled === false || S.TSS.enabled === false;
+  syncMobileToc(off);
+  if (off) return;
   var d = document.querySelector('.toc-sidebar-list');
   if (!d) return;
   if (d.dataset.tocBound === '1') return;
@@ -124,17 +238,9 @@ function bind() {
     });
   });
 
-  // 移动端抽屉与快捷键帮助（元素可能不在本页，按 id 取到则绑定）
-  var h = document.getElementById('kbdHelp'), btn = document.getElementById('mTocBtn'), dr = document.getElementById('mTocDrawer');
-  if (btn && dr) {
-    function open() { dr.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); btn.classList.add('open'); if (S.MT.lockScroll !== false) document.body.style.overflow = 'hidden'; }
-    function close() { dr.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('open'); if (S.MT.lockScroll !== false) document.body.style.overflow = ''; }
-    S.mtClose = close;
-    btn.onclick = function () { dr.classList.contains('open') ? close() : open(); };
-    var mc = document.getElementById('mTocClose');
-    if (mc) mc.onclick = close;
-    dr.addEventListener('click', function (e) { if (S.MT.autoClose !== false && e.target.closest('a')) close(); });
-  }
+  // 快捷键帮助（元素可能不在本页，按 id 取到则绑定）；移动端抽屉的交互统一由 syncMobileToc 负责
+  // （审查 R-21：该块不在本函数的数据链路上，且需要每次按当前内容区重建）。
+  var h = document.getElementById('kbdHelp');
   if (h) {
     h.dataset.tocBound = '1';
   }

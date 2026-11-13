@@ -322,7 +322,13 @@ export function init() {
   }
   function getHistory() {
     __hs();
-    try { return JSON.parse(localStorage.getItem(__HSK) || '[]'); } catch (e) { return []; }
+    // 审查 R-24：存储里可能是合法 JSON 但非数组（对象/字符串/数字），旧实现直接 .filter 会抛
+    // TypeError，异常穿出防抖搜索函数后结果区既不渲染也不报错 —— 搜索永久只报错不出结果。
+    try {
+      var v = JSON.parse(localStorage.getItem(__HSK) || '[]');
+      if (!Array.isArray(v)) return [];
+      return v.filter(function (x) { return typeof x === 'string'; });
+    } catch (e) { return []; }
   }
   function saveHistory(q) {
     __hs();
@@ -411,6 +417,14 @@ export function init() {
     if (e.target !== ov) return;
     var SC2 = (window.__FEATURES__ || {}).search || {};
     if (SC2.closeOnOverlay !== false) closeSearch();
+  });
+  // 审查 R-19：软导航在捕获阶段接管结果链接并替换内容区，浮层若不在该路径关闭，用户看到的是
+  // 「点了没反应」（正文已在浮层后面换掉）。结果节点每次检索重建，故用文档级委托而非逐节点绑定。
+  document.addEventListener('click', function (e) {
+    var item = e.target && e.target.closest ? e.target.closest('.search-result-item') : null;
+    if (!item) return;
+    var o = document.getElementById('searchOverlay');
+    if (o && o.classList.contains('open')) closeSearch();
   });
   var sc = document.querySelector('.search-close');
   if (sc) sc.addEventListener('click', function () { closeSearch(); });

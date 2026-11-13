@@ -1,7 +1,8 @@
 'use strict';
 // release:mark 命令行行为测试：dry-run 端到端（不写文件、输出计划、退出码 0）、
 // 递增路径与同版本标记路径的分支输出、参数拒绝矩阵。
-// 真实发布会执行门禁、改版本、提交与打 tag，因此测试只覆盖 dry-run 与前置拒绝路径。
+// 真实发布会执行门禁、改版本、提交与打 tag，因此测试只覆盖 dry-run、前置拒绝路径
+// 与门禁结果核对（自跳过 → checks 记 false，审查 R-36）。
 //
 // 被测脚本以自身位置解析仓库根（__dirname/..），因此测试在临时目录搭建最小夹具仓库：
 // 复制 release-mark.js 与 lib 依赖，写入固定 package.json、CHANGELOG（含 [Unreleased]）、
@@ -13,6 +14,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { evaluateGateReport, recordGateResult } = require('./release-mark.js');
+const { RELEASE_GATES, COMPRESSION_VERIFY_REPORT } = require('./lib/release-version.js');
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -261,4 +264,72 @@ test('release-mark：--push 缺少 --confirm-push 二次确认被拒绝', functi
   assert.ok(!result.stdout.includes('推送'), '拒绝路径不得进入推送流程');
   assertNoGates(result.stdout);
   assertNoWrites(before);
+});
+
+// —— 审查 R-36：退出码 0 但「自跳过」的门禁不得记入 RELEASE.json.checks 为 true ——
+// 旧实现只按退出码判定（buildPassedChecks 预置全 true 后不再改动），无 Chrome 时
+// verify:compression 以 status=skipped 退出 0，于是 checks['verify-compression'] 谎报通过。
+// 下面以临时根目录中的报告文件驱动核对逻辑（真实门禁条目 + 真实报告路径约定）。
+
+// 在临时根目录写入压缩验证报告：report 为 null 表示不产出报告文件。
+function createReportRoot(report) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 's-ynapse-gate-report-'));
+  const file = path.join(root, '.cache', 'compression-verify', 'cli-last.json');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  if (report !== null) fs.writeFileSync(file, JSON.stringify(report), 'utf-8');
+  return root;
+}
+
+test('压缩验证报告路径单源：写方与读方都从 RELEASE_GATES 取，不各自硬编码', function () {
+  assert.strictEqual(COMPRESSION_VERIFY_REPORT, '.cache/compression-verify/cli-last.json');
+  const source = fs.readFileSync(path.join(ROOT, 'scripts', 'verify-compression.js'), 'utf-8');
+  assert.ok(source.includes("require('./lib/release-version')"), '写方必须从 release-version 取路径常量');
+  assert.ok(source.includes('COMPRESSION_VERIFY_REPORT'), '写方必须使用共享常量');
+  assert.ok(!source.includes('compression-verify/cli-last.json'), '写方不得重复硬编码报告路径');
+});
+
+test('evaluateGateReport：压缩门禁自跳过（status=skipped）记 false 并大声告警', function () {
+  const gate = RELEASE_GATES.filter(function (item) { return item.key === 'verify-compression'; })[0];
+  assert.ok(gate && gate.reportFile, '压缩门禁必须声明 reportFile（与 verify-compression 的写入路径同源）');
+  assert.ok(!gate.reportFile.includes('\\'), 'reportFile 用 / 分隔，跨平台由 path.join 归一化');
+  const root = createReportRoot({ status: 'skipped', reason: '未找到 Chrome / Chromium' });
+  try {
+    const verdict = evaluateGateReport(root, gate);
+    assert.strictEqual(verdict.passed, false, '自跳过的门禁不得判为通过');
+    assert.match(verdict.warning, /压缩无头对比/, '告警必须指名门禁');
+    assert.match(verdict.warning, /门禁自跳过：未找到 Chrome/, '告警必须带上自跳过原因');
+    assert.match(verdict.warning, /verify-compression=false/, '告警必须说明写入的 checks 值');
+    assert.match(verdict.warning, /release-validate|release:publish/, '告警必须说明后续发布校验会拒绝');
+
+    // recordGateResult 是 runGates 实际调用的落盘路径：checks 必须变 false。
+    const checks = { 'verify-compression': true };
+    recordGateResult(checks, root, gate);
+    assert.strictEqual(checks['verify-compression'], false, 'RELEASE.json 该项必须落盘为 false 而非 true');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('evaluateGateReport：passed 记通过，报告缺失/状态异常一律 fail-closed', function () {
+  const gate = RELEASE_GATES.filter(function (item) { return item.key === 'verify-compression'; })[0];
+  const roots = [createReportRoot({ status: 'passed' }), createReportRoot(null), createReportRoot({ status: 'failed' })];
+  try {
+    const passed = evaluateGateReport(roots[0], gate);
+    assert.strictEqual(passed.passed, true);
+    assert.strictEqual(passed.reason, '');
+
+    const missing = evaluateGateReport(roots[1], gate);
+    assert.strictEqual(missing.passed, false, '报告缺失时不得乐观放行');
+    assert.match(missing.reason, /未产出验证结果/);
+
+    const failed = evaluateGateReport(roots[2], gate);
+    assert.strictEqual(failed.passed, false);
+    assert.match(failed.reason, /failed/);
+
+    // 不声明 reportFile 的门禁仍只看退出码：无需任何报告文件即视为通过。
+    const plain = RELEASE_GATES.filter(function (item) { return item.key === 'lint'; })[0];
+    assert.strictEqual(evaluateGateReport(roots[1], plain).passed, true);
+  } finally {
+    for (const root of roots) fs.rmSync(root, { recursive: true, force: true });
+  }
 });

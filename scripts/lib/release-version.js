@@ -9,8 +9,14 @@ const SEMVER_RE = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
 const PRERELEASE_ID_RE = /^(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+// 压缩无头对比的验证结果文件（相对仓库根，LF 语义无关）。
+// 路径只在此声明一次：写方 scripts/verify-compression.js 与读方 release:mark 都从
+// RELEASE_GATES 的这一项取，避免「退出码 0 就当通过」把自跳过的门禁记成已执行（审查 R-36）。
+const COMPRESSION_VERIFY_REPORT = '.cache/compression-verify/cli-last.json';
+
 // 前置质量门禁清单（顺序即 release:mark 的执行顺序，也是 RELEASE.json.checks 的必需键）。
-// key 用于 checks 映射；command 为在仓库根执行的 shell 命令。
+// key 用于 checks 映射；command 为在仓库根执行的 shell 命令；
+// reportFile（可选）指向门禁自报的结果 JSON——退出码 0 之后还要核对 status 才能记为通过。
 const RELEASE_GATES = Object.freeze([
   { key: 'lint', command: 'npm run lint', label: 'ESLint 静态检查' },
   { key: 'typecheck', command: 'npm run typecheck', label: 'TypeScript checkJs' },
@@ -22,7 +28,7 @@ const RELEASE_GATES = Object.freeze([
   { key: 'verify-config-comments', command: 'npm run verify:config-comments', label: '配置逐键注释' },
   { key: 'verify-config-docs', command: 'npm run verify:config-docs', label: '配置文档覆盖' },
   { key: 'verify-security', command: 'npm run verify:security', label: '安全集成回归' },
-  { key: 'verify-compression', command: 'npm run verify:compression', label: '压缩无头对比' },
+  { key: 'verify-compression', command: 'npm run verify:compression', label: '压缩无头对比', reportFile: COMPRESSION_VERIFY_REPORT },
   { key: 'build', command: 'npm run build', label: '真实构建' }
 ]);
 
@@ -349,6 +355,7 @@ function buildPassedChecks() {
 module.exports = {
   SEMVER_RE,
   RELEASE_GATES,
+  COMPRESSION_VERIFY_REPORT,
   CHANGELOG_LINK_BASE,
   isSemver,
   parseSemver,

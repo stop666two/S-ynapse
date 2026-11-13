@@ -101,11 +101,52 @@ function formatByteSize(bytes) {
   return (bytes / 1024).toFixed(1) + ' KiB（' + bytes + ' 字节）';
 }
 
-// 渲染门禁清单：逐项名称 + ✅（清单来自 RELEASE_GATES，release 创建前全部已通过）。
-function renderGates() {
+// 从 RELEASE.json 取 checks 映射；缺失/非对象返回 null（渲染层据此标注「未记录」）。
+function gateChecks(state) {
+  if (!state || typeof state !== 'object') return null;
+  const checks = state.checks;
+  if (!checks || typeof checks !== 'object' || Array.isArray(checks)) return null;
+  return checks;
+}
+
+// 门禁结果只认严格 true（与 release-validate 的判定同源）：缺失记 ⚠️、非 true 记 ❌。
+// 本生成器可对任意 tag 补更公开正文，无条件打勾会让正文宣称一个从未核验的门禁（审查 R-37）。
+function renderGateLine(gate, checks) {
+  const recorded = checks ? checks[gate.key] : undefined;
+  if (recorded === true) return '- ✅ ' + gate.label + '（`' + gate.command + '`）';
+  if (recorded === undefined) {
+    return '- ⚠️ ' + gate.label + '（`' + gate.command + '`）：RELEASE.json 未记录该项';
+  }
+  return '- ❌ ' + gate.label + '（`' + gate.command + '`）：RELEASE.json 记录为 ' + JSON.stringify(recorded);
+}
+
+// 渲染门禁清单：逐项按 RELEASE.json.checks 的真实状态标注，清单来自 RELEASE_GATES。
+function renderGates(state) {
+  const checks = gateChecks(state);
   return RELEASE_GATES.map(function (gate) {
-    return '- ✅ ' + gate.label + '（`' + gate.command + '`）';
+    return renderGateLine(gate, checks);
   }).join('\n');
+}
+
+// 门禁汇总：仅严格 true 计入通过数，其余（false / 缺失）都算未通过或未记录。
+function summarizeGates(state) {
+  const checks = gateChecks(state);
+  const total = RELEASE_GATES.length;
+  let passed = 0;
+  for (const gate of RELEASE_GATES) {
+    if (checks && checks[gate.key] === true) passed += 1;
+  }
+  return { passed: passed, total: total, notPassed: total - passed };
+}
+
+// 门禁清单的引导句：只有「全部为 true」才允许说全部通过，否则给出真实计数。
+function renderGateHeadline(summary) {
+  const tail = '清单与 `scripts/lib/release-version.js` 的 `RELEASE_GATES` 同源）：';
+  if (summary.notPassed === 0) {
+    return '发布门禁（' + summary.total + ' 项全部通过，' + tail;
+  }
+  return '发布门禁（' + summary.total + ' 项中 ' + summary.passed + ' 项通过，'
+    + summary.notPassed + ' 项未通过或未记录；' + tail;
 }
 
 // 渲染 RELEASE.json 摘要；读不到（null）时明确标注，不伪造状态。
@@ -182,9 +223,9 @@ function renderReleaseNotes(input) {
     '',
     '## 质量与校验',
     '',
-    '发布门禁（' + RELEASE_GATES.length + ' 项全部通过，清单与 `scripts/lib/release-version.js` 的 `RELEASE_GATES` 同源）：',
+    renderGateHeadline(summarizeGates(data.releaseState)),
     '',
-    renderGates(),
+    renderGates(data.releaseState),
     '',
     renderReleaseState(data.releaseState),
     '',
@@ -224,5 +265,8 @@ module.exports = {
   buildCompareUrl,
   sha256Hex,
   formatByteSize,
+  renderGates,
+  summarizeGates,
+  renderGateHeadline,
   renderReleaseNotes
 };

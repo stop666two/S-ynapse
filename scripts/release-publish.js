@@ -17,7 +17,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { validateReleaseState } = require('./lib/release-validate');
 const { normalizeTagVersion, RELEASE_GATES } = require('./lib/release-version');
-const { archiveRelease } = require('./release-archive');
+const { archiveRelease, verifyArchive } = require('./release-archive');
 const { pruneOlderReleases } = require('./release-prune');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -76,7 +76,12 @@ function main() {
   }
 
   let zip = path.join(ROOT, 'release-artifacts', 'S-ynapse-' + version + '.zip');
-  if (!fs.existsSync(zip)) {
+  if (fs.existsSync(zip)) {
+    // 审查 R-35：复用的既有归档同样必须过白名单 + 必需文件 + 版本前缀校验。
+    // 此前直接拿来上传，早先 `--ref HEAD` 产出的或手工放入的同名文件会被当成已审计附件。
+    const verified = verifyArchive(zip, version);
+    console.log('[release:publish] 复用既有归档 ' + zip + '：校验通过（' + verified.files.length + ' 个文件，前缀 ' + verified.prefix + '）');
+  } else {
     zip = archiveRelease({ ref: tag }).file;
   }
 

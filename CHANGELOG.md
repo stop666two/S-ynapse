@@ -5,6 +5,81 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-11-13
+
+本版为**全仓审查（44 条：P1 8 / P2 29 / P3 7，报告见 `docs/full-repo-review-2026-11-13.md`）的修复版本**。多数条目修正「配置写着生效、实际不生效」的静默失效；下面单列会改变既有行为的项，其余为缺陷修复。
+
+### Changed（行为变更，升级前请读）
+
+- **输出目录安全闸门（R-01）**：`--out` / `SYNAPSE_OUT_DIR` 解析结果若等于站点根、是根的祖先、或与 `articles/ templates/ static/ js/ media/ videos/ pages/ assets/ .git` 任一重叠，构建在**任何写入之前**以 `[FATAL]` 中止。此前 `--out .` 会在第 2 阶段递归删除该目录（等于删工作树/全部文章源）。依赖「构建到仓库内任意目录」的脚本需改为 `dist` 或仓库外目录。
+- **`custom` 语义改为「输出目录不是默认 dist」（R-14）**：CI 导出的 `SYNAPSE_OUT_DIR=<root>/dist` 不再被误判为自定义输出，`workers/security-config.js` 会正常生成（此前 CI 构建静默跳过生成）。
+- **`security` 段缺键默认 fail-closed（R-11）**：默认值改为限流开启、强制 HTTPS、默认保护 `/admin/*`、限流计数跳过静态资源（与 Worker 内置 `DEFAULT_SKIP_PATHS` 同值）；`skipPaths` 缺键不再被写成 `[]`（那等于连静态资源也计数），而是透传由 Worker 兜底。显式写 `false` / `[]` 仍是你的选择。
+- **`contentPolicy.enabled: false` 改为三目录原样复制（R-29）**：此行为与 `content-policy.json5` 的文档一致；此前关闭策略会让 `assets/`、`videos/` 与非 sharp 媒体整体缺失（404）。
+- **`security.csp.enabled: false` 现在同时关闭 Worker 侧下发（R-10）**：此前只停 `_headers`，Worker 仍贴完整 CSP，应急开关名存实亡。
+- **`release:mark` 不再把跳过的门禁记为通过（R-36）**：压缩无头对比在无 Chrome 环境自跳过时，`RELEASE.json.checks['verify-compression']` 记 `false` 并告警；**该版本随后无法通过 `release-validate` / `release:publish`**。需要发布请装 Chrome 后重新 `release:mark`。
+- **Release 正文按真实门禁状态渲染（R-37）**：`renderGates` 只对严格 `true` 打 ✅，缺失记 ⚠️、false 记 ❌；「N 项全部通过」只在全绿时出现；`release-notes.yml` 在 `gh release edit` 前先跑 `release-validate`。
+- **`?key=` 解锁码默认永久（R-42）**：新增 `guard.accessGate.unlockCodeTtlHours`（默认 `0` = 永久，兑现既有文档承诺）；`rememberHours` 仅作用于密码解锁。要限制链接时效就设小时数。
+- **OG 单图失败不再使构建非零（R-17）**：与 media/压缩的降级语义一致，缺失封面计入构建报告告警，不再阻断部署。
+- **外链提醒文案按纯文本渲染（R-41）**：`site.externalLinkWarning.message` 里的 HTML 不再被解释（此前与文档「不可填 HTML」相反）。
+- **Worker 名统一为 `blog`（R-06）**：`workers/wrangler.toml` 顶层即单源，`[env.production]` 不再覆盖 name；不带 `--env` 与带 `--env production` 都部署到 `blog`。当前无投产环境，历史 `s-ynapse-security` 可直接删除。
+- **删除 45 个零消费配置键（R-33 附带）**：`ui-strings` 36 个（无任何 `ui()/__T()` 引用）、`theme.layout.{footerStyle,sidebarPosition,contentWidth,postLayout,archiveLayout}`、`theme.fontSystem.bodyWeight`、`theme.articleFooter.borderWidth`、`navigation.navbar.showLogo`、`site.timezone`。配置项总数 2895 → 2850。
+- **性能预算 `features.perfBudget.jsKb` 75 → 76（R-02 附带）**：搜索页初始化从模板内联脚本迁入 deferred bundle，同一批字节从 HTML 预算侧移到 JS 侧；实测 75.3KB，余量与调整前同量级。
+
+### Added
+
+- `scripts/config-switch-baseline.json`：未覆盖开关基线（194 条），`verify:config-single-source` 改为**棘轮**——未覆盖数不得新增、基线只允许缩小，且每次输出 `未覆盖 N/M（基线 K）`（R-33）。
+- `.github/dependabot.yml`：工作流 action 全部锁 40 位 commit SHA 后，由 Dependabot 按周升级（R-39）。
+- `js/domains/core/style-inject.js`：运行期注入 `<style>` 的唯一入口，统一复制构建期 CSP nonce（R-03）。
+- `scripts/lib/watch-mode.js`、`scripts/lib/cache-bust-exclusions.js`：watch 串行化/监听路径与 cacheBust 排除集的可测纯函数（R-15/R-16/R-32）。
+- `docs/architecture.md` §1.1 发布面能力矩阵：Worker 与 Pages 的能力差异逐项列表（R-06）。
+- `guard.accessGate.unlockCodeTtlHours` 配置项及文档（R-42）。
+
+### Fixed
+
+**构建与产物**
+- 软导航进入 `/search/` 后搜索页完全不可用：初始化迁入 `search-page` 模块，由 `main.js` 按 `#searchPageInput` 触发（直接访问与软导航共用入口）（R-02）。
+- 增量构建复用页面时沿用旧哈希图片引用：cacheBust 为本轮映射补充「旧哈希 → 本轮哈希」别名规则（R-13）。
+- watch 模式首轮构建绕过 `building` 守卫、可与重建并发：初始构建同样经串行化器（R-15）。
+- watch 不监听 `data/`：`data/**/*` 纳入监听（R-16）。
+- 外链 `featuredImage` 触发 media 预校验错误并中止构建：仅对站内 `/media/` 引用做存在性校验（R-07）。
+- slug 校验大小写敏感：保留路由比对与去重键统一小写（`slug: Tags` 不再与 `/tags/` 撞目录，`Hello`/`hello` 视为重复），运行时去重同步（R-27）。
+- 媒体变体解析器期望不存在的 `variants/` 布局：改用与 `createBrokenMediaMatcher` 同源的目录无关正则（R-31）。
+- 搜索索引预计算哈希 URL 与 cacheBust 跳过集不一致：抽出单一排除谓词，两处共用（R-32）。
+- 压缩排除模式 `**` 与尾随 `/**/` 静默不匹配：裸 `**` 匹配任意路径，尾斜杠归一化（R-40）。
+- `formatDate` 对纯日期用本地 getter：纯日期按 UTC，归档分组的年/月改用同一 `dateParts`（R-30）。
+- `sanitizeSvg` 漏检 `<svg/onload=…>` 与 `<svg:script>`：放宽分隔符并拒绝命名空间 script（R-28）。
+
+**边缘安全**
+- 限流 `maxTrackedEntries` 不生效：map 加硬上限，超限按最早失效批量淘汰到低水位（R-08）。
+- `pathRestrictions` 的 `/*`、`/admin*`、`/admin/**` 被静默忽略：折叠为基路径并按路径段前缀匹配，中段通配改为构建期告警（R-09）。
+- 被 gitignore 的 `workers/security-config.js` 可带夹具上线：测试改用临时目录副本，不再覆写真实文件，并断言其字节未变（R-12）。
+- 主题预设等运行期 `<style>` 无 CSP nonce：统一走 `injectStyle`（含 `#vtOff`、copy/selection guard），生产换肤恢复（R-03）。
+
+**前端运行时**
+- 协议相对外链（`//evil.example`）绕过外链警告/黑名单/新标签策略（R-18）。
+- 点击搜索结果后浮层不关闭、正文在浮层后静默替换（R-19）。
+- 软导航切换语言后 `<html lang>` 与内容区外文案仍是旧语言（R-20）。
+- 移动端目录按钮/抽屉不随软导航重建（R-21）。
+- 软导航后「封面样式」选择器失效（R-22）。
+- `reading.js` 每次软导航重复绑定常驻节点监听器（R-23）。
+- 搜索历史非数组 JSON 让搜索永久只报错不出结果（R-24）。
+- 配置外置加载失败时阅读历史写入 `localStorage["undefined"]`（R-25）。
+- 配置响应缓慢时无遮罩、关键交互僵死至超时：await 之前先挂遮罩（R-26）。
+- `core.bypass.localhost` 对 IPv6 回环（`[::1]`）失效（R-43）。
+
+**CI 与发布**
+- `deploy.yml` 把提交信息内插进 `run:`（命令注入面）：改为经 `env:` 传入（R-04）。
+- 并发发布互删 Release：release 工作流加固定 `concurrency` group（R-05）。
+- 单一事实源门禁的证据由「文本里出现过」构成：marker 必须在带断言的 `test()` 内、注释/字符串不入索引、文档按完整键路径匹配、前缀豁免改逐键登记（R-33）。
+- `check-internals` 用子串判断聚合门禁步骤：改为结构断言（精确 `run`、拒 `continue-on-error`/`if`），并新增夜跑超时预算核算（R-34）。
+- `release:publish` 复用已存在 zip 时跳过白名单与版本校验：抽出 `verifyArchive`，两条路径共用（R-35）。
+- nightly 超时（120min）短于聚合器最坏预算（≈230min）：提到 260min，deploy 的 build job 补显式超时（R-38）。
+- 所有 action 锁到可变大版本标签：全部锁 40 位 SHA（含 `contents: write` 的发布 job）（R-39）。
+
+**文档一致性**
+- `config-reference` 补齐 31 个未入档键，并清除 4 处已删键的残留条目（R-33 附带）。
+- 架构文档模块计数与实测对齐：`scripts/lib` 81 个文件/11 份单测、领域模块 66（core 21）、开关 817 项、构建编排器约 550 行（R-44）。
+
 ## [1.2.1] - 2026-10-02
 
 ### Changed

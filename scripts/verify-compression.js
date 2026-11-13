@@ -16,6 +16,8 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { summarizeFailures } = require('./lib/compression-verify');
+// 报告路径的唯一声明处（RELEASE_GATES 的 reportFile）：release:mark 读同一项判定门禁是否真跑过。
+const { COMPRESSION_VERIFY_REPORT } = require('./lib/release-version');
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -42,7 +44,7 @@ function readReport(reportPath) {
 
 function main() {
   const opts = parseArgs(process.argv);
-  const reportPath = path.join(ROOT, '.cache', 'compression-verify', 'cli-last.json');
+  const reportPath = path.join(ROOT, COMPRESSION_VERIFY_REPORT);
   try { fs.rmSync(reportPath, { force: true }); } catch (err) { /* 旧结果不可删不影响本次判定 */ }
   const env = Object.assign({}, process.env, {
     SYNAPSE_COMPRESSION_VERIFY: 'on',

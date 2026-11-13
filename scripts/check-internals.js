@@ -75,8 +75,88 @@ function checkWranglerAssets(internals) {
   }
 }
 
+// 定位 index 所在行所属 YAML step 块的边界：向后找缩进更浅且以 "- " 开头的行作为块起点，
+// 向前找同级或更浅的下一个 "- "（或更浅的键）作为块终点。只服务于本文件的结构断言，
+// 不做完整 YAML 解析——被检查的是仓库内固定工作流，不是任意输入。
+function findStepBlock(lines, index) {
+  const indentOf = (line) => line.match(/^\s*/)[0].length;
+  const runIndent = indentOf(lines[index]);
+  let start = index;
+  for (let i = index - 1; i >= 0; i -= 1) {
+    const line = lines[i];
+    if (!line.trim() || line.trim().startsWith('#')) continue;
+    if (/^\s*-\s/.test(line) && indentOf(line) < runIndent) { start = i; break; }
+  }
+  const stepIndent = indentOf(lines[start]);
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (!line.trim()) continue;
+    const indent = indentOf(line);
+    if (indent < stepIndent) { end = i; break; }
+    if (/^\s*-\s/.test(line) && indent <= stepIndent) { end = i; break; }
+  }
+  return { start, end, block: lines.slice(start, end) };
+}
+
+// 审查 R-38：夜跑 job 的超时预算必须覆盖聚合器的最坏情况（检查项数 × internals.ci.checkTimeoutMs）。
+// 硬编码的 timeout-minutes 会随 checkTimeoutMs 或检查项数增长而落后，落后后慢夜被平台杀掉，
+// 报告写入 / ci/aggregate 状态 / if: always() 工件全部来不及执行——恰好丢掉夜跑要保留的证据。
+function countAggregateChecks() {
+  let text;
+  try {
+    text = fs.readFileSync(path.join(ROOT, 'scripts', 'ci-checks.js'), 'utf-8');
+  } catch (err) {
+    failures.push('scripts/ci-checks.js：无法读取（' + err.message + '），无法核算夜跑超时预算');
+    return 0;
+  }
+  const start = text.indexOf('const CHECKS = [');
+  if (start === -1) {
+    failures.push('scripts/ci-checks.js：未找到 `const CHECKS = [`，无法核算夜跑超时预算');
+    return 0;
+  }
+  const end = text.indexOf('\n];', start);
+  if (end === -1) {
+    failures.push('scripts/ci-checks.js：CHECKS 数组未闭合，无法核算夜跑超时预算');
+    return 0;
+  }
+  return (text.slice(start, end).match(/name:\s*'/g) || []).length;
+}
+
+function readJobTimeout(file, jobName) {
+  const lines = read(file).split(/\r?\n/);
+  const jobHeader = new RegExp('^\\s{2}' + jobName + ':\\s*$');
+  let start = -1;
+  for (let i = 0; i < lines.length; i += 1) {
+    if (jobHeader.test(lines[i])) { start = i; break; }
+  }
+  if (start === -1) return { found: false, minutes: null };
+  for (let i = start + 1; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (!line.trim() || line.trim().startsWith('#')) continue;
+    if (/^\s{2}\S/.test(line)) break;   // 出现同级键/下一个 job → 当前 job 结束
+    const m = line.match(/^\s{4}timeout-minutes:\s*(\d+)\s*$/);
+    if (m) return { found: true, minutes: Number(m[1]) };
+  }
+  return { found: false, minutes: null };
+}
+
+function checkNightlyBudget(internals) {
+  const checks = countAggregateChecks();
+  const perCheckMs = Number(internals.ci.checkTimeoutMs);
+  if (!checks || !(perCheckMs > 0)) return;
+  const requiredMinutes = Math.ceil((checks * perCheckMs) / 60000) + 30;   // 30min 缓冲：构建环境准备 + 报告写入
+  const nightly = readJobTimeout('.github/workflows/nightly.yml', 'deep');
+  if (!nightly.found) {
+    failures.push('nightly.yml：nightly 作业（job `deep`）缺少显式 timeout-minutes；最坏预算 ' + requiredMinutes + 'min（' + checks + ' 项 × ' + perCheckMs + 'ms + 缓冲）');
+  } else if (nightly.minutes < requiredMinutes) {
+    failures.push('nightly.yml：job `deep` 的 timeout-minutes (' + nightly.minutes + ') 小于聚合器最坏预算 ' + requiredMinutes + 'min（' + checks + ' 项 × internals.ci.checkTimeoutMs ' + perCheckMs + 'ms + 30min 缓冲）；慢夜会被杀掉而丢掉报告与工件');
+  }
+}
+
 function checkDeployWorkflow(internals) {
   const deployYml = read(path.join('.github', 'workflows', 'deploy.yml'));
+  const deployYmlLines = deployYml.split(/\r?\n/);
   const compatToken = 'node-version: ' + internals.ci.compatNodeVersion;
   const compatPattern = new RegExp('node-version:\\s*[\'"]?' + internals.ci.compatNodeVersion.replace(/\./g, '\\.') + '[\'"]?');
   if (!compatPattern.test(deployYml)) {
@@ -85,8 +165,25 @@ function checkDeployWorkflow(internals) {
   if (compatToken && !deployYml.includes('node-version-file: .nvmrc')) {
     failures.push('deploy.yml：主任务应使用 node-version-file: .nvmrc（由 .nvmrc/internals 单源控制版本）');
   }
-  if (!deployYml.includes('node scripts/ci-checks.js')) {
-    failures.push('deploy.yml：未调用聚合检查器 scripts/ci-checks.js');
+  // 审查 R-34：此前只用 includes('node scripts/ci-checks.js') 做子串判断，把该步骤改成
+  // `run: node scripts/ci-checks.js || true` 或加 `continue-on-error: true` / `if:` 后
+  // verify:internals 仍然 PASS，而 lint/typecheck/测试/配置门禁/安全验证/构建全部不再阻断。
+  // 这是单一事实源体系唯一的外部锚点，因此按 YAML 结构断言该 step 的 run 与两个失效开关。
+  const aggregateRun = /^\s*run:\s*node scripts\/ci-checks\.js\s*$/;
+  const runIndex = deployYmlLines.findIndex((line) => aggregateRun.test(line));
+  if (runIndex === -1) {
+    failures.push('deploy.yml：聚合检查器的 run 必须恰好是 `run: node scripts/ci-checks.js`（不接受 `|| true`、多命令或附加参数——那会让全部门禁静默失效）');
+  } else {
+    const step = findStepBlock(deployYmlLines, runIndex);
+    if (step.block.some((line) => /^\s*continue-on-error:\s*true\s*$/.test(line))) {
+      failures.push('deploy.yml：聚合门禁步骤不得设置 continue-on-error: true（会使 lint/测试/构建等全部门禁不再阻断）');
+    }
+    if (step.block.some((line) => /^\s*if:/.test(line))) {
+      failures.push('deploy.yml：聚合门禁步骤不得附加 if 条件（可使其被条件跳过）');
+    }
+    if (!/^\s*-\s*name:/.test(step.block[0] || '')) {
+      failures.push('deploy.yml：聚合门禁步骤必须保留具名 step（便于日志定位与本节结构断言）');
+    }
   }
   if (!deployYml.includes('ci-checks')) {
     failures.push('deploy.yml：未上传 ci-checks 工件');
@@ -138,6 +235,7 @@ function main() {
     console.log('[verify:internals] 派生副本：跳过 deploy.yml 一致性检查（.github 不随主仓同步）');
   } else {
     checkDeployWorkflow(internals);
+    checkNightlyBudget(internals);
   }
   checkLiteralGuards();
 

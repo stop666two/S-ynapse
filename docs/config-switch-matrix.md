@@ -9,11 +9,11 @@
 > 回退字面量必须与注册表默认一致，由 `scripts/config-fallback-bindings.json` + `verify:config-single-source` 锁定。
 > 「缺失」行是已登记在 `scripts/config-switch-baseline.json` 的存量缺口：新增缺失会让门禁失败，基线只允许缩小。
 
-统计：开关共 817（已测 164，既有引用 97，豁免 362，缺失 194）；缺失行均已在 `scripts/config-switch-baseline.json` 登记（只允许缩小）。
+统计：开关共 817（已测 164，既有引用 102，豁免 362，缺失 189）；缺失行均已在 `scripts/config-switch-baseline.json` 登记（只允许缩小）。
 
 | 键路径 | 类型 | 默认 | 消费位置 | 测试证据 | 覆盖状态 |
 | --- | --- | --- | --- | --- | --- |
-| `contentPolicy.enabled` | bool | true | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | — | 缺失 |
+| `contentPolicy.enabled` | bool | true | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/media-policy.test.js:46<br>scripts/media-policy.test.js:69 | 既有引用 |
 | `contentPolicy.svgSanitize` | bool | true | scripts/build/media.js:115<br>scripts/lib/content-policy.js:37<br>scripts/lib/content-policy.js:63 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.analytics.emitBeacon` | bool | true | scripts/lib/feature-wiring.js:1389<br>scripts/lib/feature-wiring.js:1403<br>scripts/lib/feature-wiring.js:1404 | scripts/config-wiring.test.js:886 | 已测（marker） |
 | `features.analytics.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:886 | 已测（marker） |
@@ -65,11 +65,11 @@
 | `features.bilingual.switch` | bool | true | templates/post.ejs:11<br>js/domains/features/bilingual-core.js:25<br>js/domains/features/lightbox-core.js:178 | scripts/bilingual-core.test.js:27<br>scripts/bilingual-core.test.js:52 | 已测（marker） |
 | `features.boot.budgetMs` | number | 40 | js/core/boot.js:202<br>js/core/boot.js:203 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.boot.configTimeoutMs` | number | 3000 | templates/layout.ejs:97 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.boot.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | — | 缺失 |
+| `features.boot.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/frontend-boot-overlay.test.js:40 | 既有引用 |
 | `features.boot.heavyMode` | enum | `idle` | js/core/boot.js:204<br>js/core/boot.js:221<br>js/core/boot.js:222 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.boot.idleFallbackMs` | number | 120 | js/core/boot.js:26 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.boot.idleTimeoutMs` | number | 800 | js/core/boot.js:212<br>js/core/boot.js:222<br>js/core/boot.js:223 | — | 缺失 |
-| `features.boot.interactionWake` | bool | true | js/core/boot.js:178 | — | 缺失 |
+| `features.boot.interactionWake` | bool | true | js/core/boot.js:178 | scripts/frontend-boot-overlay.test.js:40 | 既有引用 |
 | `features.boot.log` | bool | false | js/core/boot.js:15<br>js/core/boot.js:84<br>js/core/boot.js:117 | — | 缺失 |
 | `features.breadcrumb.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | — | 缺失 |
 | `features.breadcrumb.showCurrent` | bool | true | js/domains/core/toc.js:25<br>templates/layout.ejs:66<br>templates/layout.ejs:69 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -274,8 +274,8 @@
 | `features.listCover.showOnArchive` | bool | true | scripts/lib/feature-wiring.js:100 | scripts/config-wiring.test.js:137 | 已测（marker） |
 | `features.listCover.showOnHome` | bool | true | js/domains/features/reading-history.js:101 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.loading.ariaBusy` | bool | true | js/core/boot.js:103<br>js/core/boot.js:158 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.loading.delayMs` | number | 120 | js/core/boot.js:136<br>js/core/boot.js:137<br>js/core/boot.js:140 | — | 缺失 |
-| `features.loading.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | — | 缺失 |
+| `features.loading.delayMs` | number | 120 | js/core/boot.js:136<br>js/core/boot.js:137<br>js/core/boot.js:140 | scripts/frontend-boot-overlay.test.js:40 | 既有引用 |
+| `features.loading.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/frontend-boot-overlay.test.js:40 | 既有引用 |
 | `features.loading.fadeMs` | number | 380 | templates/site-css.ejs:510<br>js/core/boot.js:109<br>js/core/boot.js:110 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.loading.failsafeBufferMs` | number | 60 | js/core/boot.js:156 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.loading.maxShowMs` | number | 2000 | templates/site-css.ejs:511<br>js/core/boot.js:154 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |

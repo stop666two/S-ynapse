@@ -518,9 +518,6 @@
   // 8. 明暗主题切换
   // ---------------------------------------------------------------------------
   themeToggle: {
-    // 启用明暗切换按钮（需 theme.json5 darkMode.enabled）。
-    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
-    enabled: true,
     // 主题选择的 localStorage 键名（theme.darkMode.rememberChoice=false 时改用 sessionStorage 同键名）。
     // 类型: string | 可填: 任意合法存储键 | 不可填: 空串（回退 'ss-theme'） | 推荐: 'ss-theme'
     persistKey: 'ss-theme',
@@ -707,9 +704,6 @@
     // 点击目录项时更新 URL 锚点（history.replaceState）。
     // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     updateUrl: true,
-    // 锚点跳转使用平滑滚动。
-    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
-    smoothScroll: true,
     // 已读过的目录项淡色标记（visited）。
     // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     visitedFade: true,
@@ -784,9 +778,8 @@
   },
 
   // ---------------------------------------------------------------------------
+  // 导出备份命令 npm run export 的配置。
   exportBackup: {
-    // 导出备份命令 npm run export 的配置。
-    enabled: true,
     // 是否将 media/assets/videos 媒体目录一并打包。
     includeMedia: true,
     // 是否将 13 个配置文件一并打包。
@@ -798,9 +791,8 @@
   },
 
   // ---------------------------------------------------------------------------
+  // npm run audit:media 媒体审计配置。
   mediaAudit: {
-    // npm run audit:media 媒体审计配置。
-    enabled: true,
     // 报告引用的媒体文件缺失(文章引用但文件不存在)。
     reportMissed: true,
     // 报告未被任何文章引用的媒体文件(孤儿资源)。
@@ -813,8 +805,6 @@
 
   // ---------------------------------------------------------------------------
   autoSummary: {
-    // 文章未写 summary 时自动生成摘要。
-    enabled: true,
     // 摘要最大字符数(中英混排)。
     maxLength: 160,
     // 回退策略:firstParagraph(取正文首段)。
@@ -845,17 +835,12 @@
     enabled: true,
     // 是否包含自身语言条目(默认 zh 与 en 均输出)。
     includeSelf: true,
-    // 是否同时输出 canonical 链接。
-    canonical: true,
     // 是否输出 x-default 替代声明(指向默认语言版本;SEO 推荐开启)。
     xDefault: true
   },
 
   // ---------------------------------------------------------------------------
   schemaRich: {
-    // schema.org 结构化数据完善（Article/Breadcrumb/Blog）。
-    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
-    enabled: true,
     // 为文章页输出 BreadcrumbList 面包屑。
     // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     breadcrumbs: true,
@@ -979,8 +964,6 @@
 
   // ---------------------------------------------------------------------------
   codeCopy: {
-    // 代码块复制按钮。
-    enabled: true,
     // 按钮文案。
     buttonText: '复制',
     // 复制按钮文案（en 站；空 = 回退中文）。
@@ -1050,8 +1033,6 @@
     // 类型: string | 可填: 'pattern'(渐变占位块,显示标题文字,默认) | 'none'(纯文字卡片,不渲染占位块)
     // 推荐: 'pattern'
     fallback: 'pattern',
-    // 封面懒加载。
-    lazy: true,
     // 说明：封面宽高比唯一来源为 tuning.json5 → card.imageAspect（CSS 变量 --card-imageAspect）。
 
     // 无封面文章自动生成封面（构建期 SVG → sharp 出图）。
@@ -1180,8 +1161,6 @@
     overlayClose: true,
     // 抽屉打开时锁定背景滚动。
     lockScroll: true,
-    // 按钮位置:bottom-right/bottom-left。
-    position: 'right',
     // 胶囊按钮显示当前章节名与阅读进度百分比。
     showCurrent: true
   },
@@ -1203,9 +1182,7 @@
     labelEn: 'Reading Mode',
     // 进入阅读模式后隐藏侧栏/目录(仅保留正文)。
     // true=隐藏侧栏（现行为）；false=保留侧栏，仅收窄正文（html[data-reading-focus="false"] 门控）。
-    focusOnlyContent: true,
-    // 字号倍率(1=正常)。
-    fontScale: 1
+    focusOnlyContent: true
   },
 
   // ---------------------------------------------------------------------------
@@ -1248,9 +1225,7 @@
     // 重置按钮文本。
     resetText: '重置',
     // 重置按钮文本（en 站；空 = 回退中文）。
-    resetTextEn: 'Reset',
-    // 面板开关按钮位置:bottom-right/bottom-left。
-    position: 'right'
+    resetTextEn: 'Reset'
   },
 
   // ---------------------------------------------------------------------------
@@ -1645,9 +1620,6 @@
     // 平台顺序（删除项即彻底移除该平台入口）。
     // 类型: string[] | 可填: weibo/qq/wechat/x/facebook/mail/copy 的任意子集 | 不可填: 未知平台名（被忽略）;空数组（不渲染按钮） | 推荐: 全量七项
     order: ['weibo', 'qq', 'wechat', 'x', 'facebook', 'mail', 'copy'],
-    // 工具条位置。
-    // 类型: string | 可填: 'toolbar'(默认,文章尾部)/'floating'(悬浮) | 不可填: 其他值（回退 toolbar） | 推荐: 'toolbar'
-    position: 'toolbar',
     // 分享弹窗宽度（px）。
     // 类型: number(px) | 可填: 400–900（建议 560–720） | 不可填: 0/负数（回退 640） | 推荐: 640
     popupWidth: 640,
@@ -1748,8 +1720,6 @@
   // 24. 图库页
   // ---------------------------------------------------------------------------
   gallery: {
-    // 启用 /gallery/ 图库页。
-    enabled: true,
     // 页面标题。
     title: '图库',
     // 页面标题（en 站；空 = 回退中文）。
@@ -1771,10 +1741,6 @@
     // 是否收集文章封面图。
     // true(默认) = 收集文章封面 + 正文图片；false = 仅收集正文图片。
     collectFeatured: true,
-    // 收集排序:newest/longest。
-    order: 'newest',
-    // 单页图片数上限(0=不限)。
-    maxItems: 0,
     // 瀑布流列间距 CSS(column-gap)。
     gap: '12px',
     // 图片下方是否显示来源说明。
@@ -1818,8 +1784,6 @@
   // 25. 归档热力图
   // ---------------------------------------------------------------------------
   heatmap: {
-    // 启用归档页年历热力图。
-    enabled: true,
     // 热力层级数(2~7；越界钳制；非法回退 5)。
     levels: 5,
     // 层数配色模式:auto(按最大月文章数分级)/fixed(自定义色表)。
@@ -1967,9 +1931,8 @@
   // ---------------------------------------------------------------------------
   // 31. 维护模式
   // ---------------------------------------------------------------------------
+  // 维护模式开关：本地 serve 参数 --maintenance 生效;生产由 Worker 环境变量 MAINTENANCE=1。
   maintenance: {
-    // 本地 serve 参数 --maintenance 生效;生产由 Worker 环境变量 MAINTENANCE=1。
-    enabled: false,
     // 维护提示消息。
     message: '站点维护中，请稍后再来。',
     // 维护提示消息（en 站；空 = 回退中文）。
@@ -2514,8 +2477,6 @@
   // 46. 图标变形动画(状态切换类图标 ↔ 弹簧物理变形)
   // ---------------------------------------------------------------------------
   morphIcons: {
-    // 总开关(false = 全部图标恢复静态切换,不加载任何 vendor 代码)。
-    enabled: true,
     // vendor 图标资产目录(站内绝对路径;构建复制 assets/vendor 后由此加载)。
     // 类型: string | 推荐: '/assets/vendor/morphicons'
     vendorPath: '/assets/vendor/morphicons',

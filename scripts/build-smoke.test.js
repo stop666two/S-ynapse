@@ -756,4 +756,31 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       site.cleanup();
     }
   });
+
+  // 审查 R-33 覆盖：site.build.relatedArticles 的唯一消费点是构建管线的开关判断
+  // （scripts/build.js:258），没有独立 resolver，因此用两端真实构建断言产物差异。
+  it('site.build.relatedArticles 决定相关文章区块是否产出（默认开 / 关闭后不渲染）', () => {
+    // switch: site.build.relatedArticles
+    const on = createTestSite({ articles: 3, pages: 0, langs: ['zh'], linkProject: true });
+    const off = createTestSite({
+      articles: 3, pages: 0, langs: ['zh'], linkProject: true,
+      siteOverrides: { build: { relatedArticles: false } }
+    });
+    const onOut = fs.mkdtempSync(path.join(os.tmpdir(), 's-ynapse-related-on-'));
+    const offOut = fs.mkdtempSync(path.join(os.tmpdir(), 's-ynapse-related-off-'));
+    try {
+      runBuild(onOut, [], { SYNAPSE_ROOT: on.root });
+      runBuild(offOut, [], { SYNAPSE_ROOT: off.root });
+      const onHtml = fs.readFileSync(path.join(onOut, 'zh', 'test-article-1', 'index.html'), 'utf-8');
+      const offHtml = fs.readFileSync(path.join(offOut, 'zh', 'test-article-1', 'index.html'), 'utf-8');
+      assert.ok(onHtml.includes('related-posts'), '默认（true）必须渲染相关文章区块');
+      assert.ok(offHtml.length > 0, '关闭态仍需产出页面');
+      assert.ok(!offHtml.includes('related-posts'), 'relatedArticles=false 不得渲染相关文章区块');
+    } finally {
+      on.cleanup();
+      off.cleanup();
+      fs.rmSync(onOut, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+      fs.rmSync(offOut, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    }
+  });
 });

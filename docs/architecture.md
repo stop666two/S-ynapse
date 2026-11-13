@@ -44,14 +44,14 @@ Worker 需手动 `npm run deploy:worker`，因此**两个主机名的实际防�
 |---|---|
 | `scripts/build.js` | 构建编排器（约 550 行）：进程守卫接入、配置装载/校验、14 阶段编排、报告、watch/serve 入口；重活经 `createBuildContext` 注入的工厂模块执行 |
 | `scripts/build/*.js` | 构建模块（20 个，工厂注入、无全局状态）：`articles` / `assets` / `auto-cover` / `cache` / `cjk-fonts` / `collectors` / `config` / `context` / `feeds` / `fs-utils` / `helpers` / `markdown` / `media` / `mermaid` / `minify` / `pages` / `render` / `report` / `security-files` / `serve` |
-| `scripts/lib/*.js` | 纯函数库（81 个文件，其中 11 份为同名单测）：`utils` / `perf-budget` / `csp` / `content-policy` / `asset-cache` / `build-errors` / `build-report-html` / `critical-css` / `content-validate` / `publish-window` / `config-split` / `bundle` / `dist-hash` / `incremental` / `watch-mode` / `cache-bust-exclusions` / `compression-config` / `compression-steps` / `compression-verify` / `css-merge` / `static-server` / `internals` / `internals-defaults` / `process-guard` / `chrome-path` / `output-dir` 等 |
+| `scripts/lib/*.js` | 纯函数库（82 个文件，其中 11 份为同名单测）：`utils` / `perf-budget` / `csp` / `content-policy` / `asset-cache` / `build-errors` / `build-report-html` / `critical-css` / `content-validate` / `publish-window` / `config-split` / `bundle` / `dist-hash` / `incremental` / `watch-mode` / `tracked-files` / `cache-bust-exclusions` / `compression-config` / `compression-steps` / `compression-verify` / `css-merge` / `static-server` / `internals` / `internals-defaults` / `process-guard` / `chrome-path` / `output-dir` 等 |
 | `scripts/generate-og.js` | OG 图生成（独立进程，`.cache/og` 增量缓存） |
 | `templates/*.ejs` | 页面模板（layout/index/post/archive/search/tag/category/404/PWA 等 16 个） |
 | `js/core/` | 启动器：`runtime.js`（配置加载引导）、`boot.js`（阶段队列）、`main.js`（入口）、`deferred.js`（懒加载模块注册表）、`soft-nav.js`（软导航） |
 | `js/domains/{core,features,guard}/` | 66 个前端领域模块（core 21 / features 32 / guard 13；独立文件，按启动时机注册到 `main.js` 三队列或 `deferred.js`） |
 | `workers/security-worker.js` + `workers/lib/` | 边缘安全层（`ip-utils` / `rate-limit`） |
 | `workers/wrangler.toml` | 生产部署配置（Worker 名、assets 绑定、环境变量） |
-| `*.json5`（根目录 14 个站点配置 + `internals.json5` 工程内部参数） | 站点/主题/功能/文案/压缩等配置与工具链参数（端口/路径/CI 版本等），全部经 `verify:config` 家族与 `verify:internals` 校验；行为开关另由 `verify:config-single-source` 对照 `docs/config-switch-matrix.md`（817 项，未覆盖基线见 `scripts/config-switch-baseline.json`）与回退字面量绑定表守卫 |
+| `*.json5`（根目录 14 个站点配置 + `internals.json5` 工程内部参数） | 站点/主题/功能/文案/压缩等配置与工具链参数（端口/路径/CI 版本等），全部经 `verify:config` 家族与 `verify:internals` 校验；行为开关另由 `verify:config-single-source` 对照 `docs/config-switch-matrix.md`（793 项，当前未覆盖 0；基线文件 `scripts/config-switch-baseline.json` 保持为空，新增未覆盖开关会直接失败）与回退字面量绑定表守卫 |
 
 ## 3. 构建管线
 

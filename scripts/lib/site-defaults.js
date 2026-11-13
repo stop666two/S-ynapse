@@ -137,12 +137,10 @@ const DEFAULT_CONFIG = {
       },
       socialInNav: { enabled: false, order: [] },
       search: { enabled: false, placeholder: '搜索...', placeholderEn: 'Search...', provider: 'local' },
-      userMenu: { enabled: false }
     },
     sidebar: {
       enabled: false, position: 'right', width: '280px', sticky: true, widgets: [], recentPoolSize: 10,
       options: { width: '318px', gap: '1.618rem', radius: '0.618rem', padding: '1rem', titleSize: '.9375rem', titleWeight: 600, hoverLift: true, borderShow: false },
-      mobile: { enabled: true, collapsed: true, toggleButton: true, overlay: true }
     },
     footer: {
       copyright: '', layout: 'simple', columns: 3, customHtml: '',

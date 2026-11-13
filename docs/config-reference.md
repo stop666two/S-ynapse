@@ -479,22 +479,22 @@
 > 接线说明：`whitelistNewTab=true` 时白名单外链强制新标签页打开（`target=_blank + noopener/noreferrer` 等效，经 `window.open`，动态插入链接同样生效）；false（默认）= 浏览器默认行为（当前页跳转）。`copyButtonText(En)` 控制外链提醒浮层「复制链接」按钮文案（点击复制目标 URL，短暂显示「已复制」）：`copyButtonTextEn`（en 站，空回退中文键）> `copyButtonText` > `ui-strings.toolbar.copyLink`（新增双语）> 内置文案；默认 `复制`/`Copy`（见 CHANGELOG Added）。
 
 ### 3.8 themeToggle
-`enabled true` / `persistKey ss-theme`(主题偏好存储键；`theme.darkMode.rememberChoice=false` 时改用 sessionStorage 同键) / `toggleIconSwap true`(仅在 `theme.darkMode.iconStyle='sun-moon'` 时生效：切换交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)。**切换过渡时长的唯一来源为 `theme.animation.transitionDuration`（经 `tuning.motion.transitionDuration` 覆盖）；默认主题/是否记忆/图标样式/是否整体过渡的唯一来源为 `theme.json5 → darkMode.default / rememberChoice / iconStyle / transitionAll`**（运行时经外置配置 `window.__THEME__.darkMode` 读取，模板早置脚本服务端直读）。`iconStyle`：`sun-moon` 双图标交替（默认）/ `single` 常显单个月亮图标 / `switch` CSS 滑块开关；`transitionAll=true`（默认）切换时给 `<html>` 加 `.theme-switching`（`--td` 时长后移除），false=不加类瞬时切换。`rememberChoice=false` 时早置脚本与切换均忽略 localStorage 旧值、仅用 sessionStorage。
+`persistKey ss-theme`(主题偏好存储键；`theme.darkMode.rememberChoice=false` 时改用 sessionStorage 同键) / `toggleIconSwap true`(仅在 `theme.darkMode.iconStyle='sun-moon'` 时生效：切换交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)。**切换过渡时长的唯一来源为 `theme.animation.transitionDuration`（经 `tuning.motion.transitionDuration` 覆盖）；默认主题/是否记忆/图标样式/是否整体过渡的唯一来源为 `theme.json5 → darkMode.default / rememberChoice / iconStyle / transitionAll`**（运行时经外置配置 `window.__THEME__.darkMode` 读取，模板早置脚本服务端直读）。`iconStyle`：`sun-moon` 双图标交替（默认）/ `single` 常显单个月亮图标 / `switch` CSS 滑块开关；`transitionAll=true`（默认）切换时给 `<html>` 加 `.theme-switching`（`--td` 时长后移除），false=不加类瞬时切换。`rememberChoice=false` 时早置脚本与切换均忽略 localStorage 旧值、仅用 sessionStorage。
 
 ### 3.9 shortcuts — 快捷键
 `enabled true` / `openSearch /`(空=禁用,下同) / `toggleTheme d` / `prevPost k` / `nextPost j` / `help ?` / `close Escape` / `showHelpHint true`(页脚 `?` 提示按钮；false=不渲染，文案取 ui-strings `toolbar.shortcutHint` 双语) / `helpTitle 快捷键一览`（`helpTitleEn` en 站；作为帮助面板 `aria-label`，空回退 ui-strings） / `showHelpTable true`(false 时不渲染快捷键表) / `ignoreInInputs true`(true=输入框内按键不触发快捷键;false=输入框内也触发)
 
 ### 3.10 toc — 目录(桌面侧)
-`enabled true` / `minLevel 2` / `maxLevel 4`（两者接线到构建期 TOC 提取；受正文标题锚点限制收敛到 2–4，minLevel=3 可只收 h3 及以下） / `collapsible true` / `defaultOpenLevel 2`（初始展开层级：0=全折叠；N≥1 展开到「minLevel+N-1」级，默认 2 且 minLevel=2 → 展开 h2/h3，h4 初始折叠可点分组箭头展开；`tuning.toc.collapsedByDefault=true` 优先级更高） / `highlightActive true`(false = 关闭当前章节高亮) / `activeOffset 120` / `progressLine true`(目录顶部阅读进度线) / `updateUrl true`(滚动时以 `history.replaceState` 更新地址栏 hash，不产生历史记录) / `smoothScroll true`(条目点击平滑滚动；`scrollBehavior` 关闭时仍瞬时) / `visitedFade true`(已读章节淡显) / `groupCollapse true`(二级项带折叠箭头,可收起其下三级项) / `titleText 目录`（`titleTextEn Contents` en 站标题，空回退中文） / `showTitle true`(侧栏/抽屉显示标题行) / `maxWidthPx 320`(桌面目录最大宽度 px)
+`enabled true` / `minLevel 2` / `maxLevel 4`（两者接线到构建期 TOC 提取；受正文标题锚点限制收敛到 2–4，minLevel=3 可只收 h3 及以下） / `collapsible true` / `defaultOpenLevel 2`（初始展开层级：0=全折叠；N≥1 展开到「minLevel+N-1」级，默认 2 且 minLevel=2 → 展开 h2/h3，h4 初始折叠可点分组箭头展开；`tuning.toc.collapsedByDefault=true` 优先级更高） / `highlightActive true`(false = 关闭当前章节高亮) / `activeOffset 120` / `progressLine true`(目录顶部阅读进度线) / `updateUrl true`(滚动时以 `history.replaceState` 更新地址栏 hash，不产生历史记录) / `visitedFade true`(已读章节淡显) / `groupCollapse true`(二级项带折叠箭头,可收起其下三级项) / `titleText 目录`（`titleTextEn Contents` en 站标题，空回退中文） / `showTitle true`(侧栏/抽屉显示标题行) / `maxWidthPx 320`(桌面目录最大宽度 px)
 
 ### 3.11 mobileToc — 移动目录抽屉
-`enabled true` / `borderRadius 1rem` / `maxHeightVh 70` / `autoClose true` / `overlayClose true` / `lockScroll true` / `position right` / `showCurrent true`(胶囊按钮显示当前章节名与进度百分比)。移动端目录抽屉;显示断点由 `mobile.tocBreakpoint` 控制。
+`enabled true` / `borderRadius 1rem` / `maxHeightVh 70` / `autoClose true` / `overlayClose true` / `lockScroll true` / `showCurrent true`(胶囊按钮显示当前章节名与进度百分比)。移动端目录抽屉;显示断点由 `mobile.tocBreakpoint` 控制。
 
 ### 3.12 readingPanel — 阅读设置面板
-`enabled true` / `fontSizeMin 15` / `fontSizeMax 26` / `fontSizeStep 1` / `fontSizeDefault 19` / `lineHeightMin 1.4` / `lineHeightMax 2.6` / `lineHeightStep 0.1` / `lineHeightDefault 1.9` / `widthMin 560` / `widthMax 1200` / `widthStep 40` / `widthDefault 800` / `remember true` / `persistKey 'ss-reading'`(阅读设置 localStorage 键) / `showReset true`(显示「重置」按钮) / `resetText 重置`（`resetTextEn` 为 en 站文案，空回退中文） / `position right`
+`enabled true` / `fontSizeMin 15` / `fontSizeMax 26` / `fontSizeStep 1` / `fontSizeDefault 19` / `lineHeightMin 1.4` / `lineHeightMax 2.6` / `lineHeightStep 0.1` / `lineHeightDefault 1.9` / `widthMin 560` / `widthMax 1200` / `widthStep 40` / `widthDefault 800` / `remember true` / `persistKey 'ss-reading'`(阅读设置 localStorage 键) / `showReset true`(显示「重置」按钮) / `resetText 重置`（`resetTextEn` 为 en 站文案，空回退中文）
 
 ### 3.13 readMode — 阅读模式
-`enabled true` / `persist true`(true=localStorage 记忆;false=仅当次会话并清理旧值) / `storageKey 'readingMode'`(持久化键名) / `label 阅读模式`（`labelEn` 为 en 站文案，空回退中文） / `focusOnlyContent true`（true=隐藏侧栏/目录仅保留正文（现行为）；false=保留侧栏，仅收窄正文；运行时 `html[data-reading-focus]` 门控） / `fontScale 1`
+`enabled true` / `persist true`(true=localStorage 记忆;false=仅当次会话并清理旧值) / `storageKey 'readingMode'`(持久化键名) / `label 阅读模式`（`labelEn` 为 en 站文案，空回退中文） / `focusOnlyContent true`（true=隐藏侧栏/目录仅保留正文（现行为）；false=保留侧栏，仅收窄正文；运行时 `html[data-reading-focus]` 门控）
 
 ### 3.14 tts — 朗读
 `enabled true` / `rate 0.5`(0.1~10) / `pitch 1` / `volume 1` / `preferDefaultVoice true` / `voiceBy lang` / `readSelector .post-content` / `skipSelectors 'pre, .katex, .mermaid'`(朗读时跳过的 CSS 选择器，避免读出代码/公式/图表源码) / `icon speaker` / `highlightParagraph false` / `position toolbar` / `resumeIntervalMs 500`(Chromium 长文本自动暂停后的心跳恢复间隔 ms) / `resumeMaxTries 3`(心跳恢复最大次数，超过即结束朗读)
@@ -596,7 +596,7 @@
 > - 覆盖范围：首页/标签/分类卡片（`readTimeFormat` 同时用于卡片与封面时间徽标）、文章页 meta — `scripts/build/pages.js` 注入 `wordCountLabel`/`readTimeLabel`；canonical：`scripts/lib/feature-wiring.js → wordCountConfig/wordCountText/readTimeText`（单测覆盖中英混排/纯数字/CJK 开关矩阵）。
 
 ### 3.23 share — 分享
-`enabled true` / `order ['weibo','qq','wechat','x','facebook','mail','copy']`(顺序即显示顺序) / `position toolbar` / `popupWidth 640` / `popupHeight 520`（弹窗尺寸，应用于 `window.open` features 串） / `wechatText {title} 分享自 {url}` / `wechatTextEn ''`(en 站模板,空回退中文；微信复制按模板替换 `{title}`/`{url}`) / `copiedText 链接已复制` / `copiedTextEn ''` / `copiedShowMs 2500`(复制成功 toast 时长) / `showLabel false` / `label 分享文章` / `labelEn ''` / `useNativeShare false`(支持 navigator.share 时优先原生分享) / `copyFallback true`(剪贴板 API 不可用时 textarea 回退)。运行时复制成功提示按页面语言取 `copiedTextEn` — `js/domains/features/share.js`
+`enabled true` / `order ['weibo','qq','wechat','x','facebook','mail','copy']`(顺序即显示顺序) / `popupWidth 640` / `popupHeight 520`（弹窗尺寸，应用于 `window.open` features 串） / `wechatText {title} 分享自 {url}` / `wechatTextEn ''`(en 站模板,空回退中文；微信复制按模板替换 `{title}`/`{url}`) / `copiedText 链接已复制` / `copiedTextEn ''` / `copiedShowMs 2500`(复制成功 toast 时长) / `showLabel false` / `label 分享文章` / `labelEn ''` / `useNativeShare false`(支持 navigator.share 时优先原生分享) / `copyFallback true`(剪贴板 API 不可用时 textarea 回退)。运行时复制成功提示按页面语言取 `copiedTextEn` — `js/domains/features/share.js`
 
 ### 3.24 reward — 打赏前端
 `enabled false`(需 site.reward.enabled) / `buttonText 打赏` / `note 感谢支持` / `popupTitle 打赏支持` / `closeByBtn true` / `closeByOverlay true` / `closeByEsc true` / `qrSize 180px` / `maxWidth 560px` / `showNote true`(显示打赏说明文字) / `qrMaxWidth 180px`(二维码最大宽度 CSS) / `closeText 关闭`(关闭按钮文本) / `links []`(赞助平台链接数组,弹窗底部显示胶囊按钮,每项 `{label,url}`,新窗口 `noopener`;如 GitHub Sponsors / Ko-fi / 爱发电)。文案键均有同名 `*En`（`buttonTextEn`/`noteEn`/`popupTitleEn`/`closeTextEn`），空回退中文；弹窗内方式名称与说明优先取 `site.reward.*En`（见 §1）
@@ -604,12 +604,12 @@
 > **接线说明（关闭路径门控）**：`closeByBtn` / `closeByOverlay` / `closeByEsc` 分别控制关闭按钮、点击遮罩、Esc 三种关闭方式，默认 `true`（现行为）；显式 `false` 使对应路径失效（其余路径仍可关闭）。canonical：`scripts/lib/feature-wiring.js → rewardCloseConfig`（单测覆盖三态）。
 
 ### 3.25 gallery — 图库页
-`enabled true` / `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片`（`titleEn`/`descriptionEn`/`emptyTextEn` en 站文案，空回退中文） / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `order newest` / `maxItems 0`(0=不限) / `gap 12px`(瀑布流列间距 CSS) / `showCaption true`(图片下方显示来源说明) / `borderRadius 8px`(卡片圆角 CSS)
+`title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片`（`titleEn`/`descriptionEn`/`emptyTextEn` en 站文案，空回退中文） / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `gap 12px`(瀑布流列间距 CSS) / `showCaption true`(图片下方显示来源说明) / `borderRadius 8px`(卡片圆角 CSS)
 
-> 接线说明：`collectFeatured=true`（默认）= 图库收集文章封面图 + 正文图片（按 src 去重）；`false` = 仅收集正文图片（`scripts/build/collectors.js → collectGalleryImages(articles, { collectFeatured })` 参数化，单测覆盖两态）。图库为全量聚合：每次构建按 `order`/`maxItems` 重新收集，无增量清单缓存。
+> 接线说明：`collectFeatured=true`（默认）= 图库收集文章封面图 + 正文图片（按 src 去重）；`false` = 仅收集正文图片（`scripts/build/collectors.js → collectGalleryImages(articles, { collectFeatured })` 参数化，单测覆盖两态）。图库为全量聚合：每次构建重新收集，无增量清单缓存。
 
 ### 3.26 heatmap — 归档热力图
-`enabled true` / `levels 5`(2~7) / `scaling auto`(`auto|fixed`) / `palette []`(fixed 时色表) / `showLegend true` / `legendLow 少` / `legendHigh 多` / `tooltipFormat {year}-{month}: {count} 篇`（`legendLowEn`/`legendHighEn`/`tooltipFormatEn` en 站文案，空回退中文） / `showMonthNumbers true` / `gap 3px`(单元格间距) / `borderRadius 3px`(单元格圆角) / `cellSize 13px`(单元格尺寸,置空则撑满容器) / `emptyColor var(--color-border)`(空月份颜色)
+`levels 5`(2~7) / `scaling auto`(`auto|fixed`) / `palette []`(fixed 时色表) / `showLegend true` / `legendLow 少` / `legendHigh 多` / `tooltipFormat {year}-{month}: {count} 篇`（`legendLowEn`/`legendHighEn`/`tooltipFormatEn` en 站文案，空回退中文） / `showMonthNumbers true` / `gap 3px`(单元格间距) / `borderRadius 3px`(单元格圆角) / `cellSize 13px`(单元格尺寸,置空则撑满容器) / `emptyColor var(--color-border)`(空月份颜色)
 
 > **接线说明**：
 > - `levels`（2~7，越界钳制，非法回退 5）= 非空层级数：色阶 `l1..l(levels-1)` 由浅到深 + 顶层 `l(levels)` 为强调混色。`levels=5` 时逐字保持历史色阶（25/45/65% + 实色 + 强调混色），渲染不变；其他层数按 25%→100% 线性等分。分桶口径保留历史：`maxCount<=2` 用 `count+1` 阶梯，否则 `ceil(count/maxCount*levels)`。CSS 色阶由 `heatmapPalette(levels)` 生成。
@@ -698,13 +698,12 @@
 
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
-| `enabled` | bool | `false` | 声明维护响应参数是否生效于服务端配置生成（运行开关仍为 `MAINTENANCE=1`/`--maintenance`） |
 | `message` / `messageEn` | string | `站点维护中，请稍后再来。` | 维护页文案（en 站空回退中文） |
 | `status` | number | `503` | 维护响应状态码 |
 | `setRetryAfter` | bool | `true` | 是否输出 `Retry-After` 响应头 |
 | `retryAfter` | number | `3600` | `Retry-After` 秒数（非法/非正回退 3600） |
 
-> **接线说明（本地 serve 与 Worker 同源）**：`setRetryAfter=false` 时维护响应不输出 `Retry-After`；`retryAfter`（秒，非法/非正回退 3600）为响应值。构建期经 `scripts/generate-security-config.js → maintenanceWorkerConfig` 写入 `workers/security-config.js`，Worker 读取后应用于维护响应；本地 serve 直接读 `config.features.maintenance`。运行开关仍为 `--maintenance`/`MAINTENANCE=1`（serve）与 Worker 环境变量 `MAINTENANCE=1`（`enabled` 键不参与运行时开关）。单测：`scripts/security-worker.test.js`（Worker 关闭态）+ `scripts/config-wiring.test.js`（归一化）；runner 覆盖 serve 两态。
+> **接线说明（本地 serve 与 Worker 同源）**：`setRetryAfter=false` 时维护响应不输出 `Retry-After`；`retryAfter`（秒，非法/非正回退 3600）为响应值。构建期经 `scripts/generate-security-config.js → maintenanceWorkerConfig` 写入 `workers/security-config.js`，Worker 读取后应用于维护响应；本地 serve 直接读 `config.features.maintenance`。运行开关仍为 `--maintenance`/`MAINTENANCE=1`（serve）与 Worker 环境变量 `MAINTENANCE=1`。单测：`scripts/security-worker.test.js`（Worker 关闭态）+ `scripts/config-wiring.test.js`（归一化）；runner 覆盖 serve 两态。
 
 ### 3.33 mobile
 `enabled true` / `searchFullscreen true` / `buttonStackGap 3.4rem` / `touchFallback true` / `codeScrollHint true` / `tocBreakpoint 768`(移动端 TOC 按钮断点 px) / `safeAreaBottom true`(底部安全区留白) / `tapHighlight false`(取消点击高亮)
@@ -886,7 +885,7 @@ sitemap: {
 
 ### 3.61 morphIcons — 图标变形动画
 
-`enabled true` / `vendorPath '/assets/vendor/morphicons'`(vendor 图标目录) / `spring 'snappy'`(`smooth|snappy|bouncy`) / `reducedMotion 'light'`(`light|off|full`;light=系统 reduce-motion 下改用更快的轻量弹簧) / `preload 'interaction'`(`interaction|idle|immediate`) / `idleTimeoutMs 3000`(仅 `preload='idle'` 生效：requestIdleCallback 强制加载超时 ms) / `perIcon {}`(单图标弹簧覆盖,值=预设名或 `{stiffness,damping}`) / `icons { theme, copy, favorite, tts, menu }`(各图标独立开关)。基于 morphicons(本地 vendor,懒加载,~7.5KB gzip):状态切换类图标用弹簧物理做形状变形(主题 sun↔moon、复制 copy→check、收藏空心↔实心、朗读扬声器↔停止、移动端汉堡↔X);关闭任意开关均回退原有静态实现;弹簧参数见 `tuning.morphicons`(stiffness/damping 与轻量版 reducedStiffness/reducedDamping;同时设置时优先于 spring 预设)。
+`vendorPath '/assets/vendor/morphicons'`(vendor 图标目录) / `spring 'snappy'`(`smooth|snappy|bouncy`) / `reducedMotion 'light'`(`light|off|full`;light=系统 reduce-motion 下改用更快的轻量弹簧) / `preload 'interaction'`(`interaction|idle|immediate`) / `idleTimeoutMs 3000`(仅 `preload='idle'` 生效：requestIdleCallback 强制加载超时 ms) / `perIcon {}`(单图标弹簧覆盖,值=预设名或 `{stiffness,damping}`) / `icons { theme, copy, favorite, tts, menu }`(各图标独立开关)。基于 morphicons(本地 vendor,懒加载,~7.5KB gzip):状态切换类图标用弹簧物理做形状变形(主题 sun↔moon、复制 copy→check、收藏空心↔实心、朗读扬声器↔停止、移动端汉堡↔X);关闭任意开关均回退原有静态实现;弹簧参数见 `tuning.morphicons`(stiffness/damping 与轻量版 reducedStiffness/reducedDamping;同时设置时优先于 spring 预设)。
 
 ### 3.62 viewTransition — 跨文档过渡动画
 
@@ -906,7 +905,7 @@ sitemap: {
 
 ### 3.66 schemaRich — 结构化数据增强
 
-`enabled true` / `breadcrumbs true` / `dateModified true` / `blogHomepage true` / `authorUrl true`(Article 增加作者主页 URL) / `wordCount true`(正文字数) / `timeRequired true`(预计阅读时长 `PT{n}M`) / `keywords true`(标签拼接为 keywords) / `articleSection true`(首个分类) / `image true`(指向生成的 OG 图)。开关关闭或数据缺失时对应字段自动省略 — `templates/layout.ejs`。
+`breadcrumbs true` / `dateModified true` / `blogHomepage true` / `authorUrl true`(Article 增加作者主页 URL) / `wordCount true`(正文字数) / `timeRequired true`(预计阅读时长 `PT{n}M`) / `keywords true`(标签拼接为 keywords) / `articleSection true`(首个分类) / `image true`(指向生成的 OG 图)。开关关闭或数据缺失时对应字段自动省略 — `templates/layout.ejs`。
 
 ### 3.67 perfBudget — 性能预算门禁
 
@@ -934,7 +933,7 @@ sitemap: {
 
 ### 3.73 hreflang — 多语言替代声明(SEO)
 
-`enabled true` / `includeSelf true`(当前语言条目也输出) / `canonical true` / `xDefault true`(输出 `hreflang="x-default"`,指向 `features.i18n.defaultLanguage` 版本)。与 `features.i18n` 配合:每页输出各语言(URL 前缀替换)+ x-default 的 `<link rel="alternate">`;新增翻译时按 `articles/{lang}/{slug}.md` 同 slug 放置即可获得互链与声明 — `templates/layout.ejs`。
+`enabled true` / `includeSelf true`(当前语言条目也输出) / `xDefault true`(输出 `hreflang="x-default"`,指向 `features.i18n.defaultLanguage` 版本)。与 `features.i18n` 配合:每页输出各语言(URL 前缀替换)+ x-default 的 `<link rel="alternate">`;新增翻译时按 `articles/{lang}/{slug}.md` 同 slug 放置即可获得互链与声明 — `templates/layout.ejs`。
 
 ### 3.74 printStyle — 打印样式
 
@@ -966,15 +965,15 @@ sitemap: {
 
 ### 3.81 exportBackup — 备份导出
 
-`enabled true`（总开关）/ `includeMedia true`（打包 `media/` 图片）/ `includeConfig true`（打包 14 个 JSON5 配置，含 compression.json5）/ `outputDir 'exports'`（输出目录）/ `fileNamePrefix 's-ynapse-backup'`（归档名前缀，实际文件名追加时间戳）。由 `npm run export` 调用：配置 + 文章 + 媒体打包为单一归档，便于迁移与留档 — `scripts/export.js`。
+`includeMedia true`（打包 `media/` 图片）/ `includeConfig true`（打包 14 个 JSON5 配置，含 compression.json5）/ `outputDir 'exports'`（输出目录）/ `fileNamePrefix 's-ynapse-backup'`（归档名前缀，实际文件名追加时间戳）。由 `npm run export` 调用：配置 + 文章 + 媒体打包为单一归档，便于迁移与留档 — `scripts/export.js`。
 
 ### 3.82 mediaAudit — 媒体审计
 
-`enabled true` / `reportMissed true`（报告文章引用但磁盘缺失的图片）/ `reportUnreferenced true`（报告存在但未被任何文章引用的图片）/ `reportDuplicate false`（报告内容重复的文件，默认关，大站耗时）/ `output 'console'`（报告输出方式）。由 `npm run audit:media` 调用；构建期发现引用缺失会记入构建报告 — `scripts/audit-media.js`。
+`reportMissed true`（报告文章引用但磁盘缺失的图片）/ `reportUnreferenced true`（报告存在但未被任何文章引用的图片）/ `reportDuplicate false`（报告内容重复的文件，默认关，大站耗时）/ `output 'console'`（报告输出方式）。由 `npm run audit:media` 调用；构建期发现引用缺失会记入构建报告 — `scripts/audit-media.js`。
 
 ### 3.83 autoSummary — 自动摘要
 
-`enabled true` / `maxLength 160`（摘要最大字符数）/ `fallback 'firstParagraph'`（front-matter 无 `description` 时的回退取值）/ `stripMarkdown true`（frontmatter `excerpt` 先剥离 Markdown 标记（链接/强调/标题/列表/代码/内联 HTML）再使用；false=原样保留，纯函数 `scripts/lib/feature-wiring.js → stripMarkdownText`。注：无 frontmatter excerpt 时自动摘要由渲染后 HTML 去标签生成，天然不含 Markdown）/ `ellipsis '…'`（截断省略号，空则不加）。用于 SEO `<meta name="description">` 与列表摘要 — `scripts/build/articles.js`。
+`maxLength 160`（摘要最大字符数）/ `fallback 'firstParagraph'`（front-matter 无 `description` 时的回退取值）/ `stripMarkdown true`（frontmatter `excerpt` 先剥离 Markdown 标记（链接/强调/标题/列表/代码/内联 HTML）再使用；false=原样保留，纯函数 `scripts/lib/feature-wiring.js → stripMarkdownText`。注：无 frontmatter excerpt 时自动摘要由渲染后 HTML 去标签生成，天然不含 Markdown）/ `ellipsis '…'`（截断省略号，空则不加）。用于 SEO `<meta name="description">` 与列表摘要 — `scripts/build/articles.js`。
 
 ### 3.84 searchEnginePing — 搜索引擎推送
 
@@ -994,7 +993,7 @@ sitemap: {
 
 ### 3.88 codeCopy — 代码块复制按钮
 
-`enabled true` / `buttonText '复制'` / `copiedText '已复制'`（成功态文案）/ `buttonTextEn ''` / `copiedTextEn ''`（en 站文案，空回退中文/词典）/ `buttonTimeout 1500`（成功态停留毫秒）/ `showLineNumbers false`（行号列）。文案留空时回退 `ui-strings` 词典；运行时按页面语言取 `*En` — `js/domains/core/code-block.js`。**窗栏（Mac 窗栏样条）由 `features.codeBlock.windowBar` 控制（单一来源）。**
+`buttonText '复制'` / `copiedText '已复制'`（成功态文案）/ `buttonTextEn ''` / `copiedTextEn ''`（en 站文案，空回退中文/词典）/ `buttonTimeout 1500`（成功态停留毫秒）/ `showLineNumbers false`（行号列）。文案留空时回退 `ui-strings` 词典；运行时按页面语言取 `*En` — `js/domains/core/code-block.js`。**窗栏（Mac 窗栏样条）由 `features.codeBlock.windowBar` 控制（单一来源）。**
 
 ### 3.89 tocScrollSpy — 目录滚动高亮
 
@@ -1010,7 +1009,7 @@ sitemap: {
 
 ### 3.92 listCover — 列表封面
 
-`enabled true` / `showOnHome true`（首页卡片）/ `showOnArchive true`（**标签归档列表页** `/tags/<tag>/` 封面显隐；false=列表卡片不渲染封面；/archive/ 年表页为纯文字列表不受影响）/ `fallback 'pattern'`（无封面文章的回退形态：`pattern` 渐变占位块显示标题文字（默认） / `none` 纯文字卡片不渲染占位块；`enabled=false` 时完全隐藏列表媒体区）/ `lazy true`（懒加载）/ `autoGenerate`（无封面文章构建期自动生成封面，见下）。与 `features.cover`（文章封面样式库）分工：此项控制列表页是否展示封面 — `templates/index.ejs` + `templates/tag.ejs` + `templates/post.ejs` + `scripts/build/pages.js`。**封面宽高比由 `tuning.card.imageAspect` 控制（CSS 变量 `--card-imageAspect`，单一来源）。**
+`enabled true` / `showOnHome true`（首页卡片）/ `showOnArchive true`（**标签归档列表页** `/tags/<tag>/` 封面显隐；false=列表卡片不渲染封面；/archive/ 年表页为纯文字列表不受影响）/ `fallback 'pattern'`（无封面文章的回退形态：`pattern` 渐变占位块显示标题文字（默认） / `none` 纯文字卡片不渲染占位块；`enabled=false` 时完全隐藏列表媒体区）/ `autoGenerate`（无封面文章构建期自动生成封面，见下）。与 `features.cover`（文章封面样式库）分工：此项控制列表页是否展示封面 — `templates/index.ejs` + `templates/tag.ejs` + `templates/post.ejs` + `scripts/build/pages.js`。**封面宽高比由 `tuning.card.imageAspect` 控制（CSS 变量 `--card-imageAspect`，单一来源）。**
 
 **`autoGenerate` — 无封面文章自动封面**：文章 frontmatter 无 `featuredImage` 时，构建期为其生成列表卡片与文章页头图封面（主题色背景 + 自动换行标题 + 可选站点名/分类角标），输出到 `dist/og/cover-<slug>.<hash8>.<ext>`（hash = 标题 + 站点名 + 主题色 + 样式版本 + 宽高格式 + 样式开关；内容寻址命名，`/og/*` 已有 `_headers` 7 天缓存规则，且被 sitemap 与 cache-bust 忽略），缓存于 `.cache/covers/`（同输入二次构建命中直接复用，不重渲染）。**显式 `featuredImage` 始终优先（行为不变）。源文件存在但构建期无法处理（0 字节/截断/非图片）时视为无封面：回退自动封面/`fallback` 形态、构建报告 `[告警]` 段记录回退，页面/feed/搜索索引不残留悬空路径。`enabled:false` 或单篇生成失败时回退上面的 `fallback` 形态（`pattern`/`none`），失败仅告警不阻断构建**。图片输出 `width`/`height` 属性（构建期定尺寸，防 CLS）。键位：`enabled true`（总开关）/ `width 1200` / `height 630`（64–4096，越界夹取）/ `format 'webp'`（`webp` | `jpeg`，`jpg` 同义；切换扩展名后旧产物下次构建清理）/ `backgroundStyle 'gradient'`（`gradient` 主→辅渐变 | `solid` 主色纯色）/ `showSiteName true`（左下角站点名，en 站取 `site.titleEn`）/ `showCategory false`（左上角分类/系列角标，取 `categories[0]`，缺省 `series`）。主题色取自 `theme.colors.primary/secondary` 与 `darkMode.colors.text`，缺失时跳过生成。
 

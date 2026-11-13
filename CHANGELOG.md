@@ -90,7 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 「删除键/模块无残留引用」类用例此前遍历工作树，未跟踪但被 gitignore 的仓库副本（如本地 `backups/`）会被当成源文件命中，造成「CI 绿、本地恒红」的假失败：改为经 `scripts/lib/tracked-files.js` 只扫 git 跟踪文件（无 `.git` 的发布归档回退遍历），并补该助手自身的回归测试。
 - **修掉两条永远不可能通过的 fuzz 用例**（`scripts/lib/config.fuzz.test.js`）：`isAllowed` 早已从「`{exact,prefixes}` 前缀匹配」改为「收 Set、只判精确成员」，旧断言传对象导致任意 seed 都抛 `allow.has is not a function`——fuzz 门禁形同虚设。现按真实契约断言「精确放行 + 子键/前缀截断/其它键一律拒绝」。
 - **修掉两条把非法输入当合法前提的 fuzz 用例**（`scripts/lib/wiki.fuzz.test.js`）：生成器会产出 `con`/`prn`/`aux` 等 Windows 保留名，`mdExportRelPath` 正确地拒绝并返回 `null`，而用例断言它必须返回路径（种子 2660947602 必红）。现以同一个 `validateSlug` 为判据断言「合法 → 固定路径；非法/保留 → null 且不写盘」。
-- 新增 `scripts/perf-contract.test.js`：把弱网体验写成 8 条**可测量契约**（首屏 gzip 预算、字体零请求、`<head>` 预声明与不重复下载、缓存头语义、SW 预缓存条目/字节上限、导航策略、本地 serve 与生产缓存一致性）。断言的是预算与行为而非实现写法，重排代码不会误报，预算被撑破一定红。
+- 新增 `scripts/perf-contract.test.js`：把弱网体验写成 9 条**可测量契约**（首屏 gzip 预算、字体零请求、`<head>` 预声明与不重复下载、head 级静态资源数预算、缓存头语义、SW 预缓存条目/字节上限、导航策略、本地 serve 与生产缓存一致性）。断言的是预算与行为而非实现写法，重排代码不会误报，预算被撑破一定红。
+- **缓存语义两处收口**：`stale-while-revalidate` 此前对**所有** `text/html` 生效，404/500 页同样是 HTML——上线后访客可能继续拿到缓存里的 404（最长 86400s），现两端都限定 `200`（Worker `response.status === 200`、本地 `cacheControlFor(path, status)`）。本地 serve 原先还漏了 `/assets/quotes.*.json` 的 immutable（生产有、本地没有），导致「引语拆分后是否仍命中缓存」无法在本地复测。
 
 **文档一致性**
 - `config-reference` 补齐 31 个未入档键，并清除 4 处已删键的残留条目（R-33 附带）。

@@ -57,7 +57,7 @@ const DEFAULT_CONFIG = {
         avif: { enabled: true, quality: 50, effort: 5 },
         usePictureTag: true,
         relatedArticles: true, cjkSpacing: true,
-        cjkFonts: { enabled: true, family: 'Noto Sans SC', weights: [400, 700], fetchTimeoutMs: 15000, concurrency: 6, cacheTtlDays: 7 },
+        cjkFonts: { enabled: true, family: 'Noto Sans SC', weights: [400, 700], fetchTimeoutMs: 15000, concurrency: 6, cacheTtlDays: 7, slowNetwork: 'skip' },
         buildReport: true, reportTopN: 10, forceContentWidth: true,
         enableCacheBusting: false, cacheBustingPattern: '.*\\.(css|js|png|jpg|svg)$',
         externalLinksTarget: '_blank', externalLinksRel: 'noopener noreferrer',

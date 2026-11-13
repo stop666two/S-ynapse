@@ -17,17 +17,17 @@
 | `contentPolicy.svgSanitize` | bool | true | scripts/build/media.js:115<br>scripts/lib/content-policy.js:37<br>scripts/lib/content-policy.js:63 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.analytics.emitBeacon` | bool | true | scripts/lib/feature-wiring.js:1389<br>scripts/lib/feature-wiring.js:1403<br>scripts/lib/feature-wiring.js:1404 | scripts/config-wiring.test.js:869 | 已测（marker） |
 | `features.analytics.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:869 | 已测（marker） |
-| `features.analytics.injectAt` | enum | `body` | templates/layout.ejs:99<br>templates/layout.ejs:230<br>scripts/lib/feature-wiring.js:1388 | scripts/config-wiring.test.js:869 | 已测（marker） |
+| `features.analytics.injectAt` | enum | `body` | templates/layout.ejs:120<br>templates/layout.ejs:251<br>scripts/lib/feature-wiring.js:1388 | scripts/config-wiring.test.js:869 | 已测（marker） |
 | `features.anchorStabilize.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:197 | 已测（marker） |
 | `features.anchorStabilize.maxTrackMs` | number | 8000 | js/domains/core/anchor-stabilize.js:20<br>js/domains/core/anchor-stabilize.js:21<br>js/domains/core/anchor-stabilize.js:41 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.anchorStabilize.settleMs` | number | 300 | js/domains/core/anchor-stabilize.js:19<br>js/domains/core/anchor-stabilize.js:52<br>js/domains/core/anchor-stabilize.js:71 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.announcement.dismissible` | bool | true | templates/layout.ejs:24<br>templates/layout.ejs:100 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.announcement.dismissible` | bool | true | templates/layout.ejs:30<br>templates/layout.ejs:121 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.announcement.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:232 | 已测（marker） |
 | `features.announcement.newTab` | bool | true | js/domains/core/external-link.js:13<br>js/domains/core/external-link.js:21<br>js/domains/features/popup-notice.js:35 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.announcement.pauseOnHover` | bool | true | js/domains/core/announcement.js:69 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.announcement.removeDelayMs` | number | 340 | js/core/runtime.js:12<br>js/domains/core/announcement.js:45<br>js/domains/features/continue-reading.js:102 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
-| `features.announcement.rotateMs` | number | 6000 | templates/layout.ejs:100 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.announcement.showDot` | bool | true | templates/layout.ejs:100<br>templates/site-css.ejs:250 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.announcement.rotateMs` | number | 6000 | templates/layout.ejs:121 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.announcement.showDot` | bool | true | templates/layout.ejs:121<br>templates/site-css.ejs:250 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.announcement.showProgress` | bool | false | js/domains/features/continue-reading.js:108<br>js/domains/features/continue-reading.js:167<br>js/domains/features/continue-reading.js:171 | scripts/config-coverage-features-a.test.js:232 | 已测（marker） |
 | `features.announcement.tone` | enum | `accent` | — | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.announcement.transition` | enum | `fade` | templates/site-css.ejs:15<br>templates/site-css.ejs:37<br>templates/site-css.ejs:43 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -41,10 +41,10 @@
 | `features.authorCard.showSocial` | bool | true | templates/page.ejs:15 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.authorCard.showTimeline` | bool | true | templates/page.ejs:19 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.autoSummary.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring-build-switches.test.js:143<br>scripts/config-wiring-build-switches.test.js:284 | 已测（marker） |
-| `features.autoSummary.maxLength` | number | 160 | js/domains/features/daily-quote.js:47<br>js/domains/features/search-core.js:327<br>js/domains/features/search-core.js:329 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
+| `features.autoSummary.maxLength` | number | 160 | js/domains/features/daily-quote.js:85<br>js/domains/features/search-core.js:327<br>js/domains/features/search-core.js:329 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
 | `features.autoSummary.stripMarkdown` | bool | true | scripts/build/articles.js:225 | scripts/config-wiring-build-switches.test.js:150<br>scripts/config-wiring.test.js:59 | 既有引用 |
 | `features.backToTop.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:541<br>scripts/config-coverage-features-a.test.js:575 | 已测（marker） |
-| `features.backToTop.htmlAnchorFallback` | bool | false | templates/layout.ejs:223<br>templates/layout.ejs:224<br>scripts/lib/feature-wiring.js:686 | scripts/config-wiring.test.js:708 | 已测（marker） |
+| `features.backToTop.htmlAnchorFallback` | bool | false | templates/layout.ejs:244<br>templates/layout.ejs:245<br>scripts/lib/feature-wiring.js:686 | scripts/config-wiring.test.js:708 | 已测（marker） |
 | `features.backToTop.scrollDurationMs` | number | 450 | scripts/lib/feature-wiring.js:684<br>js/domains/core/reading.js:33 | scripts/config-wiring.test.js:708 | 已测（marker） |
 | `features.backToTop.showAfterPx` | number | 400 | js/domains/core/reading.js:102 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.backToTop.smoothScroll` | bool | true | js/domains/core/reading.js:36<br>scripts/lib/feature-wiring.js:685 | scripts/config-wiring.test.js:708 | 已测（marker） |
@@ -64,7 +64,7 @@
 | `features.bilingual.sideBySide` | bool | true | templates/post.ejs:88<br>templates/post.ejs:11<br>templates/site-css.ejs:256 | scripts/bilingual-core.test.js:27<br>scripts/bilingual-core.test.js:52 | 已测（marker） |
 | `features.bilingual.switch` | bool | true | templates/post.ejs:11<br>js/domains/features/bilingual-core.js:25<br>js/domains/features/lightbox-core.js:178 | scripts/bilingual-core.test.js:27<br>scripts/bilingual-core.test.js:52 | 已测（marker） |
 | `features.boot.budgetMs` | number | 40 | js/core/boot.js:202<br>js/core/boot.js:203 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.boot.configTimeoutMs` | number | 3000 | templates/layout.ejs:97 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.boot.configTimeoutMs` | number | 3000 | templates/layout.ejs:118 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.boot.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:576<br>scripts/frontend-boot-overlay.test.js:40 | 既有引用 |
 | `features.boot.heavyMode` | enum | `idle` | js/core/boot.js:204<br>js/core/boot.js:221<br>js/core/boot.js:222 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.boot.idleFallbackMs` | number | 120 | js/core/boot.js:26 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -72,8 +72,8 @@
 | `features.boot.interactionWake` | bool | true | js/core/boot.js:178 | scripts/frontend-boot-overlay.test.js:40 | 既有引用 |
 | `features.boot.log` | bool | false | js/core/boot.js:15<br>js/core/boot.js:84<br>js/core/boot.js:117 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
 | `features.breadcrumb.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:255 | 已测（marker） |
-| `features.breadcrumb.showCurrent` | bool | true | js/domains/core/toc.js:25<br>templates/layout.ejs:66<br>templates/layout.ejs:69 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.breadcrumb.showHome` | bool | true | templates/layout.ejs:62 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.breadcrumb.showCurrent` | bool | true | js/domains/core/toc.js:25<br>templates/layout.ejs:72<br>templates/layout.ejs:75 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.breadcrumb.showHome` | bool | true | templates/layout.ejs:68 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.cardFx.categoryChip` | bool | true | templates/index.ejs:42<br>templates/tag.ejs:17 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.cardFx.coverOverlay` | bool | true | templates/index.ejs:41<br>templates/tag.ejs:16<br>scripts/generate-og.js:232 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.cardFx.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:314 | 已测（marker） |
@@ -83,16 +83,16 @@
 | `features.codeBlock.copyAllButton` | bool | false | js/domains/core/code-block.js:57 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.codeBlock.copyButtonVisibility` | enum | `hover` | js/domains/core/code-block.js:11 | scripts/lib/config.fuzz.test.js:165<br>scripts/lib/config.fuzz.test.js:168 | 既有引用 |
 | `features.codeBlock.downloadButton` | bool | true | js/domains/core/code-block.js:34<br>js/domains/core/code-block.js:42<br>js/domains/features/lightbox.js:46 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.codeBlock.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-split.test.js:80<br>scripts/config-wiring-runtime-switches.test.js:252 | 既有引用 |
+| `features.codeBlock.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-split.test.js:89<br>scripts/config-wiring-runtime-switches.test.js:252 | 既有引用 |
 | `features.codeBlock.lineNumbers` | bool | true | scripts/build/markdown.js:26 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.codeBlock.prismBatchMs` | number | 8 | templates/layout.ejs:242 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.codeBlock.prismIdleFallbackMs` | number | 60 | templates/layout.ejs:242 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.codeBlock.prismIdleTimeoutMs` | number | 300 | templates/layout.ejs:242 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.codeBlock.prismBatchMs` | number | 8 | templates/layout.ejs:263 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.codeBlock.prismIdleFallbackMs` | number | 60 | templates/layout.ejs:263 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.codeBlock.prismIdleTimeoutMs` | number | 300 | templates/layout.ejs:263 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.codeBlock.scrollHintTolerancePx` | number | 8 | scripts/lib/feature-wiring.js:1180<br>scripts/lib/feature-wiring.js:1178<br>js/domains/core/code-block.js:71 | scripts/config-wiring.test.js:1154 | 已测（marker） |
 | `features.codeBlock.showLanguageTag` | bool | true | js/domains/core/code-block.js:32<br>js/domains/core/code-block.js:36 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.codeBlock.windowBar` | bool | true | js/domains/core/code-block.js:11 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.codeBlock.wrapLongLines` | bool | false | scripts/build/markdown.js:240 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.codeCopy.buttonTimeout` | number | 1500 | js/domains/core/code-block.js:11<br>templates/layout.ejs:235 | scripts/config-coverage-features-a.test.js:541<br>scripts/config-coverage-features-a.test.js:575 | 已测（marker） |
+| `features.codeCopy.buttonTimeout` | number | 1500 | js/domains/core/code-block.js:11<br>templates/layout.ejs:256 | scripts/config-coverage-features-a.test.js:541<br>scripts/config-coverage-features-a.test.js:575 | 已测（marker） |
 | `features.codeCopy.enabled` | bool | true | js/domains/core/code-block.js:16<br>js/core/runtime.js:18<br>js/core/runtime.js:19 | scripts/config-wiring-runtime-switches.test.js:251<br>scripts/config-wiring-runtime-switches.test.js:264 | 已测（marker） |
 | `features.codeCopy.showLineNumbers` | bool | false | scripts/build/markdown.js:26<br>scripts/build/markdown.js:239 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.commandPalette.autoFocus` | bool | true | js/domains/features/command-palette.js:183<br>scripts/lib/feature-wiring.js:1247 | scripts/config-wiring.test.js:1317 | 已测（marker） |
@@ -108,7 +108,7 @@
 | `features.contactPopup.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:827 | 已测（marker） |
 | `features.contactPopup.maxItems` | number | 4 | js/domains/features/contact-popup.js:8<br>js/domains/features/reading-history.js:8<br>js/domains/features/reading-history.js:102 | scripts/config-coverage-features-a.test.js:541<br>scripts/config-coverage-features-a.test.js:575 | 已测（marker） |
 | `features.contactPopup.showAllItems` | bool | true | js/domains/features/contact-popup.js:8<br>scripts/lib/feature-wiring.js:910 | scripts/config-wiring.test.js:827 | 已测（marker） |
-| `features.contactPopup.showIcon` | bool | true | templates/layout.ejs:164 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.contactPopup.showIcon` | bool | true | templates/layout.ejs:185 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.continueReading.clearConfirmMs` | number | 3000 | scripts/lib/feature-wiring.js:1020<br>js/domains/features/continue-reading.js:104<br>js/domains/features/continue-reading.js:105 | scripts/config-wiring.test.js:1287 | 已测（marker） |
 | `features.continueReading.count` | number | 3 | js/domains/features/background.js:17<br>js/domains/features/continue-reading.js:39<br>js/domains/features/continue-reading.js:40 | scripts/config-wiring.test.js:1287 | 已测（marker） |
 | `features.continueReading.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:314 | 已测（marker） |
@@ -119,21 +119,21 @@
 | `features.cover.preview` | bool | true | — | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.customCSS.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:255 | 已测（marker） |
 | `features.dailyQuote.api.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/csp.test.js:114<br>scripts/csp.test.js:115 | 既有引用 |
-| `features.dailyQuote.api.maxLength` | number | 0 | js/domains/features/daily-quote.js:47<br>js/domains/features/search-core.js:327<br>js/domains/features/search-core.js:329 | scripts/daily-quote.test.js:147<br>scripts/daily-quote.test.js:149 | 既有引用 |
-| `features.dailyQuote.api.minIntervalMs` | number | 1000 | js/domains/features/daily-quote.js:194<br>js/domains/features/daily-quote.js:72 | scripts/daily-quote.test.js:187<br>scripts/daily-quote.test.js:198 | 既有引用 |
-| `features.dailyQuote.api.timeoutMs` | number | 5000 | js/domains/features/daily-quote.js:138<br>js/core/boot.js:23<br>js/core/boot.js:25 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
+| `features.dailyQuote.api.maxLength` | number | 0 | js/domains/features/daily-quote.js:85<br>js/domains/features/search-core.js:327<br>js/domains/features/search-core.js:329 | scripts/daily-quote.test.js:147<br>scripts/daily-quote.test.js:149 | 既有引用 |
+| `features.dailyQuote.api.minIntervalMs` | number | 1000 | js/domains/features/daily-quote.js:232<br>js/domains/features/daily-quote.js:110 | scripts/daily-quote.test.js:187<br>scripts/daily-quote.test.js:198 | 既有引用 |
+| `features.dailyQuote.api.timeoutMs` | number | 5000 | js/domains/features/daily-quote.js:176<br>js/core/boot.js:23<br>js/core/boot.js:25 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
 | `features.dailyQuote.count` | number | 0 | js/domains/features/background.js:17<br>js/domains/features/continue-reading.js:39<br>js/domains/features/continue-reading.js:40 | scripts/daily-quote.test.js:256<br>scripts/daily-quote.test.js:263 | 既有引用 |
 | `features.dailyQuote.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:186<br>scripts/config-wiring.test.js:188 | 既有引用 |
-| `features.dailyQuote.widgetStyle` | enum | `card` | js/domains/features/daily-quote.js:317 | scripts/config-wiring.test.js:130<br>scripts/config-wiring.test.js:183 | 已测（marker） |
+| `features.dailyQuote.widgetStyle` | enum | `card` | js/domains/features/daily-quote.js:358 | scripts/config-wiring.test.js:130<br>scripts/config-wiring.test.js:183 | 已测（marker） |
 | `features.darkImageFilter.applyImages` | bool | true | templates/site-css.ejs:116 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.darkImageFilter.applyVideos` | bool | true | templates/site-css.ejs:116 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.darkImageFilter.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:197 | 已测（marker） |
 | `features.debug.dumpConfig` | bool | false | scripts/build.js:176<br>scripts/lib/feature-wiring.js:1437 | scripts/config-wiring.test.js:958 | 已测（marker） |
 | `features.debug.listPages` | bool | false | scripts/build.js:480<br>scripts/lib/feature-wiring.js:1436 | scripts/config-wiring.test.js:958 | 已测（marker） |
-| `features.debug.verbose` | bool | false | scripts/build/pages.js:619<br>scripts/build.js:174<br>scripts/build/pages.js:650 | scripts/config-wiring.test.js:958 | 已测（marker） |
+| `features.debug.verbose` | bool | false | scripts/build/pages.js:629<br>scripts/build.js:174<br>scripts/build/pages.js:660 | scripts/config-wiring.test.js:958 | 已测（marker） |
 | `features.errorPage.suggestCount` | number | 5 | templates/404.ejs:2<br>scripts/lib/feature-wiring.js:1202<br>scripts/lib/feature-wiring.js:1204 | scripts/config-wiring.test.js:1154 | 已测（marker） |
 | `features.exportArticle.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/export-article.test.js:69 | 已测（marker） |
-| `features.exportArticle.markdown` | bool | true | scripts/build/context.js:299<br>scripts/build/context.js:308<br>scripts/build/pages.js:795 | scripts/export-article.test.js:69 | 已测（marker） |
+| `features.exportArticle.markdown` | bool | true | scripts/build/context.js:299<br>scripts/build/context.js:308<br>scripts/build/pages.js:805 | scripts/export-article.test.js:69 | 已测（marker） |
 | `features.exportArticle.print` | bool | true | templates/post.ejs:80<br>templates/post.ejs:85<br>templates/site-css.ejs:402 | scripts/export-article.test.js:69 | 已测（marker） |
 | `features.exportArticle.sourceFootnote` | bool | true | templates/post.ejs:85<br>scripts/lib/feature-wiring.js:1046<br>templates/post.ejs:86 | scripts/export-article.test.js:69 | 已测（marker） |
 | `features.exportBackup.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring-build-switches.test.js:168<br>scripts/config-wiring-build-switches.test.js:214 | 已测（marker） |
@@ -147,7 +147,7 @@
 | `features.externalLink.whitelistNewTab` | bool | false | js/domains/core/external-link.js:16 | scripts/config-wiring.test.js:224 | 既有引用 |
 | `features.favorites.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:294 | 已测（marker） |
 | `features.favorites.listIcon` | bool | true | js/domains/features/favorites.js:62 | scripts/config-wiring.test.js:61 | 既有引用 |
-| `features.gallery.collectFeatured` | bool | true | scripts/build/pages.js:339<br>scripts/build/pages.js:765<br>scripts/build/collectors.js:84 | scripts/config-wiring.test.js:473 | 已测（marker） |
+| `features.gallery.collectFeatured` | bool | true | scripts/build/pages.js:345<br>scripts/build/pages.js:775<br>scripts/build/collectors.js:84 | scripts/config-wiring.test.js:473 | 已测（marker） |
 | `features.gallery.columns` | number | 4 | templates/site-css.ejs:247<br>scripts/build/config.js:245<br>scripts/build/config.js:392 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.gallery.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring-build-switches.test.js:94<br>scripts/config-wiring-build-switches.test.js:114 | 已测（marker） |
 | `features.gallery.showCaption` | bool | true | templates/gallery.ejs:16<br>js/domains/features/lightbox.js:69 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -158,32 +158,32 @@
 | `features.guards.contextMenu` | bool | true | js/domains/guard/context-menu.js:17<br>js/domains/guard/context-menu.js:116<br>js/domains/guard/context-menu.js:134 | scripts/config-coverage-features-a.test.js:482 | 已测（marker） |
 | `features.guards.copyGuard` | bool | true | js/domains/guard/copy-guard.js:4<br>js/domains/guard/copy-guard.js:24<br>js/domains/guard/defaults.js:75 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.guards.devtoolsDetect` | bool | true | js/domains/guard/defaults.js:151<br>js/domains/guard/devtools-detect.js:3 | scripts/config-coverage-features-a.test.js:482 | 已测（marker） |
-| `features.guards.enabled` | bool | true | js/core/main.js:125<br>js/core/runtime.js:18<br>js/core/runtime.js:19 | scripts/config-split.test.js:51<br>scripts/config-split.test.js:71 | 既有引用 |
+| `features.guards.enabled` | bool | true | js/core/main.js:125<br>js/core/runtime.js:18<br>js/core/runtime.js:19 | scripts/config-split.test.js:60<br>scripts/config-split.test.js:80 | 既有引用 |
 | `features.guards.hotkeyGuard` | bool | true | js/domains/guard/defaults.js:114<br>js/domains/guard/hotkey-guard.js:3 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.guards.preset` | enum | `soft` | js/domains/guard/core.js:72<br>js/domains/features/theme-lab.js:195<br>js/domains/features/theme-lab.js:196 | scripts/config-split.test.js:51<br>scripts/config-split.test.js:71 | 既有引用 |
+| `features.guards.preset` | enum | `soft` | js/domains/guard/core.js:72<br>js/domains/features/theme-lab.js:195<br>js/domains/features/theme-lab.js:196 | scripts/config-split.test.js:60<br>scripts/config-split.test.js:80 | 既有引用 |
 | `features.guards.privacyCurtain` | bool | true | js/domains/guard/defaults.js:189<br>js/domains/guard/privacy-curtain.js:3 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.guards.selectionGuard` | bool | true | js/domains/guard/defaults.js:104<br>js/domains/guard/selection-guard.js:4 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.guards.tamperWatch` | bool | true | js/domains/guard/defaults.js:201<br>js/domains/guard/tamper-watch.js:5 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.guards.watermark` | bool | true | js/domains/guard/defaults.js:131<br>js/domains/guard/watermark.js:3<br>templates/site-css.ejs:562 | scripts/config-coverage-features-a.test.js:482 | 已测（marker） |
-| `features.heatmap.levels` | number | 5 | templates/site-css.ejs:249<br>scripts/build/pages.js:385<br>scripts/lib/feature-wiring.js:772 | scripts/config-wiring.test.js:752<br>scripts/config-wiring.test.js:771 | 已测（marker） |
+| `features.heatmap.levels` | number | 5 | templates/site-css.ejs:249<br>scripts/build/pages.js:391<br>scripts/lib/feature-wiring.js:772 | scripts/config-wiring.test.js:752<br>scripts/config-wiring.test.js:771 | 已测（marker） |
 | `features.heatmap.scaling` | enum | `auto` | scripts/lib/feature-wiring.js:784<br>scripts/lib/feature-wiring.js:1369 | scripts/config-wiring.test.js:918 | 已测（marker） |
 | `features.heatmap.showLegend` | bool | true | templates/archive.ejs:7<br>templates/archive.ejs:33<br>scripts/lib/feature-wiring.js:788 | scripts/config-wiring.test.js:685 | 既有引用 |
 | `features.heatmap.showMonthNumbers` | bool | true | templates/archive.ejs:7<br>templates/archive.ejs:33<br>scripts/lib/feature-wiring.js:795 | scripts/config-wiring.test.js:686 | 既有引用 |
 | `features.hero.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
 | `features.hero.heightVh` | number | 61.8 | templates/site-css.ejs:43 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.hero.showCta` | bool | true | scripts/build/pages.js:698<br>templates/index.ejs:15 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.hero.showDate` | bool | false | scripts/build/pages.js:702<br>templates/index.ejs:12<br>templates/category.ejs:15 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.hero.showSearch` | bool | true | scripts/build/pages.js:696<br>templates/index.ejs:14 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.hero.showTags` | bool | true | scripts/build/pages.js:697<br>templates/index.ejs:17<br>templates/index.ejs:6 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.hero.tagCount` | number | 8 | scripts/build/pages.js:704<br>scripts/build/pages.js:705<br>scripts/lib/test-payloads.js:147 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.hero.showCta` | bool | true | scripts/build/pages.js:708<br>templates/index.ejs:15 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.hero.showDate` | bool | false | scripts/build/pages.js:712<br>templates/index.ejs:12<br>templates/category.ejs:15 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.hero.showSearch` | bool | true | scripts/build/pages.js:706<br>templates/index.ejs:14 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.hero.showTags` | bool | true | scripts/build/pages.js:707<br>templates/index.ejs:17<br>templates/index.ejs:6 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.hero.tagCount` | number | 8 | scripts/build/pages.js:714<br>scripts/build/pages.js:715<br>scripts/lib/test-payloads.js:147 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.hotSearches.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
 | `features.hotSearches.maxWords` | number | 50 | scripts/lib/feature-wiring.js:978<br>js/domains/features/search.js:356 | scripts/config-wiring.test.js:1241 | 已测（marker） |
 | `features.hotSearches.showClear` | bool | true | js/domains/features/search.js:392 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.hotSearches.showInDropdown` | bool | true | js/domains/features/search.js:354<br>js/domains/features/search.js:382 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.hotSearches.top` | number | 5 | js/domains/core/motion.js:86<br>js/domains/core/nav-state.js:65<br>js/domains/core/navigation.js:36 | scripts/config-coverage-features-a.test.js:541<br>scripts/config-coverage-features-a.test.js:575 | 已测（marker） |
 | `features.hreflang.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:255 | 已测（marker） |
-| `features.hreflang.includeSelf` | bool | true | templates/layout.ejs:45 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.hreflang.xDefault` | bool | true | templates/layout.ejs:45 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.hreflang.includeSelf` | bool | true | templates/layout.ejs:51 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.hreflang.xDefault` | bool | true | templates/layout.ejs:51 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.i18n.enabled` | bool | true | js/domains/core/i18n.js:1<br>js/core/runtime.js:18<br>js/core/runtime.js:19 | scripts/config-coverage-features-a.test.js:255 | 已测（marker） |
 | `features.i18n.navToggle` | bool | true | — | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.i18n.translationNotice` | bool | true | templates/post.ejs:16 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -192,14 +192,14 @@
 | `features.imageFit.content.align` | enum | `center` | templates/site-css.ejs:530<br>scripts/generate-og.js:265<br>scripts/generate-og.js:268 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.imageFit.content.cap` | number | 1.5 | js/domains/features/popup-notice.js:109<br>js/domains/core/save-data-core.js:93<br>js/domains/core/save-data-core.js:104 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.imageFit.content.maxHeightVh` | number | 0 | templates/site-css.ejs:114<br>templates/site-css.ejs:246<br>js/domains/core/code-block.js:11 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.imageFit.content.upscale` | enum | `never` | scripts/build/pages.js:281<br>templates/site-css.ejs:530<br>templates/site-css.ejs:529 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.imageFit.content.upscale` | enum | `never` | scripts/build/pages.js:287<br>templates/site-css.ejs:530<br>templates/site-css.ejs:529 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.imageFit.cover.applyToCards` | bool | true | templates/site-css.ejs:532 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.imageFit.cover.fit` | enum | `cover` | templates/layout.ejs:227<br>scripts/generate-og.js:575<br>scripts/build/assets.js:157 | scripts/config-coverage-features-a.test.js:218 | 已测（marker） |
+| `features.imageFit.cover.fit` | enum | `cover` | templates/layout.ejs:248<br>scripts/generate-og.js:575<br>scripts/build/assets.js:145 | scripts/config-coverage-features-a.test.js:218 | 已测（marker） |
 | `features.imageFit.cover.maxHeightVh` | number | 0 | templates/site-css.ejs:246<br>templates/site-css.ejs:114<br>js/domains/core/code-block.js:11 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.imageFit.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:197 | 已测（marker） |
 | `features.imageFit.gallery.maxHeightPx` | number | 0 | templates/site-css.ejs:529 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.imageFit.gallery.stretch` | bool | false | templates/site-css.ejs:533<br>templates/site-css.ejs:59 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.imageFit.lightbox.fit` | enum | `contain` | templates/layout.ejs:227<br>scripts/build/assets.js:157<br>scripts/generate-og.js:575 | scripts/config-coverage-features-a.test.js:255 | 已测（marker） |
+| `features.imageFit.lightbox.fit` | enum | `contain` | templates/layout.ejs:248<br>scripts/build/assets.js:145<br>scripts/generate-og.js:575 | scripts/config-coverage-features-a.test.js:255 | 已测（marker） |
 | `features.imageFit.lightbox.maxHeightVh` | number | 82 | templates/site-css.ejs:246<br>templates/site-css.ejs:114<br>js/domains/core/code-block.js:11 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.imageFit.lightbox.maxWidthPct` | number | 92 | templates/site-css.ejs:245<br>templates/site-css.ejs:246<br>scripts/lib/feature-wiring.js:671 | scripts/config-wiring.test.js:699 | 既有引用 |
 | `features.imageLazy.eagerFirst` | number | 1 | templates/index.ejs:34<br>js/domains/core/image-lazy.js:138 | scripts/config-wiring.test.js:1028 | 既有引用 |
@@ -212,7 +212,7 @@
 | `features.incrementalBuild.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/incremental-build.test.js:78<br>scripts/incremental-build.test.js:97 | 已测（marker） |
 | `features.incrementalBuild.skipUnchanged` | bool | true | scripts/lib/incremental.js:109 | scripts/incremental-build.test.js:78 | 已测（marker） |
 | `features.incrementalBuild.watch` | bool | true | js/domains/features/morphicons.js:81<br>js/domains/features/morphicons.js:125<br>js/domains/features/morphicons.js:136 | scripts/incremental-build.test.js:78 | 已测（marker） |
-| `features.lcpOptimize.asyncCjkFontCss` | bool | false | templates/layout.ejs:93 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.lcpOptimize.asyncCjkFontCss` | bool | false | templates/layout.ejs:99 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.lcpOptimize.contentVisibility` | bool | false | templates/site-css.ejs:175 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.lcpOptimize.offscreenSkip.asideEstimatePx` | number | 900 | templates/site-css.ejs:176 | scripts/config-wiring.test.js:44 | 既有引用 |
 | `features.lcpOptimize.offscreenSkip.cardEstimatePx` | number | 480 | templates/site-css.ejs:176 | scripts/config-wiring.test.js:43 | 既有引用 |
@@ -220,7 +220,7 @@
 | `features.lcpOptimize.offscreenSkip.enabled` | bool | false | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:39<br>scripts/config-wiring.test.js:40 | 既有引用 |
 | `features.lcpOptimize.preloadFirstCard` | bool | false | templates/layout.ejs:15 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.lcpOptimize.revealExemptFirstPaint` | bool | false | templates/site-css.ejs:15<br>templates/site-css.ejs:319 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.lcpOptimize.skipLatinFontPreloadOnCjk` | bool | false | templates/layout.ejs:53 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.lcpOptimize.skipLatinFontPreloadOnCjk` | bool | false | templates/layout.ejs:59 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.lightbox.captionMaxLines` | number | 2 | templates/site-css.ejs:246 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.lightbox.clickTolerancePx` | number | 6 | scripts/lib/feature-wiring.js:944<br>js/domains/features/lightbox.js:33 | scripts/config-wiring.test.js:1212 | 已测（marker） |
 | `features.lightbox.closeButton` | bool | true | js/domains/features/lightbox.js:44<br>js/domains/features/popup-notice.js:38<br>js/domains/features/popup-notice.js:127 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
@@ -260,7 +260,7 @@
 | `features.lightbox.zoomStep` | number | 0.25 | js/domains/features/lightbox.js:26 | scripts/config-coverage-features-a.test.js:541<br>scripts/config-coverage-features-a.test.js:575 | 已测（marker） |
 | `features.listCover.autoGenerate.backgroundStyle` | enum | `gradient` | scripts/lib/auto-cover.js:237<br>scripts/build/auto-cover.js:51<br>scripts/build/auto-cover.js:72 | scripts/auto-cover.test.js:22 | 已测（marker） |
 | `features.listCover.autoGenerate.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/auto-cover.test.js:22 | 已测（marker） |
-| `features.listCover.autoGenerate.format` | enum | `webp` | templates/layout.ejs:31<br>js/domains/features/continue-reading.js:143<br>js/domains/features/reading-history.js:85 | scripts/auto-cover.test.js:22 | 已测（marker） |
+| `features.listCover.autoGenerate.format` | enum | `webp` | templates/layout.ejs:37<br>js/domains/features/continue-reading.js:143<br>js/domains/features/reading-history.js:85 | scripts/auto-cover.test.js:22 | 已测（marker） |
 | `features.listCover.autoGenerate.height` | number | 630 | js/domains/core/motion.js:81<br>js/domains/core/motion.js:84<br>js/domains/core/nav-state.js:64 | scripts/auto-cover.test.js:22 | 已测（marker） |
 | `features.listCover.autoGenerate.showCategory` | bool | false | scripts/build/auto-cover.js:53<br>scripts/build/auto-cover.js:74<br>scripts/generate-og.js:278 | scripts/auto-cover.test.js:22 | 已测（marker） |
 | `features.listCover.autoGenerate.showSiteName` | bool | true | scripts/build/auto-cover.js:52<br>scripts/build/auto-cover.js:73<br>scripts/lib/auto-cover.js:71 | scripts/auto-cover.test.js:22 | 已测（marker） |
@@ -276,7 +276,7 @@
 | `features.loading.maxShowMs` | number | 2000 | templates/site-css.ejs:511<br>js/core/boot.js:154 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.loading.minShowMs` | number | 250 | js/core/boot.js:106 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.loading.reducedMotion` | enum | `skip` | templates/site-css.ejs:301<br>templates/site-css.ejs:306<br>js/core/boot.js:97 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.loading.showTitle` | bool | false | templates/layout.ejs:171<br>js/core/boot.js:39 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.loading.showTitle` | bool | false | templates/layout.ejs:192<br>js/core/boot.js:39 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.loading.spinner` | bool | true | js/core/boot.js:37 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.loading.spinnerStyle` | enum | `orbit` | js/core/boot.js:38<br>js/core/boot.js:50<br>js/core/boot.js:52 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.loading.zIndex` | number | 3000 | templates/site-css.ejs:510<br>templates/site-css.ejs:234<br>js/domains/guard/defaults.js:145 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -286,8 +286,8 @@
 | `features.magazine.headingNumbers` | bool | false | — | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.magazine.tableHover` | bool | true | — | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.maintenance.enabled` | bool | false | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring-maintenance.test.js:72<br>scripts/config-wiring-maintenance.test.js:81 | 已测（marker） |
-| `features.maintenance.retryAfter` | number | 3600 | workers/security-worker.js:302<br>scripts/build/serve.js:53<br>scripts/generate-security-config.js:187 | scripts/config-wiring.test.js:944 | 已测（marker） |
-| `features.maintenance.setRetryAfter` | bool | true | workers/security-worker.js:301<br>scripts/build/serve.js:56<br>scripts/generate-security-config.js:201 | scripts/config-wiring.test.js:944 | 已测（marker） |
+| `features.maintenance.retryAfter` | number | 3600 | workers/security-worker.js:302<br>scripts/build/serve.js:68<br>scripts/generate-security-config.js:187 | scripts/config-wiring.test.js:944 | 已测（marker） |
+| `features.maintenance.setRetryAfter` | bool | true | workers/security-worker.js:301<br>scripts/build/serve.js:71<br>scripts/generate-security-config.js:201 | scripts/config-wiring.test.js:944 | 已测（marker） |
 | `features.maintenance.status` | enum | 503 | js/core/boot.js:194<br>js/core/runtime.js:20<br>js/core/soft-nav.js:91 | scripts/config-wiring-maintenance.test.js:135<br>scripts/config-wiring-maintenance.test.js:290 | 已测（marker） |
 | `features.math.autoDetect` | bool | true | scripts/build/markdown.js:60<br>scripts/build/markdown.js:245<br>js/domains/core/math-render.js:65 | scripts/config-wiring.test.js:387<br>scripts/config-wiring.test.js:527 | 已测（marker） |
 | `features.math.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:387<br>scripts/config-wiring.test.js:572 | 已测（marker） |
@@ -304,17 +304,17 @@
 | `features.mermaid.clientOptions.class.htmlLabels` | bool | false | scripts/lib/feature-wiring.js:1297<br>scripts/lib/feature-wiring.js:1293<br>scripts/lib/feature-wiring.js:1298 | scripts/config-wiring.test.js:1363<br>scripts/config-wiring.test.js:1364 | 既有引用 |
 | `features.mermaid.clientOptions.flowchart.htmlLabels` | bool | false | scripts/lib/feature-wiring.js:1293<br>scripts/lib/feature-wiring.js:1297<br>scripts/lib/feature-wiring.js:1298 | scripts/config-wiring.test.js:1359<br>scripts/config-wiring.test.js:1403 | 既有引用 |
 | `features.mermaid.clientOptions.state.htmlLabels` | bool | false | scripts/lib/feature-wiring.js:1298<br>scripts/lib/feature-wiring.js:1293<br>scripts/lib/feature-wiring.js:1297 | scripts/config-wiring.test.js:1363<br>scripts/config-wiring.test.js:1364 | 既有引用 |
-| `features.mermaid.copyAfterRender` | bool | false | templates/layout.ejs:235<br>scripts/build/mermaid.js:24<br>scripts/build/mermaid.js:75 | scripts/config-wiring.test.js:441 | 已测（marker） |
-| `features.mermaid.darkMode` | bool | true | js/domains/core/theme.js:6<br>scripts/build/assets.js:194<br>scripts/build/config.js:219 | scripts/mermaid-render.test.js:145 | 既有引用 |
+| `features.mermaid.copyAfterRender` | bool | false | templates/layout.ejs:256<br>scripts/build/mermaid.js:24<br>scripts/build/mermaid.js:75 | scripts/config-wiring.test.js:441 | 已测（marker） |
+| `features.mermaid.darkMode` | bool | true | js/domains/core/theme.js:6<br>scripts/build/assets.js:182<br>scripts/build/config.js:219 | scripts/mermaid-render.test.js:145 | 既有引用 |
 | `features.mermaid.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:441 | 已测（marker） |
 | `features.mermaid.followTheme` | bool | true | scripts/build/mermaid.js:23<br>scripts/lib/feature-wiring.js:537 | scripts/config-wiring.test.js:441 | 已测（marker） |
 | `features.mermaid.idleFallbackMs` | number | 200 | js/core/boot.js:26 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.mermaid.idleTimeoutMs` | number | 1500 | js/core/boot.js:212<br>js/core/boot.js:222<br>js/core/boot.js:223 | scripts/config-coverage-features-a.test.js:255 | 已测（marker） |
 | `features.mermaid.mode` | enum | `build` | js/core/soft-nav.js:152<br>js/core/soft-nav.js:174<br>js/core/soft-nav.js:175 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
 | `features.mermaid.renderTimeoutMs` | number | 10000 | scripts/build/mermaid.js:56 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.mermaid.rerenderIdleFallbackMs` | number | 60 | templates/layout.ejs:238 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.mermaid.rerenderIdleTimeoutMs` | number | 300 | templates/layout.ejs:238 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.mermaid.size.fit` | enum | `scroll` | scripts/build/assets.js:157<br>scripts/generate-og.js:575<br>scripts/lib/mermaid-render.js:211 | scripts/config-coverage-features-a.test.js:541<br>scripts/config-coverage-features-a.test.js:575 | 已测（marker） |
+| `features.mermaid.rerenderIdleFallbackMs` | number | 60 | templates/layout.ejs:259 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.mermaid.rerenderIdleTimeoutMs` | number | 300 | templates/layout.ejs:259 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.mermaid.size.fit` | enum | `scroll` | scripts/build/assets.js:145<br>scripts/generate-og.js:575<br>scripts/lib/mermaid-render.js:211 | scripts/config-coverage-features-a.test.js:541<br>scripts/config-coverage-features-a.test.js:575 | 已测（marker） |
 | `features.mobile.codeScrollHint` | bool | true | templates/site-css.ejs:636<br>templates/site-css.ejs:637<br>js/domains/core/code-block.js:70 | scripts/config-wiring.test.js:819 | 已测（marker） |
 | `features.mobile.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:819 | 已测（marker） |
 | `features.mobile.safeAreaBottom` | bool | true | templates/site-css.ejs:29 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -328,9 +328,9 @@
 | `features.mobileToc.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:255 | 已测（marker） |
 | `features.mobileToc.lockScroll` | bool | true | js/domains/core/toc.js:125<br>js/domains/core/toc.js:133<br>js/domains/core/toc.js:139 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.mobileToc.overlayClose` | bool | true | js/domains/core/toc.js:273 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.mobileToc.showCurrent` | bool | true | js/domains/core/toc.js:25<br>templates/layout.ejs:66<br>templates/layout.ejs:69 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.mobileToc.showCurrent` | bool | true | js/domains/core/toc.js:25<br>templates/layout.ejs:72<br>templates/layout.ejs:75 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.morphIcons.enabled` | bool | true | js/core/runtime.js:19<br>js/core/runtime.js:18<br>js/core/boot.js:97 | scripts/config-wiring-runtime-switches.test.js:149<br>scripts/config-wiring-runtime-switches.test.js:162 | 已测（marker） |
-| `features.morphIcons.icons.copy` | bool | true | js/domains/features/daily-quote.js:264<br>js/domains/features/daily-quote.js:265<br>js/domains/features/daily-quote.js:266 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
+| `features.morphIcons.icons.copy` | bool | true | js/domains/features/daily-quote.js:305<br>js/domains/features/daily-quote.js:306<br>js/domains/features/daily-quote.js:307 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
 | `features.morphIcons.icons.favorite` | bool | true | — | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.morphIcons.icons.menu` | bool | true | js/domains/guard/context-menu.js:37<br>js/domains/guard/context-menu.js:44<br>js/domains/guard/context-menu.js:45 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
 | `features.morphIcons.icons.theme` | bool | true | js/core/runtime.js:19<br>scripts/build/config.js:146<br>js/domains/guard/context-menu.js:9 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
@@ -362,7 +362,7 @@
 | `features.ogImage.autoSize.maxDimension` | number | 2560 | scripts/generate-og.js:425<br>scripts/build.js:275<br>scripts/lib/og-size.js:75 | scripts/og-size.test.js:63 | 已测（marker） |
 | `features.ogImage.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/lib/malicious.fuzz.test.js:125<br>scripts/lib/malicious.fuzz.test.js:127 | 既有引用 |
 | `features.ogImage.fontScale` | number | 0.75 | scripts/build/config.js:299<br>scripts/generate-og.js:431<br>scripts/generate-og.js:436 | scripts/config-coverage-features-a.test.js:429 | 已测（marker） |
-| `features.ogImage.format` | enum | `png` | templates/layout.ejs:31<br>js/domains/features/continue-reading.js:143<br>js/domains/features/reading-history.js:85 | scripts/og-format.test.js:8 | 已测（marker） |
+| `features.ogImage.format` | enum | `png` | templates/layout.ejs:37<br>js/domains/features/continue-reading.js:143<br>js/domains/features/reading-history.js:85 | scripts/og-format.test.js:8 | 已测（marker） |
 | `features.ogImage.gradientForNoCover` | bool | true | scripts/generate-og.js:600 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.ogImage.jpegQuality` | number | 82 | scripts/lib/og-format.js:15 | scripts/config-coverage-features-a.test.js:410 | 已测（marker） |
 | `features.ogImage.overlay.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/h2-dataflow.test.js:384<br>scripts/popup-notice-config.test.js:18 | 既有引用 |
@@ -390,7 +390,7 @@
 | `features.perfBudget.htmlKb` | number | 40 | scripts/build/report.js:152<br>scripts/build/report.js:158<br>scripts/build/report.js:179 | scripts/build.test.js:662 | 已测（marker） |
 | `features.perfBudget.htmlRawKb` | number | 50 | scripts/build/report.js:177<br>scripts/build/report.js:179<br>scripts/lib/perf-budget.js:5 | scripts/build.test.js:662 | 已测（marker） |
 | `features.perfBudget.inlineConfigKb` | number | 2 | scripts/build.js:35<br>scripts/build.js:51<br>scripts/build.js:52 | scripts/build.test.js:662 | 已测（marker） |
-| `features.perfBudget.jsKb` | number | 76 | scripts/build/report.js:179<br>scripts/lib/feature-wiring.js:1418<br>scripts/lib/perf-budget.js:5 | scripts/build.test.js:662 | 已测（marker） |
+| `features.perfBudget.jsKb` | number | 77 | scripts/build/report.js:179<br>scripts/lib/feature-wiring.js:1418<br>scripts/lib/perf-budget.js:5 | scripts/build.test.js:662 | 已测（marker） |
 | `features.perfBudget.requests` | number | 12 | scripts/build/report.js:153<br>scripts/build/report.js:164<br>scripts/build/report.js:179 | scripts/build.test.js:662 | 已测（marker） |
 | `features.perfBudget.warnOnly` | bool | true | scripts/build.js:431<br>scripts/build/report.js:218<br>scripts/build/report.js:220 | scripts/config-coverage-features-b.test.js:593 | 已测（marker） |
 | `features.performance.warningBuildMs` | number | 30000 | scripts/lib/feature-wiring.js:1426 | scripts/config-wiring.test.js:932 | 已测（marker） |
@@ -420,14 +420,14 @@
 | `features.printStyle.expandLinks` | bool | true | templates/site-css.ejs:401 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.printStyle.hideInteractive` | bool | true | templates/site-css.ejs:401 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.prismTheme.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-b.test.js:251 | 已测（marker） |
-| `features.pwa.assetCacheFirst` | bool | true | scripts/build/assets.js:244<br>scripts/build/assets.js:249<br>scripts/build/assets.js:259 | scripts/pwa-sw.test.js:66<br>scripts/pwa-sw.test.js:94 | 已测（marker） |
+| `features.pwa.assetCacheFirst` | bool | true | scripts/build/assets.js:263<br>scripts/build/assets.js:268<br>scripts/build/assets.js:278 | scripts/pwa-sw.test.js:70<br>scripts/pwa-sw.test.js:98 | 已测（marker） |
 | `features.pwa.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-b.test.js:258<br>scripts/config-coverage-features-b.test.js:259 | 既有引用 |
 | `features.pwa.installPrompt` | bool | true | templates/site-css.ejs:506<br>js/domains/features/pwa.js:61<br>js/domains/features/pwa.js:62 | scripts/config-coverage-features-b.test.js:251 | 已测（marker） |
 | `features.pwa.offlineNotice` | bool | true | js/domains/features/pwa.js:156 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
-| `features.pwa.offlinePage` | bool | true | scripts/build/assets.js:181<br>scripts/build/assets.js:212<br>scripts/build/assets.js:242 | scripts/config-coverage-features-b.test.js:474 | 已测（marker） |
-| `features.pwa.pageCacheLimit` | number | 24 | scripts/build/assets.js:245<br>scripts/build/assets.js:246<br>scripts/build/assets.js:260 | scripts/pwa-sw.test.js:94 | 已测（marker） |
-| `features.pwa.pageNetworkFirst` | bool | true | scripts/build/assets.js:243<br>scripts/build/assets.js:249<br>scripts/build/assets.js:258 | scripts/pwa-sw.test.js:66<br>scripts/pwa-sw.test.js:94 | 已测（marker） |
-| `features.pwa.precache` | bool | true | scripts/build/assets.js:213<br>scripts/build/assets.js:214<br>scripts/build/assets.js:231 | scripts/pwa-sw.test.js:94 | 已测（marker） |
+| `features.pwa.offlinePage` | bool | true | scripts/build/assets.js:169<br>scripts/build/assets.js:246<br>scripts/build/assets.js:257 | scripts/config-coverage-features-b.test.js:474 | 已测（marker） |
+| `features.pwa.pageCacheLimit` | number | 24 | scripts/build/assets.js:264<br>scripts/build/assets.js:265<br>scripts/build/assets.js:279 | scripts/pwa-sw.test.js:98 | 已测（marker） |
+| `features.pwa.pageNetworkFirst` | bool | false | scripts/build/assets.js:262<br>scripts/build/assets.js:268<br>scripts/build/assets.js:277 | scripts/pwa-sw.test.js:70<br>scripts/pwa-sw.test.js:98 | 已测（marker） |
+| `features.pwa.precache` | bool | true | scripts/build/assets.js:244<br>scripts/build/assets.js:245<br>scripts/build/assets.js:246 | scripts/pwa-sw.test.js:98 | 已测（marker） |
 | `features.pwa.registerSW` | bool | true | js/domains/features/pwa.js:133 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
 | `features.pwa.reloadFallbackMs` | number | 3000 | scripts/lib/feature-wiring.js:1192<br>js/domains/features/pwa.js:54<br>js/domains/features/pwa.js:125 | scripts/config-wiring.test.js:1154 | 已测（marker） |
 | `features.pwa.updateCheckIntervalMs` | number | 1800000 | js/domains/features/pwa.js:150 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
@@ -474,7 +474,7 @@
 | `features.readingProgress.rememberPosition` | bool | true | js/domains/core/read-position.js:3<br>js/domains/features/lightbox.js:53 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.readingProgress.rememberPositionMaxAgeHours` | number | 72 | js/domains/core/read-position.js:5 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.readingProgress.saveThrottleMs` | number | 400 | scripts/lib/feature-wiring.js:956<br>js/domains/core/read-position.js:11<br>js/domains/core/read-position.js:12 | scripts/config-wiring.test.js:1225 | 已测（marker） |
-| `features.readingProgress.showDot` | bool | true | templates/layout.ejs:100<br>templates/site-css.ejs:250 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.readingProgress.showDot` | bool | true | templates/layout.ejs:121<br>templates/site-css.ejs:250 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.readingProgress.showTip` | bool | true | js/domains/core/reading.js:77<br>js/domains/core/reading.js:78<br>js/domains/core/reading.js:88 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.readingProgress.tipDisplayMs` | number | 500 | js/domains/core/reading.js:76 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.readingProgress.updateThrottleMs` | number | 30 | js/domains/core/reading.js:212 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -484,7 +484,7 @@
 | `features.readingTime.showInMeta` | bool | true | templates/post.ejs:29 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.readingTime.wordsPerMinuteCJK` | number | 250 | scripts/build/articles.js:316 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.readingTime.wordsPerMinuteLatin` | number | 200 | scripts/build/articles.js:317 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.redirects.applyInServe` | bool | true | scripts/build/serve.js:58 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.redirects.applyInServe` | bool | true | scripts/build/serve.js:73 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.redirects.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/h2-dataflow.test.js:311<br>scripts/h2-dataflow.test.js:315 | 既有引用 |
 | `features.redirects.generatePagesFile` | bool | true | scripts/build/security-files.js:28 | scripts/h2-dataflow.test.js:311 | 既有引用 |
 | `features.redirects.invalidRule` | enum | `abort` | scripts/build/security-files.js:36<br>scripts/lib/redirect-rules.js:26<br>scripts/lib/redirect-rules.js:34 | scripts/config-wiring.test.js:897 | 已测（marker） |
@@ -502,7 +502,7 @@
 | `features.reward.closeByOverlay` | bool | true | js/domains/features/reward.js:30<br>scripts/lib/feature-wiring.js:762 | scripts/config-wiring.test.js:742 | 已测（marker） |
 | `features.reward.enabled` | bool | false | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
 | `features.reward.showNote` | bool | true | templates/post.ejs:233 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.saveDataMode.auto` | bool | true | templates/layout.ejs:23<br>templates/site-css.ejs:7<br>templates/site-css.ejs:15 | scripts/save-data.test.js:29<br>scripts/save-data.test.js:55 | 已测（marker） |
+| `features.saveDataMode.auto` | bool | true | templates/layout.ejs:29<br>templates/site-css.ejs:7<br>templates/site-css.ejs:15 | scripts/save-data.test.js:29<br>scripts/save-data.test.js:55 | 已测（marker） |
 | `features.saveDataMode.degrade.animations` | bool | true | templates/site-css.ejs:18<br>js/domains/core/save-data-core.js:30<br>scripts/lib/feature-wiring.js:1127 | scripts/save-data.test.js:29<br>scripts/save-data.test.js:55 | 已测（marker） |
 | `features.saveDataMode.degrade.lazyAggressive` | bool | true | js/domains/core/image-lazy.js:18<br>js/domains/core/save-data-core.js:33<br>scripts/lib/feature-wiring.js:1130 | scripts/save-data.test.js:29<br>scripts/save-data.test.js:55 | 已测（marker） |
 | `features.saveDataMode.degrade.lowResImages` | bool | true | js/domains/core/image-lazy.js:17<br>js/domains/core/save-data-core.js:32<br>scripts/lib/feature-wiring.js:1129 | scripts/save-data.test.js:29<br>scripts/save-data.test.js:55 | 已测（marker） |
@@ -510,16 +510,16 @@
 | `features.saveDataMode.degrade.particles` | bool | true | js/domains/features/background.js:6<br>js/domains/core/save-data-core.js:31<br>js/domains/features/background.js:56 | scripts/save-data.test.js:29<br>scripts/save-data.test.js:55 | 已测（marker） |
 | `features.saveDataMode.degrade.systemFontsOnly` | bool | true | templates/site-css.ejs:19<br>js/domains/core/save-data-core.js:34<br>scripts/lib/feature-wiring.js:1131 | scripts/save-data.test.js:29<br>scripts/save-data.test.js:55 | 已测（marker） |
 | `features.saveDataMode.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/save-data.test.js:29<br>scripts/save-data.test.js:55 | 已测（marker） |
-| `features.saveDataMode.manual` | bool | true | templates/layout.ejs:23<br>templates/post.ejs:113<br>templates/post.ejs:115 | scripts/save-data.test.js:29<br>scripts/save-data.test.js:55 | 已测（marker） |
-| `features.schemaRich.articleSection` | bool | true | templates/layout.ejs:54 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.schemaRich.authorUrl` | bool | true | templates/layout.ejs:54 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.schemaRich.blogHomepage` | bool | true | templates/layout.ejs:54 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.schemaRich.breadcrumbs` | bool | true | templates/layout.ejs:55 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.schemaRich.dateModified` | bool | true | templates/layout.ejs:54 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.schemaRich.image` | bool | true | templates/layout.ejs:54<br>templates/post.ejs:229<br>templates/post.ejs:230 | scripts/config-coverage-features-b.test.js:450 | 已测（marker） |
-| `features.schemaRich.keywords` | bool | true | templates/layout.ejs:54 | scripts/config-coverage-features-b.test.js:450 | 已测（marker） |
-| `features.schemaRich.timeRequired` | bool | true | templates/layout.ejs:54 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.schemaRich.wordCount` | bool | true | templates/layout.ejs:54<br>scripts/lib/feature-wiring.js:609<br>templates/category.ejs:25 | scripts/config-coverage-features-b.test.js:450 | 已测（marker） |
+| `features.saveDataMode.manual` | bool | true | templates/layout.ejs:29<br>templates/post.ejs:113<br>templates/post.ejs:115 | scripts/save-data.test.js:29<br>scripts/save-data.test.js:55 | 已测（marker） |
+| `features.schemaRich.articleSection` | bool | true | templates/layout.ejs:60 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.schemaRich.authorUrl` | bool | true | templates/layout.ejs:60 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.schemaRich.blogHomepage` | bool | true | templates/layout.ejs:60 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.schemaRich.breadcrumbs` | bool | true | templates/layout.ejs:61 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.schemaRich.dateModified` | bool | true | templates/layout.ejs:60 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.schemaRich.image` | bool | true | templates/layout.ejs:60<br>templates/post.ejs:229<br>templates/post.ejs:230 | scripts/config-coverage-features-b.test.js:450 | 已测（marker） |
+| `features.schemaRich.keywords` | bool | true | templates/layout.ejs:60 | scripts/config-coverage-features-b.test.js:450 | 已测（marker） |
+| `features.schemaRich.timeRequired` | bool | true | templates/layout.ejs:60 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.schemaRich.wordCount` | bool | true | templates/layout.ejs:60<br>scripts/lib/feature-wiring.js:609<br>templates/category.ejs:25 | scripts/config-coverage-features-b.test.js:450 | 已测（marker） |
 | `features.scrollBehavior.behavior` | enum | `smooth` | templates/site-css.ejs:7<br>js/core/runtime.js:11<br>js/domains/core/anchor-stabilize.js:47 | scripts/config-coverage-features-b.test.js:251 | 已测（marker） |
 | `features.scrollBehavior.enabled` | bool | true | js/core/runtime.js:11<br>js/core/runtime.js:18<br>js/core/runtime.js:19 | scripts/config-coverage-features-b.test.js:251 | 已测（marker） |
 | `features.scrollBehavior.respectReducedMotion` | bool | true | templates/site-css.ejs:7<br>js/core/runtime.js:11<br>templates/site-css.ejs:301 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -554,12 +554,12 @@
 | `features.searchHighlight.maxMatches` | number | 20 | js/domains/features/search-core.js:289<br>js/domains/features/search-page.js:23<br>js/domains/features/search-page.js:40 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
 | `features.series.defaultWidgetCount` | number | 8 | scripts/lib/feature-wiring.js:569 | scripts/config-wiring.test.js:453 | 已测（marker） |
 | `features.series.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:453 | 已测（marker） |
-| `features.series.order` | enum | `asc` | scripts/build/pages.js:860<br>scripts/lib/series-page.js:19<br>scripts/lib/series-page.js:62 | scripts/config-coverage-features-b.test.js:641 | 已测（marker） |
-| `features.series.pageEnabled` | bool | true | scripts/build/feeds.js:221<br>scripts/build/pages.js:761<br>scripts/build/pages.js:855 | scripts/config-wiring.test.js:453 | 已测（marker） |
+| `features.series.order` | enum | `asc` | scripts/build/pages.js:870<br>scripts/lib/series-page.js:19<br>scripts/lib/series-page.js:62 | scripts/config-coverage-features-b.test.js:641 | 已测（marker） |
+| `features.series.pageEnabled` | bool | true | scripts/build/feeds.js:221<br>scripts/build/pages.js:771<br>scripts/build/pages.js:865 | scripts/config-wiring.test.js:453 | 已测（marker） |
 | `features.series.showBadge` | bool | true | templates/post.ejs:15<br>scripts/lib/feature-wiring.js:37<br>scripts/lib/feature-wiring.js:560 | scripts/config-wiring.test.js:453 | 已测（marker） |
 | `features.series.showNavPanel` | bool | true | templates/post.ejs:209<br>scripts/lib/feature-wiring.js:563 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.series.showPosition` | bool | true | templates/post.ejs:213<br>templates/series-page.ejs:9<br>scripts/lib/feature-wiring.js:568 | scripts/config-wiring.test.js:453 | 已测（marker） |
-| `features.series.sidebarWidget` | bool | true | templates/layout.ejs:181<br>templates/layout.ejs:194<br>scripts/lib/feature-wiring.js:564 | scripts/config-wiring.test.js:453 | 已测（marker） |
+| `features.series.sidebarWidget` | bool | true | templates/layout.ejs:202<br>templates/layout.ejs:215<br>scripts/lib/feature-wiring.js:564 | scripts/config-wiring.test.js:453 | 已测（marker） |
 | `features.share.copiedShowMs` | number | 2500 | js/domains/features/share.js:10 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.share.copyFallback` | bool | true | js/domains/features/share.js:31<br>js/domains/features/share.js:32 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.share.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
@@ -569,8 +569,8 @@
 | `features.share.useNativeShare` | bool | false | js/domains/features/share.js:11 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.shortcuts.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:167 | 已测（marker） |
 | `features.shortcuts.ignoreInInputs` | bool | true | js/domains/features/shortcuts.js:20 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.shortcuts.showHelpHint` | bool | true | scripts/build/pages.js:400<br>scripts/lib/feature-wiring.js:128<br>scripts/build/pages.js:17 | scripts/config-wiring.test.js:167 | 已测（marker） |
-| `features.shortcuts.showHelpTable` | bool | true | templates/layout.ejs:228 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.shortcuts.showHelpHint` | bool | true | scripts/build/pages.js:406<br>scripts/lib/feature-wiring.js:128<br>scripts/build/pages.js:17 | scripts/config-wiring.test.js:167 | 已测（marker） |
+| `features.shortcuts.showHelpTable` | bool | true | templates/layout.ejs:249 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.sidebarDrag.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
 | `features.sidebarDrag.hapticMs` | number | 10 | js/domains/features/sidebar-drag.js:54<br>js/domains/features/sidebar-drag.js:55<br>js/domains/features/sidebar-drag.js:63 | scripts/config-wiring.test.js:1454<br>scripts/config-wiring.test.js:1455 | 既有引用 |
 | `features.sidebarDrag.persistOrder` | bool | true | js/domains/features/sidebar-drag.js:7<br>js/domains/features/sidebar-drag.js:14 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -580,29 +580,29 @@
 | `features.sidebarDrag.touchLongPressMs` | number | 500 | js/domains/features/sidebar-drag.js:101 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.sitemap.maxUrlsPerFile` | number | 500 | scripts/build/feeds.js:174 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.sitemap.split` | bool | true | js/core/runtime.js:10<br>js/core/soft-nav.js:181<br>js/domains/core/code-block.js:1 | scripts/h2-dataflow.test.js:297<br>scripts/lib/feeds.fuzz.test.js:250 | 既有引用 |
-| `features.softNavigation.cacheMaxEntries` | number | 16 | scripts/lib/feature-wiring.js:990<br>templates/layout.ejs:97<br>js/core/soft-nav.js:16 | scripts/config-wiring.test.js:1254 | 已测（marker） |
-| `features.softNavigation.cacheTtlMs` | number | 300000 | templates/layout.ejs:97<br>js/core/soft-nav.js:20 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.softNavigation.cacheMaxEntries` | number | 16 | scripts/lib/feature-wiring.js:990<br>templates/layout.ejs:118<br>js/core/soft-nav.js:16 | scripts/config-wiring.test.js:1254 | 已测（marker） |
+| `features.softNavigation.cacheTtlMs` | number | 300000 | templates/layout.ejs:118<br>js/core/soft-nav.js:20 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.softNavigation.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
 | `features.softNavigation.prefetchDelayMs` | number | 80 | js/core/soft-nav.js:232 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.softNavigation.prefetchOnHover` | bool | true | js/core/soft-nav.js:221 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.softNavigation.scrollToTop` | bool | true | js/core/soft-nav.js:183<br>js/domains/core/reading.js:30<br>js/domains/core/reading.js:180 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.softNavigation.timeoutMs` | number | 10000 | js/core/boot.js:23<br>js/core/boot.js:25<br>js/core/boot.js:26 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
 | `features.softNavigation.toggle.defaultOn` | bool | true | js/core/soft-nav.js:38<br>js/domains/core/seamless-nav.js:23 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.softNavigation.toggle.show` | bool | true | templates/layout.ejs:141<br>js/domains/features/bilingual.js:123<br>js/domains/features/bilingual.js:122 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
-| `features.softNavigation.viewTransition` | bool | true | templates/layout.ejs:141<br>templates/index.ejs:40<br>templates/index.ejs:50 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.softNavigation.toggle.show` | bool | true | templates/layout.ejs:162<br>js/domains/features/bilingual.js:123<br>js/domains/features/bilingual.js:122 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
+| `features.softNavigation.viewTransition` | bool | true | templates/layout.ejs:162<br>templates/index.ejs:40<br>templates/index.ejs:50 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.speculation.delivery` | enum | `inline` | scripts/build/security-files.js:162<br>js/domains/core/seamless-nav.js:39 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.speculation.eagerness` | enum | `moderate` | scripts/build/security-files.js:164<br>js/domains/core/seamless-nav.js:65 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.speculation.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
 | `features.speculation.mode` | enum | `both` | js/core/soft-nav.js:152<br>js/core/soft-nav.js:174<br>js/core/soft-nav.js:175 | scripts/config-coverage-features-b.test.js:501 | 已测（marker） |
 | `features.speculation.toggle.defaultOn` | bool | true | js/core/soft-nav.js:38<br>js/domains/core/seamless-nav.js:23 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.speculation.toggle.show` | bool | true | templates/layout.ejs:141<br>js/domains/features/bilingual.js:123<br>js/domains/features/bilingual.js:122 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
+| `features.speculation.toggle.show` | bool | true | templates/layout.ejs:162<br>js/domains/features/bilingual.js:123<br>js/domains/features/bilingual.js:122 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
 | `features.stats.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:804 | 既有引用 |
 | `features.stats.showArchiveCards` | bool | true | templates/archive.ejs:6<br>templates/archive.ejs:13<br>scripts/lib/feature-wiring.js:868 | scripts/config-wiring.test.js:803 | 已测（marker） |
-| `features.stats.showSidebar` | bool | true | templates/layout.ejs:180<br>templates/layout.ejs:193 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.stats.showSidebar` | bool | true | templates/layout.ejs:201<br>templates/layout.ejs:214 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.subscribe.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
 | `features.subscribe.jsonFeed` | bool | true | scripts/build/feeds.js:108<br>scripts/build/feeds.js:147<br>scripts/build/minify.js:826 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
 | `features.subscribe.newTab` | bool | true | js/domains/core/external-link.js:13<br>js/domains/core/external-link.js:21<br>js/domains/features/popup-notice.js:35 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.subscribe.rss` | bool | true | templates/layout.ejs:202<br>scripts/build/config.js:423<br>scripts/build/config.js:424 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
+| `features.subscribe.rss` | bool | true | templates/layout.ejs:223<br>scripts/build/config.js:423<br>scripts/build/config.js:424 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
 | `features.supSub.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:360 | 已测（marker） |
 | `features.supSub.preserveUnmatched` | bool | true | scripts/build/markdown.js:46<br>scripts/build/markdown.js:128<br>scripts/lib/feature-wiring.js:287 | scripts/config-wiring.test.js:360<br>scripts/config-wiring.test.js:368 | 已测（marker） |
 | `features.supSub.skipInsideMath` | bool | true | scripts/build/markdown.js:45<br>scripts/build/markdown.js:51<br>scripts/lib/feature-wiring.js:286 | scripts/config-wiring.test.js:360 | 已测（marker） |
@@ -611,7 +611,7 @@
 | `features.themePresets.persistChoice` | bool | true | js/domains/features/theme-presets.js:7 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.themePresets.pickerVisible` | bool | true | js/domains/features/theme-presets.js:7 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.themePresets.previewOnHover` | bool | true | — | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.themePresets.showInNavbar` | bool | true | templates/layout.ejs:144 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.themePresets.showInNavbar` | bool | true | templates/layout.ejs:165 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.themeSchedule.applyInstantly` | bool | true | js/domains/features/theme-schedule.js:3 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.themeSchedule.checkIntervalMs` | number | 60000 | js/domains/features/theme-schedule.js:3 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.themeSchedule.enabled` | bool | false | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
@@ -619,12 +619,12 @@
 | `features.themeSchedule.smoothTransition` | bool | true | js/domains/features/theme-schedule.js:3 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.themeSchedule.smoothTransitionMs` | number | 350 | js/domains/features/theme-schedule.js:3 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.themeToggle.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring-runtime-switches.test.js:80<br>scripts/config-wiring-runtime-switches.test.js:97 | 已测（marker） |
-| `features.themeToggle.toggleIconSwap` | bool | true | js/domains/features/morphicons.js:105<br>templates/layout.ejs:238 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.themeToggle.toggleIconSwap` | bool | true | js/domains/features/morphicons.js:105<br>templates/layout.ejs:259 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.themeToggle.zIndex` | number | 100 | templates/site-css.ejs:234<br>templates/site-css.ejs:510<br>js/domains/guard/defaults.js:145 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.toast.durationMs` | number | 2500 | js/core/runtime.js:12<br>templates/site-css.ejs:301<br>templates/site-css.ejs:306 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
 | `features.toast.enabled` | bool | true | js/core/runtime.js:12<br>js/core/runtime.js:18<br>js/core/runtime.js:19 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
-| `features.toast.maxVisible` | number | 3 | js/core/runtime.js:12<br>scripts/build/pages.js:714 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.toast.position` | enum | `bottom-center` | js/core/runtime.js:12<br>templates/layout.ejs:235<br>templates/post.ejs:47 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
+| `features.toast.maxVisible` | number | 3 | js/core/runtime.js:12<br>scripts/build/pages.js:724 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.toast.position` | enum | `bottom-center` | js/core/runtime.js:12<br>templates/layout.ejs:256<br>templates/post.ejs:47 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
 | `features.toast.removeDelayMs` | number | 300 | js/core/runtime.js:12<br>js/domains/core/announcement.js:45<br>js/domains/features/continue-reading.js:102 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
 | `features.toc.activeOffset` | number | 120 | js/domains/core/toc.js:183 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.toc.collapsible` | bool | true | js/domains/core/toc.js:167<br>js/domains/core/toc.js:182<br>templates/site-css.ejs:120 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
@@ -636,7 +636,7 @@
 | `features.toc.maxWidthPx` | number | 320 | templates/site-css.ejs:37 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.toc.minLevel` | number | 2 | scripts/build/articles.js:327<br>js/domains/core/toc.js:180<br>scripts/lib/feature-wiring.js:70 | scripts/config-coverage-features-b.test.js:625 | 已测（marker） |
 | `features.toc.progressLine` | bool | true | js/domains/core/toc.js:31 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.toc.showTitle` | bool | true | templates/layout.ejs:171<br>js/core/boot.js:39 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.toc.showTitle` | bool | true | templates/layout.ejs:192<br>js/core/boot.js:39 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.toc.updateUrl` | bool | true | js/domains/core/toc.js:237 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.toc.visitedFade` | bool | true | js/domains/core/toc.js:23 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.tocScrollSpy.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
@@ -656,7 +656,7 @@
 | `features.viewTransition.reducedMotion` | enum | `light` | templates/site-css.ejs:306<br>templates/site-css.ejs:301<br>js/core/boot.js:97 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.viewTransition.shared` | bool | true | templates/index.ejs:40<br>templates/index.ejs:50<br>templates/post.ejs:15 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
 | `features.viewTransition.toggle.defaultOn` | bool | true | js/core/soft-nav.js:38<br>js/domains/core/seamless-nav.js:23 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.viewTransition.toggle.show` | bool | true | templates/layout.ejs:141<br>js/domains/features/bilingual.js:123<br>js/domains/features/bilingual.js:122 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
+| `features.viewTransition.toggle.show` | bool | true | templates/layout.ejs:162<br>js/domains/features/bilingual.js:123<br>js/domains/features/bilingual.js:122 | scripts/config-coverage-features-b.test.js:376 | 已测（marker） |
 | `features.viewTransition.type` | enum | `fade` | js/core/runtime.js:12<br>js/core/soft-nav.js:92<br>js/core/soft-nav.js:93 | scripts/config-coverage-features-b.test.js:251 | 已测（marker） |
 | `features.wikiLinks.allowCustomLabel` | bool | true | scripts/build/articles.js:266<br>scripts/lib/feature-wiring.js:244<br>scripts/lib/utils.js:352 | scripts/config-wiring.test.js:270<br>scripts/config-wiring.test.js:284 | 已测（marker） |
 | `features.wikiLinks.caseInsensitive` | bool | true | scripts/build/articles.js:265<br>scripts/lib/feature-wiring.js:243<br>scripts/lib/utils.js:351 | scripts/config-wiring.test.js:270<br>scripts/config-wiring.test.js:284 | 已测（marker） |
@@ -696,7 +696,7 @@
 | `internals.deploy.verifyOnDeploy` | bool | true | scripts/deploy-pages.js:23 | scripts/config-coverage-nonfeatures.test.js:667 | 已测（marker） |
 | `internals.ports.a11y` | number | 3224 | scripts/a11y-audit.js:29<br>scripts/a11y-audit.js:35<br>scripts/a11y-audit.js:36 | scripts/internals.test.js:32<br>scripts/internals.test.js:46 | 既有引用 |
 | `internals.ports.perf` | number | 3000 | scripts/perf-audit.js:26<br>scripts/build/report.js:205<br>scripts/build/report.js:207 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `internals.ports.serve` | number | 3000 | scripts/build/serve.js:33<br>scripts/build/context.js:265<br>scripts/build/context.js:430 | scripts/internals.test.js:31<br>scripts/internals.test.js:45 | 既有引用 |
+| `internals.ports.serve` | number | 3000 | scripts/build/serve.js:48<br>scripts/build/context.js:265<br>scripts/build/context.js:430 | scripts/internals.test.js:31<br>scripts/internals.test.js:45 | 既有引用 |
 | `internals.release.listLimit` | number | 200 | scripts/release-prune.js:60 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `internals.release.previewLimit` | number | 20 | scripts/release-prune.js:87<br>scripts/dist-hash-guard.js:14<br>scripts/release-prune.js:90 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `internals.report.maxBuildMsWarn` | number | 0 | scripts/build.js:405<br>scripts/build.js:406<br>scripts/build.js:407 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -731,18 +731,18 @@
 | `site.build.cjkFonts.concurrency` | number | 6 | scripts/build/cjk-fonts.js:29<br>scripts/build/cjk-fonts.js:37<br>scripts/build/cjk-fonts.js:38 | scripts/cjk-fonts.test.js:387<br>scripts/config-wiring.test.js:1124 | 既有引用 |
 | `site.build.cjkFonts.enabled` | bool | true | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/cjk-fonts.test.js:401<br>scripts/config-coverage-nonfeatures.test.js:640 | 既有引用 |
 | `site.build.cjkFonts.fetchTimeoutMs` | number | 15000 | js/domains/features/bilingual-core.js:20<br>js/domains/features/bilingual-core.js:28<br>js/domains/features/bilingual.js:72 | scripts/config-coverage-nonfeatures.test.js:610 | 已测（marker） |
-| `site.build.cjkSpacing` | bool | true | scripts/build/articles.js:275<br>scripts/build/pages.js:467 | scripts/h2-dataflow.test.js:243 | 既有引用 |
+| `site.build.cjkSpacing` | bool | true | scripts/build/articles.js:275<br>scripts/build/pages.js:477 | scripts/h2-dataflow.test.js:243 | 既有引用 |
 | `site.build.cleanDist` | bool | true | scripts/build.js:186<br>scripts/build.js:187<br>scripts/build/media.js:25 | scripts/config-coverage-nonfeatures.test.js:574<br>scripts/config-wiring-build-switches.test.js:287 | 既有引用 |
 | `site.build.copyStatic` | bool | true | scripts/build/media.js:35<br>scripts/build.js:66<br>scripts/build.js:217 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.build.criticalCss.asyncNonCritical` | bool | true | scripts/build/pages.js:187 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.build.criticalCss.enabled` | bool | false | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/config-coverage-nonfeatures.test.js:311 | 已测（marker） |
 | `site.build.enableCacheBusting` | bool | false | scripts/build/feeds.js:332<br>scripts/build/minify.js:748 | scripts/cache-bust.test.js:132<br>scripts/h2-dataflow.test.js:349 | 既有引用 |
-| `site.build.forceContentWidth` | bool | true | templates/layout.ejs:170<br>templates/site-css.ejs:36 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.build.generateArchive` | bool | true | scripts/build/feeds.js:203<br>scripts/build/pages.js:827 | scripts/config-coverage-nonfeatures.test.js:295 | 已测（marker） |
-| `site.build.generateCategories` | bool | true | scripts/build/feeds.js:211<br>scripts/build/pages.js:842 | scripts/config-coverage-nonfeatures.test.js:295 | 已测（marker） |
+| `site.build.forceContentWidth` | bool | true | templates/layout.ejs:191<br>templates/site-css.ejs:36 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.build.generateArchive` | bool | true | scripts/build/feeds.js:203<br>scripts/build/pages.js:837 | scripts/config-coverage-nonfeatures.test.js:295 | 已测（marker） |
+| `site.build.generateCategories` | bool | true | scripts/build/feeds.js:211<br>scripts/build/pages.js:852 | scripts/config-coverage-nonfeatures.test.js:295 | 已测（marker） |
 | `site.build.generateGallery` | bool | true | scripts/lib/build-switch-gates.js:17 | scripts/config-coverage-nonfeatures.test.js:295 | 已测（marker） |
-| `site.build.generateIndex` | bool | true | scripts/build/feeds.js:190<br>scripts/build/pages.js:776<br>scripts/build/pages.js:939 | scripts/h2-dataflow.test.js:182 | 既有引用 |
-| `site.build.generateTags` | bool | true | scripts/build/feeds.js:207<br>scripts/build/pages.js:832 | scripts/config-coverage-nonfeatures.test.js:295 | 已测（marker） |
+| `site.build.generateIndex` | bool | true | scripts/build/feeds.js:190<br>scripts/build/pages.js:786<br>scripts/build/pages.js:949 | scripts/h2-dataflow.test.js:182 | 既有引用 |
+| `site.build.generateTags` | bool | true | scripts/build/feeds.js:207<br>scripts/build/pages.js:842 | scripts/config-coverage-nonfeatures.test.js:295 | 已测（marker） |
 | `site.build.hashLength` | number | 10 | scripts/build/pages.js:172 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.build.mediaQuality` | number | 85 | scripts/build/media.js:179 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.build.minifyCSS` | bool | false | scripts/build/minify.js:219<br>scripts/build/minify.js:268<br>scripts/build/minify.js:733 | scripts/config-coverage-nonfeatures.test.js:487 | 已测（marker） |
@@ -757,30 +757,30 @@
 | `site.externalLinkWarning.enabled` | bool | false | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/config-coverage-nonfeatures.test.js:240 | 已测（marker） |
 | `site.favicon.enabled` | bool | true | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/config-coverage-nonfeatures.test.js:357 | 已测（marker） |
 | `site.hero.enabled` | bool | true | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/config-coverage-nonfeatures.test.js:248 | 已测（marker） |
-| `site.hero.showCta` | bool | true | scripts/build/pages.js:698<br>templates/index.ejs:15 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.hero.showSearch` | bool | true | scripts/build/pages.js:696<br>templates/index.ejs:14 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.hero.showTags` | bool | true | scripts/build/pages.js:697<br>templates/index.ejs:17<br>templates/index.ejs:6 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.hero.tagCount` | number | 8 | scripts/build/pages.js:704<br>scripts/build/pages.js:705<br>scripts/lib/test-payloads.js:147 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.performance.prefetchNextPage` | bool | false | templates/layout.ejs:53 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.performance.preloadFeaturedImage` | bool | true | templates/layout.ejs:53 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.performance.preloadFonts` | bool | true | templates/layout.ejs:53 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.performance.resourceHints` | bool | true | templates/layout.ejs:53 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.postsPerPage` | number | 10 | scripts/build/config.js:421<br>scripts/build/feeds.js:192<br>scripts/build/pages.js:682 | scripts/config-coverage-nonfeatures.test.js:284 | 已测（marker） |
+| `site.hero.showCta` | bool | true | scripts/build/pages.js:708<br>templates/index.ejs:15 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.hero.showSearch` | bool | true | scripts/build/pages.js:706<br>templates/index.ejs:14 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.hero.showTags` | bool | true | scripts/build/pages.js:707<br>templates/index.ejs:17<br>templates/index.ejs:6 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.hero.tagCount` | number | 8 | scripts/build/pages.js:714<br>scripts/build/pages.js:715<br>scripts/lib/test-payloads.js:147 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.performance.prefetchNextPage` | bool | false | templates/layout.ejs:59 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.performance.preloadFeaturedImage` | bool | true | templates/layout.ejs:59 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.performance.preloadFonts` | bool | true | templates/layout.ejs:59 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.performance.resourceHints` | bool | true | templates/layout.ejs:59 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.postsPerPage` | number | 10 | scripts/build/config.js:421<br>scripts/build/feeds.js:192<br>scripts/build/pages.js:692 | scripts/config-coverage-nonfeatures.test.js:284 | 已测（marker） |
 | `site.pwa.enabled` | bool | true | js/core/runtime.js:18<br>js/core/boot.js:97<br>js/core/boot.js:202 | scripts/config-coverage-features-b.test.js:258<br>scripts/config-coverage-features-b.test.js:259 | 既有引用 |
 | `site.reward.enabled` | bool | false | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/config-coverage-nonfeatures.test.js:267 | 已测（marker） |
 | `site.rss.enabled` | bool | false | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/config-coverage-features-b.test.js:387<br>scripts/config-coverage-features-b.test.js:388 | 既有引用 |
 | `site.rss.fullContent` | bool | true | scripts/build/feeds.js:82<br>scripts/lib/feed-options.js:13<br>scripts/build/feeds.js:141 | scripts/build.test.js:738 | 已测（marker） |
-| `site.rss.injectHeadLinks` | bool | true | templates/layout.ejs:49 | scripts/config-wiring.test.js:865 | 既有引用 |
+| `site.rss.injectHeadLinks` | bool | true | templates/layout.ejs:55 | scripts/config-wiring.test.js:865 | 既有引用 |
 | `site.rss.jsonFeed.enabled` | bool | false | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/config-coverage-features-b.test.js:387<br>scripts/config-coverage-features-b.test.js:388 | 既有引用 |
 | `site.rss.jsonFeed.fullContent` | bool | false | scripts/build/feeds.js:82<br>scripts/lib/feed-options.js:13<br>scripts/build/feeds.js:141 | scripts/build.test.js:738 | 已测（marker） |
 | `site.rss.jsonFeed.maxItems` | number | 20 | scripts/build/feeds.js:73<br>scripts/build/feeds.js:74<br>scripts/lib/feed-options.js:15 | scripts/build.test.js:738 | 已测（marker） |
 | `site.rss.maxItems` | number | 50 | scripts/build/feeds.js:73<br>scripts/build/feeds.js:74<br>scripts/lib/feed-options.js:15 | scripts/build.test.js:738 | 已测（marker） |
-| `site.seo.articleTimes` | bool | true | templates/layout.ejs:42 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.seo.canonicalURL` | bool | false | templates/layout.ejs:48 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.seo.ogImageAlt` | bool | true | templates/layout.ejs:41 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.seo.articleTimes` | bool | true | templates/layout.ejs:48 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.seo.canonicalURL` | bool | false | templates/layout.ejs:54 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.seo.ogImageAlt` | bool | true | templates/layout.ejs:47 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.seo.structuredData.enabled` | bool | false | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/config-coverage-nonfeatures.test.js:258 | 已测（marker） |
-| `site.seo.twitterLabels` | bool | true | templates/layout.ejs:43 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `site.showRepoLink` | bool | true | templates/layout.ejs:135<br>templates/layout.ejs:218 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.seo.twitterLabels` | bool | true | templates/layout.ejs:49 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `site.showRepoLink` | bool | true | templates/layout.ejs:156<br>templates/layout.ejs:239 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.sitemap.enabled` | bool | true | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/config-coverage-features-b.test.js:564<br>scripts/config-coverage-features-b.test.js:565 | 既有引用 |
 | `site.sitemap.priority` | number | 0.8 | scripts/build/feeds.js:203<br>scripts/build/feeds.js:191<br>scripts/build/feeds.js:195 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `site.social.enabled` | bool | false | js/core/boot.js:97<br>js/core/boot.js:202<br>js/core/main.js:125 | scripts/malicious.test.js:718 | 既有引用 |

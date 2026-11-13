@@ -1017,7 +1017,21 @@
       ],
       "fetchTimeoutMs": 15000, // 单次网络请求超时（number，毫秒，默认 15000）
       "concurrency": 6, // 分片下载并发数（number，1–16，默认 6）
-      "cacheTtlDays": 7 // 字体清单缓存天数（number，0 = 每次重拉，默认 7）
+      "cacheTtlDays": 7, // 字体清单缓存天数（number，0 = 每次重拉，默认 7）
+
+      // 慢网/省流下是否加载 CJK 字体分片
+      // 作用: 页面内联脚本读取 navigator.connection，检测到 saveData（用户开了省流）或
+      //       effectiveType 为 slow-2g / 2g 时，不把 cjk-fonts.css 的 media 由 print 翻回 all，
+      //       即一个 Noto Sans SC 分片都不请求，排版回退系统 CJK 字体链（苹方/雅黑等）。
+      // 背景: 2G 性能——17 个分片合计约 877 KiB，占首屏 1129 KiB 的 78%，250 kbps 下理论
+      //       下载约 36s；慢网下尽快可读优先于换字体。
+      // 代价: 慢网访客看不到自托管字形（系统字体字形更粗糙，且同一段文字在不同设备略有差异）。
+      // 类型: string | 可填: "skip"（慢网/省流不加载）/ "load"（忽略网况，按现状加载）
+      // 推荐: "skip"
+      // 不可填: 其他值（回退默认 "skip"）；无 navigator.connection 的浏览器按「不确定 = 加载」，行为不变
+      // 注意: 仅 features.lcpOptimize.asyncCjkFontCss 开启（生产默认 true）时有效；
+      //       关闭时字体样式是阻塞链接，不存在 media 翻转脚本可拦
+      "slowNetwork": "skip"
     },
 
     // 构建报告

@@ -13,7 +13,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const fc = require('fast-check');
-const { resolveWikiLinks } = require('./utils');
+const { resolveWikiLinks, validateSlug } = require('./utils');
 const { findAlternateArticle } = require('./bilingual-pair');
 const { mdExportRelPath, writeArticleMarkdown } = require('./md-export');
 const { checkProperty, stressEnabled } = require('./test-random');
@@ -315,6 +315,12 @@ describe('Markdown 导出属性', () => {
   it('mdExportRelPath：合法 lang/slug 组装固定路径且不逃逸，非法输入返回 null', () => {
     checkProperty('md-export-路径白名单', fc, fc.property(validLangArb, validSlugArb, (lang, slug) => {
       const rel = mdExportRelPath(lang, slug);
+      // 生成器会产出 con/prn/aux/nul/com1 等 Windows 保留名：那是**必须**被拒绝的输入（返回 null），
+      // 不是实现的缺陷。以同一个 validateSlug 为判据，避免用例把非法输入当成必然合法。
+      if (!validateSlug(slug).ok) {
+        assert.strictEqual(rel, null, '非法/保留 slug 必须返回 null：' + JSON.stringify(slug));
+        return true;
+      }
       assert.strictEqual(rel, 'md/' + lang + '/' + slug + '.md');
       assert.doesNotMatch(rel, /[\\]/);
       assert.ok(!rel.split('/').includes('..'));
@@ -342,6 +348,12 @@ describe('Markdown 导出属性', () => {
         validLangArb, validSlugArb, anyText, anyText,
         (lang, slug, frontmatterTitle, body) => {
           const source = '---\ntitle: ' + frontmatterTitle + '\n---\n\n' + body + '\n';
+          // 保留名/非法 slug：契约是「返回 null 且不落盘」，与字节一致断言无关，直接短路。
+          if (!validateSlug(slug).ok) {
+            const nullRel = writeArticleMarkdown({ lang: lang, slug: slug, sourceFile: path.join(root, 'source.md'), distDir: path.join(root, 'skip') });
+            assert.strictEqual(nullRel, null, '非法 slug 必须返回 null：' + JSON.stringify(slug));
+            return true;
+          }
           const src = path.join(root, 'source.md');
           fs.writeFileSync(src, source, 'utf-8');
           const distDir = path.join(root, 'dist');

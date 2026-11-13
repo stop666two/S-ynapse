@@ -184,7 +184,9 @@ function generateSecurityHeaders(config) {
     // CSS 目录从 site.build.cssOutDir 派生，保证用户改目录后缓存规则仍指向真实产物。
     const cssOutDir = '/' + String(config.site.build.cssOutDir || DEFAULT_CONFIG.site.build.cssOutDir).replace(/^\/+/, '');
     // 运行时配置为内容寻址文件名（config.<sha1前10>.json），内容变即换名，可 immutable。
+    // config 与 quotes 都是内容寻址（config.<hash>.json / quotes.<hash>.json），内容变即换名。
     extraSections.push('/assets/config.*.json\n  Cache-Control: public, max-age=31536000, immutable');
+    extraSections.push('/assets/quotes.*.json\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push(cssOutDir + '/*\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/fonts/*\n  Cache-Control: public, max-age=31536000, immutable');
     extraSections.push('/assets/js/*\n  Cache-Control: ' + (bundleActive

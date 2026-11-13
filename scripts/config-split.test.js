@@ -19,21 +19,30 @@ function makeSources(overrides) {
 }
 
 describe('config-split buildRuntimeConfig', () => {
-  it('external 承载全部外置运行时键且与来源一致', () => {
+  it('external 承载外置运行时键；quotes 拆为独立内容寻址文件（2G 性能）', () => {
     const src = makeSources();
-    const { external } = buildRuntimeConfig(src);
+    const { external, quoteFile } = buildRuntimeConfig(src);
     assert.deepStrictEqual(Object.keys(external).sort(), [
-      'features', 'guard', 'i18n', 'linkWarning', 'morphIcons', 'presets', 'pwa', 'quotes', 'theme', 'tuning'
+      'features', 'guard', 'i18n', 'linkWarning', 'morphIcons', 'presets', 'pwa', 'quotesUrl', 'theme', 'tuning'
     ]);
     assert.strictEqual(external.features, src.features);
     assert.strictEqual(external.tuning, src.tuning);
     assert.strictEqual(external.guard, src.guard);
     assert.strictEqual(external.morphIcons, src.morphIcons);
     assert.strictEqual(external.presets, src.presets);
-    assert.strictEqual(external.quotes, src.quotes);
+    assert.ok(!Object.prototype.hasOwnProperty.call(external, 'quotes'), '引语数组不得进入启动配置');
+    assert.match(external.quotesUrl, /^\/assets\/quotes\.[0-9a-f]{10}\.json$/, 'quotesUrl 为内容寻址地址');
+    assert.strictEqual(quoteFile.url, external.quotesUrl);
+    assert.deepStrictEqual(JSON.parse(quoteFile.json), src.quotes, '引语文件内容与来源逐条一致');
     assert.strictEqual(external.i18n, src.uiStrings);
     assert.strictEqual(external.linkWarning, src.linkWarning);
     assert.strictEqual(external.pwa, src.pwa);
+  });
+
+  it('无引语时不产生 quotesUrl/quoteFile', () => {
+    const { external, quoteFile } = buildRuntimeConfig(makeSources({ quotes: [] }));
+    assert.ok(!Object.prototype.hasOwnProperty.call(external, 'quotesUrl'));
+    assert.strictEqual(quoteFile, null);
   });
 
   it('external 不包含逐页内联键（siteTitle/searchProvider/artTitle）', () => {

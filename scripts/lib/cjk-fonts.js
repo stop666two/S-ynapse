@@ -15,6 +15,33 @@ const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_WEIGHTS = [400, 700];
 const CJK_CSS_HREF = '/assets/css/cjk-fonts.css';
 
+// 慢网/省流下的字体加载策略（site.build.cjkFonts.slowNetwork）：'skip'（默认）| 'load'。
+// 背景（2G 性能）：17 个 Noto Sans SC 分片合计约 877 KiB，占首屏 1129 KiB 的 78%，
+// 250 kbps 下理论下载约 36s；而 CJK 字形有系统字体链兜底，慢网下换字体不如尽快可读。
+// 该策略只影响「是否把 cjk-fonts.css 的 media 由 print 翻回 all」——字体只能由该 CSS 的
+// @font-face 触发，不翻即一个字体分片都不会请求；桌面/宽带判定为不慢，行为与开启前完全一致。
+const CJK_SLOW_NETWORK_DEFAULT = 'skip';
+const CJK_SLOW_NETWORK_VALUES = ['skip', 'load'];
+
+// 归一化开关取值：只有显式 'load' 才忽略网况，其余（缺失/拼错/大小写不符）一律回退默认 'skip'。
+function normalizeSlowNetworkStrategy(value) {
+  return value === 'load' ? 'load' : CJK_SLOW_NETWORK_DEFAULT;
+}
+
+// 慢网判定（与 templates/layout.ejs 的内联脚本保持同一语义，改这里必须同步模板）：
+//   · 策略 'load' → 无条件加载；
+//   · 无 navigator.connection（Safari/Firefox 等无 NetworkInformation API）→ 不确定 = 加载；
+//   · connection.saveData 为真（用户开了省流）→ 不加载；
+//   · effectiveType 为 'slow-2g'/'2g' → 不加载；'3g'/'4g'/'5g' 等其他值 → 加载。
+function shouldLoadCjkFont(navigatorLike, strategy) {
+  if (normalizeSlowNetworkStrategy(strategy) === 'load') return true;
+  const conn = navigatorLike && navigatorLike.connection;
+  if (!conn) return true;
+  if (conn.saveData) return false;
+  const effectiveType = String(conn.effectiveType || '');
+  return effectiveType !== 'slow-2g' && effectiveType !== '2g';
+}
+
 // CJK 区段：CJK 部首/标点/假名/扩展 A/统一表意/兼容表意/全角形式 + 扩展 B-F（补充平面）。
 const CJK_RANGES = [
   [0x2e80, 0x2eff], [0x3000, 0x303f], [0x3040, 0x30ff], [0x3400, 0x4dbf],
@@ -326,6 +353,10 @@ module.exports = {
   DEFAULT_TIMEOUT_MS,
   DEFAULT_WEIGHTS,
   CJK_CSS_HREF,
+  CJK_SLOW_NETWORK_DEFAULT,
+  CJK_SLOW_NETWORK_VALUES,
+  normalizeSlowNetworkStrategy,
+  shouldLoadCjkFont,
   CJK_RANGES,
   parseUnicodeRange,
   normalizeCodepoints,

@@ -163,7 +163,9 @@ const DEFAULT_FEATURES = {
   },
   pwa: {
     enabled: true, registerSW: true, updatePrompt: true, offlineNotice: true, offlinePage: true,
-    precache: true, pageNetworkFirst: true, assetCacheFirst: true, pageCacheLimit: 24,
+    // 2G 性能：页面导航默认 cache-first + 后台更新（= stale-while-revalidate），弱网重复访问秒开；
+    // true 才是 network-first（每次先等网络）。
+    precache: true, pageNetworkFirst: false, assetCacheFirst: true, pageCacheLimit: 24,
     updateCheckIntervalMs: 1800000, installPrompt: true, installDismissKey: 's-a2hs-dismissed',
     updateToastMs: 0, reloadFallbackMs: 3000
   },
@@ -195,7 +197,7 @@ const DEFAULT_FEATURES = {
     enabled: true, dropCap: true, figureBleed: true, tableHover: true, headingNumbers: false
   },
   perfBudget: {
-    enabled: true, htmlKb: 40, htmlRawKb: 50, inlineConfigKb: 2, jsKb: 76, requests: 12, warnOnly: true
+    enabled: true, htmlKb: 40, htmlRawKb: 50, inlineConfigKb: 2, jsKb: 77, requests: 12, warnOnly: true
   },
   lcpOptimize: {
     revealExemptFirstPaint: false, asyncCjkFontCss: false, skipLatinFontPreloadOnCjk: false,

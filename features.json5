@@ -2475,12 +2475,15 @@
     offlineNotice: true,
     // 生成离线兜底页(断网访问未缓存页面时显示双语提示与重试按钮;同时进入壳预缓存)
     offlinePage: true,
-    // 壳预缓存:构建期把离线回退页与核心 CSS/JS/字体(拉丁可变字体)写入 SW 预缓存清单,
-    // 使首次断网访问即可离线打开;false = 不做预缓存,仅运行时按需缓存访问过的资源。
+    // 壳预缓存:构建期只把离线开壳最小集写入 SW 预缓存清单——离线回退页、manifest.json、
+    // runtime/app 两个入口 JS、站点 CSS 与运行时配置 config.<hash>.json(2G 性能:install 阶段的
+    // cache.addAll 会与首屏 LCP 抢带宽,故不再包含 shared./deferred. 分包、CJK 字体样式与拉丁
+    // 可变字体;这些文件内容寻址=immutable,由 assetCacheFirst 在运行时按需缓存)。
+    // false = 不做预缓存,仅运行时按需缓存访问过的资源。
     precache: true,
-    // 页面导航策略:true = network-first(在线取最新,断网回退缓存),推荐;
-    // false = cache-first(缓存优先,离线更快但可能看到旧页面)。
-    pageNetworkFirst: true,
+    // 页面导航策略:false = 先返回缓存+后台更新(stale-while-revalidate,弱网重复访问秒开,推荐);
+    // 代价是内容更新要在一次导航之后才可见。true = network-first(每次先等网络,2G 下首字节数秒)。
+    pageNetworkFirst: false,
     // 静态资产策略:true = cache-first(命中缓存直接返回,内容哈希资产天然 immutable),推荐;
     // false = network-first(每次在线取最新,弱网体验较差)。
     assetCacheFirst: true,
@@ -2647,8 +2650,11 @@
     // (首屏实际加载 app+runtime 约 19KB,deferred/shared 按需懒加载)。
     // 75→76 的原因不是功能膨胀:审查 R-02 把搜索页初始化从 templates/search.ejs 的内联
     // <script> 迁入 deferred bundle(search-page.js),同一批字节从 HTML 预算侧移到 JS 侧;
-    // 另有 R-21/R-22/R-23/R-26 的软导航重绑与遮罩逻辑新增。留 0.7KB 余量与调整前同量级。
-    jsKb: 76,
+    // 另有 R-21/R-22/R-23/R-26 的软导航重绑与遮罩逻辑新增。
+    // 76→77：引语数据移出启动配置后，运行时多了「按需拉取 + 失败回退」的加载器（约 0.9KB gz），
+    // 但首屏总字节是下降的（启动配置 −9.4KB gz，2G 路径 1129→约 111KiB）。预算是防劣化护栏，
+    // 不是目标值，故按实测 + 1KB 余量取值。
+    jsKb: 77,
     // 单页静态请求数上限(script src + stylesheet + modulepreload 之和)。
     requests: 12,
     // true = 仅提醒不阻断构建;false = 超限时构建失败(严格门禁)。

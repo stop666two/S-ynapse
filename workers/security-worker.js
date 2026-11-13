@@ -398,6 +398,17 @@ async function handleRequest(request, env) {
   if (csp) headers.set(csp.name, csp.value);
   headers.set("X-Request-Id", requestId);
 
+  // 2G/弱网性能：HTML 走「立即复用 + 后台校验」语义。max-age=0 保证部署后下一次导航
+  // 就能取到新版本；stale-while-revalidate 让弱网/离线的重复访问无需先等一次网络往返。
+  // 只对 HTML 生效：静态资源由 _headers 的 immutable 规则负责，而 Cloudflare 会把同一
+  // 请求命中的多条 Cache-Control 合并成一个逗号连接的头，不能再用 /* 统一加一层。
+  const contentType = String(headers.get("content-type") || "").toLowerCase();
+  if (contentType.indexOf("text/html") !== -1) {
+    headers.set("Cache-Control", "public, max-age=0, stale-while-revalidate=86400");
+    const vary = String(headers.get("Vary") || "");
+    if (!/accept-encoding/i.test(vary)) headers.set("Vary", vary ? vary + ", Accept-Encoding" : "Accept-Encoding");
+  }
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

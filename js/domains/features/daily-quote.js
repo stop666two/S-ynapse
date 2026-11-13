@@ -1,7 +1,8 @@
 // 每日一言运行时：日期固定一条 + 「换一句」（中文页且在线时优先请求 Hitokoto 一言 API，
 // 失败/超时/非 2xx/字段非法/离线/英文页静默回退本地随机；不持久化）+ 「复制」（剪贴板 API，
-// textarea 回退）。数据由构建期注入 window.__QUOTES__（数据文件见 data/quotes.json5）；
-// API 开关/端点/分类等见 features.dailyQuote.api，CSP connect-src 由构建期按开关裁剪。
+// textarea 回退）。引语数据不再进启动配置：构建期写成内容寻址的 /assets/quotes.<hash>.json，
+// 挂件初始化时才按需 fetch（见 loadQuotes；2G 性能：启动配置少约 9.4 KiB gzip），数据文件见
+// data/quotes.json5；API 开关/端点/分类等见 features.dailyQuote.api，CSP connect-src 由构建期按开关裁剪。
 // 语言按 document.documentElement.lang 判定：优先 *En 字段，空回退中文（西方公版条目
 // textEn=text，为英文原文）。软导航替换内容区后经 __SOFTNAV_HOOKS__ 重渲染，已选条目保持。
 // 本文件为自包含 ESM（无 import），单测经 data URL 导入以复用同一份源码。
@@ -9,6 +10,43 @@
 const FEEDBACK_MS = 1600;
 const DEFAULT_API_ENDPOINT = 'https://v1.hitokoto.cn/';
 const DEFAULT_API_TIMEOUT_MS = 5000;
+// 2G 性能（引语载荷外置）：引语数组已移出启动配置，改为挂件初始化时按需 fetch
+// /assets/quotes.<hash>.json（地址经 external.quotesUrl → window.__QUOTES_URL__）。
+// 复用同一个 Promise，同一页面只请求一次；失败/超时静默回退内置最小集，不抛错也不阻塞初始化。
+const QUOTES_TIMEOUT_MS = 4000;
+// 与 scripts/build/helpers.js 的构建期内置最小集（BUILTIN_QUOTES）同源；仅保留渲染所需字段。
+// 只在引语文件请求失败（离线首次访问 / 配置降级）时使用，保证挂件仍有内容。
+var BUILTIN_FALLBACK = [
+  {
+    text: '学而不思则罔，思而不学则殆。',
+    textEn: 'Learning without thought ends in bewilderment; thought without learning ends in peril.',
+    author: '孔子', authorEn: 'Confucius',
+    source: '《论语·为政》', sourceEn: 'The Analects · Wei Zheng'
+  },
+  {
+    text: '千里之行，始于足下。',
+    textEn: "A journey of a thousand li begins under one's feet.",
+    author: '老子', authorEn: 'Laozi',
+    source: '《道德经·第六十四章》', sourceEn: 'Dao De Jing · Chapter 64'
+  },
+  {
+    text: '纸上得来终觉浅，绝知此事要躬行。',
+    textEn: 'What is learned from paper is shallow in the end; to truly know a matter, one must practise it.',
+    author: '陆游', authorEn: 'Lu You',
+    source: '《冬夜读书示子聿》', sourceEn: 'Reading on a Winter Night, to My Son Ziyu'
+  },
+  {
+    text: 'To be, or not to be, that is the question.',
+    author: '莎士比亚', authorEn: 'William Shakespeare',
+    source: '《哈姆雷特》', sourceEn: 'Hamlet'
+  },
+  {
+    text: 'The fool doth think he is wise, but the wise man knows himself to be a fool.',
+    author: '莎士比亚', authorEn: 'William Shakespeare',
+    source: '《皆大欢喜》', sourceEn: 'As You Like It'
+  }
+];
+var quotesPromise = null;
 
 // 日期哈希：同一天返回同一条（与历史算法一致，回退随机模式时由调用方处理）。
 export function pickDailyIndex(total, date) {
@@ -253,6 +291,9 @@ function onCopy(copyBtn) {
 
 function ensureActions(container) {
   if (!container) return;
+  // 配置降级（__CONFIG_OK__=false）时 features.dailyQuote 缺失，labelOf 全部为空串：
+  // 只渲染内置引语，不创建无文案按钮（2G 弱网降级路径的可用性）。
+  if (window.__CONFIG_OK__ === false) return;
   var actions = container.querySelector('.quote-widget-actions');
   if (!actions) {
     actions = document.createElement('div');
@@ -331,14 +372,41 @@ function render() {
   updateAttribution(qt.parentNode);
 }
 
-export function init() {
-  var F = window.__FEATURES__ || {};
-  var Q = F.dailyQuote || {};
-  if (Q.enabled === false) return;
-  if (!document.getElementById('quoteText')) return;
-  var pool = Array.isArray(window.__QUOTES__) ? window.__QUOTES__.filter(Boolean) : [];
-  if (!pool.length) return;
-  config = { features: F, tuning: window.__TUNING__ || {} };
+// 引语池加载（2G 性能）：优先用已注入的 window.__QUOTES__（兼容旧内联/测试注入），
+// 否则按 window.__QUOTES_URL__ 拉取内容寻址文件。并发/重复 init 共享同一 Promise，
+// 同一页面只发一次请求。任何失败（网络、超时、非 2xx、JSON 非法、空数组）都解析为 null，
+// 由 init 回退 BUILTIN_FALLBACK —— 永不 reject，页面不报错也不因缺数据卡住。
+function loadQuotes() {
+  if (Array.isArray(window.__QUOTES__) && window.__QUOTES__.length) {
+    return Promise.resolve(window.__QUOTES__);
+  }
+  var url = typeof window.__QUOTES_URL__ === 'string' ? window.__QUOTES_URL__ : '';
+  if (!url || typeof fetch !== 'function') return Promise.resolve(null);
+  if (!quotesPromise) {
+    quotesPromise = Promise.resolve().then(function () {
+      var options = { credentials: 'same-origin' };
+      var signal = timeoutSignal(QUOTES_TIMEOUT_MS);
+      if (signal) options.signal = signal;
+      return fetch(url, options);
+    }).then(function (res) {
+      if (!res || res.ok !== true || typeof res.json !== 'function') return null;
+      return res.json();
+    }).then(function (list) {
+      var pool = Array.isArray(list) ? list.filter(Boolean) : [];
+      if (!pool.length) return null;
+      // 稳定读取入口：其它模块若仍读 window.__QUOTES__，行为与拆分前一致。
+      window.__QUOTES__ = pool;
+      return pool;
+    }, function () {
+      return null;
+    });
+  }
+  return quotesPromise;
+}
+
+// 把已加载（或回退）的引语池应用到状态并渲染；常驻 #quoteText 不存在时静默跳过。
+function applyPool(loaded) {
+  var pool = loaded && loaded.length ? loaded : BUILTIN_FALLBACK;
   var TNQ = (window.__TUNING__ || {}).dailyQuote || {};
   if (!state) {
     state = {
@@ -355,7 +423,19 @@ export function init() {
     if (state.index >= pool.length) state.index = 0;
   }
   render();
-  if (Array.isArray(window.__SOFTNAV_HOOKS__)) {
+  if (Array.isArray(window.__SOFTNAV_HOOKS__) && window.__SOFTNAV_HOOKS__.indexOf(render) === -1) {
     window.__SOFTNAV_HOOKS__.push(render);
   }
+}
+
+export function init() {
+  var F = window.__FEATURES__ || {};
+  var Q = F.dailyQuote || {};
+  if (Q.enabled === false) return;
+  if (!document.getElementById('quoteText')) return;
+  config = { features: F, tuning: window.__TUNING__ || {} };
+  // 2G 性能：**不返回 Promise**。boot.js 的 idle 队列会逐个 await init，返回引语请求
+  // 会让后续交互模块（阅读历史、命令面板等）排队等网络（最长 QUOTES_TIMEOUT_MS）。
+  // 这里只发起加载，数据到达后自行渲染；失败由 loadQuotes 解析为 null，回退内置文案。
+  loadQuotes().then(applyPool, function () { applyPool(null); });
 }

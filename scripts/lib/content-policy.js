@@ -130,16 +130,18 @@ function sanitizeSvg(svgText) {
   // 因此 `java\tscript:` 与 javascript: 等效
   // eslint-disable-next-line no-control-regex -- 有意匹配控制字符：`java\tscript:` 等伪装需先剔除控制符再比对
   const squeezed = decoded.replace(/[\u0000-\u0020\u007f]+/g, '');
-  const hasExecutable = /<script[\s>]/i.test(decoded) ||
+  const hasExecutable = /<\s*[a-z0-9._-]*:?script[\s/>]/i.test(decoded) ||
     /<foreignobject[\s>]/i.test(decoded) ||
-    /<\s*[a-z]+\s[^>]*(on\w+\s*=|xl-on\w+\s*=)/i.test(decoded) ||
-    /\s(onerror|onload|onclick|onmouseover)\s*=/i.test(decoded) ||
+    /(?:^|[\s/"'])(?:on[a-z]+|xl-on[a-z]+)\s*=/i.test(decoded) ||
     /(xlink:href|href|src)\s*=\s*["']?\s*(javascript|vbscript):/i.test(decoded) ||
     /(xlink:href|href|src)=["']?(javascript|vbscript):/i.test(squeezed);
   if (hasExecutable) return { safe: false, content: '' };
-  let content = svgText.replace(/<\s*script[\s\S]*?<\s*\/\s*script\s*>/gi, '');
+  // 审查 R-28：检测已拒绝上述输入，此处的剥离只是纵深防御，因此与检测保持同一宽松度
+  // （允许命名空间前缀与自闭合形式），避免「检测不中但剥离也不中」的残留。
+  let content = svgText.replace(/<\s*[a-z0-9._-]*:?\s*script\b[\s\S]*?<\s*\/\s*[a-z0-9._-]*:?\s*script\s*>/gi, '');
+  content = content.replace(/<\s*[a-z0-9._-]*:?\s*script\b[^>]*\/?>/gi, '');
   content = content.replace(/<\s*foreignobject[\s\S]*?<\s*\/\s*foreignobject\s*>/gi, '');
-  content = content.replace(/(\s)(on\w+)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  content = content.replace(/([\s/"'])(on\w+|xl-on\w+)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
   content = content.replace(/(xlink:href|href|src)\s*=\s*("|')?\s*(javascript|vbscript|data):[^"'>]*(("|')?)/gi, '');
   const looksExternal = /(href|xlink:href|src)\s*=\s*["']\s*(https?:|\/\/)/i.test(decoded) ||
     /(href|xlink:href|src)=["']?(https?:|\/\/)/i.test(squeezed);

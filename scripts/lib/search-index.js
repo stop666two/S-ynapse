@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const zlib = require('zlib');
+const { isCacheBustExcluded } = require('./cache-bust-exclusions');
 
 const DEFAULT_MAX_GZIP_KB = 60;
 const DEFAULT_BUST_PATTERN = /.*\.(css|js|png|jpg|svg)$/i;
@@ -100,8 +101,10 @@ function pruneIndexToBudget(index, maxBytes, options) {
   return { index: index, text: text, gzipBytes: gzipBytes, pruned: removed, reached: gzipBytes <= budget };
 }
 
-// featuredImage 最终路径预计算：只处理站内绝对路径（非 assets/og/node_modules、无查询串、
-// 扩展名参与 cacheBust 的媒体），规则与 scripts/build/minify.js → cacheBust 一致（含幂等跳过）。
+// featuredImage 最终路径预计算：只处理站内绝对路径（非 assets/og/node_modules、SW 基名与 PWA
+// 图标 basename、无查询串、扩展名参与 cacheBust 的媒体），规则与 scripts/build/minify.js →
+// cacheBust 共用 scripts/lib/cache-bust-exclusions.js（审查 R-32：两处各写一份必然漂移，
+// 索引会写入从未被重命名的哈希路径 → 搜索结果缩略图 404），含幂等跳过。
 function resolveFinalAssetUrl(distDir, url, options) {
   const opts = options || {};
   const raw = String(url == null ? '' : url);
@@ -110,7 +113,7 @@ function resolveFinalAssetUrl(distDir, url, options) {
   const pattern = opts.pattern instanceof RegExp ? opts.pattern : DEFAULT_BUST_PATTERN;
   if (!pattern.test(raw)) return raw;
   const rel = raw.replace(/^\/+/, '');
-  if (rel.indexOf('assets/') === 0 || rel.indexOf('og/') === 0 || rel.indexOf('node_modules/') >= 0) return raw;
+  if (isCacheBustExcluded(rel, opts)) return raw;
   let buf;
   try {
     buf = fs.readFileSync(path.join(distDir, rel.split('/').join(path.sep)));

@@ -3,7 +3,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { collectKeys, keyAppears, moduleNameOf, checkDocs, FILE_POLICIES, DATA_FILE_POLICIES } = require('./check-config-docs');
+const { collectKeys, keyAppears, checkDocs, buildDocModel, keyCovered, FILE_POLICIES, DATA_FILE_POLICIES } = require('./check-config-docs');
 
 // docs/ 不进发布包（白名单排除），发布包解压环境中跳过「真实仓库文档」集成检查；
 // 源码仓库与 CI gates（有 docs）仍全量执行。
@@ -19,10 +19,49 @@ describe('check-config-docs collectKeys', () => {
     const keys = collectKeys({ a: 1, b: { c: 2, d: { e: 3 } }, f: [1, 2] }, 2);
     assert.deepStrictEqual(keys, ['a', 'b', 'f', 'b.c', 'b.d']);
   });
+});
 
-  it('moduleNameOf 取路径最后一段', () => {
-    assert.strictEqual(moduleNameOf('lightbox.zoomStep'), 'zoomStep');
-    assert.strictEqual(moduleNameOf('enabled'), 'enabled');
+describe('check-config-docs keyCovered（审查 R-33：按模块作用域判定）', () => {
+  const DOC = [
+    '## 1. a.json5 — A 配置',
+    '### alpha — 甲',
+    '| `enabled` | bool | true | 甲开关 |',
+    '### beta — 乙',
+    '| `mode` | string | x | 乙模式 |',
+    '## 2. b.json5 — B 配置',
+    '| `enabled` | bool | false | 顶层表 |',
+  ].join('\n');
+
+  it('叶名同一小节内出现即覆盖（模块小节作用域）', () => {
+    const model = buildDocModel(DOC);
+    const leafCounts = new Map([['enabled', 2], ['mode', 1]]);
+    assert.strictEqual(keyCovered(model, 'a', 'alpha.enabled', leafCounts), true);
+    assert.strictEqual(keyCovered(model, 'a', 'beta.mode', leafCounts), true);
+  });
+
+  it('叶名只出现在别的模块小节里不算覆盖（旧实现靠全文叶名匹配会放行）', () => {
+    const model = buildDocModel(DOC);
+    // 两个叶名在全站都不唯一（现实中 enabled/mode 会在多个配置里重复），
+    // 因此必须靠「所属模块小节」作证——别的模块小节里出现不算。
+    const ambiguous = new Map([['enabled', 2], ['mode', 2]]);
+    assert.strictEqual(keyCovered(model, 'a', 'beta.enabled', ambiguous), false);
+    assert.strictEqual(keyCovered(model, 'a', 'alpha.mode', ambiguous), false);
+  });
+
+  it('全站唯一叶名与完整键路径都算无歧义覆盖', () => {
+    const model = buildDocModel(DOC);
+    const unique = new Map([['mode', 1]]);
+    assert.strictEqual(keyCovered(model, 'a', 'alpha.mode', unique), true);
+    const dup = new Map([['enabled', 3]]);
+    assert.strictEqual(keyCovered(buildDocModel(DOC + '\n| `beta.enabled` | bool | true | 全路径 |'), 'a', 'beta.enabled', dup), true);
+  });
+
+  it('无模块小节的文件小节要求模块名与叶名同行出现', () => {
+    const doc = ['## 3. c.json5 — C', '| `moduleA.x` | bool | true | — |', '| `moduleB.y` | bool | true | — |'].join('\n');
+    const model = buildDocModel(doc);
+    const leafCounts = new Map([['x', 5], ['y', 5]]);
+    assert.strictEqual(keyCovered(model, 'c', 'moduleA.x', leafCounts), true);
+    assert.strictEqual(keyCovered(model, 'c', 'moduleA.y', leafCounts), false);
   });
 });
 

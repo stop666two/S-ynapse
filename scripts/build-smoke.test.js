@@ -327,15 +327,21 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     }
     // Mermaid 构建期渲染：有 Chrome 的环境断言全量内联、页面零 vendor 请求；
     // 无 Chrome 环境断言自动回退客户端（data-mm-src 保留，行为等同改造前）。
+    // 例外：无 Chrome 但 .cache/mermaid 命中（本机曾用 Chrome 渲染过同一批图表）时也会 SSG 内联，
+    // 此时按「实际是否内联」判定模式，而不是只看 Chrome 探测结果（否则预热缓存必然让本测试误报）。
     const mermaidPage = path.join(tmpDir, 'zh', 'diagrams-math', 'index.html');
     if (fs.existsSync(mermaidPage)) {
       const mmHtml = fs.readFileSync(mermaidPage, 'utf-8');
+      const ssrInline = /class=(?:"mermaid mermaid-ssr"|'mermaid mermaid-ssr')/.test(mmHtml);
+      // Chrome 可用时必须内联（这条不受缓存状态影响，是 SSR 链路的真实保证）。
       if (resolveChromePath('')) {
-        assert.ok(/class=(?:"mermaid mermaid-ssr"|'mermaid mermaid-ssr')/.test(mmHtml), 'mermaid article must inline SSR diagrams');
+        assert.ok(ssrInline, 'mermaid article must inline SSR diagrams');
+      }
+      if (ssrInline) {
         assert.ok(/<svg[^>]*class=(?:"mm-svg mm-light"|'mm-svg mm-light')/.test(mmHtml), 'mermaid SSR must embed an inline light <svg>');
         assert.ok(/<svg[^>]*class=(?:"mm-svg mm-dark"|'mm-svg mm-dark')/.test(mmHtml), 'mermaid SSR must embed an inline dark <svg> (dual theme)');
         assert.ok(!mmHtml.includes('/assets/vendor/mermaid.min.js') && !mmHtml.includes('data-mm-src'), 'SSR page must not request the mermaid vendor');
-        assert.ok(!mmHtml.includes('data-mm-pending'), 'all diagrams must render server-side in a Chrome-enabled environment');
+        assert.ok(!mmHtml.includes('data-mm-pending'), 'all diagrams must render server-side when SSR produced inline SVGs');
       } else {
         assert.ok(hasAttr(mmHtml, 'data-mm-src', '/assets/vendor/mermaid.min.js'), 'no-Chrome env must fall back to the lazy client vendor');
         assert.ok(mmHtml.includes('data-mm-pending'), 'no-Chrome env must mark blocks pending for client rendering');

@@ -62,8 +62,28 @@ function createMediaModule(ctx) {
   function copyProtectedAssets(config) {
     const policy = config.contentPolicy || {};
     if (policy.enabled === false) {
-      console.log('  [SKIP] Content policy disabled');
-      return { copied: 0, blocked: [] };
+      // 审查 R-29：content-policy.json5 承诺「false 时三目录策略整体停用（内容照常复制）」，
+      // 此前这里直接 return { copied: 0 }，导致 assets/、videos/ 与 media/ 下非 sharp 文件
+      // （svg/gif/avif/bmp/ico/heic…）全部 404。关闭策略即信任源文件：原样复制，不做判定。
+      console.log('  [POLICY] Content policy disabled: copying videos/, assets/, media/ verbatim');
+      let copied = 0;
+      const copyVerbatim = (srcDir, destDir) => {
+        if (!fs.existsSync(srcDir)) return;
+        for (const srcPath of getAllFiles(srcDir)) {
+          const rel = path.relative(srcDir, srcPath);
+          if (rel.replace(/\\/g, '/').split('/').pop().toLowerCase() === '.gitkeep') continue;
+          const destPath = path.join(destDir, rel);
+          fs.mkdirSync(path.dirname(destPath), { recursive: true });
+          fs.copyFileSync(srcPath, destPath);
+          copied++;
+        }
+      };
+      copyVerbatim(ctx.assetsDir, path.join(ctx.distDir, 'assets'));
+      copyVerbatim(ctx.videosDir, path.join(ctx.distDir, 'videos'));
+      // media/：sharp 支持的格式由 optimizeMedia 覆盖写出（同字节），其余格式只有这里会复制。
+      copyVerbatim(ctx.mediaDir, path.join(ctx.distDir, 'media'));
+      console.log(`  [POLICY] Copied ${copied} protected asset(s) with policy disabled`);
+      return { copied, blocked: [] };
     }
     console.log('  [POLICY] Applying content policy to videos/, assets/, media/...');
     const blocked = [];

@@ -156,14 +156,6 @@
   // 推荐: "en-US"；留空回退内置 "en-US"
   "languageEn": "en-US",
 
-  // 时区（保留字段）
-  // 作用: 当前无消费端;不参与日期/时区计算，仅作为未来时区能力的占位
-  // 类型: string（IANA tz database 名称）
-  // 可填: "Asia/Shanghai"/"UTC"/"America/New_York" 等
-  // 不可填: 无实际约束（当前不读取该值）
-  // 推荐: "Asia/Shanghai"
-  "timezone": "Asia/Shanghai",
-
   // 日期显示格式
   // 作用: 文章卡片/文内日期、RSS pubDate 之外的所有可见日期格式
   // 类型: string（占位符模板）

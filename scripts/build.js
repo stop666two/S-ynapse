@@ -18,6 +18,7 @@ const { BROKEN_MEDIA_FILENAME } = require('./lib/og-cover');
 const { writeFileAtomicSync } = require('./lib/atomic-write');
 const { createBuildContext } = require('./build/context');
 const { computeIncrementalContext } = require('./lib/incremental');
+const { createBuildSerializer, resolveWatchPaths } = require('./lib/watch-mode');
 const { debugConfig, configSummary } = require('./lib/feature-wiring');
 const { loadInternals } = require('./lib/internals');
 
@@ -353,7 +354,10 @@ async function build() {
       markPhase('og', ogStartedAt);
       if (ogRes.status !== 0) {
         console.warn('  [WARN] OG image generation reported errors (see above); continuing build.');
-        recordBuildFailure('og', 'generate-og.js exited with status ' + ogRes.status);
+        // 审查 R-17：OG 图属可降级资源（缺一张封面不应让已完整的 dist 整体失败、阻断部署），
+        // 与 media（media.js）与压缩增强（minify.js）的降级路径一致记为非致命。
+        // generate-og.js 独立运行时的退出码语义不变（仍为非零）。
+        recordBuildFailure('og', 'generate-og.js exited with status ' + ogRes.status, { fatal: false });
       }
     }
     const searchStartedAt = Date.now();
@@ -507,31 +511,29 @@ if (WATCH_MODE) {
     console.error('[FATAL] chokidar not available for watch mode');
     process.exit(1);
   }
-  let building = false;
-  let rebuildQueued = false;
-  async function rebuild() {
-    if (building) { rebuildQueued = true; return; }
-    building = true;
-    rebuildQueued = false;
+  // 审查 R-15：初始构建与重建共用同一串行器。原来初始 build() 直接调用、只有 rebuild() 置
+  // building 守卫，首轮未结束时保存文件会并发跑第二轮 —— 两轮共享同一份 BUILD_ERRORS /
+  // INCREMENTAL_CTX / 媒体缓存闭包，并同时写 dist/ 与 .build-cache.json，产物可能是两版混合、
+  // 缓存条目与最终 HTML 不一致（后续增量据此跳过错误页面）。
+  const serializer = createBuildSerializer();
+  let initialCycle = true;
+  async function runBuildCycle() {
     try {
       await build();
     } catch (err) {
-      console.error('[WATCH] 构建失败，已保留监听；修改文件后会自动重试。');
+      console.error(initialCycle
+        ? '[WATCH] 初始构建失败，已保留监听；修改文件后会自动重试。'
+        : '[WATCH] 构建失败，已保留监听；修改文件后会自动重试。');
+    } finally {
+      initialCycle = false;
     }
-    building = false;
-    if (rebuildQueued) rebuild();
   }
-  const watchPaths = [
-    path.join(ROOT, 'articles', '**', '*.md'),
-    path.join(ROOT, 'templates', '**', '*.ejs'),
-    path.join(ROOT, 'static', '**', '*'),
-    path.join(ROOT, 'media', '**', '*'),
-    path.join(ROOT, 'videos', '**', '*'),
-    path.join(ROOT, 'assets', '**', '*'),
-    path.join(ROOT, 'pages', '**', '*.md'),
-    path.join(ROOT, '*.json'),
-    path.join(ROOT, '*.json5')
-  ];
+  function rebuild() {
+    return serializer.run(runBuildCycle);
+  }
+  // 审查 R-16：监听清单来自 lib/watch-mode（含 data/**/*）。data/ 是每日一言等数据的默认来源
+  // （helpers.js → features.dailyQuote.dataFile 默认 'data/quotes.json5'），不监听时改数据不重建。
+  const watchPaths = resolveWatchPaths(ROOT);
   const watcher = chokidar.watch(watchPaths, { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 300 } });
   watcher.on('all', function () {
     console.log('\n[WATCH] Change detected, rebuilding...\n');
@@ -539,11 +541,8 @@ if (WATCH_MODE) {
   });
   process.on('SIGINT', () => { watcher.close(); process.exit(0); });
   process.on('SIGTERM', () => { watcher.close(); process.exit(0); });
-  // 初始构建失败（如配置错误 / --compression-override 缺失）不得终止 watch：
-  // build() 在 watch 下以 throw 上报失败，这里与 rebuild 循环同语义地捕获并保留监听。
-  build().catch(function () {
-    console.error('[WATCH] 初始构建失败，已保留监听；修改文件后会自动重试。');
-  });
+  // 初始构建同样入队（串行器保证与后续重建不重叠）；首轮失败保留监听，与重建循环同语义。
+  rebuild();
 } else {
   build().then(function (config) {
     if (SERVE_MODE) startServer(config);

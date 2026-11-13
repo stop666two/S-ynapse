@@ -113,7 +113,12 @@ function extractWorkerSecurity(security, cspContext, features) {
   const csp = s.csp && typeof s.csp === 'object' ? s.csp : {};
   let directives =
     csp.directives && typeof csp.directives === 'object' ? csp.directives : {};
-  if (cspContext && csp.autoTrim !== false) {
+  // 审查 R-10：csp.enabled:false 是应急开关，_headers 侧（scripts/build/security-files.js）已按它
+  // 停止下发；Worker 侧此前照旧投影 directives，会在动态响应上重新贴上完整 CSP，开关等于失效。
+  // Worker 对空 directives 已返回 null（不下发），因此这里清空即为「关」。
+  if (csp.enabled === false) {
+    directives = {};
+  } else if (cspContext && csp.autoTrim !== false) {
     directives = trimCspDirectives(directives, cspContext);
   }
   const paths = Array.isArray(s.pathRestrictions)
@@ -121,6 +126,12 @@ function extractWorkerSecurity(security, cspContext, features) {
         .map((p) => (typeof p === 'string' ? { path: p } : p))
         .filter((p) => p && typeof p === 'object' && typeof p.path === 'string' && p.path.length > 0)
         .map((p) => {
+          // 审查 R-09：Worker 只按「基路径前缀」匹配（尾部 /*、/**、* 会被折叠）。
+          // 中段通配无法用前缀表达，构建期明确告警，避免配置看着生效线上零拦截。
+          const tailStripped = p.path.replace(/(?:\/)?\*+$/, '');
+          if (tailStripped.includes('*')) {
+            console.warn('[security] pathRestrictions 模式 "' + p.path + '" 含中段通配符：Worker 仅支持尾部 /* 、/** 与前缀匹配，该规则将按基路径前缀生效');
+          }
           const rule = { path: p.path };
           if (p.requireAuth === true) rule.requireAuth = true;
           if (Array.isArray(p.allowedIPs) && p.allowedIPs.length) {
@@ -142,9 +153,12 @@ function extractWorkerSecurity(security, cspContext, features) {
         : RATE_LIMIT_FALLBACKS.maxTrackedEntries,
       whitelist: filterIpEntries(rl.whitelist, 'rateLimiting.whitelist'),
       blacklist: filterIpEntries(rl.blacklist, 'rateLimiting.blacklist'),
+      // 审查 R-11：缺键（undefined）必须原样透传，交给 Worker 内置 DEFAULT_SKIP_PATHS；
+      // 写成 [] 的语义是「不跳过任何路径」（连静态资源也计入限流），与内置默认正好相反。
+      // 显式 [] 仍照原样输出（用户选择严格计数）。
       skipPaths: Array.isArray(rl.skipPaths)
         ? rl.skipPaths.filter((x) => typeof x === 'string' && x.startsWith('/'))
-        : []
+        : undefined
     },
     csp: {
       directives,

@@ -2,12 +2,34 @@ const sanitizeHtmlLib = require('sanitize-html');
 const { DEFAULT_CONFIG } = require('./site-defaults');
 const { createHash } = require('node:crypto');
 
+// 纯日期（YYYY-MM-DD）没有时区概念，但 `new Date('2026-07-19')` 按 UTC 午夜解析：
+// 若用本地 getter 读取，UTC 以西时区会退一天（审查 R-30：TZ=America/New_York 下
+// formatDate('2026-07-19') 曾返回 2026-07-18），使卡片/文章头/归档随构建机时区漂移。
+// 因此纯日期一律按 UTC 读取；带时间或偏移的输入保持既有本地语义。
+const DATE_ONLY_RX = /^\d{4}-\d{2}-\d{2}$/;
+
+// 归档分组用的年/月拆解（审查 R-30 同源缺陷）：必须与 formatDate 同口径——纯日期按 UTC，
+// 带时间或偏移按本地。此前归档在 scripts/build/articles.js 里另写一份本地 getter，
+// 负时区构建机上「卡片显示的日期」与「归档归到哪一年/月」会互相错开。
+// 解析失败返回 null，调用方按「无日期」处理。
+function dateParts(dateStr) {
+  if (dateStr === null || dateStr === undefined || dateStr === '') return null;
+  const rawStr = typeof dateStr === 'string' ? dateStr.trim() : '';
+  const d = dateStr instanceof Date ? dateStr : new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  const useUtc = rawStr !== '' && DATE_ONLY_RX.test(rawStr);
+  return {
+    year: useUtc ? d.getUTCFullYear() : d.getFullYear(),
+    month: (useUtc ? d.getUTCMonth() : d.getMonth()) + 1
+  };
+}
+
 // Format a date string according to a template pattern (YYYY-MM-DD HH:mm).
 // Automatically detects if the input includes time (non-midnight) and includes HH:mm in output.
 // Falls back to returning the raw string if parsing fails.
 function formatDate(dateStr, fmt) {
   if (!dateStr) return '';
-  let d, hasTime;
+  let d, hasTime, useUtc = false;
   if (typeof dateStr === 'object' && dateStr instanceof Date && !isNaN(dateStr.getTime())) {
     d = dateStr;
     hasTime = d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;
@@ -16,11 +38,17 @@ function formatDate(dateStr, fmt) {
     hasTime = /\d{1,2}:\d{2}/.test(rawStr) && !rawStr.endsWith('00:00:00') && !rawStr.endsWith('T00:00:00.000Z') && !/T00:00:00/.test(rawStr);
     d = new Date(rawStr);
     if (isNaN(d.getTime())) return rawStr;
+    useUtc = DATE_ONLY_RX.test(rawStr.trim());
   }
   const pad = n => String(n).padStart(2, '0');
+  const year = useUtc ? d.getUTCFullYear() : d.getFullYear();
+  const month = useUtc ? d.getUTCMonth() : d.getMonth();
+  const day = useUtc ? d.getUTCDate() : d.getDate();
   const map = {
-    'YYYY': d.getFullYear(), 'MM': pad(d.getMonth() + 1), 'DD': pad(d.getDate()),
-    'HH': hasTime ? pad(d.getHours()) : '', 'mm': hasTime ? pad(d.getMinutes()) : '', 'ss': hasTime ? pad(d.getSeconds()) : ''
+    'YYYY': year, 'MM': pad(month + 1), 'DD': pad(day),
+    'HH': hasTime ? pad(useUtc ? d.getUTCHours() : d.getHours()) : '',
+    'mm': hasTime ? pad(useUtc ? d.getUTCMinutes() : d.getMinutes()) : '',
+    'ss': hasTime ? pad(useUtc ? d.getUTCSeconds() : d.getSeconds()) : ''
   };
   let result = fmt || DEFAULT_CONFIG.site.dateFormat;
   for (const [k, v] of Object.entries(map)) result = result.replace(k, v);
@@ -375,4 +403,4 @@ function copyOwnProperties(target, source) {
   return target;
 }
 
-module.exports = { formatDate, safeSlug, validateSlug, isReservedOsName, hasUnsafeLinkScheme, SLUG_MAX_LENGTH, escapeAttr, escapeHtml, stripInvalidXmlChars, stripHtml, truncateCodePoints, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode, setOwnProperty, copyOwnProperties, restrictMediaAttrs };
+module.exports = { formatDate, dateParts, safeSlug, validateSlug, isReservedOsName, hasUnsafeLinkScheme, SLUG_MAX_LENGTH, escapeAttr, escapeHtml, stripInvalidXmlChars, stripHtml, truncateCodePoints, insertCjkSpacing, applyCjkSpacingToHtml, extractToc, sanitizeHtml, escapeJsonForScript, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode, setOwnProperty, copyOwnProperties, restrictMediaAttrs };

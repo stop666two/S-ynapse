@@ -195,7 +195,7 @@ const DEFAULT_FEATURES = {
     enabled: true, dropCap: true, figureBleed: true, tableHover: true, headingNumbers: false
   },
   perfBudget: {
-    enabled: true, htmlKb: 40, htmlRawKb: 50, inlineConfigKb: 2, jsKb: 75, requests: 12, warnOnly: true
+    enabled: true, htmlKb: 40, htmlRawKb: 50, inlineConfigKb: 2, jsKb: 76, requests: 12, warnOnly: true
   },
   lcpOptimize: {
     revealExemptFirstPaint: false, asyncCjkFontCss: false, skipLatinFontPreloadOnCjk: false,

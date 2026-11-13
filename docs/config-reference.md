@@ -67,7 +67,7 @@
 | `url` | string | `http://localhost` | `必填` 站点根 URL(必须以 http:// 或 https:// 开头) |
 | `language` | string | `en` | 页面语言(如 zh-CN,影响日期/朗读) |
 | `languageEn` | string | `''` | 英文站语言标签(en 页 `<html lang>` 与侧栏“最近文章”日期本地化;空则回退 `en-US`) |
-| `timezone` | string | `UTC` | 保留字段（当前无消费端;不参与日期/时区计算，修改无实际效果） |
+| `authorProfile.avatar` | string | `''` | 作者卡头像路径(空=不显示);`authorProfile` 其余字段(name/bio/bioEn/skills/timeline/socials)见 `features.pageAuthor` |
 | `dateFormat` | string | `YYYY-MM-DD` | 日期显示格式(YYYY/MM/DD HH:mm) |
 | `copyright` | string | `''` | 版权文本(页脚) |
 | `postsPerPage` | number | `10` | 首页每页文章数 |
@@ -303,10 +303,10 @@
 | `darkMode.iconStyle` | string | `sun-moon` | 切换按钮图标：`sun-moon`/`single`/`switch` |
 | `darkMode.transitionAll` | bool | `true` | 切换时给 html 加 `.theme-switching` 过渡；false=瞬时 |
 | `darkMode.colors.*` | — | `{}` | 暗色覆盖色板 |
+| `presetOverrides.colors` / `presetOverrides.darkMode` | object | `{}` / `{colors:{}}` | 预设微调：在预设基色之上叠加的明/暗单色覆盖 |
 | `fontFamily` / `fontFamilyMono` | string | `sans-serif`/`monospace` | 字体 |
 | `fontSystem.stack/displayStack/headingStack/scale` | string/number | `inter`/`sora`/`manrope`/`1` | 字体系统：正文族 / 展示层（h1·Logo）/ 次级标题（h2-h6·卡片·部件）族 / 全局缩放；中文字符自动回退 CJK 字体链；字体文件构建期本地化到 `assets/vendor/fonts/` 并自动预加载 |
 | `fontSystem.customStack` | string | `''` | 自定义字体栈（仅 `stack='custom'` 时作为正文字体族；CSS font-family 列表，未随站点提供的字体名会回退，视觉不可控） |
-| `fontSystem.bodyWeight` | number | `400` | 正文字重（300 细 / 400 常规 / 500 中等 / 600 半粗 / 700 粗） |
 | `fontSystem.numbersMono` | bool | `true` | 统计数字/阅读面板进度等使用等宽字体（对齐更整齐） |
 | `fontSizeBase` / `lineHeight` | string/number | `16px`/`1.8` | 基础字号/行高 |
 | `headingFontWeight` | number | `700` | 标题字重 |
@@ -318,11 +318,9 @@
 | `surfaceHighlight.light/dark` | string | — | 表面高光/描边（`0 0 #0000` = 关闭） |
 | `layout.headerStyle` | string | `fixed` | 头部 `fixed`/`static` |
 | `layout.headerHeight` | string | `60px` | 头部高度(锚点偏移基准) |
-| `layout.footerStyle` | string | `simple` | 页脚样式 |
-| `layout.sidebarPosition` | string | `right` | 侧栏位置 |
-| `layout.contentWidth`/`postLayout`/`archiveLayout` | string | — | 布局预设 |
+| `density.preset` / `density.containerWidth` / `density.gap` / `density.sidebarWidth` | string | `balanced`/`1250px`/`1.618rem`/`318px` | 密度档位与其数值；`preset=null` 时后三项生效（容器最大宽度 / 卡片间距 / 侧栏宽度） |
 | `animation.enable` | bool | `true` | 动画 |
-| `animation.transitionDuration/timing` | — | — | 动画参数 |
+| `animation.transitionDuration` / `animation.transitionTiming` | string | `0.3s` / `cubic-bezier(0.22, 1, 0.36, 1)` | 过渡时长与缓动（CSS transition-duration / timing-function；减少动效时由运行时覆盖） |
 | `codeHighlight.palette.light/dark` | object | — | 代码 token 配色（comment/keyword/string/number/fn/attr/punct，随明暗模式自动切换；开关见 features.prismTheme.enabled） |
 | `card.showDate/showTags/showCategories/showExcerpt` | bool | `true` | 卡片信息开关 |
 | `card.excerptLength` | number | `150` | 摘要长度 |
@@ -447,7 +445,7 @@
 > canonical：`scripts/lib/feature-wiring.js → readingRestoreConfig`（单测覆盖；默认 0.05/160/80/400）。
 
 ### 3.3 backToTop — 返回顶部
-`enabled true` / `showAfterPx 400` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false`
+`enabled true` / `showAfterPx 400` / `size 44px` / `scrollDurationMs 450` / `smoothScroll true` / `hotkey ''`(KeyboardEvent.key 值如 `Home`;空=禁用;非输入框且无 Ctrl/Cmd/Alt 时生效) / `htmlAnchorFallback false` / `zIndex 999`(按钮 CSS 层叠顺序；与其他浮层冲突时调大)
 
 > **接线说明**：
 > - 按钮位置由 `tuning.json5 → backToTop.offsetSide/offsetBottom` 控制（模板经 `var(--backToTop-offsetSide/offsetBottom, 2rem)` 消费，桌面沿用；移动端底部固定 4rem 以配合按钮堆叠）。
@@ -471,7 +469,7 @@
 > 接线说明：`preserveAspectRatio=true`（默认）构建期输出 width/height（CLS 保护），覆盖 markdown 正文图片与 pages 出图路径（卡片/头图/图库/prev-next 缩略图，经 `scripts/build/pages.js` 的 imgDimsAttrs/buildCardImgAttrs/cardCoverAttrs/postCoverAttrs）；`false` 时不输出 width/height，交由 CSS 自适应。`data-lqip` 与 `data-iw` 不受影响。
 
 ### 3.6 codeBlock — 代码块
-`enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `copyFailTextEn ''`(en 站失败文案，空回退中文) / `showLanguageTag true` / `lineNumbers true`(纯文本块也可用) / `wrapLongLines false`(true=软换行,行号仍按行高对齐) / `highlightBackground var(--color-hover)`(hover 混色基色,力度见 tuning.code.hoverBgMix) / `borderRadius 0.375rem` / `maxHeight ''` / `copyAllButton false`(true=首块上方一键复制全页) / `downloadButton true` / `blobRevokeDelayMs 1000`(下载后释放 Blob URL 延迟 ms) / `prismBatchMs 8`(Prism 高亮单批主线程预算 ms) / `prismIdleTimeoutMs 300`(首帧高亮空闲超时 ms) / `prismIdleFallbackMs 60`(无 requestIdleCallback 时的兜底间隔 ms) / `windowDotColors ['#ff5f56','#ffbd2e','#27c93f']`(窗口栏三圆点颜色数组，非数组/不足 3 项整体回退默认) / `scrollHintTolerancePx 8`(判定「可横向滚动」的溢出容差 px；非负，非法回退 8)
+`enabled true` / `copyButtonVisibility hover`(`hover|always|never`) / `copySuccessText 已复制` / `copyFailText 复制失败` / `copyFailTextEn ''`(en 站失败文案，空回退中文) / `showLanguageTag true` / `lineNumbers true`(纯文本块也可用) / `wrapLongLines false`(true=软换行,行号仍按行高对齐) / `highlightBackground var(--color-hover)`(hover 混色基色,力度见 tuning.code.hoverBgMix) / `borderRadius 0.375rem` / `maxHeight ''` / `maxHeightVh 'none'`(视口高度上限：`none` 或 50–100，非法回退 82) / `headerHeight '36px'`(窗栏高度) / `fontSize '0.92em'`(正文字号，有效范围 0.75–1.15em) / `copySuccessTextEn ''`(en 站成功文案，空回退中文) / `copyAllButton false`(true=首块上方一键复制全页) / `downloadButton true` / `blobRevokeDelayMs 1000`(下载后释放 Blob URL 延迟 ms) / `prismBatchMs 8`(Prism 高亮单批主线程预算 ms) / `prismIdleTimeoutMs 300`(首帧高亮空闲超时 ms) / `prismIdleFallbackMs 60`(无 requestIdleCallback 时的兜底间隔 ms) / `windowDotColors ['#ff5f56','#ffbd2e','#27c93f']`(窗口栏三圆点颜色数组，非数组/不足 3 项整体回退默认) / `scrollHintTolerancePx 8`(判定「可横向滚动」的溢出容差 px；非负，非法回退 8)
 
 视觉细化项(tuning.json5)：`code`(lineNumberColor/lineNumberOpacity/hoverBorderMix/hoverShadowMix/hoverBgMix/inlineRadius/inlineHairlineMix/diffAddMix/diffDelMix) / `icons`(strokeWidth/hoverLift)；终端语言自动前缀(bash/sh/shell/zsh/fish→`$ lang`；powershell→`PS> powershell`；console→`> console`)；diff 增删行着色(.token.inserted/.deleted)；菜单图标见 navigation.json5 的 `icon`(内置 home/archive/tags/info/book/link/folder/search/rss/download)。
 
@@ -912,7 +910,7 @@ sitemap: {
 
 ### 3.67 perfBudget — 性能预算门禁
 
-`enabled true` / `htmlKb 40`(单页 HTML gzip 上限,含内联 CSS/脚本;实测最大 36.6KB) / `htmlRawKb 50`(页面 HTML raw 体积中位上限;长文等极端页面由中位口径自然豁免) / `inlineConfigKb 2`(页面内联关键配置降级子集上限) / `jsKb 75`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入;75KB 口径含 app+deferred+shared+runtime 全部 chunk,实测 69.7KB,deferred/shared 按需加载,首屏实际约 19KB) / `requests 12`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
+`enabled true` / `htmlKb 40`(单页 HTML gzip 上限,含内联 CSS/脚本;实测最大 36.6KB) / `htmlRawKb 50`(页面 HTML raw 体积中位上限;长文等极端页面由中位口径自然豁免) / `inlineConfigKb 2`(页面内联关键配置降级子集上限) / `jsKb 76`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入;76KB 口径含 app+deferred+shared+runtime 全部 chunk,实测 75.3KB,deferred/shared 按需加载,首屏实际约 19KB;75→76 系审查 R-02 把搜索页初始化从模板内联脚本迁入 deferred bundle,字节从 HTML 侧移到 JS 侧) / `requests 12`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
 
 ### 3.68 scrollIndicator — 滚动进度条
 
@@ -952,7 +950,7 @@ sitemap: {
 
 ### 3.77 guards — 防护与交互控制总控
 
-`enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）。细节参数（菜单项、复制模式、选择/快捷键/水印/检测/控制台/隐私帘/篡改/门槛、绕过通道等 181 项）全部在 `guard.json5`（见第 11 章）；绕过通道（`?guard=on` 覆盖一切 > `?guard=off` > `localStorage['s-guards-off']` > `core.bypass.localhost`，accessGate 的 `?key=` 由 `core.bypass.accessGateKey` 控制）均可由 `guard.json5 → core.bypass` 逐项开关，`bypass.enabled=false` 全部失效。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
+`enabled true`（总开关，false 时 guard.json5 全文件失效）/ `preset 'soft'`（一键档位：`off` 全关 | `soft` 仅右键菜单+复制署名（默认，体验友好）| `strict` 各模块按 guard.json5 内 `enabled` 生效）/ `contextMenu true` / `copyGuard true`（模块启停，soft 档下仅这两项可被 preset 激活）/ `selectionGuard` / `hotkeyGuard` / `watermark` / `devtoolsDetect` / `consoleGuard` / `privacyCurtain` / `tamperWatch`（其余 7 个模块的启停默认 `true`，各自细节参数与默认关策略见 `guard.json5` 对应模块）。细节参数（菜单项、复制模式、选择/快捷键/水印/检测/控制台/隐私帘/篡改/门槛、绕过通道等 182 项）全部在 `guard.json5`（见第 11 章）；绕过通道（`?guard=on` 覆盖一切 > `?guard=off` > `localStorage['s-guards-off']` > `core.bypass.localhost`，accessGate 的 `?key=` 由 `core.bypass.accessGateKey` 控制）均可由 `guard.json5 → core.bypass` 逐项开关，`bypass.enabled=false` 全部失效。**诚实声明**：拦截/检测类能力均为威慑手段（可被浏览器菜单/开发者工具/阅读模式绕过），默认档位保持安全温和 — `js/domains/guard/core.js`。
 
 ### 3.78 loading — 加载遮罩
 
@@ -1141,7 +1139,6 @@ listCover: {
 |---|---|---|
 | `menu[]` | `[]` | 菜单项 `{label,labelEn?,url,icon?,target?}`（站内路径自动加语言前缀） |
 | `navbar.fixed` | `true` | 吸顶（与 theme.layout.headerStyle 任一 true 即吸顶） |
-| `navbar.showLogo` | `true` | 显示 Logo |
 | `navbar.logoText` | `S-ynapse` | Logo 文字（空回退 site.title） |
 | `navbar.logoTextEn` | `''` | 英文站 Logo 文字（空回退 logoText → site.title） |
 | `navbar.logoImage` / `logoWidth` | `''`/`40px` | 图片 Logo（优先于文字）与显示宽度 |
@@ -1215,7 +1212,7 @@ listCover: {
 | `headers.Cross-Origin-Opener-Policy` | string | `same-origin` | 跨源窗口隔离 |
 | `csp.enabled` / `directives` / `reportOnly` / `reportUri` | `false`/`{}`/`false`/`/csp-report` | Content-Security-Policy。构建期为 `script-src` 与 `style-src` 注入同一枚 `'nonce-...'`（内联 `<script>`/`<style>` 同步注入 nonce 属性），二者移除 `'unsafe-inline'`；模板与产物已无内联 `style="..."` 属性，故不再声明 `style-src-attr`（属性语境按 CSP3 回退到 `style-src`，同样拒绝内联）；`frame-ancestors 'none'` 与 `X-Frame-Options: DENY` 双保险 |
 | `csp.autoTrim` / `csp.metaEnabled` | `true`/`false` | 构建期按功能裁剪未用域名（giscus / jsdelivr / Google Fonts / Cloudflare 统计——统计域名仅在 site.webAnalytics 配置 token 时保留；在 Cloudflare 面板另开统计而未配 token 时请设 `false`）；`metaEnabled` 开启时额外输出 `<head>` meta CSP（与响应头使用同一裁剪结果，仅无响应头环境需要，默认关） |
-| `robots.enabled` / `rules[]` | `false`/`[]` | robots 规则 |
+| `robots.enabled` / `rules[]` / `sitemap` | `false`/`[]`/`/sitemap.xml` | robots 规则与 `Sitemap:` 地址（自动拼接 `site.url`；空=不追加） |
 | `rateLimiting.enabled` | `false` | Worker 限流(100 req/60s) |
 | `rateLimiting.maxRequests/windowMs/blockDuration` | `100`/`60000`/`300000` | 参数（封禁时长毫秒） |
 | `rateLimiting.maxTrackedEntries` | `5000` | Worker 进程内限流跟踪表最大键数（超出触发一次过期清理，防伪造 IP 洪泛撑爆内存；1–200000，非法回退 5000） |
@@ -1236,7 +1233,7 @@ listCover: {
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
-| `enabled` | `true` | 策略开关 |
+| `enabled` | `true` | 策略开关；`false` = 三目录（`media/` `videos/` `assets/`）内容原样复制，不做白/黑名单判定（仍跳过 `.gitkeep`；`media/` 的图片优化管线不受影响） |
 | `mediaExts` | 13 种(见代码) | media/ 白名单 |
 | `videoMode` | `deny-list` | videos/ 采用排除制 |
 | `assetExts` | 42 种(文本/文档/pdf/压缩包/音频/字体) | assets/ 白名单 |
@@ -1320,7 +1317,7 @@ listCover: {
 
 ## 11. guard.json5 — 防护与交互控制域
 
-第 13 个配置文件（11 个模块 / 181 项，统计口径：对象逐层展开、数组元素逐项计入；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
+第 13 个配置文件（11 个模块 / 182 项，统计口径：对象逐层展开、数组元素逐项计入；逐字段中文注释：作用/类型/可填值/不可填值原因/推荐值/注意）。仅在 `features.guards.enabled !== false` 时注入 `window.__GUARD__`，客户端按 preset 懒加载对应模块（`js/domains/guard/`），未启用模块零加载零开销。
 
 **结构**：
 - `core`（13 项）：`preset 'soft'` / `bypass.enabled true` / `bypass.urlParam true` / `bypass.localStorage true` / `bypass.localhost false` / `bypass.cleanUrl true` / `bypass.queryParam 'guard'` / `bypass.storageFlag 's-guards-off'` / `bypass.accessGateKey true` / `logLevel 'off'` / `respectEditable true` / `i18nFallbackLang 'zh'` / `edgePadding '8px'`。绕过优先级：`?guard=on` 覆盖一切（含其余绕过通道）> `?guard=off` > localStorage 标志 > localhost（开启时）；`bypass.enabled=false` 时四条通道（含 accessGate `?key=`）全部失效，判定原因经 `window.__GUARD_BYPASS__` 可观测（`url-off`/`url-on`/`storage`/`localhost`/`disabled`/`none`）。`?guard=` 与 `?key=` 在绕过判定/解锁读取完成后由 `history.replaceState` 从地址栏移除（保留其它查询串与 hash；`bypass.cleanUrl=false` 时保留），参数名跟随 `bypass.queryParam`。
@@ -1338,15 +1335,15 @@ listCover: {
 | `bypass.storageFlag` | string | `'s-guards-off'` | localStorage 键名；空字符串 = 关闭该通道 |
 | `bypass.accessGateKey` | bool | `true` | 是否允许 accessGate 的 `?key=` 解锁码绕过访问门槛（是否可用仍由 `accessGate.unlockCodes` 决定） |
 - `contextMenu`（38 项）：`enabled` / `revokeDelayMs 3000`(下载后释放 Blob URL 延迟 ms) / `translateUrl`(划词翻译模板，`{lang}`/`{text}`；空=隐藏翻译项) / `disableNative` / `trigger.longPress`+`longPressMs 550` / `hapticMs 10`(长按弹出菜单的触觉反馈时长 ms，0=禁用；仅支持 `navigator.vibrate` 的设备生效) / `searchFocusDelayMs 60`(「搜索所选文字」打开搜索后聚焦输入框延迟 ms) / `searchTextMaxChars 12`(搜索菜单项中选中文本截断字数，≥1，非法回退 12) / `moveTolerancePx 8`(触屏长按期间的位移容差 px，超过即取消长按；非负，非法回退 8) / `behavior.closeOnEsc|closeOnScroll|closeOnOutside|closeOnBlur` / `style.width|radius|blur|animMs|shadowOpacity`（width/radius 留空=走 `tuning.json5` → `guard` 分类）/ `showOn.selection|link|image|code|blank` / `builtin.*`（copy/copyLink/openNewTab/searchSelected/translate/backToTop/toggleTheme/print/copyCode/copyRaw/download；`viewSource`/`inspect` 默认关）/ `items[]` 自定义项（`label`/`labelEn`/`icon`/`url`|`action`/`selector`；自定义动作派发 `guard:menu-action` 事件）/ `excludeSelectors[]` / `ariaLabel`。
-- `copyGuard`（18 项）：`mode 'attribution'`（`off` | `attribution` 追加出处 | `weakBlock` 首次拦截并提示、再次放行 | `block` 硬拦截）/ `attribution.text`+`textEn`（占位符 `{title}{url}{author}{site}`）/ `position after|before` / `separator` / `minChars 40`（短复制不打扰）/ `onlyArticles true` / `allow.codeBlocks true`+`allow.selectors[]`（代码块与可编辑区始终放行）/ `block.toast|toastText|flash`（复用统一 `__toast`）/ `extra.alsoCut|imageNotice|iOSOverride` / `noticeOncePerSession true` / `logCopyEvents false`（仅本地 console，无网络上报）/ `flashRemoveMs 600`(闪烁遮罩移除延迟 ms)。
-- `selectionGuard`（7 项，**默认关**）：`mode 'content'`（`allow` | `content` 正文禁选 | `strict` 全域）/ `allowSelectors[]`+`allowCode true`（代码白名单）/ `allowCtrlA|allowShiftArrows true`（保留键盘选择，无障碍优先）/ `noticeToast|noticeText`。实现：CSS `user-select:none`（正文/全域）+ `selectstart` 事件双保险，输入框与代码始终豁免。
-- `hotkeyGuard`（12 项，**默认关**）：`keys.f12|ctrlShiftI|ctrlShiftJ|ctrlShiftC` 默认拦截；`ctrlU|ctrlS|ctrlP` 默认放行（分别与查看源码/保存网页/打印冲突，可按需开启）（macOS 自动等效 Cmd）/ `keys.printScreen false`（仅检测提示）/ `keys.custom[]`（`'ctrl+alt+x'` 语法）/ `noticeToast|noticeText|noticeOncePerSession`。仅拦键盘路径（浏览器菜单/独立窗口不可拦，威慑级），输入框豁免。
-- `watermark`（18 项，**默认关**）：`type 'diagonal'`（`fixed`|`tiled`|`diagonal`）/ `text|textEn`（`{site}{date}{time}{id}`）/ `identity 'none'`（`none`|`random`|`storage` 本地短哈希，无指纹）/ `idLength 6`（标识显示长度 4–16）/ `opacity 0.06` / `fontSize` / `color`（空=主题次级色）/ `rotate -22` / `gapX|gapY` / `position`（fixed 专用）/ `zIndex 40` / `hideOnPrint true` / `showInLightbox false` / `mobileEnabled false`（移动端断点取自 `tuning.layout.mobileBreakpoint`，默认 768px；配置外置加载失败降级时回退 768）/ `animate false`（缓慢漂移，尊重减少动效）。`pointer-events:none` + `aria-hidden`，不挡交互。
-- `devtoolsDetect`（16 项，**默认关**）：`methods.sizeDiff|timingDebugger`（停靠尺寸差 / `debugger` 计时）/ `intervalMs 1500`（下限 1000）/ `thresholdSizePx 160` / `thresholdTimingMs 120` / `action 'notice'`（`none`|`notice`|`blurPage`|`lockOverlay`|`reload`，锁屏自带关闭键；`reload` 带会话熔断——每会话最多触发一次，避免尺寸误报导致无限刷新）/ `lockTitle|lockText`（空 = 走 `ui-strings.json5` 的 `guard.lockTitle`/`guard.lockText`，按页面语言中英自动切换；填固定文本会覆盖 i18n）/ `reloadDelayMs` / `reloadStorageKey 's-dt-reload'`（`reload` 熔断标记的 sessionStorage 键名；空回退默认，改键 = 旧熔断标记不再命中）/ `pauseWhenHidden` / `logDetect`；命中时派发 `guard:devtools` 事件（供 consoleGuard 联动清屏）。检测非 100%（窗口缩放等会误报），仅威慑。
-- `consoleGuard`（18 项，**默认关**）：`bannerEnabled|bannerText|bannerTextEn|bannerAscii`（控制台站方留言）/ `clearEnabled|clearIntervalMs|clearOnDetect`（周期清屏与检测联动）/ `muteEnabled|muteMethods[]|muteFreeze`（对页面脚本伪装 console 方法）/ `trapEnabled|trapAction|trapText`（console.log 访问陷阱）/ `hideSelfLogs` / `noticeOncePerSession`。无法拦截真实控制台求值，仅作用于页面上下文。
-- `privacyCurtain`（10 项，**默认关**）：`blurOnBlur`（窗口失焦）/ `blurOnVisibility`（切标签）/ `blurAmount '8px'` / `curtainText|curtainTextEn`（帘上文案）/ `revealDelayMs 200`（恢复去抖）/ `prtScNotice|prtScText|prtScOncePerSession`（PrintScreen 仅检测提示）。`backdrop-filter` 静态遮罩 + `pointer-events:none`，不挡交互。
-- `tamperWatch`（19 项，**默认关**）：`scripts.monitor|action`（动态 `<script>` 注入；action `toast`|`remove`|`report`）+ `scripts.allowPathPrefixes[]`（同源路径前缀白名单，默认 `['/pagefind/']` 豁免 Pagefind 索引脚本，置 `[]` 关闭）/ `attrs.monitor`（动态内联事件）/ `iframes.monitor|action` / `prototype.watch`（fetch/XHR/eval 原型替换，周期比较）/ `dom.monitor|targets[]`（关键节点缺失检测）/ `probeIntervalMs 2000` / `reportEndpoint ''`（默认不上报；自定义跨域端点需加入 CSP `connect-src`，否则会被静默拦截）+ `reportTimeoutMs 5000`（上报超时 ms，1000–30000） + `reportThrottleMs 10000`（上报节流窗口 ms，0 关闭，上限 60000）+ `reportPrivacyMode true`（仅事件类型，URL 去除查询串）/ `cspViolationToast` / `noticeOncePerSession` / `logDetect`。页面级监视可被先行关闭，属异常发现而非安全边界。
-- `accessGate`（12 项，**默认关**）：`password.enabled|hash|salt|rememberHours|title|placeholder|errorText`（SHA-256(salt+密码) 十六进制，`crypto.subtle` 校验）/ `focusDelayMs 50`(解锁后聚焦密码框延迟 ms)/ `paths[]`（路径前缀，空=全站）/ `viewsPerDay|viewsAction`（本地限次，`toast`|`lock`）/ `unlockCodes[]`（`?key=` 永久解锁本机；解锁逻辑读取完成后 `history.replaceState` 清除地址栏参数，保留其它查询串与 hash）/ `logDetect`。诚实声明：静态站密码为软防护（哈希在前端源码中可离线分析），敏感内容请用 Cloudflare Access 等后端方案。
+- `copyGuard`（18 项）：`enabled true`（模块启停）/ `mode 'attribution'`（`off` | `attribution` 追加出处 | `weakBlock` 首次拦截并提示、再次放行 | `block` 硬拦截）/ `attribution.text`+`textEn`（占位符 `{title}{url}{author}{site}`）/ `position after|before` / `separator` / `minChars 40`（短复制不打扰）/ `onlyArticles true` / `allow.codeBlocks true`+`allow.selectors[]`（代码块与可编辑区始终放行）/ `block.toast|toastText|flash`（复用统一 `__toast`）/ `extra.alsoCut|imageNotice|iOSOverride` / `noticeOncePerSession true` / `logCopyEvents false`（仅本地 console，无网络上报）/ `flashRemoveMs 600`(闪烁遮罩移除延迟 ms)。
+- `selectionGuard`（7 项，**默认关**）：`enabled false`（模块启停）/ `mode 'content'`（`allow` | `content` 正文禁选 | `strict` 全域）/ `allowSelectors[]`+`allowCode true`（代码白名单）/ `allowCtrlA|allowShiftArrows true`（保留键盘选择，无障碍优先）/ `noticeToast|noticeText`。实现：CSS `user-select:none`（正文/全域）+ `selectstart` 事件双保险，输入框与代码始终豁免。
+- `hotkeyGuard`（12 项，**默认关**）：`enabled false`（模块启停）/ `keys.f12|ctrlShiftI|ctrlShiftJ|ctrlShiftC` 默认拦截；`ctrlU|ctrlS|ctrlP` 默认放行（分别与查看源码/保存网页/打印冲突，可按需开启）（macOS 自动等效 Cmd）/ `keys.printScreen false`（仅检测提示）/ `keys.custom[]`（`'ctrl+alt+x'` 语法）/ `noticeToast|noticeText|noticeOncePerSession`。仅拦键盘路径（浏览器菜单/独立窗口不可拦，威慑级），输入框豁免。
+- `watermark`（18 项，**默认关**）：`enabled false`（模块启停）/ `type 'diagonal'`（`fixed`|`tiled`|`diagonal`）/ `text|textEn`（`{site}{date}{time}{id}`）/ `identity 'none'`（`none`|`random`|`storage` 本地短哈希，无指纹）/ `idLength 6`（标识显示长度 4–16）/ `opacity 0.06` / `fontSize` / `color`（空=主题次级色）/ `rotate -22` / `gapX|gapY` / `position`（fixed 专用）/ `zIndex 40` / `hideOnPrint true` / `showInLightbox false` / `mobileEnabled false`（移动端断点取自 `tuning.layout.mobileBreakpoint`，默认 768px；配置外置加载失败降级时回退 768）/ `animate false`（缓慢漂移，尊重减少动效）。`pointer-events:none` + `aria-hidden`，不挡交互。
+- `devtoolsDetect`（16 项，**默认关**）：`enabled false`（模块启停）/ `noticeText ''`（命中提示文案，空 = 走 `ui-strings` 默认）/ `noticeOncePerSession true`（每会话只提示一次）/ `blurAmount '6px'`（`action='blurPage'` 的模糊强度）/ `methods.sizeDiff|timingDebugger`（停靠尺寸差 / `debugger` 计时）/ `intervalMs 1500`（下限 1000）/ `thresholdSizePx 160` / `thresholdTimingMs 120` / `action 'notice'`（`none`|`notice`|`blurPage`|`lockOverlay`|`reload`，锁屏自带关闭键；`reload` 带会话熔断——每会话最多触发一次，避免尺寸误报导致无限刷新）/ `lockTitle|lockText`（空 = 走 `ui-strings.json5` 的 `guard.lockTitle`/`guard.lockText`，按页面语言中英自动切换；填固定文本会覆盖 i18n）/ `reloadDelayMs` / `reloadStorageKey 's-dt-reload'`（`reload` 熔断标记的 sessionStorage 键名；空回退默认，改键 = 旧熔断标记不再命中）/ `pauseWhenHidden` / `logDetect`；命中时派发 `guard:devtools` 事件（供 consoleGuard 联动清屏）。检测非 100%（窗口缩放等会误报），仅威慑。
+- `consoleGuard`（18 项，**默认关**）：`enabled false`（模块启停）/ `bannerEnabled|bannerText|bannerTextEn|bannerAscii`（控制台站方留言）/ `clearEnabled|clearIntervalMs|clearOnDetect`（周期清屏与检测联动）/ `muteEnabled|muteMethods[]|muteFreeze`（对页面脚本伪装 console 方法）/ `trapEnabled|trapAction|trapText`（console.log 访问陷阱）/ `hideSelfLogs` / `noticeOncePerSession`。无法拦截真实控制台求值，仅作用于页面上下文。
+- `privacyCurtain`（10 项，**默认关**）：`enabled false`（模块启停）/ `blurOnBlur`（窗口失焦）/ `blurOnVisibility`（切标签）/ `blurAmount '8px'` / `curtainText|curtainTextEn`（帘上文案）/ `revealDelayMs 200`（恢复去抖）/ `prtScNotice|prtScText|prtScOncePerSession`（PrintScreen 仅检测提示）。`backdrop-filter` 静态遮罩 + `pointer-events:none`，不挡交互。
+- `tamperWatch`（19 项，**默认关**）：`enabled false`（模块启停）/ `scripts.monitor|action`（动态 `<script>` 注入；action `toast`|`remove`|`report`）+ `scripts.allowPathPrefixes[]`（同源路径前缀白名单，默认 `['/pagefind/']` 豁免 Pagefind 索引脚本，置 `[]` 关闭）/ `attrs.monitor`（动态内联事件）/ `iframes.monitor|action` / `prototype.watch`（fetch/XHR/eval 原型替换，周期比较）/ `dom.monitor|targets[]`（关键节点缺失检测）/ `probeIntervalMs 2000` / `reportEndpoint ''`（默认不上报；自定义跨域端点需加入 CSP `connect-src`，否则会被静默拦截）+ `reportTimeoutMs 5000`（上报超时 ms，1000–30000） + `reportThrottleMs 10000`（上报节流窗口 ms，0 关闭，上限 60000）+ `reportPrivacyMode true`（仅事件类型，URL 去除查询串）/ `cspViolationToast` / `noticeOncePerSession` / `logDetect`。页面级监视可被先行关闭，属异常发现而非安全边界。
+- `accessGate`（15 项，**默认关**）：`password.enabled|hash|salt|rememberHours|title|placeholder|errorText`（SHA-256(salt+密码) 十六进制，`crypto.subtle` 校验；`rememberHours` 只作用于密码解锁的记忆时长，0 = 不记忆：解锁立即失效、刷新即重新输入）/ `focusDelayMs 50`(解锁后聚焦密码框延迟 ms)/ `paths[]`（路径前缀，空=全站）/ `viewsPerDay|viewsAction`（本地限次，`toast`|`lock`）/ `unlockCodes[]`（`?key=` 解锁本机；解锁逻辑读取完成后 `history.replaceState` 清除地址栏参数，保留其它查询串与 hash）/ `unlockCodeTtlHours 0`（解锁码记忆时长(h)：**0 = 永久解锁**（默认，兑现历史承诺），>0 = 该小时数后失效；与密码解锁的 `rememberHours` 相互独立）/ `logDetect`。诚实声明：静态站密码为软防护（哈希在前端源码中可离线分析），敏感内容请用 Cloudflare Access 等后端方案。
 
 **测试**：`.tmp-scripts/verify-guard-p1.js` 17 项 + `verify-guard-p2.js` 20 项 + `verify-guard-p3.js` 11 项 + `verify-guard-p4.js` 13 项断言（P1：原生菜单拦截、菜单项与上下文匹配、Esc/输入框豁免、复制署名改写、代码块放行、`?guard=off` 完全绕过、block 拦截+toast；P2：选择拦截/代码放行/可编辑豁免、F12 与 Ctrl+Shift+I 拦截+提示、Ctrl+A 保留、水印三模式与默认关反例；P3：检测提示/锁屏与关闭键、控制台静音（页面脚本无输出）、隐私帘显示/恢复与默认关反例；P4：门槛显示/错误提示/正确解锁与会话记忆/解锁码/限次锁定、脚本注入与关键节点缺失提示、默认关反例）；界面截图已目检（明暗菜单、拦截提示、对角/固定角水印、锁屏、隐私帘、访问门槛） — `js/domains/guard/{core,context-menu,copy-guard,selection-guard,hotkey-guard,watermark,devtools-detect,console-guard,privacy-curtain,tamper-watch,access-gate}.js`。
 
@@ -1489,7 +1486,7 @@ listCover: {
 | 模块 | 键 | 默认 | 说明 |
 |---|---|---|---|
 | `ports` | `serve` | 3000 | 本地预览服务默认端口；`--port` 可覆盖 |
-| | `a11y` | 3224 | 无障碍审计自起 serve 的起始端口（占用时自动+1） |
+| | `a11y`（`ports.a11y`） | 3224 | 无障碍审计自起 serve 的起始端口（占用时自动+1） |
 | | `perf` | 3000 | `perf:audit` 未传 `--url` 时的本地目标端口 |
 | `chrome` | `path` | null | Chrome 可执行文件绝对路径；null=自动探测（--chrome/CHROME_PATH > 本项 > 平台默认 > PATH） |
 | `paths` | `outDir` | null | 默认输出目录；null=dist。优先级：`--out` > `SYNAPSE_OUT_DIR` > 本项 |

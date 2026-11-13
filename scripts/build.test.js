@@ -8,6 +8,10 @@ const { evaluatePerfBudget } = require('./lib/perf-budget');
 const { PRESETS: THEME_PRESETS, resolveTheme: resolveThemePreset, validatePreset: validateThemePreset, contrastRatio } = require('./lib/theme-presets');
 const { computeRelatedArticles } = require('./lib/related');
 const { resolveJsonFeedOptions } = require('./lib/feed-options');
+const { createBuildSerializer, resolveWatchPaths } = require('./lib/watch-mode');
+const { createBuildErrorCollector, resolveExitCode } = require('./lib/build-errors');
+const fs = require('node:fs');
+const path = require('node:path');
 
 describe('formatConfigError', () => {
   it('reports filename, line, column and caret context', () => {
@@ -522,13 +526,26 @@ describe('generate-security-config', () => {
     assert.strictEqual(out.csp.reportOnly, false);
     assert.strictEqual(out.cspReportMaxBytes, 16384, '缺失回退 16384');
     assert.deepStrictEqual(out.pathRestrictions, [{ path: '/admin/*' }]);
-    assert.deepStrictEqual(out.rateLimiting.skipPaths, []);
+    // 审查 R-11：缺键不再被写成 []（= 静态资源也计入限流），而是透传 undefined，
+    // 由 Worker 内置 DEFAULT_SKIP_PATHS 兜底；该断言此前把错语义固化成了预期。
+    assert.strictEqual(out.rateLimiting.skipPaths, undefined);
   });
   it('passes security.hardening.cspReportMaxBytes to worker config (valid/invalid)', () => {
     assert.strictEqual(extractWorkerSecurity({ hardening: { cspReportMaxBytes: 32768 } }).cspReportMaxBytes, 32768);
     assert.strictEqual(extractWorkerSecurity({ hardening: { cspReportMaxBytes: 0 } }).cspReportMaxBytes, 16384, '0 非法回退');
     assert.strictEqual(extractWorkerSecurity({ hardening: { cspReportMaxBytes: 'big' } }).cspReportMaxBytes, 16384, '非数字回退');
     assert.strictEqual(extractWorkerSecurity({ rateLimiting: { maxTrackedEntries: -1 } }).rateLimiting.maxTrackedEntries, 5000, '负数回退');
+  });
+  // 审查 R-10：csp.enabled:false 是应急开关，_headers 侧已停止下发；Worker 侧若继续投影
+  // directives 会在动态响应上把完整 CSP 贴回来，开关等于失效。空 directives = Worker 不下发。
+  it('stops emitting worker CSP directives when csp.enabled is false (R-10)', () => {
+    const off = extractWorkerSecurity({ csp: { enabled: false, directives: { 'default-src': ["'self'"] } } });
+    assert.deepStrictEqual(off.csp.directives, {});
+    assert.deepStrictEqual(off.csp.reportUri, '/csp-report', '上报端点保留，便于排障期收集');
+    const on = extractWorkerSecurity({ csp: { enabled: true, directives: { 'default-src': ["'self'"] } } });
+    assert.deepStrictEqual(on.csp.directives, { 'default-src': ["'self'"] });
+    const absent = extractWorkerSecurity({ csp: { directives: { 'default-src': ["'self'"] } } });
+    assert.deepStrictEqual(absent.csp.directives, { 'default-src': ["'self'"] }, '未声明 enabled 时保持下发');
   });
   it('normalizes path restrictions (keeps requireAuth/allowedIPs) and drops malformed entries', () => {
     const out = extractWorkerSecurity({ pathRestrictions: [{ path: '/admin/*', requireAuth: true, allowedIPs: ['10.0.0.0/8'] }, { path: '/x' }, { noPath: true }, null] });
@@ -753,5 +770,86 @@ describe('hasHighlightableCode', () => {
     assert.strictEqual(hasHighlightableCode('<p>use <code>x</code></p>'), false);
     assert.strictEqual(hasHighlightableCode(''), false);
     assert.strictEqual(hasHighlightableCode(null), false);
+  });
+});
+
+// 审查 R-15：初始构建曾绕过 building 守卫（只有 rebuild() 置位），首轮进行中保存文件会并发跑
+// 第二轮 build。守卫抽到 lib/watch-mode.js 后在此直接对并发语义断言，无需起 dev server。
+describe('watch-mode createBuildSerializer（审查 R-15）', () => {
+  it('进行中再次触发只排队，当前轮结束后补跑一次，两轮永不重叠', async () => {
+    const serializer = createBuildSerializer();
+    let active = 0;
+    let maxActive = 0;
+    let runs = 0;
+    const task = async () => {
+      active++;
+      runs++;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      active--;
+    };
+    const first = serializer.run(task);
+    assert.strictEqual(serializer.isBuilding(), true, '首轮必须置位 building');
+    serializer.run(task);
+    serializer.run(task);
+    assert.strictEqual(serializer.isQueued(), true);
+    await first;
+    assert.strictEqual(maxActive, 1, '两轮 build 不得并发（maxActive=' + maxActive + '）');
+    assert.strictEqual(runs, 2, '多次触发合并为一次补跑，实际轮数=' + runs);
+    assert.strictEqual(serializer.isBuilding(), false);
+    assert.strictEqual(serializer.isQueued(), false);
+  });
+
+  it('空队列时下一轮照常执行；任务抛错不遗留 building 标记', async () => {
+    const serializer = createBuildSerializer();
+    await assert.rejects(serializer.run(async () => { throw new Error('boom'); }), /boom/);
+    assert.strictEqual(serializer.isBuilding(), false, '抛错后必须释放守卫，否则后续重建永不执行');
+    let ran = 0;
+    await serializer.run(async () => { ran++; });
+    assert.strictEqual(ran, 1);
+  });
+});
+
+// 审查 R-16：watchPaths 曾缺 data/，改每日一言数据不触发重建。
+describe('watch-mode resolveWatchPaths（审查 R-16）', () => {
+  const paths = resolveWatchPaths('/proj');
+  it('包含 data/ 子树', () => {
+    assert.ok(paths.includes(path.join('/proj', 'data', '**', '*')), '缺少 data/ 监听：' + paths.join(', '));
+  });
+
+  it('保留原有监听项（文章/模板/静态资源/媒体/视频/素材/页面/根级配置）', () => {
+    const expected = [
+      ['articles', '**', '*.md'],
+      ['templates', '**', '*.ejs'],
+      ['static', '**', '*'],
+      ['media', '**', '*'],
+      ['videos', '**', '*'],
+      ['assets', '**', '*'],
+      ['pages', '**', '*.md'],
+      ['*.json'],
+      ['*.json5']
+    ];
+    for (const segments of expected) {
+      assert.ok(paths.includes(path.join('/proj', ...segments)), '缺少监听项：' + segments.join('/'));
+    }
+  });
+});
+
+// 审查 R-17：单张 OG 图失败曾记成 fatal（默认值），使已完整生成的 dist 整体非零退出。
+describe('OG 失败降级（审查 R-17）', () => {
+  it('fatal:false 的记录不参与退出码（与 media/minify 降级路径同语义）', () => {
+    const c = createBuildErrorCollector();
+    c.add('og', 'generate-og.js exited with status 1', { fatal: false });
+    assert.strictEqual(c.hasErrors, false);
+    assert.strictEqual(c.hasWarnings, true);
+    assert.strictEqual(resolveExitCode(c, { allowDegraded: false }), 0);
+  });
+
+  it('build.js 的 OG 失败记录显式传 fatal:false 且保留 generate-og 子进程退出码信息', () => {
+    const src = fs.readFileSync(path.join(__dirname, 'build.js'), 'utf8');
+    const line = src.split('\n').find((l) => l.includes("recordBuildFailure('og'"));
+    assert.ok(line, 'build.js 中未找到 OG 失败记录点');
+    assert.ok(line.includes('fatal: false'), 'OG 失败必须记为非致命：' + line.trim());
+    assert.ok(line.includes('ogRes.status'), '记录必须保留子进程退出码：' + line.trim());
   });
 });

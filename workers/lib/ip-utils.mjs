@@ -135,15 +135,31 @@ export function normalizePath(pathname) {
   return ('/' + segments.join('/')).toLowerCase();
 }
 
+// 规则路径归一化（审查 R-09）：把配置里常见的通配写法折叠成可做前缀比较的基路径。
+// 此前只 `replace(/\/\*$/,'')` 一次：`/*` 折成 '/' 后整条被 continue 掉（配了等于没配），
+// `/admin*`、`/admin/**` 一条都匹配不上。支持的形态：`/*`、`/**`（全站）→ '/'；
+// `/a/*`、`/a/**` → '/a'；`/a*` → '/a'。中段通配（如 /a/*/b）无法用前缀比较表达，
+// 由构建期 scripts/generate-security-config.js 告警，不在此静默吞掉。
+// 匹配一律按「路径段前缀」（/admin 命中 /admin 与 /admin/x，不命中 /administrator），
+// 因此 `/admin*` 与 `/admin/*` 折叠后等价，避免通配写法把相邻目录一起封掉。
+export function ruleBasePath(raw) {
+  let p = normalizePath(raw);
+  if (p === '/*' || p === '/**' || p === '*' || p === '**') return '/';
+  if (p.endsWith('/**')) p = p.slice(0, -3);
+  else if (p.endsWith('/*')) p = p.slice(0, -2);
+  else if (p.endsWith('*')) p = p.slice(0, -1);
+  return p === '' ? '/' : p;
+}
+
 export function isPathBlocked(pathname, rules) {
   if (!Array.isArray(rules) || rules.length === 0) return null;
   const path = normalizePath(pathname);
   for (const rule of rules) {
     const entry = typeof rule === 'string' ? { path: rule } : rule;
     if (!entry || !entry.path) continue;
-    const base = normalizePath(String(entry.path).replace(/\/\*$/, ''));
-    if (!base || base === '/') continue;
-    if (path === base || path.startsWith(base + '/')) return entry;
+    const base = ruleBasePath(entry.path);
+    // base 为 '/' 表示全站拦截（`/*` 语义），不需要再做前缀拼接。
+    if (base === '/' || path === base || path.startsWith(base + '/')) return entry;
   }
   return null;
 }

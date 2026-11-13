@@ -286,8 +286,8 @@
 | `features.magazine.headingNumbers` | bool | false | — | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.magazine.tableHover` | bool | true | — | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.maintenance.enabled` | bool | false | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring-maintenance.test.js:72<br>scripts/config-wiring-maintenance.test.js:81 | 已测（marker） |
-| `features.maintenance.retryAfter` | number | 3600 | workers/security-worker.js:302<br>scripts/build/serve.js:68<br>scripts/generate-security-config.js:187 | scripts/config-wiring.test.js:944 | 已测（marker） |
-| `features.maintenance.setRetryAfter` | bool | true | workers/security-worker.js:301<br>scripts/build/serve.js:71<br>scripts/generate-security-config.js:201 | scripts/config-wiring.test.js:944 | 已测（marker） |
+| `features.maintenance.retryAfter` | number | 3600 | workers/security-worker.js:302<br>scripts/build/serve.js:72<br>scripts/generate-security-config.js:187 | scripts/config-wiring.test.js:944 | 已测（marker） |
+| `features.maintenance.setRetryAfter` | bool | true | workers/security-worker.js:301<br>scripts/build/serve.js:75<br>scripts/generate-security-config.js:201 | scripts/config-wiring.test.js:944 | 已测（marker） |
 | `features.maintenance.status` | enum | 503 | js/core/boot.js:194<br>js/core/runtime.js:20<br>js/core/soft-nav.js:91 | scripts/config-wiring-maintenance.test.js:135<br>scripts/config-wiring-maintenance.test.js:290 | 已测（marker） |
 | `features.math.autoDetect` | bool | true | scripts/build/markdown.js:60<br>scripts/build/markdown.js:245<br>js/domains/core/math-render.js:65 | scripts/config-wiring.test.js:387<br>scripts/config-wiring.test.js:527 | 已测（marker） |
 | `features.math.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring.test.js:387<br>scripts/config-wiring.test.js:572 | 已测（marker） |
@@ -484,7 +484,7 @@
 | `features.readingTime.showInMeta` | bool | true | templates/post.ejs:29 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.readingTime.wordsPerMinuteCJK` | number | 250 | scripts/build/articles.js:316 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.readingTime.wordsPerMinuteLatin` | number | 200 | scripts/build/articles.js:317 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.redirects.applyInServe` | bool | true | scripts/build/serve.js:73 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
+| `features.redirects.applyInServe` | bool | true | scripts/build/serve.js:77 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.redirects.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/h2-dataflow.test.js:311<br>scripts/h2-dataflow.test.js:315 | 既有引用 |
 | `features.redirects.generatePagesFile` | bool | true | scripts/build/security-files.js:28 | scripts/h2-dataflow.test.js:311 | 既有引用 |
 | `features.redirects.invalidRule` | enum | `abort` | scripts/build/security-files.js:36<br>scripts/lib/redirect-rules.js:26<br>scripts/lib/redirect-rules.js:34 | scripts/config-wiring.test.js:897 | 已测（marker） |
@@ -696,7 +696,7 @@
 | `internals.deploy.verifyOnDeploy` | bool | true | scripts/deploy-pages.js:23 | scripts/config-coverage-nonfeatures.test.js:667 | 已测（marker） |
 | `internals.ports.a11y` | number | 3224 | scripts/a11y-audit.js:29<br>scripts/a11y-audit.js:35<br>scripts/a11y-audit.js:36 | scripts/internals.test.js:32<br>scripts/internals.test.js:46 | 既有引用 |
 | `internals.ports.perf` | number | 3000 | scripts/perf-audit.js:26<br>scripts/build/report.js:205<br>scripts/build/report.js:207 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `internals.ports.serve` | number | 3000 | scripts/build/serve.js:48<br>scripts/build/context.js:265<br>scripts/build/context.js:430 | scripts/internals.test.js:31<br>scripts/internals.test.js:45 | 既有引用 |
+| `internals.ports.serve` | number | 3000 | scripts/build/serve.js:52<br>scripts/build/context.js:265<br>scripts/build/context.js:430 | scripts/internals.test.js:31<br>scripts/internals.test.js:45 | 既有引用 |
 | `internals.release.listLimit` | number | 200 | scripts/release-prune.js:60 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `internals.release.previewLimit` | number | 20 | scripts/release-prune.js:87<br>scripts/dist-hash-guard.js:14<br>scripts/release-prune.js:90 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `internals.report.maxBuildMsWarn` | number | 0 | scripts/build.js:405<br>scripts/build.js:406<br>scripts/build.js:407 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |

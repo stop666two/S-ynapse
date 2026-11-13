@@ -313,6 +313,34 @@ describe('security-worker integration (fixture config)', () => {
     assert.strictEqual(res.headers.get('X-Frame-Options'), 'DENY');
   });
 
+  it('只给 200 的 HTML 贴 SWR；404 页不得可复用', async () => {
+    const html = (status) => new Response('<html>page</html>', {
+      status,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
+    const ok = await worker.fetch(req('https://example.com/zh/', {}, '203.0.113.81'), makeEnv({
+      ASSETS: { fetch: async () => html(200) }
+    }));
+    assert.strictEqual(ok.status, 200);
+    assert.match(String(ok.headers.get('Cache-Control')), /stale-while-revalidate=86400/);
+    assert.match(String(ok.headers.get('Vary')), /Accept-Encoding/i);
+
+    const missing = await worker.fetch(req('https://example.com/zh/gone/', {}, '203.0.113.82'), makeEnv({
+      ASSETS: { fetch: async () => html(404) }
+    }));
+    assert.strictEqual(missing.status, 404);
+    assert.ok(
+      !/stale-while-revalidate/.test(String(missing.headers.get('Cache-Control'))),
+      '404 被贴 SWR 后，页面正式上线时访客仍会拿到缓存里的 404：' + missing.headers.get('Cache-Control')
+    );
+
+    // 非 HTML（例如图片）不应被这条规则影响
+    const asset = await worker.fetch(req('https://example.com/media/a.webp', {}, '203.0.113.83'), makeEnv({
+      ASSETS: { fetch: async () => new Response('bin', { status: 200, headers: { 'Content-Type': 'image/webp' } }) }
+    }));
+    assert.ok(!/stale-while-revalidate=86400/.test(String(asset.headers.get('Cache-Control') || '')));
+  });
+
   it('returns X-Request-Id (CF-Ray passthrough or generated UUID) on every response path', async () => {
     const viaRay = await worker.fetch(req('https://example.com/zh/', { headers: { 'CF-Ray': 'ray-probe-1' } }, '203.0.113.101'), makeEnv());
     assert.strictEqual(viaRay.headers.get('X-Request-Id'), 'ray-probe-1');

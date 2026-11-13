@@ -403,7 +403,9 @@ async function handleRequest(request, env) {
   // 只对 HTML 生效：静态资源由 _headers 的 immutable 规则负责，而 Cloudflare 会把同一
   // 请求命中的多条 Cache-Control 合并成一个逗号连接的头，不能再用 /* 统一加一层。
   const contentType = String(headers.get("content-type") || "").toLowerCase();
-  if (contentType.indexOf("text/html") !== -1) {
+  // 只对 200 生效：404/500 页同样是 text/html，给它们贴 SWR 会让「页面已上线」的访客
+  // 继续拿到缓存里的 404（最长 86400s），并让爬虫把 404 当可复用响应。
+  if (contentType.indexOf("text/html") !== -1 && response.status === 200) {
     headers.set("Cache-Control", "public, max-age=0, stale-while-revalidate=86400");
     const vary = String(headers.get("Vary") || "");
     if (!/accept-encoding/i.test(vary)) headers.set("Vary", vary ? vary + ", Accept-Encoding" : "Accept-Encoding");

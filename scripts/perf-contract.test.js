@@ -32,8 +32,10 @@ const firstMatch = (html, re) => {
 // 2G 慢网路径的预算（gzip 字节）。实测 111.2 KiB → 阈值 120 KiB；
 // 250 kbps 下约 3.9s 纯下载，是「2G 可接受」的上界。
 const SLOW_PATH_BUDGET_KB = 120;
-// 慢网路径的首屏请求数上界。实测 21（含 favicon/manifest/offline 等旁支）。
-const SLOW_PATH_MAX_REQUESTS = 22;
+// 慢网路径的 head 级静态资源数上界（stylesheet + preload + modulepreload + script[src]）。
+// 实测 11（zh/en 一致）；内容图片不计入——它随文章数变化，属内容驱动，不是布局预算。
+// 这条守的是「别往 head 里再堆阻塞/半阻塞资源」：2G 下每个请求多一次 350ms RTT。
+const MAX_HEAD_RESOURCES = 12;
 // SW 预缓存上界：只允许「离线壳最小集」。实测 6 项 / 82.6 KiB gzip。
 const PRECACHE_MAX_ENTRIES = 10;
 const PRECACHE_MAX_GZIP_KB = 110;
@@ -92,7 +94,7 @@ describe('performance contract (2G)', () => {
   it('缓存头契约：内容寻址资源 immutable，HTML 可复用且带 SWR', (t) => {
     if (!HAS_DIST) return t.skip(SKIP_NO_DIST);
     const headers = fs.readFileSync(path.join(DIST, '_headers'), 'utf8');
-    for (const rule of ['/assets/js/*', '/assets/css/*', '/assets/fonts/*', '/assets/config.*.json']) {
+    for (const rule of ['/assets/js/*', '/assets/css/*', '/assets/fonts/*', '/assets/config.*.json', '/assets/quotes.*.json']) {
       const block = headers.split('\n\n').find((b) => b.startsWith(rule));
       assert.ok(block, '_headers 缺少规则 ' + rule);
       assert.ok(/immutable/.test(block), rule + ' 应使用 immutable（文件名内容寻址）');
@@ -102,6 +104,11 @@ describe('performance contract (2G)', () => {
     const worker = fs.readFileSync(path.join(ROOT, 'workers', 'security-worker.js'), 'utf8');
     assert.ok(/stale-while-revalidate=86400/.test(worker), 'Worker 需为 HTML 下发 stale-while-revalidate');
     assert.ok(/text\/html/.test(worker), 'Worker 的 HTML 缓存分支应显式判定 content-type');
+    // 404 页同样是 text/html：SWR 必须只在 200 上贴，否则「已上线」的页面会被缓存里的 404 顶掉。
+    assert.ok(
+      /text\/html"\) !== -1 && response\.status === 200/.test(worker),
+      'Worker 的 SWR 必须限定 200（404/500 不得可复用）'
+    );
   });
 
   it('本地 serve 的缓存语义与生产一致（避免本地测不出缓存命中）', () => {
@@ -111,7 +118,12 @@ describe('performance contract (2G)', () => {
     assert.match(cacheControlFor('/zh/slug/'), /max-age=0/);
     assert.match(cacheControlFor('/assets/js/app.ABC123.js'), /immutable/);
     assert.match(cacheControlFor('/assets/css/site.9a0f.css'), /immutable/);
+    assert.match(cacheControlFor('/assets/config.02b50682e5.json'), /immutable/);
+    // 引语与启动配置同为内容寻址 JSON：本地不覆盖会让「拆分后是否仍命中缓存」无法复测。
+    assert.match(cacheControlFor('/assets/quotes.244b600f8b.json'), /immutable/);
     assert.match(cacheControlFor('/media/a.webp'), /max-age=604800/);
+    // 404 页同样以「/」结尾，不能被贴 SWR（与 Worker 的 200 守卫对齐）。
+    assert.strictEqual(cacheControlFor('/zh/does-not-exist/', 404), 'no-cache');
     assert.strictEqual(cacheControlFor('/robots.txt'), 'no-cache');
   });
 
@@ -148,5 +160,27 @@ describe('performance contract (2G)', () => {
     const appRefs = [...html.matchAll(/(?:src|href)=["']?([^"'\s>]*\/assets\/js\/app\.[^"'\s>]*)/g)].map((m) => m[1]);
     assert.ok(appRefs.length >= 2, 'app.js 应至少被 head 预载与 body script 各引用一次');
     assert.strictEqual(new Set(appRefs).size, 1, '两次引用必须是完全相同的 URL（否则会下两份）：' + appRefs.join(', '));
+  });
+
+  it('head 级静态资源数不超过预算（2G 下每个请求 = 一次 RTT）', (t) => {
+    if (!HAS_DIST) return t.skip(SKIP_NO_DIST);
+    // 只数真正发请求的 head 资源；`data-cjk-href` 这类数据属性必须排除，
+    // 否则无 href 的 cjk 样式会被误算成请求（`\bhref=` 会匹配 `data-cjk-href=`）。
+    const countHeadResources = (html) => {
+      const links = [...html.matchAll(/<link\b[^>]*>/g)].map((m) => m[0]);
+      const relOf = (tag) => ((tag.match(/rel=["']?([a-z\- ]+)/i) || [, ''])[1] || '').trim();
+      const hasHref = (tag) => /(?<![-\w])href=/.test(tag);
+      const headLinks = links.filter((tag) => hasHref(tag) && /^(stylesheet|preload|modulepreload)$/.test(relOf(tag)));
+      const scripts = [...html.matchAll(/<script\b[^>]*\ssrc=/g)].length;
+      return headLinks.length + scripts;
+    };
+    for (const rel of ['zh/index.html', 'en/index.html']) {
+      const html = fs.readFileSync(path.join(DIST, rel), 'utf8');
+      const n = countHeadResources(html);
+      assert.ok(
+        n <= MAX_HEAD_RESOURCES,
+        `${rel} 的 head 级静态资源 ${n} 个，超出预算 ${MAX_HEAD_RESOURCES}（2G 下每个多一次 RTT）`
+      );
+    }
   });
 });

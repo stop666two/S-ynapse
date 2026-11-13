@@ -11,7 +11,7 @@ const { createBuildErrorCollector, resolveExitCode, formatFailures, formatWarnin
 const { isScheduled } = require('./lib/publish-window');
 const { resolveOgSize, collectCoverSizesFromManifest } = require('./lib/og-size');
 const { buildBundles } = require('./lib/bundle');
-const { computeRelatedArticles } = require('./lib/related');
+const { computeRelatedArticles, relatedEnabled } = require('./lib/related');
 const { getAllFiles } = require('./build/fs-utils');
 const { collectBrokenMediaRefs } = require('./lib/content-validate');
 const { BROKEN_MEDIA_FILENAME } = require('./lib/og-cover');
@@ -255,7 +255,7 @@ async function build() {
     const tags = collectTags(articles);
     const categories = collectCategories(articles);
     debugMark('文章解析与媒体优化完成');
-    if (config.site.build.relatedArticles !== false) computeRelatedArticles(getPublished(articles), (config.features && config.features.related) || {});
+    if (relatedEnabled(config.site)) computeRelatedArticles(getPublished(articles), (config.features && config.features.related) || {});
     const pagesContent = processPagesContent();
     if (config.theme.articleFooter && config.theme.articleFooter.enabled && config.theme.articleFooter.source) {
       if (!pagesContent || !pagesContent[config.theme.articleFooter.source]) {

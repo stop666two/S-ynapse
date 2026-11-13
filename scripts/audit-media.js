@@ -4,8 +4,12 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+// 审查 R-33 接线：引入统一开关判定（features.mediaAudit.enabled）。
+const { mediaAuditEnabled } = require('./lib/build-switch-gates');
 
-const ROOT = path.resolve(__dirname, '..');
+// 站点根：SYNAPSE_ROOT（测试隔离用）优先，默认仓库根——与 scripts/build.js / generate-og.js 同约定，
+// 使本命令的双态行为可以在临时站点夹具上真实验证。
+const ROOT = process.env.SYNAPSE_ROOT ? path.resolve(process.env.SYNAPSE_ROOT) : path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
 const MEDIA_ROOTS = ['media', 'assets', 'videos'];
 const MEDIA_PREFIXES = ['media/', 'assets/', 'videos/'];
@@ -126,12 +130,19 @@ function findDuplicates(relPaths) {
 }
 
 function main() {
+  const cfg = loadAuditConfig();
+  // 审查 R-33 接线：features.mediaAudit.enabled=false 时直接跳过（exit 0，不报错），
+  // 并输出一行说明——用户显式调用命令但配置禁用了它，属于「按配置不执行」而非错误。
+  // 判定放在 articles 目录检查之前：禁用态无论仓库/夹具状态如何都稳定 exit 0。
+  if (!mediaAuditEnabled({ mediaAudit: cfg })) {
+    console.log('features.mediaAudit.enabled=false：媒体审计已禁用，跳过（如需恢复请在 features.json5 中改为 true）。');
+    return;
+  }
   if (!fs.existsSync(ARTICLES_DIR)) {
     console.error(`[ERROR] articles 目录不存在: ${ARTICLES_DIR}`);
     process.exit(1);
   }
   const args = parseArgs(process.argv);
-  const cfg = loadAuditConfig();
   const reportMissed = cfg.reportMissed === undefined ? true : !!cfg.reportMissed;
   const reportUnreferenced = cfg.reportUnreferenced === undefined ? true : !!cfg.reportUnreferenced;
   const reportDuplicate = cfg.reportDuplicate === undefined ? false : !!cfg.reportDuplicate;

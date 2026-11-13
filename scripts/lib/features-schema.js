@@ -67,7 +67,7 @@ const DEFAULT_FEATURES = {
     copyFeedbackMs: 1500
   },
   themeToggle: {
-    persistKey: 'ss-theme', toggleIconSwap: true, zIndex: 100
+    enabled: true, persistKey: 'ss-theme', toggleIconSwap: true, zIndex: 100
   },
   themePresets: {
     enabled: true, pickerVisible: true, persistChoice: true, storageKey: 'ss-preset',
@@ -168,7 +168,7 @@ const DEFAULT_FEATURES = {
     updateToastMs: 0, reloadFallbackMs: 3000
   },
   morphIcons: {
-    vendorPath: '/assets/vendor/morphicons', spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},
+    enabled: true, vendorPath: '/assets/vendor/morphicons', spring: 'snappy', reducedMotion: 'light', preload: 'interaction', perIcon: {},
     icons: { theme: true, copy: true, favorite: true, tts: true, menu: true },
     idleTimeoutMs: 3000
   },
@@ -263,15 +263,15 @@ const DEFAULT_FEATURES = {
     touchLongPress: true, touchLongPressMs: 500, hapticMs: 10, showHandleOnHover: true, resetOnLoadFail: true
   },
   exportBackup: {
-    includeMedia: true, includeConfig: true, outputDir: 'exports',
+    enabled: true, includeMedia: true, includeConfig: true, outputDir: 'exports',
     fileNamePrefix: 's-ynapse-backup'
   },
   mediaAudit: {
-    reportMissed: true, reportUnreferenced: true,
+    enabled: true, reportMissed: true, reportUnreferenced: true,
     reportDuplicate: false, output: 'console'
   },
   autoSummary: {
-    maxLength: 160, fallback: 'firstParagraph',
+    enabled: true, maxLength: 160, fallback: 'firstParagraph',
     stripMarkdown: true, ellipsis: '…'
   },
   searchEnginePing: {
@@ -300,7 +300,7 @@ const DEFAULT_FEATURES = {
     showInMeta: true, labelBefore: '', labelAfter: '阅读约需', labelAfterEn: ' min read'
   },
   codeCopy: {
-    buttonText: '复制', buttonTextEn: 'Copy', copiedText: '已复制', copiedTextEn: 'Copied', buttonTimeout: 1500,
+    enabled: true, buttonText: '复制', buttonTextEn: 'Copy', copiedText: '已复制', copiedTextEn: 'Copied', buttonTimeout: 1500,
     showLineNumbers: false
   },
   tocScrollSpy: {
@@ -418,7 +418,7 @@ const DEFAULT_FEATURES = {
     qrMaxWidth: '180px', closeText: '关闭', closeTextEn: 'Close', links: []
   },
   gallery: {
-    title: '图库', titleEn: 'Gallery', description: '站内图片集，点击查看大图。', descriptionEn: 'In-site image gallery. Click to view full size.',
+    enabled: true, title: '图库', titleEn: 'Gallery', description: '站内图片集，点击查看大图。', descriptionEn: 'In-site image gallery. Click to view full size.',
     emptyText: '暂无图片', emptyTextEn: 'No images', columns: 4, columnMin: '220px', showSource: true,
     collectFeatured: true,
     gap: '12px', showCaption: true, borderRadius: '8px'
@@ -453,7 +453,7 @@ const DEFAULT_FEATURES = {
   },
   redirects: { enabled: true, generatePagesFile: true, applyInServe: true, invalidRule: 'abort' },
   maintenance: {
-    message: '站点维护中，请稍后再来。', messageEn: 'The site is under maintenance. Please try again later.', status: 503,
+    enabled: false, message: '站点维护中，请稍后再来。', messageEn: 'The site is under maintenance. Please try again later.', status: 503,
     setRetryAfter: true, retryAfter: 3600
   },
   mobile: {

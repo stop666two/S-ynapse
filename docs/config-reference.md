@@ -479,6 +479,8 @@
 > 接线说明：`whitelistNewTab=true` 时白名单外链强制新标签页打开（`target=_blank + noopener/noreferrer` 等效，经 `window.open`，动态插入链接同样生效）；false（默认）= 浏览器默认行为（当前页跳转）。`copyButtonText(En)` 控制外链提醒浮层「复制链接」按钮文案（点击复制目标 URL，短暂显示「已复制」）：`copyButtonTextEn`（en 站，空回退中文键）> `copyButtonText` > `ui-strings.toolbar.copyLink`（新增双语）> 内置文案；默认 `复制`/`Copy`（见 CHANGELOG Added）。
 
 ### 3.8 themeToggle
+
+`enabled true`(模块启停：false = 顶栏按钮与移动端底部导航「主题」项都不渲染，也不再暴露 `window.toggleDark`；仍需 `theme.darkMode.enabled` 与 `theme.darkMode.toggle` 同真)
 `persistKey ss-theme`(主题偏好存储键；`theme.darkMode.rememberChoice=false` 时改用 sessionStorage 同键) / `toggleIconSwap true`(仅在 `theme.darkMode.iconStyle='sun-moon'` 时生效：切换交替太阳/月亮图标) / `zIndex 100`(按钮 CSS z-index)。**切换过渡时长的唯一来源为 `theme.animation.transitionDuration`（经 `tuning.motion.transitionDuration` 覆盖）；默认主题/是否记忆/图标样式/是否整体过渡的唯一来源为 `theme.json5 → darkMode.default / rememberChoice / iconStyle / transitionAll`**（运行时经外置配置 `window.__THEME__.darkMode` 读取，模板早置脚本服务端直读）。`iconStyle`：`sun-moon` 双图标交替（默认）/ `single` 常显单个月亮图标 / `switch` CSS 滑块开关；`transitionAll=true`（默认）切换时给 `<html>` 加 `.theme-switching`（`--td` 时长后移除），false=不加类瞬时切换。`rememberChoice=false` 时早置脚本与切换均忽略 localStorage 旧值、仅用 sessionStorage。
 
 ### 3.9 shortcuts — 快捷键
@@ -604,6 +606,8 @@
 > **接线说明（关闭路径门控）**：`closeByBtn` / `closeByOverlay` / `closeByEsc` 分别控制关闭按钮、点击遮罩、Esc 三种关闭方式，默认 `true`（现行为）；显式 `false` 使对应路径失效（其余路径仍可关闭）。canonical：`scripts/lib/feature-wiring.js → rewardCloseConfig`（单测覆盖三态）。
 
 ### 3.25 gallery — 图库页
+
+`enabled true`(模块启停：false = 不生成 `/{lang}/gallery/` 页、sitemap 不含该 URL、自动移除导航/页脚入口并清理上一轮残留产物；与 `site.build.generateGallery` 为「与」关系)
 `title 图库` / `description 站内图片集，点击查看大图。` / `emptyText 暂无图片`（`titleEn`/`descriptionEn`/`emptyTextEn` en 站文案，空回退中文） / `columns 4` / `columnMin 220px` / `showSource true` / `collectFeatured true` / `gap 12px`(瀑布流列间距 CSS) / `showCaption true`(图片下方显示来源说明) / `borderRadius 8px`(卡片圆角 CSS)
 
 > 接线说明：`collectFeatured=true`（默认）= 图库收集文章封面图 + 正文图片（按 src 去重）；`false` = 仅收集正文图片（`scripts/build/collectors.js → collectGalleryImages(articles, { collectFeatured })` 参数化，单测覆盖两态）。图库为全量聚合：每次构建重新收集，无增量清单缓存。
@@ -695,6 +699,8 @@
 > - canonical：`scripts/lib/redirect-rules.js` + `scripts/build/security-files.js` + `scripts/build/serve.js`。
 
 ### 3.32 maintenance
+
+`enabled false`(模块启停：true = Worker 与本地 serve 返回维护页；与 serve 参数 `--maintenance`、Worker 环境变量 `MAINTENANCE=1` 取或，环境变量仍可临时开启)
 
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -885,6 +891,8 @@ sitemap: {
 
 ### 3.61 morphIcons — 图标变形动画
 
+`enabled true`(模块启停：false = 全部图标恢复静态切换；运行期入口短路，不注册交互探针、不加载任何 vendor 代码)
+
 `vendorPath '/assets/vendor/morphicons'`(vendor 图标目录) / `spring 'snappy'`(`smooth|snappy|bouncy`) / `reducedMotion 'light'`(`light|off|full`;light=系统 reduce-motion 下改用更快的轻量弹簧) / `preload 'interaction'`(`interaction|idle|immediate`) / `idleTimeoutMs 3000`(仅 `preload='idle'` 生效：requestIdleCallback 强制加载超时 ms) / `perIcon {}`(单图标弹簧覆盖,值=预设名或 `{stiffness,damping}`) / `icons { theme, copy, favorite, tts, menu }`(各图标独立开关)。基于 morphicons(本地 vendor,懒加载,~7.5KB gzip):状态切换类图标用弹簧物理做形状变形(主题 sun↔moon、复制 copy→check、收藏空心↔实心、朗读扬声器↔停止、移动端汉堡↔X);关闭任意开关均回退原有静态实现;弹簧参数见 `tuning.morphicons`(stiffness/damping 与轻量版 reducedStiffness/reducedDamping;同时设置时优先于 spring 预设)。
 
 ### 3.62 viewTransition — 跨文档过渡动画
@@ -965,13 +973,19 @@ sitemap: {
 
 ### 3.81 exportBackup — 备份导出
 
+`enabled true`(模块启停：false = `npm run export` 拒绝执行，非零退出码并输出原因，不创建 `exports/`)
+
 `includeMedia true`（打包 `media/` 图片）/ `includeConfig true`（打包 14 个 JSON5 配置，含 compression.json5）/ `outputDir 'exports'`（输出目录）/ `fileNamePrefix 's-ynapse-backup'`（归档名前缀，实际文件名追加时间戳）。由 `npm run export` 调用：配置 + 文章 + 媒体打包为单一归档，便于迁移与留档 — `scripts/export.js`。
 
 ### 3.82 mediaAudit — 媒体审计
 
+`enabled true`(模块启停：false = `npm run audit:media` 直接跳过，exit 0 并输出一行说明，不写 `media-audit.json`)
+
 `reportMissed true`（报告文章引用但磁盘缺失的图片）/ `reportUnreferenced true`（报告存在但未被任何文章引用的图片）/ `reportDuplicate false`（报告内容重复的文件，默认关，大站耗时）/ `output 'console'`（报告输出方式）。由 `npm run audit:media` 调用；构建期发现引用缺失会记入构建报告 — `scripts/audit-media.js`。
 
 ### 3.83 autoSummary — 自动摘要
+
+`enabled true`(模块启停：false = 文章未写 `excerpt` 时不再从正文派生摘要，仅用作者手写值；`maxLength`/`ellipsis` 与手写 excerpt 的处理不受影响)
 
 `maxLength 160`（摘要最大字符数）/ `fallback 'firstParagraph'`（front-matter 无 `description` 时的回退取值）/ `stripMarkdown true`（frontmatter `excerpt` 先剥离 Markdown 标记（链接/强调/标题/列表/代码/内联 HTML）再使用；false=原样保留，纯函数 `scripts/lib/feature-wiring.js → stripMarkdownText`。注：无 frontmatter excerpt 时自动摘要由渲染后 HTML 去标签生成，天然不含 Markdown）/ `ellipsis '…'`（截断省略号，空则不加）。用于 SEO `<meta name="description">` 与列表摘要 — `scripts/build/articles.js`。
 
@@ -992,6 +1006,8 @@ sitemap: {
 `enabled true` / `wordsPerMinuteCJK 250`（中文每分钟字数）/ `wordsPerMinuteLatin 200`（拉丁文每分钟词数）/ `showInMeta true`（文章元信息区展示；false 同时隐藏配置文案与模板内置「分钟阅读」两处）/ `labelBefore ''` / `labelAfter '阅读约需'`（`labelAfterEn` 为 en 站后缀「 min read」，空回退中文；前/后缀空则回退 `ui-strings` 词典）。CJK 与拉丁字符分别按各自速率估算后相加 — `templates/post.ejs`。
 
 ### 3.88 codeCopy — 代码块复制按钮
+
+`enabled true`(模块启停：false = 不渲染单块复制按钮与「复制全部代码」行，也不绑定复制逻辑；窗口栏/语言标签/下载按钮属 `features.codeBlock`)
 
 `buttonText '复制'` / `copiedText '已复制'`（成功态文案）/ `buttonTextEn ''` / `copiedTextEn ''`（en 站文案，空回退中文/词典）/ `buttonTimeout 1500`（成功态停留毫秒）/ `showLineNumbers false`（行号列）。文案留空时回退 `ui-strings` 词典；运行时按页面语言取 `*En` — `js/domains/core/code-block.js`。**窗栏（Mac 窗栏样条）由 `features.codeBlock.windowBar` 控制（单一来源）。**
 

@@ -51,7 +51,16 @@ const FALLBACK = {
   pathRestrictions: ["/admin/*"],
   forceHttps: true,
   // 维护响应默认设置 Retry-After: 3600；正式产物由构建期按 features.maintenance 覆盖。
-  maintenance: { setRetryAfter: MAINTENANCE_FALLBACKS.setRetryAfter, retryAfter: MAINTENANCE_FALLBACKS.retryAfter },
+  // 审查 R-33 接线：enabled/message/messageEn/status 来自 features.maintenance（构建期投影，
+  // 缺失即 false / 空串 / 503，因此维护页输出与接线前的行为一致）。
+  maintenance: {
+    enabled: MAINTENANCE_FALLBACKS.enabled,
+    message: MAINTENANCE_FALLBACKS.message,
+    messageEn: MAINTENANCE_FALLBACKS.messageEn,
+    status: MAINTENANCE_FALLBACKS.status,
+    setRetryAfter: MAINTENANCE_FALLBACKS.setRetryAfter,
+    retryAfter: MAINTENANCE_FALLBACKS.retryAfter
+  },
   headers: {
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",
@@ -80,11 +89,30 @@ function resolveWorkerConfig(config) {
   const cspConfig = cfg.csp || FALLBACK.csp;
   const blockedRules = Array.isArray(cfg.pathRestrictions) ? cfg.pathRestrictions : FALLBACK.pathRestrictions;
   const skipPaths = Array.isArray(rl.skipPaths) ? rl.skipPaths : DEFAULT_SKIP_PATHS;
-  const maintenance = cfg.maintenance && typeof cfg.maintenance === "object" ? cfg.maintenance : FALLBACK.maintenance;
+  const maintenance = resolveMaintenanceConfig(cfg.maintenance);
   const reportMaxBytes = Number.isFinite(Number(cfg.cspReportMaxBytes)) && Number(cfg.cspReportMaxBytes) > 0
     ? Math.floor(Number(cfg.cspReportMaxBytes))
     : CSP_REPORT_MAX_BYTES;
   return { rl, cspConfig, blockedRules, skipPaths, maintenance, reportMaxBytes };
+}
+
+/**
+ * 维护配置归一化（审查 R-33 接线：features.maintenance.message/messageEn/status 此前零消费）。
+ * 手写损坏的 security-config.js 不应把维护页变成 200 或塞入非字符串文案，因此这里按与构建期
+ * 相同的规则再校验一次：文案只收字符串（空串 = 未配置，运行时回退内置语），
+ * status 只收 400–599 整数（否则 503）。
+ */
+function resolveMaintenanceConfig(raw) {
+  const m = raw && typeof raw === "object" ? raw : FALLBACK.maintenance;
+  const status = Number(m.status);
+  return {
+    enabled: m.enabled === true,
+    message: typeof m.message === "string" ? m.message : "",
+    messageEn: typeof m.messageEn === "string" ? m.messageEn : "",
+    status: Number.isInteger(status) && status >= 400 && status <= 599 ? status : MAINTENANCE_FALLBACKS.status,
+    setRetryAfter: m.setRetryAfter !== false,
+    retryAfter: m.retryAfter
+  };
 }
 
 const { rl, cspConfig, blockedRules, skipPaths, maintenance: maintenanceCfg, reportMaxBytes: cspReportMaxBytes } = resolveWorkerConfig(CONFIG);
@@ -128,14 +156,19 @@ function getStyleNonce() {
 }
 
 /**
- * 维护页文案：默认中英双语内置，按 Accept-Language 选择（en* → 英文，其余 → 中文）；
- * 自定义 MAINTENANCE_MESSAGE 原样覆盖正文（输出前 HTML 转义）。<style> 仅在生效 CSP
+ * 维护页文案：优先级 MAINTENANCE_MESSAGE（环境变量，运维单条覆盖）> features.maintenance.message
+ * / messageEn（构建期投影，按 Accept-Language 选：en* → messageEn，其余 → message，任一为空则
+ * 回退另一条）> 内置中/英默认语。所有分支在输出前 HTML 转义。<style> 仅在生效 CSP
  * 含构建期 nonce 时注入同一 nonce（FALLBACK 无 nonce，依赖 style-src 'unsafe-inline'）。
  */
-function maintenanceCopy(acceptLanguage, env) {
+function maintenanceCopy(acceptLanguage, env, maintenance) {
   const en = prefersEnglish(acceptLanguage);
+  const cfg = maintenance && typeof maintenance === "object" ? maintenance : {};
   const custom = env && env.MAINTENANCE_MESSAGE ? String(env.MAINTENANCE_MESSAGE) : "";
-  const rawMessage = custom || (en ? "The site is under maintenance. Please check back later." : "本站正在维护中，请稍后再来。");
+  // 审查 R-33 接线：message/messageEn 此前零消费。en* 优先 messageEn（features.json5 语义：
+  // messageEn 为空 = 回退中文 message），非 en 只用 message。
+  const configured = en ? (cfg.messageEn || cfg.message || "") : (cfg.message || "");
+  const rawMessage = custom || configured || (en ? "The site is under maintenance. Please check back later." : "本站正在维护中，请稍后再来。");
   const heading = en ? "Maintenance" : "维护中";
   const nonce = getStyleNonce();
   return {
@@ -251,12 +284,14 @@ async function handleRequest(request, env) {
   const requestId = request.headers.get("CF-Ray") || crypto.randomUUID();
   const log = makeLog(env, requestId);
 
-  // Maintenance mode — enabled by setting env var MAINTENANCE=1 (e.g. via wrangler deploy).
-  // Default notice is bilingual and picked by Accept-Language (en* → English, otherwise
-  // Chinese); optional env var MAINTENANCE_MESSAGE overrides the notice verbatim (HTML-escaped).
-  if (env && env.MAINTENANCE === "1") {
+  // Maintenance mode — enabled either by env var MAINTENANCE=1 (e.g. via wrangler deploy,
+  // 运维可临时开启，无需重新构建) or by features.maintenance.enabled=true (构建期投影，
+  // 审查 R-33 接线：此前该键零消费). 两者取或：任一为真即维护态，都为假照常服务。
+  // Notice priority: MAINTENANCE_MESSAGE env > features.maintenance.message/messageEn (picked by
+  // Accept-Language, en* → English) > built-in bilingual defaults; output is always HTML-escaped.
+  if ((env && env.MAINTENANCE === "1") || maintenanceCfg.enabled === true) {
     log.info("maintenance_served", { path: url.pathname });
-    const copy = maintenanceCopy(request.headers.get("Accept-Language"), env);
+    const copy = maintenanceCopy(request.headers.get("Accept-Language"), env, maintenanceCfg);
     const html = `<!DOCTYPE html><html lang="${copy.lang}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${copy.title}</title><style${copy.nonceAttr}>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f7fafc;color:#1a202c}h1{font-weight:700}p{color:#4a5568}</style></head><body><main><h1>${copy.heading}</h1><p>${copy.message}</p></main></body></html>`;
     const maintHeaders = {
       "Content-Type": "text/html; charset=utf-8",
@@ -266,7 +301,9 @@ async function handleRequest(request, env) {
     if (maintenanceCfg.setRetryAfter !== false) {
       maintHeaders["Retry-After"] = String(maintenanceCfg.retryAfter || 3600);
     }
-    return edgeResponse(html, 503, maintHeaders, requestId);
+    // 审查 R-33 接线：维护响应状态码来自 features.maintenance.status（归一化后 400–599，
+    // 否则 503），此前硬编码 503。
+    return edgeResponse(html, maintenanceCfg.status, maintHeaders, requestId);
   }
 
   // HTTP→HTTPS redirect in production only (local dev uses HTTP)

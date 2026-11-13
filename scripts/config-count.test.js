@@ -27,19 +27,19 @@ test('countLeaves：对象逐层展开、数组逐项、数组内对象不展开
   assert.strictEqual(countLeaves({ a: [] }), 0);
 });
 
-test('实测计数：features 103 模块/1032 项、tuning 37 分类/274 项、全仓 2831 项', (t) => {
+test('实测计数：features 103 模块/1040 项、tuning 37 分类/274 项、全仓 2839 项', (t) => {
   if (DERIVED_COPY) {
     t.skip(DERIVED_SKIP_REASON);
     return;
   }
   const { perFile, total } = countConfigFiles(ROOT, ALL_CONFIG_FILES);
   assert.strictEqual(perFile['features.json5'].topKeys, 103, 'features 模块数');
-  assert.strictEqual(perFile['features.json5'].items, 1032, 'features 配置项');
+  assert.strictEqual(perFile['features.json5'].items, 1040, 'features 配置项');
   assert.strictEqual(perFile['tuning.json5'].topKeys, 37, 'tuning 分类数');
   assert.strictEqual(perFile['tuning.json5'].items, 274, 'tuning 配置项');
   assert.strictEqual(perFile['guard.json5'].topKeys, 11, 'guard 模块数');
   assert.strictEqual(perFile['guard.json5'].items, 182, 'guard 配置项');
-  assert.strictEqual(total, 2831, '14 个配置文件总项（审查 R-33 删除 45 个零消费键：ui-strings 36 + theme 7 + navigation 1 + site 1；本轮再删 features 19 个零消费键）');
+  assert.strictEqual(total, 2839, '14 个配置文件总项（审查 R-33：首轮删 45 个零消费键，再删 features 19 个，随后按用户决定把 8 个模块级 enabled 反向接线并恢复为真实生效）');
 });
 
 test('README：总数/features/tuning 计数与实测一致，无旧计数残留', (t) => {
@@ -50,16 +50,16 @@ test('README：总数/features/tuning 计数与实测一致，无旧计数残留
   const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf-8');
   const totalMatch = /实测 (\d+) 项/.exec(readme);
   assert.ok(totalMatch, 'README 应声明「实测 N 项」');
-  assert.strictEqual(Number(totalMatch[1]), 2831, 'README 总项数');
+  assert.strictEqual(Number(totalMatch[1]), 2839, 'README 总项数');
   const featMatch = /\*\*(\d+) 个模块、(\d+) 个配置项\*\*/.exec(readme);
   assert.ok(featMatch, 'README 应声明 features 模块数/配置项数');
   assert.strictEqual(Number(featMatch[1]), 103, 'README features 模块数');
-  assert.strictEqual(Number(featMatch[2]), 1032, 'README features 配置项');
+  assert.strictEqual(Number(featMatch[2]), 1040, 'README features 配置项');
   const tunMatch = /（(\d+) 分类 \/ (\d+) 项）/.exec(readme);
   assert.ok(tunMatch, 'README 应声明 tuning 分类数/项数');
   assert.strictEqual(Number(tunMatch[1]), 37, 'README tuning 分类数');
   assert.strictEqual(Number(tunMatch[2]), 274, 'README tuning 项数');
-  assert.ok(readme.includes('103 模块/1032 项'), 'README 目录树 features 计数应同步');
+  assert.ok(readme.includes('103 模块/1040 项'), 'README 目录树 features 计数应同步');
   assert.ok(readme.includes('37 分类/274 项'), 'README 目录树 tuning 计数应同步');
   // guard 目录树计数取实测值：写死 181 会与配置（182 项）漂移，正文表格另行断言
   const guardItems = countConfigFiles(ROOT, ALL_CONFIG_FILES).perFile['guard.json5'].items;
@@ -73,6 +73,8 @@ test('README：总数/features/tuning 计数与实测一致，无旧计数残留
   assert.ok(!readme.includes('1017 个配置项'), 'README 不得残留旧 features 计数 1017');
   assert.ok(!readme.includes('102 模块/1017'), 'README 目录树不得残留旧 features 计数');
   assert.ok(!readme.includes('2850'), 'README 不得残留旧总数 2850');
+  assert.ok(!readme.includes('2831'), 'README 不得残留旧总数 2831');
+  assert.ok(!readme.includes('1032 项'), 'README 不得残留旧 features 计数 1032');
   assert.ok(!readme.includes('1008 个配置项'), 'README 不得残留旧 features 计数 1008');
   assert.ok(!readme.includes('101 模块/1008'), 'README 目录树不得残留旧 features 计数');
   assert.ok(!readme.includes('2802'), 'README 不得残留旧总数 2802');

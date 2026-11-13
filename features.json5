@@ -518,6 +518,10 @@
   // 8. 明暗主题切换
   // ---------------------------------------------------------------------------
   themeToggle: {
+    // 启用明暗主题切换（false = 顶栏按钮与移动端底部导航「主题」项都不渲染，也不再暴露 window.toggleDark）。
+    // 仍需 theme.darkMode.enabled=true 且 theme.darkMode.toggle=true 才会出现按钮。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
+    enabled: true,
     // 主题选择的 localStorage 键名（theme.darkMode.rememberChoice=false 时改用 sessionStorage 同键名）。
     // 类型: string | 可填: 任意合法存储键 | 不可填: 空串（回退 'ss-theme'） | 推荐: 'ss-theme'
     persistKey: 'ss-theme',
@@ -780,6 +784,10 @@
   // ---------------------------------------------------------------------------
   // 导出备份命令 npm run export 的配置。
   exportBackup: {
+    // 导出备份命令总开关（npm run export）。
+    // 作用: false = 命令拒绝执行（非零退出码 + [ERROR] 原因），不创建 exports/ 目录
+    // 类型: boolean | 可填: true(默认)/false | 推荐: true
+    enabled: true,
     // 是否将 media/assets/videos 媒体目录一并打包。
     includeMedia: true,
     // 是否将 13 个配置文件一并打包。
@@ -793,6 +801,10 @@
   // ---------------------------------------------------------------------------
   // npm run audit:media 媒体审计配置。
   mediaAudit: {
+    // 媒体审计命令总开关（npm run audit:media）。
+    // 作用: false = 命令直接跳过（exit 0，输出一行说明），不扫描文章/媒体、不写 media-audit.json
+    // 类型: boolean | 可填: true(默认)/false | 推荐: true
+    enabled: true,
     // 报告引用的媒体文件缺失(文章引用但文件不存在)。
     reportMissed: true,
     // 报告未被任何文章引用的媒体文件(孤儿资源)。
@@ -805,6 +817,11 @@
 
   // ---------------------------------------------------------------------------
   autoSummary: {
+    // 自动摘要总开关。
+    // 作用: false = 文章未写 frontmatter excerpt 时不再从正文派生摘要，只用作者手写的 excerpt
+    // 类型: boolean | 可填: true(默认)/false | 推荐: true
+    // 注意: 只影响「自动生成」这一条路径；maxLength/ellipsis 与手写 excerpt 的处理照常生效
+    enabled: true,
     // 摘要最大字符数(中英混排)。
     maxLength: 160,
     // 回退策略:firstParagraph(取正文首段)。
@@ -964,6 +981,10 @@
 
   // ---------------------------------------------------------------------------
   codeCopy: {
+    // 启用代码块复制按钮（false = 不渲染单块复制按钮与「复制全部代码」行，也不绑定复制逻辑）。
+    // 窗口栏/语言标签/下载按钮属于 features.codeBlock，不受本开关影响。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
+    enabled: true,
     // 按钮文案。
     buttonText: '复制',
     // 复制按钮文案（en 站；空 = 回退中文）。
@@ -1720,6 +1741,11 @@
   // 24. 图库页
   // ---------------------------------------------------------------------------
   gallery: {
+    // 是否启用图库页 /{lang}/gallery/（图库模块总开关）。
+    // 作用: false = 不生成图库页、sitemap 不含图库 URL、自动移除导航/页脚中指向 /gallery 的入口，并清理上一轮残留产物
+    // 类型: boolean | 可填: true(默认)/false | 推荐: true
+    // 注意: 与 site.build.generateGallery 是「与」关系，任一 false 都不产出
+    enabled: true,
     // 页面标题。
     title: '图库',
     // 页面标题（en 站；空 = 回退中文）。
@@ -1933,6 +1959,10 @@
   // ---------------------------------------------------------------------------
   // 维护模式开关：本地 serve 参数 --maintenance 生效;生产由 Worker 环境变量 MAINTENANCE=1。
   maintenance: {
+    // 是否进入维护模式（默认 false）：true 时 Worker 返回维护页，本地 serve 同样返回维护页。
+    // 与 serve 参数 --maintenance、Worker 环境变量 MAINTENANCE=1 等价（三者取或）；环境变量仍可临时开启，无需改配置。
+    // 类型: boolean | 可填: true/false(默认) | 推荐: false（仅在维护窗口临时开启）
+    enabled: false,
     // 维护提示消息。
     message: '站点维护中，请稍后再来。',
     // 维护提示消息（en 站；空 = 回退中文）。
@@ -2477,6 +2507,10 @@
   // 46. 图标变形动画(状态切换类图标 ↔ 弹簧物理变形)
   // ---------------------------------------------------------------------------
   morphIcons: {
+    // 启用图标变形动画（false = 全部图标恢复静态切换的原始实现）。
+    // 关闭后运行期不加载任何 vendor 代码：assets/vendor/morphicons 仍会被构建复制，但不会发出一次请求。
+    // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
+    enabled: true,
     // vendor 图标资产目录(站内绝对路径;构建复制 assets/vendor 后由此加载)。
     // 类型: string | 推荐: '/assets/vendor/morphicons'
     vendorPath: '/assets/vendor/morphicons',

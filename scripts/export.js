@@ -4,8 +4,11 @@ require('./lib/process-guard.js');
 
 const fs = require('fs');
 const path = require('path');
+// 审查 R-33 接线：引入统一开关判定（features.exportBackup.enabled）。
+const { exportBackupEnabled } = require('./lib/build-switch-gates');
 
-const ROOT = path.resolve(__dirname, '..');
+// 站点根：SYNAPSE_ROOT（测试隔离用）优先，默认仓库根——与 scripts/build.js / generate-og.js 同约定。
+const ROOT = process.env.SYNAPSE_ROOT ? path.resolve(process.env.SYNAPSE_ROOT) : path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
 const CONFIG_FILES = [
   'site.json5',
@@ -107,15 +110,22 @@ function makeBackupDirectory(baseDir, fileNamePrefix) {
 }
 
 function main() {
+  const features = loadFeatures();
+  const exportCfg = features.exportBackup && typeof features.exportBackup === 'object'
+    ? features.exportBackup
+    : {};
+  // 审查 R-33 接线：features.exportBackup.enabled=false 时拒绝执行。
+  // 用户显式调用了 npm run export，静默成功会让人误以为备份已生成，因此非零退出 + 明确原因。
+  // 判定先于 articles 目录检查：禁用态的输出与仓库状态无关，便于脚本/CI 断言。
+  if (!exportBackupEnabled(features)) {
+    console.error('[ERROR] features.exportBackup.enabled=false：导出备份已禁用；如需导出请在 features.json5 中改为 true。');
+    process.exit(1);
+  }
   if (!fs.existsSync(ARTICLES_DIR)) {
     console.error(`[ERROR] articles 目录不存在: ${ARTICLES_DIR}`);
     process.exit(1);
   }
   const args = parseArgs(process.argv);
-  const features = loadFeatures();
-  const exportCfg = features.exportBackup && typeof features.exportBackup === 'object'
-    ? features.exportBackup
-    : {};
   const includeMedia = exportCfg.includeMedia === undefined ? true : !!exportCfg.includeMedia;
   const includeConfig = exportCfg.includeConfig === undefined ? true : !!exportCfg.includeConfig;
   const outputDir = args.dir || exportCfg.outputDir || DEFAULT_OUTPUT_DIR;

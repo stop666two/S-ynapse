@@ -9,6 +9,7 @@ const { escapeHtml, stripHtml, stripInvalidXmlChars, truncateCodePoints } = requ
 const { buildSitemapUrls, encodeLoc, toSitemapLastmod } = require('../lib/robots');
 const { resolveJsonFeedOptions } = require('../lib/feed-options');
 const { localSearchIndexNeeded } = require('../lib/feature-wiring');
+const { galleryPageEnabled } = require('../lib/build-switch-gates');
 const { DEFAULT_FEATURES } = require('../lib/features-schema');
 const { DEFAULT_CONFIG } = require('../lib/site-defaults');
 const { cacheBustExclusionOptions } = require('../lib/cache-bust-exclusions');
@@ -200,7 +201,9 @@ function createFeedsModule(ctx) {
           urls.push({ loc: a.url, changefreq: postFreq, priority: String(postPr), lastmod: a.modified || a.date || undefined });
         }
         if (config.site.build.generateArchive !== false) urls.push({ loc: pf + 'archive/', changefreq: pageFreq, priority: String(pagePr) });
-        if (config.site.build.generateGallery !== false) urls.push({ loc: pf + 'gallery/', changefreq: pageFreq, priority: String(pagePr) });
+        // 审查 R-33 接线：features.gallery.enabled 与 site.build.generateGallery 任一关闭都不写入本条
+        //（否则 sitemap 会宣布一个不存在的 /{lang}/gallery/）。
+        if (galleryPageEnabled(config)) urls.push({ loc: pf + 'gallery/', changefreq: pageFreq, priority: String(pagePr) });
         if (config.site.build.generateTags !== false) {
           urls.push({ loc: pf + 'tags/', changefreq: tagFreq, priority: String(tagPr) });
           for (const tag of langTags) urls.push({ loc: pf + 'tags/' + tag.slug + '/', changefreq: tagFreq, priority: String(tagPr) });

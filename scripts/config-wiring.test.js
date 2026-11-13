@@ -943,14 +943,15 @@ test('performanceWarnings：超限逐项输出、缺省/非法阈值不告警（
 test('maintenanceWorkerConfig：setRetryAfter/retryAfter 归一化（Worker 链）', () => {
   // switch: features.maintenance.setRetryAfter, features.maintenance.retryAfter
   const { maintenanceWorkerConfig } = require('./generate-security-config.js');
-  assert.deepStrictEqual(maintenanceWorkerConfig({}), { setRetryAfter: true, retryAfter: 3600 });
-  assert.deepStrictEqual(maintenanceWorkerConfig({ maintenance: { setRetryAfter: false, retryAfter: 120 } }), { setRetryAfter: false, retryAfter: 120 });
-  assert.deepStrictEqual(maintenanceWorkerConfig({ maintenance: { retryAfter: '60' } }), { setRetryAfter: true, retryAfter: 60 });
+  // 审查 R-33 接线后投影新增 enabled/message/messageEn/status（默认 false/''/''/503），断言按完整形状收紧而非放宽。
+  assert.deepStrictEqual(maintenanceWorkerConfig({}), { enabled: false, message: '', messageEn: '', status: 503, setRetryAfter: true, retryAfter: 3600 });
+  assert.deepStrictEqual(maintenanceWorkerConfig({ maintenance: { setRetryAfter: false, retryAfter: 120 } }), { enabled: false, message: '', messageEn: '', status: 503, setRetryAfter: false, retryAfter: 120 });
+  assert.deepStrictEqual(maintenanceWorkerConfig({ maintenance: { retryAfter: '60' } }), { enabled: false, message: '', messageEn: '', status: 503, setRetryAfter: true, retryAfter: 60 });
   assert.strictEqual(maintenanceWorkerConfig({ maintenance: { retryAfter: -5 } }).retryAfter, 3600);
   assert.strictEqual(maintenanceWorkerConfig({ maintenance: { retryAfter: 'abc' } }).retryAfter, 3600);
   const { extractWorkerSecurity } = require('./generate-security-config.js');
   const extracted = extractWorkerSecurity({ headers: {} }, null, { maintenance: { setRetryAfter: false, retryAfter: 90 } });
-  assert.deepStrictEqual(extracted.maintenance, { setRetryAfter: false, retryAfter: 90 });
+  assert.deepStrictEqual(extracted.maintenance, { enabled: false, message: '', messageEn: '', status: 503, setRetryAfter: false, retryAfter: 90 });
 });
 
 test('debugConfig / configSummary：默认关闭、摘要脱敏', () => {

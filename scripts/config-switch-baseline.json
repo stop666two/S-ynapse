@@ -1,7 +1,6 @@
 {
   "note": "配置开关覆盖基线（审查 R-33）：verify:config-single-source 要求每个布尔/枚举/数值开关都有测试证据（带断言的 test 内 marker、或含模块名的测试代码引用、或逐键豁免）。本文件是 2026-11-13 严格化后「仍无测试证据」的开关全集——只允许缩小：新增未覆盖开关会让门禁失败（现有覆盖不得回退）；把本表中的键补上证据后必须同步删除其条目，否则门禁同样失败（基线不得变成永久借口）。键按字典序排列，逐行 diff 即「本轮补了哪些」或「本轮漏了哪些」。",
   "keys": [
-    "contentPolicy.enabled",
     "features.anchorStabilize.enabled",
     "features.announcement.enabled",
     "features.announcement.removeDelayMs",
@@ -13,9 +12,7 @@
     "features.backToTop.enabled",
     "features.background.particles.count",
     "features.background.particles.opacity",
-    "features.boot.enabled",
     "features.boot.idleTimeoutMs",
-    "features.boot.interactionWake",
     "features.boot.log",
     "features.breadcrumb.enabled",
     "features.cardFx.enabled",
@@ -59,8 +56,6 @@
     "features.lightbox.zoomMax",
     "features.lightbox.zoomStep",
     "features.listCover.lazy",
-    "features.loading.delayMs",
-    "features.loading.enabled",
     "features.magazine.enabled",
     "features.maintenance.enabled",
     "features.math.strict",

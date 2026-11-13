@@ -3,10 +3,17 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const WORKERS_DIR = path.join(__dirname, '..', 'workers');
 const CONFIG_PATH = path.join(WORKERS_DIR, 'security-config.js');
+// 审查 R-12：workers/security-config.js 被 .gitignore 忽略且是生产 Worker 的配置。
+// 此前的 fixture 直接覆写它、只在 after 恢复 —— 测试被 SIGINT/超时打断就会把夹具留在工作区，
+// 随后 `npm run deploy:worker` 会把夹具推上生产。因此这里在模块加载时记录原始字节，
+// 由末尾的隔离断言证明整个测试套件对它只读。
+const CONFIG_SNAPSHOT = fs.existsSync(CONFIG_PATH) ? fs.readFileSync(CONFIG_PATH) : null;
 const FIXTURE = {
   rateLimiting: {
     enabled: true,
@@ -33,8 +40,9 @@ const FIXTURE = {
 };
 
 let worker = null;
-let originalConfig = null;
-let originalExisted = false;
+// 审查 R-12：fixture 配置写进 workers/ 的临时副本，仓库文件完全不被触碰。
+// 临时目录在 after 清理；before 内部抛错时也立即清理，避免遗留。
+let tmpRoot = null;
 
 function makeEnv(overrides) {
   return Object.assign({
@@ -104,7 +112,10 @@ describe('workers/lib rate-limit', () => {
     limiter.check('b', opts, 4);
     limiter.check('c', opts, 4);
     limiter.check('d', opts, 4);
-    assert.strictEqual(limiter.size, 4);
+    // 审查 R-08：maxEntries 是硬上限。此前该断言写 4（超过上限 3 而条目仍在），
+    // 等于把「上限不生效」固化为预期；正确不变量是超限必须淘汰到上限以内。
+    assert.ok(limiter.size <= 3, 'map 不得超过 maxEntries，实际 ' + limiter.size);
+    assert.strictEqual(limiter.check('a', opts, 4), 'blocked', '在效封禁不得被淘汰');
     limiter.evict(6000, 1000);
     assert.strictEqual(limiter.check('a', opts, 6001), 'ok');
   });
@@ -118,15 +129,25 @@ describe('workers/lib rate-limit', () => {
 
 describe('security-worker integration (fixture config)', () => {
   before(async () => {
-    originalExisted = fs.existsSync(CONFIG_PATH);
-    if (originalExisted) originalConfig = fs.readFileSync(CONFIG_PATH);
-    fs.writeFileSync(CONFIG_PATH, 'export default ' + JSON.stringify(FIXTURE, null, 2) + ';\n', 'utf-8');
-    const mod = await import('../workers/security-worker.js');
-    worker = mod.default;
+    // 整个 workers/ 复制到临时目录后再 import：worker 用相对路径 import("./security-config.js")，
+    // 该解析相对模块自身位置，因此副本里的 fixture 配置只会被副本用上，
+    // 且临时路径的模块在 ESM 缓存中与仓库路径互不干扰。
+    tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 's-ynapse-worker-'));
+    const tmpWorkers = path.join(tmpRoot, 'workers');
+    try {
+      fs.cpSync(WORKERS_DIR, tmpWorkers, { recursive: true });
+      fs.writeFileSync(path.join(tmpWorkers, 'security-config.js'), 'export default ' + JSON.stringify(FIXTURE, null, 2) + ';\n', 'utf-8');
+      const mod = await import(pathToFileURL(path.join(tmpWorkers, 'security-worker.js')).href);
+      worker = mod.default;
+    } catch (err) {
+      fs.rmSync(tmpRoot, { recursive: true, force: true });
+      tmpRoot = null;
+      throw err;
+    }
   });
   after(() => {
-    if (originalExisted && originalConfig) fs.writeFileSync(CONFIG_PATH, originalConfig);
-    else fs.rmSync(CONFIG_PATH, { force: true });
+    if (tmpRoot) fs.rmSync(tmpRoot, { recursive: true, force: true });
+    tmpRoot = null;
   });
 
   it('redirects http→https only in production', async () => {
@@ -342,5 +363,17 @@ describe('security-worker config resolution (empty arrays vs missing fields)', (
     const bad = resolveWorkerConfig({ rateLimiting: { maxTrackedEntries: -1 }, cspReportMaxBytes: 0 });
     assert.strictEqual(bad.rl.maxTrackedEntries, -1, 'resolveWorkerConfig 仅透传（实际使用点在 limiter 构造处钳制）');
     assert.strictEqual(bad.reportMaxBytes, 16384, '非法上报上限回退');
+  });
+});
+
+describe('security-worker test isolation', () => {
+  it('leaves workers/security-config.js byte-identical to its pre-suite content', () => {
+    // 审查 R-12：这套测试唯一的回归护栏 —— 即使套件被中断，仓库里的生产配置也必须保持原样，
+    // 因为它是被 gitignore 的、deploy:worker 会直接上线的文件。
+    const current = fs.existsSync(CONFIG_PATH) ? fs.readFileSync(CONFIG_PATH) : null;
+    if (CONFIG_SNAPSHOT === null && current === null) return; // 文件不存在：无从比较，跳过
+    assert.ok(current !== null, 'workers/security-config.js 在测试期间被删除');
+    assert.ok(CONFIG_SNAPSHOT !== null, 'workers/security-config.js 在测试期间被创建');
+    assert.ok(CONFIG_SNAPSHOT.equals(current), 'workers/security-config.js 在测试期间被改写');
   });
 });

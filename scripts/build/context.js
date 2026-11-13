@@ -35,7 +35,7 @@ const { createHelpersModule } = require('./helpers');
 const { createPagesModule } = require('./pages');
 const { createServeModule } = require('./serve');
 const { createCacheModule } = require('./cache');
-const { resolveOutputDir } = require('../lib/output-dir');
+const { resolveOutputDir, findOutputDirConflict } = require('../lib/output-dir');
 const { loadInternals } = require('../lib/internals');
 const { setOwnProperty } = require('../lib/utils');
 
@@ -111,6 +111,15 @@ function createBuildContext(deps) {
 
   const OUTPUT_DIR_RESOLVED = resolveOutputDir(argv, rootDir);
   const DIST_DIR = OUTPUT_DIR_RESOLVED.dir;                   // Build output directory
+
+  // 输出目录安全闸门（审查 R-01）：setupDist 会在 cleanDist 为真时对输出目录执行递归删除，
+  // 因此任何与构建输入重叠的取值（`--out .`、`--out articles`、SYNAPSE_OUT_DIR=$PWD 等）
+  // 都必须在构建开始前拦下。保留清单直接取自下面这些实际读取的目录，新增输入目录时不会漏登记。
+  const OUTPUT_DIR_CONFLICT = findOutputDirConflict(DIST_DIR, rootDir, [
+    ARTICLES_DIR, STATIC_DIR, MEDIA_DIR, VIDEOS_DIR, ASSETS_DIR, TEMPLATES_DIR, PAGES_DIR,
+    path.join(rootDir, 'js'),
+    path.join(rootDir, '.git')
+  ]);
 
   // features 覆盖文件（`--features-override <file>`）：仅用于隔离验证/预览构建的
   // features 深合并覆盖（例如 runner 生成第二态构建而不改动仓库 features.json5）。
@@ -433,6 +442,7 @@ function createBuildContext(deps) {
       allowDegraded: ALLOW_DEGRADED,
       bundleActive: BUNDLE_ACTIVE,
       outputDirResolved: OUTPUT_DIR_RESOLVED,
+      outputDirConflict: OUTPUT_DIR_CONFLICT,
       cspNonce: CSP_NONCE,
       pkgVersion: PKG_VERSION,
       json5,

@@ -58,6 +58,7 @@ const {
   distDir: DIST_DIR, cacheRoot: CACHE_ROOT, watchMode: WATCH_MODE, serveMode: SERVE_MODE,
   showDrafts: SHOW_DRAFTS, allowDegraded: ALLOW_DEGRADED, bundleActive: BUNDLE_ACTIVE,
   outputDirResolved: OUTPUT_DIR_RESOLVED, pkgVersion: PKG_VERSION,
+  outputDirConflict: OUTPUT_DIR_CONFLICT,
   abortBuild, loadConfig, validateConfig, applyCspNonce,
   resolveCompressionState,
   getPublished, resolveDailyQuotes, recordBuildFailure,
@@ -145,6 +146,17 @@ async function build() {
   BUILD_ERRORS = buildErrors;
   if (!validateJsonSyntax()) {
     abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
+  }
+  // 输出目录安全闸门（审查 R-01）：必须在任何写入/清理之前拦下——第 2 阶段 setupDist 会对
+  // 输出目录执行 rmSync(recursive)，与源目录重叠时等于删除工作树或全部文章源，且不可恢复。
+  if (OUTPUT_DIR_CONFLICT) {
+    abortBuild(
+      '\n[FATAL] 输出目录不安全: ' + DIST_DIR + '\n' +
+      '        它与' + (OUTPUT_DIR_CONFLICT.kind === 'root' ? '站点根目录' : '构建输入目录') +
+      '重叠: ' + OUTPUT_DIR_CONFLICT.path + '\n' +
+      '        构建会先递归删除输出目录，继续执行将丢失源文件。\n' +
+      '        请改用默认 dist 或仓库外的独立目录（--out <dir> / SYNAPSE_OUT_DIR）。\n'
+    );
   }
   try {
     // 压缩配置惰性加载在此显式触发：--compression-override 文件缺失/解析错误经

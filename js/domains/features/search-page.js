@@ -2,7 +2,7 @@ import { ensureIndex, searchIndexState, searchIndex, isValidIndex, highlightHtml
 
 // /search 独立搜索页（本地链路）：读取 #searchPageInput / #searchPageResults，支持 ?q= 直达；
 // 与搜索浮层共用 search-core 的倒排查询与索引缓存；加载失败显示错误态与重试按钮。
-export function init() {
+function initLocal() {
   var rDiv = document.getElementById('searchPageResults');
   var input = document.getElementById('searchPageInput');
   if (!rDiv || !input) return;
@@ -144,4 +144,52 @@ export function init() {
     renderEmpty();
     load(false);
   }
+}
+
+// Pagefind 链路（原 templates/search.ejs 内联脚本，审查 R-02 迁入模块）：
+// 同源加载 /pagefind/pagefind-ui.js —— 动态插入的外部脚本按 script-src 'self' 放行，无需 nonce。
+function initPagefind() {
+  var wrap = document.getElementById('searchPageResults');
+  if (!wrap) return;
+  var T = typeof window.__T === 'function' ? window.__T : function (k, d) { return d || k; };
+  var F = (window.__FEATURES__ || {}).pagefind || {};
+  var base = String(F.indexPath || '/pagefind').replace(/\/$/, '');
+  wrap.innerHTML = '<div id="searchPagePf"></div>';
+  var inp = document.getElementById('searchPageInput');
+  if (inp && inp.parentElement) inp.parentElement.style.display = 'none';
+  function pfFallback() {
+    if (inp && inp.parentElement) inp.parentElement.style.display = '';
+    wrap.innerHTML = '';
+    var p = document.createElement('p');
+    p.className = 'empty-state';
+    p.textContent = T('search.unavailable', '搜索暂不可用');
+    wrap.appendChild(p);
+  }
+  var css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = base + '/pagefind-ui.css';
+  document.head.appendChild(css);
+  var s = document.createElement('script');
+  s.src = base + '/pagefind-ui.js';
+  s.onload = function () {
+    if (window.PagefindUI) new window.PagefindUI({ element: '#searchPagePf', showSubResults: true, showImages: true });
+    else pfFallback();
+  };
+  s.onerror = pfFallback;
+  document.body.appendChild(s);
+}
+
+// 入口：按 search provider 分流 pagefind / 本地检索。
+// 软导航（js/core/soft-nav.js）用 innerHTML 交换内容区，原内联脚本不会执行，因此这里
+// 由 main.js 在「内容区出现 #searchPageInput」时调用（直接访问与软导航共用同一入口）；
+// 同一批节点以 data-spInit 标记去重，交换后节点重建即可再次初始化。
+export function init() {
+  var rDiv = document.getElementById('searchPageResults');
+  var input = document.getElementById('searchPageInput');
+  if (!rDiv || !input) return;
+  if (rDiv.getAttribute('data-sp-init') === '1') return;
+  rDiv.setAttribute('data-sp-init', '1');
+  var PF = (window.__FEATURES__ || {}).pagefind || {};
+  if (window.__SEARCH_PROVIDER__ === 'pagefind' && PF.integrate !== false) return initPagefind();
+  return initLocal();
 }

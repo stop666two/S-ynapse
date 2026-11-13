@@ -36,4 +36,12 @@ function computeRelatedArticles(published, relatedConfig) {
   }
 }
 
-module.exports = { computeRelatedArticles };
+// 相关文章是否计算：唯一判据是 site.build.relatedArticles（默认开）。
+// 审查 R-33：该开关此前只是构建管线里的一句内联判断，没有可单测的入口，
+// 因此开关覆盖证据只能靠跑完整构建；抽成纯函数后由单测直接锁定两种取值。
+function relatedEnabled(site) {
+  const build = site && site.build ? site.build : {};
+  return build.relatedArticles !== false;
+}
+
+module.exports = { computeRelatedArticles, relatedEnabled };

@@ -10,6 +10,10 @@ var F=window.__FEATURES__||{};
 var __en=window.langOf()==='en';
 var CB0=(F&&F.codeBlock)||{};var win=CB0.windowBar!==false;var vis=CB0.copyButtonVisibility||'hover';var th=CB0.maxHeightVh?parseInt(CB0.maxHeightVh)||0:0;var CB1=(F&&F.codeCopy)||{};var COPYTIMEOUT=isNaN(+CB1.buttonTimeout)?1500:+CB1.buttonTimeout;var COPYFAILT=(__en&&CB0.copyFailTextEn)?CB0.copyFailTextEn:(CB0.copyFailText||__T('toolbar.copyFailed','复制失败'));
 var IC={dl:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path pathLength="100" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline pathLength="100" points="7,10 12,15 17,10"/><line pathLength="100" x1="12" y1="15" x2="12" y2="3"/></svg>',exp:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6,9 12,15 18,9"/></svg>',col:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="18,15 12,9 6,15"/></svg>'};
+/* 审查 R-33 接线：features.codeCopy.enabled=false 关闭「代码块复制按钮」——
+   不渲染单块复制按钮，也不渲染「复制全部代码」行，更不绑定任何复制处理器。
+   窗口栏/语言标签/下载按钮属于 features.codeBlock，不受此开关影响。 */
+var COPYON=!((F&&F.codeCopy&&F.codeCopy.enabled===false));
 var blocks=[];
 document.querySelectorAll('.post-content pre').forEach(function(p){
 if(p.getAttribute('data-cbBound')==='1')return;
@@ -27,11 +31,11 @@ var bar=document.createElement('div');bar.className='code-windowbar';
 bar.innerHTML='<span class="cw-dots"><span class="cw-dot cw-red"></span><span class="cw-dot cw-yellow"></span><span class="cw-dot cw-green"></span></span>';
 if(lang&&CB0.showLanguageTag!==false){var l=document.createElement('span');l.className='cw-lang';l.textContent=label;bar.appendChild(l)}
 p.parentNode.insertBefore(bar,p);p.classList.add('code-window')}
-var hasBtns=vis!=='never'||CB0.downloadButton!==false;
+var hasBtns=(COPYON&&vis!=='never')||CB0.downloadButton!==false;
 var row=document.createElement('div');row.className='code-actions';
 if(hasBtns&&lang&&CB0.showLanguageTag!==false&&!p.classList.contains('code-window')){var pl=document.createElement('span');pl.className='cw-lang';pl.textContent=label;row.appendChild(pl)}
 if(hasBtns&&!p.classList.contains('code-window'))p.classList.add('has-actions');
-if(vis!=='never'){
+if(COPYON&&vis!=='never'){
 var cb=document.createElement('button');cb.className='code-action-btn copy';cb.innerHTML=copyIco();cb.title=COPYT;
 cb.onclick=function(){var c=p.querySelector('code')||p;var done=function(){cb.title=COPIED;if(!(window.__morphCopy&&window.__morphCopy(cb,'check')))cb.innerHTML=checkIco();setTimeout(function(){cb.title=COPYT;if(!(window.__morphCopy&&window.__morphCopy(cb,'copy')))cb.innerHTML=copyIco()},COPYTIMEOUT)};var fb=function(){var ta=document.createElement('textarea');ta.value=c.textContent;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(err){/* 忽略：旧接口失败由 ok 标志回退提示 */}document.body.removeChild(ta);if(ok)done()};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(c.textContent).then(done).catch(fb)}else{fb()}};
 row.appendChild(cb)}
@@ -50,7 +54,7 @@ p.classList.add('collapsible');
 var cl=document.createElement('button');cl.className='code-expand-btn';cl.innerHTML=IC.exp+__T('toolbar.expandAll','展开全文');
 cl.onclick=function(){p.classList.toggle('expanded');cl.innerHTML=p.classList.contains('expanded')?IC.col+__T('toolbar.collapseAll','收起'):IC.exp+__T('toolbar.expandAll','展开全文')};
 p.appendChild(cl)}});
-if(CB0.copyAllButton!==false&&blocks.length){
+if(COPYON&&CB0.copyAllButton!==false&&blocks.length){
 var all=blocks.map(function(p){var c=p.querySelector('code')||p;return(c.textContent||'')}).join('\n\n');
 var row2=document.createElement('div');row2.className='code-copy-all-row';
 var ab=document.createElement('button');ab.className='code-copy-all-btn';ab.type='button';ab.innerHTML=copyIco()+'<span>'+__T('toolbar.copyAllCode','复制全部代码')+'</span>';

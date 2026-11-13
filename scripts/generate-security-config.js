@@ -181,14 +181,32 @@ function hardeningReportMaxBytes(security) {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : CSP_REPORT_MAX_BYTES;
 }
 
-/** maintenance 的 Worker 侧配置（features.maintenance）：setRetryAfter 默认 true、retryAfter 默认 3600（与 Worker FALLBACK 同源）。 */
+/** maintenance 的 Worker 侧配置（features.maintenance）：enabled 默认 false、文案默认空串、status 默认 503、setRetryAfter 默认 true、retryAfter 默认 3600（与 Worker FALLBACK 同源）。 */
 function maintenanceWorkerConfig(features) {
   const m = (features && features.maintenance) || {};
   const retry = parseInt(m.retryAfter, 10);
   return {
+    // 审查 R-33 接线：features.maintenance.enabled 此前零消费。显式投影成布尔（只认 === true，
+    // 字符串 "false"/缺失都是 false），Worker 侧与环境变量 MAINTENANCE=1 取或，
+    // 兜底值与 MAINTENANCE_FALLBACKS.enabled 同源。
+    enabled: m.enabled === true,
+    // 审查 R-33 接线：message/messageEn 此前零消费（维护页文案只认环境变量与硬编码内置语）。
+    // 空串表示「未配置」，运行时按语言回退内置文案；非字符串一律按未配置处理，
+    // 避免数字/对象被 String() 后拼进 HTML。
+    message: typeof m.message === 'string' ? m.message : MAINTENANCE_FALLBACKS.message,
+    messageEn: typeof m.messageEn === 'string' ? m.messageEn : MAINTENANCE_FALLBACKS.messageEn,
+    // 审查 R-33 接线：status 此前零消费（维护响应硬编码 503）。只接受合法维护态状态码，
+    // 200/301 之类的「错误地让站点看起来正常」的取值一律回退兜底。
+    status: maintenanceStatus(m.status),
     setRetryAfter: m.setRetryAfter !== false,
     retryAfter: Number.isFinite(retry) && retry > 0 ? retry : MAINTENANCE_FALLBACKS.retryAfter
   };
+}
+
+/** 维护响应状态码归一化：400–599 的整数，其余回退 MAINTENANCE_FALLBACKS.status（503）。 */
+function maintenanceStatus(value) {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 400 && n <= 599 ? n : MAINTENANCE_FALLBACKS.status;
 }
 
 /** 渲染 workers/security-config.js 内容（ESM export default，仅数据无逻辑）。 */

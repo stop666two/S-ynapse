@@ -8,6 +8,14 @@ const path = require('path');
 const { MIME_TYPES, acceptsGzip, isCompressibleType, resolveStaticFile } = require('../lib/static-server');
 const { loadInternals } = require('../lib/internals');
 
+// 维护页文案转义：与 Worker 的契约一致（文案「HTML 转义后输出」）。维护页是整页拼接的字符串，
+// 文案里出现 < > & " ' 会破坏标记结构，因此统一转义后再写入 title/正文。
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, function (ch) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+  });
+}
+
 function createServeModule(ctx) {
   const { distDir } = ctx;
 
@@ -23,15 +31,30 @@ function createServeModule(ctx) {
     var opts = options || {};
     var argvPort = parseInt(process.argv[process.argv.indexOf('--port') + 1]);
     var PORT = Number.isInteger(opts.port) ? opts.port : (argvPort || loadInternals().ports.serve);
-    var MAINTENANCE = process.argv.indexOf('--maintenance') !== -1 || process.env.MAINTENANCE === '1';
-    var MAINT_MSG = process.env.MAINTENANCE_MESSAGE || '本站正在维护中，请稍后再来。';
     // features.maintenance：setRetryAfter=false 时维护响应不输出 Retry-After；retryAfter 为秒数（非法回退 3600）。
     var maintCfg = (config.features && config.features.maintenance) || {};
+    // 审查 R-33 接线：features.maintenance.enabled 此前零消费。true 时与 --maintenance 参数 /
+    // MAINTENANCE=1 环境变量等价（三者取或），本地预览能直接验证线上维护态；
+    // 缺键/非 true 一律不进入维护态。
+    var MAINTENANCE = process.argv.indexOf('--maintenance') !== -1 || process.env.MAINTENANCE === '1' || maintCfg.enabled === true;
+    // 审查 R-33 接线：message/messageEn 此前零消费（只认环境变量与硬编码中文）。优先级与 Worker
+    // 一致：MAINTENANCE_MESSAGE > features.maintenance.message(En) > 内置语；serve 无请求级语言，
+    // 按站点语言（en 开头 → messageEn，与 Worker 的 Accept-Language 选择对应）取一条，
+    // 空则回退另一条 —— 本地预览看到的就是线上会看到的文案。
+    var maintEn = String((config.site && config.site.language) || '').toLowerCase().indexOf('en') === 0;
+    var maintCfgMsg = maintEn ? (maintCfg.messageEn || maintCfg.message) : (maintCfg.message || '');
+    var MAINT_MSG = process.env.MAINTENANCE_MESSAGE || maintCfgMsg ||
+      (maintEn ? 'The site is under maintenance. Please check back later.' : '本站正在维护中，请稍后再来。');
+    var MAINT_MSG_HTML = escapeHtml(MAINT_MSG);
+    // 审查 R-33 接线：status 此前硬编码 503；只接受 400–599 整数（200/301 之类会让维护页
+    // 看起来「正常」或跳走），其余回退 503，与 Worker 的归一化规则一致。
+    var maintStatus = Number(maintCfg.status);
+    if (!Number.isInteger(maintStatus) || maintStatus < 400 || maintStatus > 599) maintStatus = 503;
     var maintRetry = parseInt(maintCfg.retryAfter, 10);
     if (!Number.isFinite(maintRetry) || maintRetry <= 0) maintRetry = 3600;
     var maintHeaders = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' };
     if (maintCfg.setRetryAfter !== false) maintHeaders['Retry-After'] = String(maintRetry);
-    var maintPage = '<!DOCTYPE html><html lang="' + config.site.language + '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ' + MAINT_MSG + '</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:' + config.theme.colors.background + ';color:' + config.theme.colors.text + '}p{color:' + config.theme.colors.textSecondary + '}</style></head><body><main><h1>维护中</h1><p>' + MAINT_MSG + '</p></main></body></html>';
+    var maintPage = '<!DOCTYPE html><html lang="' + config.site.language + '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中 - ' + MAINT_MSG_HTML + '</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:' + config.theme.colors.background + ';color:' + config.theme.colors.text + '}p{color:' + config.theme.colors.textSecondary + '}</style></head><body><main><h1>维护中</h1><p>' + MAINT_MSG_HTML + '</p></main></body></html>';
     var applyRedirects = !(config.features && config.features.redirects && config.features.redirects.applyInServe === false);
     var REDIRECT_LIST = [];
     if (applyRedirects) {
@@ -49,7 +72,7 @@ function createServeModule(ctx) {
     var server = http.createServer(function(req, res) {
       lastActivity = Date.now();
       if (MAINTENANCE) {
-        res.writeHead(503, maintHeaders);
+        res.writeHead(maintStatus, maintHeaders);
         res.end(maintPage);
         return;
       }
@@ -141,8 +164,18 @@ function createServeModule(ctx) {
         if (maxMs > 0 && Date.now() - lifespanStart > maxMs) tryClose('max lifetime ' + Math.round(maxMs / 1000) + 's');
       }, 5000);
     }
+    // 信号处理器随 server 生命周期注册/注销：同进程多次 startServer（测试、工具脚本）时不会
+    // 累积 listener（Node 默认 10 个即告警，且旧处理器会一直持有已关闭的 server）。
+    var signalHandlers = {};
     ['SIGINT', 'SIGTERM'].forEach(function(sig) {
-      process.on(sig, function() { tryClose('signal ' + sig); });
+      signalHandlers[sig] = function() { tryClose('signal ' + sig); };
+      process.on(sig, signalHandlers[sig]);
+    });
+    server.on('close', function() {
+      ['SIGINT', 'SIGTERM'].forEach(function(sig) {
+        if (signalHandlers[sig]) process.removeListener(sig, signalHandlers[sig]);
+        signalHandlers[sig] = null;
+      });
     });
     return server;
   }

@@ -30,7 +30,9 @@ export function init() {
     const it = e.target.closest('.m-nav-item');
     if (!it) return;
     const k = it.getAttribute('data-nav');
-    if (k === 'theme') { e.preventDefault(); window.toggleDark(); }
+    // 审查 R-33 接线：themeToggle.enabled=false 时 theme.js 不暴露 window.toggleDark，
+    // 这里按存在性判断，避免按下底部导航的「主题」项抛 TypeError。
+    if (k === 'theme') { e.preventDefault(); if (typeof window.toggleDark === 'function') window.toggleDark(); }
     else if (k === 'top') { e.preventDefault(); window.scrollTo({ top: 0, behavior: window.__SB() }); }
   });
 }

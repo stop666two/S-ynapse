@@ -208,6 +208,35 @@ test('基线棘轮：基线键集合与当前缺失集合一致，且基线不�
   assert.deepStrictEqual(source.checkCoverage(rows, baseline), []);
 });
 
+test('三档完备：每个开关都落到 tested/existing/exempt，且豁免项必带已登记理由（R-33）', () => {
+  const rows = inv.collectInventory();
+  const allowed = new Set(['tested', 'existing', 'exempt']);
+  const unclassified = rows.filter((row) => !allowed.has(String(row.status)));
+  assert.deepStrictEqual(
+    unclassified.map((row) => row.keyPath + ' :: ' + row.status),
+    [],
+    '存在未被归类的开关状态：每个开关必须有测试证据、源码引用或书面豁免'
+  );
+
+  const exemptions = inv.loadExemptions();
+  const registered = new Set(Object.keys(exemptions.categories || {}));
+  const exemptRows = rows.filter((row) => row.status === 'exempt');
+  assert.ok(exemptRows.length > 0, '应存在书面豁免项（否则说明豁免表已被清空而覆盖未补齐）');
+  const emptyReason = exemptRows.filter((row) => typeof row.exemptReason !== 'string' || row.exemptReason.trim() === '');
+  assert.deepStrictEqual(emptyReason.map((row) => row.keyPath), [], '豁免项必须写明理由');
+  // row.exemptReason 是「已解析后的描述文本」，登记口径要看底层的类别 token。
+  const unknownCategory = exemptRows.filter((row) => !registered.has((exemptions.keys || {})[row.keyPath]));
+  assert.deepStrictEqual(
+    unknownCategory.map((row) => row.keyPath + ' = ' + JSON.stringify((exemptions.keys || {})[row.keyPath])),
+    [],
+    '豁免理由必须是 config-switch-exemptions.json 已登记的类别（防止随手写一个词蒙混）'
+  );
+  // 反向：豁免表里不得残留已不存在的开关（否则表会变成永久借口）
+  const known = new Set(rows.map((row) => row.keyPath));
+  const stale = Object.keys(exemptions.keys || {}).filter((key) => !known.has(key));
+  assert.deepStrictEqual(stale, [], '豁免表含已不存在的开关：请删除对应条目');
+});
+
 test('checkMatrix：提交版矩阵与生成结果一致（防手改）', () => {
   const rows = inv.collectInventory();
   assert.deepStrictEqual(source.checkMatrix(rows), []);

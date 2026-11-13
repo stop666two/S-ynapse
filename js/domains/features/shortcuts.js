@@ -21,7 +21,8 @@ export function init() {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       var k = e.key;
       if (k === kOpen && kOpen) { e.preventDefault(); window.openSearch(); }
-      else if (k.toLowerCase() === kTheme.toLowerCase() && kTheme) { window.toggleDark(); }
+      // 审查 R-33 接线：themeToggle.enabled=false 时 window.toggleDark 不存在，快捷键静默跳过。
+      else if (k.toLowerCase() === kTheme.toLowerCase() && kTheme) { if (typeof window.toggleDark === 'function') window.toggleDark(); }
       else if (k.toLowerCase() === kNext.toLowerCase() && kNext) { var n = document.querySelector('.post-nav-link.next'); if (n) n.click(); }
       else if (k.toLowerCase() === kPrev.toLowerCase() && kPrev) { var pv = document.querySelector('.post-nav-link.prev'); if (pv) pv.click(); }
       else if (k === kHelp && kHelp) { toggleHelp(); }

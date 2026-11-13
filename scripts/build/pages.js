@@ -23,6 +23,8 @@ const { findAlternateArticle } = require('../lib/bilingual-pair');
 const { stableSerialize, pageCacheKey, hashTemplateDir, replaceNonce } = require('../lib/incremental');
 const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
 const { pruneTo } = require('../lib/asset-cache');
+// 审查 R-33 接线：构建类开关（features.gallery.enabled 等）的判定从消费者移入纯函数。
+const { galleryPageEnabled, pruneGalleryMenuItems, pruneGalleryFooterLinks } = require('../lib/build-switch-gates');
 
 function createPagesModule(ctx) {
   const { getTemplate, renderPage, getPublished, recordBuildFailure, collectFriends, collectSeries, collectGalleryImages, collectSiteStats, collectTags, collectCategories, collectTopTags, groupByYearMonth, categoryHue, resolveDailyQuotes, resolveFaviconHtml, CleanCSS, loadBuildCache, saveBuildCache } = ctx;
@@ -260,6 +262,20 @@ function createPagesModule(ctx) {
         nav = { ...nav, menu };
       }
     }
+    // 审查 R-33 接线：features.gallery.enabled=false（或 site.build.generateGallery=false）时
+    // 图库页不产出，导航/页脚里指向 /gallery 的入口必须一并移除，否则入口直达 404。
+    // 只裁剪站内图库链接；外链与非图库菜单项原样保留。
+    let footerCfg = config.footer;
+    if (!galleryPageEnabled(config)) {
+      if (nav && Array.isArray(nav.menu)) {
+        const kept = pruneGalleryMenuItems(nav.menu);
+        if (kept.length !== nav.menu.length) {
+          console.log('  [gallery] 图库已关闭：移除 ' + (nav.menu.length - kept.length) + ' 个导航入口');
+          nav = { ...nav, menu: kept };
+        }
+      }
+      footerCfg = pruneGalleryFooterLinks(config.footer);
+    }
     let imageFitCss = '';
     const _ifCfg = (config.features && config.features.imageFit) || {};
     if (_ifCfg.enabled !== false && _ifCfg.content && _ifCfg.content.upscale === 'cap') {
@@ -305,7 +321,7 @@ function createPagesModule(ctx) {
       imageFitCss,
       nav,
       sidebar: config.sidebar,
-      footer: config.footer,
+      footer: footerCfg,
       security: config.security,
       allArticles: published,
       page: {},
@@ -317,7 +333,11 @@ function createPagesModule(ctx) {
       friends: friendsCfg,
       friendsSidebarCount: friendsSidebarCount(friendsCfg),
       errorPageCfg: errorPageConfig(config.features),
-      galleryItems: collectGalleryImages(articles, { collectFeatured: galleryCollectFeatured(config.features) }),
+      // 审查 R-33 接线：图库页关闭时不收集图片（templates/gallery.ejs 是唯一消费者），
+      // 避免为一张不会生成的页面遍历全部文章与正文图片。
+      galleryItems: galleryPageEnabled(config)
+        ? collectGalleryImages(articles, { collectFeatured: galleryCollectFeatured(config.features) })
+        : [],
       siteStats: collectSiteStats(articles, tags, categories),
       listCoverEnabled: !!(config.features && config.features.listCover && config.features.listCover.enabled !== false),
       listCoverFallback: (config.features && config.features.listCover && config.features.listCover.fallback) || DEFAULT_FEATURES.listCover.fallback,
@@ -740,7 +760,10 @@ function createPagesModule(ctx) {
         seriesPageHref: function(name) {
           return (seriesCfg.enabled && seriesCfg.pageEnabled && name) ? pf + 'series/' + safeSlug(String(name)) + '/' : '';
         },
-        galleryItems: collectGalleryImages(langArticles, { collectFeatured: galleryCollectFeatured(config.features) }),
+        // 审查 R-33 接线：与 baseData 同源，图库页关闭时不逐语言重复收集。
+        galleryItems: galleryPageEnabled(config)
+          ? collectGalleryImages(langArticles, { collectFeatured: galleryCollectFeatured(config.features) })
+          : [],
         siteStats: collectSiteStats(langArticles, langTags, langCategories),
         nav: localizeNav(baseData.nav, pf, lang),
         footer: localizeFooter(baseData.footer, pf, lang),
@@ -861,9 +884,18 @@ function createPagesModule(ctx) {
         await renderAndWrite(lang + '/favorites/index.html', 'favorites.ejs', favData);
       }
 
-      if (config.site.build.generateGallery !== false) {
+      if (galleryPageEnabled(config)) {
         const galleryData = { ...langData, title: lang === 'en' ? 'Gallery' : '图库', currentUrl: pf + 'gallery', currentPage: 'gallery' };
         await renderAndWrite(lang + '/gallery/index.html', 'gallery.ejs', galleryData);
+      } else {
+        // 审查 R-33 接线：关闭态清理旧产物。build.cleanDist=false、增量复用或复用上一轮 dist 时，
+        // /{lang}/gallery/ 可能残留在产物里，出现「开关关了页面还在」；gallery 是保留路由
+        // （content-validate 的 RESERVED_ROUTE_SEGMENTS），不会有文章占用该目录。
+        const staleGallery = path.join(ctx.distDir, lang, 'gallery');
+        if (fs.existsSync(staleGallery)) {
+          fs.rmSync(staleGallery, { recursive: true, force: true });
+          console.log('  Removed stale: ' + lang + '/gallery/（图库已关闭）');
+        }
       }
 
       if (baseData.friends) {

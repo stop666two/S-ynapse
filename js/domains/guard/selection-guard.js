@@ -1,4 +1,5 @@
 // Guard selection guard —— 选择控制（allow / content / strict）
+import { injectStyle } from '../core/style-inject.js';
 export function init(ctx) {
   const cfg = (ctx.G.selectionGuard) || {};
   const mode = cfg.mode || 'allow';
@@ -13,9 +14,7 @@ export function init(ctx) {
   const scope = strict ? '*' : '.post-content';
   const css = scope + '{user-select:none;-webkit-user-select:none}' +
     allow.map(function (s) { return s + '{user-select:text !important;-webkit-user-select:text !important}'; }).join('');
-  const st = document.createElement('style');
-  st.textContent = css;
-  document.head.appendChild(st);
+  injectStyle('', css);
 
   let warned = false;
   function inScope(target) {

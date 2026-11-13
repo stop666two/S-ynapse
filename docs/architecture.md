@@ -20,6 +20,24 @@ articles/ media/ static/ + 14 个 JSON5 配置
 - 无服务端渲染、无数据库、无前端框架；所有内容在构建期生成静态文件。
 - Worker 与静态资产同属一次部署，`wrangler rollback` 可整体回退。
 
+### 1.1 发布面能力矩阵（审查 R-06）
+
+同一份 `dist/` 存在两个发布面，能力不等价。CI 只发布 Pages（`.github/workflows/deploy.yml`），
+Worker 需手动 `npm run deploy:worker`，因此**两个主机名的实际防护强度不同**：
+
+| 能力 | Worker（`blog`，`workers/wrangler.toml`） | Pages（`s-ynapse`，`internals.deploy.pagesProject`） |
+|---|---|---|
+| 静态资产直出 | ✅（`[assets]` 绑定 `../dist`） | ✅ |
+| CSP / 安全响应头 | ✅（脚本层按 nonce 下发） | ✅ 仅构建期 `_headers` 静态下发 |
+| 限流（`security.rateLimiting`） | ✅ | ❌ 不存在 |
+| 路径拦截（`security.pathRestrictions`） | ✅ | ❌ 不存在 |
+| 维护模式（`MAINTENANCE` secret） | ✅ | ❌ 不存在 |
+| HTTP→HTTPS 跳转 | ✅ | ❌ 由平台/域名设置决定 |
+| CSP 违规上报接收 | ✅ | ❌ |
+
+结论：**公网自定义域必须只绑定 Worker**；Pages 仅作预览，不得绑定公开主机名。若某个主机名
+落在 Pages 上，该主机名就没有限流与路径拦截 —— `_headers` 只能提供静态头，无法承载运行时逻辑。
+
 ## 2. 目录与职责
 
 | 路径 | 职责 |

@@ -11,6 +11,7 @@
   静态资产与 Worker 脚本是**同一版本**，一次 `rollback` 同时回退页面与安全层。
 - **当前生产版本：`36cf88fe-eabb-45d7-9746-a6a8277e116b`；上一个可回滚版本：`2fa78c1d-db76-4108-b32b-42ad5f42a61a`**（示例；实际以 `wrangler deployments list` 为准）。
 - CI（`.github/workflows/deploy.yml`）推送时只执行 `wrangler pages deploy`（Pages），**不会更新生产 Worker**；更新 Worker 必须手动执行上面的部署命令。
+- **禁令（审查 R-06）：Pages 主机名不得绑定公网自定义域。** Pages 上没有限流、路径拦截、维护模式、HTTPS 跳转与 CSP 上报接收（详见 `docs/architecture.md` §1.1 发布面能力矩阵）；一旦某个公网域指向 Pages，该域就绕过全部 Worker 侧防护。Pages 仅用于预览，生产域只指向 Worker `blog`。
 - 数据回滚：内容源（articles/media/pages/配置）均在 git 中，回滚 commit 即回滚数据；`workers/security-config.js` 为构建产物（gitignore），随 `npm run build` 重新生成；`database.db` 非站点数据源。
 
 ## 1. Worker 回滚（首选）

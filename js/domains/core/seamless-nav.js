@@ -1,3 +1,4 @@
+import { injectStyle } from './style-inject.js';
 const VT_SUPPORTED = (function () {
   try { return CSS.supports('at-rule(@view-transition)'); } catch (e) { return false; }
 })();
@@ -46,16 +47,12 @@ function spActive() {
 window.__viewTransitionActive = vtActive;
 
 function setVtOff(off) {
-  let el = document.getElementById('vtOff');
+  // 运行期 <style> 同样受 style-src nonce 约束（审查 R-03），与主题预设共用注入器。
   if (off) {
-    if (!el) {
-      el = document.createElement('style');
-      el.id = 'vtOff';
-      el.textContent = '@view-transition{navigation:none}';
-      document.head.appendChild(el);
-    }
-  } else if (el) {
-    el.remove();
+    injectStyle('vtOff', '@view-transition{navigation:none}');
+  } else {
+    const el = document.getElementById('vtOff');
+    if (el) el.remove();
   }
 }
 function spRule() {

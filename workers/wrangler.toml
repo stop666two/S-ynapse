@@ -9,4 +9,8 @@ run_worker_first = true
 not_found_handling = "404-page"
 
 [env.production]
+# 审查 R-06：显式声明生产 Worker 名。此前该环境不覆盖 name，`--env production` 实际部署到
+# 顶层的 s-ynapse-security，与 docs/architecture.md、docs/runbook/rollback.md 所述 `blog`
+# 以及 real-site/workers/wrangler.toml 都不一致 —— 按文档操作会部署到错误 Worker。
+name = "blog"
 vars = { ENVIRONMENT = "production" }

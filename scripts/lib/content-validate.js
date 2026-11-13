@@ -230,7 +230,12 @@ function preflightArticles(items, options) {
     }
 
     const refs = new Set();
-    if (attrs.featuredImage) refs.add(String(attrs.featuredImage));
+    // 审查 R-07：只有站内 /media/ 引用参与存在性校验。绝对 URL 与协议相对地址
+    // （如 featuredImage: https://cdn.example.com/a.png）由渲染侧回退（buildCardImgAttrs 直出 src）
+    // 与 CSP img-src https: 支持；此前把它们一并送检，会产出非 critical 的 media 错误，
+    // 使普通构建（无 --allow-degraded）直接中止。
+    const featuredRaw = attrs.featuredImage ? String(attrs.featuredImage) : '';
+    if (featuredRaw.startsWith(MEDIA_PREFIX)) refs.add(featuredRaw);
     for (const ref of extractMediaRefs(item.body)) refs.add(ref);
     for (const ref of refs) {
       if (!mediaExists(ref)) {

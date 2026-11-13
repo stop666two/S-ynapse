@@ -1,4 +1,5 @@
 // Guard copy guard —— 复制控制（署名 / 弱拦截 / 硬拦截）
+import { injectStyle } from '../core/style-inject.js';
 export function init(ctx) {
   const cfg = (ctx.G.copyGuard) || {};
   const mode = cfg.mode || 'off';
@@ -10,9 +11,7 @@ export function init(ctx) {
   const t = ctx.t;
 
   if (extra.iOSOverride) {
-    const s = document.createElement('style');
-    s.textContent = 'html{-webkit-touch-callout:none}';
-    document.head.appendChild(s);
+    injectStyle('', 'html{-webkit-touch-callout:none}');
   }
 
   let warned = false;

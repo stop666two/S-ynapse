@@ -89,6 +89,29 @@ const idleQueue = [
   dyn('bilingual', '../domains/features/bilingual.js')
 ];
 
+// 搜索页初始化（审查 R-02）：原先写在 templates/search.ejs 的内联 <script> 里，而软导航用
+// innerHTML 交换内容区（js/core/soft-nav.js），插入的脚本不会执行 —— 经页头搜索图标软导航
+// 进入 /search/ 后输入框无监听、?q= 无效、pagefind 模式也不初始化，必须整页刷新才恢复。
+// 现在统一为「内容区出现 #searchPageInput 才初始化」，直接访问（idle 队列）与软导航
+// （__SOFTNAV_HOOKS__）共用同一入口，模块内部按 data-sp-init 对同一批节点去重。
+const searchPageInit = dyn('search-page', '../domains/features/search-page.js');
+function initSearchPageIfPresent() {
+  if (!document.getElementById('searchPageInput')) return undefined;
+  return searchPageInit().catch(function (err) {
+    var wrap = document.getElementById('searchPageResults');
+    if (wrap && !wrap.querySelector('.search-result-error')) {
+      wrap.innerHTML = '';
+      const box = document.createElement('p');
+      box.className = 'empty-state search-result-error';
+      box.textContent = (typeof __T === 'function') ? __T('search.loadError', '搜索索引加载失败，请检查网络后重试') : '搜索索引加载失败，请检查网络后重试';
+      wrap.appendChild(box);
+    }
+    console.warn('[search-page] 初始化失败：' + (err && err.message ? err.message : err));
+  });
+}
+idleQueue.push(initSearchPageIfPresent);
+if (Array.isArray(window.__SOFTNAV_HOOKS__)) window.__SOFTNAV_HOOKS__.push(initSearchPageIfPresent);
+
 const criticalQueue = [
   () => themeInit(), () => navigationInit(), () => i18nInit(), () => announcementInit(),
   () => readPositionInit(), () => anchorStabilizeInit(), () => tocInit(), () => readingInit(), () => navStateInit(), () => motionInit(),

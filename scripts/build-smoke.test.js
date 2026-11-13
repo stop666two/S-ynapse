@@ -725,4 +725,29 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
       fs.rmSync(emptyOut, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
     }
   });
+
+  // 审查 R-01：输出目录与站点根/构建输入重叠时必须在删除前中止。
+  // 刻意不传 linkProject——夹具若把仓库 templates/static/js 以 junction 挂入，
+  // 一旦闸门失效，本测试就会替换成「删除仓库目录」的事故放大器。
+  it('rejects an output dir overlapping the site root, without deleting sources (R-01)', () => {
+    const site = createTestSite({ articles: 1, pages: 0, langs: ['zh'] });
+    try {
+      const sentinel = path.join(site.root, 'articles', 'zh', 'test-article-1.md');
+      const before = fs.readFileSync(sentinel);
+      let failed = false;
+      let output = '';
+      try {
+        runBuild(site.root, [], { SYNAPSE_ROOT: site.root });
+      } catch (err) {
+        failed = true;
+        output = outputTail(err);
+      }
+      assert.ok(failed, '输出目录等于站点根时构建必须失败');
+      assert.match(output, /输出目录不安全/);
+      assert.ok(fs.existsSync(sentinel), '源文章不得被删除');
+      assert.deepStrictEqual(fs.readFileSync(sentinel), before, '源文章内容不得改变');
+    } finally {
+      site.cleanup();
+    }
+  });
 });

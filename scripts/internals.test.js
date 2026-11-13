@@ -9,7 +9,7 @@ const path = require('node:path');
 
 const { loadInternals, clearInternalsCache } = require('./lib/internals');
 const { resolveChromePath } = require('./lib/chrome-path');
-const { resolveOutputDir } = require('./lib/output-dir');
+const { resolveOutputDir, findOutputDirConflict } = require('./lib/output-dir');
 const { ttlExpired, getFresh, buildCacheKey } = require('./lib/asset-cache');
 
 function withTempInternals(content, run) {
@@ -102,6 +102,49 @@ test('resolveOutputDir：--out > SYNAPSE_OUT_DIR > internals.outDir > dist', () 
   assert.strictEqual(resolveOutputDir(['--out', 'cli-out'], root, { outDir: 'ignored', env: { SYNAPSE_OUT_DIR: 'tmp/out' } }).dir, path.resolve(root, 'cli-out'));
   assert.strictEqual(resolveOutputDir([], root, { outDir: null, env }).custom, false);
   assert.strictEqual(resolveOutputDir(['--out', 'x'], root, { outDir: null, env }).custom, true);
+});
+
+test('resolveOutputDir：custom 表示「不是默认 dist」而非「是否显式指定」(R-14)', () => {
+  const root = path.resolve('C:/repo');
+  const dist = path.join(root, 'dist');
+  // CI 导出 SYNAPSE_OUT_DIR=<root>/dist：必须仍算非自定义，否则 workers/security-config.js 静默不生成。
+  assert.strictEqual(resolveOutputDir([], root, { outDir: null, env: { SYNAPSE_OUT_DIR: dist } }).custom, false);
+  assert.strictEqual(resolveOutputDir(['--out', dist], root, { outDir: null, env: {} }).custom, false);
+  assert.strictEqual(resolveOutputDir(['--out', 'dist'], root, { outDir: null, env: {} }).custom, false);
+  // 默认 dist 的子目录不是默认 dist 本身。
+  assert.strictEqual(resolveOutputDir(['--out', 'dist/sub'], root, { outDir: null, env: {} }).custom, true);
+  // 大小写不敏感仅适用于 Windows 文件系统语义。
+  assert.strictEqual(resolveOutputDir(['--out', 'DIST'], root, { outDir: null, env: {} }).custom, process.platform !== 'win32');
+});
+
+test('findOutputDirConflict：拒绝站点根、根的祖先与任何输入目录重叠 (R-01)', () => {
+  const root = path.resolve('C:/repo');
+  const reserved = ['articles', 'templates', 'static', 'js', 'media', 'videos', 'pages', 'assets', '.git']
+    .map((name) => path.join(root, name));
+  // 安全取值：默认 dist、dist 子目录、仓库内新目录、仓库外目录。
+  assert.strictEqual(findOutputDirConflict(path.join(root, 'dist'), root, reserved), null);
+  assert.strictEqual(findOutputDirConflict(path.join(root, 'dist', 'sub'), root, reserved), null);
+  assert.strictEqual(findOutputDirConflict(path.join(root, 'out', 'site'), root, reserved), null);
+  assert.strictEqual(findOutputDirConflict(path.join(path.dirname(root), 'elsewhere'), root, reserved), null);
+  // 等于根 / 是根的祖先 → kind: root。
+  assert.deepStrictEqual(findOutputDirConflict(root, root, reserved), { kind: 'root', path: root });
+  assert.strictEqual(findOutputDirConflict(path.dirname(root), root, reserved).kind, 'root');
+  // 每个输入目录本身及其子目录都被拒绝。
+  for (const dir of reserved) {
+    assert.deepStrictEqual(findOutputDirConflict(dir, root, reserved), { kind: 'reserved', path: dir }, dir);
+    assert.deepStrictEqual(
+      findOutputDirConflict(path.join(dir, 'nested'), root, reserved),
+      { kind: 'reserved', path: dir },
+      dir + path.sep + 'nested'
+    );
+  }
+  // 大小写不敏感仅适用于 Windows。
+  if (process.platform === 'win32') {
+    assert.deepStrictEqual(
+      findOutputDirConflict(path.join(root, 'ARTICLES'), root, reserved),
+      { kind: 'reserved', path: path.join(root, 'articles') }
+    );
+  }
 });
 
 test('ttlExpired：0=永不过期；文件缺失=过期；超天数=过期', () => {

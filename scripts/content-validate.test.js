@@ -129,6 +129,29 @@ describe('preflightArticles', () => {
     assert.deepStrictEqual(r.errors, []);
   });
 
+  // 审查 R-07：站内 /media/ 之外的外链封面由渲染侧回退与 CSP img-src 处理，
+  // 参与存在性校验会以非 critical 的 media 错误让普通构建（无 --allow-degraded）硬失败。
+  it('does not run media existence checks on off-site featuredImage URLs', () => {
+    const cases = [
+      'https://cdn.example.com/a.png',
+      'http://cdn.example.com/a.png',
+      '//cdn.example.com/a.png'
+    ];
+    for (const featuredImage of cases) {
+      const r = preflightArticles([base({ attrs: { title: 'A', featuredImage } })], { mediaExists });
+      assert.deepStrictEqual(r.errors, [], featuredImage + ' 不得产出预校验错误');
+    }
+  });
+
+  it('still reports a missing on-site featuredImage', () => {
+    const r = preflightArticles([
+      base({ attrs: { title: 'A', featuredImage: '/media/absent.webp' } })
+    ], { mediaExists });
+    assert.strictEqual(r.errors.length, 1);
+    assert.strictEqual(r.errors[0].stage, 'media');
+    assert.ok(r.errors[0].message.includes('/media/absent.webp'));
+  });
+
   it('flags invalid dates', () => {
     const r = preflightArticles([base({ attrs: { title: 'A', date: 'not-a-date' } })], { mediaExists });
     assert.strictEqual(r.errors.length, 1);

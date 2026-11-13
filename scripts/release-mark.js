@@ -3,12 +3,14 @@
 require('./lib/process-guard.js');
 // 发布标记脚本（npm run release:mark）：
 //   1. 校验工作区干净；
-//   2. 顺序执行全套质量门禁（任一失败即停止，不修改任何文件）；
+//   2. 顺序执行全套质量门禁（任一失败即停止，不修改任何文件）；退出码 0 的门禁若声明了
+//      reportFile，还要核对它自报的结果——环境缺失而「自跳过」的门禁记为未通过并大声告警
+//      （审查 R-36：否则 RELEASE.json 会宣称一个从未执行的门禁）；
 //   3. 校验人工核验参数（--human-verified / --confirm）；
 //   4. 同步版本：递增路径用 npm version；显式版本 === 当前版本（同版本标记）时跳过 npm version，
 //      仅当 package-lock 根版本漂移时同步；
 //   5. 改写 CHANGELOG（[Unreleased] 重命名/合并进 [X.Y.Z] 段，或仅确保版本段与链接）；
-//   6. 生成 RELEASE.json（status=verified + 门禁全 true + 记录被核验提交 = tag 父提交）；
+//   6. 生成 RELEASE.json（status=verified + 逐项门禁结果 + 记录被核验提交 = tag 父提交）；
 //   7. 提交 chore(release): vX.Y.Z 并创建附注 tag vX.Y.Z；
 //   8. 默认只留在本地并打印后续命令，--push（需 --confirm-push 二次确认）才推送。
 //
@@ -170,6 +172,46 @@ function syncLockRootVersion(targetVersion) {
   return changed;
 }
 
+// 读取门禁自报的结果文件；缺失/损坏一律返回 null（视为未验证，绝不乐观放行）。
+function readGateReport(root, reportFile) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(path.join(root, reportFile), 'utf-8'));
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+// 退出码 0 不等于门禁真的执行过：环境缺失时 verify:compression 以 status=skipped 正常退出。
+// 故声明了 reportFile 的门禁在成功之后还要核对报告状态，非 passed（含报告缺失）一律判为未通过，
+// 并给出指名该门禁与原因的告警，避免 RELEASE.json 宣称一个从未运行的门禁（审查 R-36）。
+function evaluateGateReport(root, gate) {
+  if (!gate.reportFile) return { key: gate.key, passed: true, reason: '' };
+  const report = readGateReport(root, gate.reportFile);
+  const status = report && typeof report.status === 'string' ? report.status : '';
+  if (status === 'passed') return { key: gate.key, passed: true, reason: '' };
+  const reason = status === 'skipped'
+    ? '门禁自跳过：' + (report.reason || '未知原因')
+    : status !== ''
+      ? '验证状态为 ' + status
+      : '未产出验证结果（' + gate.reportFile + ' 缺失或不可解析）';
+  return {
+    key: gate.key,
+    passed: false,
+    reason,
+    warning: '[release:mark] ⚠ 门禁未真正执行，记为未通过：' + gate.label + '（' + gate.command + '）——' + reason + '\n'
+      + '[release:mark]   RELEASE.json 将写入 ' + gate.key + '=false：release-validate / release:publish 会拒绝该版本，'
+      + '请补齐环境（如安装 Chrome 后重跑 ' + gate.command + '）再重新标记。'
+  };
+}
+
+// 把核对结果落到 checks：非 passed 显式记 false（fail-closed），返回核对结论供调用方告警。
+function recordGateResult(checks, root, gate) {
+  const verdict = evaluateGateReport(root, gate);
+  if (!verdict.passed) checks[gate.key] = false;
+  return verdict;
+}
+
 function runGates() {
   const checks = buildPassedChecks();
   for (let i = 0; i < RELEASE_GATES.length; i++) {
@@ -182,6 +224,8 @@ function runGates() {
     if (result.status !== 0) {
       throw new Error('门禁失败（exit ' + result.status + '）：' + gate.command + '；已停止，未修改任何文件');
     }
+    const verdict = recordGateResult(checks, ROOT, gate);
+    if (!verdict.passed) console.warn('\n' + verdict.warning);
   }
   return checks;
 }
@@ -335,9 +379,14 @@ function main() {
   }
 }
 
-try {
-  main();
-} catch (err) {
-  console.error('[release:mark] 失败：' + (err && err.message ? err.message : err));
-  process.exitCode = 1;
+// 只在作为 CLI 直接执行时跑 main：测试可 require 本模块取用门禁核对纯逻辑而不触发发布流程。
+if (require.main === module) {
+  try {
+    main();
+  } catch (err) {
+    console.error('[release:mark] 失败：' + (err && err.message ? err.message : err));
+    process.exitCode = 1;
+  }
 }
+
+module.exports = { evaluateGateReport, recordGateResult, readGateReport };

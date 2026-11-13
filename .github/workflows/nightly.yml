@@ -23,8 +23,8 @@ jobs:
       skip: ${{ steps.decide.outputs.skip }}
       reason: ${{ steps.decide.outputs.reason }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
       - run: npm ci --omit=dev --ignore-scripts
@@ -40,13 +40,17 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # 审查 R-38：聚合器最坏预算为 23 项 × internals.ci.checkTimeoutMs（10000ms = 10min）≈ 230min，
+    # 而此处原为 120min —— 慢夜会被平台杀掉，报告写入、ci/aggregate 状态与 if: always() 工件
+    # 全部来不及执行，恰好丢掉夜跑要留的种子与重放信息。260min = 230 + 缓冲；
+    # verify:internals 会按 checkTimeoutMs × 检查项数反算并断言此处不得低于该预算。
+    timeout-minutes: 260
     permissions:
       contents: read
       statuses: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
           cache: 'npm'
@@ -61,7 +65,7 @@ jobs:
         run: node scripts/ci-checks.js
       - name: Upload nightly artifacts (ci-checks / fuzz failures / web coverage / smoke)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: nightly-test-artifacts
           path: |

@@ -9,7 +9,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { readZipEntries, archiveRelease, assertVersionConsistency, resolveVersion, readJsonAtRef } = require('./release-archive.js');
+const { readZipEntries, archiveRelease, verifyArchive, assertVersionConsistency, resolveVersion, readJsonAtRef } = require('./release-archive.js');
 const { assertArchiveContents, isReleaseAllowed, RELEASE_REQUIRED_FILES, RELEASE_REQUIRED_DIRS, RELEASE_EXCLUDE_PATTERNS } = require('./lib/release-manifest.js');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -182,4 +182,34 @@ test('readZipEntries：非 ZIP 文件抛错；排除模式覆盖关键敏感目�
   }
   assert.ok(RELEASE_EXCLUDE_PATTERNS.includes('real-site/**'));
   assert.ok(RELEASE_EXCLUDE_PATTERNS.includes('workers/security-config.js'));
+});
+
+// 审查 R-35：release:publish 复用已存在的 zip 时此前完全不校验，
+// 早先 `--ref HEAD` 产出的或手工放入的同名文件会被当成已审计附件上传。
+test('verifyArchive：复用归档必须过白名单、必需文件与版本前缀（R-35）', function (t) {
+  if (!HAS_GIT_REPO || DERIVED_COPY) {
+    t.skip(DERIVED_SKIP_REASON);
+    return;
+  }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 's-ynapse-verify-archive-'));
+  const out = path.join(dir, 'S-ynapse-verify.zip');
+  try {
+    const result = archiveRelease({ ref: 'HEAD', out: out });
+    assert.ok(verifyArchive(out, result.version).files.length > 0, '与归档同版本应校验通过');
+    assert.throws(
+      function () { verifyArchive(out, '999.999.999'); },
+      /越界|前缀/,
+      '版本不符必须因统一前缀不匹配被拒（防止别的版本改名后上传）'
+    );
+    assert.throws(
+      function () { verifyArchive(path.join(dir, 'missing.zip'), result.version); },
+      /归档不存在/
+    );
+    assert.throws(
+      function () { verifyArchive(out, 'not-a-version'); },
+      /SemVer/
+    );
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

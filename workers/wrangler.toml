@@ -1,4 +1,9 @@
-name = "s-ynapse-security"
+# 审查 R-06：Worker 名统一为 blog（与 docs/architecture.md、docs/runbook/rollback.md、
+# real-site/workers/wrangler.toml 一致）。此前顶层名是 s-ynapse-security 而文档写 blog，
+# 不带 --env production 部署会创建/更新另一个 Worker，带 --env 又与文档不符。
+# 顶层即单源：主环境与各 env 都不再单独覆盖 name，避免再次分叉。
+# 当前无投产环境，改名会新建 Worker `blog`，历史 `s-ynapse-security` 可直接删除（无数据需迁移）。
+name = "blog"
 main = "security-worker.js"
 compatibility_date = "2026-07-20"
 
@@ -9,8 +14,4 @@ run_worker_first = true
 not_found_handling = "404-page"
 
 [env.production]
-# 审查 R-06：显式声明生产 Worker 名。此前该环境不覆盖 name，`--env production` 实际部署到
-# 顶层的 s-ynapse-security，与 docs/architecture.md、docs/runbook/rollback.md 所述 `blog`
-# 以及 real-site/workers/wrangler.toml 都不一致 —— 按文档操作会部署到错误 Worker。
-name = "blog"
 vars = { ENVIRONMENT = "production" }

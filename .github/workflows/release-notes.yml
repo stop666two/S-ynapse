@@ -23,12 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout default branch (release-notes generator lives here)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: main
           fetch-depth: 0
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
       - name: Normalize tag input
@@ -42,6 +42,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release view "$TAG" --json tagName --jq .tagName
+      # 审查 R-37：改写公开正文前先校验 tag 内的 RELEASE.json（status/version/commit/checks）。
+      # 生成器只会按真实 checks 渲染门禁状态，但「为不合规 tag 重写正文」本身就该被拒绝：
+      # 不 verified 或门禁含非 true 时此步失败，后续 gh release edit 不会执行。
+      - name: Validate RELEASE.json at target tag
+        run: node scripts/lib/release-validate.js --tag "$TAG"
       - name: Download release archive asset
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

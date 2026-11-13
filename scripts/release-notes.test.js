@@ -19,7 +19,7 @@ const {
   renderReleaseNotes,
   buildArchiveName
 } = require('./lib/release-notes.js');
-const { RELEASE_GATES } = require('./lib/release-version.js');
+const { RELEASE_GATES, buildPassedChecks } = require('./lib/release-version.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const HAS_GIT_REPO = fs.existsSync(path.join(ROOT, '.git'));
@@ -49,6 +49,9 @@ const SAMPLE_CHANGELOG = [
   ''
 ].join('\n');
 
+// 审查 R-37 前这里写的是 checks: {}，而 renderGates() 无条件打 ✅——即空 checks 也宣称
+// 「全部通过」。现在门禁清单按 checks 真实状态渲染，因此样例外显式给出全 true（与
+// release:mark 正常产出等价），false/缺失 的渲染由专门用例覆盖。
 const SAMPLE_STATE = {
   schemaVersion: 1,
   version: '1.2.1',
@@ -56,7 +59,7 @@ const SAMPLE_STATE = {
   humanVerifiedBy: 'stop666two',
   verifiedAt: '2026-10-02T01:43:49.963Z',
   commit: 'beb7353d40b176a36b8994458ce3aea66c3aaabc',
-  checks: {}
+  checks: buildPassedChecks()
 };
 
 function renderSample(overrides) {
@@ -103,6 +106,7 @@ test('renderReleaseNotes：渲染标题、变更、门禁、安装、对比与�
   assert.match(text, /### Fixed/);
   assert.match(text, /### Added/);
   assert.match(text, /## 质量与校验/);
+  assert.ok(text.includes('发布门禁（' + RELEASE_GATES.length + ' 项全部通过'), '全部 true 时才允许宣称全部通过');
   for (const gate of RELEASE_GATES) {
     assert.ok(text.includes('- ✅ ' + gate.label + '（`' + gate.command + '`）'), '门禁应逐项列出：' + gate.label);
   }
@@ -125,6 +129,40 @@ test('renderReleaseNotes：无归档附件时注明由 CI 附件流程提供，�
   const text = renderSample({ archive: null, releaseState: null });
   assert.match(text, /由 CI 附件流程提供/);
   assert.match(text, /RELEASE\.json：未能读取/);
+});
+
+// 审查 R-37：release-notes.yml 可对任意 tag 补更正文，此前的 renderGates() 无条件打 ✅、
+// 且固定输出「12 项全部通过」——checks 为 false 或缺失时也在撒谎。
+test('renderGates：只对严格 true 打勾，false 记 ❌、缺失记 ⚠️ 未记录', () => {
+  const checks = buildPassedChecks();
+  checks['verify-compression'] = false;
+  delete checks['lint'];
+  const text = renderSample({ releaseState: Object.assign({}, SAMPLE_STATE, { checks }) });
+
+  assert.doesNotMatch(text, /- ✅ 压缩无头对比/, '记录为 false 的门禁不得打勾');
+  assert.ok(text.includes('- ❌ 压缩无头对比（`npm run verify:compression`）：RELEASE.json 记录为 false'),
+    'false 项应渲染为 ❌ 并带记录值');
+  assert.doesNotMatch(text, /- ✅ ESLint 静态检查/, '未记录的门禁不得打勾');
+  assert.ok(text.includes('- ⚠️ ESLint 静态检查（`npm run lint`）：RELEASE.json 未记录该项'),
+    '缺失项应渲染为 ⚠️ 未记录');
+  assert.ok(text.includes('- ✅ 单元测试（`npm test`）'), '仍为 true 的门禁保持 ✅');
+
+  const passed = RELEASE_GATES.length - 2;
+  const notPassed = RELEASE_GATES.length - passed;
+  assert.ok(text.includes('发布门禁（' + RELEASE_GATES.length + ' 项中 '
+    + passed + ' 项通过，' + notPassed + ' 项未通过或未记录'),
+  '引导句必须给出真实计数');
+  assert.ok(!text.includes('项全部通过'), '存在非 true 项时不得宣称全部通过');
+});
+
+test('renderGates：RELEASE.json 不可读时逐项标未记录且不宣称通过，输出保持确定性', () => {
+  const text = renderSample({ releaseState: null });
+  assert.doesNotMatch(text, /- ✅ /, '读不到 RELEASE.json 时任何门禁都不得打勾');
+  assert.equal((text.match(/- ⚠️ /g) || []).length, RELEASE_GATES.length, '每个门禁都标 ⚠️ 未记录');
+  assert.ok(text.includes('发布门禁（' + RELEASE_GATES.length + ' 项中 0 项通过，'
+    + RELEASE_GATES.length + ' 项未通过或未记录'));
+  assert.ok(!text.includes('项全部通过'));
+  assert.equal(text, renderSample({ releaseState: null }), '同输入必须同字节');
 });
 
 test('renderReleaseNotes：缺 CHANGELOG 版本段时报错并提示补 CHANGELOG', () => {

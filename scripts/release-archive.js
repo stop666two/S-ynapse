@@ -130,6 +130,35 @@ function resolveOutPath(out, version) {
   return out;
 }
 
+// 校验一个既有归档：统一前缀（= 版本绑定）、白名单、必需文件与必需目录内容。
+// 审查 R-35：release:publish 复用已存在的 zip 时此前完全不校验——早先 `--ref HEAD` 产出的、
+// 或手工放进 release-artifacts 的同名文件会被当成受审计附件上传。现在两条路径共用本函数：
+// 前缀由期望版本推出，assertArchiveContents 对每个条目强制该前缀，等于同时锁住版本。
+function verifyArchive(file, expectedVersion) {
+  if (typeof expectedVersion !== 'string' || !isSemver(expectedVersion)) {
+    throw new Error('verifyArchive：expectedVersion 必须是合法 SemVer，实际 ' + JSON.stringify(expectedVersion));
+  }
+  if (!fs.existsSync(file)) throw new Error('归档不存在：' + file);
+  const prefix = 'S-ynapse-' + expectedVersion + '/';
+  const entries = readZipEntries(file);
+  manifest.assertArchiveContents(entries, { prefix });
+  const files = entries
+    .filter(function (entry) { return !entry.endsWith('/'); })
+    .map(function (entry) { return entry.startsWith(prefix) ? entry.slice(prefix.length) : entry; });
+  const present = new Set(files);
+  const missingFiles = manifest.RELEASE_REQUIRED_FILES.filter(function (name) { return !present.has(name); });
+  if (missingFiles.length > 0) {
+    throw new Error('归档缺少必需文件：' + missingFiles.join(', '));
+  }
+  const missingDirs = manifest.RELEASE_REQUIRED_DIRS.filter(function (dir) {
+    return !files.some(function (name) { return name.startsWith(dir + '/'); });
+  });
+  if (missingDirs.length > 0) {
+    throw new Error('归档缺少必需目录内容：' + missingDirs.join(', '));
+  }
+  return { file: file, prefix: prefix, files: files };
+}
+
 // 执行归档并完成全部校验；返回 { file, version, files, bytes, skeleton, tests }。
 function archiveRelease(options) {
   const opts = options || {};
@@ -147,23 +176,8 @@ function archiveRelease(options) {
     throw new Error('git archive 失败：' + ((result.stderr || '').trim() || 'exit ' + result.status));
   }
 
-  const entries = readZipEntries(out);
-  manifest.assertArchiveContents(entries, { prefix });
-  const files = entries
-    .filter(function (entry) { return !entry.endsWith('/'); })
-    .map(function (entry) { return entry.startsWith(prefix) ? entry.slice(prefix.length) : entry; });
-
-  const present = new Set(files);
-  const missingFiles = manifest.RELEASE_REQUIRED_FILES.filter(function (file) { return !present.has(file); });
-  if (missingFiles.length > 0) {
-    throw new Error('归档缺少必需文件：' + missingFiles.join(', '));
-  }
-  const missingDirs = manifest.RELEASE_REQUIRED_DIRS.filter(function (dir) {
-    return !files.some(function (file) { return file.startsWith(dir + '/'); });
-  });
-  if (missingDirs.length > 0) {
-    throw new Error('归档缺少必需目录内容：' + missingDirs.join(', '));
-  }
+  const verified = verifyArchive(out, version);
+  const files = verified.files;
 
   // 骨架统计：articles/media 只应出现 .gitkeep 标记（实体内容已被 pathspec 过滤，
   // assertArchiveContents 的白名单判定是兜底），tests 计数用于确认测试随包分发。
@@ -201,4 +215,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { archiveRelease, readZipEntries, readJsonAtRef, assertVersionConsistency, resolveVersion, resolveOutPath, parseArgs };
+module.exports = { archiveRelease, verifyArchive, readZipEntries, readJsonAtRef, assertVersionConsistency, resolveVersion, resolveOutPath, parseArgs };

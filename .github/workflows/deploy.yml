@@ -19,8 +19,8 @@ jobs:
       skip: ${{ steps.decide.outputs.skip }}
       reason: ${{ steps.decide.outputs.reason }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
       - run: npm ci --omit=dev --ignore-scripts
@@ -41,7 +41,7 @@ jobs:
   check-agents:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Check for AGENTS.md in changes
@@ -65,8 +65,8 @@ jobs:
     if: needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20.19.0'
           cache: 'npm'
@@ -87,12 +87,15 @@ jobs:
     needs: [check-agents, preflight]
     if: needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
+    # 审查 R-38：本 job 跑聚合门禁（23 项 × internals.ci.checkTimeoutMs），最坏预算 ≈230min，
+    # 此前没有显式 timeout，只能靠平台默认值；显式声明与 nightly 同口径。
+    timeout-minutes: 260
     permissions:
       contents: read
       statuses: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
           cache: 'npm'
@@ -105,14 +108,14 @@ jobs:
         run: node scripts/ci-checks.js
       - name: Upload CI report (always)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ci-checks
           path: build-artifacts/ci-checks.*
           if-no-files-found: error
       - name: Upload test artifacts (fuzz failures / web coverage / smoke / SBOM)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: test-artifacts
           path: build-artifacts/**

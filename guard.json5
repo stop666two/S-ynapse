@@ -717,7 +717,7 @@
   },
 
   // ==========================================================================
-  // 【accessGate】访问门槛（14 项）——默认关闭（保留但默认关）
+  // 【accessGate】访问门槛（15 项）——默认关闭（保留但默认关）
   // --------------------------------------------------------------------------
   // 能力：路径前缀级的密码门槛 + 访问者限次 + 解锁码（?key=）+ 会话记忆。
   // 诚实声明：静态站密码为“软防护”——哈希与逻辑都在前端源码中，可被离线
@@ -734,7 +734,7 @@
     // 作用：密码门槛
     // hash：string；SHA-256(salt + 密码) 的十六进制（用任何在线/本地工具生成）
     // salt：string；自定义盐（长度随意，建议 8 位以上随机串）
-    // rememberHours：number(h)；可填 0–720；推荐 72（0 = 关闭浏览器即失效）
+    // rememberHours：number(h)；可填 0–720；推荐 72（0 = 不记忆：解锁立即失效，刷新即重新输入密码）
     // title/placeholder/errorText：界面文案（空 = ui-strings 默认）
     password: {
       // enabled：启用密码门槛；需 accessGate.enabled=true。
@@ -743,7 +743,7 @@
       hash: '',
       // salt：自定义盐(建议 8 位以上随机串)。
       salt: '',
-      // rememberHours：解锁记忆时长(h)；可填 0–720；推荐 72。
+      // rememberHours：密码解锁记忆时长(h)；可填 0–720；推荐 72；0 = 不记忆（仅本次输入有效）。
       rememberHours: 72,
       // title：门槛标题；空 = ui-strings 默认。
       title: '',
@@ -765,10 +765,15 @@
     // viewsAction：达到上限后的动作；可填 'toast' | 'lock'；推荐 'toast'。
     viewsAction: 'toast',
 
-    // 作用：解锁码（URL ?key=CODE 访问即永久解锁本机）；类型：array<string>；推荐 []
+    // 作用：解锁码（URL ?key=CODE）；类型：array<string>；推荐 []
     // 不可填：空字符串元素；注意：解锁码在解锁逻辑读取完成后会被 replaceState 从地址栏
     //   移除（保留其它查询串与 hash），但输入时仍可能进入浏览器历史/日志，敏感码请定期更换
+    // 记忆时长由下面的 unlockCodeTtlHours 单独控制（不再复用 password.rememberHours）
     unlockCodes: [],
+    // 作用：解锁码解锁后的记忆时长(h)；类型：number(h)；0 = 永久解锁本机（默认）；
+    // 可填 0–720；推荐 0（与“?key= 永久解锁”的历史承诺一致）
+    // 不可填：负数（按 0 处理）；密码解锁的记忆时长仍由 password.rememberHours 控制
+    unlockCodeTtlHours: 0,
 
     // 作用：控制台输出门槛日志；类型：boolean；推荐：false
     logDetect: false

@@ -10,7 +10,6 @@ export function init() {
   var mode = EL.mode || 'warn';
   var msg = (EL.messageEn && window.__T && window.langOf() === 'en') ? EL.messageEn : (EL.message || c.message || '');
   var isEn = function () { return window.__T && window.langOf() === 'en'; };
-  var escH = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
   var fullUrl = EL.showFullUrl !== false, newTab = EL.openInNewTab !== false;
   // whitelistNewTab=true：白名单外链强制新标签页打开（target=_blank + noopener/noreferrer 等效语义）；
   // false（默认）= 不改写浏览器默认行为（当前页面跳转），保持历史行为。
@@ -26,6 +25,18 @@ export function init() {
     return EL.copyButtonText || __T('toolbar.copyLink', '复制链接');
   }
   // 复制当前外链 URL：Clipboard API 优先，不可用时回退 execCommand；成功短暂显示「已复制」。
+  // 审查 R-41：配置文案按纯文本渲染（site.json5 明确「不可填 HTML 标签（按纯文本渲染）」），
+  // 因此文案只经 textContent 进入 DOM；URL 单独放进受控 .link-url 元素，避免任何字符串拼 HTML。
+  function fillBody(b, text, rawUrl) {
+    b.textContent = '';
+    var t = String(text == null ? '' : text).replace(/\{url\}/g, '');
+    if (t) b.appendChild(document.createTextNode(t));
+    if (!fullUrl) return;
+    var s = document.createElement('span');
+    s.className = 'link-url';
+    s.textContent = rawUrl;
+    b.appendChild(s);
+  }
   function wireCopy(u) {
     if (!copyBtn) return;
     var label = copyButtonLabel();
@@ -71,7 +82,12 @@ export function init() {
     var a = e.target.closest('a');
     if (!a) return;
     var h = a.getAttribute('href');
-    if (!h || h[0] == '/' || h[0] == '#' || h.slice(0, 7) == 'mailto:' || h.slice(0, 11) == 'javascript:') return;
+    if (!h) return;
+    // 审查 R-18：早退只保留真正没有网络目标的写法（页内锚点/伪协议）。以 '/' 开头的还可能是
+    // 协议相对地址（//evil.example 或 /\evil.example，浏览器把 \ 当 /），若在此直接 return，
+    // 外链警告、黑名单与新标签策略全部被绕过；根相对路径（单个 '/' 开头）仍走快路径。
+    if (h[0] == '#' || h.slice(0, 7) == 'mailto:' || h.slice(0, 11) == 'javascript:') return;
+    if (h[0] == '/' && h[1] != '/' && h[1] != '\\') return;
     var u;
     try { u = new URL(h, window.location.href); } catch (ex) { return; }
     if (u.origin == window.location.origin) return;
@@ -84,7 +100,7 @@ export function init() {
     if (blocked) {
       e.preventDefault();
       if (o && b && x) {
-        b.innerHTML = (isEn() ? __T('toolbar.linkBlocked', 'Link blocked') : '该链接被站点屏蔽') + (fullUrl ? '<span class="link-url">' + escH(h) + '</span>' : '');
+        fillBody(b, (isEn() ? __T('toolbar.linkBlocked', 'Link blocked') : '该链接被站点屏蔽'), h);
         o.hidden = false;
         x.textContent = isEn() ? __T('toolbar.close', 'Close') : '关闭';
         x.onclick = function () { o.hidden = true; };
@@ -97,7 +113,7 @@ export function init() {
     if (mode === 'prohibit') {
       e.preventDefault();
       if (o && b && x) {
-        b.innerHTML = (isEn() ? __T('toolbar.extLinkBlocked', 'External links are blocked by site policy') : '外部链接已被站点策略阻止') + (fullUrl ? '<span class="link-url">' + escH(h) + '</span>' : '');
+        fillBody(b, (isEn() ? __T('toolbar.extLinkBlocked', 'External links are blocked by site policy') : '外部链接已被站点策略阻止'), h);
         o.hidden = false;
         x.textContent = isEn() ? __T('toolbar.okay', 'Got it') : '我知道了';
         x.onclick = function () { o.hidden = true; };
@@ -108,7 +124,7 @@ export function init() {
     }
     e.preventDefault();
     if (!o || !b) return;
-    b.innerHTML = (msg || '').replace('{url}', '') + (fullUrl ? '<span class="link-url">' + escH(h) + '</span>' : '');
+    fillBody(b, msg, h);
     o.hidden = false;
     x.onclick = function () { o.hidden = true; openExt(h); };
     n.onclick = function () { o.hidden = true; };

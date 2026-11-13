@@ -244,6 +244,8 @@ export const DEFAULT_GUARD = {
     viewsPerDay: 0,
     viewsAction: 'toast',
     unlockCodes: [],
+    // 审查 R-42：解锁码记忆时长（0 = 永久）；必须与 guard.json5 / scripts/lib/guard-defaults.js 同值。
+    unlockCodeTtlHours: 0,
     logDetect: false
   }
 };

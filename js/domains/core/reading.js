@@ -49,6 +49,15 @@ function scrollToTop() {
 var S = { bar: null, tip: null, dot: null, btt: null, dock: null, ring: null, dockToc: null, dockTop: null, ariaOn: false, tipTimer: 0, hoverOn: false, focusOn: false };
 var CFG = { RP: {}, BT: {}, D: {} };
 var lastW = -1, dockRaf = 0, progTimer = null, globalBound = false;
+// 审查 R-23：进度条/返回顶部等节点常驻在内容区之外，软导航每次 bind() 都会重新指向它们。
+// 监听器必须幂等（data-*-bound 标记），否则监听器随导航次数线性增长、方向键一步跳 N×步长。
+function once(el, key) {
+  if (!el) return false;
+  var attr = 'data-' + key + '-bound';
+  if (el.getAttribute(attr) === '1') return false;
+  el.setAttribute(attr, '1');
+  return true;
+}
 
 function updateProgress() {
   var bar = S.bar;
@@ -119,7 +128,7 @@ function bind() {
   CFG.RP = (F && F.readingProgress) || {};
   CFG.BT = (F && F.backToTop) || {};
   CFG.D = (F && F.readDock) || {};
-  document.querySelectorAll('.reading-mode-btn').forEach(function (b) { b.addEventListener('click', toggleReadingMode); });
+  document.querySelectorAll('.reading-mode-btn').forEach(function (b) { if (once(b, 'rmode')) b.addEventListener('click', toggleReadingMode); });
 
   // 阅读进度条
   S.bar = CFG.RP.enabled === false ? null : document.getElementById('rp');
@@ -135,26 +144,30 @@ function bind() {
     if (CFG.RP.clickToJump !== false) {
       S.bar.classList.add('enabled');
       S.bar.setAttribute('tabindex', '0');
-      S.bar.addEventListener('click', function (e) {
-        if (e.detail === 0) return;
-        var r = S.bar.getBoundingClientRect();
-        seekPct((e.clientY - r.top) / r.height);
-      });
-      S.bar.addEventListener('pointerenter', function () { S.hoverOn = true; showTip(); });
-      S.bar.addEventListener('pointerleave', function () { S.hoverOn = false; hideTip(); });
-      S.bar.addEventListener('focus', function () { S.focusOn = true; showTip(); });
-      S.bar.addEventListener('blur', function () { S.focusOn = false; hideTip(); });
-      S.bar.addEventListener('keydown', function (e) {
-        var sh = document.documentElement.scrollHeight - window.innerHeight;
-        if (sh <= 0) return;
-        // features.readingProgress.keyboardStep（缺省/非法回退 0.05，保持历史行为；上限 1）。
-        var rawStep = +CFG.RP.keyboardStep;
-        var step = isNaN(rawStep) || rawStep <= 0 ? 0.05 : Math.min(1, rawStep), cur = window.scrollY / sh;
-        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); seekPct(cur + step); }
-        else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); seekPct(cur - step); }
-        else if (e.key === 'Home') { e.preventDefault(); seekPct(0); }
-        else if (e.key === 'End') { e.preventDefault(); seekPct(1); }
-      });
+      // 审查 R-23：#rp 常驻布局、软导航会反复经过这里；已绑定过的节点只刷新引用与配置态，
+      // 不再重复挂监听器（否则 keydown 步长按导航次数叠加）。
+      if (once(S.bar, 'rp')) {
+        S.bar.addEventListener('click', function (e) {
+          if (e.detail === 0) return;
+          var r = S.bar.getBoundingClientRect();
+          seekPct((e.clientY - r.top) / r.height);
+        });
+        S.bar.addEventListener('pointerenter', function () { S.hoverOn = true; showTip(); });
+        S.bar.addEventListener('pointerleave', function () { S.hoverOn = false; hideTip(); });
+        S.bar.addEventListener('focus', function () { S.focusOn = true; showTip(); });
+        S.bar.addEventListener('blur', function () { S.focusOn = false; hideTip(); });
+        S.bar.addEventListener('keydown', function (e) {
+          var sh = document.documentElement.scrollHeight - window.innerHeight;
+          if (sh <= 0) return;
+          // features.readingProgress.keyboardStep（缺省/非法回退 0.05，保持历史行为；上限 1）。
+          var rawStep = +CFG.RP.keyboardStep;
+          var step = isNaN(rawStep) || rawStep <= 0 ? 0.05 : Math.min(1, rawStep), cur = window.scrollY / sh;
+          if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); seekPct(cur + step); }
+          else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); seekPct(cur - step); }
+          else if (e.key === 'Home') { e.preventDefault(); seekPct(0); }
+          else if (e.key === 'End') { e.preventDefault(); seekPct(1); }
+        });
+      }
     }
     S.bar.classList.add('visible');
   }
@@ -164,7 +177,7 @@ function bind() {
   // 返回顶部
   S.btt = CFG.BT.enabled === false ? null : document.getElementById('btt');
   if (S.btt) {
-    S.btt.addEventListener('click', scrollToTop);
+    if (once(S.btt, 'btt')) S.btt.addEventListener('click', scrollToTop);
     updateBtt();
   }
 
@@ -180,7 +193,7 @@ function bind() {
     if (CFG.D.showTocButton === false && S.dockToc) S.dockToc.style.display = 'none';
     if (CFG.D.showTopButton === false && S.dockTop) S.dockTop.style.display = 'none';
     S.dock.classList.add('visible');
-    if (S.dockTop) S.dockTop.addEventListener('click', scrollToTop);
+    if (S.dockTop && once(S.dockTop, 'docktop')) S.dockTop.addEventListener('click', scrollToTop);
     if (S.dockToc) S.dockToc.onclick = function () {
       var t = document.querySelector('.toc-sidebar');
       if (t && window.getComputedStyle(t).display !== 'none') { t.scrollIntoView({ behavior: window.__SB(), block: 'start' }); }

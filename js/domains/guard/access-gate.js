@@ -13,13 +13,31 @@ export function init(ctx) {
   function unlocked() {
     try {
       const v = JSON.parse(localStorage.getItem(PASS_KEY) || 'null');
-      return !!(v && typeof v.exp === 'number' && v.exp > Date.now());
+      if (!v) return false;
+      // 审查 R-42：解锁码“永久”用 permanent 标记（JSON 无法表示 Infinity，
+      // 写 exp:Infinity 会被序列化成 null 从而立刻失效）。
+      if (v.permanent === true) return true;
+      return !!(typeof v.exp === 'number' && v.exp > Date.now());
     } catch (e) { return false; }
   }
 
+  function storeExp(exp) {
+    try { localStorage.setItem(PASS_KEY, JSON.stringify({ exp: exp })); } catch (e) { /* 忽略 */ }
+  }
+  // 密码解锁记忆：语义保持历史行为（rememberHours 小时；0 = 立即失效，即不记忆）。
   function storeUnlock() {
     const hours = Math.max(0, parseInt(pw.rememberHours, 10) || 0);
-    try { localStorage.setItem(PASS_KEY, JSON.stringify({ exp: Date.now() + hours * 3600000 })); } catch (e) { /* 忽略 */ }
+    storeExp(Date.now() + hours * 3600000);
+  }
+  // 解锁码（?key=）记忆：独立 TTL accessGate.unlockCodeTtlHours（0 = 永久，默认；
+  // 历史实现复用 rememberHours，导致 rememberHours=0 时文档承诺的“永久解锁”变成立即过期）。
+  function storeKeyUnlock() {
+    const hours = Math.max(0, parseInt(cfg.unlockCodeTtlHours, 10) || 0);
+    if (hours <= 0) {
+      try { localStorage.setItem(PASS_KEY, JSON.stringify({ permanent: true })); } catch (e) { /* 忽略 */ }
+      return;
+    }
+    storeExp(Date.now() + hours * 3600000);
   }
 
   async function sha256hex(s) {
@@ -131,7 +149,7 @@ export function init(ctx) {
       ? new URLSearchParams(location.search).get(ACCESS_GATE_KEY_PARAM)
       : null;
     const codes = Array.isArray(cfg.unlockCodes) ? cfg.unlockCodes : [];
-    if (key && codes.indexOf(key) > -1) storeUnlock();
+    if (key && codes.indexOf(key) > -1) storeKeyUnlock();
     else if (!unlocked() && pw.hash) renderGate(false);
   }
 

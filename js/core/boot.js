@@ -7,6 +7,11 @@ let B = {};
 // 首帧让步的兜底上限（毫秒）：页面处于隐藏/预渲染态时 rAF 不产生回调，
 // 不得让关键队列等待首帧而永久挂起。
 const FIRST_FRAME_FALLBACK_MS = 300;
+// 审查 R-26：等待外置配置期间（最长 __CONFIG_TIMEOUT__，默认 3s）交互队列全部被 await 挡住，
+// 而遮罩原本在 await 之后才创建 —— 弱网下首屏看似就绪实则无响应且无任何提示。
+// 配置就绪前读不到 features.loading，这里按配置默认值（delayMs=120）延迟挂一个静态遮罩：
+// 快配置不显示（不引入闪烁），慢配置立刻有反馈；配置就绪后由正式流程复用或淡出。
+const PRE_CONFIG_DELAY_MS = 120;
 function log(msg) { if (B.log) console.info('[boot] ' + Math.round(performance.now()) + 'ms ' + msg); }
 function yieldToMain() {
   if (typeof scheduler !== 'undefined' && typeof scheduler.yield === 'function') return scheduler.yield();
@@ -65,8 +70,22 @@ export async function boot(queues) {
   const stats = { start: performance.now(), critEnd: 0, idleEnd: 0, heavyEnd: 0 };
   window.__BOOT__ = stats;
   const ready = window.__CONFIG_READY__;
+  let preOverlay = null, preTimer = null, preShownAt = 0;
   if (ready && typeof ready.then === 'function') {
+    // reduced-motion 下按 features.loading.reducedMotion 的默认语义（'skip'）不显示遮罩。
+    const preReduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if (!preReduced) {
+      preTimer = setTimeout(function () {
+        preTimer = null;
+        preOverlay = createOverlay();
+        preShownAt = performance.now();
+        stats.preConfigOverlayAt = preShownAt;
+        if (document.body) document.body.setAttribute('aria-busy', 'true');
+        log('overlay shown (waiting config)');
+      }, PRE_CONFIG_DELAY_MS);
+    }
     try { await ready; } catch (e) { /* fail-open：配置层自身保证不 reject，此处仅防御 */ }
+    clearTimeout(preTimer);
   }
   stats.configReadyAt = performance.now();
   const F = window.__FEATURES__ || {};
@@ -99,10 +118,26 @@ export async function boot(queues) {
     }, wait);
   }
 
+  // 审查 R-26：等待配置期间已挂上的遮罩并入正式流程 —— 配置允许遮罩时复用它（不再二次创建、
+  // 不丢失 aria-busy），配置声明关闭遮罩或 reduced-motion 跳过时按正式节奏淡出。
+  if (preOverlay) {
+    overlay = preOverlay;
+    shownAt = preShownAt;
+    stats.overlayShownAt = preShownAt;
+    if (!loaderOn) {
+      hideOverlay();
+    } else if (L.text) {
+      const t = overlay.querySelector('.boot-text');
+      if (t && t.textContent !== L.text) t.textContent = L.text;
+    }
+  }
+
   if (loaderOn) {
     const d = parseInt(L.delayMs, 10);
     const delayMs = isNaN(d) ? 120 : Math.max(0, d);
-    if (delayMs === 0) {
+    if (overlay) {
+      log('overlay kept from config wait');
+    } else if (delayMs === 0) {
       overlay = createOverlay();
       shownAt = performance.now();
       stats.overlayShownAt = shownAt;

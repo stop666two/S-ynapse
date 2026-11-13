@@ -12,6 +12,7 @@ const features = json5.parse(fs.readFileSync(path.join(ROOT, 'features.json5'), 
 const theme = json5.parse(fs.readFileSync(path.join(ROOT, 'theme.json5'), 'utf-8'));
 const uiStrings = json5.parse(fs.readFileSync(path.join(ROOT, 'ui-strings.json5'), 'utf-8'));
 const { DEFAULT_FEATURES } = require('./lib/features-schema.js');
+const { listSourceFiles } = require('./lib/tracked-files.js');
 const w = require('./lib/feature-wiring.js');
 
 test('features.json5：重复键已删除且 schema 同步（themeToggle/codeCopy/listCover/mobileBottomNav）', () => {
@@ -309,16 +310,6 @@ test('resolveWikiLinks：unknownMode text/link/hide + suffix + 大小写 + 自�
 });
 
 test('删除键无残留引用（js/templates/scripts 源码扫描）', () => {
-  function walk(dir, out) {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      const p = path.join(dir, e.name);
-      if (e.isDirectory()) {
-        if (['node_modules', '.git', 'dist', 'real-site', '.tmp-scripts'].includes(e.name)) continue;
-        walk(p, out);
-      } else out.push(p);
-    }
-    return out;
-  }
   const pats = [
     /themeToggle\.(defaultTheme|rememberChoice|iconStyle|transitionAll)/,
     /listCover\.aspectRatio/,
@@ -329,8 +320,9 @@ test('删除键无残留引用（js/templates/scripts 源码扫描）', () => {
     /\bincrementalByDefault\b/
   ];
   const offenders = [];
-  for (const f of walk(ROOT, [])) {
-    if (!/\.(js|ejs)$/.test(f) || f.endsWith('.test.js')) continue;
+  // 只扫 git 跟踪的源文件（无 .git 的归档走工作树遍历）：未跟踪的本地副本不再造成假失败。
+  for (const f of listSourceFiles(ROOT, /\.(js|ejs)$/)) {
+    if (f.endsWith('.test.js')) continue;
     const src = fs.readFileSync(f, 'utf-8');
     for (const p of pats) if (p.test(src)) offenders.push(path.relative(ROOT, f) + ' :: ' + p);
   }
@@ -852,20 +844,11 @@ test('ui-strings.json5：新增词典键双语齐全（codeScrollHint / legendLo
 });
 
 test('删除键无残留引用（backToTop 重复键源码扫描）', () => {
-  function walk(dir, out) {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      const p = path.join(dir, e.name);
-      if (e.isDirectory()) {
-        if (['node_modules', '.git', 'dist', 'real-site', '.tmp-scripts'].includes(e.name)) continue;
-        walk(p, out);
-      } else out.push(p);
-    }
-    return out;
-  }
   const pats = [/backToTop\.(rightOffset|bottomOffset)/];
   const offenders = [];
-  for (const f of walk(ROOT, [])) {
-    if (!/\.(js|ejs)$/.test(f) || f.endsWith('.test.js')) continue;
+  // 只扫 git 跟踪的源文件（无 .git 的归档走工作树遍历）：未跟踪的本地副本不再造成假失败。
+  for (const f of listSourceFiles(ROOT, /\.(js|ejs)$/)) {
+    if (f.endsWith('.test.js')) continue;
     const src = fs.readFileSync(f, 'utf-8');
     for (const p of pats) if (p.test(src)) offenders.push(path.relative(ROOT, f) + ' :: ' + p);
   }
@@ -981,20 +964,11 @@ test('debugConfig / configSummary：默认关闭、摘要脱敏', () => {
 });
 
 test('删除模块无残留引用（feed：js/templates/scripts 源码扫描）', () => {
-  function walk(dir, out) {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      const p = path.join(dir, e.name);
-      if (e.isDirectory()) {
-        if (['node_modules', '.git', 'dist', 'real-site', '.tmp-scripts'].includes(e.name)) continue;
-        walk(p, out);
-      } else out.push(p);
-    }
-    return out;
-  }
   const pats = [/\bfeatures\.feed\b/, /\bfeed:\s*\{[^}]*rssEnabled/];
   const offenders = [];
-  for (const f of walk(ROOT, [])) {
-    if (!/\.(js|ejs)$/.test(f) || f.endsWith('.test.js')) continue;
+  // 只扫 git 跟踪的源文件（无 .git 的归档走工作树遍历）：未跟踪的本地副本不再造成假失败。
+  for (const f of listSourceFiles(ROOT, /\.(js|ejs)$/)) {
+    if (f.endsWith('.test.js')) continue;
     const src = fs.readFileSync(f, 'utf-8');
     for (const p of pats) if (p.test(src)) offenders.push(path.relative(ROOT, f) + ' :: ' + p);
   }

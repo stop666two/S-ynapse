@@ -46,7 +46,7 @@ featuredImage: /media/test-photo-2.png
 
 ```html
 <picture>
-  <source srcset="/media/variants/test-photo-1-640.webp 640w" type="image/webp">
+  <source srcset="/media/test-photo-1-640.webp 640w" type="image/webp">
   <img src="/media/test-photo-1.jpg" alt="测试照片 1" loading="lazy" decoding="async">
 </picture>
 ```

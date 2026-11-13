@@ -21,12 +21,12 @@
 ## 特性
 
 **全配置驱动**
-- 14 个 JSON5 站点配置文件（支持注释），另有 **`internals.json5` 工程内部参数**（端口/路径/缓存天数/审计上限/部署项目名/CI 版本；不参与站点配置项计数），**2600+ 可配置项**（实测 2895 项；口径：对象逐层展开、数组元素逐项计入且元素为对象时不再展开），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
+- 14 个 JSON5 站点配置文件（支持注释），另有 **`internals.json5` 工程内部参数**（端口/路径/缓存天数/审计上限/部署项目名/CI 版本；不参与站点配置项计数），**2600+ 可配置项**（实测 2850 项；口径：对象逐层展开、数组元素逐项计入且元素为对象时不再展开），逐字段中文注释（含可填值/推荐值/禁用值/注意事项）
 - `features.json5` 功能总控域：**103 个模块、1051 个配置项**（同一口径递归统计），每项功能均可开/关/微调；`tuning.json5` UI 微调层（37 分类 / 274 项）
 - 社交链接支持每项独立开关（github/twitter/weibo 等可选）
 - 配置校验：JSON5 语法错误即终止构建，输出文件/行列/上下文/原因/修复提示；20+ 项值域校验
 - 详细参考文档：`docs/config-reference.md`（15 章，逐字段权威参考）
-- 配置周边门禁：`verify:config`（默认值/结构一致性）、`verify:config-refs`（零引用键）、`verify:config-dupes`（重复键）、`verify:config-comments`（逐键注释覆盖率）、`verify:config-docs`（15 文件键 vs 配置参考覆盖）、`verify:internals`（.nvmrc/wrangler assets/CI 版本与 internals 单源一致）、`verify:config-single-source`（819 个行为开关矩阵 `docs/config-switch-matrix.md` 零缺失 + 回退字面量零漂移；生成器 `npm run gen:config-matrix`）
+- 配置周边门禁：`verify:config`（默认值/结构一致性）、`verify:config-refs`（零引用键）、`verify:config-dupes`（重复键）、`verify:config-comments`（逐键注释覆盖率）、`verify:config-docs`（15 文件键 vs 配置参考覆盖）、`verify:internals`（.nvmrc/wrangler assets/CI 版本与 internals 单源一致）、`verify:config-single-source`（817 个行为开关矩阵 `docs/config-switch-matrix.md` 覆盖不低于基线且基线无冗余 + 回退字面量零漂移；生成器 `npm run gen:config-matrix`）
 
 **内容创作**
 - Markdown 扩展：上标/下标（`X^2^` / `H~2~O`）、KaTeX 数学公式（`$`/`$$`）、Mermaid 图表、Wiki 双链（`[[标题]]`）、定义列表、任务列表
@@ -207,7 +207,7 @@ S-ynapse/
 ├── features.json5     # 功能总控（103 模块/1051 项，可开关/微调，可选文件）
 ├── ui-strings.json5   # 界面文案词典（zh/en 双语词典，服务端 ui() + 运行时 __T()，可选）
 ├── tuning.json5       # UI 微调参数层（37 分类/274 项，注入 CSS 变量；行为参数运行时读取，可选）
-├── guard.json5        # 防护与交互控制域（11 个模块/181 项：右键/复制/选择/快捷键/水印/检测/控制台/隐私帘/篡改监视/访问门槛，逐项注释，可选）
+├── guard.json5        # 防护与交互控制域（11 个模块/182 项：右键/复制/选择/快捷键/水印/检测/控制台/隐私帘/篡改监视/访问门槛，逐项注释，可选）
 ├── navigation.json5    # 导航配置
 ├── sidebar.json5       # 侧边栏配置（含 series/friends/stats/quote 组件）
 ├── footer.json5        # 页脚配置
@@ -240,7 +240,7 @@ S-ynapse/
 | `features.json5` | 103 个功能模块的开关/参数（灯箱、进度条、快捷键、公式、分享、预设、定时、收藏、评论、继续阅读…） | 可选（缺失回退默认，功能保持） |
 | `ui-strings.json5` | 界面文案词典（zh/en 双语，i18n 切换的文案来源） | 可选（缺失回退内置文案） |
 | `tuning.json5` | UI 微调参数层（37 分类 / 274 项：排版/间距/圆角/动效/组件细节，注入 CSS 变量） | 可选 |
-| `guard.json5` | 防护与交互控制域（11 个模块 / 181 项（口径：对象逐层展开、数组元素逐项计入）：自定义右键菜单、复制控制/署名、选择控制、快捷键拦截、水印、检测与控制台反制、窗口隐私帘、篡改监视、访问门槛、绕过通道等） | 可选（缺失时防护功能关闭） |
+| `guard.json5` | 防护与交互控制域（11 个模块 / 182 项（口径：对象逐层展开、数组元素逐项计入）：自定义右键菜单、复制控制/署名、选择控制、快捷键拦截、水印、检测与控制台反制、窗口隐私帘、篡改监视、访问门槛、绕过通道等） | 可选（缺失时防护功能关闭） |
 | `navigation.json5` | 菜单、导航栏、社交顺序、搜索 | ✅ |
 | `sidebar.json5` | 侧栏组件序列（author/recent/tags/categories/archive/series/friends/stats/quote…） | ✅ |
 | `footer.json5` | 页脚列、版权、备案、社交、Powered-by | ✅ |

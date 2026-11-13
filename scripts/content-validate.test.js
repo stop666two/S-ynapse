@@ -44,10 +44,14 @@ describe('createMediaResolver', () => {
     assert.strictEqual(resolver('/media/Test-Photo-1.jpg'), false);
   });
 
-  it('accepts generated variant paths when the source stem exists', () => {
-    assert.strictEqual(resolver('/media/variants/test-photo-1-640.webp'), true);
-    assert.strictEqual(resolver('/media/variants/test-photo-1-1920.avif'), true);
-    assert.strictEqual(resolver('/media/variants/unknown-640.webp'), false);
+  // 审查 R-31：产物变体是 media/<dir>/<name>-<width>.<ext>（构建不产出 variants/ 目录）。
+  // 旧断言把 /media/variants/… 钉为 true，而那类路径永远不会存在。
+  it('accepts generated variant paths in the real output layout', () => {
+    assert.strictEqual(resolver('/media/test-photo-1-640.webp'), true);
+    assert.strictEqual(resolver('/media/test-photo-1-1920.avif'), true);
+    assert.strictEqual(resolver('/media/sub/nested-640.webp'), true);
+    assert.strictEqual(resolver('/media/unknown-640.webp'), false);
+    assert.strictEqual(resolver('/media/variants/test-photo-1-640.webp'), false);
   });
 
   it('rejects missing files and malformed refs', () => {
@@ -127,6 +131,35 @@ describe('preflightArticles', () => {
       base({ file: 'articles/zh/a.md', lang: 'zh', attrs: { title: 'Same' } })
     ], { mediaExists });
     assert.deepStrictEqual(r.errors, []);
+  });
+
+  // 审查 R-27：保留路由段与去重键必须大小写不敏感。Windows/macOS 的文件系统不区分大小写，
+  // slug: Tags 会写进生成的 dist/<lang>/tags/ 目录并覆盖标签页，Hello/hello 互相覆盖。
+  it('rejects reserved route segments regardless of slug case', () => {
+    const cases = [['Tags', '/en/tags/'], ['TAGS', '/en/tags/'], ['Search', '/en/search/'], ['ASSETS', '/en/assets/']];
+    for (const [slug, route] of cases) {
+      const r = preflightArticles([
+        base({ file: 'articles/en/route.md', attrs: { title: 'T', slug } })
+      ], { mediaExists });
+      assert.strictEqual(r.errors.length, 1, slug + ' 必须产出 1 条错误');
+      assert.strictEqual(r.errors[0].stage, 'slug', slug + ' 错误类别必须是 slug');
+      assert.strictEqual(r.errors[0].critical, true, slug + ' 的 slug 错误必须标记 critical');
+      assert.ok(r.errors[0].message.includes('"' + slug + '"'), slug + ' 错误必须回显原 slug');
+      assert.ok(r.errors[0].message.includes(route), slug + ' 错误必须指明冲突的 ' + route + ' 目录');
+    }
+  });
+
+  it('treats slugs differing only in case as duplicates and names both files', () => {
+    const r = preflightArticles([
+      base({ file: 'articles/en/a.md', attrs: { title: 'T', slug: 'Hello' } }),
+      base({ file: 'articles/en/b.md', attrs: { title: 'T', slug: 'hello' } })
+    ], { mediaExists });
+    assert.strictEqual(r.errors.length, 1);
+    assert.strictEqual(r.errors[0].stage, 'slug');
+    assert.strictEqual(r.errors[0].critical, true);
+    assert.ok(r.errors[0].message.includes('articles/en/a.md'), '必须指明先占用 slug 的文件');
+    assert.ok(r.errors[0].message.includes('articles/en/b.md'), '必须指明冲突文件的自身路径');
+    assert.ok(/case-insensitive/i.test(r.errors[0].message));
   });
 
   // 审查 R-07：站内 /media/ 之外的外链封面由渲染侧回退与 CSP img-src 处理，

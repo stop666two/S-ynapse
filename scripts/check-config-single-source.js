@@ -5,8 +5,11 @@
 //   R1 回退字面量绑定：scripts/config-fallback-bindings.json 中每条 bindings 的 snippet
 //      必须仍存在于目标文件，且 literal 与注册表默认值严格相等（防 schema 默认漂移）；
 //   R2 矩阵文档新鲜度：docs/config-switch-matrix.md 必须与 gen-config-switch-matrix 输出逐字一致；
-//   R3 覆盖完整性：所有开关必须有「测试 marker / 既有引用 / 豁免理由」之一，缺失即 FAIL；
+//   R3 覆盖完整性：所有开关必须有「测试 marker / 既有引用 / 豁免理由」之一；
 //      未知 marker、未知豁免键、已覆盖键的冗余豁免同样 FAIL。
+//      审查 R-33：证据口径收紧后仍有 194 个开关无测试证据，全部登记在
+//      scripts/config-switch-baseline.json（基线棘轮）——新增未覆盖开关FAIL，
+//      基线里的键补上证据后未删除条目也 FAIL，基线只允许缩小。
 // 退出码：0 = 全部通过；1 = 存在问题（逐条打印）。
 
 const fs = require('fs');
@@ -18,6 +21,7 @@ const { DEFAULTS: INTERNAL_DEFAULTS } = require('./lib/internals-defaults.js');
 const { ROOT, collectInventory, collectAllMarkers, collectRegistryPaths, buildMatrix } = require('./lib/config-switch-inventory.js');
 
 const BINDINGS_FILE = path.join(ROOT, 'scripts', 'config-fallback-bindings.json');
+const BASELINE_FILE = path.join(ROOT, 'scripts', 'config-switch-baseline.json');
 const MATRIX_FILE = path.join(ROOT, 'docs', 'config-switch-matrix.md');
 
 function resolveDefault(keyPath) {
@@ -85,7 +89,14 @@ function checkMatrix(inventory) {
   return problems;
 }
 
-function checkCoverage(inventory) {
+// 覆盖基线（审查 R-33）：登记「当前仍无测试证据」的开关全集，只允许缩小。
+function loadBaseline() {
+  if (!fs.existsSync(BASELINE_FILE)) return new Set();
+  const parsed = JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf-8'));
+  return new Set(Array.isArray(parsed.keys) ? parsed.keys : []);
+}
+
+function checkCoverage(inventory, baseline) {
   const problems = [];
   const known = new Set(inventory.map((row) => row.keyPath));
   const registryPaths = collectRegistryPaths();
@@ -94,7 +105,11 @@ function checkCoverage(inventory) {
   }
   for (const row of inventory) {
     if (row.status === 'MISSING') {
-      problems.push('开关缺失覆盖：' + row.keyPath + '（消费 ' + (row.consumers[0] || '未知') + '）需补测试 marker 或登记豁免');
+      // 基线棘轮：只有登记过的存量缺失可以存在；新开关必须自带测试证据或逐键豁免
+      if (!baseline.has(row.keyPath)) {
+        problems.push('开关缺失覆盖（不在 scripts/config-switch-baseline.json）：' + row.keyPath +
+          '（消费 ' + (row.consumers[0] || '未知') + '）需补测试 marker/断言引用或登记豁免');
+      }
     }
   }
   const exemptions = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts', 'config-switch-exemptions.json'), 'utf-8'));
@@ -106,33 +121,46 @@ function checkCoverage(inventory) {
       problems.push('冗余豁免（已有 ' + row.status + ' 覆盖）：' + row.keyPath + '；请从 scripts/config-switch-exemptions.json 删除');
     }
   }
+  // 棘轮反向检查：基线条目一旦被覆盖就必须删除，否则这张表会烂成永久借口
+  for (const key of baseline) {
+    if (!known.has(key)) {
+      problems.push('基线含已删除开关：' + key + '；请从 scripts/config-switch-baseline.json 删除该条目');
+      continue;
+    }
+    const row = inventory.find((item) => item.keyPath === key);
+    if (row && row.status !== 'MISSING') {
+      problems.push('基线条目已被覆盖（' + row.status + '）：' + key + '；请从 scripts/config-switch-baseline.json 删除该条目（基线只允许缩小）');
+    }
+  }
   return problems;
 }
 
 function collectProblems() {
   const inventory = collectInventory();
   const rawBindings = JSON.parse(fs.readFileSync(BINDINGS_FILE, 'utf-8'));
+  const baseline = loadBaseline();
   const problems = [];
   problems.push(...checkBindings(rawBindings.bindings || [], (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf-8')));
   problems.push(...checkMatrix(inventory));
-  problems.push(...checkCoverage(inventory));
-  return { inventory, problems };
+  problems.push(...checkCoverage(inventory, baseline));
+  return { inventory, baseline, problems };
 }
 
 function main() {
-  const { inventory, problems } = collectProblems();
+  const { inventory, baseline, problems } = collectProblems();
   const counts = { tested: 0, existing: 0, exempt: 0, MISSING: 0 };
   for (const row of inventory) counts[row.status] += 1;
   console.log('[verify:config-single-source] 开关 ' + inventory.length + '：已测 ' + counts.tested +
-    ' / 既有引用 ' + counts.existing + ' / 豁免 ' + counts.exempt + ' / 缺失 ' + counts.MISSING);
+    ' / 既有引用 ' + counts.existing + ' / 豁免 ' + counts.exempt + ' / 缺失 ' + counts.MISSING +
+    '（未覆盖 ' + counts.MISSING + '/' + inventory.length + '，基线 ' + baseline.size + '）');
   if (problems.length) {
     console.error('[verify:config-single-source] FAIL：' + problems.length + ' 项');
     for (const problem of problems) console.error('  - ' + problem);
     process.exit(1);
   }
-  console.log('[verify:config-single-source] PASS：回退字面量零漂移，矩阵新鲜，开关零缺失');
+  console.log('[verify:config-single-source] PASS：回退字面量零漂移，矩阵新鲜，开关覆盖不低于基线且基线无冗余');
 }
 
 if (require.main === module) main();
 
-module.exports = { resolveDefault, checkBindings, checkMatrix, checkCoverage, collectProblems };
+module.exports = { resolveDefault, checkBindings, checkMatrix, checkCoverage, loadBaseline, collectProblems };

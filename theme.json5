@@ -75,12 +75,6 @@
     // 推荐: 1
     "scale": 1,
 
-    // 正文字重
-    // 作用: body font-weight（粗细观感）
-    // 类型: number | 可填: 300(细)/400(常规)/500(中等)/600(半粗)/700(粗)
-    // 推荐: 400
-    "bodyWeight": 400,
-
     // 展示层字体（h1 / hero 大标题 / 站点 Logo）
     // 类型: string（枚举,同 stack 命名空间） | 可填: "sora" / "manrope" / "inter" / "serif"（系统衬线,离线可用,编辑部风） 等
     // 推荐: "serif"（编辑部头版方向）
@@ -472,23 +466,7 @@
     "headerStyle": "fixed",
     // 导航栏高度（--hh;锚点偏移与内容顶部留白联动）
     // 类型: string（CSS 长度） | 可填: "48px"–"80px" | 推荐: "60px"
-    "headerHeight": "60px",
-    // 页脚样式
-    // 类型: string（枚举） | 可填: "simple"(简洁,推荐)/"columns"(多列)
-    // 注意: 页脚内容由 footer.json5 控制,此处只影响排版风格
-    "footerStyle": "simple",
-    // 侧栏位置
-    // 类型: string（枚举） | 可填: "left"(左)/"right"(右,推荐) | 不可填: "top"/"bottom"（不支持）
-    "sidebarPosition": "right",
-    // 内容宽度模式
-    // 类型: string（枚举） | 可填: "main"(主内容优先,推荐)/"full"(全宽)
-    "contentWidth": "main",
-    // 文章布局
-    // 类型: string（枚举） | 可填: "standard"(标准栏)/"full"(全宽沉浸)
-    "postLayout": "standard",
-    // 归档布局
-    // 类型: string（枚举） | 可填: "list"(列表,推荐)/"grid"(卡片网格)
-    "archiveLayout": "list"
+    "headerHeight": "60px"
   },
 
   // ===================================================================
@@ -650,8 +628,6 @@
     "textColor": "#4a5568",
     // 边框色 | 类型: CSS 颜色 | 推荐: 与 border 同系
     "borderColor": "#cbd5e1",
-    // 边框粗细 | 类型: string（CSS 长度） | 可填: "0"–"2px" | 推荐: "1px"
-    "borderWidth": "1px",
     // 上下留空 | 类型: string（CSS 长度） | 推荐: "1.25rem"
     "paddingTop": "1.25rem",
     "paddingBottom": "1.25rem", // 下内边距

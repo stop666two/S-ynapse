@@ -11,6 +11,7 @@ const { resolveJsonFeedOptions } = require('../lib/feed-options');
 const { localSearchIndexNeeded } = require('../lib/feature-wiring');
 const { DEFAULT_FEATURES } = require('../lib/features-schema');
 const { DEFAULT_CONFIG } = require('../lib/site-defaults');
+const { cacheBustExclusionOptions } = require('../lib/cache-bust-exclusions');
 const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
 const {
   searchIndexOptions, buildLanguageIndex, measureGzip, serializeIndexText, hashIndexText, pruneIndexToBudget, resolveFinalAssetUrl
@@ -326,9 +327,14 @@ function createFeedsModule(ctx) {
     if (searchWeightOf(s.weightExcerpt, 2) > 0) indexFields.push('excerpt');
     if (fullContent && searchWeightOf(s.weightContent, 1) > 0) indexFields.push('content');
     const busting = config.site.build.enableCacheBusting === true;
+    const cacheBustExclusions = cacheBustExclusionOptions(config.site);
+    // 排除集与 cacheBust 同源（审查 R-32）：SW 基名 / PWA 图标 basename 在真实重命名里被跳过，
+    // 索引预计算必须同样跳过，否则会写入不存在的哈希路径。
     const bustOpts = {
       cacheBusting: busting,
-      pattern: new RegExp(config.site.build.cacheBustingPattern || DEFAULT_BUST_PATTERN, 'i')
+      pattern: new RegExp(config.site.build.cacheBustingPattern || DEFAULT_BUST_PATTERN, 'i'),
+      swBaseName: cacheBustExclusions.swBaseName,
+      iconBaseNames: cacheBustExclusions.iconBaseNames
     };
     const maxBytes = opts.maxGzipKb * 1024;
     const siteLangsSI = resolveSiteLanguages(config.site);

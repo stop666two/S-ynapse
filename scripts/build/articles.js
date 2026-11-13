@@ -9,7 +9,7 @@ const frontMatter = require('front-matter');
 const { marked } = require('marked');
 const { getAllFiles } = require('./fs-utils');
 const { preflightArticles, createMediaResolver, createBrokenMediaMatcher } = require('../lib/content-validate');
-const { formatDate, safeSlug, validateSlug, applyCjkSpacingToHtml, extractToc, sanitizeHtml, truncateCodePoints, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode, setOwnProperty } = require('../lib/utils');
+const { formatDate, dateParts, safeSlug, validateSlug, applyCjkSpacingToHtml, extractToc, sanitizeHtml, truncateCodePoints, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode, setOwnProperty } = require('../lib/utils');
 const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
 const { makeArticleComparator, stripMarkdownText, mathConfig, mathNeeded, wordCountConfig } = require('../lib/feature-wiring');
 
@@ -204,13 +204,17 @@ function createArticlesModule(ctx) {
         } else {
           slug = safeSlug(title);
         }
-        if ((seenSlugs.get(lang) || new Set()).has(slug)) {
-          console.error(`  [ERROR] ${file}: duplicate slug "${slug}" (already used by another article in ${lang}). Skipping.`);
+        // 审查 R-27：运行时去重同样按小写比较。预校验的 slug 错误是 non-critical，
+        // `--allow-degraded` 时构建会继续走到这里；大小写敏感的 key 会让 Hello/hello
+        // 在 Windows/macOS 上互相覆盖，正好落在降级路径上。
+        const slugKey = String(slug).toLowerCase();
+        if ((seenSlugs.get(lang) || new Set()).has(slugKey)) {
+          console.error(`  [ERROR] ${file}: duplicate slug "${slug}" (already used by another article in ${lang}, case-insensitive). Skipping.`);
           ctx.recordBuildFailure('slug', `${file}: duplicate slug "${slug}" (already used by another article in ${lang})`);
           continue;
         }
         if (!seenSlugs.has(lang)) seenSlugs.set(lang, new Set());
-        seenSlugs.get(lang).add(slug);
+        seenSlugs.get(lang).add(slugKey);
         const url = `/${lang}/${slug}/`;
         let excerpt = attrs.excerpt || '';
         // features.autoSummary.stripMarkdown（默认 true）：frontmatter excerpt 先剥离 Markdown 标记；
@@ -318,6 +322,7 @@ function createArticlesModule(ctx) {
         const toc = extractToc(htmlContent, tocCfg.minLevel, tocCfg.maxLevel);
         // Auto OG image handled by scripts/generate-og.js (per-language PNG pipeline).
 
+        const dParts = date ? dateParts(date) : null;
         articles.push({
           slug, title, url, date, modified, tags, categories, draft, pinned, series,
           lang, langPrefix: '/' + lang + '/',
@@ -328,8 +333,8 @@ function createArticlesModule(ctx) {
           featuredImage: attrs.featuredImage || '',
           frontmatter: attrs,
           filename: file,
-          year: date ? new Date(date).getFullYear() : null,
-          month: date ? String(new Date(date).getMonth() + 1).padStart(2, '0') : null,
+          year: dParts ? dParts.year : null,
+          month: dParts ? String(dParts.month).padStart(2, '0') : null,
           formattedDate: date ? formatDate(date, config.site.dateFormat) : ''
         });
         console.log(`  Processed: ${file} -> ${url}`);

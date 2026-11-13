@@ -78,7 +78,22 @@ function loadAllowlist() {
   const file = path.join(ROOT, 'scripts', 'config-refs-allowlist.json');
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf-8'));
-    return { exact: new Set(Object.keys(parsed.allow || {})), prefixes: Array.isArray(parsed.prefixes) ? parsed.prefixes : [] };
+    // 审查 R-33：段落前缀通配（prefixes）已废弃——它让整段配置脱离审查；
+    // 现在必须逐键登记，且每条都要写明理由（消费路径或「零消费候选」）。
+    if (Array.isArray(parsed.prefixes) && parsed.prefixes.length) {
+      console.error('[verify:config-refs] 允许名单仍含段落前缀通配 prefixes（' + parsed.prefixes.join(', ') +
+        '）：审查 R-33 起必须逐键登记理由。');
+      process.exit(1);
+    }
+    const allow = new Map();
+    for (const [key, reason] of Object.entries(parsed.allow || {})) {
+      if (typeof reason !== 'string' || reason.trim().length < 8) {
+        console.error('[verify:config-refs] 允许名单条目缺少理由：' + key + '（值必须是非空理由字符串）');
+        process.exit(1);
+      }
+      allow.set(key, reason.trim());
+    }
+    return allow;
   } catch (e) {
     console.error('[verify:config-refs] 无法读取允许名单 scripts/config-refs-allowlist.json: ' + e.message);
     process.exit(1);
@@ -86,11 +101,7 @@ function loadAllowlist() {
 }
 
 function isAllowed(leaf, allow) {
-  if (allow.exact.has(leaf)) return true;
-  for (const prefix of allow.prefixes) {
-    if (leaf === prefix || leaf.startsWith(prefix + '.')) return true;
-  }
-  return false;
+  return allow.has(leaf);
 }
 
 function main() {
@@ -105,30 +116,49 @@ function main() {
   for (const dir of SCAN_DIRS) walk(path.join(ROOT, dir), sources);
   const allow = loadAllowlist();
 
+  // 审查 R-33：逐键登记的代价是必须保真——登记了不存在的键、或键已被接线（登记冗余）
+  // 都属于名单腐化，直接失败，避免「名单只增不减」再次变成实质豁免。
+  const leafSet = new Set(leaves);
+  const stale = [];
+  const redundant = [];
   const reported = [];
+  for (const [key, reason] of allow) {
+    if (!leafSet.has(key)) stale.push(key + '（配置中不存在）');
+  }
   for (const leaf of leaves) {
     const key = leaf.split('.').pop();
     if (!key || GENERIC_KEYS.has(key) || key.length < 4) continue;
-    if (isAllowed(leaf, allow)) continue;
     const re = new RegExp('(?<![A-Za-z0-9_$-])' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![A-Za-z0-9_$-])');
     let found = false;
     for (const src of sources) {
       if (re.test(fs.readFileSync(src, 'utf-8'))) { found = true; break; }
     }
+    if (allow.has(leaf)) {
+      if (found) redundant.push(leaf + '（源码已出现标识符引用）');
+      continue;
+    }
     if (!found) reported.push(leaf);
   }
 
   if (process.argv.includes('--json')) {
-    console.log(JSON.stringify({ scanned: leaves.length, unreferenced: reported }, null, 2));
+    console.log(JSON.stringify({ scanned: leaves.length, unreferenced: reported, stale, redundant }, null, 2));
   } else {
-    console.log('[verify:config-refs] 扫描 ' + leaves.length + ' 个叶子键（' + sources.length + ' 个源码文件；通用短键名与允许名单已排除）');
+    console.log('[verify:config-refs] 扫描 ' + leaves.length + ' 个叶子键（' + sources.length + ' 个源码文件；通用短键名已排除；允许名单 ' + allow.size + ' 条逐键登记）');
+    if (stale.length) {
+      console.error('[verify:config-refs] 允许名单含配置中不存在的键：');
+      for (const item of stale) console.error('  - ' + item);
+    }
+    if (redundant.length) {
+      console.error('[verify:config-refs] 冗余登记（源码已引用该键名，请从允许名单删除）：');
+      for (const item of redundant) console.error('  - ' + item);
+    }
     if (reported.length) {
       console.error('[verify:config-refs] 发现 ' + reported.length + ' 个零引用键：');
       for (const leaf of reported) console.error('  - ' + leaf);
-      console.error('[verify:config-refs] FAIL：请接线、删除，或在 scripts/config-refs-allowlist.json 中登记理由。');
-      process.exit(1);
+      console.error('[verify:config-refs] FAIL：请接线、删除，或在 scripts/config-refs-allowlist.json 中逐键登记理由。');
     }
-    console.log('[verify:config-refs] PASS：零未接线键');
+    if (stale.length || redundant.length || reported.length) process.exit(1);
+    console.log('[verify:config-refs] PASS：零未接线键，允许名单逐键登记且无冗余');
   }
 }
 

@@ -96,6 +96,23 @@ describe('workers/lib ip-utils', () => {
     assert.ok(ipUtils.isPathBlocked('/./admin/panel', rules));
     assert.strictEqual(ipUtils.isPathBlocked('/media/../photos/x', rules), null);
   });
+  // 审查 R-09：`/*` 折成 '/' 后被 continue 掉、`/admin*` 与 `/admin/**` 一条都匹配不上，
+  // 等于运维按通配语义写的规则线上零拦截且无任何提示。
+  it('honours whole-site and alternate wildcard rule forms (R-09)', () => {
+    for (const pattern of ['/*', '/**']) {
+      const rules = [{ path: pattern }];
+      assert.ok(ipUtils.isPathBlocked('/zh/', rules), pattern + ' 必须拦截任意路径');
+      assert.ok(ipUtils.isPathBlocked('/', rules), pattern + ' 必须拦截根路径');
+      assert.ok(ipUtils.isPathBlocked('/a/b/c', rules));
+    }
+    for (const pattern of ['/admin*', '/admin/**', '/admin/*']) {
+      const rules = [{ path: pattern }];
+      assert.ok(ipUtils.isPathBlocked('/admin', rules), pattern + ' 必须拦截基路径本身');
+      assert.ok(ipUtils.isPathBlocked('/admin/x/y', rules), pattern + ' 必须拦截子路径');
+      assert.strictEqual(ipUtils.isPathBlocked('/administrator', rules), null, pattern + ' 不得越界到相邻目录名');
+    }
+    assert.strictEqual(ipUtils.ruleBasePath('/a/*/b'), '/a/*/b', '中段通配不做折叠，交由构建期告警');
+  });
 });
 
 describe('workers/lib rate-limit', () => {

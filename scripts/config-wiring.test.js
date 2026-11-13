@@ -1158,6 +1158,15 @@ test('配置扩张守卫：site/security/sidebar/friends 注册表默认值同�
   assert.strictEqual(DEFAULT_CONFIG.security.rateLimiting.maxTrackedEntries, 5000);
   assert.strictEqual(securityRaw.hardening.cspReportMaxBytes, 16384);
   assert.strictEqual(DEFAULT_CONFIG.security.hardening.cspReportMaxBytes, 16384);
+  // 审查 R-11：security 段的默认值先 deepmerge 再投影，等于「缺键时的真实安全姿态」。
+  // 此前默认 rateLimiting.enabled/forceHttps 为 false、pathRestrictions 为 []，删键即静默降级，
+  // 生成器内的 fail-closed 兜底因默认值已填满而永不可达。
+  assert.strictEqual(DEFAULT_CONFIG.security.rateLimiting.enabled, true, '缺键必须默认开启限流');
+  assert.strictEqual(DEFAULT_CONFIG.security.forceHttps, true, '缺键必须默认强制 HTTPS');
+  assert.deepStrictEqual(DEFAULT_CONFIG.security.pathRestrictions, [{ path: '/admin/*' }], '缺键必须默认保护 /admin/*');
+  assert.deepStrictEqual(DEFAULT_CONFIG.security.rateLimiting.skipPaths, ['/assets/', '/media/', '/og/', '/icons/', '/pagefind/'], '缺键时跳过静态资源计数（与 Worker 内置 DEFAULT_SKIP_PATHS 同值）');
+  // 显式 [] 仍是用户选择（数组按覆盖语义合并，不会被默认值回填）。
+  assert.deepStrictEqual(securityRaw.pathRestrictions.map((p) => p.path), ['/admin/*']);
   const guardRaw = json5.parse(fs.readFileSync(path.join(ROOT, 'guard.json5'), 'utf-8'));
   const { DEFAULT_GUARD } = require('./lib/guard-defaults.js');
   assert.strictEqual(guardRaw.contextMenu.searchTextMaxChars, 12);

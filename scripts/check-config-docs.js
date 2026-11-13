@@ -59,12 +59,12 @@ function escapeRegExp(text) {
 
 // 键名在文档中的出现判定：纯标识符按词边界（允许 - 前缀以匹配 --分类-键 变量名），
 // 含特殊字符（如 X-Frame-Options）的键按键名字面量判定。
-function keyAppears(docText, key) {
+function keyAppears(text, key) {
   if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key)) {
     const re = new RegExp('(?<![A-Za-z0-9_$])' + escapeRegExp(key) + '(?![A-Za-z0-9_$])');
-    return re.test(docText);
+    return re.test(text);
   }
-  return docText.includes(key);
+  return text.includes(key);
 }
 
 // 收集待校验键路径：顶层键；depth>=2 时追加各模块键（对象值的第一层子键）。
@@ -86,12 +86,124 @@ function moduleNameOf(keyPath) {
   return keyPath.includes('.') ? keyPath.split('.').pop() : keyPath;
 }
 
+// ---------------------------------------------------------------------------
+// 文档作用域（审查 R-33）：键必须落在「自己的模块」范围里才算覆盖。
+// 旧实现只把键路径最后一段叶子名丢进全文匹配，于是任何角落出现的 `enabled` 都能替
+// `features.lightbox.enabled` 作证；矩阵文档里同一叶子的重复键因此互相顶替。
+// 现口径（三条任一即可）：
+//   1) 全文出现完整键路径（`lightbox.zoomStep`）；
+//   2) 叶名在全站配置集合中唯一 → 全文出现该叶名即无歧义（如 `containerWidth`）；
+//   3) 叶名在「所属模块」的文档作用域内出现：模块小节（###/#### 标题含模块名）内任意
+//      位置，或（无模块小节时）文件小节内同一行同时出现模块名与叶名。
+// ---------------------------------------------------------------------------
+function parseHeadings(lines) {
+  const headings = [];
+  for (let i = 0; i < lines.length; i++) {
+    const match = /^(#{2,4})\s+(.*)$/.exec(lines[i]);
+    if (!match) continue;
+    headings.push({ level: match[1].length, text: match[2].trim(), line: i });
+  }
+  return headings;
+}
+
+function sectionEnd(model, index, limit) {
+  for (let i = index + 1; i < model.headings.length; i++) {
+    if (model.headings[i].level <= model.headings[index].level) return model.headings[i].line;
+  }
+  return limit;
+}
+
+function fileSection(model, file) {
+  const re = new RegExp('^\\d+\\.\\s.*' + escapeRegExp(file) + '\\.json5');
+  for (let i = 0; i < model.headings.length; i++) {
+    const heading = model.headings[i];
+    if (heading.level === 2 && re.test(heading.text)) {
+      return { start: heading.line, end: sectionEnd(model, i, model.lines.length) };
+    }
+  }
+  return null;
+}
+
+function moduleSection(model, scope, moduleName) {
+  if (!scope) return null;
+  for (let i = 0; i < model.headings.length; i++) {
+    const heading = model.headings[i];
+    if (heading.level < 3 || heading.line < scope.start || heading.line >= scope.end) continue;
+    if (!keyAppears(heading.text, moduleName)) continue;
+    return { start: heading.line, end: sectionEnd(model, i, scope.end) };
+  }
+  return null;
+}
+
+// 文档习惯用斜杠省略公共前缀（`build.minifyHTML/CSS/JS`、`fontSystem.stack/displayStack`）。
+// 机械展开：斜杠组第一个词按 camelCase 边界切出前缀，再与后续每一支组合，得到候选键名。
+function slashExpansions(line) {
+  const out = new Set();
+  const runRe = /[A-Za-z_$][\w$.-]*(?:\/[A-Za-z_$][\w$.-]*)+/g;
+  let match;
+  while ((match = runRe.exec(line)) !== null) {
+    const parts = match[0].split('/');
+    const first = parts[0].split('.').pop();
+    const prefixes = [first];
+    for (let i = 1; i < first.length; i++) {
+      if (/[a-z]/.test(first[i - 1]) && /[A-Z]/.test(first[i])) prefixes.push(first.slice(0, i));
+    }
+    for (let i = 1; i < parts.length; i++) {
+      const part = parts[i].split('.').pop();
+      out.add(part);
+      for (const prefix of prefixes) out.add(prefix + part);
+    }
+  }
+  return out;
+}
+
+function lineHasKey(line, key) {
+  if (keyAppears(line, key)) return true;
+  if (line.indexOf('/') < 0) return false;
+  return slashExpansions(line).has(key);
+}
+
+function buildDocModel(docText) {
+  const lines = docText.replace(/\r\n/g, '\n').split('\n');
+  return { docText, lines, headings: parseHeadings(lines) };
+}
+
+// 键是否被文档覆盖（审查 R-33：不再是「全文出现叶名」）。
+function keyCovered(model, file, keyPath, leafCounts) {
+  if (keyAppears(model.docText, keyPath)) return true;
+  const segments = keyPath.split('.');
+  const leaf = segments[segments.length - 1];
+  // 顶层键与全站唯一叶名：本身即无歧义，全文出现即可
+  if (segments.length === 1) return lineHasKey(model.docText, leaf);
+  if ((leafCounts.get(leaf) || 0) === 1) return lineHasKey(model.docText, leaf);
+  const fileScope = fileSection(model, file);
+  const moduleScope = moduleSection(model, fileScope, segments[0]);
+  const scope = moduleScope || fileScope;
+  if (!scope) return false;
+  const scopedLines = model.lines.slice(scope.start, scope.end);
+  if (moduleScope) return scopedLines.some((line) => lineHasKey(line, leaf));
+  // 没有模块小节（压缩成一张总表）：同一行必须同时出现模块名与叶名
+  return scopedLines.some((line) => keyAppears(line, segments[0]) && lineHasKey(line, leaf));
+}
+
 function checkDocs({ root = ROOT, docText } = {}) {
   const doc = docText !== undefined ? docText : fs.readFileSync(DOC_PATH, 'utf-8');
+  const model = buildDocModel(doc);
   const missing = [];
   const missingSections = [];
   const staleModules = [];
   let checked = 0;
+
+  // 先收敛全站叶名出现次数：出现一次以上即为歧义叶名，必须靠模块作用域或完整路径作证
+  const leafCounts = new Map();
+  for (const policy of FILE_POLICIES) {
+    const filePath = path.join(root, policy.file + '.json5');
+    if (!fs.existsSync(filePath)) continue;
+    for (const keyPath of collectKeys(readJson5(filePath), policy.depth)) {
+      const leaf = keyPath.split('.').pop();
+      leafCounts.set(leaf, (leafCounts.get(leaf) || 0) + 1);
+    }
+  }
 
   for (const policy of FILE_POLICIES) {
     const filePath = path.join(root, policy.file + '.json5');
@@ -105,7 +217,8 @@ function checkDocs({ root = ROOT, docText } = {}) {
     const keys = collectKeys(config, policy.depth);
     checked += keys.length;
     for (const keyPath of keys) {
-      if (!keyAppears(doc, moduleNameOf(keyPath))) missing.push(policy.file + '.' + keyPath);
+      // 审查 R-33：按完整键路径 / 全站唯一叶名 / 所属模块作用域判定，不再全文找叶名
+      if (!keyCovered(model, policy.file, keyPath, leafCounts)) missing.push(policy.file + '.' + keyPath);
     }
     if (policy.file === 'features') {
       for (const match of doc.matchAll(/^### 3\.\d+ ([A-Za-z][A-Za-z0-9_]*)/gm)) {
@@ -152,4 +265,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { collectKeys, keyAppears, moduleNameOf, checkDocs, FILE_POLICIES, DATA_FILE_POLICIES };
+module.exports = { collectKeys, keyAppears, buildDocModel, keyCovered, checkDocs, FILE_POLICIES, DATA_FILE_POLICIES };

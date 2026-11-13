@@ -185,3 +185,35 @@ test('resolveFinalAssetUrl：媒体路径预计算内容哈希、幂等与豁免
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// 审查 R-32：与 cacheBust 的排除集共用（lib/cache-bust-exclusions.js）。旧实现只跳过
+// 前缀 assets/、og/ 与路径中任意位置的 node_modules/，于是 PWA 图标、SW 基名、og 中间段的
+// featuredImage 会被预计算成「从未被重命名」的哈希路径 → 搜索结果缩略图 404。
+test('resolveFinalAssetUrl：与 cacheBust 共用排除集（SW 基名 / PWA 图标 / og 中间段）', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 's-ynapse-search-asset-excl-'));
+  try {
+    const write = (rel, body) => {
+      const abs = path.join(dir, rel);
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      fs.writeFileSync(abs, body);
+    };
+    write('media/logo.png', 'pwa-icon-bytes');
+    write('media/og/card.jpg', 'og-card-bytes');
+    write('media/swcopy.js', 'sw-bytes');
+    const opts = {
+      cacheBusting: true,
+      pattern: /.*\.(css|js|png|jpg|svg)$/i,
+      swBaseName: 'swcopy.js',
+      iconBaseNames: new Set(['logo.png'])
+    };
+    assert.strictEqual(lib.resolveFinalAssetUrl(dir, '/media/logo.png', opts), '/media/logo.png', 'PWA 图标不被重命名');
+    assert.strictEqual(lib.resolveFinalAssetUrl(dir, '/media/og/card.jpg', opts), '/media/og/card.jpg', 'og 中间段整目录豁免');
+    assert.strictEqual(lib.resolveFinalAssetUrl(dir, '/media/swcopy.js', opts), '/media/swcopy.js', 'SW 基名任意目录豁免');
+    // 对照组：普通媒体仍必须预计算哈希（排除集不得扩大成「全部跳过」）
+    write('media/pic.jpg', 'plain-bytes');
+    const md5 = crypto.createHash('md5').update(fs.readFileSync(path.join(dir, 'media', 'pic.jpg'))).digest('hex').slice(0, 10);
+    assert.strictEqual(lib.resolveFinalAssetUrl(dir, '/media/pic.jpg', opts), '/media/pic.' + md5 + '.jpg');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

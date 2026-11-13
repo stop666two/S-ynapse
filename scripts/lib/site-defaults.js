@@ -25,7 +25,6 @@ const DEFAULT_CONFIG = {
       url: 'http://localhost',
       language: 'en',
       languageEn: '',
-      timezone: 'UTC',
       dateFormat: 'YYYY-MM-DD',
       copyright: '',
       postsPerPage: 10,
@@ -113,7 +112,7 @@ const DEFAULT_CONFIG = {
       colors: { primary: '#2d3748', secondary: '#2563eb', accent: '#c53030', background: '#f7fafc', surface: '#ffffff', text: '#1a202c', textSecondary: '#4a5568', textLight: '#64748b', border: '#e2e8f0', shadow: 'rgba(0,0,0,0.1)', hover: '#edf2f7', codeBackground: '#2d3748', codeText: '#f7fafc' },
       darkMode: { enabled: false, toggle: true, default: 'system', colors: {} },
       preset: null, presetOverrides: {},
-      fontSystem: { stack: 'inter', customStack: '', scale: 1, bodyWeight: 400, headingStack: 'inherit', numbersMono: true },
+      fontSystem: { stack: 'inter', customStack: '', scale: 1, headingStack: 'inherit', numbersMono: true },
       rounding: 'md', shadowLevel: 'soft', borderStyle: 'subtle',
       avatar: { shape: 'round', ring: false, ringColor: '', badge: true },
       fontFamily: 'sans-serif',
@@ -122,7 +121,7 @@ const DEFAULT_CONFIG = {
       headingFontWeight: 700, letterSpacing: '0.02em',
       spacing: { containerWidth: '960px', gap: '1.618rem', padding: '2.618rem', radius: '0.618rem', radiusLarge: '1.618rem' },
       shadow: { card: '0 4px 6px rgba(0,0,0,0.1)', dropdown: '0 10px 15px -3px rgba(0,0,0,0.1)', fixed: '0 2px 4px rgba(0,0,0,0.08)' },
-      layout: { headerStyle: 'fixed', headerHeight: '60px', footerStyle: 'simple', sidebarPosition: 'right', contentWidth: 'main', postLayout: 'standard', archiveLayout: 'list' },
+      layout: { headerStyle: 'fixed', headerHeight: '60px' },
       animation: { enable: true, transitionDuration: '0.3s', transitionTiming: 'ease-in-out' },
       card: { showDate: true, showTags: true, showCategories: true, showExcerpt: true, excerptLength: 150, showReadTime: true, readTimeSpeed: 265, showWordCount: true },
       button: { radius: '0.25rem', padding: '0.5rem 1.5rem', primaryBackground: '#2563eb', primaryText: '#ffffff', hoverScale: 1.02 },
@@ -131,7 +130,7 @@ const DEFAULT_CONFIG = {
     },
     navigation: {
       menu: [],
-      navbar: { fixed: true, showLogo: true, logoText: '', logoTextEn: '', logoImage: '', logoWidth: '40px', shadow: true, breakpoint: '768px' },
+      navbar: { fixed: true, logoText: '', logoTextEn: '', logoImage: '', logoWidth: '40px', shadow: true, breakpoint: '768px' },
       navbarOptions: {
         height: '60px', glassBlur: '', glassAlpha: 0, navGap: '.25rem',
         logoSize: '1.272em', navFontSize: '.9375rem', iconSize: '18px', shadowShow: true
@@ -157,8 +156,21 @@ const DEFAULT_CONFIG = {
     security: {
       headers: {}, csp: { enabled: false, directives: {}, reportOnly: false },
       robots: { enabled: false, rules: [], sitemap: '/sitemap.xml' },
-      rateLimiting: { enabled: false, maxRequests: 100, windowMs: 60000, maxTrackedEntries: 5000 },
-      pathRestrictions: [], forceHttps: false,
+      // 审查 R-11：默认值先 deepmerge 再交生成器投影，所以这个对象就是「缺键时的真实安全姿态」。
+      // 原为 rateLimiting.enabled:false / forceHttps:false / pathRestrictions:[]，用户删掉对应键
+      // 就会静默得到「无限流、不跳 HTTPS、无受限路径」，而生成器内的 fail-closed 兜底因默认值
+      // 已填满而永不可达。现按 security.json5 记录的推荐姿态取值：限流开、跳 HTTPS、默认保护
+      // /admin/*、限流计数跳过静态资源（与 Worker 内置 DEFAULT_SKIP_PATHS 同值）。
+      // 显式写 [] / false 仍是用户选择（数组与布尔按覆盖语义合并，不会被默认值回填）。
+      rateLimiting: {
+        enabled: true,
+        maxRequests: 100,
+        windowMs: 60000,
+        maxTrackedEntries: 5000,
+        skipPaths: ['/assets/', '/media/', '/og/', '/icons/', '/pagefind/']
+      },
+      pathRestrictions: [{ path: '/admin/*' }],
+      forceHttps: true,
       hardening: { cspReportMaxBytes: 16384 },
       customHeaders: {}
     }

@@ -12,7 +12,7 @@ const { writeFileAtomicSync } = require('../lib/atomic-write');
 const { isExcluded } = require('../lib/compression-config');
 const { gzipSize } = require('../lib/perf-budget');
 const { mergeStyleBlocks, dedupeStyleBlocks, dedupeCss } = require('../lib/css-merge');
-const { DEFAULT_CONFIG } = require('../lib/site-defaults');
+const { isCacheBustExcluded, cacheBustExclusionOptions } = require('../lib/cache-bust-exclusions');
 const {
   buildHtmlMinifyOptions,
   buildObfuscateOptions,
@@ -38,6 +38,11 @@ function formatBytes(bytes) {
   if (!Number.isFinite(bytes)) return '?';
   if (bytes < 1024) return bytes + ' B';
   return (bytes / 1024).toFixed(1) + ' KB';
+}
+
+// 把字面量编译进 RegExp（cacheBust 的路径改写规则需要转义 . + ? 等元字符）。
+function escapeRegex(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function createMinifyModule(ctx) {
@@ -749,14 +754,13 @@ function createMinifyModule(ctx) {
     const bustRegex = new RegExp(bustPattern, 'i');
     // 跳过：node_modules、og 目录、assets 目录、SW 固定路径；以及 PWA manifest 引用的固定文件名图标
     // （manifest.json 不参与路径重写，若对图标做哈希重命名会导致 manifest 引用 404）。
-    // SW 文件名与图标文件名均从 site.pwa 派生（serviceWorker / manifest.icons[].src 的 basename）。
-    const pwaCfg = config.site.pwa || {};
-    const pwaManifest = pwaCfg.manifest || {};
-    const swBaseName = path.basename(String(pwaCfg.serviceWorker || DEFAULT_CONFIG.site.pwa.serviceWorker).split('?')[0].split('#')[0]);
-    const iconBaseNames = new Set((Array.isArray(pwaManifest.icons) ? pwaManifest.icons : [])
-      .map((icon) => (icon && typeof icon.src === 'string' ? path.basename(icon.src.split('?')[0].split('#')[0]) : ''))
-      .filter(Boolean));
-    const files = ctx.getAllFiles(ctx.distDir).filter(f => bustRegex.test(f) && !f.includes('node_modules') && !f.includes(path.sep + 'og' + path.sep) && !f.includes(path.sep + 'assets' + path.sep) && path.basename(f) !== swBaseName && !iconBaseNames.has(path.basename(f)));
+    // 排除判定与搜索索引的最终路径预计算共用 scripts/lib/cache-bust-exclusions.js（审查 R-32）：
+    // 两处各写一份会漂移，索引会写入「本轮从未被重命名」的哈希路径（搜索结果缩略图 404）。
+    const exclusions = cacheBustExclusionOptions(config.site);
+    const files = ctx.getAllFiles(ctx.distDir).filter(function (f) {
+      if (!bustRegex.test(f)) return false;
+      return !isCacheBustExcluded(path.relative(ctx.distDir, f), exclusions);
+    });
     const mapping = {};
     for (const file of files) {
       try {
@@ -783,18 +787,31 @@ function createMinifyModule(ctx) {
       }
     }
     if (Object.keys(mapping).length > 0) {
+      // 改写规则（审查 R-13）：除「稳定名 → 本轮哈希名」外，再为每条映射生成
+      // 「同名 + 任意 10 位哈希」的别名规则。增量构建复用页面时不重渲染，HTML 里留下的是
+      // 上一轮 cacheBust 写入的旧哈希名（/media/x.<旧hash>.webp），而本轮映射键是稳定名
+      // （/media/x.webp，媒体按稳定名产出）—— 只按稳定名替换会让复用页永远引用旧图
+      // （旧文件仍在盘上 → 显示旧内容，新文件成为孤儿）。把旧哈希引用重定向到本轮哈希即可。
+      // 若别名路径本身也在本轮映射里（同名但独立存在的文件），优先用它的映射目标，避免误改。
+      const rules = [];
+      for (const [orig, hashed] of Object.entries(mapping)) {
+        rules.push({ re: new RegExp(escapeRegex(orig), 'g'), target: hashed });
+        const dot = orig.lastIndexOf('.');
+        if (dot > 0) {
+          const aliasRe = new RegExp(escapeRegex(orig.slice(0, dot)) + '\\.[0-9a-f]{10}' + escapeRegex(orig.slice(dot)), 'g');
+          rules.push({ re: aliasRe, target: hashed, alias: true });
+        }
+      }
       const htmlFiles = ctx.getAllFiles(ctx.distDir).filter(f => /\.html?$/i.test(f));
       for (const htmlFile of htmlFiles) {
         try {
           let content = fs.readFileSync(htmlFile, 'utf-8');
           let changed = false;
-          for (const [orig, hashed] of Object.entries(mapping)) {
-            const escaped = orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const re = new RegExp(escaped, 'g');
-            if (re.test(content)) {
-              content = content.replace(re, hashed);
-              changed = true;
-            }
+          for (const rule of rules) {
+            rule.re.lastIndex = 0;
+            if (!rule.re.test(content)) continue;
+            content = content.replace(rule.re, (m) => (rule.alias && mapping[m] ? mapping[m] : rule.target));
+            changed = true;
           }
           if (changed) writeFileAtomicSync(htmlFile, content, 'utf-8');
         } catch (err) {

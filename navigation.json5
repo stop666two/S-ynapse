@@ -60,11 +60,6 @@
     // 注意: 与 theme.layout.headerStyle 共同决定,任一为 fixed 即吸顶
     "fixed": true,
 
-    // 显示 Logo
-    // 作用: 导航栏左侧品牌区显隐总开关
-    // 类型: boolean | 可填: true/false | 推荐: true
-    "showLogo": true,
-
     // Logo 文字
     // 作用: 品牌区文字;留空回退 site.title
     // 类型: string | 可填: 短品牌词 | 推荐: 与站点同名

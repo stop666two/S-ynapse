@@ -4,8 +4,9 @@ const path = require('path');
 const { safeSlug, validateSlug, isReservedOsName } = require('./utils');
 
 const MEDIA_PREFIX = '/media/';
-const VARIANT_RX = /(?:^|\/)variants\/(.+)-(\d+)\.(?:webp|avif|jpe?g|png)$/i;
 // 媒体产物变体命名：<原名>-<宽度>.<格式>（与 scripts/build/media.js 的 variantName 同格式，可位于任意子目录）。
+// 审查 R-31：构建实际输出 media/<dir>/<name>-<width>.<ext>（没有 variants/ 目录）；此前的
+// VARIANT_RX 只认 variants/ 布局，导致真实引用被判缺失、不存在的 variants/ 路径反而通过。
 const OUTPUT_VARIANT_RX = /^(.+)-(\d+)\.(?:webp|avif|jpe?g|png)$/i;
 
 /**
@@ -49,7 +50,7 @@ function extractMediaRefs(text) {
 
 /**
  * 创建媒体引用校验器：接受源文件列表（相对 media/ 的 POSIX 路径），
- * 精确匹配源文件，并放行构建生成的 variants/ 变体路径（按其基名映射回源文件）。
+ * 精确匹配源文件，并放行构建生成的 <原名>-<宽度>.<格式> 变体路径（按其基名映射回源文件）。
  * @param {string[]} sourceFiles 相对路径列表，如 ['test-photo-1.jpg','sub/nested.webp']
  * @returns {(ref: string) => boolean}
  */
@@ -64,12 +65,10 @@ function createMediaResolver(sourceFiles) {
     const rel = ref.slice(MEDIA_PREFIX.length).replace(/[?#].*$/, '');
     if (!rel) return false;
     if (set.has(rel)) return true;
-    const m = rel.match(VARIANT_RX);
-    if (m) {
-      const dir = rel.slice(0, rel.length - m[0].length);
-      const prefix = dir === '' || dir.endsWith('/') ? dir : dir + '/';
-      return stems.has(prefix + m[1]);
-    }
+    // 审查 R-31：与 createBrokenMediaMatcher 同口径——变体名就是 目录/<名字>-<宽度>.<格式>，
+    // 直接把整条相对路径去掉扩展名后与源文件词干比较（stems 已是同样形式）。
+    const m = rel.match(OUTPUT_VARIANT_RX);
+    if (m) return stems.has(m[1]);
     return false;
   };
 }
@@ -198,9 +197,13 @@ function preflightArticles(items, options) {
       continue;
     }
 
-    if (RESERVED_ROUTE_SEGMENTS.includes(identity.slug)) {
+    // 审查 R-27：slug 保留大小写用于输出路径，但保留路由段都是小写；Windows/macOS 默认
+    // 大小写不敏感，slug: Tags 会与生成的 dist/<lang>/tags/ 落到同一目录并互相覆盖。
+    // 因此比较统一转小写，错误信息同时给出原 slug 与实际冲突的目录/文件。
+    const slugLower = identity.slug.toLowerCase();
+    if (RESERVED_ROUTE_SEGMENTS.includes(slugLower)) {
       errors.push(problem('slug', file,
-        file + ': slug "' + identity.slug + '" collides with the generated /' + lang + '/' + identity.slug + '/ route; rename the article or choose another slug', true));
+        file + ': slug "' + identity.slug + '" collides with the generated /' + lang + '/' + slugLower + '/ route (comparison is case-insensitive); rename the article or choose another slug', true));
       continue;
     }
 
@@ -210,11 +213,13 @@ function preflightArticles(items, options) {
       continue;
     }
 
-    const key = String(lang) + '/' + identity.slug;
+    // 审查 R-27：去重键同样转小写——Hello 与 hello 在大小写不敏感文件系统上会写同一个
+    // dist/<lang>/<slug>/index.html，后写者覆盖先写者。
+    const key = String(lang) + '/' + slugLower;
     const first = seen.get(key);
     if (first) {
       errors.push(problem('slug', file,
-        file + ': duplicate slug "' + identity.slug + '" (already used by ' + first + ')', true));
+        file + ': duplicate slug "' + identity.slug + '" (case-insensitive match: ' + first + ' already uses /' + lang + '/' + slugLower + '/)', true));
       continue;
     }
     seen.set(key, file);

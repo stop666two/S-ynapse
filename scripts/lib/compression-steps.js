@@ -76,10 +76,11 @@ function compactJsonText(text) {
   return { text: output, changed: output !== text };
 }
 
-// 内容寻址的运行时配置：assets/config.<hash>.json，文件名由 JSON 内容哈希派生
-// （scripts/lib/config-split.js configUrlName），HTML 以该名称引用；任何重写都会破坏引用一致性。
-// 该文件写入时即为 JSON.stringify 紧凑单行，本就无需去空白。
-const CONTENT_ADDRESSED_JSON = /^assets\/config\.[^/]+\.json$/;
+// 内容寻址的运行时载荷：assets/config.<hash>.json（scripts/lib/config-split.js configUrlName）
+// 与 assets/quotes.<hash>.json（同文件 quoteUrlName，2G 性能拆分出的每日一言数据）。
+// 文件名由 JSON 内容哈希派生，配置/HTML 以该名称引用；任何重写都会破坏引用一致性。
+// 两者写入时即为 JSON.stringify 紧凑单行，本就无需去空白。
+const CONTENT_ADDRESSED_JSON = /^assets\/(?:config|quotes)\.[^/]+\.json$/;
 
 /**
  * 判断 dist 产物中的 JSON 是否跳过压缩，返回原因（空串 = 需要处理）。

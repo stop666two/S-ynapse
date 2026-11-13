@@ -25,7 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **8 个模块级开关从「写了没用」变为真正生效（R-33 接线）**：`features.{maintenance,themeToggle,gallery,morphIcons,autoSummary,codeCopy,mediaAudit,exportBackup}.enabled`。此前写入 `false` 毫无效果（零消费），现分别接到：维护页（Worker + 本地 serve）、顶栏主题按钮与移动端底部导航「主题」项、`/{lang}/gallery/` 页面/sitemap/导航入口、图标变形动画入口、正文自动摘要、代码块复制按钮、`npm run audit:media`、`npm run export`。**升级注意**：这些站点若曾写 `enabled:false` 期望「关掉」，升级后会真的关掉（此前没关）。`features.maintenance.{message,messageEn,status}` 同样接线，优先级 `MAINTENANCE_MESSAGE` 环境变量 > 配置 > 内置文案，`status` 仅 400–599 生效否则 503；因此维护页默认文案改由配置提供（`站点维护中，请稍后再来。` / `The site is under maintenance. Please try again later.`）。
 - **`package.json` 补齐 `export` 与 `audit:media` 入口**：文档早已引用这两个命令，但此前脚本不存在（`npm run` 直接报 Missing script）。
 - **删除 56 个零消费配置键（R-33 附带）**：`ui-strings` 36 个（无任何 `ui()/__T()` 引用）、`theme.layout.{footerStyle,sidebarPosition,contentWidth,postLayout,archiveLayout}`、`theme.fontSystem.bodyWeight`、`theme.articleFooter.borderWidth`、`navigation.{navbar.showLogo,userMenu}`、`sidebar.mobile.*`（整块）、`site.timezone`，以及 11 个无消费方的 features 键（`gallery.{maxItems,order}` / `heatmap.enabled` / `hreflang.canonical` / `listCover.lazy` / `mobileToc.position` / `readMode.fontScale` / `readingPanel.position` / `share.position` / `toc.smoothScroll` / `schemaRich.enabled`）。配置项总数 2895 → 2839，开关 817 → 801。另有 8 个模块级 `enabled` 键**改为接线生效**（见上）：它们曾被判为零消费，但根因是「开关从未接到消费点」，删除会让「可配置关闭」的能力永久消失。
-- **性能预算 `features.perfBudget.jsKb` 75 → 76（R-02 附带）**：搜索页初始化从模板内联脚本迁入 deferred bundle，同一批字节从 HTML 预算侧移到 JS 侧；实测 75.3KB，余量与调整前同量级。
+- **性能预算 `features.perfBudget.jsKb` 75 → 77**：76（搜索页初始化从模板内联脚本迁入 deferred bundle，字节从 HTML 侧移到 JS 侧）+ 1（引语数据移出启动配置后新增「按需拉取 + 失败回退」加载器，约 0.9 KiB gzip）。预算是防劣化护栏而非目标值；同期首屏总字节实际下降 9.4 KiB gzip。
+- **2G / 弱网首屏专项：1129 KiB → 约 111 KiB（gzip），2G 理论 36.1s → 3.6s，首屏请求 41 → 21**
+  - **字体按网况跳过**：新增 `site.build.cjkFonts.slowNetwork`（默认 `skip`）。`navigator.connection.saveData` 或 `effectiveType` 为 `slow-2g`/`2g` 时，CJK 字体（17 个分片合计约 877 KiB，占首屏 78%）**一个都不请求**，连 `cjk-fonts.css` 本身也不请求（改为先不写 `href`，允许时才由内联脚本赋上）；vendored webfont（`fonts.css` + Inter/Sora/Manrope）与 `rel=preload as=font` 同策略。桌面/宽带路径行为不变（`font-display: swap` 与既有 CLS 不变）。
+  - **加载顺序**：`<head>` 预声明 `runtime.js`（`preload as=script`）与 `app.js`（`modulepreload`）。此前两者位于 body 末尾（HTML 第 ~85KB 处），必须先下完/解析绝大部分 HTML 才发现要取 JS，形成「HTML → JS → config → 启动」的链式等待；预声明后与 HTML 并行下载（href 与 body 的 script 完全同源同哈希，不会重复下载）。
+  - **HTML 缓存语义**：Worker 对 `text/html` 下发 `public, max-age=0, stale-while-revalidate=86400`（`_headers` 无法承担：Cloudflare 会把同请求命中的多条 `Cache-Control` 合并，不能再用 `/*` 叠加）。本地 `serve` 的缓存语义改为与生产一致（此前一律 `no-cache`，导致「缓存到底有没有命中」在本地无法复现，弱网复测也会失真）。
+  - **引语数据移出启动配置**：`config.<hash>.json` 的 `quotes` 键（24 KiB raw / 9.4 KiB gzip，纯内容数据）拆为独立的 `quotes.<hash>.json`，只在页面上真的存在引语挂件时按需拉取（Promise 复用、4s 超时、失败回退内置 5 条、**不阻塞 boot idle 队列**）；主配置 29.3 → 20.0 KiB gzip（−31.8%），新文件与 config 同为 immutable。
+- **SW 预缓存瘦身 + 页面导航默认 stale-while-revalidate（2G 性能）**：壳预缓存从 29 项（`/assets/css/*` 含 17 个 CJK 分片、`config.<hash>.json`、runtime/app/shared/deferred 全部 JS、`/assets/vendor/fonts/*`，约 643 KiB raw）降为**离线开壳最小集 6 项**（`offline.html`、`manifest.json`、runtime/app 两个入口 JS、`site.<hash>.css`、`config.<hash>.json`，约 303 KiB raw / 82.6 KiB gzip）；被移出的资源文件名内容寻址（immutable），改由 `assetCacheFirst` 运行时缓存，二次离线访问同样命中，但不再在首次访问时与 LCP 抢带宽。同时 `features.pwa.pageNetworkFirst` 默认改为 `false`（先返回页面缓存、后台 revalidate），弱网重复访问秒开，代价是内容更新在一次导航后才可见。升级后旧壳缓存由版本化缓存名 + `activate` 前缀清理自动淘汰，无需手动清缓存；`sw.js` 的版本哈希随之变化（策略开关与清单一并参与哈希）。
 
 ### Added
 
@@ -82,6 +88,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **测试与门禁基础设施**
 - 「删除键/模块无残留引用」类用例此前遍历工作树，未跟踪但被 gitignore 的仓库副本（如本地 `backups/`）会被当成源文件命中，造成「CI 绿、本地恒红」的假失败：改为经 `scripts/lib/tracked-files.js` 只扫 git 跟踪文件（无 `.git` 的发布归档回退遍历），并补该助手自身的回归测试。
+- **修掉两条永远不可能通过的 fuzz 用例**（`scripts/lib/config.fuzz.test.js`）：`isAllowed` 早已从「`{exact,prefixes}` 前缀匹配」改为「收 Set、只判精确成员」，旧断言传对象导致任意 seed 都抛 `allow.has is not a function`——fuzz 门禁形同虚设。现按真实契约断言「精确放行 + 子键/前缀截断/其它键一律拒绝」。
+- **修掉两条把非法输入当合法前提的 fuzz 用例**（`scripts/lib/wiki.fuzz.test.js`）：生成器会产出 `con`/`prn`/`aux` 等 Windows 保留名，`mdExportRelPath` 正确地拒绝并返回 `null`，而用例断言它必须返回路径（种子 2660947602 必红）。现以同一个 `validateSlug` 为判据断言「合法 → 固定路径；非法/保留 → null 且不写盘」。
+- 新增 `scripts/perf-contract.test.js`：把弱网体验写成 8 条**可测量契约**（首屏 gzip 预算、字体零请求、`<head>` 预声明与不重复下载、缓存头语义、SW 预缓存条目/字节上限、导航策略、本地 serve 与生产缓存一致性）。断言的是预算与行为而非实现写法，重排代码不会误报，预算被撑破一定红。
 
 **文档一致性**
 - `config-reference` 补齐 31 个未入档键，并清除 4 处已删键的残留条目（R-33 附带）。

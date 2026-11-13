@@ -16,6 +16,21 @@ function escapeHtml(value) {
   });
 }
 
+// 本地 serve 的缓存语义与生产对齐（2G/缓存复测）：
+// 生产由 _headers 对 /assets/** 下发 immutable、Worker 对 HTML 下发 max-age=0 + SWR；
+// 本地曾一律 no-cache，导致「缓存到底有没有命中」在本地无法复现，弱网复测也会失真。
+// 注意：这里只按「内容寻址/可安全长期缓存」的路径给强缓存，其余仍保持 no-cache。
+function cacheControlFor(urlPath) {
+  var p = String(urlPath || '/');
+  if (/^\/assets\/(?:js|css|fonts)\//.test(p) || /^\/assets\/config\.[0-9A-Za-z]+\.json$/.test(p)) {
+    return 'public, max-age=31536000, immutable';
+  }
+  if (/^\/media\//.test(p) || /^\/og\//.test(p)) return 'public, max-age=604800, stale-while-revalidate=86400';
+  if (/^\/assets\/vendor\//.test(p)) return 'public, max-age=3600, stale-while-revalidate=86400';
+  if (/\.html?$/.test(p) || p.charAt(p.length - 1) === '/') return 'public, max-age=0, stale-while-revalidate=86400';
+  return 'no-cache';
+}
+
 function createServeModule(ctx) {
   const { distDir } = ctx;
 
@@ -110,7 +125,7 @@ function createServeModule(ctx) {
         var etag = '"' + st.size.toString(16) + '-' + Math.round(st.mtimeMs).toString(16) + '"';
         var lastMod = st.mtime.toUTCString();
         if (req.headers['if-none-match'] === etag || req.headers['if-modified-since'] === lastMod) {
-          res.writeHead(304, { 'ETag': etag, 'Last-Modified': lastMod, 'Cache-Control': 'no-cache' });
+          res.writeHead(304, { 'ETag': etag, 'Last-Modified': lastMod, 'Cache-Control': cacheControlFor(urlPath) });
           res.end();
           return;
         }
@@ -118,7 +133,7 @@ function createServeModule(ctx) {
           if (err) { res.writeHead(500); res.end('Server Error'); return; }
           var contentType = mime[ext] || 'application/octet-stream';
           var compressible = isCompressibleType(contentType);
-          var headers = { 'Content-Type': contentType, 'ETag': etag, 'Last-Modified': lastMod, 'Cache-Control': 'no-cache', 'Vary': 'Accept-Encoding' };
+          var headers = { 'Content-Type': contentType, 'ETag': etag, 'Last-Modified': lastMod, 'Cache-Control': cacheControlFor(urlPath), 'Vary': 'Accept-Encoding' };
           var status = isNotFound ? 404 : 200;
           if (compressible && acceptsGzip(req.headers['accept-encoding'])) {
             zlib.gzip(data, function(zerr, zipped) {
@@ -183,4 +198,4 @@ function createServeModule(ctx) {
   return { startServer };
 }
 
-module.exports = { createServeModule };
+module.exports = { createServeModule, cacheControlFor };

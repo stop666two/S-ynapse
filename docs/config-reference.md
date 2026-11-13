@@ -209,6 +209,10 @@
 | `cjkFonts.fetchTimeoutMs` | number | `15000` | 单次网络请求超时（毫秒） |
 | `cjkFonts.concurrency` | number | `6` | 分片下载并发数（1–16；非法/越界回退 6） |
 | `cjkFonts.cacheTtlDays` | number | `7` | 字体清单缓存天数（`0` = 每次构建重拉；非法/负数回退 `internals.cache.fontsTtlDays`） |
+| `cjkFonts.slowNetwork` | string | `skip` | 慢网/省流下是否加载字体分片：`skip` = 检测到 `navigator.connection.saveData` 或 `effectiveType` 为 `slow-2g`/`2g` 时不把 `cjk-fonts.css` 的 `media` 从 `print` 翻回 `all`（等于 0 个字体分片请求，回退系统 CJK 字体）；`load` = 忽略网况照常加载。非法值回退 `skip`；无 `navigator.connection` 的浏览器按「不确定 = 加载」 |
+
+> 说明（2G 性能）：17 个 Noto Sans SC 分片合计约 877 KiB，占首页首屏总字节 1129 KiB 的 78%，250 kbps 下理论下载约 36s。`skip` 只在网况判定为慢/省流时生效，桌面与宽带访客的字体加载时机、`media="all"` 回填与现有 CLS 表现均不变；策略在构建期生成（`load` 时内联脚本不含跳过分支），页面 HTML 增量为 skip 变体约 242 字节 / load 变体约 147 字节。该键只在 `features.lcpOptimize.asyncCjkFontCss` 开启（生产默认 `true`）时有效——关闭时字体样式是阻塞链接，没有 `media` 翻转脚本可拦；`cjk-fonts.css` 自身仍会被请求（约 31 KiB gzip），跳过的是其 `@font-face` 触发的全部 woff2 分片。
+
 
 构建流程：页面生成后扫描 dist 全部 HTML 与产出 JSON 的实际用字（正文/`<title>`/meta/内联及外部化运行时配置），只下载命中的 Google Fonts woff2 分片，自托管到 `dist/assets/fonts/noto-sans-sc/` 并生成 `dist/assets/css/cjk-fonts.css`（保留 `unicode-range`、`font-display: swap`）；HTML 中的样式引用自动带内容哈希查询串（配合 `/assets/css/*` 与 `/assets/fonts/*` 的 1 年 immutable 缓存）。
 > 注意：首次构建需联网拉取字体清单与分片，结果缓存于 `.cache/fonts/`（不入库，7 天清单 TTL，之后离线可复用）；断网/超时/解析失败时自动跳过并 `console.warn`，页面回退系统字体链，构建不会失败。`/assets/fonts/*` 与 `/assets/css/*` 的长期缓存由 `build.cacheControl`（默认开）统一管理。
@@ -837,7 +841,7 @@ sitemap: {
 `enabled true` / `ease cubic-bezier(.4,0,.2,1)` / `pageEnterDurationMs 240`(页面入场时长 ms) / `cardHoverScale 1.02`(卡片悬停缩放) / `linkUnderlineOffset 3px`(下划线偏移) / `cardHoverLift true` / `cardHoverLiftPx 4` / `linkUnderline true` / `linkUnderlineThickness 2px` / `buttonRipple true` / `rippleDurationMs 500` / `scrollReveal true` / `revealCards true` / `revealHeadings true` / `revealImages true` / `revealBlocks false` / `revealDurationMs 250` / `revealDelayMs 0` / `revealStaggerMax 500`(错峰总附加延迟上限 ms：单项 delay=min(revealDelayMs, 剩余预算)，预算耗尽后其余同时入场) / `revealOffset 10px` / `revealOnce true` / `revealThreshold 0.08` / `revealCleanupMs 1400`(reveal 结束清理 transitionDelay 延迟 ms) / `reducedMotion 'light'`(`light|off|full`,轻量版:更短/幅度更小)。滚动渐入/悬停上浮/涟漪/下划线动效总控。**注意**:顶部导航高亮与滑动指示器已抽为独立模块 `js/domains/core/nav-state.js`(构建期 `templates/layout.ejs` 输出 `nav-active`/`aria-current` 兜底),不受本开关影响——`enabled:false` 或 `reducedMotion:'off'` 时高亮仍由 SSR 保证,软导航后仍会更新。
 
 ### 3.48 dailyQuote — 每日一言
-`enabled true` / `widgetStyle 'card'`（侧栏外观：`card` 卡片外框（默认/现行为）/`plain` 无外框仅文字与署名；兼容旧值 `sidebar`（=card）；运行时给 `.quote-widget` 附加 `quote-widget-card`/`quote-widget-plain`） / `label '每日一言'`（`labelEn` en 站文案，空回退中文） / `source 'builtin'`（默认；优先读取 `dataFile`，也支持相对项目根或绝对路径的 `.json`/`.json5`；文件缺失/加载失败回退内置最小集（5 条）并告警；格式 `["引语"]` 或 `[{text,author,textEn,...}]` 或 `{quotes:[...]}`） / `dataFile 'data/quotes.json5'`（builtin 数据文件，格式与标签枚举见 §14） / `count 0`（注入池大小：0=全部（默认，当前数据文件 100 条）；>0=按数据顺序取前 N（稳定顺序），兼容旧配置写法 `count: 7`） / `refreshLabel '换一句'`（`refreshLabelEn 'Another'`，空回退中文） / `copyLabel '复制'`（`copyLabelEn 'Copy'`） / `copiedLabel '已复制'`（`copiedLabelEn 'Copied'`，复制成功后按钮短暂替换并伴随 toast） / `quoteColor ''`（文本颜色，空=继承） / `api` 子块（Hitokoto 一言接入）：`api.enabled true`（「换一句」在中文页且在线时优先直连 `api.endpoint 'https://v1.hitokoto.cn/'`（免 key，`api.categories ['d','i','k']` 文学/诗词/哲学，`api.maxLength 0` 不限长度，`api.timeoutMs 5000` 请求超时，`api.minIntervalMs 1000` 点击间隔礼仪，`api.attributionText '来源：一言'` 来源署名小字）；`api.enabled false` 时始终本地随机，构建期自动裁剪 `connect-src` 中的一言域名；非 https 端点被拒绝；空串端点回退默认端点）。**隐私与可用性**：仅在中文页点击「换一句」时直连第三方（`v1.hitokoto.cn`，不带站点/用户标识）；英文页从不发请求；离线、超时、非 2xx、JSON 畸形或字段非法一律静默回退本地随机（不弹错误提示，按钮请求中禁用并标记 `aria-busy`，完成即恢复）；API 引语不写存储、软导航后保持，复制对本地与 API 两种来源均生成「文本 + 署名（含来源）」。侧栏每日名言：按日期固定一条（同日稳定，`tuning.dailyQuote.refreshDaily=false` 时改随机）；「换一句」随机下一条且不与当前重复、不写存储；「复制」走剪贴板 API（`textarea` 回退）并短暂提示；语言按 `document.documentElement.lang` 取 `*En`（空回退中文）；软导航替换内容区后经 `__SOFTNAV_HOOKS__` 重渲染并保持已选条目。
+`enabled true` / `widgetStyle 'card'`（侧栏外观：`card` 卡片外框（默认/现行为）/`plain` 无外框仅文字与署名；兼容旧值 `sidebar`（=card）；运行时给 `.quote-widget` 附加 `quote-widget-card`/`quote-widget-plain`） / `label '每日一言'`（`labelEn` en 站文案，空回退中文） / `source 'builtin'`（默认；优先读取 `dataFile`，也支持相对项目根或绝对路径的 `.json`/`.json5`；文件缺失/加载失败回退内置最小集（5 条）并告警；解析结果单独写 `/assets/quotes.<hash>.json`、浏览器按需拉取（见「附：运行时配置外置」）；格式 `["引语"]` 或 `[{text,author,textEn,...}]` 或 `{quotes:[...]}`） / `dataFile 'data/quotes.json5'`（builtin 数据文件，格式与标签枚举见 §14） / `count 0`（注入池大小：0=全部（默认，当前数据文件 100 条）；>0=按数据顺序取前 N（稳定顺序），兼容旧配置写法 `count: 7`） / `refreshLabel '换一句'`（`refreshLabelEn 'Another'`，空回退中文） / `copyLabel '复制'`（`copyLabelEn 'Copy'`） / `copiedLabel '已复制'`（`copiedLabelEn 'Copied'`，复制成功后按钮短暂替换并伴随 toast） / `quoteColor ''`（文本颜色，空=继承） / `api` 子块（Hitokoto 一言接入）：`api.enabled true`（「换一句」在中文页且在线时优先直连 `api.endpoint 'https://v1.hitokoto.cn/'`（免 key，`api.categories ['d','i','k']` 文学/诗词/哲学，`api.maxLength 0` 不限长度，`api.timeoutMs 5000` 请求超时，`api.minIntervalMs 1000` 点击间隔礼仪，`api.attributionText '来源：一言'` 来源署名小字）；`api.enabled false` 时始终本地随机，构建期自动裁剪 `connect-src` 中的一言域名；非 https 端点被拒绝；空串端点回退默认端点）。**隐私与可用性**：仅在中文页点击「换一句」时直连第三方（`v1.hitokoto.cn`，不带站点/用户标识）；英文页从不发请求；离线、超时、非 2xx、JSON 畸形或字段非法一律静默回退本地随机（不弹错误提示，按钮请求中禁用并标记 `aria-busy`，完成即恢复）；API 引语不写存储、软导航后保持，复制对本地与 API 两种来源均生成「文本 + 署名（含来源）」。侧栏每日名言：按日期固定一条（同日稳定，`tuning.dailyQuote.refreshDaily=false` 时改随机）；「换一句」随机下一条且不与当前重复、不写存储；「复制」走剪贴板 API（`textarea` 回退）并短暂提示；语言按 `document.documentElement.lang` 取 `*En`（空回退中文）；软导航替换内容区后经 `__SOFTNAV_HOOKS__` 重渲染并保持已选条目。
 
 ### 3.49 favorites — 收藏(纯前端)
 `enabled true` / `position 'toolbar'`(`toolbar`=文章底部工具栏,默认/`meta`=标题下元信息行) / `storageKey 's-favorites'` / `label '收藏'` / `listIcon true`（/favorites 收藏页列表项显示收藏图标（inline SVG，aria-hidden）；false=纯文字列表） / `notText '收藏'` / `favedText '已收藏'`（`labelEn`/`notTextEn`/`favedTextEn` 为 en 站兜底文案，空回退中文；en 站优先取 ui-strings `favorites.*`）。文章收藏按钮+收藏页(仅 localStorage,无后端);按钮切换收藏/取消(状态+aria-pressed+统一 toast)、收藏页列表渲染与移除、空状态。
@@ -870,12 +874,12 @@ sitemap: {
 `enabled true` / `type 'slide'`(`slide|fade`) / `durationMs 180`(入场) / `outDurationMs 120`(离开淡出) / `reducedMotion 'light'`(`light|off|full`,轻量版:短纯淡出) / `excludeSelector '[data-no-transition]'` / `leaveGuardMs 2500`(导航失败兜底观察窗口 ms) / `reducedDurationMs 70`(reduced-motion 下离开时长上限 ms)。内链点击淡出 → 导航 → 新页入场;外链/新窗口/hash/下载链接不拦截;原 `motion.pageEnterDurationMs` 与 `theme.animation.pageTransition` 已移除。
 
 ### 3.59 pwa — PWA 运行时与离线阅读
-`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `precache true` / `pageNetworkFirst true` / `assetCacheFirst true` / `pageCacheLimit 24` / `updateCheckIntervalMs 1800000` / `installPrompt true` / `installDismissKey 's-a2hs-dismissed'`(安装按钮关闭记忆键) / `updateToastMs 0`(更新提示条自动隐藏 ms;0=常驻,由用户刷新/关闭) / `reloadFallbackMs 3000`(点击刷新后等待 SW 接管的最长 ms，超时直接整页刷新；≥1，非法回退 3000)。
+`enabled true` / `registerSW true` / `updatePrompt true` / `offlineNotice true` / `offlinePage true` / `precache true` / `pageNetworkFirst false` / `assetCacheFirst true` / `pageCacheLimit 24` / `updateCheckIntervalMs 1800000` / `installPrompt true` / `installDismissKey 's-a2hs-dismissed'`(安装按钮关闭记忆键) / `updateToastMs 0`(更新提示条自动隐藏 ms;0=常驻,由用户刷新/关闭) / `reloadFallbackMs 3000`(点击刷新后等待 SW 接管的最长 ms，超时直接整页刷新；≥1，非法回退 3000)。
 
 双层开关:`site.pwa.enabled` 控制构建产物(manifest.json / offline.html / sw.js),`features.pwa.enabled` 控制运行时注册;两者默认均开,同时开启为完整 PWA 体验。SW 由 `scripts/lib/pwa-sw.js` 构建期生成(缓存名 = `site.pwa.cacheName` + 内容版本后缀,分壳/页面/资产三类):
 
-- **壳预缓存**(`precache`):构建期收集 `offline.html`、`manifest.json`、全部 `/assets/css/*`(含 CJK 字体样式)、核心 JS(打包模式取 runtime/app/shared/deferred 入口,未打包回退模式取 `/assets/js` 全量)与 `/assets/vendor/fonts/*.woff2`,写入 SW install 阶段 `cache.addAll`;任一资源缺失会在构建期按存在性剔除,避免安装失败。`precache=false` 时仅运行时按需缓存。
-- **页面策略**(`pageNetworkFirst`):硬导航(`mode=navigate`)与软导航请求(`X-Requested-With: soft-navigation`、`Accept: text/html`)走 network-first(在线取最新并写入页面缓存,断网回退缓存、再回退 `offline.html`);`false` 时反转为 cache-first,`pageCacheLimit` 限制页面缓存条数(超出按最早写入淘汰,0=不限)。
+- **壳预缓存**(`precache`):只收「离线开壳最小集」共 6 项——`offline.html`、`manifest.json`、`runtime.<hash>.js` 与 `app.<hash>.js` 两个入口 JS、站点 CSS(`<cssOutDir>/<cssFileBase>.<hash>.css`)与运行时配置 `config.<hash>.json`,写入 SW install 阶段 `cache.addAll`;任一资源缺失会在构建期按存在性剔除,避免安装失败。**不再**预缓存 `shared.*`/`deferred.*` 分包、`cjk-fonts.css`(其引用的 17 个 CJK 分片合计约 877 KiB)与 `/assets/vendor/fonts/*`(拉丁可变字体):这些文件均为内容寻址(文件名带哈希 = immutable),首次访问后由 `assetCacheFirst` 在运行时缓存,二次离线访问同样命中,但不再与首屏 LCP 抢 2G 带宽(实测预缓存由 29 项 643 KiB raw / 270 KiB gzip 降至 6 项 303 KiB raw / 82.6 KiB gzip)。`precache=false` 时仅运行时按需缓存。
+- **页面策略**(`pageNetworkFirst`,默认 `false` = stale-while-revalidate):硬导航(`mode=navigate`)与软导航请求(`X-Requested-With: soft-navigation`、`Accept: text/html`)命中页面缓存即刻返回,同时后台 fetch 并回写缓存(弱网重复访问秒开;代价是内容更新要在一次导航之后才可见);未命中时走网络、失败回退缓存再回退 `offline.html`。`true` 即 network-first(每次先等网络取最新)。`pageCacheLimit` 限制页面缓存条数(超出按最早写入淘汰,0=不限)。
 - **资产策略**(`assetCacheFirst`):其余同源 GET 走 cache-first(命中直接返回,内容哈希资产天然 immutable;查询串差异经 `ignoreSearch` 兼容 CJK 字体样式引用);`false` 时反转为 network-first。
 - **更新机制**:新 SW 安装完成不立即接管(`skipWaiting` 改为等待页面消息);运行时 `updatefound`/已存在的 `waiting` 触发顶部提示条(ui-strings `pwa.updateReady`/`pwa.refresh` 双语、`role=status`、可关闭、常驻不打扰),点击「刷新」发送 `SKIP_WAITING`,SW `activate` 阶段按缓存名前缀清理旧版本缓存后 `controllerchange` 整页刷新;`updateCheckIntervalMs>0` 时周期调用 `reg.update()`(0=仅注册/导航时检查)。提示条挂在 body,软导航交换内容区不丢失、不重复提示。
 - **其余**:`offlineNotice` 监听断网/恢复 toast;`installPrompt` 支持 beforeinstallprompt 的浏览器显示"安装到桌面"浮动按钮(可关闭,写入 `installDismissKey`);构建期从 `site.favicon.svg` 自动生成 192/512 PNG 并剔除缺失图标;PWA 开启时 `_headers` 对 `/sw.js` 输出 `Cache-Control: no-cache`。
@@ -917,7 +921,7 @@ sitemap: {
 
 ### 3.67 perfBudget — 性能预算门禁
 
-`enabled true` / `htmlKb 40`(单页 HTML gzip 上限,含内联 CSS/脚本;实测最大 36.6KB) / `htmlRawKb 50`(页面 HTML raw 体积中位上限;长文等极端页面由中位口径自然豁免) / `inlineConfigKb 2`(页面内联关键配置降级子集上限) / `jsKb 76`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入;76KB 口径含 app+deferred+shared+runtime 全部 chunk,实测 75.3KB,deferred/shared 按需加载,首屏实际约 19KB;75→76 系审查 R-02 把搜索页初始化从模板内联脚本迁入 deferred bundle,字节从 HTML 侧移到 JS 侧) / `requests 12`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
+`enabled true` / `htmlKb 40`(单页 HTML gzip 上限,含内联 CSS/脚本;实测最大 36.6KB) / `htmlRawKb 50`(页面 HTML raw 体积中位上限;长文等极端页面由中位口径自然豁免) / `inlineConfigKb 2`(页面内联关键配置降级子集上限) / `jsKb 77`(应用 JS `assets/js` 全量 gzip 合计;vendor 库按需懒加载不计入;77KB 口径含 app+deferred+shared+runtime 全部 chunk,实测 76.3KB,deferred/shared 按需加载,首屏实际约 19KB;75→76 系审查 R-02 把搜索页初始化从模板内联脚本迁入 deferred bundle,字节从 HTML 侧移到 JS 侧) / `requests 12`(单页静态请求上限:script src + stylesheet + modulepreload) / `warnOnly true`(`true` 仅提醒;`false` 超限终止构建)。构建收尾输出 `[budget]` 报告 — `scripts/lib/perf-budget.js` + `scripts/build.js`。
 
 ### 3.68 scrollIndicator — 滚动进度条
 
@@ -1491,7 +1495,7 @@ listCover: {
 | `sourceEn` | string | 是 | 英文站出处（如 `The Analects · Xue Er`）；中文条目附英译标注。 |
 | `tags` | string[] | 是 | 标签数组，取值仅限下列 9 个枚举（中文站口径）：`哲思`（Philosophy）/ `励志`（Motivation）/ `自然`（Nature）/ `时间`（Time）/ `读书`（Reading）/ `自由`（Freedom）/ `智慧`（Wisdom）/ `幽默`（Humor）/ `情感`（Emotion）。 |
 
-- **注入池**：构建期按 `features.dailyQuote.count` 截取（0=全部）后写入运行时 `window.__QUOTES__`；运行时按 `document.documentElement.lang` 选择 `*En` 字段，为空回退中文。
+- **注入池**：构建期按 `features.dailyQuote.count` 截取（0=全部）后写入内容寻址的 `/assets/quotes.<hash>.json`（启动配置里只有 `quotesUrl`，见「附：运行时配置外置」）；浏览器在每日一言挂件初始化时按需拉取并写入 `window.__QUOTES__`，运行时按 `document.documentElement.lang` 选择 `*En` 字段，为空回退中文。
 - **版权**：所选文本均为公有领域作品（中国古典、莎士比亚/培根/梭罗/爱默生/王尔德等公版西方作者、1611 年钦定版《圣经》）或本项目原创；中文经典的英译为本项目自译，随项目以 MIT 许可证提供。**严禁**收录来源不明或网络误传的名句。
 - **自定义**：将 `features.dailyQuote.source` 指向自有的 `.json`/`.json5`（相对项目根或绝对路径），即可整体替换本数据；格式兼容 `["引语"]` 与 `[{ text, author }]` 简写。
 
@@ -1563,7 +1567,8 @@ listCover: {
 
 ## 附：运行时配置外置（/assets/config.<hash>.json）
 
-- 构建把 `features` / `tuning` / `guard`（启用时）/ `morphIcons` / `presets` / `quotes` / `ui-strings`（i18n）/ `linkWarning` / `pwa` 写入内容寻址文件 `/assets/config.<sha1 前 10 位>.json`（内容变即换名，与 `/assets/*` 同享 1 年 immutable 缓存）。
+- 构建把 `features` / `tuning` / `guard`（启用时）/ `morphIcons` / `presets` / `ui-strings`（i18n）/ `linkWarning` / `pwa` 写入内容寻址文件 `/assets/config.<sha1 前 10 位>.json`（内容变即换名，与 `/assets/*` 同享 1 年 immutable 缓存）。
+- **每日一言数据不进入启动配置**（2G 性能）：`quotes`（默认 100 条，≈28 KiB raw / 9.4 KiB gzip）单独写为 `/assets/quotes.<sha1 前 10 位>.json`，启动配置里只保留字符串字段 `quotesUrl`；浏览器在每日一言挂件初始化时才 fetch（复用同一 Promise，只请求一次；失败/超时回退代码内置最小集，页面不报错）。该文件不在 SW 预缓存清单，由 `assetCacheFirst` 在运行时缓存。
 - HTML 仅内联 ≤2KB 的降级子集（`features.guards` + `pwa` 开关；连同逐页小项 `__SITE_TITLE__`/`__ART_TITLE__`/`__SEARCH_PROVIDER__`）。
 - 前端启动时异步加载该文件并写入 `window.__FEATURES__` 等全局；失败自动重试 1 次，3 秒超时后使用内置最小子集继续运行（fail-open，`window.__CONFIG_OK__=false`）。
 - `site.build.cacheControl: false` 时该文件的缓存响应头同样不下发（与其它资源一致）。

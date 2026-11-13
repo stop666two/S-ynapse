@@ -196,7 +196,17 @@ describe('config-split 运行时拆分属性', () => {
       assert.strictEqual(typeof result.critical.pwa.enabled, 'boolean');
       assert.strictEqual(typeof result.critical.pwa.serviceWorker, 'string');
       assert.ok(Array.isArray(result.external.presets));
-      assert.ok(Array.isArray(result.external.quotes));
+      // 2G 性能：quotes 不再进 external（改为独立内容寻址文件 + quotesUrl）。
+      assert.ok(!Object.prototype.hasOwnProperty.call(result.external, 'quotes'));
+      if (Array.isArray(input.quotes) && input.quotes.length) {
+        assert.match(result.external.quotesUrl, /^\/assets\/quotes\.[0-9a-f]{10}\.json$/);
+        const parsed = JSON.parse(result.quoteFile.json);
+        assert.ok(Array.isArray(parsed));
+        assert.strictEqual(parsed.length, input.quotes.length);
+      } else {
+        assert.strictEqual(result.quoteFile, null);
+        assert.ok(!Object.prototype.hasOwnProperty.call(result.external, 'quotesUrl'));
+      }
       return true;
     }));
   });
@@ -371,14 +381,17 @@ describe('check-config-refs 纯函数属性', () => {
     }));
   });
 
-  it('isAllowed 的精确/前缀/无关判定', () => {
+  it('isAllowed 只做逐键精确匹配（不做前缀/子串匹配）', () => {
+    // 审查 R-33：允许名单已从「整段前缀豁免」改为逐键登记，isAllowed 收 Set 且只判精确成员。
+    // 旧断言传 {exact,prefixes} 对象，实现早已不认——那条用例永远不可能通过（fuzz 门禁形同虚设）。
     const leafArb = fc.stringMatching(/^[a-z][a-z0-9.]{2,12}$/);
-    checkProperty('isAllowed-判定', fc, fc.property(leafArb, leafArb, (leaf, prefix) => {
-      assert.strictEqual(isAllowed(leaf, { exact: new Set([leaf]), prefixes: [] }), true);
-      assert.strictEqual(isAllowed(leaf + '.child', { exact: new Set([leaf]), prefixes: [] }), false);
-      assert.strictEqual(isAllowed(prefix, { exact: new Set(), prefixes: [prefix] }), true);
-      assert.strictEqual(isAllowed(prefix + '.child', { exact: new Set(), prefixes: [prefix] }), true);
-      assert.strictEqual(isAllowed(prefix + 'x', { exact: new Set(), prefixes: [prefix] }), false);
+    checkProperty('isAllowed-判定', fc, fc.property(leafArb, leafArb, (leaf, other) => {
+      const allow = new Set([leaf]);
+      assert.strictEqual(isAllowed(leaf, allow), true, '精确成员应放行：' + leaf);
+      assert.strictEqual(isAllowed(leaf + '.child', allow), false, '子键不得因父键被放行');
+      assert.strictEqual(isAllowed(leaf.slice(0, -1), allow), false, '前缀截断不得被放行');
+      if (other !== leaf) assert.strictEqual(isAllowed(other, allow), false, '其它键不得被放行：' + other);
+      assert.strictEqual(isAllowed(leaf, new Set()), false, '空名单一律拒绝');
       return true;
     }));
   });

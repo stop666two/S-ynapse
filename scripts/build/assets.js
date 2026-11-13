@@ -11,27 +11,15 @@ const { escapeHtml } = require('../lib/utils');
 const { buildPrecacheList, renderServiceWorker } = require('../lib/pwa-sw');
 const { primaryLanguage, isEnglish } = require('../lib/site-lang');
 
-// 递归列出目录内全部文件（POSIX 相对路径），目录不存在时返回空。
-function listFilesRecursive(dir, rel, out) {
-  let entries;
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return out; }
-  for (const entry of entries) {
-    const abs = path.join(dir, entry.name);
-    const nextRel = rel ? rel + '/' + entry.name : entry.name;
-    if (entry.isDirectory()) listFilesRecursive(abs, nextRel, out);
-    else out.push('/' + nextRel);
-  }
-  return out;
-}
-
 function createAssetsModule(ctx) {
   const { root, distDir, staticDir, cspNonce } = ctx;
 
 // PWA 生成（manifest.json + 离线页 + Service Worker）：
 //   - manifest 图标按 site.favicon.svg 自动生成并剔除缺失项；
 //   - offline.html 为断网回退页（SW 预缓存）；
-//   - SW 由 scripts/lib/pwa-sw.js 生成：壳预缓存（核心 CSS/JS/字体）+ 页面
-//     network-first + 资产 cache-first，缓存名按内容版本化（更新时清理旧缓存）。
+//   - SW 由 scripts/lib/pwa-sw.js 生成：壳预缓存只含离线开壳最小集（见 shellPrecacheCandidates），
+//     页面导航默认 stale-while-revalidate（cache-first + 后台更新）+ 资产 cache-first，
+//     缓存名按内容版本化（更新时清理旧缓存）。
 function copyJsAssets() {
   const SRC = path.join(root, 'js');
   if (!fs.existsSync(SRC)) return;
@@ -203,32 +191,59 @@ async function generatePWA(config) {
   console.log('  Prepared: sw.js (bootstrap; finalized after fingerprinting)');
 }
 
+// 壳预缓存候选：只保留「离线开壳」最小集（2G 性能）。
+// install 阶段 cache.addAll 会在首次访问的后台立刻抢占带宽，与首屏 LCP 直接竞争：旧清单是
+// 29 项 643 KiB raw / 270 KiB gzip（全部 CSS 含 CJK 字体样式、config、runtime/app/shared/deferred
+// 全部 JS、vendor 拉丁字体），250 kbps 下光是预缓存下载就要 ~8.6s，而页面早已可交互 —— 白烧流量。
+// 故此处只收集 6 项（实测 303 KiB raw / 82.6 KiB gzip ≈ 2.6s）：离线回退页、manifest、
+// runtime/app 两个入口 JS、站点 CSS、运行时配置。
+// 移出的资源都不缺缓存安全性：文件名内容寻址（哈希即内容，immutable），首次访问后由
+// assetCacheFirst 在运行时缓存，二次离线访问同样命中缓存，只是不再与首屏抢带宽。
+function shellPrecacheCandidates(config, pwaOffline) {
+  const urls = [];
+  const exists = (href) => fs.existsSync(path.join(distDir, href.replace(/^\/+/, '')));
+  const add = (href) => { if (href && exists(href)) urls.push(href); };
+  if (pwaOffline) add('/offline.html');
+  add('/manifest.json');
+  // 站点 CSS：<cssOutDir>/<cssFileBase>[.<hash>].css —— 构建期按内容哈希命名，故按前缀挑选
+  // （单独取 site.css 而非整个 CSS 目录，cjk-fonts.css 不进预缓存）。
+  const build = (config.site && config.site.build) || {};
+  const cssOutDir = String(build.cssOutDir || 'assets/css').replace(/^\/+|\/+$/g, '');
+  const cssBase = String(build.cssFileBase || 'site');
+  let cssFiles = [];
+  try { cssFiles = fs.readdirSync(path.join(distDir, cssOutDir)); } catch (e) { cssFiles = []; }
+  const cssName = cssFiles.indexOf(cssBase + '.css') !== -1
+    ? cssBase + '.css'
+    : cssFiles.filter((f) => f.indexOf(cssBase + '.') === 0 && /\.css$/.test(f)).sort()[0];
+  if (cssName) add('/' + cssOutDir + '/' + cssName);
+  // 入口 JS：打包模式 runtime.<hash>.js / app.<hash>.js；--no-bundle 回退 core/runtime.js 与 core/main.js。
+  // shared./deferred. 分包按需加载（且内容寻址），不预缓存。
+  let jsFiles = [];
+  try { jsFiles = fs.readdirSync(path.join(distDir, 'assets', 'js')); } catch (e) { jsFiles = []; }
+  const pickEntry = (prefix, fallback) => {
+    const hit = jsFiles.filter((f) => f.indexOf(prefix + '.') === 0 && /\.js$/.test(f)).sort()[0];
+    return hit ? '/assets/js/' + hit : fallback;
+  };
+  add(pickEntry('runtime', '/assets/js/core/runtime.js'));
+  add(pickEntry('app', '/assets/js/core/main.js'));
+  // 运行时配置（内容寻址 config.<hash>.json）：首屏引导必需，离线壳可直接启动。
+  let assetFiles = [];
+  try { assetFiles = fs.readdirSync(path.join(distDir, 'assets')); } catch (e) { assetFiles = []; }
+  for (const f of assetFiles) {
+    if (/^config\.[0-9A-Za-z]+\.json$/.test(f)) add('/assets/' + f);
+  }
+  return urls;
+}
+
 // SW 定稿：在压缩与缓存指纹之后调用，按磁盘上的最终文件名生成壳预缓存清单与版本化缓存名。
 // 压缩阶段会对 runtime 引导脚本按最终字节重命名，故预缓存清单只能在指纹完成后收集。
 function generateServiceWorker(config) {
   if (!config.site.pwa || !config.site.pwa.enabled) return;
   const featPwa = (config.features && config.features.pwa) || {};
   const swUrl = config.site.pwa.serviceWorker;
-  const pwaOffline = featPwa.offlinePage !== false;
   let precache = [];
   if (featPwa.precache !== false) {
-    // 候选：离线回退页 + manifest + 全部 CSS（含 CJK 字体样式）+ 核心 JS（打包模式取
-    // runtime/app/shared/deferred 入口；未打包回退模式取 assets/js 全量）+ 拉丁可变字体。
-    const candidates = [];
-    if (pwaOffline) candidates.push('/offline.html');
-    candidates.push('/manifest.json');
-    listFilesRecursive(path.join(distDir, 'assets', 'css'), 'assets/css', candidates);
-    // 运行时配置（内容寻址 config.<hash>.json）：首屏引导必需，离线壳可直接启动。
-    try {
-      for (const f of fs.readdirSync(path.join(distDir, 'assets'))) {
-        if (/^config\.[0-9A-Za-z]+\.json$/.test(f)) candidates.push('/assets/' + f);
-      }
-    } catch (e) { /* 忽略：assets 目录缺失时跳过 */ }
-    const jsFiles = listFilesRecursive(path.join(distDir, 'assets', 'js'), 'assets/js', []);
-    const bundleChunks = jsFiles.filter((p) => /^\/assets\/js\/(?:runtime|app|shared|deferred)\.[^/]+\.js$/.test(p));
-    candidates.push.apply(candidates, bundleChunks.length ? bundleChunks : jsFiles);
-    listFilesRecursive(path.join(distDir, 'assets', 'vendor', 'fonts'), 'assets/vendor/fonts', candidates);
-    precache = buildPrecacheList(candidates, { exclude: [swUrl] });
+    precache = buildPrecacheList(shellPrecacheCandidates(config, featPwa.offlinePage !== false), { exclude: [swUrl] });
   }
   writeServiceWorker(config, precache);
   console.log(`  Created: ${swUrl.replace(/^\//, '')} (${precache.length} precache entries)`);
@@ -240,6 +255,10 @@ function writeServiceWorker(config, precache) {
   const swUrl = config.site.pwa.serviceWorker;
   const featPwa = (config.features && config.features.pwa) || {};
   const offlineUrl = featPwa.offlinePage !== false ? '/offline.html' : '';
+  // 页面导航策略（2G 性能）：默认 cache-first + 后台 revalidate（= stale-while-revalidate）。
+  // cacheFirstPage 命中缓存即刻返回、同时后台 fetch 并写回页面缓存（受 pageCacheLimit 约束），
+  // 弱网重复访问秒开，而 network-first 每次都先等网络（2G 下首字节就要数秒）。
+  // 代价仅是「更新在一次导航之后才可见」，博客场景可接受。
   const pageNetworkFirst = featPwa.pageNetworkFirst !== false;
   const assetCacheFirst = featPwa.assetCacheFirst !== false;
   const pageCacheLimit = Number.isFinite(Number(featPwa.pageCacheLimit)) && Number(featPwa.pageCacheLimit) >= 0

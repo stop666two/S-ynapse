@@ -9,10 +9,10 @@ const ejs = require('ejs');
 const frontMatter = require('front-matter');
 const { marked } = require('marked');
 const { writeFileAtomicSync } = require('../lib/atomic-write');
-const { CJK_CSS_HREF } = require('../lib/cjk-fonts');
+const { CJK_CSS_HREF, normalizeSlowNetworkStrategy } = require('../lib/cjk-fonts');
 const { extractCriticalCss } = require('../lib/critical-css');
 const { PRESETS: THEME_PRESETS } = require('../lib/theme-presets');
-const { buildRuntimeConfig, configUrlName } = require('../lib/config-split');
+const { buildRuntimeConfig, configUrlName, writeQuotePayload } = require('../lib/config-split');
 const { formatDate, safeSlug, validateSlug, escapeAttr, applyCjkSpacingToHtml, sanitizeHtml, escapeJsonForScript, truncateCodePoints, hasHighlightableCode } = require('../lib/utils');
 const { normalizeThemeDarkMode, pinnedConfig, pinnedText, archiveCoverEnabled, coverRuntimeConfig, showHelpHint, heroSearchPlaceholder, seriesConfig, seriesBadgeText, seriesPanelTitle, wordCountConfig, wordCountText, readTimeText, galleryCollectFeatured, imagePreserveAspectRatio, lightboxConfig, backToTopConfig, heatmapConfig, heatmapLegendLevels, heatmapLegendText, heatmapTooltip, heatmapBucketLevel, statsConfig, statsLabel, mobileConfig, contactPopupConfig, analyticsConfig, buildAnalyticsTag, resolveHeatmapPalette, exportArticleConfig, bilingualConfig, stripMathText, friendsSidebarCount, sidebarRecentPoolSize, errorPageConfig } = require('../lib/feature-wiring');
 const { collectSeriesPages } = require('../lib/series-page');
@@ -215,7 +215,7 @@ function createPagesModule(ctx) {
   // 返回内联降级子集 critical（guard 开关 + PWA 注册信息，≤2048 字节，超限由 config-split 抛错阻断构建）。
   // 逐页/逐语言小项（__SITE_TITLE__/__ART_TITLE__/__SEARCH_PROVIDER__）不在此处，继续内联。
   function writeRuntimeConfig(config, presets, dailyQuotes) {
-    const { critical, external } = buildRuntimeConfig({
+    const { critical, external, quoteFile } = buildRuntimeConfig({
       features: config.features,
       tuning: config.tuning,
       guard: config.guard,
@@ -231,6 +231,12 @@ function createPagesModule(ctx) {
         darkMode: normalizeThemeDarkMode(config.theme && config.theme.darkMode)
       }
     });
+    // 2G 性能：引语是内容数据，单独写 /assets/quotes.<hash>.json 并由 external.quotesUrl 引用；
+    // 浏览器在每日一言挂件初始化时才 fetch，不占启动配置的 9.4 KiB gzip。
+    if (quoteFile) {
+      writeQuotePayload(ctx.distDir, quoteFile);
+      console.log('  Created: ' + quoteFile.url + ' (' + Math.round(Buffer.byteLength(quoteFile.json) / 1024) + 'KB, 按需加载)');
+    }
     const jsonText = JSON.stringify(external);
     ctx.setInlineConfigKb(Buffer.byteLength(JSON.stringify(critical), 'utf-8') / 1024);
     const url = configUrlName(jsonText);
@@ -435,7 +441,11 @@ function createPagesModule(ctx) {
       siteCssHref: SITE_CSS_HREF,
       // CJK 子集样式引用（构建后期由 scripts/build/cjk-fonts.js 产出并改写为内容哈希查询串；
       // 失败/未启用时管线会剥离该引用，页面自动回退系统字体链）。
-      cjkFontsHref: (config.site.build && config.site.build.cjkFonts && config.site.build.cjkFonts.enabled !== false) ? CJK_CSS_HREF : ''
+      cjkFontsHref: (config.site.build && config.site.build.cjkFonts && config.site.build.cjkFonts.enabled !== false) ? CJK_CSS_HREF : '',
+      // 慢网/省流下的字体策略（'skip' 默认 | 'load'）：layout.ejs 的内联脚本据此决定是否把
+      // cjk-fonts.css 的 media 翻回 all。2G 性能：17 个 CJK 分片约 877 KiB（首屏 78%），
+      // 慢网下不翻即 0 个字体分片请求，回退系统 CJK 字体链；非法值一律回退 'skip'。
+      cjkFontSlowNetwork: normalizeSlowNetworkStrategy(config.site.build && config.site.build.cjkFonts && config.site.build.cjkFonts.slowNetwork)
     };
   }
 

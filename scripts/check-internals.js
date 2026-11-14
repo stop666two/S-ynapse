@@ -297,6 +297,101 @@ function checkArchitectureCounts() {
   }
 }
 
+// 审查 R-04 / R-39 的结构性回归守卫：此前这两类只能靠人工 grep
+// （「所有 uses 是否锁 SHA」「run: 里有没有直接内插可注入表达式」）。
+// 这里解析全部 workflow，不依赖具体文件/行号，新增工作流自动纳入。
+const SHA40 = /^[0-9a-f]{40}$/;
+// 只有「字符串类」事件字段可注入 shell：message/title/body/email/head_ref/ref_name/inputs。
+// SHA、ref 路径（github.sha / event.before / *.base.sha）是受限字符集，允许。
+const INJECTABLE_IN_RUN =
+  /\$\{\{\s*(?:github\.head_ref|github\.ref_name|inputs\.[\w.-]+|github\.event\.[\w.]*(?:message|title|body|email)|github\.event\.pull_request\.head\.(?:ref|label))/i;
+
+function runBlocksOf(lines) {
+  const blocks = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const m = /^(\s*)(?:-\s*)?run:\s*(.*)$/.exec(lines[i]);
+    if (!m) continue;
+    const rest = m[2].trim();
+    if (rest !== '|' && rest !== '>' && rest !== '|-' && rest !== '>-') {
+      blocks.push({ start: i, text: rest });
+      continue;
+    }
+    const indent = m[1].length;
+    let end = i + 1;
+    while (end < lines.length) {
+      const line = lines[end];
+      if (line.trim() === '') { end += 1; continue; }
+      if (line.length - line.trimStart().length <= indent) break;
+      end += 1;
+    }
+    blocks.push({ start: i, text: lines.slice(i + 1, end).join('\n') });
+    i = end - 1;
+  }
+  return blocks;
+}
+
+// 权限最小化白名单：写权限按 scope 逐项登记到具体工作流。新增任何 write scope
+// （id-token、pull-requests、packages…）都必须先改这里并说明用途，避免权限蔓延。
+const WRITE_SCOPE_ALLOWLIST = {
+  contents: ['release.yml', 'release-notes.yml'],
+  statuses: ['deploy.yml', 'nightly.yml']
+};
+// 会发版的工作流必须有并发组：两条并行发布流会各自创建/清理 Release 与 Pages 产物。
+const CONCURRENCY_REQUIRED = ['deploy.yml', 'release.yml'];
+
+function checkWorkflowHygiene() {
+  const dir = path.join(ROOT, '.github', 'workflows');
+  let files;
+  try {
+    files = fs.readdirSync(dir).filter((f) => /\.ya?ml$/.test(f));
+  } catch (err) {
+    failures.push('.github/workflows：无法读取（' + err.message + '）');
+    return;
+  }
+  for (const file of files) {
+    const text = read(path.join('.github', 'workflows', file));
+    if (!text) continue;
+    const lines = text.split(/\r?\n/);
+    lines.forEach((line, index) => {
+      const m = /^\s*(?:-\s*)?uses:\s*(\S+)/.exec(line);
+      if (!m) return;
+      const ref = m[1];
+      if (/^\.\//.test(ref) || /^docker:\/\//.test(ref)) return;
+      const at = ref.lastIndexOf('@');
+      const sha = at === -1 ? '' : ref.slice(at + 1);
+      if (!SHA40.test(sha)) {
+        failures.push(file + ':' + (index + 1) + '：uses 未锁定 40 位 commit SHA（可被上游重指）→ ' + ref);
+      }
+    });
+    for (const block of runBlocksOf(lines)) {
+      const hit = INJECTABLE_IN_RUN.exec(block.text);
+      if (hit) {
+        failures.push(
+          file + ':' + (block.start + 1) + '：run 脚本直接内插可注入表达式 ' + hit[0] +
+            '（应经 env: 传入后引用 "$VAR"，否则贡献者可控字符串会进入 shell）'
+        );
+      }
+    }
+    lines.forEach((line, index) => {
+      if (/^\s*permissions:\s*write-all\s*$/.test(line)) {
+        failures.push(file + ':' + (index + 1) + '：不得使用 permissions: write-all（按 scope 逐项授权）');
+      }
+      const scope = /^\s*([a-z-]+):\s*write\s*$/.exec(line);
+      if (!scope) return;
+      const allowed = WRITE_SCOPE_ALLOWLIST[scope[1]];
+      if (!allowed || allowed.indexOf(file) === -1) {
+        failures.push(
+          file + ':' + (index + 1) + '：权限 ' + scope[1] + ': write 未在 check-internals 白名单登记' +
+            '（如确需，请连同用途一起加进 WRITE_SCOPE_ALLOWLIST）'
+        );
+      }
+    });
+    if (CONCURRENCY_REQUIRED.indexOf(file) !== -1 && !/^concurrency:/m.test(text)) {
+      failures.push(file + '：缺少顶层 concurrency（并发发布/部署会互相覆盖产物）');
+    }
+  }
+}
+
 function main() {
   let internals;
   try {
@@ -308,22 +403,25 @@ function main() {
   checkNvmrc(internals);
   checkWranglerAssets(internals);
   if (DERIVED_COPY) {
-    console.log('[verify:internals] 派生副本：跳过 deploy.yml 一致性检查（.github 不随主仓同步）');
+    console.log('[verify:internals] 派生副本：跳过 deploy.yml / workflow 卫生 / 文档规模口径检查（.github 与 docs 不随主仓同步）');
   } else {
     checkDeployWorkflow(internals);
     checkNightlyBudget(internals);
+    checkWorkflowHygiene();
+    // docs/** 与 .github/** 都不入发布归档：派生副本里没有这些文件，
+    // 与其他仓库形态检查同源跳过（否则归档内 verify:internals 必然红）。
+    checkArchitectureCounts();
   }
   checkLiteralGuards();
-  checkArchitectureCounts();
 
   if (failures.length) {
     console.error('[verify:internals] FAIL：' + failures.length + ' 项：');
     for (const item of failures) console.error('  - ' + item);
     process.exit(1);
   }
-  console.log('[verify:internals] PASS：.nvmrc / wrangler assets / CI 版本 / 关键写死形态 / 文档规模口径 均与 internals 一致');
+  console.log('[verify:internals] PASS：.nvmrc / wrangler assets / CI 版本 / 关键写死形态 / 文档规模口径 / workflow 卫生（SHA 固定·注入面·写权限·并发组） 均与 internals 一致');
 }
 
 if (require.main === module) main();
 
-module.exports = { checkNvmrc, checkWranglerAssets, checkDeployWorkflow, checkLiteralGuards, checkArchitectureCounts, LITERAL_GUARDS };
+module.exports = { checkNvmrc, checkWranglerAssets, checkDeployWorkflow, checkLiteralGuards, checkArchitectureCounts, checkWorkflowHygiene, LITERAL_GUARDS };

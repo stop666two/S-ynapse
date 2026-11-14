@@ -83,7 +83,7 @@
 | `features.codeBlock.copyAllButton` | bool | false | js/domains/core/code-block.js:57 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.codeBlock.copyButtonVisibility` | enum | `hover` | js/domains/core/code-block.js:11 | scripts/lib/config.fuzz.test.js:165<br>scripts/lib/config.fuzz.test.js:168 | 既有引用 |
 | `features.codeBlock.downloadButton` | bool | true | js/domains/core/code-block.js:34<br>js/domains/core/code-block.js:42<br>js/domains/features/lightbox.js:46 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.codeBlock.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-split.test.js:89<br>scripts/config-wiring-runtime-switches.test.js:252 | 既有引用 |
+| `features.codeBlock.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-split.test.js:89<br>scripts/config-wiring-runtime-switches.test.js:253 | 既有引用 |
 | `features.codeBlock.lineNumbers` | bool | true | scripts/build/markdown.js:26 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.codeBlock.prismBatchMs` | number | 8 | templates/layout.ejs:263 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.codeBlock.prismIdleFallbackMs` | number | 60 | templates/layout.ejs:263 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
@@ -93,7 +93,7 @@
 | `features.codeBlock.windowBar` | bool | true | js/domains/core/code-block.js:11 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.codeBlock.wrapLongLines` | bool | false | scripts/build/markdown.js:240 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.codeCopy.buttonTimeout` | number | 1500 | js/domains/core/code-block.js:11<br>templates/layout.ejs:256 | scripts/config-coverage-features-a.test.js:541<br>scripts/config-coverage-features-a.test.js:575 | 已测（marker） |
-| `features.codeCopy.enabled` | bool | true | js/domains/core/code-block.js:16<br>js/core/runtime.js:18<br>js/core/runtime.js:19 | scripts/config-wiring-runtime-switches.test.js:251<br>scripts/config-wiring-runtime-switches.test.js:264 | 已测（marker） |
+| `features.codeCopy.enabled` | bool | true | js/domains/core/code-block.js:16<br>js/core/runtime.js:18<br>js/core/runtime.js:19 | scripts/config-wiring-runtime-switches.test.js:252<br>scripts/config-wiring-runtime-switches.test.js:265 | 已测（marker） |
 | `features.codeCopy.showLineNumbers` | bool | false | scripts/build/markdown.js:26<br>scripts/build/markdown.js:239 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.commandPalette.autoFocus` | bool | true | js/domains/features/command-palette.js:183<br>scripts/lib/feature-wiring.js:1247 | scripts/config-wiring.test.js:1317 | 已测（marker） |
 | `features.commandPalette.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
@@ -329,7 +329,7 @@
 | `features.mobileToc.lockScroll` | bool | true | js/domains/core/toc.js:125<br>js/domains/core/toc.js:133<br>js/domains/core/toc.js:139 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.mobileToc.overlayClose` | bool | true | js/domains/core/toc.js:273 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.mobileToc.showCurrent` | bool | true | js/domains/core/toc.js:25<br>templates/layout.ejs:72<br>templates/layout.ejs:75 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.morphIcons.enabled` | bool | true | js/core/runtime.js:19<br>js/core/runtime.js:18<br>js/core/boot.js:97 | scripts/config-wiring-runtime-switches.test.js:149<br>scripts/config-wiring-runtime-switches.test.js:162 | 已测（marker） |
+| `features.morphIcons.enabled` | bool | true | js/core/runtime.js:19<br>js/core/runtime.js:18<br>js/core/boot.js:97 | scripts/config-wiring-runtime-switches.test.js:150<br>scripts/config-wiring-runtime-switches.test.js:163 | 已测（marker） |
 | `features.morphIcons.icons.copy` | bool | true | js/domains/features/daily-quote.js:305<br>js/domains/features/daily-quote.js:306<br>js/domains/features/daily-quote.js:307 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
 | `features.morphIcons.icons.favorite` | bool | true | — | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.morphIcons.icons.menu` | bool | true | js/domains/guard/context-menu.js:37<br>js/domains/guard/context-menu.js:44<br>js/domains/guard/context-menu.js:45 | scripts/config-coverage-features-a.test.js:541 | 已测（marker） |
@@ -618,7 +618,7 @@
 | `features.themeSchedule.respectManualOverride` | bool | true | js/domains/features/theme-schedule.js:3 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.themeSchedule.smoothTransition` | bool | true | js/domains/features/theme-schedule.js:3 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.themeSchedule.smoothTransitionMs` | number | 350 | js/domains/features/theme-schedule.js:3 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `features.themeToggle.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring-runtime-switches.test.js:80<br>scripts/config-wiring-runtime-switches.test.js:97 | 已测（marker） |
+| `features.themeToggle.enabled` | bool | true | js/core/runtime.js:18<br>js/core/runtime.js:19<br>js/core/boot.js:97 | scripts/config-wiring-runtime-switches.test.js:81<br>scripts/config-wiring-runtime-switches.test.js:98 | 已测（marker） |
 | `features.themeToggle.toggleIconSwap` | bool | true | js/domains/features/morphicons.js:105<br>templates/layout.ejs:259 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.themeToggle.zIndex` | number | 100 | templates/site-css.ejs:234<br>templates/site-css.ejs:510<br>js/domains/guard/defaults.js:145 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `features.toast.durationMs` | number | 2500 | js/core/runtime.js:12<br>templates/site-css.ejs:301<br>templates/site-css.ejs:306 | scripts/config-coverage-features-b.test.js:714 | 已测（marker） |
@@ -686,7 +686,7 @@
 | `internals.cache.mediaTtlDays` | number | 0 | scripts/build/media.js:14 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `internals.cache.mermaidTtlDays` | number | 0 | scripts/build/mermaid.js:52 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `internals.cache.ogTtlDays` | number | 0 | scripts/generate-og.js:27 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `internals.ci.aggregate` | bool | true | scripts/ci-checks.js:28<br>scripts/ci-env.js:22<br>scripts/ci-checks.js:178 | scripts/internals.test.js:47 | 既有引用 |
+| `internals.ci.aggregate` | bool | true | scripts/ci-checks.js:28<br>scripts/ci-env.js:22<br>scripts/ci-checks.js:196 | scripts/internals.test.js:47 | 既有引用 |
 | `internals.ci.checkTimeoutMs` | number | 600000 | scripts/check-internals.js:146<br>scripts/ci-checks.js:29 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `internals.ci.skip.consecutiveClean` | number | 5 | scripts/lib/ci-skip.js:61<br>scripts/lib/ci-skip.js:87<br>scripts/lib/ci-skip.js:90 | scripts/ci-skip.test.js:47<br>scripts/ci-skip.test.js:55 | 既有引用 |
 | `internals.ci.skip.consecutiveErrors` | number | 2 | scripts/lib/ci-skip.js:60<br>scripts/lib/ci-skip.js:78<br>scripts/lib/ci-skip.js:81 | scripts/ci-skip.test.js:47<br>scripts/ci-skip.test.js:55 | 既有引用 |

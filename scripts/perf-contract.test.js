@@ -19,6 +19,18 @@ const DIST = path.join(ROOT, 'dist');
 const HOME = path.join(DIST, 'zh', 'index.html');
 const HAS_DIST = fs.existsSync(HOME);
 const SKIP_NO_DIST = '需要先 npm run build 产出 dist/';
+// CI 里这些契约不允许以 skip 收场：聚合器会把 9 条断言全部「通过」，而实际上一次都没执行。
+// ci-checks.js 已把 build 前置到 test 之前，因此 CI 缺 dist 只会是环境/顺序回归，应当红。
+// 严格模式由调用方显式施加（CI 聚合器在 build 之后跑 `npm test` 时设 PERF_CONTRACT_REQUIRE_DIST=1）。
+// 不用 CI/GITHUB_ACTIONS 猜测：compat 与发布可构建性 job 里 test 先于 build，按环境变量猜测
+// 会把它们误伤成红；由「知道 dist 一定存在」的那一步显式开启才是准确信号。
+const STRICT_DIST = process.env.PERF_CONTRACT_REQUIRE_DIST === '1';
+function needDist(t) {
+  if (HAS_DIST) return true;
+  if (STRICT_DIST) assert.fail('PERF_CONTRACT_REQUIRE_DIST=1 但 ' + SKIP_NO_DIST + '：build 必须先于 test 执行');
+  t.skip(SKIP_NO_DIST);
+  return false;
+}
 
 const gz = (rel) => zlib.gzipSync(fs.readFileSync(path.join(DIST, rel))).length;
 const raw = (rel) => fs.statSync(path.join(DIST, rel)).size;
@@ -42,7 +54,7 @@ const PRECACHE_MAX_GZIP_KB = 110;
 
 describe('performance contract (2G)', () => {
   it('首屏慢网路径（不含 webfont）gzip 总量在预算内', (t) => {
-    if (!HAS_DIST) return t.skip(SKIP_NO_DIST);
+    if (!needDist(t)) return;
     const html = fs.readFileSync(HOME, 'utf8');
     const parts = {
       html: zlib.gzipSync(Buffer.from(html)).length,
@@ -60,7 +72,7 @@ describe('performance contract (2G)', () => {
   });
 
   it('慢网策略下字体零请求：cjk 样式无 href、无 font preload、翻转脚本带网况判定', (t) => {
-    if (!HAS_DIST) return t.skip(SKIP_NO_DIST);
+    if (!needDist(t)) return;
     const html = fs.readFileSync(HOME, 'utf8');
     const cjkLink = html.match(/<link[^>]*data-cjk-css[^>]*>/);
     assert.ok(cjkLink, '首页应存在 data-cjk-css 链接（字体样式入口）');
@@ -80,7 +92,7 @@ describe('performance contract (2G)', () => {
   });
 
   it('加载顺序：runtime/app 在 head 预声明，且与 body 的 script 同源同哈希', (t) => {
-    if (!HAS_DIST) return t.skip(SKIP_NO_DIST);
+    if (!needDist(t)) return;
     const html = fs.readFileSync(HOME, 'utf8');
     const head = html.slice(0, html.indexOf('</head>'));
     const appSrc = firstMatch(html, /src=([^ >]*app\.[^ >]*\.js)/).replace(/"/g, '');
@@ -92,7 +104,7 @@ describe('performance contract (2G)', () => {
   });
 
   it('缓存头契约：内容寻址资源 immutable，HTML 可复用且带 SWR', (t) => {
-    if (!HAS_DIST) return t.skip(SKIP_NO_DIST);
+    if (!needDist(t)) return;
     const headers = fs.readFileSync(path.join(DIST, '_headers'), 'utf8');
     for (const rule of ['/assets/js/*', '/assets/css/*', '/assets/fonts/*', '/assets/config.*.json', '/assets/quotes.*.json']) {
       const block = headers.split('\n\n').find((b) => b.startsWith(rule));
@@ -128,7 +140,7 @@ describe('performance contract (2G)', () => {
   });
 
   it('SW 预缓存只保留离线壳最小集，且不超过字节预算', (t) => {
-    if (!HAS_DIST) return t.skip(SKIP_NO_DIST);
+    if (!needDist(t)) return;
     const sw = fs.readFileSync(path.join(DIST, 'sw.js'), 'utf8');
     const m = sw.match(/PRECACHE_URLS = (\[[^\]]*\])/);
     assert.ok(m, 'sw.js 应内联 PRECACHE_URLS');
@@ -149,13 +161,13 @@ describe('performance contract (2G)', () => {
   });
 
   it('导航策略为 stale-while-revalidate（弱网重复访问不等网络）', (t) => {
-    if (!HAS_DIST) return t.skip(SKIP_NO_DIST);
+    if (!needDist(t)) return;
     const sw = fs.readFileSync(path.join(DIST, 'sw.js'), 'utf8');
     assert.ok(/PAGE_NETWORK_FIRST = false/.test(sw), '默认应为 SWR（PAGE_NETWORK_FIRST=false），否则每次导航都要等一次网络往返');
   });
 
   it('预加载不重复下载：同一资源不得同时出现 preload 与不同哈希的引用', (t) => {
-    if (!HAS_DIST) return t.skip(SKIP_NO_DIST);
+    if (!needDist(t)) return;
     const html = fs.readFileSync(HOME, 'utf8');
     const appRefs = [...html.matchAll(/(?:src|href)=["']?([^"'\s>]*\/assets\/js\/app\.[^"'\s>]*)/g)].map((m) => m[1]);
     assert.ok(appRefs.length >= 2, 'app.js 应至少被 head 预载与 body script 各引用一次');
@@ -163,12 +175,12 @@ describe('performance contract (2G)', () => {
   });
 
   it('head 级静态资源数不超过预算（2G 下每个请求 = 一次 RTT）', (t) => {
-    if (!HAS_DIST) return t.skip(SKIP_NO_DIST);
+    if (!needDist(t)) return;
     // 只数真正发请求的 head 资源；`data-cjk-href` 这类数据属性必须排除，
     // 否则无 href 的 cjk 样式会被误算成请求（`\bhref=` 会匹配 `data-cjk-href=`）。
     const countHeadResources = (html) => {
       const links = [...html.matchAll(/<link\b[^>]*>/g)].map((m) => m[0]);
-      const relOf = (tag) => ((tag.match(/rel=["']?([a-z\- ]+)/i) || [, ''])[1] || '').trim();
+      const relOf = (tag) => ((tag.match(/rel=["']?([a-z\- ]+)/i) || ['', ''])[1] || '').trim();
       const hasHref = (tag) => /(?<![-\w])href=/.test(tag);
       const headLinks = links.filter((tag) => hasHref(tag) && /^(stylesheet|preload|modulepreload)$/.test(relOf(tag)));
       const scripts = [...html.matchAll(/<script\b[^>]*\ssrc=/g)].length;

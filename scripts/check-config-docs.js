@@ -82,10 +82,6 @@ function collectKeys(config, depth) {
   return out;
 }
 
-function moduleNameOf(keyPath) {
-  return keyPath.includes('.') ? keyPath.split('.').pop() : keyPath;
-}
-
 // ---------------------------------------------------------------------------
 // 文档作用域（审查 R-33）：键必须落在「自己的模块」范围里才算覆盖。
 // 旧实现只把键路径最后一段叶子名丢进全文匹配，于是任何角落出现的 `enabled` 都能替

@@ -118,6 +118,40 @@ function discoverArticles(outDir, max) {
   return found;
 }
 
+// 灯箱场景必须有图可点（features.lightbox.selectors 默认 '.post-content img,.gallery-item img'）。
+// 此前固定用 articles[0]，而本仓库 8 篇文章正文里一张图都没有：开图点击必然失败，
+// 随后 6 个灯箱按钮连锁点不到 —— 结果是「7 行忽略 + 灯箱路径从未被覆盖」。这里按
+// 「正文有图文章 → 图库页」优先选源，都没有才跳过该场景（并由调用方打一行说明）。
+function pickLightboxSource(outDir, articles) {
+  const readPage = (url) => {
+    const parts = String(url).split('/').filter(Boolean);
+    try { return fs.readFileSync(path.join(outDir, ...parts, 'index.html'), 'utf-8'); } catch (err) { return ''; }
+  };
+  // 属性可能无引号（模板压缩后 class=post-content），正则必须两种都认——否则假阴性。
+  const BODY_RX = /class=["']?post-content["']?([\s\S]*?)(?:<\/article>|<\/main>)/;
+  const bodyCount = (url) => {
+    const body = BODY_RX.exec(readPage(url));
+    return body ? (body[1].match(/<img\b[^>]*>/g) || []).length : 0;
+  };
+  // 候选 = 调用方给的文章 + 产物里全部文章页（首页只暴露前几篇，未必有图）。
+  const candidates = articles.slice();
+  try {
+    for (const name of fs.readdirSync(path.join(outDir, 'zh'))) {
+      const url = '/zh/' + name + '/';
+      if (candidates.indexOf(url) !== -1) continue;
+      if (readPage(url).indexOf('article:published_time') === -1) continue;
+      candidates.push(url);
+    }
+  } catch (err) { /* 产物结构异常时只用调用方候选 */ }
+  // 优先多图文章（翻页/幻灯片/说明/下载都需要多张），否则单图文章，最后退回图库页。
+  const ranked = candidates.map((url) => ({ url: url, n: bodyCount(url) })).filter((item) => item.n > 0)
+    .sort((a, b) => (b.n - a.n) || (a.url < b.url ? -1 : 1));
+  if (ranked.length) return { url: ranked[0].url, selector: '.post-content img:not(a img)' };
+  const gallery = readPage('/zh/gallery/');
+  if (/class=["']?gallery-item["']?[\s\S]{0,600}?<img\b/.test(gallery)) return { url: '/zh/gallery/', selector: '.gallery-item img' };
+  return null;
+}
+
 // 选择存在另一语言对照的文章：双语并排/切换场景需要 data-bilingual-alt。
 function pickBilingualArticle(outDir, articles) {
   for (const url of articles) {
@@ -225,7 +259,8 @@ function collectSteps(outDir) {
     steps.push({ url: article, waitMs: 500, label: '文章页', checks: [
       { label: '文章正文渲染', expr: '!!document.querySelector(".post-content")' }
     ] });
-    steps.push({ url: article, label: '文章页交互（双语切换/省流/主题页签）', actions: [
+    // 双语切换必须有对照文章（articles[0] 未必有对照）；否则点击只是被忽略、随后的断言必红。
+    if (bilingualArticle) steps.push({ url: bilingualArticle, label: '文章页交互（双语切换/省流/主题页签）', actions: [
       { type: 'click', selector: '#bilingualSwitch', waitMs: 1200, optional: true },
       { type: 'check', label: '双语切换软导航到对照文章', expr: 'location.pathname.indexOf("/en/") === 0 && !!document.querySelector(".post-content")', timeoutMs: 8000 },
       { type: 'click', selector: '#readerGear', waitMs: 400, optional: true },
@@ -236,17 +271,29 @@ function collectSteps(outDir) {
       { type: 'click', selector: '#rtabTheme', waitMs: 500, optional: true },
       { type: 'check', label: '主题页签激活', expr: '(function(){var p=document.getElementById("rpageTheme");return !!p && !p.hidden})()' }
     ] });
-    steps.push({ url: article, label: '灯箱（打开/翻页/缩放/关闭）', actions: [
-      { type: 'click', selector: '.post-content img:not(a img)', waitMs: 600, optional: true },
-      { type: 'check', label: '点击正文图片打开灯箱（无图时跳过）', expr: '(function(){var imgs=Array.prototype.filter.call(document.querySelectorAll(".post-content img"),function(i){return !i.closest("a")});if(!imgs.length)return true;var lb=document.getElementById("lightbox");return !!lb && lb.classList.contains("open")})()', timeoutMs: 8000 },
-      { type: 'click', selector: '#lbNext', waitMs: 300, optional: true },
-      { type: 'click', selector: '#lbZoomIn', waitMs: 250, optional: true },
-      { type: 'click', selector: '#lbRotateR', waitMs: 250, optional: true },
-      { type: 'click', selector: '#lbReset', waitMs: 250, optional: true },
-      { type: 'click', selector: '#lbSlideshow', waitMs: 250, optional: true },
-      { type: 'click', selector: '#lbClose', waitMs: 400, optional: true },
-      { type: 'check', label: '灯箱关闭还原', expr: '(function(){var lb=document.getElementById("lightbox");return !lb || !lb.classList.contains("open")})()' }
-    ] });
+    const lightbox = pickLightboxSource(outDir, articles);
+    if (lightbox) {
+      // 每个按钮都跟一条「能力感知断言」：按钮被配置隐藏时视为通过，
+      // 可见则必须产生可观测效果（transform / src / aria-label），否则判失败。
+      steps.push({ url: lightbox.url, label: '灯箱（打开/翻页/缩放/关闭）', actions: [
+        { type: 'click', selector: lightbox.selector, waitMs: 600, optional: true, group: 'lightbox' },
+        { type: 'check', label: '点击图片打开灯箱并装载图片', expr: '(function(){var lb=document.getElementById("lightbox"),im=document.getElementById("lbImg"),c=document.getElementById("lbCount");return !!lb && lb.classList.contains("open") && !!im && /\\.(jpe?g|png|webp|avif|gif)(\\?|$)/i.test(im.getAttribute("src")||"") && !!c && c.textContent.trim().length>0})()', timeoutMs: 8000 },
+        { type: 'eval', code: 'window.__covLbSrc = document.getElementById("lbImg").getAttribute("src")' },
+        { type: 'click', selector: '#lbNext', waitMs: 400, optional: true, group: 'lightbox' },
+        { type: 'check', label: '翻页：图片源变化（按钮隐藏时跳过）', expr: '(function(){var b=document.getElementById("lbNext");if(!b||b.offsetParent===null)return true;var im=document.getElementById("lbImg");return (im.getAttribute("src")||"") !== window.__covLbSrc})()', timeoutMs: 4000 },
+        { type: 'click', selector: '#lbZoomIn', waitMs: 300, optional: true, group: 'lightbox' },
+        { type: 'check', label: '放大：transform 出现 scale>1（按钮隐藏时跳过）', expr: '(function(){var b=document.getElementById("lbZoomIn");if(!b||b.offsetParent===null)return true;var t=document.getElementById("lbImg").style.transform||"";var m=t.match(/scale\\(([\\d.]+)\\)/);return !!m && parseFloat(m[1])>1})()', timeoutMs: 4000 },
+        { type: 'click', selector: '#lbRotateR', waitMs: 300, optional: true, group: 'lightbox' },
+        { type: 'check', label: '旋转：transform 出现 rotate(90deg)（按钮隐藏时跳过）', expr: '(function(){var b=document.getElementById("lbRotateR");if(!b||b.offsetParent===null)return true;var t=document.getElementById("lbImg").style.transform||"";return /rotate\\(90deg\\)/.test(t)})()', timeoutMs: 4000 },
+        { type: 'eval', code: 'window.__covSsLabel = (document.getElementById("lbSlideshow")||{getAttribute:function(){return null}}).getAttribute("aria-label")' },
+        { type: 'click', selector: '#lbSlideshow', waitMs: 400, optional: true, group: 'lightbox' },
+        { type: 'check', label: '幻灯片：点击切换播放/暂停（aria-label 变化；按钮隐藏时跳过）', expr: '(function(){var b=document.getElementById("lbSlideshow");if(!b||b.offsetParent===null)return true;var l=b.getAttribute("aria-label");return !!l && l !== window.__covSsLabel})()', timeoutMs: 4000 },
+        { type: 'click', selector: '#lbReset', waitMs: 300, optional: true, group: 'lightbox' },
+        { type: 'check', label: '重置：transform 回到 translate(0px,0px) rotate(0deg)（按钮隐藏时跳过）', expr: '(function(){var b=document.getElementById("lbReset");if(!b||b.offsetParent===null)return true;var t=(document.getElementById("lbImg").style.transform||"").replace(/\\s+/g,"");return t==="translate(0px,0px)rotate(0deg)"})()', timeoutMs: 4000 },
+        { type: 'click', selector: '#lbClose', waitMs: 400, optional: true, group: 'lightbox' },
+        { type: 'check', label: '灯箱关闭还原', expr: '(function(){var lb=document.getElementById("lightbox");return !lb || !lb.classList.contains("open")})()' }
+      ] });
+    }
     if (bilingualArticle) {
       steps.push({ url: bilingualArticle, label: '双语并排（宽屏）', actions: [
         { type: 'viewport', width: 1440, height: 900 },
@@ -441,10 +488,12 @@ async function runClick(page, action, warnings, stepLabel) {
       await page.click(selector, { button: action.button || 'left' });
     }
     await sleep(action.waitMs || 600);
+    return true;
   } catch (err) {
     const detail = '点击 ' + selector + '（' + stepLabel + '）失败: ' + String((err && err.message) || err);
     if (!action.optional) warnings.push(detail);
     else warnings.push(detail + OPTIONAL_CLICK_WARN);
+    return false;
   }
 }
 
@@ -494,8 +543,7 @@ async function runAction(page, action, ctx) {
     return;
   }
   if (action.type === 'click') {
-    await runClick(page, action, warnings, stepLabel);
-    return;
+    return runClick(page, action, warnings, stepLabel);
   }
   if (action.type === 'type') {
     try {
@@ -543,9 +591,17 @@ async function collectCoverage(page, session, baseUrl, steps, warnings, files, r
     const stepLabel = step.label || step.url;
     const ctx = { baseUrl, report, warnings, stepLabel, preloadIds: [] };
     let navigated = false;
+    const brokenGroups = new Set();
     for (const action of normalizeActions(step)) {
+      // 交互组（如灯箱）：组内任一 optional 点击失败后，后续同组动作必然连带失败
+      // （灯箱没打开时 #lbNext 等都不存在），逐条打「忽略」只会淹没真正的告警。
+      if (action.group && brokenGroups.has(action.group)) continue;
       try {
-        await runAction(page, action, ctx);
+        const ok = await runAction(page, action, ctx);
+        if (action.type === 'click' && ok === false && action.group) {
+          brokenGroups.add(action.group);
+          warnings.push('跳过交互组 ' + action.group + '（' + stepLabel + '：打开它的点击未命中，组内其余动作未执行）');
+        }
         if (action.type === 'goto') navigated = true;
       } catch (err) {
         if (action.type === 'goto') {
@@ -778,7 +834,12 @@ async function main() {
   if (!report.passed) process.exitCode = 1;
 }
 
-main().catch((err) => {
-  process.stderr.write('[cov-web] 未捕获错误: ' + String((err && err.stack) || err) + '\n');
-  process.exitCode = 1;
-});
+// 纯函数（挑灯箱源页）导出供单测；main 用 require.main 守卫，避免被 require 时触发构建。
+module.exports = { pickLightboxSource };
+
+if (require.main === module) {
+  main().catch((err) => {
+    process.stderr.write('[cov-web] 未捕获错误: ' + String((err && err.stack) || err) + '\n');
+    process.exitCode = 1;
+  });
+}

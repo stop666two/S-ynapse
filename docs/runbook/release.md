@@ -28,13 +28,18 @@
 | 7 | `npm run verify:config-dupes` | 重复键扫描（同一对象内重复键） |
 | 8 | `npm run verify:config-comments` | 逐键注释覆盖率 |
 | 9 | `npm run verify:config-docs` | 配置参考文档覆盖 |
-| 10 | `npm run verify:security` | 安全集成回归（恶意内容注入构建） |
-| 11 | `npm run verify:compression` | 压缩无头对比（无 Chrome 时跳过并声明） |
-| 12 | `npm run build` | 一次真实构建（不需要生产部署/线上验证） |
+| 10 | `npm run verify:config-single-source` | 开关矩阵与基线（文档与生成结果一致） |
+| 11 | `npm run verify:internals` | `.nvmrc`/wrangler assets/workflow 单源与卫生 |
+| 12 | `npm run verify:process-guards` | 进程守护巡检 |
+| 13 | `npm run verify:comment-hygiene` | 注释卫生（无审查工单号、无乱码） |
+| 14 | `npm run verify:security` | 安全集成回归（恶意内容注入构建） |
+| 15 | `npm run audit` | 依赖漏洞（critical/high 阻断；网络不可用 fail-open） |
+| 16 | `npm run verify:compression` | 压缩无头对比（无 Chrome 时跳过并声明） |
+| 17 | `npm run build` | 一次真实构建（不需要生产部署/线上验证） |
 
-清单的单一来源是 `scripts/lib/release-version.js → RELEASE_GATES`（12 项）：`release:mark` 按此顺序执行，
-RELEASE.json 的 `checks` 键以此为准（缺项或不全 true 即拒绝发布）；CI `.github/workflows/release.yml` 的
-`gates` 作业在同一批命令之外还执行 `npm run verify:internals`（`.nvmrc`/wrangler assets/CI 版本单源守卫）。
+清单的单一来源是 `scripts/lib/release-version.js → RELEASE_GATES`（17 项）：`release:mark` 按此顺序执行，
+RELEASE.json 的 `checks` 键以此为准（缺项或不全 true 即拒绝发布）。这份清单与 CI 聚合器的**阻断项**对齐
+（Chrome 依赖项 smoke/cov-web/a11y 与 sbom 只在 CI 跑，不进发布门禁——发布机可能无浏览器）。
 
 ## 2. RELEASE.json 字段与双重校验
 
@@ -48,7 +53,7 @@ RELEASE.json 的 `checks` 键以此为准（缺项或不全 true 即拒绝发布
 | `humanVerifiedBy` | string | 人工核验人姓名（非空；机器无法替代人工确认） |
 | `verifiedAt` | string | 人工核验时间，ISO 8601 UTC（如 `2026-09-27T12:00:00.000Z`，日历严格校验） |
 | `commit` | string | 40 位小写 SHA；必须等于 tag 指向提交的**父提交**（被核验提交）。git 提交的内容无法包含自身 SHA（数学上不可自引用），因此记录父提交，校验以 `git rev-parse vX.Y.Z^{commit}^` 比对 |
-| `checks` | object | 12 项门禁键 → `true`；任一缺失或 false 即失败 |
+| `checks` | object | 17 项门禁键 → `true`；任一缺失或 false 即失败 |
 
 **双重校验** = ① tag 存在（CI 触发/`--verify-tag`）+ ② 该 tag 指向提交内的 RELEASE.json 满足上表全部约束（`commit` 的比对基准是 tag 的父提交，原因见字段表）。校验逻辑唯一实现：`scripts/lib/release-validate.js → validateReleaseState`；CI 用 `node scripts/lib/release-validate.js --tag vX.Y.Z` 执行（预发布 tag 同样支持）。
 

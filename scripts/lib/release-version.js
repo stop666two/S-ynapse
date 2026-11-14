@@ -27,7 +27,12 @@ const RELEASE_GATES = Object.freeze([
   { key: 'verify-config-dupes', command: 'npm run verify:config-dupes', label: '配置重复键' },
   { key: 'verify-config-comments', command: 'npm run verify:config-comments', label: '配置逐键注释' },
   { key: 'verify-config-docs', command: 'npm run verify:config-docs', label: '配置文档覆盖' },
+  { key: 'verify-config-single-source', command: 'npm run verify:config-single-source', label: '开关矩阵与基线' },
+  { key: 'verify-internals', command: 'npm run verify:internals', label: '.nvmrc/wrangler/workflow 单源与卫生' },
+  { key: 'verify-process-guards', command: 'npm run verify:process-guards', label: '进程守护巡检' },
+  { key: 'verify-comment-hygiene', command: 'npm run verify:comment-hygiene', label: '注释卫生（无工单号/无乱码）' },
   { key: 'verify-security', command: 'npm run verify:security', label: '安全集成回归' },
+  { key: 'audit', command: 'npm run audit', label: '依赖漏洞（critical/high 阻断）' },
   { key: 'verify-compression', command: 'npm run verify:compression', label: '压缩无头对比', reportFile: COMPRESSION_VERIFY_REPORT },
   { key: 'build', command: 'npm run build', label: '真实构建' }
 ]);

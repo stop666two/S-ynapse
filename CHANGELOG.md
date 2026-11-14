@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **依赖审计从建议项升级为阻断项**：`npm run audit` 改走 `scripts/audit-gate.js`，阈值 critical/high——高危及以上的已知漏洞直接让聚合门禁失败；moderate/low 只报告（当前仅 deepmerge 一条无前向修复的 low）。判定是纯函数（5 例单测），拿不到报告（离线/registry 故障/输出不可解析）时 **fail-open** 并打印原因，避免把网络问题变成假红；同时规避两个真实坑：Windows 上 `npm` 是 `.cmd`（无 shell 会静默失败），以及从 `npm run` 里嵌套调 npm 会把父进程注入的 `npm_config_*` 当命令行参数而报错（子进程已剥离）。
 - **Node 下限从已 EOL 的 20 提到 22**：Node 20 于 2026-04-30 EOL、不再有安全补丁；`engines` 去掉 `^20.19.0`，CI 兼容任务改为 `compat-node22`（Node 22.13.0），`@types/node` 同步到 24（与 `.nvmrc` 一致）。
 
+- **发布门禁与 CI 阻断项对齐**：`RELEASE_GATES` 由 12 项扩到 17 项，补入 `verify:config-single-source`、`verify:internals`、`verify:process-guards`、`verify:comment-hygiene` 与 `audit`（critical/high 阻断）——此前发布门禁是 CI 的子集，可能出现「CI 会拦、发布放过」。Chrome 依赖项（smoke/cov-web/a11y）与 sbom 仍只在 CI 跑（发布机可能无浏览器）。runbook 与架构文档的表格/计数同步。
+
 ### Added
 
 - **CI 门禁不再空转（聚合器顺序 + 跳过策略）**：`ci-checks.js` 把 `build` 前置到 `test` 之前——此前 `test` 先跑，`perf-contract` 等依赖 `dist/` 的断言在 CI 里只能 `skip`，聚合器仍报 PASS（9 条性能契约实际一次都没执行）。同时 CI（`GITHUB_ACTIONS=true`）下**阻断项被跳过即失败**：Chrome 探测失败曾把 smoke / cov-web / compression 静默跳掉，现在会红并提示设置 `CHROME_PATH`（本地不受影响）。

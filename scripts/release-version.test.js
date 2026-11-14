@@ -298,5 +298,14 @@ test('buildPassedChecks：门禁键与 RELEASE_GATES 一一对应且恒为 true'
   const checks = buildPassedChecks();
   assert.deepStrictEqual(Object.keys(checks), RELEASE_GATES.map(function (gate) { return gate.key; }));
   for (const value of Object.values(checks)) assert.strictEqual(value, true);
-  assert.strictEqual(Object.keys(checks).length, 12, '前置门禁共 12 项');
+  // 不钉死数量（此前写死 12，新增门禁就要改测试，属「计数快照」）：断言的是清单契约——
+  // 门禁必须是结构完整的条目、键唯一、命令非空，且 checks 与清单严格同源。
+  assert.ok(RELEASE_GATES.length > 0, '门禁清单不得为空');
+  const keys = RELEASE_GATES.map(function (gate) { return gate.key; });
+  assert.strictEqual(new Set(keys).size, keys.length, '门禁键不得重复：' + keys.join(','));
+  for (const gate of RELEASE_GATES) {
+    assert.ok(gate.key && typeof gate.key === 'string', '门禁缺少 key');
+    assert.ok(/^npm (?:run |test$)/.test(gate.command), '门禁命令必须是 npm 形式（npm run x / npm test）：' + gate.key);
+    assert.ok(gate.label && gate.label.length > 1, '门禁缺少说明：' + gate.key);
+  }
 });

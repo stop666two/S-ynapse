@@ -52,7 +52,7 @@ test('collectAllMarkers：真实测试 marker 均指向注册表叶子', () => {
   assert.ok(markers.size >= 150, 'marker 数量异常：' + markers.size);
   for (const [key, hits] of markers) {
     assert.ok(registry.has(key), 'marker 指向未知键：' + key + '（' + hits[0] + '）');
-    assert.ok(hits.every((hit) => hit.includes('.test.js:')), 'marker 必须位于测试文件：' + hits[0]);
+    assert.ok(hits.every((hit) => hit.endsWith('.test.js')), 'marker 必须位于测试文件：' + hits[0]);
   }
   assert.ok(markers.has('features.lightbox.openDurationMs'));
 });
@@ -183,15 +183,23 @@ test('既有引用证据：注释与同名 token 不再替开关作证（回归�
     const row = rows.find((item) => item.keyPath === keyPath);
     assert.ok(row, '缺少开关：' + keyPath);
     const cited = row.tested.concat(row.existing);
-    assert.ok(!cited.some((hit) => hit.startsWith('scripts/auto-cover.test.js:')),
+    assert.ok(!cited.some((hit) => hit === 'scripts/auto-cover.test.js'),
       keyPath + ' 不得引用 auto-cover.test.js（该文件不测这个开关）：' + cited.join(','));
   }
-  // 更强的通用不变式：既有引用必须落在真实代码行，注释行不能作证据
+  // 通用不变式（矩阵改为「文件级引用」后保持同等强度）：被引文件里必须真的存在该键的
+  // 叶子 token，且必须出现在**净化后的代码**中——只剩注释/文案提及的文件不能作证。
+  // 净化规则与生成器同一实现（config-switch-inventory.sanitizeCode），不另写一套。
+  const codeCache = new Map();
+  const sanitized = (file) => {
+    if (!codeCache.has(file)) codeCache.set(file, inv.sanitizeCode(fs.readFileSync(path.join(ROOT, file), 'utf-8')));
+    return codeCache.get(file);
+  };
   for (const row of rows) {
-    for (const hit of row.existing) {
-      const parts = hit.split(':');
-      const code = inv.sanitizeCode(fs.readFileSync(path.join(ROOT, parts[0]), 'utf-8')).split(/\r?\n/)[Number(parts[1]) - 1] || '';
-      assert.ok(code.trim().length > 0, '既有引用落在注释/空行：' + hit + '（' + row.keyPath + '）');
+    if (!row.existing.length) continue;
+    const leaf = row.keyPath.split('.').pop();
+    const rx = new RegExp('(?<![A-Za-z0-9_$])' + leaf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![A-Za-z0-9_$])');
+    for (const file of row.existing) {
+      assert.ok(rx.test(sanitized(file)), '既有引用文件里没有该键的代码级引用（只在注释/文案中出现）：' + file + '（' + row.keyPath + '）');
     }
   }
 });

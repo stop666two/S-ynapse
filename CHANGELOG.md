@@ -47,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **发布门禁与 CI 阻断项对齐**：`RELEASE_GATES` 由 12 项扩到 17 项，补入 `verify:config-single-source`、`verify:internals`、`verify:process-guards`、`verify:comment-hygiene` 与 `audit`（critical/high 阻断）——此前发布门禁是 CI 的子集，可能出现「CI 会拦、发布放过」。Chrome 依赖项（smoke/cov-web/a11y）与 sbom 仍只在 CI 跑（发布机可能无浏览器）。runbook 与架构文档的表格/计数同步。
 
+- **开关矩阵改为文件级引用（消除常驻假失败）**：`docs/config-switch-matrix.md` 的「消费位置」与「测试证据」不再带 `:行号`，只写文件名并按文件去重——此前任何在被引文件上方插入一行的改动都会让 `verify:config-single-source` 判「矩阵过期」并要求重生成（本次会话触发 4 次）。生成器 `config-switch-inventory.js` 同步改；`config-switch-guards.test.js` 的两处行号级断言改为文件级不变式（被引文件必须在**净化后的代码**里含该叶子 token，注释/文案不能作证）。
+- **`docs/runbook/publish-surface.md`（发布面核对清单）**：把「生产域只绑 Worker、Pages 不得绑公网域」写成可执行步骤——3 条只读 curl 判定域名归属（`X-Request-Id` / `/admin/` 403 / HTTP→HTTPS 跳转）、控制台检查点、整改顺序、维护模式冒烟与回滚；architecture §1.1 与 rollback 已互相链接。
+
 ### Added
 
 - **CI 门禁不再空转（聚合器顺序 + 跳过策略）**：`ci-checks.js` 把 `build` 前置到 `test` 之前——此前 `test` 先跑，`perf-contract` 等依赖 `dist/` 的断言在 CI 里只能 `skip`，聚合器仍报 PASS（9 条性能契约实际一次都没执行）。同时 CI（`GITHUB_ACTIONS=true`）下**阻断项被跳过即失败**：Chrome 探测失败曾把 smoke / cov-web / compression 静默跳掉，现在会红并提示设置 `CHROME_PATH`（本地不受影响）。

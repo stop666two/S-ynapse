@@ -35,7 +35,7 @@ Worker 需手动 `npm run deploy:worker`，因此**两个主机名的实际防�
 | HTTP→HTTPS 跳转 | ✅ | ❌ 由平台/域名设置决定 |
 | CSP 违规上报接收 | ✅ | ❌ |
 
-结论：**公网自定义域必须只绑定 Worker**；Pages 仅作预览，不得绑定公开主机名。若某个主机名
+结论：**公网自定义域必须只绑定 Worker**；Pages 仅作预览，不得绑定公开主机名。核对与整改步骤见 `docs/runbook/publish-surface.md`（3 条只读 curl + 控制台检查点）。若某个主机名
 落在 Pages 上，该主机名就没有限流与路径拦截 —— `_headers` 只能提供静态头，无法承载运行时逻辑。
 
 ## 2. 目录与职责
@@ -78,7 +78,7 @@ Worker 需手动 `npm run deploy:worker`，因此**两个主机名的实际防�
 
 - **默认值唯一来源**：`scripts/lib/features-schema.js`（features）、`tuning-defaults.js`、`site-defaults.js`（site/navigation/sidebar/footer/theme/security/friends/tagAliases/contentPolicy 全段）、`internals-defaults.js`；构建与工具链代码不得复制默认值字面量，一律引用注册表或读取合并后的配置对象（`feature-wiring.js` 等接线层亦然，`feature-wiring.test.js` 以「缺省 = 默认 = 历史行为」锁定语义）。
 - **浏览器运行时 fail-open 兜底**：外置配置（`/assets/config.<hash>.json`）可能加载失败，`js/**` 保留兜底字面量；这些字面量由 `scripts/config-fallback-bindings.json` 逐条绑定注册表默认值（snippet + literal），`verify:config-single-source` 校验 snippet 仍存在且值严格相等（schema 默认变更或代码重写即 FAIL）。
-- **行为开关矩阵**：`docs/config-switch-matrix.md` 由 `npm run gen:config-matrix` 生成，枚举全部布尔/枚举/数值开关，给出类型、默认、消费 file:line、测试证据与覆盖状态；测试内以 `// switch: <键路径>` 标记声明双态覆盖，无法无头验证的运行时/DOM 键在 `scripts/config-switch-exemptions.json` 逐键登记类别与理由（`runtime-dom`/`ssr-template`/`build-integration`/`visual-param`/`security-policy`）。
+- **行为开关矩阵**：`docs/config-switch-matrix.md` 由 `npm run gen:config-matrix` 生成，枚举全部布尔/枚举/数值开关，给出类型、默认、消费**文件**（文件级引用，不带行号——避免无关改行动就要求重生成）、测试证据与覆盖状态；测试内以 `// switch: <键路径>` 标记声明双态覆盖，无法无头验证的运行时/DOM 键在 `scripts/config-switch-exemptions.json` 逐键登记类别与理由（`runtime-dom`/`ssr-template`/`build-integration`/`visual-param`/`security-policy`）。
 - **门禁规则**：新 schema 布尔/枚举键未挂测试 marker 或豁免理由 → `verify:config-single-source` FAIL；矩阵文档与生成结果不一致（消费位置/测试证据变化后未重生成）同样 FAIL；未知 marker、未知豁免键、冗余豁免均 FAIL。守卫已接入 `ci-checks.js` 与 `deploy.yml`（紧随 `verify:config-refs`）。
 
 **模块拆分图**（`scripts/build.js` 只保留编排与入口）：

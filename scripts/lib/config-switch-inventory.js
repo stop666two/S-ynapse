@@ -2,7 +2,8 @@
 
 // 配置开关盘点与测试覆盖矩阵（单一实现）：
 //   - 开关全集 = features/tuning/site/internals 注册表中的布尔、枚举与数值叶子；
-//   - 消费位置 = 按「叶子键 + 最近父段」评分定位的首个源码引用（file:line），供人工复核；
+//   - 消费位置 = 按「叶子键 + 最近父段」评分定位的源码文件（文件级，不带行号：行号会让
+//     任何在上方插入一行的改动把整份矩阵判过期；要回答的是「哪个文件消费」而不是「第几行」）；
 //   - 覆盖证据 = 测试文件中的 `// switch: <键路径>` 标记 > 既有测试键名引用 > 豁免登记。
 // scripts/gen-config-switch-matrix.js 生成文档，scripts/check-config-single-source.js 校验。
 //
@@ -317,7 +318,21 @@ function locate(index, keyPath, maxHits) {
     if (hits.length >= (maxHits || 3) * 8) break;
   }
   hits.sort((a, b) => b.score - a.score || (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) || a.line - b.line);
-  return hits.slice(0, maxHits || 3).map((hit) => hit.file + ':' + hit.line);
+  return uniqueFiles(hits, maxHits || 3);
+}
+
+// 只保留文件名（不写行号）：行号会让任何「在消费点上方插入一行」的改动把整份矩阵判过期，
+// 从而反复要求重生成——而矩阵要回答的是「哪个文件消费这个键」，不是「第几行」。
+function uniqueFiles(hits, max) {
+  const out = [];
+  const seen = new Set();
+  for (const hit of hits) {
+    if (seen.has(hit.file)) continue;
+    seen.add(hit.file);
+    out.push(hit.file);
+    if (out.length >= max) break;
+  }
+  return out;
 }
 
 function escapeToken(text) {
@@ -392,7 +407,7 @@ function locateTestEvidence(filesByPath, index, keyPath, maxHits) {
     if (hits.length >= (maxHits || 3) * 8) break;
   }
   hits.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) || a.line - b.line);
-  return hits.slice(0, maxHits || 3).map((hit) => hit.file + ':' + hit.line);
+  return uniqueFiles(hits, maxHits || 3);
 }
 
 function collectSwitchMarkers(testFiles) {
@@ -431,7 +446,8 @@ function collectSwitchMarkers(testFiles) {
       while ((match = SWITCH_MARKER_RE.exec(lines[i])) !== null) {
         for (const key of match[1].split(',').map((part) => part.trim()).filter(Boolean)) {
           if (!markers.has(key)) markers.set(key, []);
-          markers.get(key).push(rel + ':' + lineNo);
+          const list = markers.get(key);
+          if (list.indexOf(rel) === -1) list.push(rel);
         }
       }
     }

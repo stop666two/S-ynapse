@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "version": "1.2.1",
+  "version": "1.3.0",
   "status": "verified",
   "humanVerifiedBy": "stop666two",
-  "verifiedAt": "2026-10-02T02:33:48.422Z",
-  "commit": "ca37b9ea9581917be02cec7b43fce23bcbe3ab89",
+  "verifiedAt": "2026-11-14T02:48:45.828Z",
+  "commit": "16b00c984b5db9a678e41e0d2662f9dfdb5586ed",
   "checks": {
     "lint": true,
     "typecheck": true,
@@ -15,7 +15,12 @@
     "verify-config-dupes": true,
     "verify-config-comments": true,
     "verify-config-docs": true,
+    "verify-config-single-source": true,
+    "verify-internals": true,
+    "verify-process-guards": true,
+    "verify-comment-hygiene": true,
     "verify-security": true,
+    "audit": true,
     "verify-compression": true,
     "build": true
   }

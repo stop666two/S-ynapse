@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **发布归档里跑 `npm test` 误报「全部未跟踪文件」**：`buildability` 作业把归档解压到 checkout 仓库的子目录再跑测试，此时 `git rev-parse --is-inside-work-tree` 为 true（父仓库）但 `git ls-files` 在该子目录下为空，`tracked-files.test.js` 据此把整份归档判成未跟踪，命中「清单里的每个文件都必须是 git 跟踪文件」。结果 v1.3.0 的发布流水线在 `buildability` 卡住、`publish` 被跳过（validate/gates/archive 均通过；v1.3.0 因此没有 Release）。现改为「只有 root 本身是工作树根才用跟踪清单」，否则回退遍历（与无 `.git` 的归档同语义），并补嵌套子目录回归用例。
+
 ## [1.3.0] - 2026-11-13
 
 本版为**全仓审查（44 条：P1 8 / P2 29 / P3 7，报告见 `docs/full-repo-review-2026-11-13.md`）的修复版本**。多数条目修正「配置写着生效、实际不生效」的静默失效；下面单列会改变既有行为的项，其余为缺陷修复。

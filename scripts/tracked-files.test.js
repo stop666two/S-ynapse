@@ -16,14 +16,20 @@ const { listSourceFiles, SKIP_DIRS } = require('./lib/tracked-files.js');
 
 const ROOT = path.resolve(__dirname, '..');
 
-function gitAvailable(root) {
-  const r = spawnSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: root, encoding: 'utf-8' });
-  return r.status === 0 && String(r.stdout).trim() === 'true';
+// 必须判断 root 是否为工作树根：发布归档解压在 CI workspace（另一个仓库）的子目录里，
+// `--is-inside-work-tree` 会返回 true，但跟踪清单为空，断言会误判整份归档为「未跟踪」。
+function isWorkTreeRoot(root) {
+  const r = spawnSync('git', ['rev-parse', '--show-toplevel'], { cwd: root, encoding: 'utf-8' });
+  if (r.status !== 0) return false;
+  const top = String(r.stdout || '').trim();
+  if (!top) return false;
+  const norm = (p) => { try { return fs.realpathSync(p); } catch (err) { return path.resolve(p); } };
+  return norm(top) === norm(root);
 }
 
 test('listSourceFiles：有 git 时只返回跟踪文件，未跟踪副本不得进入清单', (t) => {
-  if (!gitAvailable(ROOT)) {
-    t.skip('无 git 环境（发布归档）：本用例只验证跟踪文件口径');
+  if (!isWorkTreeRoot(ROOT)) {
+    t.skip('ROOT 不是 git 工作树根（发布归档/子目录）：本用例只验证跟踪文件口径');
     return;
   }
   const files = listSourceFiles(ROOT, /\.js$/);
@@ -42,6 +48,22 @@ test('listSourceFiles：有 git 时只返回跟踪文件，未跟踪副本不得
   );
   const untracked = files.filter((f) => !tracked.has(path.relative(ROOT, f))).map((f) => path.relative(ROOT, f));
   assert.deepStrictEqual(untracked, [], '清单里的每个文件都必须是 git 跟踪文件');
+});
+
+test('listSourceFiles：嵌套在别的仓库子目录时按「无 git」处理（发布归档场景）', (t) => {
+  if (!isWorkTreeRoot(ROOT)) {
+    t.skip('ROOT 不是工作树根时本用例无意义');
+    return;
+  }
+  // ROOT/scripts 位于本仓库内但不是工作树根：git ls-files 在该目录下为空，
+  // 若据此判定会得到空清单或把整份目录误判成未跟踪。正确行为是回退遍历。
+  const sub = path.join(ROOT, 'scripts');
+  const files = listSourceFiles(sub, /\.js$/);
+  assert.ok(files.length > 10, '子目录应回退为遍历，实际 ' + files.length);
+  assert.ok(
+    files.every((f) => path.relative(sub, f).split(path.sep)[0] !== '..'),
+    '清单不得越出传入目录'
+  );
 });
 
 test('listSourceFiles：无 git 时回退遍历，并跳过已知产物目录', () => {

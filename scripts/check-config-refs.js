@@ -28,7 +28,11 @@ const EXCLUDE_DIRS = new Set(['node_modules', '.git', 'dist', 'real-site', '.tmp
 const EXCLUDE_FILES = new Set([
   'check-config-refs.js',
   'features-schema.js', 'site-defaults.js', 'tuning-defaults.js', 'guard-defaults.js', 'config-refs-allowlist.json',
-  'internals-defaults.js', 'config-switch-exemptions.json', 'config-fallback-bindings.json'
+  'internals-defaults.js', 'config-switch-exemptions.json', 'config-fallback-bindings.json',
+  // workers/security-config.js 是构建产物（.gitignore，由 build 生成），内容基本是把配置原样回显：
+  // 把它当「引用证据」等于自证，且会让结果取决于「本次是否构建过」——CI 的 compat 任务
+  // （build 之前跑 test）因此恒红、本地（build 过）恒绿。引用判定只看手写源码。
+  'security-config.js'
 ]);
 // 通用短键名/数据键名：无法可靠按名判定（模板与运行时经整体对象消费）。
 const GENERIC_KEYS = new Set([

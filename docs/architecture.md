@@ -146,7 +146,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `npm run test:fuzz` | 属性/随机测试：`scripts/**/*.fuzz.test.js`（fast-check；`FC_NUM_RUNS` 默认 100、`STRESS=1` 开海量用例；种子见 `scripts/lib/test-random.js`，失败留档 `build-artifacts/fuzz-failures/`；默认单测不含 fuzz） |
 | `npm run test:smoke` | 浏览器冒烟：真实构建 + 系统 Chrome 代表页（200/标题/DOM/零控制台错误），摘要 `build-artifacts/web-smoke/summary.txt`；无 Chrome 跳过 |
 | `npm run test:cov-web` | 无头 Web 覆盖率：`--no-bundle` + `--no-minify-js` + 压缩关闭构建（产物保留源码行结构），CDP 精确覆盖聚合 `js/**` 行/函数覆盖（阈值 `scripts/lib/web-coverage-thresholds.js`，首测定档 55%/55%），输出 `build-artifacts/web-coverage/{summary.txt,coverage.json}`（含逐函数未覆盖明细）；无 Chrome 跳过 |
-| `npm run test:all` | 本地与 CI 同强度：`npm test` + `test:build` + `test:fuzz` + `test:malicious` + `test:smoke` + `test:cov-web` + `verify:internals` 串行；夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子） |
+| `npm run test:all` | 本地与 CI 同强度：直接执行 `node scripts/ci-checks.js`（与 `deploy.yml`/`nightly.yml` 完全同一套 23 项、同一顺序；此前它只是其中 7 步的串联子集，缺 lint/typecheck/大半 verify 与 build，导致「本地绿 ≠ CI 绿」）。无 Chrome 时 4 个需要浏览器的项跳过并打印清单（本地 exit 0）；`--only a,b` / `--skip x` / `--list` 可选跑。夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子） |
 | `npm run lint` / `npm run typecheck` | ESLint / tsc（checkJs） |
 | `npm run verify:config` / `verify:config-refs` / `verify:config-single-source` / `verify:config-dupes` / `verify:config-comments` / `verify:config-docs` | 配置一致性 / 零引用键 / 开关矩阵与回退字面量单一来源 / 重复键 / 逐键注释覆盖率 / 文档覆盖监守（`scripts/check-config-single-source.js`、`scripts/check-config-docs.js`） |
 | `npm run verify:internals` | `.nvmrc` / `workers/wrangler.toml` assets 目录 / CI 版本与 `internals.json5` 单源守卫（关键写死形态抽样） |
@@ -158,7 +158,18 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `node scripts/dist-hash-guard.js` | 重构/迁移的产物等价护栏（归一化 nonce/换行） |
 | `node scripts/perf-audit.js` | 可复现性能基线（Slow 4G + 4× CPU） |
 
-CI（`.github/workflows/deploy.yml`）：`check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0：test + verify:config + verify:config-refs + verify:config-single-source + verify:config-dupes + verify:internals + test:build + build）与 `build`（Node 版本由 `.nvmrc` 经 `node-version-file` 单源控制；`node scripts/ci-env.js` 导出 internals → 单步 `node scripts/ci-checks.js` 跑完整套并统一失败：lint / typecheck / test / test:coverage / test:build / test:fuzz / test:malicious / verify:config 家族（config/refs/single-source/dupes/comments/docs 与 verify:internals）/ verify:process-guards / verify:security / test:smoke / test:cov-web / verify:compression / build / sbom；`audit` 与 `audit:a11y` 为建议项（入报告不阻断）；报告写 `build-artifacts/ci-checks.{json,txt}` → 始终上传 `ci-checks` 与 `test-artifacts` → Pages 部署（`npm run deploy:pages`，部署前 verify:internals））。夜间随机深度档（`.github/workflows/nightly.yml`，UTC 18:00 + `workflow_dispatch`）用同一聚合器（`FC_NUM_RUNS=2000`、`STRESS=1`），上传 `nightly-test-artifacts`。生产 Worker 为手动 `wrangler deploy`（见 README）。预检作业（`preflight`，`scripts/ci-skip.js`）在 HEAD 未变化的重复运行上按连击阈值（连错 2/连净 5，告警中性）自动跳过，`workflow_dispatch`/`CI_FORCE`/`[ci force]` 强跑；聚合检查带每项超时并清理进程树，结论以提交状态 `ci/aggregate` 供下一次判定读取。`.github/workflows/release.yml` 独立处理 tag 发布（见 §9.1）。
+CI（`.github/workflows/deploy.yml`）：`preflight`（连击跳过判定）→ `check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0 floor：test + verify:config 家族 + verify:internals + test:build + build）与 `windows-compat`（windows-latest：build → test，契约严格模式）并行 → `build`（Node 版本由 `.nvmrc` 经 `node-version-file` 单源控制）。
+
+`build` 任务内：`node scripts/ci-env.js` 导出 internals → 单步 `node scripts/ci-checks.js` 跑完整套并统一失败（lint / typecheck / **build** / test / test:coverage / test:build / test:fuzz / test:malicious / verify:config 家族（config/refs/single-source/dupes/comments/docs 与 verify:internals）/ verify:process-guards / verify:security / test:smoke / test:cov-web / verify:compression / sbom；`audit` 与 `audit:a11y` 为建议项，入报告不阻断）。
+
+四条 CI 侧不变量（改动前先看 `scripts/ci-checks.test.js` 与 `scripts/check-internals.js`）：
+
+- **build 必须先于 test**：`perf-contract` 等依赖 `dist/` 的断言在缺产物时只能 skip，顺序反了等于门禁空转（聚合器仍报 PASS）。该顺序由 `scripts/ci-checks.test.js` 断言。
+- **CI 下阻断项不得跳过**：`needsChrome` 探测失败会把 smoke / cov-web / compression 全部跳掉；现在 CI（`GITHUB_ACTIONS=true`）下非 advisory 项被跳过即整体失败（提示设置 `CHROME_PATH`），本地不受影响。
+- **契约严格模式**：聚合器给 `test` 项注入 `PERF_CONTRACT_REQUIRE_DIST=1`，缺 `dist/` 时 `perf-contract` 直接失败（Windows 任务同样显式开启）；其它 job/本地跑 `npm test` 仍按跳过处理。
+- **工作流卫生**：`verify:internals` 结构校验所有 workflow —— `uses:` 必须锁 40 位 SHA、`run:` 内不得内插可注入表达式（`github.head_ref`/`ref_name`/`inputs.*`/`*.message|title|body|email`）、写权限按 scope 白名单（`contents: write` 仅 release 两条、`statuses: write` 仅 deploy/nightly）、`deploy.yml` 与 `release.yml` 必须有顶层 `concurrency`（`deploy.yml` 按 ref 分组；PR 取消旧跑，main 串行）。
+
+报告写 `build-artifacts/ci-checks.{json,txt}` → 始终上传 `ci-checks` 与 `test-artifacts` → Pages 部署（`npm run deploy:pages`，见 §1.1：Pages 仅预览，生产域只绑 Worker）。
 
 ## 9. 部署与回滚
 

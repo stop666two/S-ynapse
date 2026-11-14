@@ -35,6 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **CI 门禁不再空转（聚合器顺序 + 跳过策略）**：`ci-checks.js` 把 `build` 前置到 `test` 之前——此前 `test` 先跑，`perf-contract` 等依赖 `dist/` 的断言在 CI 里只能 `skip`，聚合器仍报 PASS（9 条性能契约实际一次都没执行）。同时 CI（`GITHUB_ACTIONS=true`）下**阻断项被跳过即失败**：Chrome 探测失败曾把 smoke / cov-web / compression 静默跳掉，现在会红并提示设置 `CHROME_PATH`（本地不受影响）。
+- **性能契约严格模式**：聚合器给 `test` 项注入 `PERF_CONTRACT_REQUIRE_DIST=1`，缺 `dist/` 时 `perf-contract` 直接失败；不按 `CI`/`GITHUB_ACTIONS` 猜测（`compat-node20` 与发布可构建性 job 里 test 先于 build，按环境猜测会误伤），由「确定有 dist」的那一步显式开启。
+- **Windows 兼容 job**：新增 `windows-compat`（windows-latest：`build` → `npm test`，严格模式），并让 `build` 依赖它。大小写不敏感文件系统（`slug: Tags` 与生成的 `tags/` 目录互相覆盖却仍报成功）、反斜杠路径、保留设备名这类缺陷在 Linux CI 上完全不可见。
+- **并发组**：`deploy.yml` 新增顶层 `concurrency`（按 ref 分组；PR 取消旧跑、main 串行），避免连推两次 main 并行跑完整门禁并各发一次 Pages。
+- **工作流卫生守卫（`verify:internals` 结构校验）**：全部 workflow 的 `uses:` 必须锁 40 位 SHA；`run:` 内不得内插可注入表达式（`github.head_ref`/`ref_name`/`inputs.*`/`*.message|title|body|email`，SHA 类字段不受限）；写权限按 scope 白名单（`contents: write` 仅 release 两条、`statuses: write` 仅 deploy/nightly，新增 scope 必须登记）；`deploy.yml`/`release.yml` 必须有顶层 `concurrency`。
+- **聚合器覆盖度契约（`scripts/ci-checks.test.js`）**：每个 `verify:*` / `test:*` 脚本要么在 CHECKS 里，要么在 EXEMPT 里写明理由（新增门禁忘记接线直接红）；检查项命令必须指向真实脚本；`build` 必须早于 `test`；advisory 集合显式登记；`blockingSkips` 语义单测。
+
+
 - `scripts/config-switch-baseline.json`：未覆盖开关基线，`verify:config-single-source` 改为**棘轮**——未覆盖数不得新增、基线只允许缩小、基线为已覆盖键留条目同样失败，且每次输出 `未覆盖 N/M（基线 K）`。**本版已清零**（801 项全有证据或书面豁免，基线为空）；新增未覆盖开关会立刻失败（R-33）。
 - 开关覆盖与接线测试：`scripts/config-coverage-*.test.js`（真实渲染 `site-css/layout/post/index/page`、驱动 `buildSiteCss/generatePages/feed/security/SW/OG` 等消费点，逐键断言「非默认值 → 产物变化」）+ `scripts/config-wiring-*.test.js`（接线后的双态行为：真实构建 A/B、CLI 子进程退出码与产物、Worker/serve 维护响应、前端 DOM 是否创建与是否绑定处理器）（R-33）。
 - `scripts/lib/build-switch-gates.js`：`galleryPageEnabled` / `autoSummaryEnabled` / `mediaAuditEnabled` / `exportBackupEnabled` 与图库入口裁剪的纯函数门控，键缺失即历史行为（`!== false`）；`scripts/lib/related.js` 新增 `relatedEnabled` 判据，把原先只能靠整构建验证的开关变成可单测的纯函数。

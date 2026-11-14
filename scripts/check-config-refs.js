@@ -122,7 +122,7 @@ function main() {
   const stale = [];
   const redundant = [];
   const reported = [];
-  for (const [key, reason] of allow) {
+  for (const key of allow.keys()) {
     if (!leafSet.has(key)) stale.push(key + '（配置中不存在）');
   }
   for (const leaf of leaves) {

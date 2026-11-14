@@ -31,6 +31,20 @@ const CHECK_TIMEOUTS = internals.ci.checkTimeouts && typeof internals.ci.checkTi
 const ARTIFACTS_DIR = path.resolve(ROOT, internals.paths.artifactsDir);
 const OUTPUT_TAIL_LINES = 40;
 const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+// CI 判定：用 GITHUB_ACTIONS（托管运行器恒为 'true'）而不是 CI —— 本地与代理 shell 常导出 CI=true，
+// 那会让本地 `node scripts/ci-checks.js` 因「无 Chrome」直接红，失去本地可用性。
+const IN_CI = process.env.GITHUB_ACTIONS === 'true';
+function isAdvisory(name) {
+  const check = CHECKS.find((item) => item.name === name);
+  return !!(check && check.advisory);
+}
+// 纯函数（可单测）：CI 下「阻断项被跳过」= 失败；本地跳过不追究。
+function blockingSkips(results, inCi) {
+  if (!inCi) return [];
+  return results
+    .filter((item) => item.status === 'skipped' && !isAdvisory(item.name))
+    .map((item) => item.name);
+}
 
 // 超时后清理整棵子进程树：spawnSync 只杀直接子进程，npm 脚本的孙进程（浏览器/服务器）会残留。
 function killTree(pid) {
@@ -62,7 +76,12 @@ const CHROME_AVAILABLE = hasChrome();
 const CHECKS = [
   { name: 'lint', args: ['run', 'lint'] },
   { name: 'typecheck', args: ['run', 'typecheck'] },
-  { name: 'test', args: ['test'] },
+  // build 必须先于任何依赖 dist/ 的检查：perf-contract 一类断言在缺 dist 时只能 skip，
+  // 此前 test 排在 build 之前，等于在 CI 里静默不执行（聚合器仍报 PASS）。
+  { name: 'build', args: ['run', 'build'] },
+  // 严格模式：契约类断言（perf-contract 的 9 条）在缺 dist 时只能 skip，等于门禁空转。
+  // 聚合器已把 build 前置，因此这里要求 dist 必须存在；其它 job/本地跑 npm test 不受影响。
+  { name: 'test', args: ['test'], env: { PERF_CONTRACT_REQUIRE_DIST: '1' } },
   { name: 'test:coverage', args: ['run', 'test:coverage'] },
   { name: 'test:build', args: ['run', 'test:build'] },
   { name: 'test:fuzz', args: ['run', 'test:fuzz'] },
@@ -82,7 +101,6 @@ const CHECKS = [
   { name: 'test:smoke', args: ['run', 'test:smoke'], needsChrome: true },
   { name: 'test:cov-web', args: ['run', 'test:cov-web'], needsChrome: true },
   { name: 'verify:compression', args: ['run', 'verify:compression'], needsChrome: true },
-  { name: 'build', args: ['run', 'build'] },
   // audit:a11y 为建议项（advisory）：既有页面存在 WCAG 2.2 target-size/对比度告警，
   // 结果写入报告但不阻断整体门禁（CI 此前也未将其列为阻断步骤）。
   { name: 'audit:a11y', args: ['run', 'audit:a11y'], needsChrome: true, advisory: true },
@@ -113,7 +131,7 @@ function runCheck(check) {
       detached: process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
-      env: process.env
+      env: Object.assign({}, process.env, check.env || {})
     });
     const MAX_CAPTURE = 32 * 1024 * 1024;
     let stdout = '';
@@ -147,7 +165,7 @@ function runCheck(check) {
       if (stderr.trim()) console.error(stderr.replace(/\s+$/, ''));
       resolve({
         name: check.name,
-        command: commandLine(check.args),
+        command: commandLine(check.args) + (check.env ? ' [' + Object.keys(check.env).join(',') + ']' : ''),
         status: !timedOut && code === 0 ? 'passed' : 'failed',
         exitCode: code,
         signal: signal || null,
@@ -301,12 +319,22 @@ async function main() {
     console.error('[ci-checks] FAIL：' + failed.length + ' 项未通过 → ' + failed.join(', '));
     process.exit(1);
   }
+  // CI 里「跳过」不是通过：needsChrome 探测失败会把 smoke / cov-web / compression 全部跳掉，
+  // 而聚合器此前仍报 PASS —— 等于把三条回归网静默关掉。缺 Chrome 是环境问题，应当红。
+  const skipFailures = blockingSkips(results, IN_CI);
+  if (skipFailures.length) {
+    console.error('[ci-checks] FAIL：CI 下阻断项不得跳过 → ' + skipFailures.join(', ')
+      + '（未探测到 Chrome 时请设置 CHROME_PATH 或安装 Chrome）');
+    process.exit(1);
+  }
   console.log('[ci-checks] PASS：' + results.filter((r) => r.status === 'passed').length + ' 项通过'
     + (advisoryFailed.length ? '，建议项未通过 ' + advisoryFailed.length + ' 项（' + advisoryFailed.join(', ') + '，不阻断）' : '')
     + (skipped.length ? '，' + skipped.length + ' 项跳过（' + skipped.join(', ') + '）' : ''));
 }
 
-main().catch((err) => {
+module.exports = { CHECKS, isAdvisory, blockingSkips };
+
+if (require.main === module) main().catch((err) => {
   console.error('[ci-checks] 运行异常：' + (err && err.stack ? err.stack : err));
   process.exit(1);
 });

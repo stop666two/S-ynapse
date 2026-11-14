@@ -1,4 +1,5 @@
 'use strict';
+/* global document */
 // 审查 R-33 接线回归：features.themeToggle.enabled / features.morphIcons.enabled /
 // features.codeCopy.enabled 三个开关此前「零消费」——用户写 enabled:false 也毫无效果。
 // 本文件为每个开关断言「两种取值产生不同行为」，marker 注释与断言均真实依赖该开关：
@@ -32,7 +33,7 @@ function importFresh(src) {
   return import('data:text/javascript;base64,' + b64 + '#w' + (++seq));
 }
 
-function mkClassList(el) {
+function mkClassList() {
   const set = new Set();
   return {
     add: function (c) { set.add(c); },
@@ -206,7 +207,7 @@ function installCodeDom(features) {
       querySelector: function () { return null; },
       remove: function () {}
     };
-    el.classList = mkClassList(el);
+    el.classList = mkClassList();
     created.push(el);
     return el;
   }

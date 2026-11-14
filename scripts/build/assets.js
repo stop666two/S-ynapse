@@ -202,6 +202,9 @@ async function generatePWA(config) {
 function shellPrecacheCandidates(config, pwaOffline) {
   const urls = [];
   const exists = (href) => fs.existsSync(path.join(distDir, href.replace(/^\/+/, '')));
+  const readDirSafe = (dir) => {
+    try { return fs.readdirSync(dir); } catch { return []; }
+  };
   const add = (href) => { if (href && exists(href)) urls.push(href); };
   if (pwaOffline) add('/offline.html');
   add('/manifest.json');
@@ -210,16 +213,14 @@ function shellPrecacheCandidates(config, pwaOffline) {
   const build = (config.site && config.site.build) || {};
   const cssOutDir = String(build.cssOutDir || 'assets/css').replace(/^\/+|\/+$/g, '');
   const cssBase = String(build.cssFileBase || 'site');
-  let cssFiles = [];
-  try { cssFiles = fs.readdirSync(path.join(distDir, cssOutDir)); } catch (e) { cssFiles = []; }
+  const cssFiles = readDirSafe(path.join(distDir, cssOutDir));
   const cssName = cssFiles.indexOf(cssBase + '.css') !== -1
     ? cssBase + '.css'
     : cssFiles.filter((f) => f.indexOf(cssBase + '.') === 0 && /\.css$/.test(f)).sort()[0];
   if (cssName) add('/' + cssOutDir + '/' + cssName);
   // 入口 JS：打包模式 runtime.<hash>.js / app.<hash>.js；--no-bundle 回退 core/runtime.js 与 core/main.js。
   // shared./deferred. 分包按需加载（且内容寻址），不预缓存。
-  let jsFiles = [];
-  try { jsFiles = fs.readdirSync(path.join(distDir, 'assets', 'js')); } catch (e) { jsFiles = []; }
+  const jsFiles = readDirSafe(path.join(distDir, 'assets', 'js'));
   const pickEntry = (prefix, fallback) => {
     const hit = jsFiles.filter((f) => f.indexOf(prefix + '.') === 0 && /\.js$/.test(f)).sort()[0];
     return hit ? '/assets/js/' + hit : fallback;
@@ -227,8 +228,7 @@ function shellPrecacheCandidates(config, pwaOffline) {
   add(pickEntry('runtime', '/assets/js/core/runtime.js'));
   add(pickEntry('app', '/assets/js/core/main.js'));
   // 运行时配置（内容寻址 config.<hash>.json）：首屏引导必需，离线壳可直接启动。
-  let assetFiles = [];
-  try { assetFiles = fs.readdirSync(path.join(distDir, 'assets')); } catch (e) { assetFiles = []; }
+  const assetFiles = readDirSafe(path.join(distDir, 'assets'));
   for (const f of assetFiles) {
     if (/^config\.[0-9A-Za-z]+\.json$/.test(f)) add('/assets/' + f);
   }

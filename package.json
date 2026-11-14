@@ -19,7 +19,7 @@
     "test:all": "node scripts/ci-checks.js",
     "test:coverage": "node scripts/run-tests.js --experimental-test-coverage --test-coverage-include=scripts/lib/** --test-coverage-lines=80",
     "lint": "eslint js scripts workers",
-    "audit": "node scripts/audit.js",
+    "audit": "node scripts/audit-gate.js",
     "typecheck": "tsc -p tsconfig.json",
     "verify:security": "node scripts/security-verify.js",
     "verify:config": "node scripts/check-config-consistency.js",

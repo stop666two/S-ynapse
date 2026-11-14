@@ -146,11 +146,12 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 | `npm run test:fuzz` | 属性/随机测试：`scripts/**/*.fuzz.test.js`（fast-check；`FC_NUM_RUNS` 默认 100、`STRESS=1` 开海量用例；种子见 `scripts/lib/test-random.js`，失败留档 `build-artifacts/fuzz-failures/`；默认单测不含 fuzz） |
 | `npm run test:smoke` | 浏览器冒烟：真实构建 + 系统 Chrome 代表页（200/标题/DOM/零控制台错误），摘要 `build-artifacts/web-smoke/summary.txt`；无 Chrome 跳过 |
 | `npm run test:cov-web` | 无头 Web 覆盖率：`--no-bundle` + `--no-minify-js` + 压缩关闭构建（产物保留源码行结构），CDP 精确覆盖聚合 `js/**` 行/函数覆盖（阈值 `scripts/lib/web-coverage-thresholds.js`，首测定档 55%/55%），输出 `build-artifacts/web-coverage/{summary.txt,coverage.json}`（含逐函数未覆盖明细）；无 Chrome 跳过 |
-| `npm run test:all` | 本地与 CI 同强度：直接执行 `node scripts/ci-checks.js`（与 `deploy.yml`/`nightly.yml` 完全同一套 23 项、同一顺序；此前它只是其中 7 步的串联子集，缺 lint/typecheck/大半 verify 与 build，导致「本地绿 ≠ CI 绿」）。无 Chrome 时 4 个需要浏览器的项跳过并打印清单（本地 exit 0）；`--only a,b` / `--skip x` / `--list` 可选跑。夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子） |
+| `npm run test:all` | 本地与 CI 同强度：直接执行 `node scripts/ci-checks.js`（与 `deploy.yml`/`nightly.yml` 完全同一套 24 项、同一顺序；此前它只是其中 7 步的串联子集，缺 lint/typecheck/大半 verify 与 build，导致「本地绿 ≠ CI 绿」）。无 Chrome 时 4 个需要浏览器的项跳过并打印清单（本地 exit 0）；`--only a,b` / `--skip x` / `--list` 可选跑。夜间深度档见 `nightly.yml`（`FC_NUM_RUNS=2000` + `STRESS=1` + 随机种子） |
 | `npm run lint` / `npm run typecheck` | ESLint / tsc（checkJs） |
 | `npm run verify:config` / `verify:config-refs` / `verify:config-single-source` / `verify:config-dupes` / `verify:config-comments` / `verify:config-docs` | 配置一致性 / 零引用键 / 开关矩阵与回退字面量单一来源 / 重复键 / 逐键注释覆盖率 / 文档覆盖监守（`scripts/check-config-single-source.js`、`scripts/check-config-docs.js`） |
 | `npm run verify:internals` | `.nvmrc` / `workers/wrangler.toml` assets 目录 / CI 版本与 `internals.json5` 单源守卫（关键写死形态抽样） |
 | `npm run verify:process-guards` | 进程守护巡检（高风险入口 `process-guard` 接入的静态检查；CI 聚合执行） |
+| `npm run verify:comment-hygiene` | 注释卫生：注释只允许「代码说明」与「注意事项」；禁止审查/评审流程标记、裸 `R-xx`/`issue #N` 工单编号，并检测 U+FFFD 与 GBK 误读乱码（`审计`/`复核` 作为功能名不受限；CI 聚合执行） |
 | `npm run verify:security` | 安全集成回归（注入恶意文章 → 构建 → 语义断言） |
 | `npm run verify:compression` | 压缩无头对比门禁（6 页 DOM/采样样式/控制台/交互断言；无 Chrome 跳过） |
 | `npm run sbom` | CycloneDX 1.5 SBOM 生成（CI 上传 artifact） |
@@ -160,7 +161,7 @@ main.js：交互后再触发懒加载；deferred.js 注册表 load(name) 动态 
 
 CI（`.github/workflows/deploy.yml`）：`preflight`（连击跳过判定）→ `check-agents`（AGENTS.md 变更检测）→ `compat-node20`（Node 20.19.0 floor：test + verify:config 家族 + verify:internals + test:build + build）与 `windows-compat`（windows-latest：build → test，契约严格模式）并行 → `build`（Node 版本由 `.nvmrc` 经 `node-version-file` 单源控制）。
 
-`build` 任务内：`node scripts/ci-env.js` 导出 internals → 单步 `node scripts/ci-checks.js` 跑完整套并统一失败（lint / typecheck / **build** / test / test:coverage / test:build / test:fuzz / test:malicious / verify:config 家族（config/refs/single-source/dupes/comments/docs 与 verify:internals）/ verify:process-guards / verify:security / test:smoke / test:cov-web / verify:compression / sbom；`audit` 与 `audit:a11y` 为建议项，入报告不阻断）。
+`build` 任务内：`node scripts/ci-env.js` 导出 internals → 单步 `node scripts/ci-checks.js` 跑完整套并统一失败（lint / typecheck / **build** / test / test:coverage / test:build / test:fuzz / test:malicious / verify:config 家族（config/refs/single-source/dupes/comments/docs 与 verify:internals）/ verify:process-guards / verify:comment-hygiene / verify:security / test:smoke / test:cov-web / verify:compression / sbom；`audit` 与 `audit:a11y` 为建议项，入报告不阻断）。
 
 四条 CI 侧不变量（改动前先看 `scripts/ci-checks.test.js` 与 `scripts/check-internals.js`）：
 

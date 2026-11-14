@@ -23,7 +23,7 @@ const EXEMPT = {
 
 // advisory（结果写报告但不阻断）的显式清单：既有 wrangler/miniflare 链漏洞与
 // WCAG target-size/对比度告警按专项跟踪。新增 advisory 必须改这里并说明原因。
-const ADVISORY = ['audit', 'audit:a11y'];
+const ADVISORY = ['audit:a11y'];
 
 describe('ci-checks 聚合器契约', () => {
   it('所有 verify:/test: 脚本要么已接线，要么在 EXEMPT 里写明理由', () => {
@@ -74,9 +74,9 @@ describe('ci-checks 聚合器契约', () => {
     const results = [
       { name: 'test', status: 'passed' },
       { name: 'test:smoke', status: 'skipped' },
-      { name: 'audit', status: 'skipped' }
+      { name: 'audit:a11y', status: 'skipped' }
     ];
-    assert.deepStrictEqual(blockingSkips(results, true), ['test:smoke']);
+    assert.deepStrictEqual(blockingSkips(results, true), ['test:smoke'], '只有 advisory 跳过不算失败');
     assert.deepStrictEqual(blockingSkips(results, false), [], '本地跳过不追究');
   });
 });

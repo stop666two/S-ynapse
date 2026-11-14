@@ -96,9 +96,9 @@ const CHECKS = [
   { name: 'verify:security', args: ['run', 'verify:security'] },
   { name: 'verify:comment-hygiene', args: ['run', 'verify:comment-hygiene'] },
   { name: 'verify:process-guards', args: ['run', 'verify:process-guards'] },
-  // audit 为建议项（advisory）：既有 wrangler/miniflare 链漏洞需依赖升级专项处理
-  // （按 CVSS 单独跟踪），结果写入报告但不阻断本聚合器。
-  { name: 'audit', args: ['run', 'audit'], advisory: true },
+  // audit 为阻断项，阈值 critical/high（scripts/audit-gate.js）：依赖漏洞清零后必须防回归；
+  // moderate/low 只报告（当前仅剩 deepmerge 一条无前向修复的 low），网络不可用时 fail-open。
+  { name: 'audit', args: ['run', 'audit'] },
   { name: 'test:smoke', args: ['run', 'test:smoke'], needsChrome: true },
   { name: 'test:cov-web', args: ['run', 'test:cov-web'], needsChrome: true },
   { name: 'verify:compression', args: ['run', 'verify:compression'], needsChrome: true },

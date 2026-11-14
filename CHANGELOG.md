@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - **依赖漏洞清零（19 → 1 LOW）**：`sharp` 0.35.4→0.35.5（librsvg CVE）、`sanitize-html` 2.17.7→2.18.2、`wrangler` 4.145→4.162（miniflare/undici）、`puppeteer-core` 25.12→25.17（chromium-bidi/zod）、`eslint` 10.11→10.15、`javascript-obfuscator` 5.8→5.10、`mermaid` 11.17→12.3 与 `katex` 0.16→0.19（传递依赖 `dompurify` 的 3 条 critical 随之消失）。剩余为 `dompurify`/`source-map-js` 等传递依赖，用 `overrides` 锁到已知修复版本（`dompurify ^3.4.17`、`source-map-js ^1.2.2`、`@vercel/blob ^2.9.0` 且其 `undici ^6.29.1`、`zod ^4.6.7`）。仅剩 `deepmerge` 1 条 LOW：其 advisory **无前向修复**（官方建议降级），实测在当前用法下 `__proto__` 自有键会被丢弃但不污染原型，输入是站长自撰配置，记为可接受风险。
+- **依赖审计从建议项升级为阻断项**：`npm run audit` 改走 `scripts/audit-gate.js`，阈值 critical/high——高危及以上的已知漏洞直接让聚合门禁失败；moderate/low 只报告（当前仅 deepmerge 一条无前向修复的 low）。判定是纯函数（5 例单测），拿不到报告（离线/registry 故障/输出不可解析）时 **fail-open** 并打印原因，避免把网络问题变成假红；同时规避两个真实坑：Windows 上 `npm` 是 `.cmd`（无 shell 会静默失败），以及从 `npm run` 里嵌套调 npm 会把父进程注入的 `npm_config_*` 当命令行参数而报错（子进程已剥离）。
 - **Node 下限从已 EOL 的 20 提到 22**：Node 20 于 2026-04-30 EOL、不再有安全补丁；`engines` 去掉 `^20.19.0`，CI 兼容任务改为 `compat-node22`（Node 22.13.0），`@types/node` 同步到 24（与 `.nvmrc` 一致）。
 
 ### Added

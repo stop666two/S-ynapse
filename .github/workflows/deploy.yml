@@ -118,8 +118,9 @@ jobs:
     needs: [check-agents, preflight, windows-compat]
     if: needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
-    # 本 job 跑聚合门禁（23 项 × internals.ci.checkTimeoutMs），最坏预算 ≈230min，
-    # 此前没有显式 timeout，只能靠平台默认值；显式声明与 nightly 同口径。
+    # 本 job 跑聚合门禁（24 项 × internals.ci.checkTimeoutMs = 600000ms），
+    # 最坏预算 240min + 30min 缓冲 = 270min；此前的 260min 会先于预算触顶。
+    # 显式声明与 nightly 同口径，verify:internals 会按项数反算断言。
     timeout-minutes: 300
     permissions:
       contents: read

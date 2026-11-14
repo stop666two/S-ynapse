@@ -1,5 +1,5 @@
 'use strict';
-// R-26 回归：外置配置加载缓慢时，加载遮罩必须在 await __CONFIG_READY__ 之前就出现。
+// 回归：外置配置加载缓慢时，加载遮罩必须在 await __CONFIG_READY__ 之前就出现。
 // 旧实现把遮罩创建放在 await 之后，最长 features.boot.configTimeoutMs（默认 3s）内
 // 关键队列全部排队等待、且没有任何视觉反馈。
 const test = require('node:test');
@@ -31,7 +31,7 @@ function mkEl(tag) {
   return node;
 }
 
-test('R-26 配置等待期间必须先挂遮罩，且展示时刻早于配置就绪', async () => {
+test('配置等待期间必须先挂遮罩，且展示时刻早于配置就绪', async () => {
   let resolveConfig = null;
   const ready = new Promise((r) => { resolveConfig = r; });
   const body = mkEl('body');

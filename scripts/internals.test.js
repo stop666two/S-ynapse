@@ -104,7 +104,7 @@ test('resolveOutputDir：--out > SYNAPSE_OUT_DIR > internals.outDir > dist', () 
   assert.strictEqual(resolveOutputDir(['--out', 'x'], root, { outDir: null, env }).custom, true);
 });
 
-test('resolveOutputDir：custom 表示「不是默认 dist」而非「是否显式指定」(R-14)', () => {
+test('resolveOutputDir：custom 表示「不是默认 dist」而非「是否显式指定」', () => {
   const root = path.resolve('C:/repo');
   const dist = path.join(root, 'dist');
   // CI 导出 SYNAPSE_OUT_DIR=<root>/dist：必须仍算非自定义，否则 workers/security-config.js 静默不生成。
@@ -117,7 +117,7 @@ test('resolveOutputDir：custom 表示「不是默认 dist」而非「是否显�
   assert.strictEqual(resolveOutputDir(['--out', 'DIST'], root, { outDir: null, env: {} }).custom, process.platform !== 'win32');
 });
 
-test('findOutputDirConflict：拒绝站点根、根的祖先与任何输入目录重叠 (R-01)', () => {
+test('findOutputDirConflict：拒绝站点根、根的祖先与任何输入目录重叠 ', () => {
   const root = path.resolve('C:/repo');
   const reserved = ['articles', 'templates', 'static', 'js', 'media', 'videos', 'pages', 'assets', '.git']
     .map((name) => path.join(root, name));

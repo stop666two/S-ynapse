@@ -1,4 +1,4 @@
-// 运行期注入 <style> 的唯一入口（审查 R-03）：生产 CSP 的 style-src 不含 'unsafe-inline'，
+// 运行期注入 <style> 的唯一入口：生产 CSP 的 style-src 不含 'unsafe-inline'，
 // 只放行构建期 nonce（scripts/build/security-files.js 的 applyCspNonce 追加 'nonce-…'）。
 // 脚本创建的 <style> 必须在插入前复制同一枚 nonce，否则整段样式被 style-src-elem 拒绝——
 // 主题预设换肤、guard 的 iOS/选择样式都因此静默失效，而本地预览不走 CSP 看不出来。

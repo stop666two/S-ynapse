@@ -522,7 +522,7 @@
 > 接线说明：标记参数化（≥1 字符，正则元字符按字面量匹配；`supMarker` 与 `subMarker` 相同时以上标优先），构建期 `scripts/build/markdown.js` 的 marked 扩展按配置生成 tokenizer；`preserveUnmatched=true`（默认）= 孤立标记保持原文，`false` = 剥离孤立标记（标记重复如 `~~` 视为删除线等其它语法，不剥离）；`skipInsideMath=true`（默认）= 数学段内不处理（`math.autoDetect=true` 时由 mathGuard 保护，数学段内成对标记保持原样）；`false` = 数学段内也应用上下标转换（renderer 内对定界符内部文本转换，可能破坏公式，谨慎使用；`autoDetect=false` 时无数学段，此键无效）。`skipInsideMath` 默认 true。单测：`scripts/config-wiring.test.js`（四键四态 + matcher 边界）。
 
 ### 3.17 math — KaTeX
-`enabled true` / `autoDetect true` / `version 0.16.22` / `inlineDelimiters ['$']` / `blockDelimiters ['$$']` / `throwOnError false` / `strict false` / `renderRoundParens true` / `renderSquareBrackets true` / `selector .post-content` / `mathml true`
+`enabled true` / `autoDetect true` / `version 0.19.1` / `inlineDelimiters ['$']` / `blockDelimiters ['$$']` / `throwOnError false` / `strict false` / `renderRoundParens true` / `renderSquareBrackets true` / `selector .post-content` / `mathml true`
 
 > 接线说明（构建期 mathGuard 输出占位 + 客户端 math-render 渲染，共用同一份配置，经外置 `window.__FEATURES__.math`）：
 > - `autoDetect=true`（默认）= 解析 `inlineDelimiters`（对称、不跨行；单字符 `$` 结尾避免数字，防金额误报）与 `blockDelimiters`（对称、可跨行、须位于行首）；`\(`/`\[` 由 `renderRoundParens`/`renderSquareBrackets` 独立控制。构建期输出占位元素 `<span class="math-inline" data-tex="…">` / `<div class="math-block" data-tex="…">`（回退文本为去定界符的 TeX），产物正文不含裸 `$` / `$$`；客户端由 `js/domains/core/math-render.js` 用 KaTeX 渲染占位（直接加载与软导航后均生效，vendor 未预载时按需注入），并保留 `renderMathInElement` 兜底（缩进块等构建期未捕获的裸定界符）。`false` = **不自动解析任何定界符**（不保护、不加载 KaTeX 按需渲染），仅渲染 ` ```math ` 围栏块：构建期输出 `<div class="math-block" data-tex="…">`，客户端 KaTeX 渲染（`throwOnError`/`strict`/`mathml` 同样生效）。
@@ -538,7 +538,7 @@
 |---|---|---|---|
 | `enabled` | bool | `true` | 总开关 |
 | `autoDetect` | bool | `true` | 构建期识别显式 ` ```mermaid ` 围栏并 SSR；false = 不渲染、保留围栏回退客户端 |
-| `version` | string | `11.17.2` | 版本标识（镜像 `package.json` 安装版本；构建期 SSR 与缓存键、客户端 vendor 均直接使用安装版本，改此值不改变加载来源；`scripts/config-count.test.js` 锁定二者一致） |
+| `version` | string | `12.3.0` | 版本标识（镜像 `package.json` 安装版本；构建期 SSR 与缓存键、客户端 vendor 均直接使用安装版本，改此值不改变加载来源；`scripts/config-count.test.js` 锁定二者一致） |
 | `followTheme` | bool | `true` | 图表主题跟随站点（明/暗双份）；false = 仅明色单份 |
 | `lightTheme` / `darkTheme` | string | `default` / `dark` | 明/暗两份 SVG 使用的 mermaid 主题名 |
 | `securityLevel` | string | `strict` | 构建期渲染安全级别（`strict` 禁用 HTML 标签；客户端渲染取值见 `clientOptions.securityLevel`） |
@@ -1525,7 +1525,7 @@ listCover: {
 | | `workerAssetsDir` | `dist` | Worker assets 目录，必须与构建输出目录及 `workers/wrangler.toml` 的 `[assets] directory` 一致 |
 | | `verifyOnDeploy` | true | 部署前是否先跑 `verify:internals` 守卫 |
 | `ci` | `nodeVersion` | `24` | 主 CI 与 `.nvmrc` 使用的 Node 版本（两者必须一致） |
-| | `compatNodeVersion` | `20.19.0` | 兼容性任务最低 Node 版本（与 deploy.yml compat 断言一致） |
+| | `compatNodeVersion` | `22.13.0` | 兼容性任务最低 Node 版本（与 deploy.yml compat 断言一致） |
 | | `aggregate` | true | `scripts/ci-checks.js` 是否跑完整套后统一失败（false=首个失败即停） |
 | | `checkTimeoutMs` | 600000 | 每个聚合检查项的超时上限（毫秒）；超时判失败并清理整棵子进程树 |
 | | `checkTimeouts` | `{}` | 单项超时覆盖（检查名→毫秒），如 `{ "audit:a11y": 900000 }` |

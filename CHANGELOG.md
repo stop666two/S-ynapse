@@ -33,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **引语数据移出启动配置**：`config.<hash>.json` 的 `quotes` 键（24 KiB raw / 9.4 KiB gzip，纯内容数据）拆为独立的 `quotes.<hash>.json`，只在页面上真的存在引语挂件时按需拉取（Promise 复用、4s 超时、失败回退内置 5 条、**不阻塞 boot idle 队列**）；主配置 29.3 → 20.0 KiB gzip（−31.8%），新文件与 config 同为 immutable。
 - **SW 预缓存瘦身 + 页面导航默认 stale-while-revalidate（2G 性能）**：壳预缓存从 29 项（`/assets/css/*` 含 17 个 CJK 分片、`config.<hash>.json`、runtime/app/shared/deferred 全部 JS、`/assets/vendor/fonts/*`，约 643 KiB raw）降为**离线开壳最小集 6 项**（`offline.html`、`manifest.json`、runtime/app 两个入口 JS、`site.<hash>.css`、`config.<hash>.json`，约 303 KiB raw / 82.6 KiB gzip）；被移出的资源文件名内容寻址（immutable），改由 `assetCacheFirst` 运行时缓存，二次离线访问同样命中，但不再在首次访问时与 LCP 抢带宽。同时 `features.pwa.pageNetworkFirst` 默认改为 `false`（先返回页面缓存、后台 revalidate），弱网重复访问秒开，代价是内容更新在一次导航后才可见。升级后旧壳缓存由版本化缓存名 + `activate` 前缀清理自动淘汰，无需手动清缓存；`sw.js` 的版本哈希随之变化（策略开关与清单一并参与哈希）。
 
+### Security
+
+- **依赖漏洞清零（19 → 1 LOW）**：`sharp` 0.35.4→0.35.5（librsvg CVE）、`sanitize-html` 2.17.7→2.18.2、`wrangler` 4.145→4.162（miniflare/undici）、`puppeteer-core` 25.12→25.17（chromium-bidi/zod）、`eslint` 10.11→10.15、`javascript-obfuscator` 5.8→5.10、`mermaid` 11.17→12.3 与 `katex` 0.16→0.19（传递依赖 `dompurify` 的 3 条 critical 随之消失）。剩余为 `dompurify`/`source-map-js` 等传递依赖，用 `overrides` 锁到已知修复版本（`dompurify ^3.4.17`、`source-map-js ^1.2.2`、`@vercel/blob ^2.9.0` 且其 `undici ^6.29.1`、`zod ^4.6.7`）。仅剩 `deepmerge` 1 条 LOW：其 advisory **无前向修复**（官方建议降级），实测在当前用法下 `__proto__` 自有键会被丢弃但不污染原型，输入是站长自撰配置，记为可接受风险。
+- **Node 下限从已 EOL 的 20 提到 22**：Node 20 于 2026-04-30 EOL、不再有安全补丁；`engines` 去掉 `^20.19.0`，CI 兼容任务改为 `compat-node22`（Node 22.13.0），`@types/node` 同步到 24（与 `.nvmrc` 一致）。
+
 ### Added
 
 - **CI 门禁不再空转（聚合器顺序 + 跳过策略）**：`ci-checks.js` 把 `build` 前置到 `test` 之前——此前 `test` 先跑，`perf-contract` 等依赖 `dist/` 的断言在 CI 里只能 `skip`，聚合器仍报 PASS（9 条性能契约实际一次都没执行）。同时 CI（`GITHUB_ACTIONS=true`）下**阻断项被跳过即失败**：Chrome 探测失败曾把 smoke / cov-web / compression 静默跳掉，现在会红并提示设置 `CHROME_PATH`（本地不受影响）。
@@ -100,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **修掉两条把非法输入当合法前提的 fuzz 用例**（`scripts/lib/wiki.fuzz.test.js`）：生成器会产出 `con`/`prn`/`aux` 等 Windows 保留名，`mdExportRelPath` 正确地拒绝并返回 `null`，而用例断言它必须返回路径（种子 2660947602 必红）。现以同一个 `validateSlug` 为判据断言「合法 → 固定路径；非法/保留 → null 且不写盘」。
 - **`test:cov-web` 不再刷「（optional，忽略）」，灯箱路径真正被执行**：该检查固定拿首页前两篇文章做灯箱场景，而这两篇（`code-showcase`/`diagrams-math`）正文一张图都没有 ——「点击图片打开灯箱」必然失败，随后 6 个灯箱按钮（`#lbNext/#lbZoomIn/#lbRotateR/#lbReset/#lbSlideshow/#lbClose`）连锁点不到，一次运行刷 7 行「（optional，忽略）」，而灯箱整条路径实际上**从未被执行**（覆盖率虚低、且当时那条断言写成「无图时跳过」，等于零验证）。修法：① 选页改为「多图文章 → 单图文章 → 图库页 → 跳过」（扫描全部文章页，不只首页暴露的两篇，并兼容产物里 `class=post-content` 的无引号属性）；② 交互组：组内首个 optional 点击失败后，同组后续动作静默跳过并只记一行说明；③ 每个灯箱按钮补**能力感知断言**（按钮被配置隐藏时通过，可见则必须产生可观测效果：`#lbImg` 源变化、`transform` 出现 `scale>1` / `rotate(90deg)` / 归零、`aria-label` 切换播放/暂停）。实测断言 60/60、行覆盖 68.7%（阈值 55%）、零告警。
 - **`verify:config-refs` 不再依赖构建产物（修 CI compat 任务恒红）**：该检查会把 `workers/security-config.js`（`.gitignore` 的构建产物）当源码扫描，而它内容基本是把配置原样回显——于是「有引用」是自证，且结果取决于「本次是否构建过」：`compat-node20` 在 build 之前跑 test，永远看不到该文件，报 8 个零引用键（CSP 指令与安全头）而恒红；本地构建过则恒绿。现把该文件排除出源集，并把 8 个键按「整表消费」登记进 `config-refs-allowlist.json`（CSP 由 `security-files.js` 整表拼装、安全头由 `applyHeaderHardening(security)` 逐键拷贝后整表下发）。干净检出与已构建两种状态下结果一致。
+- **注释卫生门禁（规则 333/334）**：注释只允许「代码说明」与「注意事项」——新增 `verify:comment-hygiene`（已接入 CI 聚合器）禁止审查/评审流程标记、裸 `R-xx`/`issue #N` 工单编号，以及 U+FFFD 与 GBK 误读乱码；「审计」「复核」作为功能名（无障碍审计、媒体审计）不受限。存量 169 处 `审查 R-xx` 一并清理为纯说明（108 个文件，净 −244/+251 行，只删标记不改代码）。
 - 新增 `scripts/perf-contract.test.js`：把弱网体验写成 9 条**可测量契约**（首屏 gzip 预算、字体零请求、`<head>` 预声明与不重复下载、head 级静态资源数预算、缓存头语义、SW 预缓存条目/字节上限、导航策略、本地 serve 与生产缓存一致性）。断言的是预算与行为而非实现写法，重排代码不会误报，预算被撑破一定红。
 - **缓存语义两处收口**：`stale-while-revalidate` 此前对**所有** `text/html` 生效，404/500 页同样是 HTML——上线后访客可能继续拿到缓存里的 404（最长 86400s），现两端都限定 `200`（Worker `response.status === 200`、本地 `cacheControlFor(path, status)`）。本地 serve 原先还漏了 `/assets/quotes.*.json` 的 immutable（生产有、本地没有），导致「引语拆分后是否仍命中缓存」无法在本地复测。
 

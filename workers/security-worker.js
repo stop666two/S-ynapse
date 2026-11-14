@@ -51,7 +51,7 @@ const FALLBACK = {
   pathRestrictions: ["/admin/*"],
   forceHttps: true,
   // 维护响应默认设置 Retry-After: 3600；正式产物由构建期按 features.maintenance 覆盖。
-  // 审查 R-33 接线：enabled/message/messageEn/status 来自 features.maintenance（构建期投影，
+  // 接线：enabled/message/messageEn/status 来自 features.maintenance（构建期投影，
   // 缺失即 false / 空串 / 503，因此维护页输出与接线前的行为一致）。
   maintenance: {
     enabled: MAINTENANCE_FALLBACKS.enabled,
@@ -97,7 +97,7 @@ function resolveWorkerConfig(config) {
 }
 
 /**
- * 维护配置归一化（审查 R-33 接线：features.maintenance.message/messageEn/status 此前零消费）。
+ * 维护配置归一化（接线：features.maintenance.message/messageEn/status 此前零消费）。
  * 手写损坏的 security-config.js 不应把维护页变成 200 或塞入非字符串文案，因此这里按与构建期
  * 相同的规则再校验一次：文案只收字符串（空串 = 未配置，运行时回退内置语），
  * status 只收 400–599 整数（否则 503）。
@@ -165,7 +165,7 @@ function maintenanceCopy(acceptLanguage, env, maintenance) {
   const en = prefersEnglish(acceptLanguage);
   const cfg = maintenance && typeof maintenance === "object" ? maintenance : {};
   const custom = env && env.MAINTENANCE_MESSAGE ? String(env.MAINTENANCE_MESSAGE) : "";
-  // 审查 R-33 接线：message/messageEn 此前零消费。en* 优先 messageEn（features.json5 语义：
+  // 接线：message/messageEn 此前零消费。en* 优先 messageEn（features.json5 语义：
   // messageEn 为空 = 回退中文 message），非 en 只用 message。
   const configured = en ? (cfg.messageEn || cfg.message || "") : (cfg.message || "");
   const rawMessage = custom || configured || (en ? "The site is under maintenance. Please check back later." : "本站正在维护中，请稍后再来。");
@@ -286,7 +286,7 @@ async function handleRequest(request, env) {
 
   // Maintenance mode — enabled either by env var MAINTENANCE=1 (e.g. via wrangler deploy,
   // 运维可临时开启，无需重新构建) or by features.maintenance.enabled=true (构建期投影，
-  // 审查 R-33 接线：此前该键零消费). 两者取或：任一为真即维护态，都为假照常服务。
+  // 接线：此前该键零消费). 两者取或：任一为真即维护态，都为假照常服务。
   // Notice priority: MAINTENANCE_MESSAGE env > features.maintenance.message/messageEn (picked by
   // Accept-Language, en* → English) > built-in bilingual defaults; output is always HTML-escaped.
   if ((env && env.MAINTENANCE === "1") || maintenanceCfg.enabled === true) {
@@ -301,7 +301,7 @@ async function handleRequest(request, env) {
     if (maintenanceCfg.setRetryAfter !== false) {
       maintHeaders["Retry-After"] = String(maintenanceCfg.retryAfter || 3600);
     }
-    // 审查 R-33 接线：维护响应状态码来自 features.maintenance.status（归一化后 400–599，
+    // 接线：维护响应状态码来自 features.maintenance.status（归一化后 400–599，
     // 否则 503），此前硬编码 503。
     return edgeResponse(html, maintenanceCfg.status, maintHeaders, requestId);
   }

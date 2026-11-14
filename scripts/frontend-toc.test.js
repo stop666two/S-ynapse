@@ -1,5 +1,5 @@
 'use strict';
-// R-21 回归：模板把 #mTocBtn/#mTocDrawer 按首屏文章的 article.toc 渲染在 .content-wrapper 之外，
+// 回归：模板把 #mTocBtn/#mTocDrawer 按首屏文章的 article.toc 渲染在 .content-wrapper 之外，
 // 软导航只替换内容区 —— 修复后由 toc.js 的 syncMobileToc 按当前内容区重建/移除该块。
 // 用最小节点树桩（id 注册表 + class 查询 + 父子关系）覆盖 init/bind 读取的接口。
 const test = require('node:test');
@@ -140,7 +140,7 @@ function drawerItems(reg) {
   return nav ? nav.children : [];
 }
 
-test('R-21 移动端浮动目录块随当前页重建/移除（文章→首页→另一篇文章）', async () => {
+test('移动端浮动目录块随当前页重建/移除（文章→首页→另一篇文章）', async () => {
   const dom = installDom();
   const { init } = await load();
   // 首屏：文章页有 1 个章节（模板原本会渲染该块，这里从零验证创建路径）

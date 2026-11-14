@@ -82,11 +82,11 @@ function loadAllowlist() {
   const file = path.join(ROOT, 'scripts', 'config-refs-allowlist.json');
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf-8'));
-    // 审查 R-33：段落前缀通配（prefixes）已废弃——它让整段配置脱离审查；
+    // 段落前缀通配（prefixes）已废弃——它让整段配置脱离逐键校验；
     // 现在必须逐键登记，且每条都要写明理由（消费路径或「零消费候选」）。
     if (Array.isArray(parsed.prefixes) && parsed.prefixes.length) {
       console.error('[verify:config-refs] 允许名单仍含段落前缀通配 prefixes（' + parsed.prefixes.join(', ') +
-        '）：审查 R-33 起必须逐键登记理由。');
+        '）：起必须逐键登记理由。');
       process.exit(1);
     }
     const allow = new Map();
@@ -120,7 +120,7 @@ function main() {
   for (const dir of SCAN_DIRS) walk(path.join(ROOT, dir), sources);
   const allow = loadAllowlist();
 
-  // 审查 R-33：逐键登记的代价是必须保真——登记了不存在的键、或键已被接线（登记冗余）
+  // 逐键登记的代价是必须保真——登记了不存在的键、或键已被接线（登记冗余）
   // 都属于名单腐化，直接失败，避免「名单只增不减」再次变成实质豁免。
   const leafSet = new Set(leaves);
   const stale = [];

@@ -943,7 +943,7 @@ test('performanceWarnings：超限逐项输出、缺省/非法阈值不告警（
 test('maintenanceWorkerConfig：setRetryAfter/retryAfter 归一化（Worker 链）', () => {
   // switch: features.maintenance.setRetryAfter, features.maintenance.retryAfter
   const { maintenanceWorkerConfig } = require('./generate-security-config.js');
-  // 审查 R-33 接线后投影新增 enabled/message/messageEn/status（默认 false/''/''/503），断言按完整形状收紧而非放宽。
+  // 接线后投影新增 enabled/message/messageEn/status（默认 false/''/''/503），断言按完整形状收紧而非放宽。
   assert.deepStrictEqual(maintenanceWorkerConfig({}), { enabled: false, message: '', messageEn: '', status: 503, setRetryAfter: true, retryAfter: 3600 });
   assert.deepStrictEqual(maintenanceWorkerConfig({ maintenance: { setRetryAfter: false, retryAfter: 120 } }), { enabled: false, message: '', messageEn: '', status: 503, setRetryAfter: false, retryAfter: 120 });
   assert.deepStrictEqual(maintenanceWorkerConfig({ maintenance: { retryAfter: '60' } }), { enabled: false, message: '', messageEn: '', status: 503, setRetryAfter: true, retryAfter: 60 });
@@ -1133,7 +1133,7 @@ test('配置扩张守卫：site/security/sidebar/friends 注册表默认值同�
   assert.strictEqual(DEFAULT_CONFIG.security.rateLimiting.maxTrackedEntries, 5000);
   assert.strictEqual(securityRaw.hardening.cspReportMaxBytes, 16384);
   assert.strictEqual(DEFAULT_CONFIG.security.hardening.cspReportMaxBytes, 16384);
-  // 审查 R-11：security 段的默认值先 deepmerge 再投影，等于「缺键时的真实安全姿态」。
+  // security 段的默认值先 deepmerge 再投影，等于「缺键时的真实安全姿态」。
   // 此前默认 rateLimiting.enabled/forceHttps 为 false、pathRestrictions 为 []，删键即静默降级，
   // 生成器内的 fail-closed 兜底因默认值已填满而永不可达。
   assert.strictEqual(DEFAULT_CONFIG.security.rateLimiting.enabled, true, '缺键必须默认开启限流');

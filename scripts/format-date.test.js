@@ -16,7 +16,7 @@ function formatDateInTimezone(tz, dateStr, fmt) {
 }
 
 describe('formatDate date-only timezone handling', () => {
-  // 审查 R-30：`new Date('2026-07-19')` 按 UTC 午夜解析，旧实现用本地 getter 读取，
+  // `new Date('2026-07-19')` 按 UTC 午夜解析，旧实现用本地 getter 读取，
   // 在 America/New_York 下返回 2026-07-18（卡片/文章头/归档整体退一天）。
   it('formats date-only input identically in western and eastern timezones', () => {
     assert.strictEqual(formatDateInTimezone('America/New_York', '2026-07-19', 'YYYY-MM-DD'), '2026-07-19');
@@ -39,8 +39,8 @@ describe('formatDate date-only timezone handling', () => {
   });
 });
 
-describe('dateParts archive grouping (R-30 sibling)', () => {
-  // 审查 R-30：归档分组此前在 scripts/build/articles.js 里另写一份本地 getter，
+describe('dateParts archive grouping (sibling)', () => {
+  // 归档分组此前在 scripts/build/articles.js 里另写一份本地 getter，
   // 与 formatDate 不同源——负时区构建机上「卡片日期」与「归档年月」会互相错开。
   const { dateParts } = require('./lib/utils');
   function datePartsInTimezone(tz, dateStr) {

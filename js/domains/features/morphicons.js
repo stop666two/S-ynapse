@@ -171,7 +171,7 @@ function initAll() {
   window.__MORPH_READY__ = true;
 }
 export function init() {
-  // 审查 R-33 接线：features.morphIcons.enabled=false 是「图标变形动画」总开关，
+  // 接线：features.morphIcons.enabled=false 是「图标变形动画」总开关，
   // 语义为「全部图标恢复静态切换、不加载任何 vendor 代码」。这里在入口处短路：
   // 不注册 pointerover/pointerdown/touchstart/focusin 探针、不挂 __SOFTNAV_HOOKS__、
   // 不暴露 __morphScan/__morphCopy，因此 assets/vendor/morphicons 虽然仍被构建复制

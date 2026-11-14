@@ -18,7 +18,7 @@ const DEFAULTS = {
   deploy: { pagesProject: 's-ynapse', workerAssetsDir: 'dist', verifyOnDeploy: true },
   ci: {
     nodeVersion: '24',
-    compatNodeVersion: '20.19.0',
+    compatNodeVersion: '22.13.0',
     aggregate: true,
     checkTimeoutMs: 600000,
     checkTimeouts: {},

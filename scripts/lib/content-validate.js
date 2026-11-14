@@ -5,7 +5,7 @@ const { safeSlug, validateSlug, isReservedOsName } = require('./utils');
 
 const MEDIA_PREFIX = '/media/';
 // 媒体产物变体命名：<原名>-<宽度>.<格式>（与 scripts/build/media.js 的 variantName 同格式，可位于任意子目录）。
-// 审查 R-31：构建实际输出 media/<dir>/<name>-<width>.<ext>（没有 variants/ 目录）；此前的
+// 构建实际输出 media/<dir>/<name>-<width>.<ext>（没有 variants/ 目录）；此前的
 // VARIANT_RX 只认 variants/ 布局，导致真实引用被判缺失、不存在的 variants/ 路径反而通过。
 const OUTPUT_VARIANT_RX = /^(.+)-(\d+)\.(?:webp|avif|jpe?g|png)$/i;
 
@@ -65,7 +65,7 @@ function createMediaResolver(sourceFiles) {
     const rel = ref.slice(MEDIA_PREFIX.length).replace(/[?#].*$/, '');
     if (!rel) return false;
     if (set.has(rel)) return true;
-    // 审查 R-31：与 createBrokenMediaMatcher 同口径——变体名就是 目录/<名字>-<宽度>.<格式>，
+    // 与 createBrokenMediaMatcher 同口径——变体名就是 目录/<名字>-<宽度>.<格式>，
     // 直接把整条相对路径去掉扩展名后与源文件词干比较（stems 已是同样形式）。
     const m = rel.match(OUTPUT_VARIANT_RX);
     if (m) return stems.has(m[1]);
@@ -197,7 +197,7 @@ function preflightArticles(items, options) {
       continue;
     }
 
-    // 审查 R-27：slug 保留大小写用于输出路径，但保留路由段都是小写；Windows/macOS 默认
+    // slug 保留大小写用于输出路径，但保留路由段都是小写；Windows/macOS 默认
     // 大小写不敏感，slug: Tags 会与生成的 dist/<lang>/tags/ 落到同一目录并互相覆盖。
     // 因此比较统一转小写，错误信息同时给出原 slug 与实际冲突的目录/文件。
     const slugLower = identity.slug.toLowerCase();
@@ -213,7 +213,7 @@ function preflightArticles(items, options) {
       continue;
     }
 
-    // 审查 R-27：去重键同样转小写——Hello 与 hello 在大小写不敏感文件系统上会写同一个
+    // 去重键同样转小写——Hello 与 hello 在大小写不敏感文件系统上会写同一个
     // dist/<lang>/<slug>/index.html，后写者覆盖先写者。
     const key = String(lang) + '/' + slugLower;
     const first = seen.get(key);
@@ -235,7 +235,7 @@ function preflightArticles(items, options) {
     }
 
     const refs = new Set();
-    // 审查 R-07：只有站内 /media/ 引用参与存在性校验。绝对 URL 与协议相对地址
+    // 只有站内 /media/ 引用参与存在性校验。绝对 URL 与协议相对地址
     // （如 featuredImage: https://cdn.example.com/a.png）由渲染侧回退（buildCardImgAttrs 直出 src）
     // 与 CSP img-src https: 支持；此前把它们一并送检，会产出非 critical 的 media 错误，
     // 使普通构建（无 --allow-degraded）直接中止。

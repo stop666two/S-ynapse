@@ -83,7 +83,7 @@ function collectKeys(config, depth) {
 }
 
 // ---------------------------------------------------------------------------
-// 文档作用域（审查 R-33）：键必须落在「自己的模块」范围里才算覆盖。
+// 文档作用域：键必须落在「自己的模块」范围里才算覆盖。
 // 旧实现只把键路径最后一段叶子名丢进全文匹配，于是任何角落出现的 `enabled` 都能替
 // `features.lightbox.enabled` 作证；矩阵文档里同一叶子的重复键因此互相顶替。
 // 现口径（三条任一即可）：
@@ -164,7 +164,7 @@ function buildDocModel(docText) {
   return { docText, lines, headings: parseHeadings(lines) };
 }
 
-// 键是否被文档覆盖（审查 R-33：不再是「全文出现叶名」）。
+// 键是否被文档覆盖（不再是「全文出现叶名」）。
 function keyCovered(model, file, keyPath, leafCounts) {
   if (keyAppears(model.docText, keyPath)) return true;
   const segments = keyPath.split('.');
@@ -213,7 +213,7 @@ function checkDocs({ root = ROOT, docText } = {}) {
     const keys = collectKeys(config, policy.depth);
     checked += keys.length;
     for (const keyPath of keys) {
-      // 审查 R-33：按完整键路径 / 全站唯一叶名 / 所属模块作用域判定，不再全文找叶名
+      // 按完整键路径 / 全站唯一叶名 / 所属模块作用域判定，不再全文找叶名
       if (!keyCovered(model, policy.file, keyPath, leafCounts)) missing.push(policy.file + '.' + keyPath);
     }
     if (policy.file === 'features') {

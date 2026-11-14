@@ -131,7 +131,7 @@ function resolveOutPath(out, version) {
 }
 
 // 校验一个既有归档：统一前缀（= 版本绑定）、白名单、必需文件与必需目录内容。
-// 审查 R-35：release:publish 复用已存在的 zip 时此前完全不校验——早先 `--ref HEAD` 产出的、
+// release:publish 复用已存在的 zip 时此前完全不校验——早先 `--ref HEAD` 产出的、
 // 或手工放进 release-artifacts 的同名文件会被当成受审计附件上传。现在两条路径共用本函数：
 // 前缀由期望版本推出，assertArchiveContents 对每个条目强制该前缀，等于同时锁住版本。
 function verifyArchive(file, expectedVersion) {

@@ -49,7 +49,7 @@ const SAMPLE_CHANGELOG = [
   ''
 ].join('\n');
 
-// 审查 R-37 前这里写的是 checks: {}，而 renderGates() 无条件打 ✅——即空 checks 也宣称
+// 前这里写的是 checks: {}，而 renderGates() 无条件打 ✅——即空 checks 也宣称
 // 「全部通过」。现在门禁清单按 checks 真实状态渲染，因此样例外显式给出全 true（与
 // release:mark 正常产出等价），false/缺失 的渲染由专门用例覆盖。
 const SAMPLE_STATE = {
@@ -131,7 +131,7 @@ test('renderReleaseNotes：无归档附件时注明由 CI 附件流程提供，�
   assert.match(text, /RELEASE\.json：未能读取/);
 });
 
-// 审查 R-37：release-notes.yml 可对任意 tag 补更正文，此前的 renderGates() 无条件打 ✅、
+// release-notes.yml 可对任意 tag 补更正文，此前的 renderGates() 无条件打 ✅、
 // 且固定输出「12 项全部通过」——checks 为 false 或缺失时也在撒谎。
 test('renderGates：只对严格 true 打勾，false 记 ❌、缺失记 ⚠️ 未记录', () => {
   const checks = buildPassedChecks();

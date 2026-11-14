@@ -106,7 +106,7 @@ test('buildMatrix：行数与开关数一致，含统计与状态图例', () => 
 });
 
 test('sanitizeCode：注释与字符串字面量置空，真实代码原样保留', () => {
-  // 审查 R-33：旧索引直接按原文切词，于是注释/文案里的键名也能当「既有引用」
+  // 旧索引直接按原文切词，于是注释/文案里的键名也能当「既有引用」
   assert.strictEqual(inv.sanitizeCode('var a = 1; // enabled').trim(), 'var a = 1;');
   assert.ok(!inv.sanitizeCode('var a = 1; // enabled').includes('enabled'));
   assert.ok(!inv.sanitizeCode("var s = 'features.anchorStabilize.enabled';").includes('anchorStabilize'));
@@ -139,7 +139,7 @@ test('scanTestBlocks：只认 test()/it() 调用，断言判定忽略注释里�
   assert.strictEqual(blocks[1].hasAssert, false);
 });
 
-test('collectSwitchMarkers：marker 必须绑定到含断言的测试（审查 R-33 回归）', () => {
+test('collectSwitchMarkers：marker 必须绑定到含断言的测试（回归）', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'switch-marker-'));
   const file = path.join(dir, 'sample.test.js');
   // 标签文本在运行时拼接：本文件本身是被扫描的 *.test.js，不能把 marker 逐字写进源码，
@@ -174,7 +174,7 @@ test('collectSwitchMarkers：marker 必须绑定到含断言的测试（审查 R
   assert.ok(markers.has('features.demoInside.enabled'));
 });
 
-test('既有引用证据：注释与同名 token 不再替开关作证（审查 R-33 回归）', () => {
+test('既有引用证据：注释与同名 token 不再替开关作证（回归）', () => {
   const rows = inv.collectInventory();
   // 旧矩阵把 features.anchorStabilize.enabled / contentPolicy.enabled 的覆盖证据指到
   // scripts/auto-cover.test.js:22——那里只是 features.listCover.autoGenerate.* 的 marker 与
@@ -208,7 +208,7 @@ test('基线棘轮：基线键集合与当前缺失集合一致，且基线不�
   assert.deepStrictEqual(source.checkCoverage(rows, baseline), []);
 });
 
-test('三档完备：每个开关都落到 tested/existing/exempt，且豁免项必带已登记理由（R-33）', () => {
+test('三档完备：每个开关都落到 tested/existing/exempt，且豁免项必带已登记理由', () => {
   const rows = inv.collectInventory();
   const allowed = new Set(['tested', 'existing', 'exempt']);
   const unclassified = rows.filter((row) => !allowed.has(String(row.status)));

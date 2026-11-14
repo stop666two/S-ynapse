@@ -110,7 +110,7 @@ function gateChecks(state) {
 }
 
 // 门禁结果只认严格 true（与 release-validate 的判定同源）：缺失记 ⚠️、非 true 记 ❌。
-// 本生成器可对任意 tag 补更公开正文，无条件打勾会让正文宣称一个从未核验的门禁（审查 R-37）。
+// 本生成器可对任意 tag 补更公开正文，无条件打勾会让正文宣称一个从未核验的门禁。
 function renderGateLine(gate, checks) {
   const recorded = checks ? checks[gate.key] : undefined;
   if (recorded === true) return '- ✅ ' + gate.label + '（`' + gate.command + '`）';

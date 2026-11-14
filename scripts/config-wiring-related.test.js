@@ -1,6 +1,6 @@
 'use strict';
 
-// site.build.relatedArticles 接线的单测（审查 R-33 覆盖）。
+// site.build.relatedArticles 接线的单测（覆盖）。
 // 该开关此前只是构建管线里的一句内联判断（`config.site.build.relatedArticles !== false`），
 // 没有可单测的入口，覆盖证据只能靠跑两次完整构建。抽成 relatedEnabled() 后在此锁定两种取值，
 // 并确认 computeRelatedArticles 在关闭态不会被触发（由调用点保证，这里断言判据本身）。

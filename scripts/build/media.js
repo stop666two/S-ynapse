@@ -62,7 +62,7 @@ function createMediaModule(ctx) {
   function copyProtectedAssets(config) {
     const policy = config.contentPolicy || {};
     if (policy.enabled === false) {
-      // 审查 R-29：content-policy.json5 承诺「false 时三目录策略整体停用（内容照常复制）」，
+      // content-policy.json5 承诺「false 时三目录策略整体停用（内容照常复制）」，
       // 此前这里直接 return { copied: 0 }，导致 assets/、videos/ 与 media/ 下非 sharp 文件
       // （svg/gif/avif/bmp/ico/heic…）全部 404。关闭策略即信任源文件：原样复制，不做判定。
       console.log('  [POLICY] Content policy disabled: copying videos/, assets/, media/ verbatim');

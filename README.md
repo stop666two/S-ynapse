@@ -116,11 +116,11 @@ npm run serve
 ```
 
 > [!NOTE]
-> **Node 版本要求**：本项目要求 Node.js `^20.19.0 || ^22.13.0 || >=24`（`eslint` 10 与 `typescript` 的引擎下限，同时满足 `sharp` 0.35）；版本单源为根目录 `.nvmrc`（当前 24），CI 经 `node-version-file` 读取，`verify:internals` 守卫其与 `internals.ci.nodeVersion` 一致。
+> **Node 版本要求**：本项目要求 Node.js `^22.13.0 || >=24`（Node 20 已于 2026-04-30 EOL）（`eslint` 10 与 `typescript` 的引擎下限，同时满足 `sharp` 0.35）；版本单源为根目录 `.nvmrc`（当前 24），CI 经 `node-version-file` 读取，`verify:internals` 守卫其与 `internals.ci.nodeVersion` 一致。
 >
 > **npm 12（及以上）本机部署注意**：npm 12 默认禁止依赖的 `postinstall` 脚本（如 `esbuild`、`workerd` 的二进制下载），会导致本机 `npx wrangler deploy` 失败或部分依赖不完整。受影响的本机操作：
 > - 解决方案一（推荐）：经 `npm install --ignore-scripts` 后，再用 `npm rebuild --foreground-scripts esbuild workerd` 手动触发二进制下载；
-> - 解决方案二：使用 Node 20/22 附带的 npm 10（CI 环境为 npm 10，无此问题）；
+> - 解决方案二：使用 Node 22 附带的 npm 10（CI 环境为 npm 10，无此问题）；
 > - 构建站点（`npm run build`）本身不受影响，仅在本地执行 wrangler 部署命令时需要注意。
 
 ### Windows 快捷脚本
@@ -424,7 +424,7 @@ series: "示例系列"               # 系列名（侧栏系列组件 + 文章�
 
 ### 前置条件（通用）
 
-- Node.js ≥ 20.19（与 `package.json` 的 `engines`、`.nvmrc` 一致）；安装依赖：`npm ci`
+- Node.js ≥ 22.13（与 `package.json` 的 `engines`、`.nvmrc` 一致；Node 20 已于 2026-04-30 EOL）；安装依赖：`npm ci`
 - Cloudflare 部署使用 `npx wrangler@4 …`（无需全局安装）；本地先 `npx wrangler login`，CI 中使用 `CLOUDFLARE_API_TOKEN`（本仓库 GitHub Secret 名为 `CF_API_TOKEN`）
 - 构建：`npm run build`（含 14 项预算检查，结果同时写入 `dist/report.txt` 与 `build-report.html`）
 - 部署前自查：`npm run verify:internals`（校验 `.nvmrc` / wrangler 资产目录 / 端口等与 `internals.json5` 单源一致）
@@ -494,7 +494,7 @@ curl -sI https://<你的域名>/assets/css/site.css
 
 项目已包含 `.github/workflows/deploy.yml`，推送 `main` 分支自动构建部署。CI 作业：
 - `check-agents`：变更集中检测 AI 规则文件（AGENTS.md 及其变体），命中即阻断；
-- `compat-node20`：Node 20.19.0（`engines` 下限，与 `internals.ci.compatNodeVersion` 一致）上运行 `npm test` + `verify:config` + `verify:config-refs` + `verify:config-single-source` + `verify:config-dupes` + `npm run verify:internals` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
+- `compat-node22`：Node 22.13.0（`engines` 下限，与 `internals.ci.compatNodeVersion` 一致）上运行 `npm test` + `verify:config` + `verify:config-refs` + `verify:config-single-source` + `verify:config-dupes` + `npm run verify:internals` + `npm run test:build` + `npm run build`，保证 LTS 可用性；
 - `build`（Node 版本由 `.nvmrc` 单源控制，经 `node-version-file` 读取；`node scripts/ci-env.js` 导出 internals 环境）→ 单步 `node scripts/ci-checks.js`：**一次跑完整套检查且不提前中断**（lint、typecheck、test、test:coverage（`scripts/lib` 行覆盖率 ≥80%）、test:build、test:fuzz、test:malicious、verify:config 家族（config/refs/single-source/dupes/comments/docs 与 verify:internals）、verify:process-guards、verify:security、Chrome 依赖项 test:smoke/test:cov-web/verify:compression（未探测到浏览器时跳过并标注）、build、sbom；`audit`（依赖漏洞）与 `audit:a11y`（无障碍）为**建议项**——结果写入报告但不阻断），每项记录退出码/耗时/输出摘要，写入 `build-artifacts/ci-checks.{json,txt}`，末尾任一阻断项失败整体失败 → 始终上传 `ci-checks` 与 `test-artifacts`（`build-artifacts/**`，`always()`）→ Pages 部署（仅 `main`，调用 `npm run deploy:pages`，部署前自动跑 `verify:internals`）。
 - **进程永不挂死（自动化兜底）**：自动化运行一律走 `node scripts/spawn.js [--max-ms N] -- <命令>`（超时/断链清理整棵进程树、stdin 置空）；仓库高风险入口统一接入 `scripts/lib/process-guard.js`（父进程死亡、绝对生命周期、信号兜底），`npm run verify:process-guards` 巡检并纳入 CI 聚合。详见 `docs/runbook/process-hygiene.md`。
 - **无变化重复运行自动跳过**：`preflight` 作业调用 `scripts/ci-skip.js` 查询本工作流历史；当前 HEAD 与已运行序列一致且满足「连续阻断失败 2 次」或「连续完全无错无警告 5 次」时自动跳过（告警不计错也不计净，但重置失败连击）；`workflow_dispatch`、`CI_FORCE=1`、提交信息含 `[ci force]` 均强制运行。阈值与开关见 `internals.json5` 的 `ci.skip`（`docs/config-reference.md` 末节），聚合结论以提交状态 `ci/aggregate` 记录告警数。

@@ -754,7 +754,7 @@ function createMinifyModule(ctx) {
     const bustRegex = new RegExp(bustPattern, 'i');
     // 跳过：node_modules、og 目录、assets 目录、SW 固定路径；以及 PWA manifest 引用的固定文件名图标
     // （manifest.json 不参与路径重写，若对图标做哈希重命名会导致 manifest 引用 404）。
-    // 排除判定与搜索索引的最终路径预计算共用 scripts/lib/cache-bust-exclusions.js（审查 R-32）：
+    // 排除判定与搜索索引的最终路径预计算共用 scripts/lib/cache-bust-exclusions.js：
     // 两处各写一份会漂移，索引会写入「本轮从未被重命名」的哈希路径（搜索结果缩略图 404）。
     const exclusions = cacheBustExclusionOptions(config.site);
     const files = ctx.getAllFiles(ctx.distDir).filter(function (f) {
@@ -787,7 +787,7 @@ function createMinifyModule(ctx) {
       }
     }
     if (Object.keys(mapping).length > 0) {
-      // 改写规则（审查 R-13）：除「稳定名 → 本轮哈希名」外，再为每条映射生成
+      // 改写规则：除「稳定名 → 本轮哈希名」外，再为每条映射生成
       // 「同名 + 任意 10 位哈希」的别名规则。增量构建复用页面时不重渲染，HTML 里留下的是
       // 上一轮 cacheBust 写入的旧哈希名（/media/x.<旧hash>.webp），而本轮映射键是稳定名
       // （/media/x.webp，媒体按稳定名产出）—— 只按稳定名替换会让复用页永远引用旧图

@@ -146,7 +146,7 @@ function initLocal() {
   }
 }
 
-// Pagefind 链路（原 templates/search.ejs 内联脚本，审查 R-02 迁入模块）：
+// Pagefind 链路（原 templates/search.ejs 内联脚本，迁入模块）：
 // 同源加载 /pagefind/pagefind-ui.js —— 动态插入的外部脚本按 script-src 'self' 放行，无需 nonce。
 function initPagefind() {
   var wrap = document.getElementById('searchPageResults');

@@ -192,7 +192,7 @@ test('compressionActive：serve / watch 强制关闭，其余按总开关', () =
   assert.equal(compressionActive(DEFAULT_COMPRESSION, { serve: false, watch: false }), true);
 });
 
-// 审查 R-40：`**` 与尾随 `/**/` 曾是「配了但一条都排除不掉」的静默失效形态——
+// `**` 与尾随 `/**/` 曾是「配了但一条都排除不掉」的静默失效形态——
 // 裸 `**` 编成 ^(?:/.*)?$（只匹配空串与以 / 开头），`assets/**/` 编成只匹配以 / 结尾的路径。
 test('isExcluded glob 边界：裸 ** 与尾随 /**/ 必须真正排除', () => {
   assert.equal(isExcluded('a/b.js', ['**']), true, '裸 ** 应匹配任意路径');

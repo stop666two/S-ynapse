@@ -1,5 +1,5 @@
 'use strict';
-// 构建类配置开关的统一判定（审查 R-33 接线）。
+// 构建类配置开关的统一判定（接线）。
 // 背景：features.gallery.enabled / features.autoSummary.enabled / features.mediaAudit.enabled /
 // features.exportBackup.enabled 四个键此前只有 features.json5 注释与 schema 默认值，生产代码从不读取，
 // 用户写 false 毫无效果。此模块把「键 → 行为」收敛为可单测的纯函数，消费方只调用函数，

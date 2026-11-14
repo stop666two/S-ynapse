@@ -49,7 +49,7 @@ function scrollToTop() {
 var S = { bar: null, tip: null, dot: null, btt: null, dock: null, ring: null, dockToc: null, dockTop: null, ariaOn: false, tipTimer: 0, hoverOn: false, focusOn: false };
 var CFG = { RP: {}, BT: {}, D: {} };
 var lastW = -1, dockRaf = 0, progTimer = null, globalBound = false;
-// 审查 R-23：进度条/返回顶部等节点常驻在内容区之外，软导航每次 bind() 都会重新指向它们。
+// 进度条/返回顶部等节点常驻在内容区之外，软导航每次 bind() 都会重新指向它们。
 // 监听器必须幂等（data-*-bound 标记），否则监听器随导航次数线性增长、方向键一步跳 N×步长。
 function once(el, key) {
   if (!el) return false;
@@ -144,7 +144,7 @@ function bind() {
     if (CFG.RP.clickToJump !== false) {
       S.bar.classList.add('enabled');
       S.bar.setAttribute('tabindex', '0');
-      // 审查 R-23：#rp 常驻布局、软导航会反复经过这里；已绑定过的节点只刷新引用与配置态，
+      // #rp 常驻布局、软导航会反复经过这里；已绑定过的节点只刷新引用与配置态，
       // 不再重复挂监听器（否则 keydown 步长按导航次数叠加）。
       if (once(S.bar, 'rp')) {
         S.bar.addEventListener('click', function (e) {

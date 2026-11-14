@@ -32,7 +32,7 @@ jobs:
       - run: npm ci --omit=dev --ignore-scripts
       - name: Decide whether to skip this run
         id: decide
-        # 审查 R-04：提交信息与事件字段一律经 env 传入再引用。直接内插 ${{ }} 到 run: 脚本里
+        # 提交信息与事件字段一律经 env 传入再引用。直接内插 ${{ }} 到 run: 脚本里
         # 等于让 PR 标题/正文（squash 合入后即提交信息）经 bash 解析执行——外部贡献者可控。
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,7 +66,7 @@ jobs:
           echo "$CHANGED"
           echo "$CHANGED" | grep -qiE '(AGENTS\.md|AGENTS\.txt|AGENT\.md|AGENT\.txt|agent-readme\.md|RULES\.md)' && { echo "ERROR: AI rule files detected in changes. Blocking merge."; exit 1; } || echo "OK: No AI rule files detected."
 
-  compat-node20:
+  compat-node22:
     needs: [check-agents, preflight]
     if: needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
@@ -76,10 +76,10 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '20.19.0'
+          node-version: '22.13.0'
           cache: 'npm'
       - run: npm ci
-      - name: Tests (Node 20 LTS floor)
+      - name: Tests (Node 22 LTS floor)
         run: npm test
       - name: Smoke build + installable app (Node 20 LTS floor)
         run: |
@@ -118,9 +118,9 @@ jobs:
     needs: [check-agents, preflight, windows-compat]
     if: needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
-    # 审查 R-38：本 job 跑聚合门禁（23 项 × internals.ci.checkTimeoutMs），最坏预算 ≈230min，
+    # 本 job 跑聚合门禁（23 项 × internals.ci.checkTimeoutMs），最坏预算 ≈230min，
     # 此前没有显式 timeout，只能靠平台默认值；显式声明与 nightly 同口径。
-    timeout-minutes: 260
+    timeout-minutes: 300
     permissions:
       contents: read
       statuses: write
@@ -160,7 +160,7 @@ jobs:
             echo "CF_API_TOKEN not configured, skipping deploy"
             exit 0
           fi
-          # 审查 R-06：Pages 只有构建期 _headers 的静态安全头，没有限流/路径拦截/维护模式/
+          # Pages 只有构建期 _headers 的静态安全头，没有限流/路径拦截/维护模式/
           # HTTPS 跳转（见 docs/architecture.md §1.1）。生产域必须指向 Worker，Pages 仅预览。
           echo "NOTE: deploying to Cloudflare Pages (project: s-ynapse) — no rate limiting, path blocking, maintenance mode or HTTPS redirect on this surface."
           npm run deploy:pages

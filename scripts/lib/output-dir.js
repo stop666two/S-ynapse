@@ -3,7 +3,7 @@
 // 构建输出目录共享解析：`--out <dir>` > SYNAPSE_OUT_DIR > internals.paths.outDir > 默认 dist。
 // 相对值按 rootDir 解析；供构建上下文与审计/验证/OG 生成脚本复用同一语义。
 //
-// 两条不变量（审查 R-01 / R-14）：
+// 两条不变量（/ ）：
 //   1. `custom` 表示「输出目录不是默认 dist」，而不是「是否显式指定过」。
 //      构建只对默认 dist 写 workers/security-config.js（其 assets 目录固定为 ../dist），
 //      因此 CI 导出的 SYNAPSE_OUT_DIR=<root>/dist 必须仍算非自定义。

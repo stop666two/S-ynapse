@@ -1,5 +1,5 @@
 'use strict';
-// cacheBust 排除判定单测（审查 R-32）：产物重命名（scripts/build/minify.js）与搜索索引的
+// cacheBust 排除判定单测：产物重命名（scripts/build/minify.js）与搜索索引的
 // featuredImage 最终路径预计算（scripts/lib/search-index.js）必须共用同一判定，否则索引会写入
 // 「本轮从未被重命名」的哈希路径（搜索结果缩略图 404）。
 // 运行：node --test scripts/lib/cache-bust-exclusions.test.js（由 npm test 统一收集）。

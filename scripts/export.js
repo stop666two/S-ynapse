@@ -4,7 +4,7 @@ require('./lib/process-guard.js');
 
 const fs = require('fs');
 const path = require('path');
-// 审查 R-33 接线：引入统一开关判定（features.exportBackup.enabled）。
+// 接线：引入统一开关判定（features.exportBackup.enabled）。
 const { exportBackupEnabled } = require('./lib/build-switch-gates');
 
 // 站点根：SYNAPSE_ROOT（测试隔离用）优先，默认仓库根——与 scripts/build.js / generate-og.js 同约定。
@@ -114,7 +114,7 @@ function main() {
   const exportCfg = features.exportBackup && typeof features.exportBackup === 'object'
     ? features.exportBackup
     : {};
-  // 审查 R-33 接线：features.exportBackup.enabled=false 时拒绝执行。
+  // 接线：features.exportBackup.enabled=false 时拒绝执行。
   // 用户显式调用了 npm run export，静默成功会让人误以为备份已生成，因此非零退出 + 明确原因。
   // 判定先于 articles 目录检查：禁用态的输出与仓库状态无关，便于脚本/CI 断言。
   if (!exportBackupEnabled(features)) {

@@ -4,7 +4,7 @@
 > 键全集来自 `features-schema.js` / `tuning-defaults.js` / `site-defaults.js`（site/navigation/sidebar/footer/theme/security/friends/tagAliases/contentPolicy 全段）/ `internals-defaults.js` 注册表；
 > `guard.json5` 细节键由 `guard-defaults.js` 与 guard 测试覆盖，不在本矩阵。
 > 覆盖证据优先级：`test()`/`it()` 断言回调内的 `// switch: <键路径>` 标记（或紧贴该测试上方的标记）> 测试代码中「叶名 + 所属模块名同现」的引用 > `scripts/config-switch-exemptions.json` 逐键豁免理由。
-> 证据口径（审查 R-33）：注释与字符串字面量先净化再切词，marker 必须绑定到含 assert 的测试回调，既有引用必须落在 test 回调内且 ±2 行内出现所属模块名——「文本里出现过」不再算覆盖。
+> 证据口径：注释与字符串字面量先净化再切词，marker 必须绑定到含 assert 的测试回调，既有引用必须落在 test 回调内且 ±2 行内出现所属模块名——「文本里出现过」不再算覆盖。
 > 消费位置按「叶子键名 + 父段」评分定位首个源码引用，供人工复核；存在同名字段的模块以类型与默认值判别。
 > 回退字面量必须与注册表默认一致，由 `scripts/config-fallback-bindings.json` + `verify:config-single-source` 锁定。
 > 「缺失」行是已登记在 `scripts/config-switch-baseline.json` 的存量缺口：新增缺失会让门禁失败，基线只允许缩小。
@@ -686,7 +686,7 @@
 | `internals.cache.mediaTtlDays` | number | 0 | scripts/build/media.js:14 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `internals.cache.mermaidTtlDays` | number | 0 | scripts/build/mermaid.js:52 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `internals.cache.ogTtlDays` | number | 0 | scripts/generate-og.js:27 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
-| `internals.ci.aggregate` | bool | true | scripts/ci-checks.js:28<br>scripts/ci-env.js:22<br>scripts/ci-checks.js:196 | scripts/internals.test.js:47 | 既有引用 |
+| `internals.ci.aggregate` | bool | true | scripts/ci-checks.js:28<br>scripts/ci-env.js:22<br>scripts/ci-checks.js:197 | scripts/internals.test.js:47 | 既有引用 |
 | `internals.ci.checkTimeoutMs` | number | 600000 | scripts/check-internals.js:146<br>scripts/ci-checks.js:29 | 豁免理由见 `scripts/config-switch-exemptions.json` | 豁免 |
 | `internals.ci.skip.consecutiveClean` | number | 5 | scripts/lib/ci-skip.js:61<br>scripts/lib/ci-skip.js:87<br>scripts/lib/ci-skip.js:90 | scripts/ci-skip.test.js:47<br>scripts/ci-skip.test.js:55 | 既有引用 |
 | `internals.ci.skip.consecutiveErrors` | number | 2 | scripts/lib/ci-skip.js:60<br>scripts/lib/ci-skip.js:78<br>scripts/lib/ci-skip.js:81 | scripts/ci-skip.test.js:47<br>scripts/ci-skip.test.js:55 | 既有引用 |

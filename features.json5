@@ -1341,8 +1341,8 @@
     // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
     autoDetect: true,
     // CDN 版本（须与 package.json 的 katex 依赖一致）。
-    // 类型: string(语义化版本) | 可填: 已安装的 katex 版本号 | 不可填: 任意版本（vendored 资源以安装版本为准,改此值不改变加载来源） | 推荐: '0.16.22'
-    version: '0.16.22',
+    // 类型: string(语义化版本) | 可填: 已安装的 katex 版本号 | 不可填: 任意版本（vendored 资源以安装版本为准,改此值不改变加载来源） | 推荐: '0.19.1'
+    version: '0.19.1',
     // 行内定界符（数组，≥1 项，正则元字符按字面量匹配；对称闭合、不跨行）。
     // 类型: string[] | 可填: 1–3 字符的定界符（默认 ['$']） | 不可填: 空数组（行内公式不可用） | 推荐: ['$']
     inlineDelimiters: ['$'],
@@ -1384,8 +1384,8 @@
     autoDetect: true,
     // Mermaid 版本标识（信息性，镜像 package.json 安装版本；构建期 SSR 与缓存键、
     // 客户端 vendor 均直接使用安装版本，改此值不改变加载来源）。守卫测试锁定二者一致。
-    // 类型: string | 可填: 与 package.json 的 mermaid 依赖一致 | 不可填: 其他版本（守卫校验失败） | 推荐: '11.17.2'
-    version: '11.17.2',
+    // 类型: string | 可填: 与 package.json 的 mermaid 依赖一致 | 不可填: 其他版本（守卫校验失败） | 推荐: '12.3.0'
+    version: '12.3.0',
     // 图表主题是否跟随站点主题。
     // true(默认) = 明/暗双主题（受 darkMode 控制）；false = 仅明色主题，暗色沿用同一张图。
     // 类型: boolean | 可填: true(默认)/false | 不可填: 非布尔值 | 推荐: true
@@ -2648,9 +2648,9 @@
     // 应用 JS(assets/js)全量 gzip 合计上限(KB;第三方 vendor 库按需懒加载,不计入)。
     // 76KB 口径说明:统计含 app+deferred+shared+runtime 全部 chunk;实测 75.3KB
     // (首屏实际加载 app+runtime 约 19KB,deferred/shared 按需懒加载)。
-    // 75→76 的原因不是功能膨胀:审查 R-02 把搜索页初始化从 templates/search.ejs 的内联
+    // 75→76 的原因不是功能膨胀:把搜索页初始化从 templates/search.ejs 的内联
     // <script> 迁入 deferred bundle(search-page.js),同一批字节从 HTML 预算侧移到 JS 侧;
-    // 另有 R-21/R-22/R-23/R-26 的软导航重绑与遮罩逻辑新增。
+    // 另有 ///的软导航重绑与遮罩逻辑新增。
     // 76→77：引语数据移出启动配置后，运行时多了「按需拉取 + 失败回退」的加载器（约 0.9KB gz），
     // 但首屏总字节是下降的（启动配置 −9.4KB gz，2G 路径 1129→约 111KiB）。预算是防劣化护栏，
     // 不是目标值，故按实测 + 1KB 余量取值。

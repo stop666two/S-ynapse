@@ -1,5 +1,5 @@
 'use strict';
-// R-23 回归：#rp/#btt 常驻在内容区之外，软导航每次都会重跑 bind()。
+// 回归：#rp/#btt 常驻在内容区之外，软导航每次都会重跑 bind()。
 // 监听器必须幂等，否则方向键步长按导航次数叠加、监听器随导航泄漏。
 const test = require('node:test');
 const assert = require('node:assert');
@@ -67,7 +67,7 @@ function installDom() {
   return { bar, btt };
 }
 
-test('R-23 重复 bind（软导航）不得线性增加进度条/返回顶部监听器', async () => {
+test('重复 bind（软导航）不得线性增加进度条/返回顶部监听器', async () => {
   const dom = installDom();
   const { init } = await load();
   init();

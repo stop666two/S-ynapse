@@ -526,7 +526,7 @@ describe('generate-security-config', () => {
     assert.strictEqual(out.csp.reportOnly, false);
     assert.strictEqual(out.cspReportMaxBytes, 16384, '缺失回退 16384');
     assert.deepStrictEqual(out.pathRestrictions, [{ path: '/admin/*' }]);
-    // 审查 R-11：缺键不再被写成 []（= 静态资源也计入限流），而是透传 undefined，
+    // 缺键不再被写成 []（= 静态资源也计入限流），而是透传 undefined，
     // 由 Worker 内置 DEFAULT_SKIP_PATHS 兜底；该断言此前把错语义固化成了预期。
     assert.strictEqual(out.rateLimiting.skipPaths, undefined);
   });
@@ -536,9 +536,9 @@ describe('generate-security-config', () => {
     assert.strictEqual(extractWorkerSecurity({ hardening: { cspReportMaxBytes: 'big' } }).cspReportMaxBytes, 16384, '非数字回退');
     assert.strictEqual(extractWorkerSecurity({ rateLimiting: { maxTrackedEntries: -1 } }).rateLimiting.maxTrackedEntries, 5000, '负数回退');
   });
-  // 审查 R-10：csp.enabled:false 是应急开关，_headers 侧已停止下发；Worker 侧若继续投影
+  // csp.enabled:false 是应急开关，_headers 侧已停止下发；Worker 侧若继续投影
   // directives 会在动态响应上把完整 CSP 贴回来，开关等于失效。空 directives = Worker 不下发。
-  it('stops emitting worker CSP directives when csp.enabled is false (R-10)', () => {
+  it('stops emitting worker CSP directives when csp.enabled is false ', () => {
     const off = extractWorkerSecurity({ csp: { enabled: false, directives: { 'default-src': ["'self'"] } } });
     assert.deepStrictEqual(off.csp.directives, {});
     assert.deepStrictEqual(off.csp.reportUri, '/csp-report', '上报端点保留，便于排障期收集');
@@ -773,9 +773,9 @@ describe('hasHighlightableCode', () => {
   });
 });
 
-// 审查 R-15：初始构建曾绕过 building 守卫（只有 rebuild() 置位），首轮进行中保存文件会并发跑
+// 初始构建曾绕过 building 守卫（只有 rebuild() 置位），首轮进行中保存文件会并发跑
 // 第二轮 build。守卫抽到 lib/watch-mode.js 后在此直接对并发语义断言，无需起 dev server。
-describe('watch-mode createBuildSerializer（审查 R-15）', () => {
+describe('watch-mode createBuildSerializer', () => {
   it('进行中再次触发只排队，当前轮结束后补跑一次，两轮永不重叠', async () => {
     const serializer = createBuildSerializer();
     let active = 0;
@@ -810,8 +810,8 @@ describe('watch-mode createBuildSerializer（审查 R-15）', () => {
   });
 });
 
-// 审查 R-16：watchPaths 曾缺 data/，改每日一言数据不触发重建。
-describe('watch-mode resolveWatchPaths（审查 R-16）', () => {
+// watchPaths 曾缺 data/，改每日一言数据不触发重建。
+describe('watch-mode resolveWatchPaths', () => {
   const paths = resolveWatchPaths('/proj');
   it('包含 data/ 子树', () => {
     assert.ok(paths.includes(path.join('/proj', 'data', '**', '*')), '缺少 data/ 监听：' + paths.join(', '));
@@ -835,8 +835,8 @@ describe('watch-mode resolveWatchPaths（审查 R-16）', () => {
   });
 });
 
-// 审查 R-17：单张 OG 图失败曾记成 fatal（默认值），使已完整生成的 dist 整体非零退出。
-describe('OG 失败降级（审查 R-17）', () => {
+// 单张 OG 图失败曾记成 fatal（默认值），使已完整生成的 dist 整体非零退出。
+describe('OG 失败降级', () => {
   it('fatal:false 的记录不参与退出码（与 media/minify 降级路径同语义）', () => {
     const c = createBuildErrorCollector();
     c.add('og', 'generate-og.js exited with status 1', { fatal: false });

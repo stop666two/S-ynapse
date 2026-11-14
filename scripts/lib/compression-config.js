@@ -217,7 +217,7 @@ function globToRegExp(pattern) {
   const cached = globCache.get(pattern);
   if (cached) return cached;
   let normalized = normalizePath(pattern);
-  // 审查 R-40：`assets/**/` 与 `assets/**` 语义相同（目录尾部斜杠不应改变匹配集合）。
+  // `assets/**/` 与 `assets/**` 语义相同（目录尾部斜杠不应改变匹配集合）。
   // 不归一化会编出只匹配「以 / 结尾路径」的正则，等于一条都排除不掉，配置看着生效实则无效。
   if (normalized.endsWith('/**/')) normalized = normalized.slice(0, -1);
   let source = '';
@@ -229,7 +229,7 @@ function globToRegExp(pattern) {
           source += '(?:.*/)?';
           i += 2;
         } else if (i + 2 === normalized.length) {
-          // 审查 R-40：裸 `**` 表示「任意路径」。此前统一按 `(?:/.*)?` 拼接，
+          // 裸 `**` 表示「任意路径」。此前统一按 `(?:/.*)?` 拼接，
           // 裸 `**` 会变成 ^(?:/.*)?$（只匹配空串与以 / 开头的串），a/b.js 反而匹配不上。
           if (source === '') source = '.*';
           else if (source.endsWith('/')) source = source.slice(0, -1) + '(?:/.*)?';

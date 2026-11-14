@@ -1,7 +1,7 @@
 export function init() {
   var F = (window.__FEATURES__ || {}).readingHistory || {};
   if (F.enabled === false) return;
-  // 审查 R-25：配置外置加载失败时 features.readingHistory 只剩 enabled（降级子集仅内联 guards），
+  // 配置外置加载失败时 features.readingHistory 只剩 enabled（降级子集仅内联 guards），
   // 旧写法 String(F.storageKey) 会得到字符串 "undefined" —— 历史写进无效键、恢复后「继续阅读」为空
   // 且脏键永久残留。回退键与 continue-reading 的默认键同源（'s-history'）。
   var KEY = String(F.storageKey || 's-history');

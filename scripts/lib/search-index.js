@@ -103,7 +103,7 @@ function pruneIndexToBudget(index, maxBytes, options) {
 
 // featuredImage 最终路径预计算：只处理站内绝对路径（非 assets/og/node_modules、SW 基名与 PWA
 // 图标 basename、无查询串、扩展名参与 cacheBust 的媒体），规则与 scripts/build/minify.js →
-// cacheBust 共用 scripts/lib/cache-bust-exclusions.js（审查 R-32：两处各写一份必然漂移，
+// cacheBust 共用 scripts/lib/cache-bust-exclusions.js（两处各写一份必然漂移，
 // 索引会写入从未被重命名的哈希路径 → 搜索结果缩略图 404），含幂等跳过。
 function resolveFinalAssetUrl(distDir, url, options) {
   const opts = options || {};

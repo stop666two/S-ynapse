@@ -201,7 +201,7 @@ function createFeedsModule(ctx) {
           urls.push({ loc: a.url, changefreq: postFreq, priority: String(postPr), lastmod: a.modified || a.date || undefined });
         }
         if (config.site.build.generateArchive !== false) urls.push({ loc: pf + 'archive/', changefreq: pageFreq, priority: String(pagePr) });
-        // 审查 R-33 接线：features.gallery.enabled 与 site.build.generateGallery 任一关闭都不写入本条
+        // 接线：features.gallery.enabled 与 site.build.generateGallery 任一关闭都不写入本条
         //（否则 sitemap 会宣布一个不存在的 /{lang}/gallery/）。
         if (galleryPageEnabled(config)) urls.push({ loc: pf + 'gallery/', changefreq: pageFreq, priority: String(pagePr) });
         if (config.site.build.generateTags !== false) {
@@ -331,7 +331,7 @@ function createFeedsModule(ctx) {
     if (fullContent && searchWeightOf(s.weightContent, 1) > 0) indexFields.push('content');
     const busting = config.site.build.enableCacheBusting === true;
     const cacheBustExclusions = cacheBustExclusionOptions(config.site);
-    // 排除集与 cacheBust 同源（审查 R-32）：SW 基名 / PWA 图标 basename 在真实重命名里被跳过，
+    // 排除集与 cacheBust 同源：SW 基名 / PWA 图标 basename 在真实重命名里被跳过，
     // 索引预计算必须同样跳过，否则会写入不存在的哈希路径。
     const bustOpts = {
       cacheBusting: busting,

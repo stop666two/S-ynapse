@@ -1,6 +1,6 @@
 'use strict';
 /* global document */
-// 审查 R-33 接线回归：features.themeToggle.enabled / features.morphIcons.enabled /
+// 接线回归：features.themeToggle.enabled / features.morphIcons.enabled /
 // features.codeCopy.enabled 三个开关此前「零消费」——用户写 enabled:false 也毫无效果。
 // 本文件为每个开关断言「两种取值产生不同行为」，marker 注释与断言均真实依赖该开关：
 //   - themeToggle.enabled=false：不渲染按钮（模板静态断言）、不暴露 window.toggleDark、

@@ -33,7 +33,7 @@ function createModule(srcRoot, distRoot, cacheRoot) {
 }
 
 describe('copyProtectedAssets', () => {
-  // 审查 R-29：content-policy.json5 承诺 enabled:false 时三目录「内容照常复制」，
+  // content-policy.json5 承诺 enabled:false 时三目录「内容照常复制」，
   // 旧实现直接 return { copied: 0 }，导致 assets/、videos/ 与 media/ 下非 sharp
   // 文件（svg/gif/avif/bmp/ico/heic…）全部 404。
   it('copies assets/, videos/ and media/ verbatim when the policy is disabled', () => {

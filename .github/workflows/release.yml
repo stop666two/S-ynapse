@@ -16,7 +16,7 @@ on:
 permissions:
   contents: write
 
-# 审查 R-05：prune 步骤是「列举全部 Release 后删除非 keep 项」，两个 tag 并发发布时
+# prune 步骤是「列举全部 Release 后删除非 keep 项」，两个 tag 并发发布时
 # 会互删对方刚创建的 Release（最终零 Release 而两边全绿）。这里用固定 group 串行化
 # 全部发布（不能按 ref 分组，否则不同 tag 仍会并发），且不取消进行中的发布。
 concurrency:

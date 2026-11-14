@@ -227,7 +227,7 @@ describe('createMediaResolver 引用解析', () => {
     const spec = fc.tuple(stem, fc.constantFrom('.png', '.jpg'), fc.integer({ min: 1, max: 4096 }));
     checkProperty('mediaResolver-变体', fc, fc.property(spec, ([base, ext, width]) => {
       const exists = createMediaResolver([base + ext]);
-      // 审查 R-31：构建输出 media/<name>-<width>.<ext>，没有 variants/ 目录；
+      // 构建输出 media/<name>-<width>.<ext>，没有 variants/ 目录；
       // 旧属性把 /media/variants/… 钉为命中，与实际产物相反。
       assert.strictEqual(exists('/media/' + base + '-' + width + '.webp'), true);
       assert.strictEqual(exists('/media/' + base + '-' + width + '.avif'), true);

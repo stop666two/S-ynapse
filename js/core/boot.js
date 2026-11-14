@@ -7,7 +7,7 @@ let B = {};
 // 首帧让步的兜底上限（毫秒）：页面处于隐藏/预渲染态时 rAF 不产生回调，
 // 不得让关键队列等待首帧而永久挂起。
 const FIRST_FRAME_FALLBACK_MS = 300;
-// 审查 R-26：等待外置配置期间（最长 __CONFIG_TIMEOUT__，默认 3s）交互队列全部被 await 挡住，
+// 等待外置配置期间（最长 __CONFIG_TIMEOUT__，默认 3s）交互队列全部被 await 挡住，
 // 而遮罩原本在 await 之后才创建 —— 弱网下首屏看似就绪实则无响应且无任何提示。
 // 配置就绪前读不到 features.loading，这里按配置默认值（delayMs=120）延迟挂一个静态遮罩：
 // 快配置不显示（不引入闪烁），慢配置立刻有反馈；配置就绪后由正式流程复用或淡出。
@@ -118,7 +118,7 @@ export async function boot(queues) {
     }, wait);
   }
 
-  // 审查 R-26：等待配置期间已挂上的遮罩并入正式流程 —— 配置允许遮罩时复用它（不再二次创建、
+  // 等待配置期间已挂上的遮罩并入正式流程 —— 配置允许遮罩时复用它（不再二次创建、
   // 不丢失 aria-busy），配置声明关闭遮罩或 reduced-motion 跳过时按正式节奏淡出。
   if (preOverlay) {
     overlay = preOverlay;

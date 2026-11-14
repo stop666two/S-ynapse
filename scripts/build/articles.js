@@ -12,7 +12,7 @@ const { preflightArticles, createMediaResolver, createBrokenMediaMatcher } = req
 const { formatDate, dateParts, safeSlug, validateSlug, applyCjkSpacingToHtml, extractToc, sanitizeHtml, truncateCodePoints, countWords, countWordsDetail, resolveWikiLinks, hasHighlightableCode, setOwnProperty } = require('../lib/utils');
 const { siteLanguages: resolveSiteLanguages } = require('../lib/site-lang');
 const { makeArticleComparator, stripMarkdownText, mathConfig, mathNeeded, wordCountConfig } = require('../lib/feature-wiring');
-// 审查 R-33 接线：features.autoSummary.enabled（自动摘要总开关）判定。
+// 接线：features.autoSummary.enabled（自动摘要总开关）判定。
 const { autoSummaryEnabled } = require('../lib/build-switch-gates');
 
 // 损坏头图回退：媒体处理失败的头图（源文件存在但 sharp 无法处理）在页面/卡片生成前清空，
@@ -206,7 +206,7 @@ function createArticlesModule(ctx) {
         } else {
           slug = safeSlug(title);
         }
-        // 审查 R-27：运行时去重同样按小写比较。预校验的 slug 错误是 non-critical，
+        // 运行时去重同样按小写比较。预校验的 slug 错误是 non-critical，
         // `--allow-degraded` 时构建会继续走到这里；大小写敏感的 key 会让 Hello/hello
         // 在 Windows/macOS 上互相覆盖，正好落在降级路径上。
         const slugKey = String(slug).toLowerCase();
@@ -279,7 +279,7 @@ function createArticlesModule(ctx) {
         // Code blocks (incl. mermaid sources) and math placeholders are stripped first so
         // raw code / TeX never leaks into cards, meta, feeds or search index.
         let excerptText = excerpt;
-        // 审查 R-33 接线：features.autoSummary.enabled=false 时不再用正文自动生成摘要，
+        // 接线：features.autoSummary.enabled=false 时不再用正文自动生成摘要，
         // 仅使用 frontmatter excerpt（缺失即空串）。标题/日期/标签/字数/读数/搜索索引正文等
         // 其它字段不受影响——关闭的只是「无 excerpt 时从正文派生摘要」这一条路径。
         if (!excerptText && autoSummaryEnabled(config.features)) {

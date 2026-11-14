@@ -36,7 +36,7 @@ function update() {
   }
 }
 
-// 审查 R-21：移动端浮动目录块（按钮 + 抽屉）必须与当前内容同源。模板只在首屏按 article.toc
+// 移动端浮动目录块（按钮 + 抽屉）必须与当前内容同源。模板只在首屏按 article.toc
 // 渲染它，而且位于 .content-wrapper 之外——软导航只替换内容区，于是文章→首页残留上一页章节、
 // 首页→文章则完全没有入口。这里按当前内容区的 .toc-sidebar-list 重建/移除该块（数据源与桌面
 // 侧栏同一份章节列表），交互用 onclick/data-bound 幂等重绑。
@@ -239,7 +239,7 @@ function bind() {
   });
 
   // 快捷键帮助（元素可能不在本页，按 id 取到则绑定）；移动端抽屉的交互统一由 syncMobileToc 负责
-  // （审查 R-21：该块不在本函数的数据链路上，且需要每次按当前内容区重建）。
+  // （该块不在本函数的数据链路上，且需要每次按当前内容区重建）。
   var h = document.getElementById('kbdHelp');
   if (h) {
     h.dataset.tocBound = '1';

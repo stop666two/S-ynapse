@@ -2,7 +2,7 @@
 // release:mark 命令行行为测试：dry-run 端到端（不写文件、输出计划、退出码 0）、
 // 递增路径与同版本标记路径的分支输出、参数拒绝矩阵。
 // 真实发布会执行门禁、改版本、提交与打 tag，因此测试只覆盖 dry-run、前置拒绝路径
-// 与门禁结果核对（自跳过 → checks 记 false，审查 R-36）。
+// 与门禁结果核对（自跳过 → checks 记 false，）。
 //
 // 被测脚本以自身位置解析仓库根（__dirname/..），因此测试在临时目录搭建最小夹具仓库：
 // 复制 release-mark.js 与 lib 依赖，写入固定 package.json、CHANGELOG（含 [Unreleased]）、
@@ -266,7 +266,7 @@ test('release-mark：--push 缺少 --confirm-push 二次确认被拒绝', functi
   assertNoWrites(before);
 });
 
-// —— 审查 R-36：退出码 0 但「自跳过」的门禁不得记入 RELEASE.json.checks 为 true ——
+// —— 退出码 0 但「自跳过」的门禁不得记入 RELEASE.json.checks 为 true ——
 // 旧实现只按退出码判定（buildPassedChecks 预置全 true 后不再改动），无 Chrome 时
 // verify:compression 以 status=skipped 退出 0，于是 checks['verify-compression'] 谎报通过。
 // 下面以临时根目录中的报告文件驱动核对逻辑（真实门禁条目 + 真实报告路径约定）。

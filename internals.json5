@@ -192,7 +192,7 @@
     // 可填：package.json engines 下限对应版本。
     // 不可填：高于 ci.nodeVersion 的版本（失去兼容性下限验证意义）。
     // 推荐：20.19.0（engines ^20.19.0 下限）。
-    compatNodeVersion: '20.19.0',
+    compatNodeVersion: '22.13.0',
     // 作用：CI 检查是否以「聚合模式」运行（单步跑完整套、统一汇总失败）。
     // 类型：布尔值。
     // 可填：true（scripts/ci-checks.js 跑完全部检查再统一失败）或 false（遇首个失败即停）。

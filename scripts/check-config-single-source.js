@@ -7,7 +7,7 @@
 //   R2 矩阵文档新鲜度：docs/config-switch-matrix.md 必须与 gen-config-switch-matrix 输出逐字一致；
 //   R3 覆盖完整性：所有开关必须有「测试 marker / 既有引用 / 豁免理由」之一；
 //      未知 marker、未知豁免键、已覆盖键的冗余豁免同样 FAIL。
-//      审查 R-33：证据口径收紧后仍有 194 个开关无测试证据，全部登记在
+//      证据口径收紧后仍有 194 个开关无测试证据，全部登记在
 //      scripts/config-switch-baseline.json（基线棘轮）——新增未覆盖开关FAIL，
 //      基线里的键补上证据后未删除条目也 FAIL，基线只允许缩小。
 // 退出码：0 = 全部通过；1 = 存在问题（逐条打印）。
@@ -89,7 +89,7 @@ function checkMatrix(inventory) {
   return problems;
 }
 
-// 覆盖基线（审查 R-33）：登记「当前仍无测试证据」的开关全集，只允许缩小。
+// 覆盖基线：登记「当前仍无测试证据」的开关全集，只允许缩小。
 function loadBaseline() {
   if (!fs.existsSync(BASELINE_FILE)) return new Set();
   const parsed = JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf-8'));

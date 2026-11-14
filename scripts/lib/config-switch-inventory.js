@@ -6,7 +6,7 @@
 //   - 覆盖证据 = 测试文件中的 `// switch: <键路径>` 标记 > 既有测试键名引用 > 豁免登记。
 // scripts/gen-config-switch-matrix.js 生成文档，scripts/check-config-single-source.js 校验。
 //
-// 证据口径（审查 R-33：旧实现「文本里出现过就算覆盖」，门禁可自证）：
+// 证据口径（旧实现「文本里出现过就算覆盖」，门禁可自证）：
 //   - marker 必须绑定到某个含断言的 `test()/it()` 回调：落在回调体内，或紧贴在该回调
 //     之前（中间只有空行/注释行）；写在 describe 体内、文件任意位置的注释不再算覆盖；
 //   - 索引先净化源码（注释与字符串字面量置空），键名出现在注释/文案里不构成「既有引用」；
@@ -149,7 +149,7 @@ function relativePath(file) {
 }
 
 // ---------------------------------------------------------------------------
-// 词法净化（审查 R-33）：把注释与字符串字面量置为空格，只保留真实代码标识符。
+// 词法净化：把注释与字符串字面量置为空格，只保留真实代码标识符。
 // 逐字符扫描而非正则套正则：偏移与换行都保留，因此下标与行号仍可直接使用。
 // ---------------------------------------------------------------------------
 const REGEX_PREV_CHAR = /[=(,:;[!&|?{}~^+\-*%<>]$/;
@@ -279,7 +279,7 @@ function buildIndex(files, { skipTests }) {
     if (skipTests === isTest) continue;
     let text;
     try { text = fs.readFileSync(file, 'utf-8'); } catch (error) { continue; }
-    // 审查 R-33：先净化再切词——注释/字符串里的键名不构成「既有引用」
+    // 先净化再切词——注释/字符串里的键名不构成「既有引用」
     const code = sanitizeCode(text);
     const lines = code.split(/\r?\n/);
     filesByPath.set(rel, { lines, blocks: isTest ? scanTestBlocks(text) : null });
@@ -329,7 +329,7 @@ function hasToken(line, token) {
   return new RegExp('(?<![A-Za-z0-9_$])' + escapeToken(token) + '(?![A-Za-z0-9_$])').test(line);
 }
 
-// 模块名判定（审查 R-33）：既接受独立标识符（analytics → `analytics:`），也接受它作为
+// 模块名判定：既接受独立标识符（analytics → `analytics:`），也接受它作为
 // 复合标识符的一个 camelCase 词出现（announcement → parseAnnouncement、
 // autoCover → resolveAutoCoverConfig）——测试里通常以「解析函数名」体现所属模块，
 // 若不认这种写法会把真实覆盖误判为缺失。
@@ -361,7 +361,7 @@ function ownerTokenOf(keyPath) {
 }
 
 const OWNER_WINDOW = 2;
-// marker 与「其后最近的那个测试」之间允许的行距上限（审查 R-33）
+// marker 与「其后最近的那个测试」之间允许的行距上限
 const ATTACH_MAX_GAP = 12;
 
 function ownerInWindow(lines, line, token) {
@@ -371,7 +371,7 @@ function ownerInWindow(lines, line, token) {
   return false;
 }
 
-// 既有引用证据（审查 R-33）：叶子 token 命中 + 所属模块名在 ±2 行窗口内 + 命中行落在
+// 既有引用证据：叶子 token 命中 + 所属模块名在 ±2 行窗口内 + 命中行落在
 // test()/it() 回调体内。三者缺一，该命中就只是「同名 token」，不作覆盖证据。
 function locateTestEvidence(filesByPath, index, keyPath, maxHits) {
   const segments = keyPath.split('.');
@@ -401,7 +401,7 @@ function collectSwitchMarkers(testFiles) {
     const rel = relativePath(file);
     let text;
     try { text = fs.readFileSync(file, 'utf-8'); } catch (error) { continue; }
-    // 审查 R-33：marker 只承认两种位置，二者都必须绑定到「含断言的 test()/it() 回调」：
+    // marker 只承认两种位置，二者都必须绑定到「含断言的 test()/it() 回调」：
     //   (i)  落在该回调体之内；
     //   (ii) 位于其后最近的那个 `test(`/`it(` 之前（中间只有空行、注释行与普通语句，
     //        不得插入另一个 describe 分组，且行距不超过 ATTACH_MAX_GAP）——仓库既有写法
@@ -469,7 +469,7 @@ function collectInventory(options) {
   const rows = collectRows();
   return rows.map((row) => {
     const tested = markers.get(row.keyPath) || [];
-    // 审查 R-33：既有引用走严格判定（模块名 + test 回调体），不再用同名 token 顶替
+    // 既有引用走严格判定（模块名 + test 回调体），不再用同名 token 顶替
     const existing = locateTestEvidence(testIndex.filesByPath, testIndex.index, row.keyPath, 2);
     const exemptReason = exemptionReason(exemptions, row.keyPath);
     let status = 'MISSING';
@@ -511,7 +511,7 @@ function buildMatrix(inventory) {
   lines.push('> 键全集来自 `features-schema.js` / `tuning-defaults.js` / `site-defaults.js`（site/navigation/sidebar/footer/theme/security/friends/tagAliases/contentPolicy 全段）/ `internals-defaults.js` 注册表；');
   lines.push('> `guard.json5` 细节键由 `guard-defaults.js` 与 guard 测试覆盖，不在本矩阵。');
   lines.push('> 覆盖证据优先级：`test()`/`it()` 断言回调内的 `// switch: <键路径>` 标记（或紧贴该测试上方的标记）> 测试代码中「叶名 + 所属模块名同现」的引用 > `scripts/config-switch-exemptions.json` 逐键豁免理由。');
-  lines.push('> 证据口径（审查 R-33）：注释与字符串字面量先净化再切词，marker 必须绑定到含 assert 的测试回调，既有引用必须落在 test 回调内且 ±2 行内出现所属模块名——「文本里出现过」不再算覆盖。');
+  lines.push('> 证据口径：注释与字符串字面量先净化再切词，marker 必须绑定到含 assert 的测试回调，既有引用必须落在 test 回调内且 ±2 行内出现所属模块名——「文本里出现过」不再算覆盖。');
   lines.push('> 消费位置按「叶子键名 + 父段」评分定位首个源码引用，供人工复核；存在同名字段的模块以类型与默认值判别。');
   lines.push('> 回退字面量必须与注册表默认一致，由 `scripts/config-fallback-bindings.json` + `verify:config-single-source` 锁定。');
   lines.push('> 「缺失」行是已登记在 `scripts/config-switch-baseline.json` 的存量缺口：新增缺失会让门禁失败，基线只允许缩小。');

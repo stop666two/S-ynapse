@@ -11,7 +11,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // 压缩无头对比的验证结果文件（相对仓库根，LF 语义无关）。
 // 路径只在此声明一次：写方 scripts/verify-compression.js 与读方 release:mark 都从
-// RELEASE_GATES 的这一项取，避免「退出码 0 就当通过」把自跳过的门禁记成已执行（审查 R-36）。
+// RELEASE_GATES 的这一项取，避免「退出码 0 就当通过」把自跳过的门禁记成已执行。
 const COMPRESSION_VERIFY_REPORT = '.cache/compression-verify/cli-last.json';
 
 // 前置质量门禁清单（顺序即 release:mark 的执行顺序，也是 RELEASE.json.checks 的必需键）。

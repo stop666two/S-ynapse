@@ -365,13 +365,13 @@ const DEFAULT_FEATURES = {
     preserveUnmatched: true
   },
   math: {
-    enabled: true, autoDetect: true, version: '0.16.22',
+    enabled: true, autoDetect: true, version: '0.19.1',
     inlineDelimiters: ['$'], blockDelimiters: ['$$'], throwOnError: false,
     strict: false, renderRoundParens: true, renderSquareBrackets: true,
     selector: '.post-content', mathml: true
   },
   mermaid: {
-    enabled: true, autoDetect: true, version: '11.17.2', followTheme: true,
+    enabled: true, autoDetect: true, version: '12.3.0', followTheme: true,
     lightTheme: 'default', darkTheme: 'dark', securityLevel: 'strict',
     clientOptions: {
       securityLevel: 'strict',

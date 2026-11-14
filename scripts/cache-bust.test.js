@@ -75,7 +75,7 @@ test('cacheBust：二次运行幂等（不双哈希、不改写 HTML）', async 
   }
 });
 
-test('cacheBust：增量复用页保留旧哈希引用时重定向到本轮哈希（审查 R-13）', async () => {
+test('cacheBust：增量复用页保留旧哈希引用时重定向到本轮哈希', async () => {
   const dir = makeDist();
   try {
     const mod = makeModule(dir);
@@ -122,10 +122,10 @@ test('cacheBust：内容变化生成单层新哈希并更新引用', async () =>
   }
 });
 
-// 审查 R-32：搜索索引的 featuredImage 最终路径预计算（lib/search-index.js）与真实重命名
+// 搜索索引的 featuredImage 最终路径预计算（lib/search-index.js）与真实重命名
 // （本模块 cacheBust）必须用同一套排除集（lib/cache-bust-exclusions.js）。漂移时索引会写入
 // 「本轮从未被重命名」的哈希路径，搜索结果缩略图 404。断言方式：预计算结果必须指向真实存在的文件。
-test('cacheBust 与搜索索引预计算共用排除集（审查 R-32）', async () => {
+test('cacheBust 与搜索索引预计算共用排除集', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'synapse-cachebust-excl-'));
   try {
     const site = {
@@ -170,7 +170,7 @@ test('cacheBust 与搜索索引预计算共用排除集（审查 R-32）', async
 
 // 别名规则不得误伤：作者自带的「名字里就有 10 位十六进制」的同名兄弟文件。它本轮同样会被重命名，
 // 因此别名规则必须优先采用它自己的映射目标（mapping[m]），而不是把它当成稳定名的旧哈希残留。
-test('cacheBust：同名十六进制兄弟文件不被别名规则改写（审查 R-13 反例）', async () => {
+test('cacheBust：同名十六进制兄弟文件不被别名规则改写（反例）', async () => {
   const dir = makeDist();
   try {
     fs.writeFileSync(path.join(dir, 'media', 'pic.0123456789.jpg'), 'sibling-bytes');

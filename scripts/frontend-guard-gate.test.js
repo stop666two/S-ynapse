@@ -1,5 +1,5 @@
 'use strict';
-// R-42 / R-43 回归：accessGate 的 ?key= 解锁码记忆时长独立于 password.rememberHours；
+// / 回归：accessGate 的 ?key= 解锁码记忆时长独立于 password.rememberHours；
 // bypass.localhost 必须识别 IPv6 回环（location.hostname 为 '[::1]'）。
 const test = require('node:test');
 const assert = require('node:assert');
@@ -10,7 +10,7 @@ const ROOT = path.resolve(__dirname, '..');
 const loadBypass = () => import(pathToFileURL(path.join(ROOT, 'js', 'domains', 'guard', 'bypass.js')).href);
 const loadGate = () => import(pathToFileURL(path.join(ROOT, 'js', 'domains', 'guard', 'access-gate.js')).href);
 
-test('R-43 bypass.localhost 对 IPv6 回环 hostname（"[::1]"）同样生效', async () => {
+test('bypass.localhost 对 IPv6 回环 hostname（"[::1]"）同样生效', async () => {
   const m = await loadBypass();
   const base = { search: '', storageValue: '' };
   assert.strictEqual(m.resolveGuardBypass({ localhost: true }, Object.assign({ hostname: '[::1]' }, base)).bypassed, true);
@@ -43,7 +43,7 @@ function installGateDom(search, store) {
   };
 }
 
-test('R-42 ?key= 解锁码默认永久记忆（不受 password.rememberHours=0 影响）', async () => {
+test('?key= 解锁码默认永久记忆（不受 password.rememberHours=0 影响）', async () => {
   const store = {};
   const ctx = installGateDom('?key=secret', store);
   const gate = await loadGate();
@@ -53,7 +53,7 @@ test('R-42 ?key= 解锁码默认永久记忆（不受 password.rememberHours=0 �
   assert.strictEqual(rec.exp, undefined, '永久记忆不得写 exp（JSON 无法表达 Infinity）');
 });
 
-test('R-42 unlockCodeTtlHours>0 时解锁码按该小时数过期', async () => {
+test('unlockCodeTtlHours>0 时解锁码按该小时数过期', async () => {
   const store = {};
   const ctx = installGateDom('?key=secret', store);
   ctx.G.accessGate.unlockCodeTtlHours = 2;

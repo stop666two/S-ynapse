@@ -44,7 +44,7 @@ describe('createMediaResolver', () => {
     assert.strictEqual(resolver('/media/Test-Photo-1.jpg'), false);
   });
 
-  // 审查 R-31：产物变体是 media/<dir>/<name>-<width>.<ext>（构建不产出 variants/ 目录）。
+  // 产物变体是 media/<dir>/<name>-<width>.<ext>（构建不产出 variants/ 目录）。
   // 旧断言把 /media/variants/… 钉为 true，而那类路径永远不会存在。
   it('accepts generated variant paths in the real output layout', () => {
     assert.strictEqual(resolver('/media/test-photo-1-640.webp'), true);
@@ -133,7 +133,7 @@ describe('preflightArticles', () => {
     assert.deepStrictEqual(r.errors, []);
   });
 
-  // 审查 R-27：保留路由段与去重键必须大小写不敏感。Windows/macOS 的文件系统不区分大小写，
+  // 保留路由段与去重键必须大小写不敏感。Windows/macOS 的文件系统不区分大小写，
   // slug: Tags 会写进生成的 dist/<lang>/tags/ 目录并覆盖标签页，Hello/hello 互相覆盖。
   it('rejects reserved route segments regardless of slug case', () => {
     const cases = [['Tags', '/en/tags/'], ['TAGS', '/en/tags/'], ['Search', '/en/search/'], ['ASSETS', '/en/assets/']];
@@ -162,7 +162,7 @@ describe('preflightArticles', () => {
     assert.ok(/case-insensitive/i.test(r.errors[0].message));
   });
 
-  // 审查 R-07：站内 /media/ 之外的外链封面由渲染侧回退与 CSP img-src 处理，
+  // 站内 /media/ 之外的外链封面由渲染侧回退与 CSP img-src 处理，
   // 参与存在性校验会以非 critical 的 media 错误让普通构建（无 --allow-degraded）硬失败。
   it('does not run media existence checks on off-site featuredImage URLs', () => {
     const cases = [

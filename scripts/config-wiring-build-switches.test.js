@@ -1,5 +1,5 @@
 'use strict';
-// 审查 R-33 接线回归：四个「零消费」构建类开关的双态行为。
+// 接线回归：四个「零消费」构建类开关的双态行为。
 // 背景：features.gallery.enabled / features.autoSummary.enabled / features.mediaAudit.enabled /
 // features.exportBackup.enabled 此前只有 features.json5 注释与 schema 默认值，生产代码从不读取，
 // 用户写 false 毫无效果。接线后本套件锁定可观察差异：

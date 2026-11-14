@@ -42,7 +42,7 @@ function queryValue(search, name) {
 }
 
 function isLocalhostName(hostname) {
-  // 审查 R-43：调用方传的是 location.hostname，IPv6 字面量带方括号（'[::1]'），
+  // 调用方传的是 location.hostname，IPv6 字面量带方括号（'[::1]'），
   // 旧实现只比较 '::1' 导致 bypass.localhost 对 IPv6 回环永不生效（docs 已承诺支持）。
   let h = String(hostname || '').trim();
   if (h.charAt(0) === '[' && h.charAt(h.length - 1) === ']') h = h.slice(1, -1);

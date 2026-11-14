@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-// 审查 R-33 接线：引入统一开关判定（features.mediaAudit.enabled）。
+// 接线：引入统一开关判定（features.mediaAudit.enabled）。
 const { mediaAuditEnabled } = require('./lib/build-switch-gates');
 
 // 站点根：SYNAPSE_ROOT（测试隔离用）优先，默认仓库根——与 scripts/build.js / generate-og.js 同约定，
@@ -131,7 +131,7 @@ function findDuplicates(relPaths) {
 
 function main() {
   const cfg = loadAuditConfig();
-  // 审查 R-33 接线：features.mediaAudit.enabled=false 时直接跳过（exit 0，不报错），
+  // 接线：features.mediaAudit.enabled=false 时直接跳过（exit 0，不报错），
   // 并输出一行说明——用户显式调用命令但配置禁用了它，属于「按配置不执行」而非错误。
   // 判定放在 articles 目录检查之前：禁用态无论仓库/夹具状态如何都稳定 exit 0。
   if (!mediaAuditEnabled({ mediaAudit: cfg })) {

@@ -1,5 +1,5 @@
 'use strict';
-// R-18 / R-41 回归：协议相对外链（//host、/\host）必须走外链策略；警告弹窗文案按纯文本渲染。
+// / 回归：协议相对外链（//host、/\host）必须走外链策略；警告弹窗文案按纯文本渲染。
 // js/domains/core/external-link.js 为浏览器 ESM 且无相对导入，经 data URL 动态导入（无副本）。
 const test = require('node:test');
 const assert = require('node:assert');
@@ -71,7 +71,7 @@ function click(href, state) {
   state.clicks.forEach((fn) => fn({ target: { closest: () => anchor }, preventDefault() { state.prevented += 1; } }));
 }
 
-test('R-18 协议相对外链 //host 不得被当作站内链接放行', async () => {
+test('协议相对外链 //host 不得被当作站内链接放行', async () => {
   const state = installDom('');
   const { init } = await load();
   init();
@@ -80,7 +80,7 @@ test('R-18 协议相对外链 //host 不得被当作站内链接放行', async (
   assert.strictEqual(state.prevented, 1, '警告模式必须阻止默认跳转');
 });
 
-test('R-18 反斜杠变体 /\\host 同样按外链处理（浏览器把 \\ 解析为 /）', async () => {
+test('反斜杠变体 /\\host 同样按外链处理（浏览器把 \\ 解析为 /）', async () => {
   const state = installDom('');
   const { init } = await load();
   init();
@@ -89,7 +89,7 @@ test('R-18 反斜杠变体 /\\host 同样按外链处理（浏览器把 \\ 解�
   assert.strictEqual(state.prevented, 1);
 });
 
-test('R-18 站内根相对路径保持快路径（不弹窗、不拦截）', async () => {
+test('站内根相对路径保持快路径（不弹窗、不拦截）', async () => {
   const state = installDom('');
   const { init } = await load();
   init();
@@ -98,7 +98,7 @@ test('R-18 站内根相对路径保持快路径（不弹窗、不拦截）', asy
   assert.strictEqual(state.prevented, 0);
 });
 
-test('R-41 警告文案按纯文本渲染：HTML 不被解析，{url} 占位符被移除', async () => {
+test('警告文案按纯文本渲染：HTML 不被解析，{url} 占位符被移除', async () => {
   const state = installDom('<img src=x onerror=alert(1)>{url}');
   const { init } = await load();
   init();

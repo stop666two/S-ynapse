@@ -9,7 +9,7 @@ const { pathToFileURL } = require('node:url');
 
 const WORKERS_DIR = path.join(__dirname, '..', 'workers');
 const CONFIG_PATH = path.join(WORKERS_DIR, 'security-config.js');
-// 审查 R-12：workers/security-config.js 被 .gitignore 忽略且是生产 Worker 的配置。
+// workers/security-config.js 被 .gitignore 忽略且是生产 Worker 的配置。
 // 此前的 fixture 直接覆写它、只在 after 恢复 —— 测试被 SIGINT/超时打断就会把夹具留在工作区，
 // 随后 `npm run deploy:worker` 会把夹具推上生产。因此这里在模块加载时记录原始字节，
 // 由末尾的隔离断言证明整个测试套件对它只读。
@@ -40,7 +40,7 @@ const FIXTURE = {
 };
 
 let worker = null;
-// 审查 R-12：fixture 配置写进 workers/ 的临时副本，仓库文件完全不被触碰。
+// fixture 配置写进 workers/ 的临时副本，仓库文件完全不被触碰。
 // 临时目录在 after 清理；before 内部抛错时也立即清理，避免遗留。
 let tmpRoot = null;
 
@@ -96,9 +96,9 @@ describe('workers/lib ip-utils', () => {
     assert.ok(ipUtils.isPathBlocked('/./admin/panel', rules));
     assert.strictEqual(ipUtils.isPathBlocked('/media/../photos/x', rules), null);
   });
-  // 审查 R-09：`/*` 折成 '/' 后被 continue 掉、`/admin*` 与 `/admin/**` 一条都匹配不上，
+  // `/*` 折成 '/' 后被 continue 掉、`/admin*` 与 `/admin/**` 一条都匹配不上，
   // 等于运维按通配语义写的规则线上零拦截且无任何提示。
-  it('honours whole-site and alternate wildcard rule forms (R-09)', () => {
+  it('honours whole-site and alternate wildcard rule forms ', () => {
     for (const pattern of ['/*', '/**']) {
       const rules = [{ path: pattern }];
       assert.ok(ipUtils.isPathBlocked('/zh/', rules), pattern + ' 必须拦截任意路径');
@@ -129,7 +129,7 @@ describe('workers/lib rate-limit', () => {
     limiter.check('b', opts, 4);
     limiter.check('c', opts, 4);
     limiter.check('d', opts, 4);
-    // 审查 R-08：maxEntries 是硬上限。此前该断言写 4（超过上限 3 而条目仍在），
+    // maxEntries 是硬上限。此前该断言写 4（超过上限 3 而条目仍在），
     // 等于把「上限不生效」固化为预期；正确不变量是超限必须淘汰到上限以内。
     assert.ok(limiter.size <= 3, 'map 不得超过 maxEntries，实际 ' + limiter.size);
     assert.strictEqual(limiter.check('a', opts, 4), 'blocked', '在效封禁不得被淘汰');
@@ -413,7 +413,7 @@ describe('security-worker config resolution (empty arrays vs missing fields)', (
 
 describe('security-worker test isolation', () => {
   it('leaves workers/security-config.js byte-identical to its pre-suite content', () => {
-    // 审查 R-12：这套测试唯一的回归护栏 —— 即使套件被中断，仓库里的生产配置也必须保持原样，
+    // 这套测试唯一的回归护栏 —— 即使套件被中断，仓库里的生产配置也必须保持原样，
     // 因为它是被 gitignore 的、deploy:worker 会直接上线的文件。
     const current = fs.existsSync(CONFIG_PATH) ? fs.readFileSync(CONFIG_PATH) : null;
     if (CONFIG_SNAPSHOT === null && current === null) return; // 文件不存在：无从比较，跳过

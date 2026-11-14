@@ -1,7 +1,7 @@
 'use strict';
 
-// verify:config-refs 自检（审查 R-33）：允许名单必须逐键登记理由，段落前缀通配已废弃。
-// 旧实现支持 prefixes（整段配置脱离审查），这里把「只认精确键路径 + 理由非空 + 无冗余」
+// verify:config-refs 自检：允许名单必须逐键登记理由，段落前缀通配已废弃。
+// 旧实现支持 prefixes（整段配置脱离逐键校验），这里把「只认精确键路径 + 理由非空 + 无冗余」
 // 固化成不变式；真实仓库的完整扫描由 npm run verify:config-refs 执行（CI 门禁）。
 const test = require('node:test');
 const assert = require('node:assert');
@@ -32,7 +32,7 @@ function configLeaves() {
   return new Set(leaves);
 }
 
-test('允许名单：无段落前缀通配（审查 R-33）', () => {
+test('允许名单：无段落前缀通配', () => {
   const parsed = loadAllowlist();
   assert.strictEqual(parsed.prefixes, undefined, 'prefixes 整段豁免已废弃，必须逐键登记');
   assert.ok(parsed.allow && typeof parsed.allow === 'object', '缺少 allow 映射');

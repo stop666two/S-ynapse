@@ -113,7 +113,7 @@ function extractWorkerSecurity(security, cspContext, features) {
   const csp = s.csp && typeof s.csp === 'object' ? s.csp : {};
   let directives =
     csp.directives && typeof csp.directives === 'object' ? csp.directives : {};
-  // 审查 R-10：csp.enabled:false 是应急开关，_headers 侧（scripts/build/security-files.js）已按它
+  // csp.enabled:false 是应急开关，_headers 侧（scripts/build/security-files.js）已按它
   // 停止下发；Worker 侧此前照旧投影 directives，会在动态响应上重新贴上完整 CSP，开关等于失效。
   // Worker 对空 directives 已返回 null（不下发），因此这里清空即为「关」。
   if (csp.enabled === false) {
@@ -126,7 +126,7 @@ function extractWorkerSecurity(security, cspContext, features) {
         .map((p) => (typeof p === 'string' ? { path: p } : p))
         .filter((p) => p && typeof p === 'object' && typeof p.path === 'string' && p.path.length > 0)
         .map((p) => {
-          // 审查 R-09：Worker 只按「基路径前缀」匹配（尾部 /*、/**、* 会被折叠）。
+          // Worker 只按「基路径前缀」匹配（尾部 /*、/**、* 会被折叠）。
           // 中段通配无法用前缀表达，构建期明确告警，避免配置看着生效线上零拦截。
           const tailStripped = p.path.replace(/(?:\/)?\*+$/, '');
           if (tailStripped.includes('*')) {
@@ -153,7 +153,7 @@ function extractWorkerSecurity(security, cspContext, features) {
         : RATE_LIMIT_FALLBACKS.maxTrackedEntries,
       whitelist: filterIpEntries(rl.whitelist, 'rateLimiting.whitelist'),
       blacklist: filterIpEntries(rl.blacklist, 'rateLimiting.blacklist'),
-      // 审查 R-11：缺键（undefined）必须原样透传，交给 Worker 内置 DEFAULT_SKIP_PATHS；
+      // 缺键（undefined）必须原样透传，交给 Worker 内置 DEFAULT_SKIP_PATHS；
       // 写成 [] 的语义是「不跳过任何路径」（连静态资源也计入限流），与内置默认正好相反。
       // 显式 [] 仍照原样输出（用户选择严格计数）。
       skipPaths: Array.isArray(rl.skipPaths)
@@ -186,16 +186,16 @@ function maintenanceWorkerConfig(features) {
   const m = (features && features.maintenance) || {};
   const retry = parseInt(m.retryAfter, 10);
   return {
-    // 审查 R-33 接线：features.maintenance.enabled 此前零消费。显式投影成布尔（只认 === true，
+    // 接线：features.maintenance.enabled 此前零消费。显式投影成布尔（只认 === true，
     // 字符串 "false"/缺失都是 false），Worker 侧与环境变量 MAINTENANCE=1 取或，
     // 兜底值与 MAINTENANCE_FALLBACKS.enabled 同源。
     enabled: m.enabled === true,
-    // 审查 R-33 接线：message/messageEn 此前零消费（维护页文案只认环境变量与硬编码内置语）。
+    // 接线：message/messageEn 此前零消费（维护页文案只认环境变量与硬编码内置语）。
     // 空串表示「未配置」，运行时按语言回退内置文案；非字符串一律按未配置处理，
     // 避免数字/对象被 String() 后拼进 HTML。
     message: typeof m.message === 'string' ? m.message : MAINTENANCE_FALLBACKS.message,
     messageEn: typeof m.messageEn === 'string' ? m.messageEn : MAINTENANCE_FALLBACKS.messageEn,
-    // 审查 R-33 接线：status 此前零消费（维护响应硬编码 503）。只接受合法维护态状态码，
+    // 接线：status 此前零消费（维护响应硬编码 503）。只接受合法维护态状态码，
     // 200/301 之类的「错误地让站点看起来正常」的取值一律回退兜底。
     status: maintenanceStatus(m.status),
     setRetryAfter: m.setRetryAfter !== false,

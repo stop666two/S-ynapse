@@ -5,7 +5,7 @@
   "private": true,
   "license": "MIT",
   "engines": {
-    "node": "^20.19.0 || ^22.13.0 || >=24"
+    "node": "^22.13.0 || >=24"
   },
   "scripts": {
     "postinstall": "node scripts/init-project.js",
@@ -23,13 +23,14 @@
     "typecheck": "tsc -p tsconfig.json",
     "verify:security": "node scripts/security-verify.js",
     "verify:config": "node scripts/check-config-consistency.js",
-      "verify:config-refs": "node scripts/check-config-refs.js",
-      "verify:config-single-source": "node scripts/check-config-single-source.js",
-      "gen:config-matrix": "node scripts/gen-config-switch-matrix.js",
+    "verify:config-refs": "node scripts/check-config-refs.js",
+    "verify:config-single-source": "node scripts/check-config-single-source.js",
+    "gen:config-matrix": "node scripts/gen-config-switch-matrix.js",
     "verify:config-dupes": "node scripts/check-config-duplicates.js",
     "verify:config-comments": "node scripts/check-config-comments.js",
     "verify:config-docs": "node scripts/check-config-docs.js",
     "verify:internals": "node scripts/check-internals.js",
+    "verify:comment-hygiene": "node scripts/check-comment-hygiene.js",
     "verify:process-guards": "node scripts/check-process-guards.js",
     "verify:compression": "node scripts/verify-compression.js",
     "audit:a11y": "node scripts/a11y-audit.js",
@@ -61,27 +62,36 @@
     "feed": "4.2.2",
     "front-matter": "4.0.2",
     "json5": "2.2.3",
-    "katex": "0.16.22",
+    "katex": "0.19.1",
     "marked": "12.0.2",
-    "mermaid": "11.17.2",
+    "mermaid": "12.3.0",
     "morphicons": "1.7.1",
     "prismjs": "1.30.0",
-    "sanitize-html": "2.17.7",
-    "sharp": "0.35.4",
+    "sanitize-html": "2.18.2",
+    "sharp": "0.35.5",
     "terser": "5.49.0"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@types/node": "20.19.43",
+    "@types/node": "24.19.2",
     "axe-core": "4.10.2",
     "chokidar": "^3.6.0",
     "esbuild": "0.28.1",
-    "eslint": "10.11.0",
+    "eslint": "10.15.0",
     "fast-check": "4.10.2",
     "globals": "17.12.0",
-    "javascript-obfuscator": "5.8.0",
-    "puppeteer-core": "25.12.0",
+    "javascript-obfuscator": "5.10.1",
+    "puppeteer-core": "25.17.0",
     "typescript": "5.9.3",
-    "wrangler": "4.145.0"
+    "wrangler": "4.162.0"
+  },
+  "overrides": {
+    "dompurify": "^3.4.17",
+    "source-map-js": "^1.2.2",
+    "@vercel/blob": {
+      ".": "^2.9.0",
+      "undici": "^6.29.1"
+    },
+    "zod": "^4.6.7"
   }
 }

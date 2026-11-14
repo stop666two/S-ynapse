@@ -136,7 +136,7 @@ function sanitizeSvg(svgText) {
     /(xlink:href|href|src)\s*=\s*["']?\s*(javascript|vbscript):/i.test(decoded) ||
     /(xlink:href|href|src)=["']?(javascript|vbscript):/i.test(squeezed);
   if (hasExecutable) return { safe: false, content: '' };
-  // 审查 R-28：检测已拒绝上述输入，此处的剥离只是纵深防御，因此与检测保持同一宽松度
+  // 检测已拒绝上述输入，此处的剥离只是纵深防御，因此与检测保持同一宽松度
   // （允许命名空间前缀与自闭合形式），避免「检测不中但剥离也不中」的残留。
   let content = svgText.replace(/<\s*[a-z0-9._-]*:?\s*script\b[\s\S]*?<\s*\/\s*[a-z0-9._-]*:?\s*script\s*>/gi, '');
   content = content.replace(/<\s*[a-z0-9._-]*:?\s*script\b[^>]*\/?>/gi, '');

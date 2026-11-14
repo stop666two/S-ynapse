@@ -89,7 +89,7 @@ const idleQueue = [
   dyn('bilingual', '../domains/features/bilingual.js')
 ];
 
-// 搜索页初始化（审查 R-02）：原先写在 templates/search.ejs 的内联 <script> 里，而软导航用
+// 搜索页初始化：原先写在 templates/search.ejs 的内联 <script> 里，而软导航用
 // innerHTML 交换内容区（js/core/soft-nav.js），插入的脚本不会执行 —— 经页头搜索图标软导航
 // 进入 /search/ 后输入框无监听、?q= 无效、pagefind 模式也不初始化，必须整页刷新才恢复。
 // 现在统一为「内容区出现 #searchPageInput 才初始化」，直接访问（idle 队列）与软导航

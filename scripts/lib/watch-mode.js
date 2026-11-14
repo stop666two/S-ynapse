@@ -1,5 +1,5 @@
 'use strict';
-// watch 模式编排（审查 R-15/R-16）：构建串行器与监听路径清单。
+// watch 模式编排（/）：构建串行器与监听路径清单。
 // 抽成独立模块是为了可单测 —— scripts/build.js 被 require 即执行整轮构建，无法在测试里断言。
 const path = require('path');
 

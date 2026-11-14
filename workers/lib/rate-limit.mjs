@@ -35,7 +35,7 @@ export class RateLimiter {
       else data.hits = hits;
     }
     if (this.map.size <= this.maxEntries) return;
-    // 硬上限（审查 R-08）：同一窗口内涌来大量不同源 IP 时，上面的清理一条都删不掉
+    // 硬上限：同一窗口内涌来大量不同源 IP 时，上面的清理一条都删不掉
     // （每个条目都在窗口内或仍在封禁中），map 会无界增长、每请求再全表扫描一次。
     // 因此仍超限时按「最早失效」批量淘汰到低水位：blockedUntil 作失效时刻，未封禁条目
     // 以最后一次命中时间参与排序。淘汰到低水位而非恰好到上限，避免每来一个新 IP 就全表排序。

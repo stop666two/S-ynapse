@@ -254,7 +254,7 @@ const DEFAULT_GUARD = {
     "viewsPerDay": 0,
     "viewsAction": "toast",
     "unlockCodes": [],
-    // 审查 R-42：`?key=` 解锁码的独立有效期（0 = 永久记忆）。与 password.rememberHours 分开，
+    // `?key=` 解锁码的独立有效期（0 = 永久记忆）。与 password.rememberHours 分开，
     // 因为文档承诺「永久解锁本机」；单一 TTL 会让删掉配置键的站点静默从永久变成过期。
     "unlockCodeTtlHours": 0,
     "logDetect": false

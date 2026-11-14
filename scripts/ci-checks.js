@@ -94,6 +94,7 @@ const CHECKS = [
   { name: 'verify:config-docs', args: ['run', 'verify:config-docs'] },
   { name: 'verify:internals', args: ['run', 'verify:internals'] },
   { name: 'verify:security', args: ['run', 'verify:security'] },
+  { name: 'verify:comment-hygiene', args: ['run', 'verify:comment-hygiene'] },
   { name: 'verify:process-guards', args: ['run', 'verify:process-guards'] },
   // audit 为建议项（advisory）：既有 wrangler/miniflare 链漏洞需依赖升级专项处理
   // （按 CVSS 单独跟踪），结果写入报告但不阻断本聚合器。

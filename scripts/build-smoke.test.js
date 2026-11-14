@@ -732,10 +732,10 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     }
   });
 
-  // 审查 R-01：输出目录与站点根/构建输入重叠时必须在删除前中止。
+  // 输出目录与站点根/构建输入重叠时必须在删除前中止。
   // 刻意不传 linkProject——夹具若把仓库 templates/static/js 以 junction 挂入，
   // 一旦闸门失效，本测试就会替换成「删除仓库目录」的事故放大器。
-  it('rejects an output dir overlapping the site root, without deleting sources (R-01)', () => {
+  it('rejects an output dir overlapping the site root, without deleting sources ', () => {
     const site = createTestSite({ articles: 1, pages: 0, langs: ['zh'] });
     try {
       const sentinel = path.join(site.root, 'articles', 'zh', 'test-article-1.md');
@@ -757,7 +757,7 @@ describe('build pipeline smoke', { skip: SKIP_IN_UNIT_SUITE ? 'run via npm run t
     }
   });
 
-  // 审查 R-33 覆盖：site.build.relatedArticles 的唯一消费点是构建管线的开关判断
+  // 覆盖：site.build.relatedArticles 的唯一消费点是构建管线的开关判断
   // （scripts/build.js:258），没有独立 resolver，因此用两端真实构建断言产物差异。
   it('site.build.relatedArticles 决定相关文章区块是否产出（默认开 / 关闭后不渲染）', () => {
     // switch: site.build.relatedArticles

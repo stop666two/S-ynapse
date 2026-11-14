@@ -52,11 +52,11 @@ function createServeModule(ctx) {
     var PORT = Number.isInteger(opts.port) ? opts.port : (argvPort || loadInternals().ports.serve);
     // features.maintenance：setRetryAfter=false 时维护响应不输出 Retry-After；retryAfter 为秒数（非法回退 3600）。
     var maintCfg = (config.features && config.features.maintenance) || {};
-    // 审查 R-33 接线：features.maintenance.enabled 此前零消费。true 时与 --maintenance 参数 /
+    // 接线：features.maintenance.enabled 此前零消费。true 时与 --maintenance 参数 /
     // MAINTENANCE=1 环境变量等价（三者取或），本地预览能直接验证线上维护态；
     // 缺键/非 true 一律不进入维护态。
     var MAINTENANCE = process.argv.indexOf('--maintenance') !== -1 || process.env.MAINTENANCE === '1' || maintCfg.enabled === true;
-    // 审查 R-33 接线：message/messageEn 此前零消费（只认环境变量与硬编码中文）。优先级与 Worker
+    // 接线：message/messageEn 此前零消费（只认环境变量与硬编码中文）。优先级与 Worker
     // 一致：MAINTENANCE_MESSAGE > features.maintenance.message(En) > 内置语；serve 无请求级语言，
     // 按站点语言（en 开头 → messageEn，与 Worker 的 Accept-Language 选择对应）取一条，
     // 空则回退另一条 —— 本地预览看到的就是线上会看到的文案。
@@ -65,7 +65,7 @@ function createServeModule(ctx) {
     var MAINT_MSG = process.env.MAINTENANCE_MESSAGE || maintCfgMsg ||
       (maintEn ? 'The site is under maintenance. Please check back later.' : '本站正在维护中，请稍后再来。');
     var MAINT_MSG_HTML = escapeHtml(MAINT_MSG);
-    // 审查 R-33 接线：status 此前硬编码 503；只接受 400–599 整数（200/301 之类会让维护页
+    // 接线：status 此前硬编码 503；只接受 400–599 整数（200/301 之类会让维护页
     // 看起来「正常」或跳走），其余回退 503，与 Worker 的归一化规则一致。
     var maintStatus = Number(maintCfg.status);
     if (!Number.isInteger(maintStatus) || maintStatus < 400 || maintStatus > 599) maintStatus = 503;

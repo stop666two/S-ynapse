@@ -154,7 +154,7 @@ const DEFAULT_CONFIG = {
     security: {
       headers: {}, csp: { enabled: false, directives: {}, reportOnly: false },
       robots: { enabled: false, rules: [], sitemap: '/sitemap.xml' },
-      // 审查 R-11：默认值先 deepmerge 再交生成器投影，所以这个对象就是「缺键时的真实安全姿态」。
+      // 默认值先 deepmerge 再交生成器投影，所以这个对象就是「缺键时的真实安全姿态」。
       // 原为 rateLimiting.enabled:false / forceHttps:false / pathRestrictions:[]，用户删掉对应键
       // 就会静默得到「无限流、不跳 HTTPS、无受限路径」，而生成器内的 fail-closed 兜底因默认值
       // 已填满而永不可达。现按 security.json5 记录的推荐姿态取值：限流开、跳 HTTPS、默认保护

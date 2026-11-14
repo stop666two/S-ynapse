@@ -2,7 +2,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const { sanitizeSvg } = require('./lib/content-policy');
 
-// 审查 R-28：检测要求属性前必须有空白，于是 `<svg/onload=…>`（斜杠分隔）与
+// 检测要求属性前必须有空白，于是 `<svg/onload=…>`（斜杠分隔）与
 // `<svg:script>`（命名空间前缀）都被判为 safe 并原样发布到 /media/。
 // 表格化覆盖：危险形态必须拒绝，同时锁定合法形态不被误杀。
 describe('sanitizeSvg', () => {

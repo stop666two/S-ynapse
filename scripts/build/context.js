@@ -112,7 +112,7 @@ function createBuildContext(deps) {
   const OUTPUT_DIR_RESOLVED = resolveOutputDir(argv, rootDir);
   const DIST_DIR = OUTPUT_DIR_RESOLVED.dir;                   // Build output directory
 
-  // 输出目录安全闸门（审查 R-01）：setupDist 会在 cleanDist 为真时对输出目录执行递归删除，
+  // 输出目录安全闸门：setupDist 会在 cleanDist 为真时对输出目录执行递归删除，
   // 因此任何与构建输入重叠的取值（`--out .`、`--out articles`、SYNAPSE_OUT_DIR=$PWD 等）
   // 都必须在构建开始前拦下。保留清单直接取自下面这些实际读取的目录，新增输入目录时不会漏登记。
   const OUTPUT_DIR_CONFLICT = findOutputDirConflict(DIST_DIR, rootDir, [

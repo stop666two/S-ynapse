@@ -14,7 +14,7 @@ export function init(ctx) {
     try {
       const v = JSON.parse(localStorage.getItem(PASS_KEY) || 'null');
       if (!v) return false;
-      // 审查 R-42：解锁码“永久”用 permanent 标记（JSON 无法表示 Infinity，
+      // 解锁码“永久”用 permanent 标记（JSON 无法表示 Infinity，
       // 写 exp:Infinity 会被序列化成 null 从而立刻失效）。
       if (v.permanent === true) return true;
       return !!(typeof v.exp === 'number' && v.exp > Date.now());

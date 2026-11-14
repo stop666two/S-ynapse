@@ -1,5 +1,5 @@
 'use strict';
-// R-22 回归：封面块随软导航重建，init() 只跑一次 —— 缩略图点击与默认样式都必须在新节点上继续生效。
+// 回归：封面块随软导航重建，init() 只跑一次 —— 缩略图点击与默认样式都必须在新节点上继续生效。
 // js/domains/features/cover.js 无相对导入，经 data URL 动态导入。
 const test = require('node:test');
 const assert = require('node:assert');
@@ -46,7 +46,7 @@ function installDom() {
   return state;
 }
 
-test('R-22 首屏无封面时，软导航后（新节点）缩略图点击仍然生效', async () => {
+test('首屏无封面时，软导航后（新节点）缩略图点击仍然生效', async () => {
   const state = installDom();
   const { init } = await load();
   init();
@@ -68,7 +68,7 @@ test('R-22 首屏无封面时，软导航后（新节点）缩略图点击仍然
   assert.strictEqual(blocks[0].className, 'cover-render cover-pattern-gradient');
 });
 
-test('R-22 软导航钩子会把 preferImage=false 的默认样式应用到新文章', async () => {
+test('软导航钩子会把 preferImage=false 的默认样式应用到新文章', async () => {
   const state = installDom();
   const { init } = await load();
   init();

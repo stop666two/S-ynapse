@@ -40,11 +40,12 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
-    # 审查 R-38：聚合器最坏预算为 23 项 × internals.ci.checkTimeoutMs（10000ms = 10min）≈ 230min，
-    # 而此处原为 120min —— 慢夜会被平台杀掉，报告写入、ci/aggregate 状态与 if: always() 工件
-    # 全部来不及执行，恰好丢掉夜跑要留的种子与重放信息。260min = 230 + 缓冲；
-    # verify:internals 会按 checkTimeoutMs × 检查项数反算并断言此处不得低于该预算。
-    timeout-minutes: 260
+    # 聚合器最坏预算 = 检查项数 × internals.ci.checkTimeoutMs（600000ms = 10min）+ 30min 缓冲，
+    # 当前 24 项 → 270min（原先 120min 时慢夜会被平台杀掉，报告写入、ci/aggregate 状态与
+    # if: always() 工件都来不及执行，恰好丢掉夜跑要留的种子与重放信息）。
+    # verify:internals 会按 checkTimeoutMs × 检查项数反算并断言此处不得低于该预算；
+    # 新增聚合检查时这一行要跟着抬（上限 360min）。
+    timeout-minutes: 300
     permissions:
       contents: read
       statuses: write

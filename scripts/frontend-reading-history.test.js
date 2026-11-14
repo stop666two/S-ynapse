@@ -1,5 +1,5 @@
 'use strict';
-// R-25 回归：配置外置加载失败时 features.readingHistory 只剩 enabled（降级子集仅内联 guards），
+// 回归：配置外置加载失败时 features.readingHistory 只剩 enabled（降级子集仅内联 guards），
 // storageKey 缺失必须回退默认键 's-history'，而不是写入字符串 "undefined" 键。
 const test = require('node:test');
 const assert = require('node:assert');
@@ -43,7 +43,7 @@ function installDom() {
   return store;
 }
 
-test('R-25 配置缺 storageKey 时不得写入 "undefined" 键', async () => {
+test('配置缺 storageKey 时不得写入 "undefined" 键', async () => {
   const store = installDom();
   const { init } = await load();
   init();

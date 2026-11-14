@@ -3,7 +3,7 @@ export function init() {
   if (C.enabled === false) return;
   var patterns = (Array.isArray(C.patterns) && C.patterns.length) ? C.patterns : ['gradient', 'stripes', 'dots', 'blob', 'mesh'];
   var def = patterns.indexOf(C.defaultPattern) > -1 ? C.defaultPattern : patterns[0];
-  // 审查 R-22：封面块位于内容区内，软导航替换 .content-wrapper 后节点全是新的，而 init() 只执行一次。
+  // 封面块位于内容区内，软导航替换 .content-wrapper 后节点全是新的，而 init() 只执行一次。
   // 因此不在 init 时缓存节点：每次按当前文档重新取（fresh），点击监听改为文档级委托，
   // 并把 applyDefault() 注册进 __SOFTNAV_HOOKS__，保证软导航进入文章页（或 A→B）后仍可用。
   function fresh() {

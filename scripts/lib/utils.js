@@ -3,12 +3,12 @@ const { DEFAULT_CONFIG } = require('./site-defaults');
 const { createHash } = require('node:crypto');
 
 // 纯日期（YYYY-MM-DD）没有时区概念，但 `new Date('2026-07-19')` 按 UTC 午夜解析：
-// 若用本地 getter 读取，UTC 以西时区会退一天（审查 R-30：TZ=America/New_York 下
+// 若用本地 getter 读取，UTC 以西时区会退一天（TZ=America/New_York 下
 // formatDate('2026-07-19') 曾返回 2026-07-18），使卡片/文章头/归档随构建机时区漂移。
 // 因此纯日期一律按 UTC 读取；带时间或偏移的输入保持既有本地语义。
 const DATE_ONLY_RX = /^\d{4}-\d{2}-\d{2}$/;
 
-// 归档分组用的年/月拆解（审查 R-30 同源缺陷）：必须与 formatDate 同口径——纯日期按 UTC，
+// 归档分组用的年/月拆解（同源缺陷）：必须与 formatDate 同口径——纯日期按 UTC，
 // 带时间或偏移按本地。此前归档在 scripts/build/articles.js 里另写一份本地 getter，
 // 负时区构建机上「卡片显示的日期」与「归档归到哪一年/月」会互相错开。
 // 解析失败返回 null，调用方按「无日期」处理。

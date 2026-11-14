@@ -1,6 +1,6 @@
 'use strict';
 
-// scripts/lib/tracked-files.js 的回归测试（审查 R-33 副作用）：
+// scripts/lib/tracked-files.js 的回归测试（副作用）：
 // 多个「删除键/模块无残留引用」用例曾直接遍历工作树，于是本地任何未跟踪但被
 // gitignore 的仓库副本（如 backups/ 下的旧快照）都会被当成源文件命中，
 // 造成「CI 绿、本地恒红」的假失败。本文件锁定两条不变量：

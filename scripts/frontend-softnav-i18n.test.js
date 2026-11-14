@@ -1,5 +1,5 @@
 'use strict';
-// R-20 回归：软导航换到另一语言段后，<html lang> 必须随目标页同步，并重跑 i18n 的翻译通道
+// 回归：软导航换到另一语言段后，<html lang> 必须随目标页同步，并重跑 i18n 的翻译通道
 // （内容区之外的 aria/title/placeholder 文案与 TTS 选音都以它为语言依据）。
 const test = require('node:test');
 const assert = require('node:assert');
@@ -108,7 +108,7 @@ function installGlobals() {
   return { html, navToggle };
 }
 
-test('R-20 软导航切换语言段后同步 <html lang> 并重跑翻译通道', async () => {
+test('软导航切换语言段后同步 <html lang> 并重跑翻译通道', async () => {
   const dom = installGlobals();
   const i18n = await import(dataUrl(src('js/domains/core/i18n.js')));
   const softNav = await import(dataUrl(src('js/core/soft-nav.js')));

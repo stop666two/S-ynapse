@@ -155,7 +155,7 @@ function swap(html, url, mode) {
   const curWrap = document.querySelector('.content-wrapper');
   if (!nextWrap || !curWrap) throw new Error('目标页缺少 content-wrapper');
   syncHead(newDoc);
-  // 审查 R-20：<html lang> 是读屏语音、TTS 选音、搜索占位与 aria/title 文案的语言依据，
+  // <html lang> 是读屏语音、TTS 选音、搜索占位与 aria/title 文案的语言依据，
   // 软导航换了语言段却不同步它，等于内容换了语言而辅助语义仍是旧语言。
   const docLang = newDoc.documentElement.getAttribute('lang');
   if (docLang) document.documentElement.setAttribute('lang', docLang);

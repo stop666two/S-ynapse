@@ -21,7 +21,7 @@ describe('check-config-docs collectKeys', () => {
   });
 });
 
-describe('check-config-docs keyCovered（审查 R-33：按模块作用域判定）', () => {
+describe('check-config-docs keyCovered（按模块作用域判定）', () => {
   const DOC = [
     '## 1. a.json5 — A 配置',
     '### alpha — 甲',

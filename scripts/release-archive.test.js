@@ -184,9 +184,9 @@ test('readZipEntries：非 ZIP 文件抛错；排除模式覆盖关键敏感目�
   assert.ok(RELEASE_EXCLUDE_PATTERNS.includes('workers/security-config.js'));
 });
 
-// 审查 R-35：release:publish 复用已存在的 zip 时此前完全不校验，
+// release:publish 复用已存在的 zip 时此前完全不校验，
 // 早先 `--ref HEAD` 产出的或手工放入的同名文件会被当成已审计附件上传。
-test('verifyArchive：复用归档必须过白名单、必需文件与版本前缀（R-35）', function (t) {
+test('verifyArchive：复用归档必须过白名单、必需文件与版本前缀', function (t) {
   if (!HAS_GIT_REPO || DERIVED_COPY) {
     t.skip(DERIVED_SKIP_REASON);
     return;

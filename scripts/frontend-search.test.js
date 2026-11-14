@@ -1,5 +1,5 @@
 'use strict';
-// R-19 / R-24 回归：搜索结果点击必须关闭搜索浮层（软导航不再整页刷新）；搜索历史非数组值不得让搜索失效。
+// / 回归：搜索结果点击必须关闭搜索浮层（软导航不再整页刷新）；搜索历史非数组值不得让搜索失效。
 // js/domains/features/search.js 有相对导入（./search-core.js），按 file URL 动态导入，复用同一份源码。
 const test = require('node:test');
 const assert = require('node:assert');
@@ -65,7 +65,7 @@ function installDom(opts) {
   return state;
 }
 
-test('R-19 点击搜索结果必须关闭搜索浮层', async () => {
+test('点击搜索结果必须关闭搜索浮层', async () => {
   const state = installDom({ overlayOpen: true });
   const { init } = await load();
   init();
@@ -75,7 +75,7 @@ test('R-19 点击搜索结果必须关闭搜索浮层', async () => {
   assert.strictEqual(state.overlay.classList.contains('open'), false, '点击结果后浮层必须关闭');
 });
 
-test('R-24 历史存储为非数组 JSON 时搜索仍可用且历史被规范化', async () => {
+test('历史存储为非数组 JSON 时搜索仍可用且历史被规范化', async () => {
   const state = installDom({ store: { 's-history': '{"a":1}' } });
   const { init } = await load();
   init();

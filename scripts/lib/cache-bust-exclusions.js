@@ -1,5 +1,5 @@
 'use strict';
-// cacheBust 排除规则（审查 R-32）：产物重命名（scripts/build/minify.js → cacheBust）与
+// cacheBust 排除规则：产物重命名（scripts/build/minify.js → cacheBust）与
 // 搜索索引的 featuredImage 最终路径预计算（scripts/lib/search-index.js → resolveFinalAssetUrl）
 // 必须共用同一套判定。两处各写一份会漂移：索引可能写入「本轮从未被重命名」的哈希路径，
 // 于是搜索结果缩略图 404（文件名带哈希但文件不存在，且映射里没有该键可被构建期改写）。

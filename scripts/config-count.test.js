@@ -39,7 +39,7 @@ test('实测计数：features 103 模块/1040 项、tuning 37 分类/274 项、�
   assert.strictEqual(perFile['tuning.json5'].items, 274, 'tuning 配置项');
   assert.strictEqual(perFile['guard.json5'].topKeys, 11, 'guard 模块数');
   assert.strictEqual(perFile['guard.json5'].items, 182, 'guard 配置项');
-  assert.strictEqual(total, 2840, '14 个配置文件总项（审查 R-33：首轮删 45 个零消费键，再删 features 19 个，随后按用户决定把 8 个模块级 enabled 反向接线并恢复为真实生效）');
+  assert.strictEqual(total, 2840, '14 个配置文件总项（首轮删 45 个零消费键，再删 features 19 个，随后按用户决定把 8 个模块级 enabled 反向接线并恢复为真实生效）');
 });
 
 test('README：总数/features/tuning 计数与实测一致，无旧计数残留', (t) => {

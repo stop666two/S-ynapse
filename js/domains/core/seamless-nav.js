@@ -47,7 +47,7 @@ function spActive() {
 window.__viewTransitionActive = vtActive;
 
 function setVtOff(off) {
-  // 运行期 <style> 同样受 style-src nonce 约束（审查 R-03），与主题预设共用注入器。
+  // 运行期 <style> 同样受 style-src nonce 约束，与主题预设共用注入器。
   if (off) {
     injectStyle('vtOff', '@view-transition{navigation:none}');
   } else {

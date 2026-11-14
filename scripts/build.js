@@ -148,7 +148,7 @@ async function build() {
   if (!validateJsonSyntax()) {
     abortBuild('\n[FATAL] Build aborted due to configuration errors.\n');
   }
-  // 输出目录安全闸门（审查 R-01）：必须在任何写入/清理之前拦下——第 2 阶段 setupDist 会对
+  // 输出目录安全闸门：必须在任何写入/清理之前拦下——第 2 阶段 setupDist 会对
   // 输出目录执行 rmSync(recursive)，与源目录重叠时等于删除工作树或全部文章源，且不可恢复。
   if (OUTPUT_DIR_CONFLICT) {
     abortBuild(
@@ -354,7 +354,7 @@ async function build() {
       markPhase('og', ogStartedAt);
       if (ogRes.status !== 0) {
         console.warn('  [WARN] OG image generation reported errors (see above); continuing build.');
-        // 审查 R-17：OG 图属可降级资源（缺一张封面不应让已完整的 dist 整体失败、阻断部署），
+        // OG 图属可降级资源（缺一张封面不应让已完整的 dist 整体失败、阻断部署），
         // 与 media（media.js）与压缩增强（minify.js）的降级路径一致记为非致命。
         // generate-og.js 独立运行时的退出码语义不变（仍为非零）。
         recordBuildFailure('og', 'generate-og.js exited with status ' + ogRes.status, { fatal: false });
@@ -511,7 +511,7 @@ if (WATCH_MODE) {
     console.error('[FATAL] chokidar not available for watch mode');
     process.exit(1);
   }
-  // 审查 R-15：初始构建与重建共用同一串行器。原来初始 build() 直接调用、只有 rebuild() 置
+  // 初始构建与重建共用同一串行器。原来初始 build() 直接调用、只有 rebuild() 置
   // building 守卫，首轮未结束时保存文件会并发跑第二轮 —— 两轮共享同一份 BUILD_ERRORS /
   // INCREMENTAL_CTX / 媒体缓存闭包，并同时写 dist/ 与 .build-cache.json，产物可能是两版混合、
   // 缓存条目与最终 HTML 不一致（后续增量据此跳过错误页面）。
@@ -531,7 +531,7 @@ if (WATCH_MODE) {
   function rebuild() {
     return serializer.run(runBuildCycle);
   }
-  // 审查 R-16：监听清单来自 lib/watch-mode（含 data/**/*）。data/ 是每日一言等数据的默认来源
+  // 监听清单来自 lib/watch-mode（含 data/**/*）。data/ 是每日一言等数据的默认来源
   // （helpers.js → features.dailyQuote.dataFile 默认 'data/quotes.json5'），不监听时改数据不重建。
   const watchPaths = resolveWatchPaths(ROOT);
   const watcher = chokidar.watch(watchPaths, { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 300 } });

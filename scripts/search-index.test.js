@@ -186,7 +186,7 @@ test('resolveFinalAssetUrl：媒体路径预计算内容哈希、幂等与豁免
   }
 });
 
-// 审查 R-32：与 cacheBust 的排除集共用（lib/cache-bust-exclusions.js）。旧实现只跳过
+// 与 cacheBust 的排除集共用（lib/cache-bust-exclusions.js）。旧实现只跳过
 // 前缀 assets/、og/ 与路径中任意位置的 node_modules/，于是 PWA 图标、SW 基名、og 中间段的
 // featuredImage 会被预计算成「从未被重命名」的哈希路径 → 搜索结果缩略图 404。
 test('resolveFinalAssetUrl：与 cacheBust 共用排除集（SW 基名 / PWA 图标 / og 中间段）', async () => {

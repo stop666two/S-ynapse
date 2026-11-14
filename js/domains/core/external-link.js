@@ -25,7 +25,7 @@ export function init() {
     return EL.copyButtonText || __T('toolbar.copyLink', '复制链接');
   }
   // 复制当前外链 URL：Clipboard API 优先，不可用时回退 execCommand；成功短暂显示「已复制」。
-  // 审查 R-41：配置文案按纯文本渲染（site.json5 明确「不可填 HTML 标签（按纯文本渲染）」），
+  // 配置文案按纯文本渲染（site.json5 明确「不可填 HTML 标签（按纯文本渲染）」），
   // 因此文案只经 textContent 进入 DOM；URL 单独放进受控 .link-url 元素，避免任何字符串拼 HTML。
   function fillBody(b, text, rawUrl) {
     b.textContent = '';
@@ -83,7 +83,7 @@ export function init() {
     if (!a) return;
     var h = a.getAttribute('href');
     if (!h) return;
-    // 审查 R-18：早退只保留真正没有网络目标的写法（页内锚点/伪协议）。以 '/' 开头的还可能是
+    // 早退只保留真正没有网络目标的写法（页内锚点/伪协议）。以 '/' 开头的还可能是
     // 协议相对地址（//evil.example 或 /\evil.example，浏览器把 \ 当 /），若在此直接 return，
     // 外链警告、黑名单与新标签策略全部被绕过；根相对路径（单个 '/' 开头）仍走快路径。
     if (h[0] == '#' || h.slice(0, 7) == 'mailto:' || h.slice(0, 11) == 'javascript:') return;

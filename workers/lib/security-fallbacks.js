@@ -12,11 +12,11 @@ export const RATE_LIMIT_FALLBACKS = Object.freeze({
 });
 
 export const MAINTENANCE_FALLBACKS = Object.freeze({
-  // 审查 R-33 接线：features.maintenance.enabled 此前零消费（只有 serve --maintenance 与 Worker
+  // 接线：features.maintenance.enabled 此前零消费（只有 serve --maintenance 与 Worker
   // 环境变量 MAINTENANCE=1 生效）。缺失/未生成配置时默认 false —— 兜底绝不能把站点推进维护态；
   // 环境变量仍是独立开关，Worker 侧对两者取或。
   enabled: false,
-  // 审查 R-33 接线：message/messageEn/status 同样此前零消费。空串 = 未配置，运行时回退到内置
+  // 接线：message/messageEn/status 同样此前零消费。空串 = 未配置，运行时回退到内置
   // 中/英默认文案 —— 保证 security-config.js 缺失时维护页与今天的输出逐字一致。
   message: "",
   messageEn: "",

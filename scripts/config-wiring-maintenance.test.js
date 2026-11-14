@@ -1,5 +1,5 @@
 'use strict';
-// 审查 R-33 接线：features.maintenance.enabled 此前零消费 —— 用户写 enabled 对 Worker 与本地
+// 接线：features.maintenance.enabled 此前零消费 —— 用户写 enabled 对 Worker 与本地
 // serve 都没有任何效果（只有 serve --maintenance 参数与 Worker 环境变量 MAINTENANCE=1 生效）。
 // 本文件验证三件事：
 //   1) 构建期投影：features.maintenance.enabled 经 maintenanceWorkerConfig 进入 Worker 配置；

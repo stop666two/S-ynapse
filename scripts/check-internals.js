@@ -99,7 +99,7 @@ function findStepBlock(lines, index) {
   return { start, end, block: lines.slice(start, end) };
 }
 
-// 审查 R-38：夜跑 job 的超时预算必须覆盖聚合器的最坏情况（检查项数 × internals.ci.checkTimeoutMs）。
+// 夜跑 job 的超时预算必须覆盖聚合器的最坏情况（检查项数 × internals.ci.checkTimeoutMs）。
 // 硬编码的 timeout-minutes 会随 checkTimeoutMs 或检查项数增长而落后，落后后慢夜被平台杀掉，
 // 报告写入 / ci/aggregate 状态 / if: always() 工件全部来不及执行——恰好丢掉夜跑要保留的证据。
 function countAggregateChecks() {
@@ -165,7 +165,7 @@ function checkDeployWorkflow(internals) {
   if (compatToken && !deployYml.includes('node-version-file: .nvmrc')) {
     failures.push('deploy.yml：主任务应使用 node-version-file: .nvmrc（由 .nvmrc/internals 单源控制版本）');
   }
-  // 审查 R-34：此前只用 includes('node scripts/ci-checks.js') 做子串判断，把该步骤改成
+  // 此前只用 includes('node scripts/ci-checks.js') 做子串判断，把该步骤改成
   // `run: node scripts/ci-checks.js || true` 或加 `continue-on-error: true` / `if:` 后
   // verify:internals 仍然 PASS，而 lint/typecheck/测试/配置门禁/安全验证/构建全部不再阻断。
   // 这是单一事实源体系唯一的外部锚点，因此按 YAML 结构断言该 step 的 run 与两个失效开关。
@@ -221,7 +221,7 @@ function checkLiteralGuards() {
   }
 }
 
-// 审查 R-44：docs/architecture.md 的「规模口径」此前只能靠人工审查发现漂移
+// docs/architecture.md 的「规模口径」此前只能靠人工比对发现漂移
 // （scripts/lib 76 → 78 → 82，实际已 83；同名单测也写错）。这里按目录实况校验，
 // 任一处对不上即失败；数字被删除（正则不命中）同样失败，避免「删掉就不漂」。
 function listJs(rel) {
@@ -297,7 +297,7 @@ function checkArchitectureCounts() {
   }
 }
 
-// 审查 R-04 / R-39 的结构性回归守卫：此前这两类只能靠人工 grep
+// / 的结构性回归守卫：此前这两类只能靠人工 grep
 // （「所有 uses 是否锁 SHA」「run: 里有没有直接内插可注入表达式」）。
 // 这里解析全部 workflow，不依赖具体文件/行号，新增工作流自动纳入。
 const SHA40 = /^[0-9a-f]{40}$/;

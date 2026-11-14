@@ -382,7 +382,7 @@ describe('check-config-refs 纯函数属性', () => {
   });
 
   it('isAllowed 只做逐键精确匹配（不做前缀/子串匹配）', () => {
-    // 审查 R-33：允许名单已从「整段前缀豁免」改为逐键登记，isAllowed 收 Set 且只判精确成员。
+    // 允许名单已从「整段前缀豁免」改为逐键登记，isAllowed 收 Set 且只判精确成员。
     // 旧断言传 {exact,prefixes} 对象，实现早已不认——那条用例永远不可能通过（fuzz 门禁形同虚设）。
     const leafArb = fc.stringMatching(/^[a-z][a-z0-9.]{2,12}$/);
     checkProperty('isAllowed-判定', fc, fc.property(leafArb, leafArb, (leaf, other) => {

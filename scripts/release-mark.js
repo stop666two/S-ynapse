@@ -5,7 +5,7 @@ require('./lib/process-guard.js');
 //   1. 校验工作区干净；
 //   2. 顺序执行全套质量门禁（任一失败即停止，不修改任何文件）；退出码 0 的门禁若声明了
 //      reportFile，还要核对它自报的结果——环境缺失而「自跳过」的门禁记为未通过并大声告警
-//      （审查 R-36：否则 RELEASE.json 会宣称一个从未执行的门禁）；
+//      （否则 RELEASE.json 会宣称一个从未执行的门禁）；
 //   3. 校验人工核验参数（--human-verified / --confirm）；
 //   4. 同步版本：递增路径用 npm version；显式版本 === 当前版本（同版本标记）时跳过 npm version，
 //      仅当 package-lock 根版本漂移时同步；
@@ -184,7 +184,7 @@ function readGateReport(root, reportFile) {
 
 // 退出码 0 不等于门禁真的执行过：环境缺失时 verify:compression 以 status=skipped 正常退出。
 // 故声明了 reportFile 的门禁在成功之后还要核对报告状态，非 passed（含报告缺失）一律判为未通过，
-// 并给出指名该门禁与原因的告警，避免 RELEASE.json 宣称一个从未运行的门禁（审查 R-36）。
+// 并给出指名该门禁与原因的告警，避免 RELEASE.json 宣称一个从未运行的门禁。
 function evaluateGateReport(root, gate) {
   if (!gate.reportFile) return { key: gate.key, passed: true, reason: '' };
   const report = readGateReport(root, gate.reportFile);
